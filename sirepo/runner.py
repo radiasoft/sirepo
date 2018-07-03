@@ -21,6 +21,7 @@ from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import aenum
 import errno
 import os
 import signal
@@ -36,6 +37,18 @@ cfg = None
 _job_map = pkcollections.Dict()
 
 _job_map_lock = threading.RLock()
+
+
+class State(aenum.UniqueEnum):
+    INIT = 1
+    START = 2
+    KILL = 3
+    RUN = 4
+    STOP = 5
+
+# how long to wait before assuming thread that created
+# job is dead.
+_INIT_TOO_LONG_SECS = 5
 
 
 @pkconfig.parse_none
@@ -57,7 +70,7 @@ def cfg_job_class(value):
             _assert_celery()
         return Celery
     elif value == 'Background':
-        signal.signal(signal.SIGCHLD, Background.sigchld_handler)
+        signal.signal(signal.SIGCHLD, Background._sigchld_handler)
         return Background
     elif value is None:
         return None
@@ -79,7 +92,12 @@ def init(app, uwsgi):
 
 
 def job_is_processing(jid):
-    return cfg.job_class.is_processing(jid)
+    with _job_map_lock:
+        try:
+            job = _job_map[jid]
+        except KeyError:
+            return False
+    return job.is_processing()
 
 
 def job_kill(jid):
@@ -93,75 +111,108 @@ def job_kill(jid):
             job = _job_map[jid]
         except KeyError:
             return
-        lock = getattr(job, 'kill_lock', None)
-        if lock:
-            return
-        lock = threading.RLock()
-        job.kill_lock = lock
-#TODO(robnagler) need a garbage collector in the event that the thread dies in
-#   job.kill(). Need to terminate the job with the strongest kill signal
-    with lock:
-        job.kill()
-    with _job_map_lock:
-        try:
-            job = _job_map[jid]
-            if getattr(job, 'kill_lock', None) != lock:
-                pkdlog('{}: job restarted by another thread', jid)
-                return
-            del _job_map[job.jid]
-            pkdlog('{}: killed and deleted', job.jid)
-        except KeyError:
-            # job reaped by sigchld_handler
-            pass
+    job.kill()
 
 
 def job_race_condition_reap(jid):
-    return cfg.job_class.race_condition_reap(jid)
+    return job_kill(jid)
 
 
 def job_start(data):
-    return cfg.job_class(data)
+    with _job_map_lock:
+        jid = simulation_db.job_id(data)
+        if jid in _job_map:
+#TODO(robnagler) assumes external check of is_processing,
+# which server._simulation_run_status does do, but this
+# could be cleaner. Really want a reliable daemon thread
+# to manage all this.
+            raise Collision(jid)
+        job = cfg.job_class(jid, data)
+        _job_map[jid] = job
+    job.start()
 
 
-class Background(object):
-    """Run as subprocess"""
+class Base(object):
+    """Super of all job classes"""
+    def __init__(self, jid, data):
+        self.data = data
+        self.jid = jid
+        self.lock = threading.RLock()
+        self.set_state(State.INIT)
 
-    def __init__(self, data):
-        with _job_map_lock:
-            self.jid = simulation_db.job_id(data)
-            if self.jid in _job_map:
-                raise Collision(self.jid)
-            self.in_kill = None
-            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            _job_map[self.jid] = self
-            self.pid = None
-            # This command may blow up
-            self.pid = self._start_job()
-
-    @classmethod
-    def is_processing(cls, jid):
-        with _job_map_lock:
-            try:
-                self = _job_map[jid]
-            except KeyError:
-                pkdc('{}: not found', jid)
-                return False
-            if self.in_kill:
-                # Strange but true. The process is alive at this point so we
-                # don't want to do anything like start a new process
-                pkdc('{}: in_kill', jid)
-                return True
-            try:
-                os.kill(self.pid, 0)
-            except OSError:
-                # Has to exist so no need to protect
-                del _job_map[jid]
-                pkdlog('{}: pid={} does not exist, removing job', jid, self.pid)
-                return False
-        return True
+    def is_processing(self):
+        with self.lock:
+            if self.state == State.RUN:
+                if self._is_processing():
+                    return True
+            elif self.state == State.INIT:
+                if time.time() < self.state_changed + INIT_TOO_LONG_SECS:
+                    return True
+            else:
+                assert self.state in (State.START, State.KILL, State.STOP), \
+                    '{}: invalid state for jid='.format(self.state, self.jid)
+        # reap the process in a non-running state
+        self.kill()
+        return False
 
     def kill(self):
-        pkdlog('{}: stopping: pid={}', self.jid, self.pid)
+        with self.lock:
+            if self.state in (State.RUN, State.START, State.KILL):
+                # normal case (RUN) or thread died while trying to kill job
+                self._kill()
+            elif not self.state in (State.INIT, State.STOP):
+                raise AssertionError(
+                    '{}: invalid state for jid='.format(self.state, self.jid),
+                )
+            self.set_state(State.STOP)
+        with _job_map_lock:
+            try:
+                if self == _job_map[self.jid]:
+                    del _job_map[self.jid]
+            except KeyError:
+                # stopped and no longer in map
+                return
+
+    def set_state(self, state):
+        self.state = state
+        self.state_changed = time.time()
+
+    def start(self):
+        with self.lock:
+            if self.state == State.STOP:
+                # Something killed between INIT and START so don't start
+                return
+            elif self.state in (State.KILL, State.RUN):
+                # normal case (RUN) or race condition on start/kill
+                # with a thread that died while trying to kill this
+                # job before it was started.  Have to finish the KILL.
+                self.kill()
+                return
+            else:
+                # race condition that doesn't seem possible
+                assert self.state == State.INIT, \
+                    '{}: unexpected state for jid={}'.format(self.state, self.jid)
+            self.set_state(State.START)
+            self.cmd, self.run_dir = simulation_db.prepare_simulation(self.data)
+            self._start()
+            self.set_state(State.RUN)
+
+
+class Background(Base):
+    """Run as subprocess"""
+
+    def _is_processing(self):
+        try:
+            os.kill(self.pid, 0)
+        except OSError:
+            self.pid = 0
+            return False
+        return True
+
+    def _kill(self):
+        if self.pid == 0:
+            return
+        pid = self.pid
         sig = signal.SIGTERM
         for i in range(3):
             try:
@@ -175,29 +226,25 @@ class Background(object):
                     continue
                 if pid == self.pid:
                     pkdlog('{}: waitpid: status={}', pid, status)
+                    self.pid = 0
                     break
                 else:
-                    pkdlog('pid={} status={}: unexpected waitpid result; job={} pid={}', pid, status, self.jid, self.pid)
+                    pkdlog(
+                        'pid={} status={}: unexpected waitpid result; job={} pid={}',
+                        pid,
+                        status,
+                        self.jid,
+                        self.pid,
+                    )
                 sig = signal.SIGKILL
             except OSError as e:
-                if e.errno in (errno.ESRCH, errno.ECHILD):
-                    # reaped by sigchld_handler()
-                    return
-                raise
-
-
-    @classmethod
-    def race_condition_reap(cls, jid):
-        """Job terminated, but not still in queue.
-
-        This can happen due to race condition in is_processing. Call
-        again to remove the job from the queue.
-        """
-        pkdlog('{}: sigchld_handler in another thread', jid)
-        cls.is_processing(jid)
+                if not e.errno in (errno.ESRCH, errno.ECHILD):
+                    raise
+                # reaped by _sigchld_handler()
+                return
 
     @classmethod
-    def sigchld_handler(cls, signum=None, frame=None):
+    def _sigchld_handler(cls, signum=None, frame=None):
         try:
             with _job_map_lock:
                 if not _job_map:
@@ -211,16 +258,21 @@ class Background(object):
                     # a process that was reaped before sigchld called
                     return
                 for self in _job_map.values():
-                    if self.pid == pid:
-                        del _job_map[self.jid]
-                        pkdlog('{}: delete successful jid={}', self.pid, self.jid)
-                        return
+                    # state of 'pid' is unknown since outside self.lock
+                    if isinstance(self, Background) and getattr(self, 'pid', 0) == pid:
+                        pkdlog('{}: waitpid pid={} status={}', self.jid, pid, status)
+                        break
+                else:
+                    pkdlog('pid={} status={}: unexpected waitpid', pid, status)
+                    return
+            with self.lock:
+                self.pid = 0
+                self.kill()
         except OSError as e:
-            if e.errno != errno.ECHILD:
+            if not e.errno in (errno,ESRCH, errno.ECHILD):
                 pkdlog('waitpid: OSError: {} errno={}', e.strerror, e.errno)
-                # Fall through. Not much to do here
 
-    def _start_job(self):
+    def _start(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
 
@@ -234,7 +286,8 @@ class Background(object):
             reraise
         if pid != 0:
             pkdlog('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
-            return pid
+            self.pid = pid
+            return
         try:
             os.chdir(str(self.run_dir))
             #Don't os.setsid() so signals propagate properly
@@ -267,109 +320,47 @@ class Background(object):
             raise
 
 
-class Celery(object):
+class Celery(Base):
     """Run job in Celery (prod)"""
 
-    def __init__(self, data):
-        with _job_map_lock:
-            self.jid = simulation_db.job_id(data)
-            pkdc('{}: created', self.jid)
-            if self.jid in _job_map:
-                self = _job_map[self.jid]
-                pkdlog(
-                    '{}: Collision tid={} celery_state={}',
-                    self.jid,
-                    self.async_result,
-                    self.async_result and self.async_result.state,
-                )
-                raise Collision(self.jid)
-            self.cmd, self.run_dir = simulation_db.prepare_simulation(data)
-            _job_map[self.jid] = self
-            self.data = data
-            _job_map[self.jid] = self
-            self.async_result = self._start_job()
-            pkdc(
-                '{}: started tid={} dir={} queue={} len_jobs={}',
-                self.jid,
-                self.async_result.task_id,
-                self.run_dir,
-                self.celery_queue,
-                len(_job_map),
-            )
-
-    @classmethod
-    def is_processing(cls, jid):
+    def _is_processing(self):
         """Job is either in the queue or running"""
-        with _job_map_lock:
-            return bool(cls._find_job(jid))
+        res = getattr(self, 'async_result', None)
+        return res and not res.ready()
 
-    def kill(self):
+    def _kill(self):
         from celery.exceptions import TimeoutError
+        if not self._is_processing():
+            return False
         res = self.async_result
-        tid = res.task_id
-        pkdlog('{}: killing: tid={}', self.jid, tid)
+        tid = getattr(res, 'task_id', None)
+        pkdlog('{}: kill SIGTERM tid={}', self.jid, tid)
         try:
             res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
         except TimeoutError as e:
-            pkdlog('{}: sending a SIGKILL tid={}', self.jid, tid)
+            pkdlog('{}: kill SIGKILL tid={}', self.jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
 
 
-    @classmethod
-    def race_condition_reap(cls, jid):
-        """Race condition due to lack of mutex and reliable results.
-        """
-        with _job_map_lock:
-            self = cls._find_job(jid)
-            if self:
-                res = self.async_result
-                pkdlog(
-                    '{}: aborting and deleting job; tid={} celery_state={}',
-                    jid,
-                    res,
-                    res and res.state,
-                )
-                del _job_map[self.jid]
-                res.revoke(terminate=True, signal='SIGKILL')
-            else:
-                pkdlog('{}: job finished finally', jid)
-
-    @classmethod
-    def _find_job(cls, jid):
-        try:
-            self = _job_map[jid]
-        except KeyError:
-            pkdlog('{}: job not found; len_jobs={}', jid, len(_job_map))
-            return None
-        res = self.async_result
-        pkdc(
-            '{}: job tid={} celery_state={} len_jobs={}',
-            jid,
-            res,
-            res and res.state,
-            len(_job_map),
-        )
-        if not res or res.ready():
-            del _job_map[jid]
-            pkdlog(
-                '{}: deleted errant or ready job; tid={} ready={}',
-                jid,
-                res,
-                res and res.ready(),
-            )
-            return None
-        return self
-
-    def _start_job(self):
+    def _start(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
         from sirepo import celery_tasks
         self.celery_queue = simulation_db.celery_queue(self.data)
-        return celery_tasks.start_simulation.apply_async(
+        self.async_result = celery_tasks.start_simulation.apply_async(
             args=[self.cmd, str(self.run_dir)],
             queue=self.celery_queue,
         )
+        pkdc(
+            '{}: started tid={} dir={} queue={} len_jobs={}',
+            self.jid,
+            self.async_result.task_id,
+            self.run_dir,
+            self.celery_queue,
+            len(_job_map),
+        )
+
 
 
 class Collision(Exception):
