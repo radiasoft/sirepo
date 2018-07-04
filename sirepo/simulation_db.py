@@ -54,11 +54,17 @@ _ID_CHARS = numconv.BASE62
 #: length of ID
 _ID_LEN = 8
 
+#: Relative regexp from ID_Name
+_ID_PARTIAL_RE_STR = '[{}]{{{}}}'.format(_ID_CHARS, _ID_LEN)
+
 #: Verify ID
-_ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
+_ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
+
+#: lib relative to sim_dir
+_REL_LIB_DIR = '../' + _LIB_DIR
 
 #: Older than any other version
 _OLDEST_VERSION = '20140101.000001'
@@ -159,18 +165,24 @@ def examples(app):
     return [open_json_file(app, path=str(f), fixup=False) for f in files]
 
 
-def find_global_simulation(simulation_type, sid):
-    global_path = None
-    for path in glob.glob(
-        str(user_dir_name().join('*', simulation_type, sid))
-    ):
-        if global_path:
-            raise RuntimeError('{}: duplicate value for global sid'.format(sid))
-        global_path = path
-
-    if global_path:
-        return global_path
-    return None
+def find_global_simulation(sim_type, sid, checked=False):
+    paths = pkio.sorted_glob(user_dir_name().join('*', sim_type, sid))
+    if len(paths) == 1:
+        return str(paths[0])
+    if len(paths) == 0:
+        if checked:
+            util.raise_not_found(
+                '{}/{}: global simulation not found',
+                sim_type,
+                sid,
+            )
+        return None
+    util.raise_not_found(
+        '{}: more than one path found for simulation={}/{}',
+        paths,
+        sim_type,
+        sid,
+    )
 
 
 def fixup_old_data(data, force=False):
@@ -389,6 +401,18 @@ def json_load(*args, **kwargs):
     # Should work to use pkcollections.Dict
     #kwargs['object_pairs_hook'] = dict
     return pkcollections.json_load_any(*args, **kwargs)
+
+
+def lib_dir_from_sim_dir(sim_dir):
+    """Path to lib dir from simulation dir
+
+    Args:
+        sim_dir (py.path): simulation dir
+
+    Return:
+        py.path: directory name
+    """
+    return sim_dir.join(_REL_LIB_DIR)
 
 
 def move_user_simulations(to_uid):
@@ -802,14 +826,24 @@ def uid_from_dir_name(dir_name):
     """Extra user id from user_dir_name
 
     Args:
-        dir_name (py.path): must be top level user dir
+        dir_name (py.path): must be top level user dir or sim_dir
+
     Return:
         str: user id
     """
-    res = dir_name.basename
-    assert _ID_RE.search(res), \
-        '{}: invalid user dir'.format(dir_name)
-    return res
+    r = re.compile(
+        r'^{}/({})(?:$|/)'.format(
+            re.escape(str(user_dir_name())),
+            _ID_PARTIAL_RE_STR,
+        ),
+    )
+    m = r.search(str(dir_name))
+    assert m, \
+        '{}: invalid user or sim dir; did not match re={}'.format(
+            dir_name,
+            r.pattern,
+        )
+    return m.group(1)
 
 
 def user_dir_name(uid=None):

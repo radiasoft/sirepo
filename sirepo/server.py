@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import beaker.middleware
 import datetime
@@ -48,7 +49,7 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 _JSON_RESPONSE_OK = None
 
 #: class that py.path.local() returns
-_PY_PATH_LOCAL_CLASS = type(py.path.local())
+_PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
@@ -82,49 +83,36 @@ app.config.update(
 )
 
 def api_blueskyAuth():
-    if not cfg.enable_bluesky:
-        return _json_response({
-            'status': 'error',
-            'error': 'bluesky auth is not enabled',
-        })
-    req = _json_input()
-    sim_id = req.simulationId
-    sim_type = req.simulationType
-    global_path = simulation_db.find_global_simulation(sim_type, sim_id)
-    if global_path:
-        m = re.search('/user/(.+)/{}/{}$'.format(sim_type, sim_id), global_path)
-        assert m, 'global_path user parse failed: {}'.format(global_path)
-        session_user(m.group(1))
-        return _json_response({
-            'status': 'OK',
-            'data': simulation_db.open_json_file(sim_type, sid=sim_id),
-        })
-    werkzeug.exceptions.abort(404)
+    from sirepo import bluesky
+    return _json_response(bluesky.auth_login(_json_input()))
 
 
 def api_copyNonSessionSimulation():
     req = _json_input()
     sim_type = req['simulationType']
-    global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
-    if global_path:
-        data = simulation_db.open_json_file(
-            sim_type,
-            os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE),
-        )
-        data['models']['simulation']['isExample'] = False
-        data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
-        res = _save_new_and_reply(data)
-        target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
-        template_common.copy_lib_files(
-            data,
-            py.path.local(os.path.dirname(global_path)).join('lib'),
-            target.join('../lib'),
-        )
-        template = sirepo.template.import_module(data)
-        if hasattr(template, 'copy_related_files'):
-            template.copy_related_files(data, global_path, str(target))
-        return res
-    werkzeug.exceptions.abort(404)
+    src = simulation_db.find_global_simulation(
+        sim_type,
+        req['simulationId'],
+        checked=True,
+    )
+    data = simulation_db.open_json_file(
+        sim_type,
+        src.join(simulation_db.SIMULATION_DATA_FILE),
+    )
+    data['models']['simulation']['isExample'] = False
+    data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+    res = _save_new_and_reply(data)
+    target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+    template_common.copy_lib_files(
+        data,
+        simulation_db.lib_dir_from_sim_dir(src),
+        simulation_db.lib_dir_from_sim_dir(target),
+    )
+    template = sirepo.template.import_module(data)
+    if hasattr(template, 'copy_related_files'):
+        template.copy_related_files(data, str(src), str(target))
+    return res
+
 app_copy_nonsession_simulation = api_copyNonSessionSimulation
 
 
@@ -401,7 +389,6 @@ def api_importFile(simulation_type=None):
     return _json_response({'error': error})
 
 app_import_file = api_importFile
-
 
 
 def api_homePage():
@@ -1191,7 +1178,6 @@ cfg = pkconfig.init(
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
     job_queue=(None, runner.cfg_job_class, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
-    foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     enable_bluesky=(False, bool, 'Enable calling simulations directly from NSLS-II/bluesky'),

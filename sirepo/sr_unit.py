@@ -20,7 +20,7 @@ import re
 server = None
 
 
-def flask_client():
+def flask_client(cfg=None):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -28,17 +28,22 @@ def flask_client():
 
     Two methods of interest: `sr_post` and `sr_get`.
 
+    Args:
+        cfg (dict): extra configuration for reset_state_for_testing
+
     Returns:
         FlaskClient: for local requests to Flask server
     """
     global server
 
     a = 'sr_unit_flask_client'
+    if not cfg:
+        cfg = {}
+    wd = pkunit.work_dir()
+    cfg['SIREPO_SERVER_DB_DIR'] = str(pkio.mkdir_parent(wd.join('db')))
     if not (server and hasattr(server.app, a)):
-        with pkio.save_chdir(pkunit.work_dir()):
-            pkconfig.reset_state_for_testing(dict(
-                SIREPO_SERVER_DB_DIR=str(pkio.mkdir_parent('db')),
-            ))
+        with pkio.save_chdir(wd):
+            pkconfig.reset_state_for_testing(cfg)
             from sirepo import server as s
 
             server = s
