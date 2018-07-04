@@ -216,6 +216,7 @@ class Background(Base):
         sig = signal.SIGTERM
         for i in range(3):
             try:
+                pkdlog('{}: kill {} pid={}', self.jid, sig, self.pid)
                 os.kill(self.pid, sig)
                 for j in range(3):
                     time.sleep(1)
