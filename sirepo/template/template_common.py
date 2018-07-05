@@ -18,10 +18,14 @@ import os.path
 import re
 import sirepo.template
 
+ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
+
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
 INPUT_BASE_NAME = 'in'
+
+LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
 #: Output json file
 OUTPUT_BASE_NAME = 'out'
@@ -32,15 +36,32 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
-LIB_FILE_PARAM_RE = re.compile(r'.*File$')
-
 _HISTOGRAM_BINS_MAX = 500
+
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
-ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
+
+def compute_plot_color_and_range(plots):
+    """ For parameter plots, assign each plot a color and compute the full y_range. """
+    y_range = None
+    for i in range(len(plots)):
+        plot = plots[i]
+        plot['color'] = _PLOT_LINE_COLOR[i]
+        vmin = min(plot['points'])
+        vmax = max(plot['points'])
+        if y_range:
+            if vmin < y_range[0]:
+                y_range[0] = vmin
+            if vmax > y_range[1]:
+                y_range[1] = vmax
+        else:
+            y_range = [vmin, vmax]
+    return y_range
+
 
 def copy_lib_files(data, source, target):
     """Copy auxiliary files to target
