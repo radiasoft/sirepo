@@ -203,12 +203,12 @@
             "beta": ["Beta", "Float", 0.0, "", 0.0, 1.0],
             "emit_x": ["Horizontal Emittance [mm-mrad]", "Float"],
             "emit_y": ["Vertical Emittance [mm-mrad]", "Float"],
-            "rms_z": ["Longitudinal Bunch Size [mm]", "Float"],
-            "dpop": ["Delta-p/p spread", "Float"],
+            "rms_z": ["Longitudinal Bunch Size [mm]", "Float", 0.0, "The standard deviation of the z-coordinate of the particles"],
+            "dpop": ["Delta-p/p spread", "Float", 0.0, "The standard deviation of the momentum coordinate"],
             "num_real_particles": ["Number of Real Particles", "Float", 1.5e8, "Real particles, used for space charge, impedance, etc."],
             "num_macro_particles": ["Number of Macro Particles", "Float", 5e5, "Used for PIC calculations"],
             "seed": ["Pseudorandom Number Generator Seed", "Float", 1, "", 0],
-            "z_period_length": ["Space Between Bunches", "Float", 0.0]
+            "z_period_length": ["Longitudinal Length of the Bucket [m]", "Float", 0.0, "For periodic bunches"]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
@@ -233,8 +233,8 @@
         "bunchTwiss": {
             "beta_x": ["Horizontal Beta [m]", "Float", 0],
             "beta_y": ["Vertical Beta [m]", "Float", 0],
-            "alpha_x": ["Horizontal Alpha [rad]", "Float", 0],
-            "alpha_y": ["Vertical Alpha [rad]", "Float", 0]
+            "alpha_x": ["Horizontal Alpha", "Float", 0],
+            "alpha_y": ["Vertical Alpha", "Float", 0]
         },
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList"]
@@ -475,8 +475,7 @@
                     "energy",
                     "momentum",
                     "gamma",
-                    "beta",
-                    "z_period_length"
+                    "beta"
                 ]],
                 ["Emittance", [
                     [
@@ -492,7 +491,8 @@
                         ]]
                     ],
                     "rms_z",
-                    "dpop"
+                    "dpop",
+                    "z_period_length"
                 ]],
                 ["Particle Count", [
                     "num_real_particles",

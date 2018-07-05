@@ -12,3 +12,6 @@ bunch = synergia.optics.generate_matched_bunch_transverse(
 {% if bunch_z_period_length %}
 bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
 {% endif %}
+
+from rssynergia.base_diagnostics import write_bunch
+write_bunch.write_bunch(bunch, file_name='{{ bunchFileName }}', reference_particle=lattice.get_reference_particle())

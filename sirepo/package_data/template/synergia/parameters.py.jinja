@@ -31,7 +31,6 @@ stepper = synergia.simulation.Split_operator_stepper_elements(
     {{ simulationSettings_steps_per_element }} # num_steps
 )
 
-#TODO: don't copy this from bunch.py.jinja
 bunch = synergia.optics.generate_matched_bunch_transverse(
     stepper.get_lattice_simulator(),
     emit_x={{ bunch_emit_x }}, # m-rad, RMS

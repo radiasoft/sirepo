@@ -9,3 +9,12 @@ stepper = synergia.simulation.Independent_stepper_elements(
 )
 lattice_simulator = stepper.get_lattice_simulator()
 twiss = lfplot.get_sliced_lf_fns(lattice, lattice_simulator)
+
+import h5py
+import numpy as np
+h5file = h5py.File('{{ twissFileName }}', 'w')
+for k in twiss[0]:
+    dtype = np.dtype('a30') if k == 'name' else np.dtype(float)
+    data = h5file.create_dataset(k, (len(twiss),), dtype=dtype)
+    data[:] = list(map(lambda row: row[k], twiss))
+h5file.close()
