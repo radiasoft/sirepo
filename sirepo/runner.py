@@ -16,15 +16,19 @@ runner.init_job() does the dispatch
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcli
-from pykern import pkconfig
 from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkio
+from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import aenum
 import errno
 import os
+import pwd
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -50,6 +54,16 @@ class State(aenum.UniqueEnum):
 # job is dead.
 _INIT_TOO_LONG_SECS = 5
 
+# time expected between created and running
+_DOCKER_CREATED_TOO_LONG_SECS = _INIT_TOO_LONG_SECS
+
+# how long to wait after first kill (TERM) to second kill (KILL)
+_KILL_TIMEOUT_SECS = 3
+
+# prefix all report names
+_DOCKER_CONTAINER_PREFIX = 'srjob-'
+
+_MAX_OPEN_FILES = 1024
 
 @pkconfig.parse_none
 def cfg_job_class(value):
@@ -69,6 +83,8 @@ def cfg_job_class(value):
         if pkconfig.channel_in('dev'):
             _assert_celery()
         return Celery
+    elif value == 'Docker':
+        return Docker
     elif value == 'Background':
         signal.signal(signal.SIGCHLD, Background._sigchld_handler)
         return Background
@@ -146,7 +162,7 @@ class Base(object):
                 if self._is_processing():
                     return True
             elif self.state == State.INIT:
-                if time.time() < self.state_changed + INIT_TOO_LONG_SECS:
+                if time.time() < self.state_changed + _INIT_TOO_LONG_SECS:
                     return True
             else:
                 assert self.state in (State.START, State.KILL, State.STOP), \
@@ -213,12 +229,11 @@ class Background(Base):
         if self.pid == 0:
             return
         pid = self.pid
-        sig = signal.SIGTERM
-        for i in range(3):
+        for sig in (signal.SIGTERM, signal.SIGKILL):
             try:
                 pkdlog('{}: kill {} pid={}', self.jid, sig, self.pid)
                 os.kill(self.pid, sig)
-                for j in range(3):
+                for j in range(_KILL_TIMEOUT_SECS):
                     time.sleep(1)
                     pid, status = os.waitpid(self.pid, os.WNOHANG)
                     if pid != 0:
@@ -237,7 +252,6 @@ class Background(Base):
                         self.jid,
                         self.pid,
                     )
-                sig = signal.SIGKILL
             except OSError as e:
                 if not e.errno in (errno.ESRCH, errno.ECHILD):
                     raise
@@ -295,7 +309,7 @@ class Background(Base):
             import resource
             maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
             if (maxfd == resource.RLIM_INFINITY):
-                maxfd = 1024
+                maxfd = _MAX_OPEN_FILES
             for fd in range(0, maxfd):
                 try:
                     os.close(fd)
@@ -337,7 +351,7 @@ class Celery(Base):
         tid = getattr(res, 'task_id', None)
         pkdlog('{}: kill SIGTERM tid={}', self.jid, tid)
         try:
-            res.revoke(terminate=True, wait=True, timeout=2, signal='SIGTERM')
+            res.revoke(terminate=True, wait=True, timeout=_KILL_TIMEOUT_SECS, signal='SIGTERM')
         except TimeoutError as e:
             pkdlog('{}: kill SIGKILL tid={}', self.jid, tid)
             res.revoke(terminate=True, signal='SIGKILL')
@@ -369,6 +383,128 @@ class Collision(Exception):
     pass
 
 
+class Docker(Base):
+    """Run a code in docker"""
+
+    def _is_processing(self):
+        """Inspect container to see if still in running state"""
+        out = self.__docker(['inspect', '--format={{.State.Status}}', self.cid])
+        if not out:
+            self.cid = None
+            return False
+        if out == 'running':
+            return True
+        if out == 'created':
+            return time.time() < self.state_changed + _DOCKER_CREATED_TOO_LONG_SECS
+        return False
+
+    def _kill(self):
+        if self.cid:
+            pkdlog('{}: stop cid={}', self.jid, self.cid)
+            self.__docker(['stop', '--time={}'.format(_KILL_TIMEOUT_SECS), self.cid])
+            self.cid = None
+
+    def _start(self):
+        """Detach a process from the controlling terminal and run it in the
+        background as a daemon.
+        """
+        #POSIT: jid is valid docker name (word chars and dash)
+        self.cname = _DOCKER_CONTAINER_PREFIX + self.jid
+        ctx = pkcollections.Dict(
+            kill_secs=_KILL_TIMEOUT_SECS,
+            run_dir=self.run_dir,
+            run_log=self.run_dir.join(template_common.RUN_LOG),
+            run_secs=self.__run_secs(),
+            sh_cmd=self.__sh_cmd(),
+        )
+        script = str(self.run_dir.join(_DOCKER_CONTAINER_PREFIX + 'run.sh'))
+        with open(str(script), 'wb') as f:
+            f.write(pkjinja.render_resource('runner/docker.sh', ctx))
+        cmd = [
+            'run',
+#TODO(robnagler) configurable
+            '--cpus=1',
+            '--detach',
+            '--init',
+            '--log-driver=json-file',
+            # never should be large, just for output of the monitor
+            '--log-opt=max-size=1m',
+            '--memory=1g',
+            '--name=' + self.cname,
+            '--network=none',
+            '--rm',
+            '--ulimit=core=0',
+#TODO(robnagler) this doesn't do anything
+#            '--ulimit=cpu=1',
+            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
+            '--user=' + pwd.getpwuid(os.getuid()).pw_name,
+        ] + self.__volumes() + [
+#TODO(robnagler) make this configurable per code (would be structured)
+            self.__image(),
+            'bash',
+            script,
+        ]
+        self.cid = self.__docker(cmd)
+        pkdc(
+            '{}: started cname={} cid={} dir={} len_jobs={} cmd={}',
+            self.jid,
+            self.cname,
+            self.cid,
+            self.run_dir,
+            len(_job_map),
+            ' '.join(cmd),
+        )
+
+    def __docker(self, cmd):
+        cmd = ['docker'] + cmd
+        try:
+            pkdc('Running: {}', ' '.join(cmd))
+            return subprocess.check_output(
+                cmd,
+                stdin=open(os.devnull),
+                stderr=subprocess.STDOUT,
+            ).rstrip()
+        except subprocess.CalledProcessError as e:
+            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
+            return None
+
+    def __image(self):
+        res = cfg.docker_image
+        if ':' in res:
+            return res
+        return res + ':' + pkconfig.cfg.channel
+
+    def __run_secs(self):
+        if self.data['report'] == 'backgroundImport':
+            return cfg.import_secs
+        if simulation_db.is_parallel(self.data):
+            return cfg.parallel_secs
+        return cfg.sequential_secs
+
+    def __sh_cmd(self):
+        """Convert ``self.cmd`` into a bash cmd"""
+        res = []
+        for c in self.cmd:
+            assert not "'" in c, \
+                '{}: sh_cmd contains a single quote'.format(cmd)
+            res.append("'{}'".format(c))
+        return ' '.join(res)
+
+    def __volumes(self):
+        res = []
+
+        def _res(src, tgt):
+            res.append('--volume={}:{}'.format(src, tgt))
+
+        if pkconfig.channel_in('dev'):
+            for v in '~/src', '~/.pyenv':
+                v = pkio.py_path('~/src')
+                # pyenv and src shouldn't be writable, only rundir
+                _res(v, v + ':ro')
+        _res(self.run_dir, self.run_dir)
+        return res
+
+
 def _assert_celery():
     """Verify celery & rabbit are running"""
     from sirepo import celery_tasks
@@ -392,6 +528,10 @@ def _assert_celery():
 
 
 cfg = pkconfig.init(
-    # default is set in init()
+    docker_image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+    import_secs=(10, int, 'maximum runtime of backgroundImport'),
+    # default is set in init(), because of server.cfg.job_gueue
     job_class=(None, cfg_job_class, 'how to run jobs: Celery or Background'),
+    parallel_secs=(3600, int, 'maximum runtime of serial job'),
+    sequential_secs=(300, int, 'maximum runtime of serial job'),
 )
