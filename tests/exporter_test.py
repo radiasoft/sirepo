@@ -6,6 +6,7 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+from sirepo import feature_config
 
 pytest.importorskip('srwl_bl')
 
@@ -20,11 +21,14 @@ def test_create_zip():
 
     fc = sr_unit.flask_client()
     imported = _import(fc)
-    for sim_type, sim_name, expect in imported + [
+    _codes = [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
         ('srw', 'Tabulated Undulator Example', ['magnetic_measurements.zip', 'run.py', 'sirepo-data.json']),
         ('warppba', 'Laser Pulse', ['run.py', 'sirepo-data.json']),
-    ]:
+    ]
+    codes_list = [x for x in _codes if x in feature_config.cfg.sim_types]
+    print('=== codes_list: {} ==='.format(codes_list))
+    for sim_type, sim_name, expect in imported + codes_list:
         sim_id = fc.sr_sim_data(sim_type, sim_name)['models']['simulation']['simulationId']
         resp = fc.sr_get(
             'exportArchive',

@@ -14,7 +14,7 @@ def test_import_json():
     try:
         import StringIO
     except:
-        from io import StringIO
+        import io as StringIO
 
     def _parse(fn):
         json = fn.read(mode='rb')

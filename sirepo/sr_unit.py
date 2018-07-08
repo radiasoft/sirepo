@@ -52,10 +52,10 @@ def flask_client():
 def init_user_db():
     """Force a request that creates a user in db"""
     fc = flask_client()
-    fc.get('/hellweg')
+    fc.get('/srw')
     fc.sr_post(
         'listSimulations',
-        {'simulationType': 'hellweg', 'search': {}},
+        {'simulationType': 'srw', 'search': {}},
     )
 
 

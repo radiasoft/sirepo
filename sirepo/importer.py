@@ -20,14 +20,20 @@ def do_form(form):
     from sirepo import uri_router
     from sirepo import simulation_db
     import base64
+    '''
     try:
         import StringIO
     except:
-        from io import StringIO
+        import io as StringIO
+    import io
+    '''
+    from six import io
+
+    # from six.io import BytesIO
 
     if not 'zip' in form:
         raise uri_router.NotFound('missing zip in form')
-    data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
+    data = read_zip(io.BytesIO(base64.decodebytes(form['zip'].encode())))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
     return simulation_db.save_new_simulation(data)
