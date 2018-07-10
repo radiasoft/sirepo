@@ -57,7 +57,13 @@ def _run_bunch_report(data):
             ('alpha_x', 'alpha_y', 'beta_x', 'beta_y'),
         ))
     report = data.models[data['report']]
-    with h5py.File(template.OUTPUT_FILE['bunchReport'], 'r') as f:
+    bunch = data.models.bunch
+    if bunch.distribution == 'file':
+        bunch_file = template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+    else:
+        bunch_file = template.OUTPUT_FILE['bunchReport']
+
+    with h5py.File(bunch_file, 'r') as f:
         x = f['particles'][:, getattr(synergia.bunch.Bunch, report['x'])]
         y = f['particles'][:, getattr(synergia.bunch.Bunch, report['y'])]
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))

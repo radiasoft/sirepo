@@ -72,15 +72,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 SIREPO.app.controller('SynergiaSourceController', function (appState, panelState, requestSender, $scope) {
     var self = this;
 
-    function processBeamDefinition() {
-        processBunchFields();
-        processBeamParameter();
-        ['beta_x', 'beta_y', 'alpha_x', 'alpha_y'].forEach(function(f) {
-            panelState.enableField('bunchTwiss', f, false);
-        });
-    }
-
-    function processBeamParameter() {
+    function calculateBunchParameters() {
         requestSender.getApplicationData(
             {
                 method: 'calculate_bunch_parameters',
@@ -93,6 +85,11 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
             });
     }
 
+    function processBeamDefinition() {
+        processBunchFields();
+        calculateBunchParameters();
+    }
+
     function processBunchFields() {
         var bunch = appState.models.bunch;
         panelState.enableField('bunch', 'beta', false);
@@ -103,44 +100,42 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
         ['mass', 'charge'].forEach(function(f) {
             panelState.enableField('bunch', f, bunch.particle == 'other');
         });
-    }
-
-    function processParticle() {
-        var bunch = appState.models.bunch;
-        processBunchFields();
-        if (bunch.particle != 'other') {
-            requestSender.getApplicationData(
-                {
-                    method: 'get_particle_info',
-                    particle: bunch.particle,
-                },
-                function(data) {
-                    if (appState.isLoaded()) {
-                        bunch.mass = data.mass;
-                        bunch.charge = data.charge;
-                    }
-                });
-        }
+        var isFile = bunch.distribution == 'file';
+        panelState.showRow('bunch', 'emit_x', ! isFile);
+        ['rms_z', 'dpop', 'num_macro_particles', 'seed'].forEach(function(f) {
+            panelState.showField('bunch', f, ! isFile);
+        });
+        panelState.showField('bunch', 'particleFile', isFile);
+        var isLattice = bunch.distribution == 'lattice';
+        ['beta_x', 'beta_y', 'alpha_x', 'alpha_y'].forEach(function(f) {
+            panelState.enableField('bunch', f, ! isLattice);
+            if (isLattice) {
+                bunch[f] = appState.models.bunchTwiss[f];
+            }
+        });
+        ['nonlinear_t', 'nonlinear_c', 'nonlinear_cutoff'].forEach(function(f) {
+            panelState.showField('bunch', f, bunch.distribution.indexOf('nonlinear') >= 0);
+        });
     }
 
     self.handleModalShown = function(name) {
         if (name == 'bunch') {
-            processBeamDefinition();
+            processBunchFields();
         }
     };
 
     appState.whenModelsLoaded($scope, function() {
         processBeamDefinition();
-        processParticle();
-        appState.watchModelFields($scope, ['bunch.beam_definition'], processBeamDefinition);
-        appState.watchModelFields($scope, ['bunch.particle'], processParticle);
-        appState.watchModelFields($scope, ['bunch.mass', 'bunch.energy', 'bunch.momentum', 'bunch.gamma'], processBeamParameter);
+        appState.watchModelFields($scope, ['bunch.distribution'], processBunchFields);
+        appState.watchModelFields($scope, ['bunch.beam_definition', 'bunch.particle'], processBeamDefinition);
+        appState.watchModelFields($scope, ['bunch.mass', 'bunch.energy', 'bunch.momentum', 'bunch.gamma'], calculateBunchParameters);
     });
 
     $scope.$on('bunchReport.summaryData', function(e, info) {
         if (appState.isLoaded() && info.bunchTwiss) {
             appState.models.bunchTwiss = info.bunchTwiss;
             appState.saveChanges('bunchTwiss');
+            processBunchFields();
         }
     });
 
