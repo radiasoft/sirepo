@@ -370,6 +370,7 @@ def _extract_evolution_plot(report, run_dir):
         plots.append({
             'points': y,
             'label': '{}{}'.format(_field_label(yfield, y_col['column_def']), _field_description(yfield, data)),
+            #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': _PLOT_LINE_COLOR[f],
         })
     return {

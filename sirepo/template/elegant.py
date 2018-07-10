@@ -154,6 +154,7 @@ def extract_report_data(xFilename, yFilename, data, page_index):
             plots.append({
                 'points': y,
                 'label': _field_label(yfield, y_col['column_def'][1]),
+                #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
                 'color': _PLOT_LINE_COLOR[f],
             })
         return {
