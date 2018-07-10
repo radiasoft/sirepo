@@ -589,6 +589,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
 SIREPO.app.directive('fileField', function(appState, panelState, requestSender, $http, errorService) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             fileField: '=',
             modelName: '=',
@@ -596,8 +597,6 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             emptySelectionText: '@',
             selectionRequired: '=',
             fileType: '@',
-            wantFileReport: '=',
-            wantImageFile: '=',
             form: '=',
         },
         template: [
@@ -612,9 +611,8 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
             '</ul>',
           '</div> ',
           '<div data-ng-if="hasValidFileSelected()" class="btn-group" role="group">',
-            '<button type="button" title="View Graph" class="btn btn-default" data-ng-if="wantFileReport" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
-            '<a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a>',
-            '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-if="wantImageFile" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></a>',
+            '<div class="pull-left" data-ng-transclude=""></div>',
+            '<div class="pull-left"><a data-ng-href="{{ downloadFileUrl() }}" type="button" title="Download" class="btn btn-default"><span class="glyphicon glyphicon-cloud-download"></a></div>',
           '</div>',
           '<div class="sr-input-warning" data-ng-show="selectionRequired && ! hasValidFileSelected()">Select a file</div>',
         ].join(''),
@@ -691,44 +689,6 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                 return '';
             };
 
-            $scope.downloadProcessedImage = function() {
-                if (!appState.isLoaded()) {
-                    return;
-                }
-                var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
-                if (!m) {
-                    throw $scope.model.imageFile + ': invalid imageFile name';
-                }
-                var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
-                var url = requestSender.formatUrl({
-                    routeName: 'getApplicationData',
-                    '<filename>': fn
-                });
-                var err = function (response) {
-                    errorService.alertText('Download failed: status=' + response.status);
-                };
-                //TODO: Error handling
-                $http.post(
-                    url,
-                    {
-                        'simulationId': appState.models.simulation.simulationId,
-                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
-                        'method': 'processedImage',
-                        'baseImage': m[1],
-                        'model': $scope.model,
-                    },
-                    {responseType: 'blob'}
-                ).then(
-                    function (response) {
-                        if (response.status == 200) {
-                            saveAs(response.data, fn);
-                            return;
-                        }
-                        err(response);
-                    },
-                    err);
-            };
-
             $scope.hasValidFileSelected = function() {
                 if ($scope.selectionRequired && $scope.form) {
                     $scope.form.$valid = false;
@@ -778,11 +738,6 @@ SIREPO.app.directive('fileField', function(appState, panelState, requestSender, 
                     'fileUpload' + $scope.fileType,
                     '<div data-file-upload-dialog="" data-dialog-title="Upload File" data-file-type="fileType" data-model="model" data-field="fileField"></div>', $scope);
             };
-            $scope.showFileReport = function() {
-                //TODO(pjm): uncouple from beamline controller
-                panelState.findParentAttribute($scope, 'beamline').showFileReport($scope.fileType, $scope.model);
-            };
-
             $scope.$on('$destroy', function() {
                 if (modalId) {
                     $('#' + modalId).remove();
@@ -2495,6 +2450,7 @@ SIREPO.app.service('keypressService', function(d3Service) {
             showPanelActive(reportId, true);
             return;
         }
+        // d3Service needs to be imported above or this will fail
         d3.select('body').on('keydown', null);
         showPanelActive(reportId, false);
     };

@@ -16,13 +16,13 @@ SIREPO.appFieldEditors = [
       '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
     '</div>',
     '<div data-ng-switch-when="ImageFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="sample" data-want-file-report="false" data-want-image-file="true" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File"></div>',
+      '<div data-image-file-field="" data-model="model" data-field="field"></div>',
     '</div>',
     '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
       '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
     '</div>',
     '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
-      '<div data-file-field="field" data-file-type="mirror" data-want-file-report="true" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error"></div>',
+      '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
     '</div>',
     '<div data-ng-switch-when="WatchPoint" data-ng-class="fieldClass">',
         '<div data-watch-point-list="" data-model="model" data-field="field" data-model-name="modelName"></div>',
@@ -523,23 +523,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         $location.search('coherence', beamlineService.coherence);
     };
 
-    self.showFileReport = function(type, model) {
-        appState.models.mirrorReport = model;
-        appState.saveQuietly('mirrorReport');
-        var el = $('#srw-mirror-plot');
-        el.modal('show');
-        el.on('shown.bs.modal', function() {
-            // this forces the plot to reload
-            self.mirrorReportShown = true;
-            $scope.$digest();
-            appState.saveChanges('mirrorReport');
-        });
-        el.on('hidden.bs.modal', function() {
-            self.mirrorReportShown = false;
-            el.off();
-        });
-    };
-
     self.showPropagationModal = function() {
         self.prepareToSave();
         beamlineService.dismissPopup();
@@ -744,6 +727,17 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         );
     }
 
+    function processBrillianceReport() {
+        var report = appState.models.brillianceReport;
+        var isKTuning = report.brightnessComponent == 'k-tuning';
+        panelState.showEnum('brillianceReport', 'reportType', '1', isKTuning);
+        if (! isKTuning && report.reportType == '1') {
+            report.reportType = '0';
+        }
+        panelState.showField('brillianceReport', 'detuning', isKTuning);
+        panelState.showField('brillianceReport', 'energyDelta', ! isKTuning);
+    }
+
     function processFluxAnimation() {
         // ["-1", "Use Approximate Method"]
         var approxMethodKey = -1;
@@ -926,7 +920,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     }
 
     self.handleModalShown = function(name) {
-        if (name === 'fluxAnimation') {
+        if (name === 'brillianceReport') {
+            processBrillianceReport();
+        }
+        else if (name === 'fluxAnimation') {
             processFluxAnimation();
         }
         else if (name === 'intensityReport') {
@@ -1054,6 +1051,8 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
 
         appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], processTrajectoryReport);
         appState.watchModelFields($scope, ['trajectoryReport.plotAxisY'], processTrajectoryAxis);
+
+        appState.watchModelFields($scope, ['brillianceReport.brightnessComponent'], processBrillianceReport);
 
         appState.watchModelFields($scope, ['undulator.horizontalDeflectingParameter', 'undulator.verticalDeflectingParameter'], function() {
             if (isActiveField('undulator', 'horizontalDeflectingParameter')) {
@@ -1342,6 +1341,97 @@ SIREPO.app.directive('importPython', function(appState, fileManager, fileUpload,
             scope.$on('$destroy', function() {
                 $(element).off();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('imageFileField', function(appState, requestSender, $http, errorService) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+        },
+        template: [
+            '<div data-file-field="field" data-file-type="sample" data-model="model" data-selection-required="true" data-empty-selection-text="Select Image File">',
+              '<a href target="_self" title="Download Processed Image" class="btn btn-default" data-ng-click="downloadProcessedImage()"><span class="glyphicon glyphicon-filter"></span></a>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.downloadProcessedImage = function() {
+                if (!appState.isLoaded()) {
+                    return;
+                }
+                var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
+                if (!m) {
+                    throw $scope.model.imageFile + ': invalid imageFile name';
+                }
+                var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
+
+                //TODO(pjm): refactor this into a method in sirepo.js, remove $http
+                var url = requestSender.formatUrl({
+                    routeName: 'getApplicationData',
+                    '<filename>': fn
+                });
+                var err = function (response) {
+                    errorService.alertText('Download failed: status=' + response.status);
+                };
+                //TODO: Error handling
+                $http.post(
+                    url,
+                    {
+                        'simulationId': appState.models.simulation.simulationId,
+                        'simulationType': SIREPO.APP_SCHEMA.simulationType,
+                        'method': 'processedImage',
+                        'baseImage': m[1],
+                        'model': $scope.model,
+                    },
+                    {responseType: 'blob'}
+                ).then(
+                    function (response) {
+                        if (response.status == 200) {
+                            saveAs(response.data, fn);
+                            return;
+                        }
+                        err(response);
+                    },
+                    err);
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('mirrorFileField', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            field: '=',
+            model: '=',
+        },
+        template: [
+            '<div data-file-field="field" data-file-type="mirror" data-model="model" data-selection-required="modelName == \'mirror\'" data-empty-selection-text="No Mirror Error">',
+              '<button type="button" title="View Graph" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showFileReport = function() {
+                var beamline = panelState.findParentAttribute($scope, 'beamline');
+                appState.models.mirrorReport = $scope.model;
+                appState.saveQuietly('mirrorReport');
+                var el = $('#srw-mirror-plot');
+                el.modal('show');
+                el.on('shown.bs.modal', function() {
+                    // this forces the plot to reload
+                    beamline.mirrorReportShown = true;
+                    $scope.$apply();
+                    appState.saveChanges('mirrorReport');
+                });
+                el.on('hidden.bs.modal', function() {
+                    beamline.mirrorReportShown = false;
+                    el.off();
+                });
+            };
         },
     };
 });

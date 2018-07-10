@@ -14,26 +14,25 @@ import glob
 import h5py
 import math
 import numpy as np
+import py.path
 import re
 import werkzeug
+
+OUTPUT_FILE = {
+    'bunchReport': 'particles.h5',
+    'twissReport': 'twiss.h5',
+    'twissReport2': 'twiss.h5',
+    'beamEvolutionAnimation': 'diagnostics.h5',
+    'turnComparisonAnimation': 'diagnostics.h5',
+}
 
 SIM_TYPE = 'synergia'
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_BEAM_EVOLUTION_OUTPUT_FILENAME = 'diagnostics.h5'
-
 _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 
 _FILE_ID_SEP = '-'
-
-_PLOT_LINE_COLOR = {
-    'y1': '#1f77b4',
-    'y2': '#ff7f0e',
-    'y3': '#2ca02c',
-    'turn1': '#1f77b4',
-    'turn2': '#ff7f0e',
-}
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
@@ -54,8 +53,6 @@ _UNITS = {
     'beta_y': 'm',
     'psi_x': 'rad',
     'psi_y': 'rad',
-    'alpha_x': 'rad',
-    'alpha_y': 'rad',
     'D_x': 'm',
     'D_y': 'm',
     'Dprime_x': 'rad',
@@ -64,7 +61,7 @@ _UNITS = {
 
 
 def background_percent_complete(report, run_dir, is_running):
-    diag_file = run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)
+    diag_file = run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])
     if diag_file.exists():
         particle_file_count = len(_particle_file_list(run_dir))
         # if is_running:
@@ -91,12 +88,19 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'turnComparisonAnimation', 'twissReport', 'twissReport2']:
+    for m in [
+            'beamEvolutionAnimation',
+            'bunch',
+            'bunchAnimation',
+            'bunchTwiss',
+            'simulationSettings',
+            'turnComparisonAnimation',
+            'twissReport',
+            'twissReport2',
+    ]:
         if m not in data['models']:
             data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
-    template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
 def format_float(v):
@@ -108,8 +112,6 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
-    if data['method'] == 'get_particle_info':
-        return _calc_particle_info(data['particle'])
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
     if data['method'] == 'compute_particle_ranges':
@@ -133,6 +135,21 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         raise IOError('invalid file extension, expecting .madx')
     data['models']['simulation']['name'] = re.sub(r'\.madx$', '', filename, re.IGNORECASE)
     return data
+
+
+def get_data_file(run_dir, model, frame, options=None):
+    if model in OUTPUT_FILE:
+        path = run_dir.join(OUTPUT_FILE[model])
+    elif model == 'bunchAnimation':
+        path = py.path.local(_particle_file_list(run_dir)[frame])
+    elif model == 'beamlineReport':
+        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
+        source = _generate_parameters_file(data)
+        return 'python-source.py', source, 'text/plain'
+    else:
+        assert False, 'model data file not yet supported: {}'.format(model)
+    with open(str(path)) as f:
+        return path.basename, f.read(), 'application/octet-stream'
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -178,7 +195,7 @@ def label(field, enum_labels=None):
 
 
 def lib_files(data, source_lib):
-    return []
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -269,6 +286,7 @@ def _calc_bunch_parameters(bunch):
     from synergia.foundation import Four_momentum
     bunch_def = bunch['beam_definition']
     mom = Four_momentum(bunch['mass'])
+    _calc_particle_info(bunch)
     try:
         if bunch_def == 'energy':
             mom.set_total_energy(bunch['energy'])
@@ -289,8 +307,11 @@ def _calc_bunch_parameters(bunch):
     }
 
 
-def _calc_particle_info(particle):
+def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
+    particle = bunch.particle
+    if particle == 'other':
+        return
     mass = 0
     charge = 0
     if particle == 'proton':
@@ -313,10 +334,8 @@ def _calc_particle_info(particle):
         charge = pconstants.antimuon_charge
     else:
         assert False, 'unknown particle: {}'.format(particle)
-    return {
-        'mass': mass,
-        'charge': str(charge),
-    }
+    bunch['mass'] = mass
+    bunch['charge'] = charge
 
 
 def _compute_range_across_files(run_dir):
@@ -381,9 +400,8 @@ def _extract_bunch_plot(report, frame_index, run_dir):
 
 def _extract_evolution_plot(report, run_dir):
     plots = []
-    with h5py.File(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 'r') as f:
+    with h5py.File(str(run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])), 'r') as f:
         x = f['s'][:].tolist()
-        y_range = None
         for yfield in ('y1', 'y2', 'y3'):
             if report[yfield] == 'none':
                 continue
@@ -393,14 +411,9 @@ def _extract_evolution_plot(report, run_dir):
                     return parse_error_log(run_dir) or {
                         'error': 'Invalid data computed',
                     }
-            if y_range:
-                y_range = [min(y_range[0], min(points)), max(y_range[1], max(points))]
-            else:
-                y_range = [min(points), max(points)]
             plots.append({
                 'points': points,
                 'label': label(report[yfield], _SCHEMA['enum']['BeamColumn']),
-                'color': _PLOT_LINE_COLOR[yfield],
             })
         return {
             'title': '',
@@ -409,15 +422,14 @@ def _extract_evolution_plot(report, run_dir):
             'x_label': 's [m]',
             'x_points': x,
             'plots': plots,
-            'y_range': y_range,
+            'y_range': template_common.compute_plot_color_and_range(plots),
         }
 
 
 def _extract_turn_comparison_plot(report, run_dir, turn_count):
     plots = []
-    with h5py.File(str(run_dir.join(_BEAM_EVOLUTION_OUTPUT_FILENAME)), 'r') as f:
+    with h5py.File(str(run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])), 'r') as f:
         x = f['s'][:].tolist()
-        y_range = None
         points = _plot_values(f, report['y'])
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
@@ -437,14 +449,9 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
                 return {
                     'error': 'Simulation data is not yet available',
                 }
-            if y_range:
-                y_range = [min(y_range[0], min(p)), max(y_range[1], max(p))]
-            else:
-                y_range = [min(p), max(p)]
             plots.append({
                 'points': p,
                 'label': '{} turn {}'.format(label(report['y'], _SCHEMA['enum']['BeamColumn']), turn),
-                'color': _PLOT_LINE_COLOR[yfield],
             })
         return {
             'title': '',
@@ -453,7 +460,7 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
             'x_label': 's [m]',
             'x_points': x,
             'plots': plots,
-            'y_range': y_range,
+            'y_range': template_common.compute_plot_color_and_range(plots),
         }
 
 
@@ -500,13 +507,18 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
-    v['diagnosticFilename'] = _BEAM_EVOLUTION_OUTPUT_FILENAME
+    v['bunchFileName'] = OUTPUT_FILE['bunchReport']
+    v['diagnosticFilename'] = OUTPUT_FILE['beamEvolutionAnimation']
+    v['twissFileName'] = OUTPUT_FILE['twissReport']
+    if data.models.bunch.distribution == 'file':
+        v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+    v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
     if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
         if report == 'bunchReport':
-            res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+            res += template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
     else:
         res += template_common.render_jinja(SIM_TYPE, v, 'parameters.py')
     return res
@@ -689,6 +701,14 @@ def _plot_values(h5file, field):
     if dimension == 3:
         return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
     assert False, dimension
+
+
+def _simulation_files(data):
+    res = []
+    bunch = data.models.bunch
+    if bunch.distribution == 'file':
+        res.append(template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile))
+    return res
 
 
 def _sort_beamlines_by_length(lines):

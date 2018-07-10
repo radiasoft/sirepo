@@ -76,6 +76,12 @@ _EXAMPLE_FOLDERS = pkcollections.Dict({
     'Young\'s Double Slit Experiment': '/Wavefront Propagation',
 })
 
+_FILE_TYPE_EXTENSIONS = {
+    'mirror': ['dat', 'txt'],
+    'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
+    'undulatorTable': ['zip'],
+}
+
 # beamline element [template, fields, height profile name, height profile overwrite propagation]
 _ITEM_DEF = {
     'aperture': [
@@ -285,15 +291,7 @@ def clean_run_dir(run_dir):
 
 
 def extensions_for_file_type(file_type):
-    if file_type == 'mirror':
-        return ['*.dat', '*.txt']
-    if file_type == 'sample':
-        exts = ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg']
-        exts += [x.upper() for x in exts]
-        return ['*.{}'.format(x) for x in exts]
-    if file_type == 'undulatorTable':
-        return ['*.zip']
-    raise RuntimeError('unknown file_type: ', file_type)
+    return ['*.{}'.format(x) for x in _FILE_TYPE_EXTENSIONS[file_type]]
 
 
 def extract_report_data(filename, model_data):
@@ -845,8 +843,9 @@ def validate_file(file_type, path):
         extension = match.group(1).lower()
     else:
         return 'invalid file extension'
-
-    if extension == 'dat' or extension == 'txt':
+    if extension not in _FILE_TYPE_EXTENSIONS[file_type]:
+        return 'invalid file type: {}'.format(extension)
+    if file_type == 'mirror':
         # mirror file
         try:
             count = 0
@@ -862,19 +861,17 @@ def validate_file(file_type, path):
                 return 'no data rows found in file'
         except ValueError as e:
             return 'invalid file format: {}'.format(e)
-    elif extension == 'zip':
+    elif file_type == 'undulatorTable':
         # undulator magnetic data file
         #TODO(pjm): add additional zip file validation
         try:
             template_common.validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
             return err.message
-    elif extension.lower() in ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'npy']:
+    elif file_type == 'sample':
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
-    else:
-        return 'invalid file type: {}'.format(extension)
     return None
 
 
@@ -1164,7 +1161,6 @@ def _extract_brilliance_report(model, data):
             points.append(data['e{}'.format(m.group(1))]['data'])
     return {
         'title': '',
-        #'y_label': u'{} log₁₀'.format(label),
         'y_label': label,
         'x_label': 'Photon Energy [eV]',
         'x_range': [np.amin(x_points), np.amax(x_points)],
@@ -1192,6 +1188,7 @@ def _extract_trajectory_report(model, data):
             plots.append({
                 'points': points,
                 'label': available_axes[model[f]],
+                #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
                 'color': '#ff7f0e' if len(plots) else '#1f77b4',
             })
     return {
@@ -1814,31 +1811,26 @@ def _process_image(data):
     Returns:
         py.path.local: file to return
     """
-    import werkzeug
     # This should just be a basename, but this ensures it.
-    b = werkzeug.secure_filename(data.baseImage)
-    fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
+    path = str(simulation_db.simulation_lib_dir(data.simulationType).join(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
-    with pkio.save_chdir(simulation_db.tmp_dir()) as d:
-        res = py.path.local(fn.purebasename)
+    with pkio.save_chdir(simulation_db.tmp_dir()):
         s = srwl_uti_smp.SRWLUtiSmp(
-            file_path=str(fn),
-            area=None if not bool(int(m['cropArea'])) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
+            file_path=path,
+            area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
             rotate_angle=float(m['rotateAngle']),
-            rotate_reshape=bool(int(m['rotateReshape'])),
+            rotate_reshape=int(m['rotateReshape']),
             cutoff_background_noise=float(m['cutoffBackgroundNoise']),
             background_color=int(m['backgroundColor']),
-            invert=bool(int(m['invert'])),
-            tile=None if not bool(int(m['tileImage'])) else (m['tileRows'], m['tileColumns']),
+            invert=int(m['invert']),
+            tile=None if not int(m['tileImage']) else (m['tileRows'], m['tileColumns']),
             shift_x=m['shiftX'],
             shift_y=m['shiftY'],
             is_save_images=True,
-            prefix=str(res),
+            prefix=str(py.path.local()),
             output_image_format=m['outputImageFormat'],
         )
-        res += '_processed.{}'.format(m['outputImageFormat'])
-        res.check()
-    return res
+        return py.path.local(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):

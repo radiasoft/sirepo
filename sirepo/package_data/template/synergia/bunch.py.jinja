@@ -1,14 +1,55 @@
 
+{% if bunch_distribution == 'lattice' %}
 bunch = synergia.optics.generate_matched_bunch_transverse(
-    lattice_simulator,
+    stepper.get_lattice_simulator(),
     emit_x={{ bunch_emit_x }}, # m-rad, RMS
     emit_y={{ bunch_emit_y }}, # m-rad, RMS
     rms_z={{ bunch_rms_z }}, # z bunch size
     dpop={{ bunch_dpop }}, # unitless, RMS \frac{\delta p}{p_{tot}}
     num_real_particles=int({{ bunch_num_real_particles }}), # real particles, used for space charge, impedance, etc
-    num_macro_particles=int({{ bunch_num_macro_particles }}), # Used for PIC calculations
-    seed=int({{ bunch_seed }})
+    num_macro_particles={{ bunch_num_macro_particles }}, # Used for PIC calculations
+    seed={{ bunch_seed }}
 )
+{% else %}
+import rsbeams.rsptcls.bunch
+    {% if bunch_distribution == 'standard-gaussian' or bunch_distribution == 'standard-kv' %}
+rsbunch = rsbeams.rsptcls.bunch.StandardBunch(
+    {% else %}
+rsbunch = rsbeams.rsptcls.bunch.NonlinearBunch(
+    {% endif %}
+    npart={{ bunch_num_macro_particles }},
+    {% if bunch_distribution == 'standard-gaussian' or bunch_distribution == 'nonlinear-gaussian' %}
+    dist='Gaussian',
+    {% elif bunch_distribution == 'standard-kv' or bunch_distribution == 'nonlinear-kv' %}
+    dist='KV',
+    {% elif bunch_distribution == 'nonlinear-waterbag' %}
+    dist='waterbag',
+    {% endif %}
+    emitx={{ bunch_emit_x }},
+    emity={{ bunch_emit_y }},
+    betax={{ bunch_beta_x }},
+    alphax={{ bunch_alpha_x }},
+    betay={{ bunch_beta_y }},
+    alphay={{ bunch_alpha_y }},
+    stdz={{ bunch_rms_z }},
+    dpop={{ bunch_dpop }},
+    seed={{ bunch_seed }},
+    {% if bunch_distribution == 'nonlinear-gaussian' or bunch_distribution == 'nonlinear-kv' or bunch_distribution == 'nonlinear-waterbag' %}
+    t={{ bunch_nonlinear_t }},
+    c={{ bunch_nonlinear_c }},
+    cutoff={{ bunch_nonlinear_cutoff }},
+    {% endif %}
+    )
+rsbunch.set_longitudinal_coordinates()
+rsbunch.set_transverse_coordinates()
+bunch = synergia.bunch.Bunch(
+    lattice.get_reference_particle(),
+    {{ bunch_num_macro_particles }},
+    int({{ bunch_num_real_particles }}),
+    comm)
+bunch.get_local_particles()[:] = rsbunch.particles
+{% endif %}
+
 {% if bunch_z_period_length %}
 bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
 {% endif %}
