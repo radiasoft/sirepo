@@ -1188,6 +1188,7 @@ def _extract_trajectory_report(model, data):
             plots.append({
                 'points': points,
                 'label': available_axes[model[f]],
+                #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
                 'color': '#ff7f0e' if len(plots) else '#1f77b4',
             })
     return {

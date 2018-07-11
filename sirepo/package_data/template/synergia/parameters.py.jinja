@@ -1,8 +1,9 @@
 
 
+comm = synergia.utils.Commxx(True)
 {% if simulationSettings_space_charge == '2d-open-hockney' %}
 collective = synergia.collective.Space_charge_2d_open_hockney(
-    synergia.utils.Commxx(True),
+    comm,
     [32, 32, 32] # grid
 )
 {% elif simulationSettings_space_charge == '2d-bassetti_erskine' %}
@@ -12,7 +13,7 @@ collective.set_longitudinal(0)
 collective = synergia.collective.Space_charge_2d_kv()
 {% elif simulationSettings_space_charge == '3d-open-hockney' %}
 collective = synergia.collective.Space_charge_3d_open_hockney(
-    synergia.utils.Commxx(True),
+    comm,
     [32, 32, 32] # grid
 )
 {% else %}
@@ -31,18 +32,15 @@ stepper = synergia.simulation.Split_operator_stepper_elements(
     {{ simulationSettings_steps_per_element }} # num_steps
 )
 
-bunch = synergia.optics.generate_matched_bunch_transverse(
-    stepper.get_lattice_simulator(),
-    emit_x={{ bunch_emit_x }}, # m-rad, RMS
-    emit_y={{ bunch_emit_y }}, # m-rad, RMS
-    rms_z={{ bunch_rms_z }}, # z bunch size
-    dpop={{ bunch_dpop }}, # unitless, RMS \frac{\delta p}{p_{tot}}
-    num_real_particles=int({{ bunch_num_real_particles }}), # real particles, used for space charge, impedance, etc
-    num_macro_particles=int({{ bunch_num_macro_particles }}), # Used for PIC calculations
-    seed=int({{ bunch_seed }})
-)
-{% if bunch_z_period_length %}
-bunch.set_z_period_length({{ bunch_z_period_length }}) # space between bunches
+{% if bunch_distribution == 'file' %}
+from rssynergia.base_diagnostics import read_bunch
+    {% if bunch_z_period_length %}
+bunch = read_bunch.read_bunch('{{ bunchFile }}', lattice.get_reference_particle(), {{ bunch_num_real_particles }}, comm, bucket_length={{ bunch_z_period_length }})
+    {% else %}
+bunch = read_bunch.read_bunch('{{ bunchFile }}', lattice.get_reference_particle(), {{ bunch_num_real_particles }}, comm)
+    {% endif %}
+{% else %}
+{{ bunch }}
 {% endif %}
 
 bunch_simulator = synergia.simulation.Bunch_simulator(bunch)

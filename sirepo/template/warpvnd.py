@@ -344,6 +344,7 @@ def _create_plots(dimension, data, values, x_range):
             pos = '{:.0f} nm'.format(x_points[index] * 1e9)
         plots.append({
             'points': points,
+            #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': color[i - 1],
             'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
         })

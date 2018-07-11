@@ -88,12 +88,19 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    for m in ['beamEvolutionAnimation', 'bunchAnimation', 'bunchTwiss', 'simulationSettings', 'turnComparisonAnimation', 'twissReport', 'twissReport2']:
+    for m in [
+            'beamEvolutionAnimation',
+            'bunch',
+            'bunchAnimation',
+            'bunchTwiss',
+            'simulationSettings',
+            'turnComparisonAnimation',
+            'twissReport',
+            'twissReport2',
+    ]:
         if m not in data['models']:
             data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    template_common.update_model_defaults(data['models']['simulationSettings'], 'simulationSettings', _SCHEMA)
-    template_common.update_model_defaults(data['models']['bunchAnimation'], 'bunchAnimation', _SCHEMA)
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
 def format_float(v):
@@ -105,8 +112,6 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
-    if data['method'] == 'get_particle_info':
-        return _calc_particle_info(data['particle'])
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
     if data['method'] == 'compute_particle_ranges':
@@ -190,7 +195,7 @@ def label(field, enum_labels=None):
 
 
 def lib_files(data, source_lib):
-    return []
+    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):
@@ -281,6 +286,7 @@ def _calc_bunch_parameters(bunch):
     from synergia.foundation import Four_momentum
     bunch_def = bunch['beam_definition']
     mom = Four_momentum(bunch['mass'])
+    _calc_particle_info(bunch)
     try:
         if bunch_def == 'energy':
             mom.set_total_energy(bunch['energy'])
@@ -301,8 +307,11 @@ def _calc_bunch_parameters(bunch):
     }
 
 
-def _calc_particle_info(particle):
+def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
+    particle = bunch.particle
+    if particle == 'other':
+        return
     mass = 0
     charge = 0
     if particle == 'proton':
@@ -325,10 +334,8 @@ def _calc_particle_info(particle):
         charge = pconstants.antimuon_charge
     else:
         assert False, 'unknown particle: {}'.format(particle)
-    return {
-        'mass': mass,
-        'charge': str(charge),
-    }
+    bunch['mass'] = mass
+    bunch['charge'] = charge
 
 
 def _compute_range_across_files(run_dir):
@@ -503,12 +510,15 @@ def _generate_parameters_file(data):
     v['bunchFileName'] = OUTPUT_FILE['bunchReport']
     v['diagnosticFilename'] = OUTPUT_FILE['beamEvolutionAnimation']
     v['twissFileName'] = OUTPUT_FILE['twissReport']
+    if data.models.bunch.distribution == 'file':
+        v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+    v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
     if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
         if report == 'bunchReport':
-            res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+            res += template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
     else:
         res += template_common.render_jinja(SIM_TYPE, v, 'parameters.py')
     return res
@@ -691,6 +701,14 @@ def _plot_values(h5file, field):
     if dimension == 3:
         return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
     assert False, dimension
+
+
+def _simulation_files(data):
+    res = []
+    bunch = data.models.bunch
+    if bunch.distribution == 'file':
+        res.append(template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile))
+    return res
 
 
 def _sort_beamlines_by_length(lines):

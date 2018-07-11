@@ -110,6 +110,15 @@
             ["zpstd", "zp standard deviation"],
             ["none", "None"]
         ],
+        "BunchDistribution": [
+            ["lattice", "Computed From Beamline"],
+            ["standard-gaussian", "Standard - Gaussian"],
+            ["standard-kv", "Standard - K-V"],
+            ["nonlinear-gaussian", "Nonlinear - Gaussian"],
+            ["nonlinear-kv", "Nonlinear - K-V"],
+            ["nonlinear-waterbag", "Nonlinear - Waterbag"],
+            ["file", "From Input File"]
+        ],
         "ExtractorType": [
             ["default", "default"],
             ["chef_map", "chef_map"],
@@ -206,9 +215,18 @@
             "rms_z": ["Longitudinal Bunch Size [mm]", "Float", 0.0, "The standard deviation of the z-coordinate of the particles"],
             "dpop": ["Delta-p/p spread", "Float", 0.0, "The standard deviation of the momentum coordinate"],
             "num_real_particles": ["Number of Real Particles", "Float", 1.5e8, "Real particles, used for space charge, impedance, etc."],
-            "num_macro_particles": ["Number of Macro Particles", "Float", 5e5, "Used for PIC calculations"],
-            "seed": ["Pseudorandom Number Generator Seed", "Float", 1, "", 0],
-            "z_period_length": ["Longitudinal Length of the Bucket [m]", "Float", 0.0, "For periodic bunches"]
+            "num_macro_particles": ["Number of Macro Particles", "Integer", 10000, "Used for PIC calculations"],
+            "seed": ["Pseudorandom Number Generator Seed", "Integer", 1, "", 0],
+            "z_period_length": ["Longitudinal Length of the Bucket [m]", "Float", 0.0, "For periodic bunches"],
+            "distribution": ["Distribution Type", "BunchDistribution", "lattice"],
+            "particleFile": ["Particle File", "InputFile", ""],
+            "beta_x": ["Horizontal Beta [m]", "Float", 0],
+            "beta_y": ["Vertical Beta [m]", "Float", 0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0],
+            "alpha_y": ["Vertical Alpha", "Float", 0],
+            "nonlinear_t": ["Nonlinear Strength", "Float", 0.1],
+            "nonlinear_c": ["Nonlinear Aperture", "Float", 0.01, "the nonlinear aperture parameter (m^-1/2), defining poles in the x-axis."],
+            "nonlinear_cutoff": ["Nonlinear Cutoff", "Float", 4, "cutoff parameter for the nonlinear Gaussian distributoin"]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
@@ -477,21 +495,26 @@
                     "gamma",
                     "beta"
                 ]],
-                ["Emittance", [
+                ["Distribution", [
+                    "distribution",
                     [
                         ["Horizontal", [
                             "emit_x",
-                            "bunchTwiss.beta_x",
-                            "bunchTwiss.alpha_x"
+                            "beta_x",
+                            "alpha_x"
                         ]],
                         ["Vertical", [
                             "emit_y",
-                            "bunchTwiss.beta_y",
-                            "bunchTwiss.alpha_y"
+                            "beta_y",
+                            "alpha_y"
                         ]]
                     ],
                     "rms_z",
                     "dpop",
+                    "particleFile",
+                    "nonlinear_t",
+                    "nonlinear_c",
+                    "nonlinear_cutoff",
                     "z_period_length"
                 ]],
                 ["Particle Count", [
