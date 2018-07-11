@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
@@ -36,21 +35,11 @@ SIREPO.appDownloadLinks = [
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'SRWSourceController as source',
-            templateUrl: '/static/html/srw-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.beamline, {
-            controller: 'SRWBeamlineController as beamline',
-            templateUrl: '/static/html/srw-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
-            reloadOnSearch: true,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location, $route) {

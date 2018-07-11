@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
@@ -16,20 +15,11 @@ SIREPO.appFieldEditors = [
       '<div data-cell-selector=""></div>',
     '</div>',
 ].join('');
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'WarpVNDSourceController as source',
-            templateUrl: '/static/html/warpvnd-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'WarpVNDVisualizationController as visualization',
-            templateUrl: '/static/html/warpvnd-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {

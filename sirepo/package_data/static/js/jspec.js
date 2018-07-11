@@ -4,7 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
 SIREPO.FILE_UPLOAD_TYPE = {
@@ -22,20 +21,11 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'SourceController as source',
-            templateUrl: '/static/html/jspec-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/jspec-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {

@@ -7,6 +7,7 @@ u"""Handles dispatching of uris to server.api_* functions
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import util
 import re
 
 #: route for sirepo.sr_unit
@@ -136,6 +137,18 @@ def uri_for_api(api_name, params=None, external=True):
             '{}: missing parameter for api ({})'.format(p.name, api_name)
     return res
 
+def format_uri(simulation_type, application_mode, simulation_id, app_schema):
+    local_routes = app_schema['localRoutes']
+    app_modes = app_schema['appModes']
+    local_route = app_modes[application_mode]['localRoute']
+    assert local_route in local_routes
+    return '/{}#/{}/{}'.format(
+        simulation_type,
+        app_modes[application_mode]['localRoute'],
+        simulation_id, application_mode) + \
+           ('?application_mode={}'.format(application_mode) if app_modes[application_mode][
+               'includeMode'] else ''
+            )
 
 def _dispatch(path):
     """Called by Flask and routes the base_uri with parameters

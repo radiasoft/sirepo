@@ -3,8 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ].join('');
@@ -19,24 +17,11 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 SIREPO.appImportText = 'Import a MAD-X Lattice';
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'SynergiaSourceController as source',
-            templateUrl: '/static/html/synergia-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.lattice, {
-            controller: 'LatticeController as lattice',
-            template: '<div data-lattice-tab="" data-controller="lattice"></div>',
-        })
-        .when(localRoutes.visualization, {
-            controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/synergia-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService) {

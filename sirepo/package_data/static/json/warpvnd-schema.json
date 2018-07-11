@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "WarpVNDSourceController as source",
+                "templateUrl": "/static/html/warpvnd-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "WarpVNDVisualizationController as visualization",
+                "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamSpecies": [
             ["Electron", "Electron"]

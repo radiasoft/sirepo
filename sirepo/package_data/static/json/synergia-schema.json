@@ -1,4 +1,26 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SynergiaSourceController as source",
+                "templateUrl": "/static/html/synergia-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/synergia-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamCharge": [
             ["1", "1"],

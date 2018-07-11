@@ -3,23 +3,13 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.dynamics = '/dynamics/:simulationId';
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'WarpPBASourceController as source',
-            templateUrl: '/static/html/warppba-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.dynamics, {
-            controller: 'WarpPBADynamicsController as dynamics',
-            templateUrl: '/static/html/warppba-dynamics.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {

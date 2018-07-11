@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/jspec-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/jspec-visualization.html"
+            }
+        }
+    },
     "enum": {
         "Boolean": [
             ["0", "No"],

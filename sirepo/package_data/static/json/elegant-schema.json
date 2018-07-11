@@ -1,4 +1,33 @@
 {
+    "localRoutes": {
+        "source": {
+          "config": {
+            "controller": "ElegantSourceController as source",
+            "templateUrl": "/static/html/elegant-source.html"
+          }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+            "controller": "LatticeController as lattice",
+            "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+          }
+        },
+        "control": {
+            "route": "/control/:simulationId",
+            "config": {
+              "controller": "CommandController as control",
+              "templateUrl": "/static/html/elegant-control.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/elegant-visualization.html"
+            }
+        }
+    },
     "constant": {
         "ELEGANT_ME_EV": 0.51099906
     },
