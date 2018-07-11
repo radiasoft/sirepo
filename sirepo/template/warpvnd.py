@@ -8,7 +8,7 @@ u"""Warp VND/WARP execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 from rswarp.cathode import sources
 from rswarp.utilities.file_utils import readparticles
 from scipy import constants
@@ -110,6 +110,8 @@ def fixup_old_data(data):
             c['permittivity'] = _DEFAULT_PERMITTIVITY
     if 'fieldComparisonReport' not in data['models']:
         grid = data['models']['simulationGrid']
+        if 'channel_height' not in grid:
+            grid['channel_height'] = 5.0
         data['models']['fieldComparisonReport'] = {
             'dimension': 'x',
             'xCell1': int(grid['num_x'] / 3.),
@@ -293,7 +295,7 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _add_particle_paths(electrons, x_points, y_points, z_points, limit):
+def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, limit):
     # adds paths for the particleAnimation report
     # culls adjacent path points with similar slope
     # TODO: include z value when available
@@ -308,7 +310,7 @@ def _add_particle_paths(electrons, x_points, y_points, z_points, limit):
         prev_x = None
         prev_y = None
         # prev_z = None
-        z = random.random()
+        z = half_height * (2.0 * random.random() - 1.0)
         for j in range(num_points):
             x = electrons[1][i][j]
             y = electrons[0][i][j]
@@ -502,14 +504,16 @@ def _extract_particle(run_dir, data, limit):
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
     radius = grid['channel_width'] / 2. * 1e-6
+    half_height = grid['channel_height'] / 2. * 1e-6
     x_points = []
     y_points = []
     z_points = []
-    _add_particle_paths(kept_electrons, x_points, y_points, z_points, limit)
+    # TODO(mvk): get zpoints from data.  For now we generate random data to fit the geometry
+    _add_particle_paths(kept_electrons, x_points, y_points, z_points, half_height, limit)
     lost_x = []
     lost_y = []
     lost_z = []
-    _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, limit)
+    _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, half_height, limit)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -519,9 +523,10 @@ def _extract_particle(run_dir, data, limit):
         'x_points': x_points,
         'z_points': z_points,
         'y_range': [-radius, radius],
+        'z_range': [-half_height, half_height],
         'lost_x': lost_x,
         'lost_y': lost_y,
-        'lost_z': lost_x
+        'lost_z': lost_z
     }
 
 
