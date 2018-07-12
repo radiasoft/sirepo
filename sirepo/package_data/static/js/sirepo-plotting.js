@@ -3719,7 +3719,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 return la;
             }
             function buildImpactSphere(center, radius, colorArray) {
-               // srdbg('building sphere at', center);
+               //srdbg('building sphere at', center);
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                     center: center,
                     radius: radius,
