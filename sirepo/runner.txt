@@ -1,0 +1,51 @@
+mkdir -p server client
+openssl genrsa -out ca-key.pem 2048
+openssl genrsa -out server/key.pem 2048
+openssl genrsa -out client/key.pem 2048
+openssl req -x509 -new -nodes -key ca-key.pem -days 10000 -out ca.pem -subj /CN=v.radia.run
+cat > client.cfg <<'EOF'
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+[req_distinguished_name]
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+EOF
+cat > server.cfg <<'EOF'
+[req]
+req_extensions = v3_req
+distinguished_name = req_distinguished_name
+[req_distinguished_name]
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = v.radia.run
+EOF
+openssl req -new -key server/key.pem -out server/cert.csr -subj /CN=v.radia.run -config server.cfg
+openssl req -new -key client/key.pem -out client/cert.csr -subj /CN=v.radia.run -config client.cfg
+openssl x509 -req -in client/cert.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client/cert.pem -days 10000 -extensions v3_req -extfile client.cfg
+openssl x509 -req -in server/cert.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server/cert.pem -days 10000 -extensions v3_req -extfile server.cfg
+sudo install -m 700 -d /etc/docker/ssl
+sudo install -m 400 ca.pem /etc/docker/ssl
+sudo install -m 400 server/key.pem /etc/docker/ssl
+sudo install -m 400 server/cert.pem /etc/docker/ssl
+cp ca.pem client
+chmod -R go-rwx client
+
+DOCKER_TLS_VERIFY=1 DOCKER_CERT_PATH=$PWD/client DOCKER_HOST=tcp://$(hostname -f):2376 docker ps
+
+append to /etc/docker/daemon.json
+{
+    "hosts": ["tcp://10.10.10.10:2376", "unix:///var/run/docker.sock"],
+    "tls": true,
+    "tlsverify": true,
+    "tlscacert": "/etc/docker/ssl/ca.pem",
+    "tlscert": "/etc/docker/ssl/cert.pem",
+    "tlskey": "/etc/docker/ssl/key.pem"
+}

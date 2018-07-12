@@ -361,7 +361,9 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
 
 
 def job_id(data):
-    """A Job is a simulation and report name
+    """A Job is a simulation and report name.
+
+    A jid is words and dashes.
 
     Args:
         data (dict): extract sid and report
