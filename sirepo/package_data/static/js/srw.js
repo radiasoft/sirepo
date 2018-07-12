@@ -734,8 +734,12 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         if (! isKTuning && report.reportType == '1') {
             report.reportType = '0';
         }
-        panelState.showField('brillianceReport', 'detuning', isKTuning);
-        panelState.showField('brillianceReport', 'energyDelta', ! isKTuning);
+        ['detuning', 'minDeflection', 'initialHarmonic', 'finalHarmonic'].forEach(function(f) {
+            panelState.showField('brillianceReport', f, isKTuning);
+        });
+        ['energyDelta', 'harmonic'].forEach(function(f) {
+            panelState.showField('brillianceReport', f, ! isKTuning);
+        });
     }
 
     function processFluxAnimation() {
