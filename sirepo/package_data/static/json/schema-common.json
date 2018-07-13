@@ -118,9 +118,7 @@
               "controller": "NotFoundCopyController as notFoundCopy",
               "templateUrl": "/static/html/copy-session.html"
             }
-        }
-    },
-    "fallbackRoutes": {
+        },
         "fallback": {
             "isFinal": true,
             "isRedirect": true,

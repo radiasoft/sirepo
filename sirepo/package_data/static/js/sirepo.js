@@ -109,7 +109,6 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 
     SIREPO.addRoutes();
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.fallbackRoutes);
 
     function routeForName(routeName, routeMap) {
         return routeMap[routeName].route || routeMap[routeName].localRoute || SIREPO.appLocalRoutes[routeName];
