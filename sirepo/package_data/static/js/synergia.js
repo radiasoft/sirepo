@@ -19,6 +19,9 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 SIREPO.appImportText = 'Import a MAD-X Lattice';
+SIREPO.FILE_UPLOAD_TYPE = {
+    'bunch-particleFile': '.h5,.hdf5',
+};
 SIREPO.app.config(function($routeProvider, localRoutesProvider) {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
