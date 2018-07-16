@@ -1150,10 +1150,13 @@ def _extract_brilliance_report(model, data):
         label += ' [m]'
     x_points = []
     points = []
+    scale_adjustment = 1000.0
+    if 'brightnessComponent' in model and model['brightnessComponent'] == 'spectral-detuning':
+        scale_adjustment = 1.0
     for f in data:
         m = re.search('^f(\d+)', f)
         if m:
-            x_points.append((np.array(data[f]['data']) * 1000.0).tolist())
+            x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
     title = template_common.enum_text(_SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
     if model['brightnessComponent'] == 'k-tuning':
