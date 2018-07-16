@@ -33,8 +33,8 @@ _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
-
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
@@ -83,26 +83,18 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    if 'fieldReport' not in data['models']:
-        data['models']['fieldReport'] = {}
-    if 'egun_mode' not in data['models']['simulation']:
-        data['models']['simulation']['egun_mode'] = '0'
-    if 'renderCount' not in data['models']['particleAnimation']:
-        data['models']['particleAnimation']['renderCount'] = '100'
-    # fixup for old, now invalid, default data
-    if data['models']['particleAnimation']['renderCount'] == 150:
-        data['models']['particleAnimation']['renderCount'] = '100'
-    if 'egunCurrentAnimation' not in data['models']:
-        data['models']['egunCurrentAnimation'] = {
-            'framesPerSecond': '2',
-        }
-    if 'particle3d' not in data['models']:
-        data['models']['particle3d'] = {
-            'renderCount': 100,
-            'joinEvery': 1
-        }
-    if 'impactDensityAnimation' not in data['models']:
-        data['models']['impactDensityAnimation'] = {}
+    for m in [
+            'egunCurrentAnimation',
+            'fieldReport',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+            'simulation',
+            'simulationGrid',
+    ]:
+        if m not in data['models']:
+            data['models'][m] = {}
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     for c in data['models']['conductorTypes']:
         if 'isConductor' not in c:
             c['isConductor'] = '1' if c['voltage'] > 0 else '0'
@@ -110,8 +102,6 @@ def fixup_old_data(data):
             c['permittivity'] = _DEFAULT_PERMITTIVITY
     if 'fieldComparisonReport' not in data['models']:
         grid = data['models']['simulationGrid']
-        if 'channel_height' not in grid:
-            grid['channel_height'] = 5.0
         data['models']['fieldComparisonReport'] = {
             'dimension': 'x',
             'xCell1': int(grid['num_x'] / 3.),
@@ -504,7 +494,8 @@ def _extract_particle(run_dir, data, limit):
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
     radius = grid['channel_width'] / 2. * 1e-6
-    half_height = grid['channel_height'] / 2. * 1e-6
+    half_height = grid['channel_height'] if 'channel_height' in grid else 5.
+    half_height = half_height / 2. * 1e-6
     x_points = []
     y_points = []
     z_points = []
@@ -582,7 +573,7 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v = None
-    template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
+    template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD

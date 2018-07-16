@@ -358,20 +358,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         },
 
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
-            /*
-            var m = appState.models[modelName];
-            var zMin = plotRange.min;
-            var zMax = plotRange.max;
-            if (m.colorRangeType == 'fixed') {
-                zMin = m.colorMin;
-                zMax = m.colorMax;
-            }
-            var colorMap = this.colorMapFromModel(modelName);
-            var colorScale = d3.scale.linear()
-                .domain(linspace(zMin, zMax, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
-            */
             var colorScale = this.colorScaleForPlot(plotRange, modelName);
             var xSize = heatmap[0].length;
             var ySize = heatmap.length;
@@ -394,11 +380,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
-            if (m.colorRangeType == 'smooth') {
-                zMin = plotRange.minEMA.compute(zMin);
-                zMax = plotRange.maxEMA.compute(zMax);
-            }
-            else if (m.colorRangeType == 'fixed') {
+            if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
             }
@@ -3434,9 +3416,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var hm_zmin = Math.max(0, plotting.min2d(heatmap));
                 var hm_zmax = plotting.max2d(heatmap);
-                var colorRange = plotting.createColorRange();
-                colorRange.setRange(hm_zmin, hm_zmax);
-                fieldColorScale = plotting.colorScaleForPlot(colorRange, 'fieldAnimation');
+                fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'fieldAnimation');
 
                 buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
                 //buildFieldSpheres(xpoints, ypoints, zpoints, null);

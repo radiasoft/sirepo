@@ -44,7 +44,7 @@
         <div class="col-sm-12" data-ng-if="visualization.hasFrames()">
           <div data-report-panel="particle" data-model-name="particleAnimation"></div>
         </div>
-        <div class="col-sm-12" data-ng-if="visualization.hasFrames()">
+        <div class="col-sm-12" data-ng-if="visualization.warpvndService.showParticle3DReport() && visualization.hasFrames()">
           <div data-report-panel="particle3d" data-model-name="particle3d"></div>
         </div>
       </div>
