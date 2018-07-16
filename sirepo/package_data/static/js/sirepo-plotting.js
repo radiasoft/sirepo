@@ -18,61 +18,15 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
     };
 
     var isPlottingReady = false;
-    var ColorRange = function() {
-        this.resetEMA = function() {
-            this.minEMA = new EMA();
-            this.maxEMA = new EMA();
-        };
-        this.setRange = function(min, max) {
-            this.min = min;
-            this.max = max;
-        };
-        this.resetEMA();
-    };
-    var EMA = function() {
-        var avg = null;
-        var length = 3;
-        var alpha = 2.0 / (length + 1.0);
-        this.compute = function(value) {
-            return avg += avg !== null
-                ? alpha * (value - avg)
-                : value;
-        };
-    };
 
     d3Service.d3().then(function() {
         isPlottingReady = true;
     });
 
-    function cleanNumber(v) {
-        v = v.replace(/\.0+(\D+)/, '$1');
-        v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
-        v = v.replace(/(\.0+)$/, '');
-        return v;
-    }
-
     function colorsFromString(s) {
         return s.match(/.{6}/g).map(function(x) {
             return "#" + x;
         });
-    }
-
-    function createAxis(scale, orient) {
-        return d3.svg.axis()
-            .scale(scale)
-            .orient(orient);
-    }
-
-    function formatNumber(value) {
-        if (value) {
-            if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
-                return cleanNumber(value.toFixed(3));
-            }
-            else {
-                return cleanNumber(value.toExponential(2));
-            }
-        }
-        return '' + value;
     }
 
     function initAnimation(scope) {
@@ -257,6 +211,16 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         return res;
     }
 
+    function normalizeValues(yValues, shift) {
+        var yMin = Math.min.apply(Math, yValues);
+        var yMax = Math.max.apply(Math, yValues);
+        var yRange = yMax - yMin;
+        for (var i = 0; i < yValues.length; i++) {
+            yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
+        }
+        return yValues;
+    }
+
     return {
         COLOR_MAP: COLOR_MAP,
 
@@ -288,6 +252,24 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return pointsList;
         },
 
+        calculateFWHM: function(xValues, yValues) {
+            yValues = normalizeValues(yValues, 0.5);
+            var positive = yValues[0] > 0;
+            var listOfRoots = [];
+            for (var i = 0; i < yValues.length; i++) {
+                var currentPositive = yValues[i] > 0;
+                if (currentPositive !== positive) {
+                    listOfRoots.push(xValues[i - 1] + (xValues[i] - xValues[i - 1]) / (Math.abs(yValues[i]) + Math.abs(yValues[i - 1])) * Math.abs(yValues[i - 1]));
+                    positive = !positive;
+                }
+            }
+            var fwhm = NaN;
+            if (listOfRoots.length >= 2) {
+                fwhm = Math.abs(listOfRoots[listOfRoots.length - 1] - listOfRoots[0]);
+            }
+            return fwhm;
+        },
+
         constrainFullscreenSize: function(scope, plotWidth, aspectRatio) {
             if (utilities.isFullscreen()) {
                 // rough size of the panel heading, panel margins and rounded corners
@@ -303,19 +285,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
             }
             return plotWidth;
-        },
-
-        createAxis: createAxis,
-
-        createColorRange: function() {
-            return new ColorRange();
-        },
-
-        createExponentialAxis: function(scale, orient) {
-            return createAxis(scale, orient)
-            // this causes a 'number of fractional digits' error in MSIE
-            //.tickFormat(d3.format('e'))
-                .tickFormat(formatNumber);
         },
 
         exportCSV: function(fileName, heading, points) {
@@ -352,34 +321,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
         },
 
-        extractUnits: function(scope, axis, label) {
-            scope[axis + 'units'] = '';
-            var match = label.match(/\[(.*?)\]/);
-            if (match) {
-                scope[axis + 'units'] = match[1];
-                label = label.replace(/\[.*?\]/, '');
-            }
-            return label;
-        },
-
-        fixFormat: function(scope, axis, precision) {
-            var format = d3.format('.' + (precision || '3') + 's');
-            // amounts near zero may appear as NNNz, change them to 0
-            return function(n) {
-                var units = scope[axis + 'units'];
-                if (! units) {
-                    return cleanNumber(formatNumber(n));
-                }
-                var v = format(n);
-                //TODO(pjm): use a regexp
-                if ((v && (v.indexOf('z') > 0 || v.indexOf('y') > 0)) || v == '0.00' || v == '0.0000') {
-                    return '0';
-                }
-                v = cleanNumber(v);
-                return v + units;
-            };
-        },
-
         initialHeight: function(scope) {
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
@@ -407,16 +348,21 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
+        formatValue: function (v, formatter, ordinateFormatter) {
+            var fmt = formatter ? formatter : d3.format('.3f');
+            var ordfmt = ordinateFormatter ? ordinateFormatter : d3.format('.3e');
+            if (v < 1 || v > 1000000) {
+                return ordfmt(v);
+            }
+            return fmt(v);
+        },
+
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
             /*
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
-            if (m.colorRangeType == 'smooth') {
-                zMin = plotRange.minEMA.compute(zMin);
-                zMax = plotRange.maxEMA.compute(zMax);
-            }
-            else if (m.colorRangeType == 'fixed') {
+            if (m.colorRangeType == 'fixed') {
                 zMin = m.colorMin;
                 zMax = m.colorMax;
             }
@@ -617,6 +563,11 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             }
         },
 
+        select: function(scope, selector) {
+            var e = d3.select(scope.element);
+            return selector ? e.select(selector) : e;
+        },
+
         tickFontSize: function(node) {
             var defaultSize = 12;
             if (node.style) {
@@ -648,49 +599,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 axisScale.domain([fullDomain[1] - zoomSize, fullDomain[1]]);
             }
             return false;
-        },
-
-        select: function(scope, selector) {
-            var e = d3.select(scope.element);
-            return selector ? e.select(selector) : e;
-        },
-
-        calculateFWHM: function(xValues, yValues) {
-            yValues = this.normalizeValues(yValues, 0.5);
-            var positive = this.isPositive(yValues[0]);
-            var listOfRoots = [];
-            for (var i = 0; i < yValues.length; i++) {
-                var currentPositive = this.isPositive(yValues[i]);
-                if (currentPositive !== positive) {
-                    listOfRoots.push(xValues[i - 1] + (xValues[i] - xValues[i - 1]) / (Math.abs(yValues[i]) + Math.abs(yValues[i - 1])) * Math.abs(yValues[i - 1]));
-                    positive = !positive;
-                }
-            }
-            var fwhm = NaN;
-            if (listOfRoots.length >= 2) {
-                fwhm = Math.abs(listOfRoots[listOfRoots.length - 1] - listOfRoots[0]);
-            }
-            return fwhm;
-        },
-        isPositive: function(num) {
-            return true ? num > 0 : false;
-        },
-        normalizeValues: function (yValues, shift) {
-            var yMin = Math.min.apply(Math, yValues);
-            var yMax = Math.max.apply(Math, yValues);
-            var yRange = yMax - yMin;
-            for (var i = 0; i < yValues.length; i++) {
-                yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
-            }
-            return yValues;
-        },
-        formatValue: function (v, formatter, ordinateFormatter) {
-            var fmt = formatter ? formatter : d3.format('.3f');
-            var ordfmt = ordinateFormatter ? ordinateFormatter : d3.format('.3e');
-            if (v < 1 || v > 1000000) {
-                return ordfmt(v);
-            }
-            return fmt(v);
         },
 
     };
@@ -1014,7 +922,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
 
     var svc = this;
 
-    this.plotAxis = function(margin, dimension, orientation, refresh, utilities) {
+    this.plotAxis = function(margin, dimension, orientation, refresh) {
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
         // global value, don't allow margin updates during zoom/pad handling
@@ -1088,7 +996,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             var d = self.scale.domain();
             var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
             formatInfo = calcFormat(tickCount, unit);
-            if (formatInfo.decimals > 2) {
+            if (formatInfo.decimals > 3) {
                 var baseFormat = calcFormat(tickCount, unit, null, true).format;
                 var base = midPoint(formatInfo, d);
                 if (unit) {
@@ -1117,7 +1025,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 if (ZERO_REGEX.test(res)) {
                     return '0';
                 }
-                return res;
+                return res.replace(/e\+0$/, '');
             });
             return formatInfo;
         }
@@ -1810,8 +1718,8 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
 
             var graphLine, points, zoom;
             var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
 
             function refresh() {
@@ -1908,7 +1816,6 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 var xPoints = json.x_points
                     ? json.x_points
                     : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
-                $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 if (!(axes.x.domain && axes.x.domain[0] == xdom[0] && axes.x.domain[1] == xdom[1])) {
                     axes.x.domain = xdom;
@@ -2007,12 +1914,11 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
             var cacheCanvas, imageData;
             var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'right', refresh, utilities),
-                bottomY: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
-                rightX: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'right', refresh),
+                bottomY: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+                rightX: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
             };
-            var colorRange = plotting.createColorRange();
 
             var cursorShape = {
                 '11': 'mouse-move-ew',
@@ -2400,8 +2306,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 }
                 axes.bottomY.scale.domain([zmin, zmax]).nice();
                 axes.rightX.scale.domain([zmax, zmin]).nice();
-                colorRange.setRange(zmin, zmax);
-                plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
+                plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName);
                 $scope.resize();
                 $scope.resize();
             };
@@ -2471,10 +2376,9 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             var cacheCanvas, imageData;
             var colorbar;
             var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
-            var colorRange = plotting.createColorRange();
 
             function colorbarSize() {
                 var tickFormat = colorbar.tickFormat();
@@ -2558,10 +2462,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }
 
             function setColorScale() {
-                //TODO(pjm): ema disabled - need a better way to handle range changes between animation frames
-                colorRange.resetEMA();
-                colorRange.setRange(plotting.min2d(heatmap), plotting.max2d(heatmap));
-                var colorScale = plotting.initImage(colorRange, heatmap, cacheCanvas, imageData, $scope.modelName);
+                var colorScale = plotting.initImage(
+                    {
+                        min: plotting.min2d(heatmap),
+                        max: plotting.max2d(heatmap),
+                    },
+                    heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
             }
 
@@ -2618,10 +2524,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 $scope.resize();
             };
 
-            $scope.modelChanged = function() {
-                colorRange.resetEMA();
-            };
-
             $scope.resize = function() {
                 if (select().empty()) {
                     return;
@@ -2669,8 +2571,8 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
             var graphLine, zoom;
             var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
 
             function recalculateYDomain() {
@@ -2830,7 +2732,6 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 $scope.dataCleared = false;
                 axes.x.points = json.x_points
                     || plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
-                $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
@@ -2969,55 +2870,58 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
 
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+            };
+
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
-            var graphLine, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
+            var graphLine, zoom;
 
             function refresh() {
-                if (! xDomain) {
+                if (! axes.x.domain) {
                     return;
                 }
-                var xdom = xAxisScale.domain();
-                var zoomWidth = xdom[1] - xdom[0];
+                if (layoutService.plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (isNaN(width)) {
+                        return;
+                    }
+                    $scope.width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
 
-                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    xAxisScale.domain(xDomain);
-                    yAxisScale.domain(yDomain).nice();
+                    axes.y.scale.domain(axes.y.domain).nice();
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    if (xdom[0] < xDomain[0]) {
-                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
-                    }
-                    if (xdom[1] > xDomain[1]) {
-                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
-                    }
                 }
                 resetZoom();
                 select('.overlay').call(zoom);
-                select('.x.axis').call(xAxis);
-                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
-                select('.y.axis').call(yAxis);
-                select('.y.axis.grid').call(yAxisGrid);
                 select('.plot-viewport').selectAll('.line').attr('d', graphLine);
 
-                // do the margin adjustment that other plots do inside layoutService.plotAxis
-                var fontSize = plotting.tickFontSize(select('.sr-plot .axis text'));
-                var w = select('.y.axis').selectAll('text')[0]
-                    .map(function (txt) {
-                    return txt.textContent.length;
-                })
-                    .reduce(function(currentMax, next) {
-                        return next > currentMax ? next : currentMax;
-                    }, 0);
-                $scope.margin.left = Math.max(75, (w + 6) * (fontSize / 2));
+                $.each(axes, function (dim, axis) {
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
             }
 
             function resetZoom() {
-                zoom = d3.behavior.zoom()
-                    .x(xAxisScale)
-                    .on('zoom', refresh);
+                zoom = axes.x.createZoom($scope);
             }
 
             function select(selector) {
@@ -3027,7 +2931,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
-                xDomain = null;
+                axes.x.domain = null;
             };
 
             $scope.destroy = function() {
@@ -3038,32 +2942,27 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 
             $scope.init = function() {
                 select('svg').attr('height', plotting.initialHeight($scope));
-                xAxisScale = d3.scale.linear();
-                yAxisScale = d3.scale.linear();
-                xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
-                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
-                yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
-                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                $.each(axes, function (dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
                 graphLine = d3.svg.line()
                     .x(function(d) {
-                        return xAxisScale(d[0]);
+                        return axes.x.scale(d[0]);
                     })
                     .y(function(d) {
-                        return yAxisScale(d[1]);
+                        return axes.y.scale(d[1]);
                     });
                 resetZoom();
             };
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
-                xDomain = xdom;
-                xAxisScale.domain(xdom);
-                yDomain = [json.y_range[0], json.y_range[1]];
-                yAxisScale.domain(yDomain).nice();
+                axes.x.domain = xdom;
+                axes.x.scale.domain(xdom);
+                axes.y.domain = [json.y_range[0], json.y_range[1]];
+                axes.y.scale.domain(axes.y.domain).nice();
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 var isFixedX = ! Array.isArray(json.x_points[0]);
@@ -3092,8 +2991,10 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
                         .text('Reflected');
                 }
-                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
-                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                $.each(axes, function (dim, axis) {
+                    axis.parseLabelAndUnits(json[dim + '_label']);
+                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                });
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
                 $scope.resize();
@@ -3103,26 +3004,6 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 if (select().empty()) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! xDomain || isNaN(width)) {
-                    return;
-                }
-                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                $scope.width = width;
-                $scope.height = ASPECT_RATIO * $scope.width;
-                // Some browsers omit the last vertical grid line in fullscreen, so add a bit of width to
-                // cover it.  Other browsers don't seem to mind the extra space
-                select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right + 4)
-                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                plotting.ticks(xAxis, $scope.width, true);
-                plotting.ticks(xAxisGrid, $scope.width, true);
-                plotting.ticks(yAxis, $scope.height, false);
-                plotting.ticks(yAxisGrid, $scope.height, false);
-                xAxisScale.range([0, $scope.width]);
-                yAxisScale.range([$scope.height, 0]);
-                xAxisGrid.tickSize(-$scope.height);
-                yAxisGrid.tickSize(-$scope.width);
                 refresh();
             };
         },

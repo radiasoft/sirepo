@@ -252,6 +252,23 @@ def remove_last_frame(run_dir):
     pass
 
 
+def validate_file(file_type, path):
+    assert file_type == 'bunch-particleFile'
+    try:
+        with h5py.File(path, 'r') as f:
+            if 'particles' in f:
+                shape = f['particles'].shape
+                if shape[1] < 7:
+                    return 'expecting 7 columns in hdf5 file'
+                elif shape[0] == 0:
+                    return 'no data rows in hdf5 file'
+            else:
+                return 'hdf5 file missing particles dataset'
+    except IOError as e:
+        return 'invalid hdf5 file'
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),

@@ -25,6 +25,13 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     var self = {};
 
+    function cleanNumber(v) {
+        v = v.replace(/\.0+(\D+)/, '$1');
+        v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
+        v = v.replace(/(\.0+)$/, '');
+        return v;
+    }
+
     function findModelById(name, id) {
         var model = null;
         appState.models[name].forEach(function(m) {
@@ -38,12 +45,58 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
         return model;
     }
 
+    function formatNumber(value) {
+        if (value) {
+            if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
+                return cleanNumber(value.toFixed(3));
+            }
+            else {
+                return cleanNumber(value.toExponential(2));
+            }
+        }
+        return '' + value;
+    }
+
+    self.createAxis = function(scale, orient) {
+        return d3.svg.axis()
+            .scale(scale)
+            .orient(orient);
+    };
+
+    self.extractUnits = function(scope, axis, label) {
+        scope[axis + 'units'] = '';
+        var match = label.match(/\[(.*?)\]/);
+        if (match) {
+            scope[axis + 'units'] = match[1];
+            label = label.replace(/\[.*?\]/, '');
+        }
+        return label;
+    };
+
     self.findConductorType = function(id) {
         return findModelById('conductorTypes', id);
     };
 
     self.findConductor = function(id) {
         return findModelById('conductors', id);
+    };
+
+    self.fixFormat = function(scope, axis, precision) {
+        var format = d3.format('.' + (precision || '3') + 's');
+        // amounts near zero may appear as NNNz, change them to 0
+        return function(n) {
+            var units = scope[axis + 'units'];
+            if (! units) {
+                return cleanNumber(formatNumber(n));
+            }
+            var v = format(n);
+            //TODO(pjm): use a regexp
+            if ((v && (v.indexOf('z') > 0 || v.indexOf('y') > 0)) || v == '0.00' || v == '0.0000') {
+                return '0';
+            }
+            v = cleanNumber(v);
+            return v + units;
+        };
     };
 
     self.getXRange = function() {
@@ -977,12 +1030,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 select('svg').attr('height', plotting.initialHeight($scope));
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
-                xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x', 4));
-                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
-                yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
-                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                xAxis = warpvndService.createAxis(xAxisScale, 'bottom');
+                xAxis.tickFormat(warpvndService.fixFormat($scope, 'x', 4));
+                xAxisGrid = warpvndService.createAxis(xAxisScale, 'bottom');
+                yAxis = warpvndService.createAxis(yAxisScale, 'left');
+                yAxis.tickFormat(warpvndService.fixFormat($scope, 'y'));
+                yAxisGrid = warpvndService.createAxis(yAxisScale, 'left');
                 resetZoom();
                 dragShape = d3.behavior.drag()
                     .origin(function(d) { return d; })
@@ -995,8 +1048,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                         d3.event.sourceEvent.stopPropagation();
                     })
                     .on('dragend', d3DragEndCarat);
-                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', 'x [m]'));
-                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', 'z [m]'));
+                select('.y-axis-label').text(warpvndService.extractUnits($scope, 'y', 'x [m]'));
+                select('.x-axis-label').text(warpvndService.extractUnits($scope, 'x', 'z [m]'));
                 isInitialized = true;
                 replot();
             };
@@ -1139,7 +1192,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
+SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndService) {
     return {
         restrict: 'A',
         scope: {
@@ -1219,12 +1272,12 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                 select('svg').selectAll('.overlay').remove();
                 xAxisScale = d3.scale.linear();
                 yAxisScale = d3.scale.linear();
-                xAxis = plotting.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(plotting.fixFormat($scope, 'x'));
-                xAxisGrid = plotting.createAxis(xAxisScale, 'bottom');
-                yAxis = plotting.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(plotting.fixFormat($scope, 'y'));
-                yAxisGrid = plotting.createAxis(yAxisScale, 'left');
+                xAxis = warpvndService.createAxis(xAxisScale, 'bottom');
+                xAxis.tickFormat(warpvndService.fixFormat($scope, 'x'));
+                xAxisGrid = warpvndService.createAxis(xAxisScale, 'bottom');
+                yAxis = warpvndService.createAxis(yAxisScale, 'left');
+                yAxis.tickFormat(warpvndService.fixFormat($scope, 'y'));
+                yAxisGrid = warpvndService.createAxis(yAxisScale, 'left');
                 graphLine = d3.svg.line()
                     .x(function(d) {
                         return xAxisScale(d[0]);
@@ -1248,8 +1301,8 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting) {
                 yAxisScale.domain(yDomain).nice();
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                select('.y-axis-label').text(plotting.extractUnits($scope, 'y', json.y_label));
-                select('.x-axis-label').text(plotting.extractUnits($scope, 'x', json.x_label));
+                select('.y-axis-label').text(warpvndService.extractUnits($scope, 'y', json.y_label));
+                select('.x-axis-label').text(warpvndService.extractUnits($scope, 'x', json.x_label));
                 select('.main-title').text(json.title);
 
                 var colorMap = plotting.colorMapFromModel($scope.modelName);
