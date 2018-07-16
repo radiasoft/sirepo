@@ -13,6 +13,7 @@ from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo import util
+from sirepo import uri_router
 from sirepo.template import template_common
 import beaker.middleware
 import datetime
@@ -273,7 +274,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     if cfg.oauth_login:
         from sirepo import oauth
         oauth.set_default_state(logged_out_as_anonymous=True)
-    redirect_uri = None
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
         'simulation.name': simulation_name,
@@ -287,20 +287,16 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                     'simulation.name': simulation_name,
                 })
                 break
-    if len(rows):
-        if application_mode == 'default':
-            redirect_uri = '/{}#/source/{}'.format(simulation_type, rows[0]['simulationId'])
-        elif application_mode == 'lattice':
-            redirect_uri = '/{}#/lattice/{}'.format(simulation_type, rows[0]['simulationId'])
-        elif application_mode == 'wavefront' or application_mode == 'light-sources':
-            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
-                simulation_type, rows[0]['simulationId'], application_mode)
         else:
-            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
-                simulation_type, rows[0]['simulationId'], application_mode)
-    if redirect_uri:
-        return javascript_redirect(redirect_uri)
-    werkzeug.exceptions.abort(404)
+            raise AssertionError(util.err(simulation_name, 'simulation not found with type {}', simulation_type))
+    return javascript_redirect(
+        uri_router.format_uri(
+            simulation_type,
+            application_mode,
+            rows[0]['simulationId'],
+            simulation_db.get_schema(simulation_type)
+        )
+    )
 app_find_by_name = api_findByName
 
 
@@ -1165,6 +1161,7 @@ def _validate_serial(data):
         'error': 'invalidSerial',
         'simulationData': res,
     })
+
 
 def static_dir(dir_name):
     return str(simulation_db.STATIC_FOLDER.join(dir_name))

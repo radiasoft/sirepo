@@ -79,6 +79,58 @@
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
+    "commonLocalRoutes": {
+        "simulations": {
+            "route": "/simulations",
+            "config": {
+              "controller": "SimulationsController as simulations",
+              "templateUrl": "/static/html/simulations.html"
+            }
+        },
+        "simulationsFolder": {
+            "route": "/simulations/:folderPath?",
+            "config": {
+              "controller": "SimulationsController as simulations",
+              "templateUrl": "/static/html/simulations.html"
+            }
+        },
+        "source": {
+            "route": "/source/:simulationId"
+        },
+        "loggedOut": {
+            "isFinal": true,
+            "doDefer": true,
+            "route": "/logged-out",
+            "config": {
+              "controller": "LoggedOutController as loggedOut",
+              "templateUrl": "/static/html/logged-out.html"
+            }
+        },
+        "notFound": {
+            "route": "/not-found",
+            "config": {
+              "templateUrl": "/static/html/not-found.html"
+            }
+        },
+        "notFoundCopy": {
+            "route": "/copy-session/:simulationIds/:section",
+            "config": {
+              "controller": "NotFoundCopyController as notFoundCopy",
+              "templateUrl": "/static/html/copy-session.html"
+            }
+        },
+        "fallback": {
+            "isFinal": true,
+            "isRedirect": true,
+            "localRoute": "simulations"
+        }
+    },
+    "commonAppModes": {
+        "default": {
+            "localRoute": "source",
+            "includeMode": false
+        }
+    },
     "commonViews": {
         "simDoc": {
             "model": "simulation",

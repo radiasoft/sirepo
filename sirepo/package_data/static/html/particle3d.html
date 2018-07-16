@@ -1,0 +1,21 @@
+<div data-ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+  <div class="sr-plot-particle-3d">
+
+    <div class=".sr-plot-legend .plot-visibility">
+      <div>
+        <span style="color: steelblue; font-size: 18px;">&#x25CF;</span><span data-ng-show="hasReflected">Absorbed <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showAbsorbed, 'glyphicon-eye-close': ! showAbsorbed}"></span></a></span>
+        [Impact Points <a href="" data-ng-click="toggleImpact()"> <span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showImpact, 'glyphicon-eye-close': ! showImpact}"></span></a>]
+      </div>
+      <div>
+        <span data-ng-show="hasReflected" ><span style="color: #e04836; font-size: 18px;">&#x25CF;</span>Reflected <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showReflected, 'glyphicon-eye-close': ! showReflected}"></span></a></span>
+      </div>
+      <div>
+        <span style="color: #f3d4c8; font-size: 18px;">&#x25CF;</span>Conductors <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showConductors, 'glyphicon-eye-close': ! showConductors}"></span></a>
+      </div>
+    </div>
+    <!--<div class="vtk-canvas-holder" style="border-style: solid; border-width: 1.0px; border-color: black; border-radius: 6.0px;">-->
+    <div class="vtk-canvas-holder">
+    </div>
+  </div>
+</div>
+

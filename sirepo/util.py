@@ -12,3 +12,14 @@ import werkzeug.exceptions
 def raise_not_found(fmt, *args, **kwargs):
     pkdlog(fmt, *args, **kwargs)
     raise werkzeug.exceptions.NotFound()
+
+def merge_dicts(base, derived, depth):
+    if depth <= 0:
+        return
+    for key in base:
+        if key not in derived:
+            derived[key] = base[key]
+        merge_dicts(base[key], derived[key], depth-1)
+
+def err(obj, format='', *args, **kwargs):
+    return '{}: '.format(obj) + format.format(args, kwargs)

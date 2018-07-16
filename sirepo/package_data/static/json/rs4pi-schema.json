@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "Rs4piSourceController as source",
+                "templateUrl": "/static/html/rs4pi-source.html"
+            }
+        },
+        "dose": {
+            "route": "/dose/:simulationId",
+            "config": {
+                "controller": "Rs4piDoseController as dose",
+                "templateUrl": "/static/html/rs4pi-dose.html"
+            }
+        }
+    },
     "enum": {
         "DicomPlane": [
             ["c", "Coronal"],

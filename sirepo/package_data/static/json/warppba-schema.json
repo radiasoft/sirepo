@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "WarpPBASourceController as source",
+                "templateUrl": "/static/html/warppba-source.html"
+            }
+        },
+        "dynamics": {
+            "route": "/dynamics/:simulationId",
+            "config": {
+                "controller": "WarpPBADynamicsController as dynamics",
+                "templateUrl": "/static/html/warppba-dynamics.html"
+            }
+        }
+    },
     "enum": {
         "BeamRadiusMethod": [
             ["a", "Absolute"],

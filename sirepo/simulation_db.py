@@ -13,6 +13,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo.template import template_common
+from sirepo import util
 import copy
 import datetime
 import errno
@@ -243,30 +244,25 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
+    # merge common local routes into app local routes
+    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], 2)
+
+    if 'appModes' not in schema:
+        schema['appModes'] = {}
+    util.merge_dicts(schema['commonAppModes'], schema['appModes'], 1)
+
     # merge common models into app models
-    common_models = schema['commonModels']
-    app_models = schema['model']
-    for model_Name in common_models:
-        if model_Name not in app_models:
-            app_models[model_Name] = common_models[model_Name]
-        for model_field_name in common_models[model_Name]:
-            if model_field_name not in app_models[model_Name]:
-                app_models[model_Name][model_field_name] = common_models[model_Name][model_field_name]
+    util.merge_dicts(schema['commonModels'], schema['model'], 2)
 
     # merge common enums into app models
-    common_enums = schema['commonEnums']
-    app_enums = schema['enum']
-    for enum_Name in common_enums:
-        if enum_Name not in app_enums:
-            app_enums[enum_Name] = common_enums[enum_Name]
+    util.merge_dicts(schema['commonEnums'], schema['enum'], 1)
 
     # merge common views into app views - since these can be deeply nested, for now merge only
     # the title, basic fields, and top level of advanced fields
     common_views = schema['commonViews']
     app_views = schema['view']
+    util.merge_dicts(common_views, app_views, 1)
     for view_Name in common_views:
-        if view_Name not in app_views:
-            app_views[view_Name] = common_views[view_Name]
         if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
             app_views[view_Name]['title'] = common_views[view_Name]['title']
         if 'basic' not in app_views[view_Name] and 'basic' in common_views[view_Name]:

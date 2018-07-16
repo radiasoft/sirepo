@@ -5,9 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
 SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
-SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
-SIREPO.appLocalRoutes.control = '/control/:simulationId';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ].join('');
@@ -80,28 +77,11 @@ SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'ElegantSourceController as source',
-            templateUrl: '/static/html/elegant-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.lattice, {
-            controller: 'LatticeController as lattice',
-            template: '<div data-lattice-tab="" data-controller="lattice"></div>',
-        })
-        .when(localRoutes.control, {
-            controller: 'CommandController as control',
-            templateUrl: '/static/html/elegant-control.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {

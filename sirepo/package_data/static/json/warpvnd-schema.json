@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "WarpVNDSourceController as source",
+                "templateUrl": "/static/html/warpvnd-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "WarpVNDVisualizationController as visualization",
+                "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamSpecies": [
             ["Electron", "Electron"]
@@ -93,12 +108,17 @@
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount"]
         },
+        "particle3d": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount", 100],
+            "joinEvery": ["Join Every N Points", "Integer", 1, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
+        },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
         "simulationGrid": {
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
+            "channel_height": ["Channel Height [µm]", "Float", 5.0],
             "num_x": ["X Grid Points", "Integer"],
             "num_z": ["Z Grid Points", "Integer"],
             "particles_per_step": ["Particles Per Step", "Integer"],
@@ -215,15 +235,24 @@
                 "renderCount"
             ]
         },
+        "particle3d": {
+            "title": "Particle Trace 3D",
+            "advanced": [
+                "renderCount",
+                "joinEvery"
+            ]
+        },
         "simulationGrid": {
             "title": "Simulation Grid",
             "basic": [
                 "plate_spacing",
-                "channel_width"
+                "channel_width",
+                "channel_height"
             ],
             "advanced": [
                 "plate_spacing",
                 "channel_width",
+                "channel_height",
                 "num_x",
                 "num_z",
                 "z_particle_min"

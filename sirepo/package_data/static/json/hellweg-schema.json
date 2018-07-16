@@ -1,4 +1,26 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "HellwegSourceController as source",
+                "templateUrl": "/static/html/hellweg-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "HellwegLatticeController as lattice",
+                "templateUrl": "/static/html/hellweg-lattice.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "HellwegVisualizationController as visualization",
+                "templateUrl": "/static/html/hellweg-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamDefinition": [
             ["cst_pid", "CST PID Input File"],

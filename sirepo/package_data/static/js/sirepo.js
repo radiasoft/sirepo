@@ -29,14 +29,7 @@ angular.element(document).ready(function() {
     });
 });
 
-SIREPO.appLocalRoutes = {
-    simulations: '/simulations',
-    simulationsFolder: '/simulations/:folderPath?',
-    source: '/source/:simulationId',
-    loggedOut: '/logged-out',
-    notFound: '/not-found',
-    notFoundCopy: '/copy-session/:simulationIds/:section',
-};
+SIREPO.appLocalRoutes = {};
 
 SIREPO.appDefaultSimulationValues = {
     simulation: {
@@ -78,33 +71,62 @@ SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
-    var localRoutes = localRoutesProvider.$get();
+    var commonRouteMap = SIREPO.APP_SCHEMA.commonLocalRoutes;
+
+    SIREPO.addRoute = function(routeName, routeMap, addDeferred) {
+        var map = routeMap || commonRouteMap;
+        var route = routeForName(routeName, routeMap);
+        if(! route) {
+            return;
+        }
+        SIREPO.appLocalRoutes[routeName] = route;
+
+        // deferred routes are created but not added to the route provider
+        // until explicitly added.  The only such route now is loggedOut
+        if(map[routeName].doDefer && ! addDeferred) {
+            return;
+        }
+        var rteCfg = routeConfigForName(routeName, map);
+        if(! rteCfg) {
+            return;
+        }
+        if(map[routeName].isFinal) {
+            $routeProvider.otherwise(rteCfg);
+            return;
+        }
+        $routeProvider.when(route, rteCfg);
+    };
+    SIREPO.addRoutes = function(routeMap) {
+        var map = routeMap || commonRouteMap;
+        for(var routeName in map) {
+            SIREPO.addRoute(routeName, map);
+        }
+    };
+
     if (SIREPO.IS_LOGGED_OUT) {
-        $routeProvider.otherwise({
-            controller: 'LoggedOutController as loggedOut',
-            templateUrl: '/static/html/logged-out.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+        SIREPO.addRoute('loggedOut', commonRouteMap, true);
         return;
     }
-    $routeProvider
-        .when(localRoutes.simulations, {
-            controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.simulationsFolder, {
-            controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.notFound, {
-            templateUrl: '/static/html/not-found.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.notFoundCopy, {
-            controller: 'NotFoundCopyController as notFoundCopy',
-            templateUrl: '/static/html/copy-session.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .otherwise({
-            redirectTo: localRoutes.simulations,
-        });
+
+    SIREPO.addRoutes();
+
+    function routeForName(routeName, routeMap) {
+        return routeMap[routeName].route || routeMap[routeName].localRoute || SIREPO.appLocalRoutes[routeName];
+    }
+    function routeConfigForName(routeName, routeMap) {
+        if(routeMap[routeName].isRedirect) {
+            return {
+                redirectTo: SIREPO.appLocalRoutes[routeMap[routeName].localRoute]
+            };
+        }
+
+        var rteObj = routeMap[routeName].config;
+        if(rteObj && rteObj.templateUrl) {
+            rteObj.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        }
+        return rteObj;
+    }
+
 });
 
 SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
@@ -1361,6 +1383,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 1
             );
         }
+        //srdbg('req url/data', url, data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);

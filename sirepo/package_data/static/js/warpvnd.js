@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
@@ -16,20 +15,11 @@ SIREPO.appFieldEditors = [
       '<div data-cell-selector=""></div>',
     '</div>',
 ].join('');
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'WarpVNDSourceController as source',
-            templateUrl: '/static/html/warpvnd-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'WarpVNDVisualizationController as visualization',
-            templateUrl: '/static/html/warpvnd-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
@@ -1159,7 +1149,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation'];
+            var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
             $scope.panelState = panelState;
 
             function handleStatus(data) {
@@ -1167,7 +1157,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                     frameCache.setFrameCount(0, name);
                 });
                 if (data.startTime && ! data.error) {
-                    ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
+                    ['currentAnimation', 'fieldAnimation', 'particleAnimation', 'particle3d', 'egunCurrentAnimation', 'impactDensityAnimation'].forEach(function(modelName) {
                         appState.models[modelName].startTime = data.startTime;
                         appState.saveQuietly(modelName);
                     });
@@ -1194,6 +1184,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
                 fieldAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'field', 'startTime'],
                 particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],
+                particle3d: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'renderCount', 'startTime'],
                 impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
                 egunCurrentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
             });

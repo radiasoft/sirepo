@@ -358,6 +358,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         },
 
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
+            /*
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
@@ -370,6 +371,8 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 .domain(linspace(zMin, zMax, colorMap.length))
                 .range(colorMap)
                 .clamp(true);
+            */
+            var colorScale = this.colorScaleForPlot(plotRange, modelName);
             var xSize = heatmap[0].length;
             var ySize = heatmap.length;
             var img = imageData;
@@ -385,6 +388,25 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             }
             cacheCanvas.getContext('2d').putImageData(img, 0, 0);
             return colorScale;
+        },
+
+        colorScaleForPlot: function(plotRange, modelName) {
+            var m = appState.models[modelName];
+            var zMin = plotRange.min;
+            var zMax = plotRange.max;
+            if (m.colorRangeType == 'smooth') {
+                zMin = plotRange.minEMA.compute(zMin);
+                zMax = plotRange.maxEMA.compute(zMax);
+            }
+            else if (m.colorRangeType == 'fixed') {
+                zMin = m.colorMin;
+                zMax = m.colorMax;
+            }
+            var colorMap = this.colorMapFromModel(modelName);
+            return d3.scale.linear()
+                .domain(linspace(zMin, zMax, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
         },
 
         isPlottingReady: function() {
@@ -450,6 +472,42 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                     }
                 }
             });
+        },
+
+        vtkPlot: function(scope, element) {
+
+            scope.element = element[0];
+            var requestData = initAnimation(scope);
+
+            scope.windowResize = utilities.debounce(function() {
+                scope.resize();
+            }, 250);
+
+            scope.$on('$destroy', function() {
+                scope.destroy();
+                scope.element = null;
+                $($window).off('resize', scope.windowResize);
+            });
+
+            scope.$on(
+                scope.modelName + '.changed',
+                function() {
+                    scope.prevFrameIndex = -1;
+                    if (scope.modelChanged) {
+                        scope.modelChanged();
+                    }
+                    panelState.clear(scope.modelName);
+                    requestData();
+                });
+            scope.isLoading = function() {
+                return panelState.isLoading(scope.modelName);
+            };
+            $($window).resize(scope.windowResize);
+
+            scope.init();
+            if (appState.isLoaded()) {
+                requestData();
+            }
         },
 
         linspace: linspace,
@@ -2951,6 +3009,726 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+// NOTE: the vtk and warp coordinate systems are related the following way:
+//    vtk X (left to right) = warp Z
+//    vtk Y (bottom to top) = warp X
+//    vtk Z (out to in) = warp Y
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/particle3d.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope, $element) {
+            //srdbg('fieldreport', appState.models.fieldReport, appState.models.simulationGrid, appState.models.particle3d);
+            var X_Z_ASPECT_RATIO = 4.0 / 7.0;
+            var Y_Z_ASPECT_RATIO = 1.0 / 1.0;
+            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
+            $scope.width = $scope.height = 0;
+            $scope.dataCleared = true;
+
+            $scope.hasReflected = false;
+            $scope.showAbsorbed = true;
+            $scope.showReflected = true;
+            $scope.showImpact = true;
+            $scope.showConductors = true;
+
+            // to speed renders, only draw lines between every <joinEvery> data points
+            function getJoinEvery() {
+                return appState.models.particle3d.joinEvery || 1;
+            }
+
+            // rendering
+            var fsRenderer = null;
+            var renderWindow = null;
+            var renderer = null;
+            var cam = null;
+            var firstRender = true;
+
+            // planes
+            var startPlaneActor = null;
+            var startPlaneMapper = null;
+            var startPlaneSource = null;
+            var endPlaneActor = null;
+            var endPlaneMapper = null;
+            var endPlaneSource = null;
+            var impactPlaneActors = [];
+            var viewPlane = null;
+
+            // conductors (boxes)
+            var boxActors = [];
+
+            // lines
+            var lineActors = [];
+            var reflectedLineActors = [];
+
+            // spheres
+            var impactSphereActors = [];
+            var fieldSphereActors = [];
+
+            // outline
+            var outlineSource = null;
+            var outlineMapper = null;
+            var outlineActor = null;
+
+            // data
+            var numPoints = 0;
+            var pointRanges = {};
+            var pointData = {};
+            var fieldData = {};
+            var heatmap = [];
+            var fieldZFactor = 1.0;
+            var fieldXFactor = 1.0;
+            var fieldYFactor = 1.0;
+            var fieldColorScale = null;
+            var indexMaps = [];
+
+            var zmin = Number.MAX_VALUE;
+            var xmin = Number.MAX_VALUE;
+            var zfactor = 1;  var xfactor = 1;  var yfactor = 1;
+
+            var minZSpacing = Number.MAX_VALUE;
+            var minXSpacing = Number.MAX_VALUE;
+            var minYSpacing = Number.MAX_VALUE;
+
+            // normFactor scales all data to a reasonable viewing size
+            var normFactor = 100.0;  //2.5;
+            var impactPlaneSize = 0.015 * normFactor;
+            var impactSphereSize = 0.0125 * normFactor;
+            var zoomUnits = 0;
+            var minZoomUnits = -256;
+            var maxZoomUnits = 256;
+
+            // colors - vtk uses a range of 0-1 for RGB components
+            var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
+            var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
+            var particleTrackColor = [70.0/255.0, 130.0/255.0, 180.0/255.0];
+            var reflectedParticleTrackColor = [224.0/255.0, 72.0/255.0, 54.0/255.0];
+            var impactColor = [255.0/255.0, 0.0/255.0, 0.0/255.0];
+
+            var controlPanelHTML = [
+                '<div class=".sr-plot-legend .plot-visibility" data-ng-show="hasReflected">',
+                    '<div>',
+                        '<span style="color: steelblue; font-size: 18px;">&#x25CF;</span>Absorbed <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{\'glyphicon-eye-open\': showAbsorbed, \'glyphicon-eye-close\': ! showAbsorbed}"></span></a>',
+                        ' [Impact Points <a href="" data-ng-click="toggleImpact()"> <span class="glyphicon" data-ng-class="{\'glyphicon-eye-open\': showImpact, \'glyphicon-eye-close\': ! showImpact}"></span></a>]',
+                    '</div>',
+                    '<div>',
+                        '<span style="color: #e04836; font-size: 18px;">&#x25CF;</span>Reflected <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{\'glyphicon-eye-open\': showReflected, \'glyphicon-eye-close\': ! showReflected}"></span></a>',
+                    '</div>',
+                    '<div>',
+                        '<span style="color: green; font-size: 18px;">&#x25CF;</span>Conductors <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{\'glyphicon-eye-open\': showConductors, \'glyphicon-eye-close\': ! showConductors}"></span></a>',
+                    '</div>',
+                '</div>',
+            ].join('');
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+
+            $scope.requestData = function() {
+                //srdbg('p3d requestData');
+                if (! $scope.hasFrames()) {
+                    return;
+                }
+                frameCache.getFrame($scope.modelName, 0, false, function(index, data) {
+                    if ($scope.element) {
+                        if (data.error) {
+                            panelState.setError($scope.modelName, data.error);
+                            return;
+                        }
+                        panelState.setError($scope.modelName, null);
+                        pointData = data;
+                        frameCache.getFrame('fieldAnimation', 0, false, function(index, data) {
+                            if ($scope.element) {
+                                if (data.error) {
+                                    panelState.setError($scope.modelName, data.error);
+                                    return;
+                                }
+                                panelState.setError($scope.modelName, null);
+                                fieldData = data;
+                                $scope.load();
+                            }
+                        });
+                    }
+                });
+            };
+
+            $scope.init = function() {
+                //srdbg('p3d init', $scope);
+                var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({ background: [1, 1, 1, 1], container: rw });
+                //srdbg('fs', fsRenderer.get());
+                renderer = fsRenderer.getRenderer();
+                //renderer.setBackground([1,1,1,0]);
+                //srdbg('default light', renderer.getLights()[0].getColor());
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+
+                cam = renderer.get().activeCamera;
+
+                var rwInteractor = renderWindow.getInteractor();
+                //srdbg('renderWindow', renderWindow);
+                //srdbg('interactor', rwInteractor);
+                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
+                    interactor: rwInteractor,
+                    subscribedEvents: ['StartPinch']
+                });
+                zoomObserver.setInteractor(rwInteractor);
+
+                rw.addEventListener('dblclick', reset);
+
+                var minDist = 4.0;
+                var minDistSq = minDist * minDist;
+                var maxDist = 14.0;
+                var maxDistSq = maxDist * maxDist;
+                var lastVU = [];
+                var lastFP = [];
+                var lastPos = [0,0,0];
+                var newPos = [0,0,0];
+                rw.onpointerup = function(evt) {
+                    lastPos = cam.getPosition();
+                };
+                rw.onwheel = function (evt) {
+                    var camPos = cam.getPosition();
+                    var absPos = [Math.abs(camPos[0]), Math.abs(camPos[1]), Math.abs(camPos[2])];
+                    var camDistSq = camPos[0] * camPos[0] + camPos[1] * camPos[1] + camPos[2] * camPos[2];
+                    var camVU = cam.getViewUp();
+                    var camFP = cam.getFocalPoint();
+                    var adjZ = 0.0;
+                    var adjCoord = 0.0;
+
+                    /*
+                    if(evt.deltaY < 0) {
+                        //if(camDistSq < minDistSq) {
+                        if(zoomUnits < minZoomUnits) {
+                            //srdbg('TOO BIG!', camDistSq);
+                            newPos = [lastPos[0], lastPos[1], lastPos[2]];
+                            //srdbg('old dist', camDistSq, 'will set pos to', newPos);
+                            cam.setPosition(newPos[0], newPos[1], newPos[2]);
+                        }
+                        else {
+                            zoomUnits += evt.deltaY;
+                        }
+                    }
+                    else {
+                        //if(camDistSq > maxDistSq) {
+                            //srdbg('TOO SMALL!', camDistSq);
+                            var maxComponent = Math.max.apply(null, absPos);
+                            var maxCIndex = absPos.indexOf(maxComponent);
+                            var maxCSign = camPos[maxCIndex] / absPos[maxCIndex];
+                            //srdbg('biggest component', maxCIndex, maxComponent, maxCSign);
+                            //if(Math.abs(maxComponent) > maxDist) {
+                            if(zoomUnits > maxZoomUnits) {
+                                //srdbg('TOO SMALL!', camDistSq);
+                                newPos = [lastPos[0], lastPos[1], lastPos[2]];
+                                newPos[maxCIndex] = maxCSign * maxDist;
+                                //srdbg('old dist', camDistSq, 'will set pos to', newPos);
+                                cam.setPosition(newPos[0], newPos[1], newPos[2]);
+                            }
+                            else {
+                                zoomUnits += evt.deltaY;
+                            }
+                        //}
+                    }
+*/
+                    //srdbg('cam pos now:', cam.getPosition(), 'fp:', camFP, 'vu:', camVU);
+                    //srdbg('cam dist now:', camDistSq);
+                    //srdbg('zoom units now:', zoomUnits);
+                    //srdbg('dist to viewplane now', viewPlane.distanceToPlane(cam.getPosition()));
+                    lastVU = camVU;
+                    lastFP = camFP;
+                    lastPos = cam.getPosition();
+                };
+
+
+                startPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                startPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                //srdbg('actor props', startPlaneActor.getProperty());
+                //startPlaneActor.getProperty().setEdgeVisibility(true);
+                startPlaneActor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                startPlaneActor.getProperty().setLighting(false);
+                startPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                startPlaneMapper.setInputConnection(startPlaneSource.getOutputPort());
+                startPlaneActor.setMapper(startPlaneMapper);
+                renderer.addActor(startPlaneActor);
+
+                endPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                endPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                //endPlaneActor.getProperty().setEdgeVisibility(true);
+                endPlaneActor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                endPlaneActor.getProperty().setLighting(false);
+                endPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                endPlaneMapper.setInputConnection(endPlaneSource.getOutputPort());
+                endPlaneActor.setMapper(endPlaneMapper);
+                renderer.addActor(endPlaneActor);
+
+                outlineMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                outlineActor = vtk.Rendering.Core.vtkActor.newInstance();
+                outlineSource = vtk.Filters.Sources.vtkCubeSource.newInstance();
+                outlineActor.getProperty().setColor(1, 1, 1);
+                outlineActor.getProperty().setEdgeVisibility(true);
+                outlineActor.getProperty().setEdgeColor(0, 0, 0);
+                //outlineActor.getProperty().setRepresentationToWireframe();
+                outlineActor.getProperty().setFrontfaceCulling(true);
+                outlineActor.getProperty().setLighting(false);
+
+                outlineMapper.setInputConnection(outlineSource.getOutputPort());
+                outlineActor.setMapper(outlineMapper);
+                renderer.addActor(outlineActor);
+            };
+
+            //$scope.load = function(json) {
+            $scope.load = function() {
+                //srdbg('p3d load', pointData);
+                $scope.dataCleared = false;
+
+                removeActors(lineActors);
+                removeActors(reflectedLineActors);
+                removeActors(impactSphereActors);
+                removeActors(boxActors);
+
+                lineActors = [];
+                reflectedLineActors = [];
+                impactSphereActors = [];
+                fieldSphereActors = [];
+                boxActors = [];
+
+                if(!pointData) {
+                    return;
+                }
+
+                var zpoints = pointData.points;
+                var zmin = pointData.y_range[0];
+                var zmax = pointData.y_range[1];
+
+                var xpoints = pointData.x_points;
+                var xmin = pointData.x_range[0];
+                var xmax = pointData.x_range[1];
+
+                // these are randomly generated in python for now
+                var ypoints = pointData.z_points;
+                var ymin = pointData.z_range[0];
+                var ymax = pointData.z_range[1];
+
+                var pointScales = {
+                    z: normFactor / Math.abs((zmax - zmin)),
+                    x: normFactor / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
+                    y: normFactor / Math.abs((ymax - ymin)) / Y_Z_ASPECT_RATIO
+                };
+                pointRanges = {
+                    z: [pointScales.z * zmin, pointScales.z * zmax],
+                    x: [pointScales.x * xmin, pointScales.x * xmax],
+                    y: [pointScales.y * ymin, pointScales.y * ymax]
+                };
+                zfactor = pointScales.z;
+                xfactor = pointScales.x;
+                yfactor = pointScales.y;
+
+
+                var maxNumPoints = Math.max.apply(null, zpoints.map(function (subArr) {
+                    return subArr.length;
+                }));
+                var minNumPoints = Math.min.apply(null, zpoints.map(function (subArr) {
+                    return subArr.length;
+                }));
+                if(pointData.lost_x && pointData.lost_x.length > 0) {
+                    maxNumPoints = Math.max(maxNumPoints, Math.max.apply(null, pointData.lost_x.map(function (subArr) {
+                        return subArr.length;
+                    })));
+                    minNumPoints = Math.min(minNumPoints, Math.min.apply(null, pointData.lost_x.map(function (subArr) {
+                        return subArr.length;
+                    })));
+                }
+                //srdbg('min/max points based on data', minNumPoints, maxNumPoints);
+
+                var joinEvery =  getJoinEvery();
+
+                //var numInterPoints = maxNumPoints + 1;
+                //var numInterPoints = 2 * maxNumPoints;
+                var numInterPoints = 50;
+
+                minXSpacing = xfactor*Math.abs((xmax - xmin)) / numInterPoints;
+                //minZSpacing = zfactor*Math.abs((zmax - zmin)) / interPoints;
+                //minYSpacing = yfactor*Math.abs((ymax - ymin)) / interPoints;
+                //srdbg('min spacing', minXSpacing, 'max points', interPoints, 'points with min spacing', Math.floor(xfactor*Math.abs((xmax - xmin)) / minXSpacing));
+                var nearestIndex = 0;
+                //var newXPoints = [];  var newYPoints = [];  var newZPoints = [];
+                indexMaps = [];
+                for(var i = 0; i < xpoints.length; ++i) {
+                    var xArr = xpoints[i];  var yArr = ypoints[i];  var zArr = zpoints[i];
+                    var l = xArr.length;
+                    //var newXArr = [];  var newYArr = [];  var newZArr = [];
+
+                    var newIndexMap = {0:0};
+
+                    var lastNearestIndex = 0;
+                    nearestIndex = joinEvery;
+                    var numAdded = 0;
+                    var newX = xfactor * xArr[0];
+                    var finalX = xfactor * xArr[xArr.length-1];
+                    var j = 1;
+                    var numBetween = 0;
+                    while (newX <= finalX) {  // ASSUMES MONOTONICALLY INCREASING
+                        newX = xfactor * xArr[0] + j * minXSpacing;
+                        nearestIndex = joinEvery;  // start at the beginning
+                        lastNearestIndex = joinEvery;
+                        var checkX = xfactor * xArr[nearestIndex];
+                        while (nearestIndex < xArr.length && checkX < newX) {
+                            if(!newIndexMap[nearestIndex]) {
+                                // ensures we don't skip any indices. mapping them to the nearest previously mapped value
+                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery) || 0;
+                            }
+                            nearestIndex += joinEvery;
+                            checkX = xfactor * xArr[nearestIndex];
+                        }
+                        if(nearestIndex != lastNearestIndex) {
+                            numBetween = 0;
+                            lastNearestIndex = nearestIndex;
+                        }
+                        var lowIndex = Math.max(0, nearestIndex - joinEvery);
+                        var highIndex = Math.min(xArr.length-1, nearestIndex);
+                        var x = xfactor * xArr[lowIndex];
+                        var nextX = xfactor * xArr[highIndex];
+                        var y = yfactor * yArr[lowIndex];
+                        var nextY = yfactor * yArr[highIndex];
+                        var z = zfactor * zArr[lowIndex];
+                        var nextZ = zfactor * zArr[highIndex];
+
+                        // linear interpolation
+                        var dx = nextX - x;
+                        var dy = nextY - y;
+                        var dz = nextZ - z;
+                        var newZ = dx ? z + (newX - x) * dz / dx : z;
+                        var newY = dx ? y + (newX - x) * dy / dx : y;
+
+                        xArr.splice(lowIndex+1, 0, newX / xfactor);
+                        yArr.splice(lowIndex+1, 0, newY / yfactor);
+                        zArr.splice(lowIndex+1, 0, newZ / zfactor);
+
+                        //newXArr.push(newX / xfactor);
+                        //newYArr.push(newY / yfactor);
+                        //newZArr.push(newZ / zfactor);
+
+                        ++numAdded;
+                        ++numBetween;
+                        newIndexMap[highIndex] = j;
+                        ++j;
+                    }  // END WHILE
+                    //srdbg('added', numAdded);
+                    //newXPoints.push(newXArr);  newYPoints.push(newYArr);  newZPoints.push(newZArr);
+                    newIndexMap[xArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery);
+                    indexMaps.push(newIndexMap);
+                }  // end loop over partcles
+                //srdbg('index map', indexMaps);
+
+                heatmap = appState.clone(fieldData.z_matrix).reverse();
+                var hm_xlen = heatmap.length;
+                var hm_zlen = heatmap[0].length;
+                var hm_ylen = numInterPoints;
+                fieldZFactor = hm_zlen / numInterPoints;
+                fieldXFactor = hm_xlen / numInterPoints;
+                fieldYFactor = hm_ylen / numInterPoints;
+                //srdbg('field factors', interPoints, 'hm_zlen', hm_zlen, fieldZFactor, 'hm_xlen', hm_xlen, fieldXFactor, fieldYFactor);
+
+                var hm_zmin = Math.max(0, plotting.min2d(heatmap));
+                var hm_zmax = plotting.max2d(heatmap);
+                var colorRange = plotting.createColorRange();
+                colorRange.setRange(hm_zmin, hm_zmax);
+                fieldColorScale = plotting.colorScaleForPlot(colorRange, 'fieldAnimation');
+
+                buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
+                //buildFieldSpheres(xpoints, ypoints, zpoints, null);
+                if (pointData.lost_x) {
+                    $scope.hasReflected = pointData.lost_x.length > 0;
+                    buildLineActorsFromPoints(pointData.lost_x, pointData.lost_z, pointData.lost_y, reflectedParticleTrackColor, false);
+                }
+
+                // build conductors
+                for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
+                    var conductor = appState.models.conductors[cIndex];
+
+                    // lengths and centers are in µm
+                    var cFactor = 1000000.0;
+                    var cModel = null;
+                    var cColor = [0, 0, 0];  var cEdgeColor = [0, 0, 0];
+                    for(var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
+                        if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
+                            cModel = appState.models.conductorTypes[ctIndex];
+                            cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
+                            //cEdgeColor = cModel.voltage > 0 ? [228.0/255.0, 176.0/255.0, 95.0/255.0] : [95.0/255.0, 176.0/255.0, 228.0/255.0];
+                            break;
+                        }
+                    }
+                    if(cModel) {
+
+                        var zl = xfactor * cModel.zLength / cFactor;
+                        var xl = zfactor * cModel.xLength / cFactor;
+                        var zc = xfactor * conductor.zCenter / cFactor;
+                        var xc = zfactor * conductor.xCenter / cFactor;
+
+                        var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
+                            xLength: zl,
+                            yLength: xl,
+                            zLength: Math.abs(pointRanges.y[1] - pointRanges.y[0]),
+                            center: [zc, xc, pointRanges.y[0] + (pointRanges.y[1] - pointRanges.y[0]) / 2.0]
+                        });
+                        var bm = vtk.Rendering.Core.vtkMapper.newInstance();
+                        bm.setInputConnection(bs.getOutputPort());
+
+                        var ba = vtk.Rendering.Core.vtkActor.newInstance();
+                        ba.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                        ba.getProperty().setEdgeVisibility(true);
+                        ba.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                        ba.getProperty().setLighting(false);
+                        ba.setMapper(bm);
+                        boxActors.push(ba);
+                    }
+                }
+
+                refresh();
+            };
+
+            function addActors(actorArr) {
+                for(var aIndex = 0; aIndex < lineActors.length; ++aIndex) {
+                    renderer.addActor(actorArr[aIndex]);
+                }
+            }
+            function removeActors(actorArr) {
+                for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
+                    renderer.removeActor(actorArr[aIndex]);
+                }
+            }
+
+            function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
+                var joinEvery = getJoinEvery();
+                var x = 0.0;  var y = 0.0;  var z = 0.0;
+                var nextX = 0.0;  var nextY = 0.0;  var nextZ = 0.0;
+                for (var i = 0; i < zpoints.length; ++i) {
+                    var l = zpoints[i].length;
+                    //srdbg(i, 'making lines from ' + l + ' points, xmin', xmin);
+                    for (var j = 0; j < l; j += joinEvery) {
+                        z = zfactor * zpoints[i][j];
+                        x = xfactor * xpoints[i][j];
+                        y = yfactor * ypoints[i][j];
+                        ++numPoints;
+                        if (j < l - joinEvery) {
+                            nextZ = zfactor * zpoints[i][j + joinEvery];
+                            nextX = xfactor * xpoints[i][j + joinEvery];
+                            nextY = yfactor * ypoints[i][j + joinEvery];
+                            //srdbg('buildLineActorsFromPoints:', i, j, indexMaps[i]);
+                            lineActors.push(buildLine(x, nextX, y, nextY, z, nextZ, color || colorAtIndex(indexMaps[i][j])));
+                        }
+                    }
+                    if(l - 1 > j - joinEvery) {
+                        z = zfactor * zpoints[i][j - joinEvery];
+                        x = xfactor * xpoints[i][j - joinEvery];
+                        y = yfactor * ypoints[i][j - joinEvery];
+                        nextZ = zfactor * zpoints[i][l - 1];
+                        nextX = xfactor * xpoints[i][l - 1];
+                        nextY = yfactor * ypoints[i][l - 1];
+                        ++numPoints;
+                        //srdbg('buildLineActorsFromPoints(leftover):', i, j-joinEvery, indexMaps[i]);
+                        lineActors.push(buildLine(x, nextX, y, nextY, z, nextZ, color || colorAtIndex(indexMaps[i][j - joinEvery])));
+                    }
+                    if(includeImpact) {
+                        //srdbg('last index', zpoints[i].length - 1);
+                        var k = zpoints[i].length - 1;
+                        var lastZ = zfactor * zpoints[i][k];
+                        var lastX = xfactor * xpoints[i][k];
+                        var lastY = yfactor * ypoints[i][k];
+                        //srdbg('buildLineActorsFromPoints(impact):', i, k, indexMaps[i]);
+                        impactSphereActors.push(buildImpactSphere([lastX, lastZ, lastY], impactSphereSize, color || colorAtIndex(indexMaps[i][k])));
+                    }
+                }
+            }
+            function buildFieldSpheres(xpoints, ypoints, zpoints, color) {
+                var joinEvery = getJoinEvery();
+                //srdbg('building field spheres', zpoints.length);
+                var x = 0.0;  var y = 0.0;  var z = 0.0;
+                for (var i = 0; i < zpoints.length; ++i) {
+                    var l = zpoints[i].length;
+                    for (var j = 0; j < l; j += joinEvery) {
+                        z = zfactor * zpoints[i][j];
+                        x = xfactor * xpoints[i][j];
+                        y = yfactor * ypoints[i][j];
+                        fieldSphereActors.push(buildImpactSphere([x, z, y], impactSphereSize / 2.0, color || colorAtIndex(indexMaps[i][j])));
+                    }
+                }
+            }
+            function indexValPriorTo(map, startIndex, spacing) {
+                var k = startIndex - spacing;
+                var prevVal = map[k];
+                while(k >= 0 && (prevVal == null || prevVal === 'undefined')) {
+                    k -= spacing;
+                    prevVal = map[k];
+                }
+                return prevVal;
+            }
+            function colorAtIndex(index) {
+                var fieldzIndex = Math.min(heatmap[0].length-1, Math.floor(fieldZFactor * index));
+                var fieldxIndex = Math.min(heatmap.length-1, Math.floor(fieldXFactor * index));
+                var fieldyIndex = Math.floor(fieldYFactor * index);
+                //srdbg('field indexes', index, '->', fieldzIndex, fieldxIndex, fieldyIndex);
+                //var heatVal = heatmap[fieldxIndex][fieldzIndex];
+                //var fColor = fieldColorScale(heatVal);
+                //fColor = fColor.substring(1, fColor.length);
+                //srdbg('color at field indexes', index, '->', fieldzIndex, fieldxIndex, fieldyIndex, heatVal, fColor);
+                return colorsFromHexString(fieldColorScale(heatmap[fieldxIndex][fieldzIndex]));  //[parseInt(fColor.substring(0,2), 16) / 255.0, parseInt(fColor.substring(2,4), 16) / 255.0, parseInt(fColor.substring(4,6), 16) / 255.0];
+            }
+            // accepts a string of the form '#abcdef' and returns an array of rgb values ranging from 0-1
+            function colorsFromHexString(color) {
+                var hexColor = color.substring(1, color.length);
+                return [parseInt(hexColor.substring(0,2), 16) / 255.0, parseInt(hexColor.substring(2,4), 16) / 255.0, parseInt(hexColor.substring(4,6), 16) / 255.0];
+            }
+
+            // draw a line with 2 dots (the end points) in the given color
+            function buildLine(x1, x2, y1, y2, z1, z2, colorArray) {
+                var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
+                    point1: [x1, z1, y1],
+                    point2: [x2, z2, y2],
+                    resolution: 2
+                });
+
+                var lm = vtk.Rendering.Core.vtkMapper.newInstance();
+                lm.setInputConnection(ls.getOutputPort());
+
+                var la = vtk.Rendering.Core.vtkActor.newInstance();
+                la.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                la.setMapper(lm);
+                return la;
+            }
+            function buildImpactSphere(center, radius, colorArray) {
+               //srdbg('building sphere at', center);
+                var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
+                    center: center,
+                    radius: radius,
+                    thetaResolution: 16,
+                    phiResolution: 16
+                });
+
+                var pm = vtk.Rendering.Core.vtkMapper.newInstance();
+                pm.setInputConnection(ps.getOutputPort());
+
+                var pa = vtk.Rendering.Core.vtkActor.newInstance();
+                pa.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                pa.getProperty().setLighting(false);
+                pa.setMapper(pm);
+                return pa;
+            }
+
+            function refresh() {
+                //srdbg('p3d refresh');
+                //var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
+                //srdbg('p3d width', width);
+                //$scope.width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                //$scope.height = ASPECT_RATIO * $scope.width;
+
+
+                //var vtkCanvas = $($element).find('.sr-plot-particle-3d canvas')[0];
+                //srdbg('found canvas', vtkCanvas, $(vtkCanvas).width(), $(vtkCanvas).height());
+                //var w = $(vtkCanvas).attr('width');
+                //$(vtkCanvas).attr('height', ASPECT_RATIO * w);
+
+                startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
+                startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
+                startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
+
+                endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
+                endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
+                endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
+
+                var padding = 0.01 * normFactor;
+                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
+                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
+                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
+                outlineSource.setCenter([
+                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
+                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
+                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
+                ]);
+
+                addActors(lineActors);
+                addActors(reflectedLineActors);
+                addActors(boxActors);
+                addActors(impactSphereActors);
+                //addActors(fieldSphereActors);
+
+                renderer.resetCamera();
+                renderWindow.render();
+
+                var camPos = cam.getPosition();
+                if(firstRender) {
+                    //var vtkCanvas = $($element).find('.sr-plot-particle-3d canvas')[0];
+                    //srdbg('found canvas', vtkCanvas, $(vtkCanvas).width(), $(vtkCanvas).height());
+                    //var w = $(vtkCanvas).attr('width');
+                    //$(vtkCanvas).attr('height', ASPECT_RATIO * w);
+                    //$(vtkCanvas)
+                    viewPlane = vtk.Common.DataModel.vtkPlane.newInstance({
+                        origin: [camPos[0], camPos[1], camPos[2]],
+                        normal: [0,0,1]
+                    });
+                    firstRender = false;
+                }
+            }
+
+            function reset() {
+                cam.setPosition(0, 0, 1);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 1, 0);
+                renderer.resetCamera();
+                renderWindow.render();
+                zoomUnits = 0;
+                //srdbg('reset cam to position', cam.getPosition());
+            }
+
+            function resetZoom() {
+                //srdbg('p3d resetZoom');
+            }
+
+            $scope.clearData = function() {
+            };
+
+            $scope.destroy = function() {
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+                var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
+                rw.removeEventListener('dblclick', reset);
+            };
+
+
+            $scope.resize = function() {
+                //refresh();
+            };
+
+            $scope.toggleAbsorbed = function() {
+                $scope.showAbsorbed = ! $scope.showAbsorbed;
+                showActors(lineActors, $scope.showAbsorbed);
+                showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+            };
+            $scope.toggleImpact = function() {
+                $scope.showImpact = ! $scope.showImpact;
+                showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+            };
+            $scope.toggleReflected = function() {
+                $scope.showReflected = ! $scope.showReflected;
+                showActors(reflectedLineActors, $scope.showReflected);
+            };
+            $scope.toggleConductors = function() {
+                $scope.showConductors = ! $scope.showConductors;
+                showActors(boxActors, $scope.showConductors);
+            };
+            function showActors(actorArray, doShow) {
+                for(var aIndex = 0; aIndex < actorArray.length; ++aIndex) {
+                    actorArray[aIndex].getProperty().setOpacity(doShow ? 1.0 : 0.0);
+                }
+                renderWindow.render();
+            }
+
+        },
+
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
         },
     };
 });

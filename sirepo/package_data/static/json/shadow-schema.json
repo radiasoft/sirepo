@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "ShadowSourceController as source",
+                "templateUrl": "/static/html/shadow-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "ShadowBeamlineController as beamline",
+                "templateUrl": "/static/html/shadow-beamline.html"
+            }
+        }
+    },
     "enum": {
         "AbsoluteOrigin": [
             ["0", "Absolute"],

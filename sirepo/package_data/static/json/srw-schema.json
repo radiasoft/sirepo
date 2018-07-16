@@ -1,4 +1,34 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SRWSourceController as source",
+                "templateUrl": "/static/html/srw-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "SRWBeamlineController as beamline",
+                "templateUrl": "/static/html/srw-beamline.html",
+                "reloadOnSearch": true
+            }
+        }
+    },
+    "appModes": {
+        "calculator": {
+            "localRoute": "source",
+            "includeMode": true
+        },
+        "wavefront": {
+            "localRoute": "beamline",
+            "includeMode": true
+        },
+        "light-sources": {
+            "localRoute": "beamline",
+            "includeMode": true
+        }
+    },
     "enum": {
         "AnalyticalTreatment": [
             ["0", "0 - Standard"],
