@@ -85,12 +85,10 @@
             "hidden": []
         },
         "particleAnimation": {
-            "particleLimit": "100",
-            "renderCount": "10",
+            "renderCount": "100",
             "startTime": 1512001962
         },
         "particle3d": {
-            "particleLimit": "100",
             "renderCount": "10",
             "startTime": 1512001962
         },
