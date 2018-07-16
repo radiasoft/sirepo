@@ -8,11 +8,6 @@
             ["a", "Absolute"],
             ["s", "Scale to Electron Plasma"]
         ],
-        "ColorRangeType": [
-            ["none", "None"],
-            ["smooth", "Smooth"],
-            ["fixed", "Fixed"]
-        ],
         "Field": [
             ["E", "E - Electron field [V/m]"],
             ["B", "B - Magnetic field [T]"],
@@ -122,7 +117,6 @@
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
             "notes": ["Notes", "Text", ""]
         },
         "beamPreviewReport": {
@@ -197,7 +191,6 @@
             "uzMin": ["Minimum UZ [mc]", "Float"],
             "uzMax": ["Maximum UZ [mc]", "Float"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
             "notes": ["Notes", "Text", ""]
         },
         "fieldAnimation": {
@@ -206,7 +199,6 @@
             "mode": ["Mode", "FieldMode"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "colorRangeType": ["Range", "ColorRangeType", "smooth"],
             "notes": ["Notes", "Text", ""]
         },
         "laserPreviewReport": {

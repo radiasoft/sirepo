@@ -631,8 +631,10 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
                     .on('brushend', brushend);
                 arc = d3.svg.arc()
                     .startAngle(0)
-                    .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
-                xAxis = plotting.createAxis(xScale, 'bottom');
+                        .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+                xAxis = d3.svg.axis()
+                   .scale(xScale)
+                   .orient('bottom');
             };
 
             $scope.load = function() {
