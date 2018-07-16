@@ -121,7 +121,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
 
     self.showParticle3DReport = function() {
         return SIREPO.APP_SCHEMA.feature_config.particle_3d_report;
-    }
+    };
 
     return self;
 });
