@@ -91,11 +91,11 @@ def api_blueskyAuth():
 def api_copyNonSessionSimulation():
     req = _json_input()
     sim_type = req['simulationType']
-    src = simulation_db.find_global_simulation(
+    src = py.path.local(simulation_db.find_global_simulation(
         sim_type,
         req['simulationId'],
         checked=True,
-    )
+    ))
     data = simulation_db.open_json_file(
         sim_type,
         src.join(simulation_db.SIMULATION_DATA_FILE),
