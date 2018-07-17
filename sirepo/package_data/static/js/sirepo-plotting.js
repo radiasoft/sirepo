@@ -2999,7 +2999,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities, vtkService) {
     return {
         restrict: 'A',
         scope: {
@@ -3708,7 +3708,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
         },
 
         link: function link(scope, element) {
-            plotting.vtkPlot(scope, element);
+            if (vtkService.vtk) {
+                vtkService.vtk().then(function(vtk) {
+                    plotting.vtkPlot(scope, element);
+                });
+            }
         },
     };
 });
