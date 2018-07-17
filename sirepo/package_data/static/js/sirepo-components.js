@@ -1604,7 +1604,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 return ! SIREPO.IS_LOGGED_OUT;
             };
             $scope.showTitle = function() {
-                return ! $scope.nav.isActive('simulations');
+                return appState.isLoaded();
             };
             $scope.showSimulationLink = function() {
                 panelState.showModalEditor(
@@ -1656,7 +1656,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
-                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+                    '<li data-ng-if="isLoaded()" data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
                     '<li data-settings-menu="nav">',
                         '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
