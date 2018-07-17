@@ -404,7 +404,7 @@ def _extract_bunch_plot(report, frame_index, run_dir):
         hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
         tlen = f['tlen'][()]
         s_n = f['s_n'][()]
-        rep = 0 if s_n == 0 else int(tlen / s_n)
+        rep = 0 if s_n == 0 else int(round(tlen / s_n))
         return {
             'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
             'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
