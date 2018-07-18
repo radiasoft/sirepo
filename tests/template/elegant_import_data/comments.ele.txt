@@ -1,0 +1,20 @@
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = "1001",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+&end
+
+&bunched_beam
+&end
+
+&track
+&end

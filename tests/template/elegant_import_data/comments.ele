@@ -1,0 +1,22 @@
+Some text here, not in a comment
+
+&run_setup
+  ! a comment
+  lattice = "elegant.lte",
+  p_central_mev = 1001,
+  output = "run_setup.output.sdds",
+&end
+
+some values it will ignore
+  alpha_x = 123,
+  beta_x = aaaaa
+
+&run_control &end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+&end
+
+&bunched_beam &end
+
+&track &end
