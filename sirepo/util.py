@@ -22,4 +22,4 @@ def merge_dicts(base, derived, depth):
         merge_dicts(base[key], derived[key], depth-1)
 
 def err(obj, format='', *args, **kwargs):
-    return '{}: '.format(obj) + format.format(args, kwargs)
+    return '{}: '.format(obj) + format.format(*args, **kwargs)
