@@ -43,7 +43,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
     self.elementPic = {
         aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
-        bend: ['HKICKER', 'KICKER', 'SBEND'],
+        bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],

@@ -579,6 +579,8 @@ def _import_elements(lattice, data):
         for attr in el.get_vector_attributes():
             attrs[attr] = '{' + ','.join(map(str, el.get_vector_attribute(attr))) + '}'
         model_name = el.get_type().upper()
+        if model_name not in _SCHEMA.model:
+            raise IOError('Unsupported element type: {}'.format(model_name))
         m = template_common.model_defaults(model_name, _SCHEMA)
         if 'l' in attrs:
             attrs['l'] = float(str(attrs['l']))
