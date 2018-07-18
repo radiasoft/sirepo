@@ -43,13 +43,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
     self.elementPic = {
         aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
-        bend: ['HKICKER', 'KICKER', 'MULTIPOLE', 'SBEND'],
+        bend: ['HKICKER', 'KICKER', 'SBEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
-        zeroLength: ['DIPEDGE', 'NLLENS', 'SROTATION'],
+        zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
     };
 
     self.titleForName = function(name) {
