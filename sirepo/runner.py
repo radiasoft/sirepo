@@ -126,7 +126,7 @@ def init(app, uwsgi):
         cfg.job_class = cfg_job_class(d)
         assert not uwsgi or not issubclass(cfg.job_class, Background), \
             'uwsgi does not work if sirepo.runner.cfg.job_class=Background'
-    if isinstance(cfg.job_class, Docker):
+    if issubclass(cfg.job_class, Docker):
         _docker_init(app);
 
 
@@ -411,7 +411,10 @@ class Docker(Base):
 
     def _is_processing(self):
         """Inspect container to see if still in running state"""
-        out = self.__docker(['inspect', '--format={{.State.Status}}', self.cid])
+        out = _docker_cmd(
+            self.docker_host,
+            ('inspect', '--format={{.State.Status}}', self.cid),
+        )
         if not out:
             self.cid = None
             return False
@@ -424,7 +427,10 @@ class Docker(Base):
     def _kill(self):
         if self.cid:
             pkdlog('{}: stop cid={}', self.jid, self.cid)
-            self.__docker(['stop', '--time={}'.format(_KILL_TIMEOUT_SECS), self.cid])
+            _docker_cmd(
+                self.docker_host,
+                ('stop', '--time={}'.format(_KILL_TIMEOUT_SECS), self.cid),
+            )
             self.cid = None
 
     def _start(self):
@@ -441,17 +447,17 @@ class Docker(Base):
             sh_cmd=self.__sh_cmd(),
         )
 #TODO(robnagler) queue?
-        self.docker_host = _docker_host_select(self),
+        self.docker_host = _docker_host_select(self)
         script = str(self.run_dir.join(_DOCKER_CONTAINER_PREFIX + 'run.sh'))
         with open(str(script), 'wb') as f:
             f.write(pkjinja.render_resource('runner/docker.sh', ctx))
         cmd = _DOCKER_RUN_PREFIX + (
 #TODO(robnagler) configurable
-            '--cpus=' + self.__cores(),
+            '--cpus={}'.format(self.__cores()),
             '--detach',
             '--init',
             '--memory={}g'.format(self.__gigabytes()),
-            '--name=' + self.cname,
+            '--name={}'.format(self.cname),
             '--network=none',
 #TODO(robnagler) this doesn't do anything
 #            '--ulimit=cpu=1',
@@ -461,10 +467,11 @@ class Docker(Base):
             '--user={}'.format(os.getuid()),
         ) + self.__volumes() + (
 #TODO(robnagler) make this configurable per code (would be structured)
-            _docker_image(),
+            self.__image(),
             'bash',
             script,
         )
+        simulation_db.write_status('running', self.run_dir)
         self.cid = _docker_cmd(self.docker_host, cmd)
         pkdc(
             '{}: started cname={} cid={} dir={} len_jobs={} cmd={}',
@@ -489,6 +496,13 @@ class Docker(Base):
 #TODO(robnagler) sequential processes probably don't need much memory, but maybe 2g
 #TODO(robnagler) imports definitely don't need more than 1g
         return 1
+
+    #TODO(robnagler) probably should push this to pykern also in rsconf
+    def __image(self):
+        res = cfg.docker_image
+        if ':' in res:
+            return res
+        return res + ':' + pkconfig.cfg.channel
 
     def __run_secs(self):
         if self.data['report'] == 'backgroundImport':
@@ -544,16 +558,17 @@ def _assert_celery():
 
 
 def _docker_cmd(host, cmd):
-    cmd = _docker_hosts[host].cmd_prefix + cmd
+    c = _docker_hosts[host].cmd_prefix + cmd
     try:
-        pkdc('Running: {}', cmd)
+        pkdc('Running: {}', c)
         return subprocess.check_output(
-            cmd,
+            c,
             stdin=open(os.devnull),
             stderr=subprocess.STDOUT,
         ).rstrip()
     except subprocess.CalledProcessError as e:
-        pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
+        if cmd[0] == 'run':
+            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
         return None
 
 def _docker_cmd_prefix(host, tls_d):
@@ -571,15 +586,10 @@ def _docker_cmd_prefix(host, tls_d):
 def _docker_host_select(docker):
     return _docker_hosts.keys()[0]
 
-#TODO(robnagler) probably should push this to pykern also in rsconf
-def _docker_image(self):
-    res = cfg.docker_image
-    if ':' in res:
-        return res
-    return res + ':' + pkconfig.cfg.channel
-
 
 def _docker_init(app):
+    global _docker_hosts, _docker_tls_d, _parallel_cores
+
     if _docker_tls_d:
         return
     import sirepo.mpi
@@ -599,6 +609,8 @@ def _docker_init(app):
 
 
 def _docker_init_host(host):
+    global _docker_hosts, _parallel_cores
+
     h = _docker_hosts[host]
 #TODO(robnagler) cat /proc/cpuinfo /proc/meminfo and parse accounting for hyperthreading
 # grep -m 1 "cpu cores" /proc/cpu
