@@ -287,6 +287,13 @@ def _add_beamlines(beamline, beamlines, ordered_beamlines):
     ordered_beamlines.append(beamline)
 
 
+def _append_to_lattice(state, madx_text):
+    if state['lattice']:
+        state['lattice'] = state['lattice'][:-1]
+        state['lattice'] += ';\n'
+    state['lattice'] += madx_text
+
+
 def _beamline_id_for_report(r):
     return 'activeBeamlineId' if r == 'twissReport' else 'visualizationBeamlineId'
 
@@ -378,10 +385,8 @@ def _compute_range_across_files(run_dir):
     return res
 
 
-def _plot_range(report, axis):
-    half_size = float(report['{}Size'.format(axis)]) / 2.0
-    midpoint = float(report['{}Offset'.format(axis)])
-    return [midpoint - half_size, midpoint + half_size]
+def _drift_name(length):
+    return 'D{}'.format(length).replace('.', '_')
 
 
 def _extract_bunch_plot(report, frame_index, run_dir):
@@ -519,6 +524,38 @@ def _generate_lattice(data, beamline_map, v):
     return res
 
 
+def _generate_nlinsert_elements(model, state, callback):
+    import rsbeams.rslattice.nonlinear
+    nli = rsbeams.rslattice.nonlinear.NonlinearInsert(
+        float(model['l']),
+        float(model['phase']),
+        float(model['t']),
+        float(model['c']),
+        int(model['num_slices'])
+    )
+    nli.generate_sequence()
+    half_size = nli.s_vals[0]
+    step_size = half_size * 2
+    d1 = _nlinsert_name(model, _drift_name(half_size))
+    d2 = _nlinsert_name(model, _drift_name(step_size))
+    _append_to_lattice(state, '{}: DRIFT, l={};\n{}: DRIFT, l={};\n'.format(d1, half_size, d2, step_size))
+    names = [d1]
+    lenses = nli.create_madx()
+    extractor = model['extractor_type']
+    if extractor == 'default':
+        extractor = ''
+    else:
+        extractor = ', extractor_type="{}"'.format(model['extractor_type'])
+    for i in range(len(lenses)):
+        name = _nlinsert_name(model, str(i + 1))
+        _append_to_lattice(state, '{}: {}{}\n'.format(name, lenses[i][:-1], extractor))
+        names.append(name)
+        names.append(d2)
+    names = names[:-1]
+    names.append(d1)
+    state['beamline_map'][model['_id']] = ','.join(names)
+
+
 def _generate_parameters_file(data):
     _validate_data(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
@@ -585,7 +622,7 @@ def _import_elements(lattice, data):
         if 'l' in attrs:
             attrs['l'] = float(str(attrs['l']))
         if model_name == 'DRIFT' and re.search(r'^auto_drift', el.get_name()):
-            drift_name = 'D{}'.format(attrs['l']).replace('.', '_')
+            drift_name = _drift_name(attrs['l'])
             m['name'] = drift_name
         else:
             m['name'] = el.get_name().upper()
@@ -648,7 +685,8 @@ def _iterate_model_fields(data, state, callback):
         if model_type == 'commands':
             continue
         for m in data['models'][model_type]:
-            model_schema = _SCHEMA['model'][_model_name_for_data(m)]
+            model_name = _model_name_for_data(m)
+            model_schema = _SCHEMA['model'][model_name]
             callback(state, m)
 
             for k in sorted(m):
@@ -656,6 +694,9 @@ def _iterate_model_fields(data, state, callback):
                     continue
                 element_schema = model_schema[k]
                 callback(state, m, element_schema, k)
+            if model_name == 'NLINSERT':
+                # special case - the NLINSERT generates a series of DRIFT and NLLENS elements
+                _generate_nlinsert_elements(m, state, callback)
 
 
 _QUOTED_MADX_FIELD = ['ExtractorType', 'Propagator']
@@ -679,16 +720,23 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                 state['lattice'] += '{}={},'.format(field_name, value)
     else:
         state['field_index'] = 0
-        if state['lattice']:
-            state['lattice'] = state['lattice'][:-1]
-            state['lattice'] += ';\n'
-        state['lattice'] += '{}: {},'.format(model['name'].upper(), model['type'])
+        # NLINSERT is a special expanded element, show as a comment
+        prefix = '! ' if model['type'] == 'NLINSERT' else ''
+        _append_to_lattice(state, '{}{}: {},'.format(prefix, model['name'].upper(), model['type']))
         state['beamline_map'][model['_id']] = model['name']
 
 
 #TODO(pjm): from template.elegant
 def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
+
+
+def _nlinsert_name(model, el_name):
+    return '{}.NLINSERT.{}'.format(model['name'], el_name).upper()
+
+
+def _particle_file_list(run_dir):
+    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
 
 
 def _plot_field(field):
@@ -706,8 +754,10 @@ def _plot_field(field):
     assert False, 'unknown field: {}'.format(field)
 
 
-def _particle_file_list(run_dir):
-    return sorted(glob.glob(str(run_dir.join('particles_*.h5'))))
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]
 
 
 def _plot_values(h5file, field):
