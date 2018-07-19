@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pksubprocess
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import sdds_util, template_common
 import os.path
@@ -122,7 +122,7 @@ def _run_jspec(data):
     exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     jspec_filename = template.JSPEC_INPUT_FILENAME
     pkio.write_text(jspec_filename, jspec_file)
-    pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdp, output=template.JSPEC_LOG_FILE)
+    pksubprocess.check_call_with_signals(['jspec', jspec_filename], msg=pkdlog, output=template.JSPEC_LOG_FILE)
     return pkio.read_text(template.JSPEC_LOG_FILE)
 
 
