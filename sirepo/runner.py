@@ -42,6 +42,7 @@ _job_map = pkcollections.Dict()
 
 _job_map_lock = threading.RLock()
 
+_parallel_cores = None
 
 class State(aenum.UniqueEnum):
     INIT = 1
@@ -63,7 +64,27 @@ _KILL_TIMEOUT_SECS = 3
 # prefix all report names
 _DOCKER_CONTAINER_PREFIX = 'srjob-'
 
+# default is unlimited so put some real constraint
 _MAX_OPEN_FILES = 1024
+
+_DOCKER_RUN_PREFIX = (
+    'run',
+    '--log-driver=json-file',
+    # never should be large, just for output of the monitor
+    '--log-opt=max-size=1m',
+    '--rm',
+    '--ulimit=core=0',
+    '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
+)
+
+# where docker tls files reside relative to sirepo_db_dir
+_DOCKER_TLS_SUBDIR = 'runner/docker_tls'
+
+# absolute path to _DOCKER_TLS_SUBDIR
+_docker_tls_d = None
+
+# map of docker hosts to specification and status
+_docker_hosts = None
 
 @pkconfig.parse_none
 def cfg_job_class(value):
@@ -76,7 +97,7 @@ def cfg_job_class(value):
         object: `Background` or `Celery` class.
 
     """
-    if isinstance(value, type) and issubclass(value, (Celery, Background)):
+    if isinstance(value, type) and issubclass(value, (Background, Celery, Docker)):
         # Already initialized but may call initializer with original object
         return value
     if value == 'Celery':
@@ -105,6 +126,8 @@ def init(app, uwsgi):
         cfg.job_class = cfg_job_class(d)
         assert not uwsgi or not issubclass(cfg.job_class, Background), \
             'uwsgi does not work if sirepo.runner.cfg.job_class=Background'
+    if isinstance(cfg.job_class, Docker):
+        _docker_init(app);
 
 
 def job_is_processing(jid):
@@ -417,34 +440,32 @@ class Docker(Base):
             run_secs=self.__run_secs(),
             sh_cmd=self.__sh_cmd(),
         )
+#TODO(robnagler) queue?
+        self.docker_host = _docker_host_select(self),
         script = str(self.run_dir.join(_DOCKER_CONTAINER_PREFIX + 'run.sh'))
         with open(str(script), 'wb') as f:
             f.write(pkjinja.render_resource('runner/docker.sh', ctx))
-        cmd = [
-            'run',
+        cmd = _DOCKER_RUN_PREFIX + (
 #TODO(robnagler) configurable
-            '--cpus=1',
+            '--cpus=' + self.__cores(),
             '--detach',
             '--init',
-            '--log-driver=json-file',
-            # never should be large, just for output of the monitor
-            '--log-opt=max-size=1m',
-            '--memory=1g',
+            '--memory={}g'.format(self.__gigabytes()),
             '--name=' + self.cname,
             '--network=none',
-            '--rm',
-            '--ulimit=core=0',
 #TODO(robnagler) this doesn't do anything
 #            '--ulimit=cpu=1',
-            '--ulimit=nofile={}'.format(_MAX_OPEN_FILES),
-            '--user=' + pwd.getpwuid(os.getuid()).pw_name,
-        ] + self.__volumes() + [
+            # do not use a user name, because that may not map inside the
+            # container properly. /etc/passwd on the host and guest are
+            # different.
+            '--user={}'.format(os.getuid()),
+        ) + self.__volumes() + (
 #TODO(robnagler) make this configurable per code (would be structured)
-            self.__image(),
+            _docker_image(),
             'bash',
             script,
-        ]
-        self.cid = self.__docker(cmd)
+        )
+        self.cid = _docker_cmd(self.docker_host, cmd)
         pkdc(
             '{}: started cname={} cid={} dir={} len_jobs={} cmd={}',
             self.jid,
@@ -452,27 +473,22 @@ class Docker(Base):
             self.cid,
             self.run_dir,
             len(_job_map),
-            ' '.join(cmd),
+            cmd,
         )
 
-    def __docker(self, cmd):
-        cmd = ['docker'] + cmd
-        try:
-            pkdc('Running: {}', ' '.join(cmd))
-            return subprocess.check_output(
-                cmd,
-                stdin=open(os.devnull),
-                stderr=subprocess.STDOUT,
-            ).rstrip()
-        except subprocess.CalledProcessError as e:
-            pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
-            return None
+    def __cores(self):
+#TODO(robnagler) compute cores by interrogating each docker host
+        if simulation_db.is_parallel(self.data):
+            return 2
+        return 1
 
-    def __image(self):
-        res = cfg.docker_image
-        if ':' in res:
-            return res
-        return res + ':' + pkconfig.cfg.channel
+    def __gigabytes(self):
+#TODO(robnagler) compute gigabytes by interrogating host and dividing by number of processes
+        if simulation_db.is_parallel(self.data):
+            return 16
+#TODO(robnagler) sequential processes probably don't need much memory, but maybe 2g
+#TODO(robnagler) imports definitely don't need more than 1g
+        return 1
 
     def __run_secs(self):
         if self.data['report'] == 'backgroundImport':
@@ -502,7 +518,7 @@ class Docker(Base):
                 # pyenv and src shouldn't be writable, only rundir
                 _res(v, v + ':ro')
         _res(self.run_dir, self.run_dir)
-        return res
+        return tuple(res)
 
 
 def _assert_celery():
@@ -527,6 +543,99 @@ def _assert_celery():
     pkcli.command_error(err)
 
 
+def _docker_cmd(host, cmd):
+    cmd = _docker_hosts[host].cmd_prefix + cmd
+    try:
+        pkdc('Running: {}', cmd)
+        return subprocess.check_output(
+            cmd,
+            stdin=open(os.devnull),
+            stderr=subprocess.STDOUT,
+        ).rstrip()
+    except subprocess.CalledProcessError as e:
+        pkdlog('{}: failed: exit={} output={}', cmd, e.returncode, e.output)
+        return None
+
+def _docker_cmd_prefix(host, tls_d):
+    return (
+        'docker',
+        # docker TLS port is hardwired to default
+        '--host=tcp://{}:2376'.format(host),
+        '--tlscacert={}'.format(tls_d.join('ca.pem')),
+        '--tlscert={}'.format(tls_d.join('cert.pem')),
+        '--tlskey={}'.format(tls_d.join('key.pem')),
+        '--tlsverify',
+    )
+
+
+def _docker_host_select(docker):
+    return _docker_hosts.keys()[0]
+
+#TODO(robnagler) probably should push this to pykern also in rsconf
+def _docker_image(self):
+    res = cfg.docker_image
+    if ':' in res:
+        return res
+    return res + ':' + pkconfig.cfg.channel
+
+
+def _docker_init(app):
+    if _docker_tls_d:
+        return
+    import sirepo.mpi
+    _docker_tls_d = app.sirepo_db_dir.join(_DOCKER_TLS_SUBDIR)
+    assert _docker_tls_d.check(dir=True), \
+        '{}: tls directory does not exist'.format(_docker_tls_d)
+    # Require at least three levels to the domain name
+    _docker_hosts = pkcollections.Dict()
+    _parallel_cores = sirepo.mpi.cfg.cores
+    for d in pkio.sorted_glob(_docker_tls_d.join('*.*.*')):
+        h = d.basename
+        _docker_hosts[h] = pkcollections.Dict(
+            name=h,
+            cmd_prefix=_docker_cmd_prefix(h, d)
+        )
+        _docker_init_host(h)
+
+
+def _docker_init_host(host):
+    h = _docker_hosts[host]
+#TODO(robnagler) cat /proc/cpuinfo /proc/meminfo and parse accounting for hyperthreading
+# grep -m 1 "cpu cores" /proc/cpu
+# cpu cores   : 8
+# grep -c "physical id" /proc/cpu | uniq | wc
+# physical id   : 3
+    h.update(
+        cores=4,
+        gigabytes=8,
+        parallel_jobs=[None],
+        sequential_jobs=[None],
+    )
+    return
+    j = h.cores / _parallel_cores
+    assert j <= 0, \
+        '{}: parallel jobs <= 0: host={} cores={} mpi.cores={}'.format(
+            j,
+            host,
+            h.cores,
+            _parallel_cores,
+        )
+    h.parallel_jobs = [None] * j
+
+
+def _docker_run_root(host, cmd):
+    return _docker_cmd(
+        host,
+        _DOCKER_RUN_PREFIX + (
+            # allows us to interrogate the network
+            '--network=host',
+            # Ensure we are running as UID 0 (root). See
+            # comment about about /etc/passwd
+            '--user=0',
+        ) + cmd,
+    )
+
+
 cfg = pkconfig.init(
     docker_image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
     import_secs=(10, int, 'maximum runtime of backgroundImport'),
@@ -535,3 +644,35 @@ cfg = pkconfig.init(
     parallel_secs=(3600, int, 'maximum runtime of serial job'),
     sequential_secs=(300, int, 'maximum runtime of serial job'),
 )
+
+"""
+persist queue
+user queue
+
+import time
+import threading
+from Queue import Queue
+
+def getter(q):
+    while True:
+        print 'getting...'
+        print q.get(), 'gotten'
+
+def putter(q):
+    for i in range(10):
+        time.sleep(0.5)
+        q.put(i)
+        time.sleep(0.5)
+
+q = Queue()
+get_thread = threading.Thread(target=getter, args=(q,))
+get_thread.daemon = True
+
+
+get_thread.start()
+
+Queue.get([block[, timeout]])
+
+
+putter(q)
+"""
