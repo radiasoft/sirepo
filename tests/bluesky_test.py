@@ -7,7 +7,7 @@ u"""test sirepo.bluesky
 from __future__ import absolute_import, division, print_function
 import pytest
 
-def test_auth_hash():
+def test_auth_hash(monkeypatch):
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
@@ -15,15 +15,20 @@ def test_auth_hash():
     })
     from sirepo import bluesky
     from pykern import pkcollections
-    from pykern.pkunit import pkeq
+    from pykern.pkunit import pkexcept, pkre
+    import time
+    import werkzeug.exceptions
 
+    monkeypatch.setattr(bluesky, '_AUTH_NONCE_REPLAY_SECS', 1)
     req = pkcollections.Dict(
         simulationType='xyz',
         simulationId='1234',
-        authNonce='some random string',
     )
     bluesky.auth_hash(req)
-    pkeq('v1:-TEGBNOAt9dCTtCCvRD0WHtL_XaZR_lHM37cy6PePwE=', req.authHash)
+    bluesky.auth_hash(req, verify=True)
+    time.sleep(2)
+    with pkexcept(werkzeug.exceptions.NotFound):
+        bluesky.auth_hash(req, verify=True)
 
 
 def test_auth_login():
