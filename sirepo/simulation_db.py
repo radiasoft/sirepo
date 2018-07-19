@@ -275,7 +275,23 @@ def get_schema(sim_type):
                 if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
                     app_views[view_Name]['advanced'].append(advanced_field)
 
+    _validate_schema(schema)
     return schema
+
+# Validate the schema itself.  Start by checking that the default data (if any) is valid -
+# other validation may follow
+def _validate_schema(schema):
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in sch_models:
+        sch_model = sch_models[model_name]
+        for field_name in sch_model:
+            sch_field_info = sch_model[field_name]
+            if len(sch_field_info) <= 2:
+                continue
+            field_default = sch_field_info[2]
+            _validate_enum(field_default, sch_field_info, sch_enums)
+            _validate_number(field_default, sch_field_info)
 
 
 def init_by_server(app, server):
@@ -465,7 +481,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
                 },
             })
         #TODO(robnagler) should be a regular exception or abstraction, not bound to werkzeug
-        raise werkzeug.exceptions.NotFound()
+        util.raise_not_found()
     data = None
     try:
         with open(str(path)) as f:
@@ -748,6 +764,7 @@ def save_simulation_json(data, do_validate=True):
             pass
         if need_validate and do_validate:
             _validate_name(data)
+            _validate_fields(data)
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
@@ -1079,6 +1096,44 @@ def _validate_name(data):
             starts_with[n2] = d.models.simulation.simulationId
     if n in starts_with:
         _validate_name_uniquify(data, starts_with)
+
+# Validate that the data follows the definitions in the schema (fixup_old_data e.g. directly sets data)
+def _validate_fields(data):
+    schema = get_schema(data.simulationType)
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in data.models:
+        if not model_name in sch_models:
+            continue
+        sch_model = sch_models[model_name]
+        model_data = data.models[model_name]
+        for field_name in model_data:
+            if not field_name in sch_model:
+                continue
+            val = model_data[field_name]
+            sch_field_info = sch_model[field_name]
+            _validate_enum(val, sch_field_info, sch_enums)
+            _validate_number(val, sch_field_info)
+
+
+def _validate_number(val, sch_field_info):
+    if len(sch_field_info) <= 4:
+        return
+    min = sch_field_info[4]
+    if float(val) < float(min):
+        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+    if len(sch_field_info) > 5:
+        max = sch_field_info[5]
+        if float(val) > float(max):
+            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+
+
+def _validate_enum(val, sch_field_info, sch_enums):
+    type = sch_field_info[1]
+    if not type in sch_enums:
+        return
+    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
+        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
 
 
 def _validate_name_uniquify(data, starts_with):
