@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pksubprocess
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import os
 import re
 import signal
@@ -36,7 +36,7 @@ def run_program(cmd, output='mpi_run.out', env=None):
         ] + cmd
         pksubprocess.check_call_with_signals(
             cmd,
-            msg=pkdp,
+            msg=pkdlog,
             output=str(output),
             env=env,
         )
