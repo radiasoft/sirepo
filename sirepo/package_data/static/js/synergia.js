@@ -17,6 +17,9 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 SIREPO.appImportText = 'Import a MAD-X Lattice';
+SIREPO.FILE_UPLOAD_TYPE = {
+    'bunch-particleFile': '.h5,.hdf5',
+};
 SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
@@ -40,13 +43,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
     self.elementPic = {
         aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
-        bend: ['HKICKER', 'KICKER', 'MULTIPOLE', 'SBEND'],
+        bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
-        zeroLength: ['DIPEDGE', 'NLLENS', 'SROTATION'],
+        zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
     };
 
     self.titleForName = function(name) {

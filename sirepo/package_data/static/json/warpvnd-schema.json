@@ -76,14 +76,14 @@
             "zCenter": ["Center Z [µm]", "Float"]
         },
         "currentAnimation": {
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -106,10 +106,10 @@
             "notes": ["Notes", "Text", ""]
         },
         "particleAnimation": {
-            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+            "renderCount": ["Particles to Render", "ParticleRenderCount", "100"]
         },
         "particle3d": {
-            "renderCount": ["Particles to Render", "ParticleRenderCount", 100],
+            "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
             "joinEvery": ["Join Every N Points", "Integer", 1, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
         },
         "simulation": {

@@ -92,6 +92,12 @@ def copy_lib_files(data, source, target):
                 path.mksymlinkto(f, absolute=False)
 
 
+def enum_text(schema, name, value):
+    for e in schema['enum'][name]:
+        if e[0] == value:
+            return e[1]
+    assert False, 'unknown {} enum value: {}'.format(name, value)
+
 
 def flatten_data(d, res, prefix=''):
     """Takes a nested dictionary and converts it to a single level dictionary with flattened keys."""

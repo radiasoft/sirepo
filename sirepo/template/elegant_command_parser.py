@@ -28,8 +28,11 @@ def parse_file(command_text):
             if not _parse_line(parser, prev_line + ' ' + line, commands):
                 break
             prev_line = ''
-        else:
+        elif re.search(r'\&', line) or len(prev_line):
             prev_line += ' ' + line
+        else:
+            # ignoring lines between command markers
+            pass
     if prev_line and re.search(r'\&', prev_line):
         parser.raise_error('missing &end for command: {}'.format(prev_line))
     _update_lattice_names(commands)

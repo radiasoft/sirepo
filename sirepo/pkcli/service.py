@@ -63,6 +63,8 @@ def http():
 
     with pkio.save_chdir(_run_dir()):
         app = server.init()
+        # avoid WARNING: Do not use the development server in a production environment.
+        app.env = 'development'
         app.run(
             host=cfg.ip,
             port=cfg.port,

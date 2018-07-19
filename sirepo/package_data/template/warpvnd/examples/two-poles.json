@@ -89,7 +89,7 @@
             "startTime": 1512001777
         },
         "particle3d": {
-            "renderCount": 100,
+            "renderCount": "10",
             "startTime": 1512001777
         },
         "simulation": {

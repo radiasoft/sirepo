@@ -29,6 +29,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
         'sirepo/package_data/static/js/ext/angular-d3.js',
+        'sirepo/package_data/static/js/ext/angular-vtk.js',
         'sirepo/package_data/static/js/ext/colorbar.js',
         'sirepo/package_data/static/js/ext/Blob.js',
         'sirepo/package_data/static/js/ext/canvas-toBlob.js',

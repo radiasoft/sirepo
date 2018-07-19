@@ -1604,7 +1604,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
                 return ! SIREPO.IS_LOGGED_OUT;
             };
             $scope.showTitle = function() {
-                return ! $scope.nav.isActive('simulations');
+                return appState.isLoaded();
             };
             $scope.showSimulationLink = function() {
                 panelState.showModalEditor(
@@ -1656,7 +1656,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
-                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+                    '<li data-ng-if="isLoaded()" data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
                     '<li data-settings-menu="nav">',
                         '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
@@ -1755,15 +1755,15 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                       '<form name="importForm">',
                         '<div class="form-group">',
                           '<label>{{ description }}</label>',
-                          '<input id="file-import" type="file" data-file-model="zipFile" data-ng-attr-accept="{{ fileFormats }}">',
+                          '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
                           '<br />',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
                         '<div class="clearfix"></div>',
                         '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="importZIPFile(zipFile)" class="btn btn-primary" data-ng-disabled="! zipFile || isUploading">Import File</button>',
-                          ' <button data-ng-click="zipFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
+                          '<button data-ng-click="importFile(inputFile)" class="btn btn-primary" data-ng-disabled="! inputFile || isUploading">Import File</button>',
+                          ' <button data-ng-click="inputFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
                         '</div>',
                       '</form>',
                     '</div>',
@@ -1777,13 +1777,13 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
-            $scope.importZIPFile = function(zipFile) {
-                if (! zipFile) {
+            $scope.importFile = function(inputFile) {
+                if (! inputFile) {
                     return;
                 }
                 $scope.isUploading = true;
                 fileUpload.uploadFileToUrl(
-                    zipFile,
+                    inputFile,
                     {
                         folder: fileManager.getActiveFolderPath(),
                     },
@@ -1799,7 +1799,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                         }
                         else {
                             $('#simulation-import').modal('hide');
-                            $scope.zipFile = null;
+                            $scope.inputFile = null;
                             requestSender.localRedirectHome(data.models.simulation.simulationId);
                         }
                     });
@@ -1809,6 +1809,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $(element).on('show.bs.modal', function() {
                 $('#file-import').val(null);
                 scope.fileUploadError = '';
+                scope.isUploading = false;
             });
             scope.$on('$destroy', function() {
                 $(element).off();

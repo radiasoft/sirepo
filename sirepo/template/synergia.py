@@ -252,6 +252,23 @@ def remove_last_frame(run_dir):
     pass
 
 
+def validate_file(file_type, path):
+    assert file_type == 'bunch-particleFile'
+    try:
+        with h5py.File(path, 'r') as f:
+            if 'particles' in f:
+                shape = f['particles'].shape
+                if shape[1] < 7:
+                    return 'expecting 7 columns in hdf5 file'
+                elif shape[0] == 0:
+                    return 'no data rows in hdf5 file'
+            else:
+                return 'hdf5 file missing particles dataset'
+    except IOError as e:
+        return 'invalid hdf5 file'
+    return None
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -387,7 +404,7 @@ def _extract_bunch_plot(report, frame_index, run_dir):
         hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
         tlen = f['tlen'][()]
         s_n = f['s_n'][()]
-        rep = 0 if s_n == 0 else int(tlen / s_n)
+        rep = 0 if s_n == 0 else int(round(tlen / s_n))
         return {
             'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
             'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
@@ -562,6 +579,8 @@ def _import_elements(lattice, data):
         for attr in el.get_vector_attributes():
             attrs[attr] = '{' + ','.join(map(str, el.get_vector_attribute(attr))) + '}'
         model_name = el.get_type().upper()
+        if model_name not in _SCHEMA.model:
+            raise IOError('Unsupported element type: {}'.format(model_name))
         m = template_common.model_defaults(model_name, _SCHEMA)
         if 'l' in attrs:
             attrs['l'] = float(str(attrs['l']))

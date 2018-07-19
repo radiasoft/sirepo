@@ -158,6 +158,16 @@
             ["1", "Rectangular Grids"],
             ["2", "2D Phase Grating"]
         ],
+        "HarmonicList": [
+            ["1", "1"],
+            ["3", "3"],
+            ["5", "5"],
+            ["7", "7"],
+            ["9", "9"],
+            ["11", "11"],
+            ["13", "13"],
+            ["15", "15"]
+        ],
         "IntensityMethod": [
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
@@ -318,8 +328,9 @@
             "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
             "reportType": ["Report Type", "BrillianceReportType", "0"],
-            "brightnessComponent": ["Brightness Component", "BrightnessComponent", "k-tuning"],
-            "energyDelta": ["Energy Delta [eV]", "Float", 1000, "", 1, 1000],
+            "brightnessComponent": ["Scan Type", "BrightnessComponent", "k-tuning"],
+            "energyDelta": ["Energy Delta [eV]", "Float", 10, "", 1, 1000],
+            "harmonic": ["Harmonic", "HarmonicList", "5"],
             "notes": ["Notes", "Text", ""]
         },
         "crl": {
@@ -842,6 +853,7 @@
                 "minDeflection",
                 "initialHarmonic",
                 "finalHarmonic",
+                "harmonic",
                 "detuning",
                 "energyDelta",
                 "energyPointCount",
