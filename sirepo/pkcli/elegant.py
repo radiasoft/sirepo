@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkresource
 from pykern import pksubprocess
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import elegant_common
@@ -70,7 +70,7 @@ def _run_elegant(bunch_report=False, with_mpi=False):
         if execution_mode == 'parallel' and with_mpi and mpi.cfg.cores > 1:
             mpi.run_program(['Pelegant', ele], **kwargs)
         else:
-            pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdp, **kwargs)
+            pksubprocess.check_call_with_signals(['elegant', ele], msg=pkdlog, **kwargs)
     except Exception as e:
         # ignore elegant failures - errors will be parsed from the log
         pass
