@@ -164,6 +164,13 @@ class Base(object):
                 # stopped and no longer in map
                 return
 
+    def run_secs(self):
+        if self.data['report'] == 'backgroundImport':
+            return cfg.import_secs
+        if simulation_db.is_parallel(self.data):
+            return cfg.parallel_secs
+        return cfg.sequential_secs
+
     def set_state(self, state):
         self.state = state
         self.state_changed = time.time()
@@ -204,16 +211,21 @@ def _cfg_job_class(value):
         object: `Background` or `Celery` class.
 
     """
-    assert value in _JOB_CLASSES, \
-        '{}: invalid job_class, not background, celery, docker'.format(value)
-    return value
+    v = value.lower()
+    assert v in _JOB_CLASSES, \
+        '{}: invalid job_class, not in {}'.format(v, _JOB_CLASSES)
+    return v
 
 
 cfg = pkconfig.init(
     docker_image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
     import_secs=(10, int, 'maximum runtime of backgroundImport'),
     # default is set in init(), because of server.cfg.job_gueue
-    job_class=(None, _cfg_job_class, 'how to run jobs: {}'.format(','.join(_JOB_CLASSES))),
+    job_class=(
+        None,
+        _cfg_job_class,
+        'how to run jobs: {}'.format(', '.join(_JOB_CLASSES)),
+    ),
     parallel_secs=(3600, int, 'maximum runtime of serial job'),
     sequential_secs=(300, int, 'maximum runtime of serial job'),
 )

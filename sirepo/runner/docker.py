@@ -91,7 +91,7 @@ class Docker(runner.Base):
             kill_secs=runner.KILL_TIMEOUT_SECS,
             run_dir=self.run_dir,
             run_log=self.run_dir.join(template_common.RUN_LOG),
-            run_secs=self.__run_secs(),
+            run_secs=self.run_secs(),
             sh_cmd=self.__sh_cmd(),
         )
 #TODO(robnagler) queue?
@@ -145,13 +145,6 @@ class Docker(runner.Base):
 #TODO(robnagler) imports definitely don't need more than 1g
         return 1
 
-    def __run_secs(self):
-        if self.data['report'] == 'backgroundImport':
-            return cfg.import_secs
-        if simulation_db.is_parallel(self.data):
-            return cfg.parallel_secs
-        return cfg.sequential_secs
-
     def __sh_cmd(self):
         """Convert ``self.cmd`` into a bash cmd"""
         res = []
@@ -186,7 +179,7 @@ def init_class(app, uwsgi):
         '{}: tls directory does not exist'.format(_tls_d)
     # Require at least three levels to the domain name
     _hosts = pkcollections.Dict()
-    _parallel_cores = sirepo.mpi.cfg.cores
+    _parallel_cores = mpi.cfg.cores
     for d in pkio.sorted_glob(_tls_d.join('*.*.*')):
         h = d.basename.lower()
         _hosts[h] = pkcollections.Dict(
@@ -303,7 +296,7 @@ def _init_job_slots():
             mp += h.max_parallel
             ms += h.max_sequential
         r = float(ms) / (float(mp) + float(ms))
-        if mp + ms == 1;
+        if mp + ms == 1:
             # Edge case where ratio calculation can't work
             h = _hosts.values()[0]
             h.max_sequential = 1
@@ -316,11 +309,11 @@ def _init_job_slots():
 
     hosts = sorted(_hosts.values(), key=lambda h: h.name)
     while _ratio_not_ok():
-        for i in range(hosts):
-            if hosts[i].max_parallel > 0:
+        for h in hosts:
+            if h.max_parallel > 0:
                 # convert a parallel slot on first available host
-                hosts[i].max_sequential += _parallel_cores
-                hosts[i].max_parallel -= 1
+                h.max_sequential += _parallel_cores
+                h.max_parallel -= 1
                 break
         else:
             raise AssertionError(
