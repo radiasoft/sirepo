@@ -85,7 +85,9 @@ app.config.update(
 
 def api_blueskyAuth():
     from sirepo import bluesky
-    return _json_response(bluesky.auth_login(_json_input()))
+    req = _json_input()
+    sim_type = req['simulationType']
+    return _json_response(bluesky.auth_login(req, schema=simulation_db.get_schema(sim_type)))
 
 
 def api_copyNonSessionSimulation():
