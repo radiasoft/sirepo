@@ -101,10 +101,6 @@ def auth_login(req):
         checked=True,
     )
     server.session_user(simulation_db.uid_from_dir_name(path))
-    return pkcollections.Dict(
-        status='OK',
-        data=simulation_db.open_json_file(sim_type, sid=sid),
-    )
 
 
 cfg = pkconfig.init(
