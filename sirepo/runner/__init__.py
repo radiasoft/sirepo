@@ -45,6 +45,8 @@ class State(aenum.UniqueEnum):
 
 _JOB_CLASSES = ('background', 'celery', 'docker')
 
+_JOB_CLASS_DEFAULT = _JOB_CLASSES[0]
+
 #: how long to wait before assuming thread that created job is dead.
 INIT_TOO_LONG_SECS = 5
 
@@ -60,11 +62,13 @@ _job_class = None
 
 def init(app, uwsgi):
     """Initialize module"""
+    global _job_class
+
     if _job_class:
         return
     if cfg.job_class is None:
         from sirepo import server
-        d = 'Background'
+        d = _JOB_CLASS_DEFAULT
         if server.cfg.job_queue:
             # Handle deprecated case
             d = server.cfg.job_queue.lower()
@@ -119,7 +123,7 @@ def job_start(data):
     job.start()
 
 
-class T(object):
+class Base(object):
     """Super of all job classes"""
     def __init__(self, jid, data):
         self.data = data
