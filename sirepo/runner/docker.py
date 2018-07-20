@@ -48,17 +48,23 @@ _tls_d = None
 # map of docker hosts to specification and status
 _hosts = None
 
-class T(runner.T):
+class Docker(runner.Base):
     """Run a code in docker"""
+
+    def __init__(self, *args, **kwargs):
+        super(Docker, self).__init__(*args, **kwargs)
+        self.__cid = None
 
     def _is_processing(self):
         """Inspect container to see if still in running state"""
+        if not self.__cid:
+            return False
         out = _cmd(
             self.__host,
-            ('inspect', '--format={{.State.Status}}', self.cid),
+            ('inspect', '--format={{.State.Status}}', self.__cid),
         )
         if not out:
-            self.cid = None
+            self.__cid = None
             return False
         if out == 'running':
             return True
@@ -67,20 +73,20 @@ class T(runner.T):
         return False
 
     def _kill(self):
-        if self.cid:
-            pkdlog('{}: stop cid={}', self.jid, self.cid)
+        if self.__cid:
+            pkdlog('{}: stop cid={}', self.jid, self.__cid)
             _cmd(
                 self.__host,
-                ('stop', '--time={}'.format(runner.KILL_TIMEOUT_SECS), self.cid),
+                ('stop', '--time={}'.format(runner.KILL_TIMEOUT_SECS), self.__cid),
             )
-            self.cid = None
+            self.__cid = None
 
     def _start(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
         #POSIT: jid is valid docker name (word chars and dash)
-        self.cname = _CONTAINER_PREFIX + self.jid
+        self.__cname = _CONTAINER_PREFIX + self.jid
         ctx = pkcollections.Dict(
             kill_secs=runner.KILL_TIMEOUT_SECS,
             run_dir=self.run_dir,
@@ -100,7 +106,7 @@ class T(runner.T):
             '--detach',
             '--init',
             '--memory={}g'.format(self.__gigabytes()),
-            '--name={}'.format(self.cname),
+            '--name={}'.format(self.__cname),
             '--network=none',
 #TODO(robnagler) this doesn't do anything
 #            '--ulimit=cpu=1',
@@ -115,14 +121,13 @@ class T(runner.T):
             script,
         )
         simulation_db.write_status('running', self.run_dir)
-        self.cid = _cmd(self.__host, cmd)
+        self.__cid = _cmd(self.__host, cmd)
         pkdc(
-            '{}: started cname={} cid={} dir={} len_jobs={} cmd={}',
+            '{}: started cname={} cid={} dir={} cmd={}',
             self.jid,
-            self.cname,
-            self.cid,
+            self.__cname,
+            self.__cid,
             self.run_dir,
-            len(_job_map),
             cmd,
         )
 
@@ -192,7 +197,7 @@ def init_class(app, uwsgi):
     assert len(_hosts) > 0, \
         '{}: no docker hosts found in directory'.format(_tls_d)
     _init_job_slots()
-    return T
+    return Docker
 
 
 def _cmd(host, cmd):

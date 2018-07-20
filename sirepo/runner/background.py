@@ -19,8 +19,12 @@ import sys
 import time
 
 
-class T(runner.T):
+class Background(runner.Base):
     """Run as subprocess"""
+
+    def __init__(self, *args, **kwargs):
+        super(Background, self).__init__(*args, **kwargs)
+        self.__pid = None
 
     def _is_processing(self):
         try:
@@ -66,8 +70,9 @@ class T(runner.T):
     @classmethod
     def _sigchld_handler(cls, signum=None, frame=None):
         try:
-            with _job_map_lock:
-                if not _job_map:
+#TODO(robnagler) not pretty; need a better solution
+            with runner._job_map_lock:
+                if not runner._job_map:
                     # Can't be our job so don't waitpid.
                     # Only important at startup, when other modules
                     # are doing popens, which does a waitpid.
@@ -77,9 +82,9 @@ class T(runner.T):
                 if pid == 0:
                     # a process that was reaped before sigchld called
                     return
-                for self in _job_map.values():
-                    # state of 'pid' is unknown since outside self.lock
-                    if isinstance(self, Background) and getattr(self, 'pid', 0) == pid:
+                for self in runner._job_map.values():
+                    # state of '__pid' is unknown since outside self.lock
+                    if isinstance(self, Background) and self.__pid == pid:
                         pkdlog('{}: waitpid pid={} status={}', self.jid, pid, status)
                         break
                 else:
@@ -142,5 +147,5 @@ class T(runner.T):
 def init_class(app, uwsgi):
     assert not uwsgi, \
         'uwsgi does not work if sirepo.runner.cfg.job_class=background'
-    signal.signal(signal.SIGCHLD, T._sigchld_handler)
-    return T
+    signal.signal(signal.SIGCHLD, Background._sigchld_handler)
+    return Background
