@@ -73,6 +73,9 @@ _wsgi_app = None
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
+# Default response
+_RESPONSE_OK = {'state': 'ok'}
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -85,7 +88,13 @@ app.config.update(
 
 def api_blueskyAuth():
     from sirepo import bluesky
-    return _json_response(bluesky.auth_login(_json_input()))
+
+    req = _json_input()
+    bluesky.auth_login(req)
+    return _json_response_ok(dict(
+        data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
+        schema=simulation_db.get_schema(req.simulationType),
+    ))
 
 
 def api_copyNonSessionSimulation():
@@ -912,15 +921,20 @@ def _json_response(value, pretty=False):
     )
 
 
-def _json_response_ok():
+def _json_response_ok(*args, **kwargs):
     """Generate state=ok JSON flask response
 
     Returns:
         Response: flask response
     """
+    if len(args) > 0:
+        assert len(args) == 1
+        res = args[0]
+        res.update(_RESPONSE_OK)
+        return _json_response(res)
     global _JSON_RESPONSE_OK
     if not _JSON_RESPONSE_OK:
-        _JSON_RESPONSE_OK = _json_response({'state': 'ok'})
+        _JSON_RESPONSE_OK = _json_response(_RESPONSE_OK)
     return _JSON_RESPONSE_OK
 
 

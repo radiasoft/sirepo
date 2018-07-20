@@ -31,6 +31,42 @@ def test_auth_hash(monkeypatch):
         bluesky.auth_hash(req, verify=True)
 
 
+def test_auth_hash_copy():
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing({
+        'SIREPO_BLUESKY_AUTH_SECRET': 'anything',
+    })
+    from pykern import pkcollections
+    from pykern.pkunit import pkeq
+    from sirepo import bluesky
+    import base64
+    import hashlib
+    import numconv
+    import random
+    import time
+
+    req = pkcollections.Dict(
+        simulationType='xyz',
+        simulationId='1234',
+    )
+    r = random.SystemRandom()
+    req['authNonce'] = str(int(time.time())) + '-' + ''.join(
+        r.choice(numconv.BASE62) for x in range(32)
+    )
+    h = hashlib.sha256()
+    h.update(
+        ':'.join([
+            req['authNonce'],
+            req['simulationType'],
+            req['simulationId'],
+            bluesky.cfg.auth_secret,
+        ]),
+    )
+    req['authHash'] = 'v1:' + base64.urlsafe_b64encode(h.digest())
+    bluesky.auth_hash(req, verify=True)
+
+
 def test_auth_login():
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
@@ -56,5 +92,7 @@ def test_auth_login():
         simulationId=data.simulationId,
     )
     bluesky.auth_hash(req)
-    data = fc.sr_post('blueskyAuth', req)
-    pkeq(req.simulationId, simulation_db.parse_sid(data['data']))
+    resp = fc.sr_post('blueskyAuth', req)
+    pkeq('ok', resp['state'])
+    pkeq(req.simulationId, simulation_db.parse_sid(resp['data']))
+    pkeq('srw', resp['schema']['simulationType'])
