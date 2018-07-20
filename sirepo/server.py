@@ -1174,7 +1174,7 @@ cfg = pkconfig.init(
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
-    job_queue=(None, runner.cfg_job_class, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
+    job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
     enable_bluesky=(False, bool, 'Enable calling simulations directly from NSLS-II/bluesky'),
