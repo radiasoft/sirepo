@@ -20,6 +20,7 @@ import time
 cfg = None
 
 #: separates the values of the clear text for the hash
+# POSIT: ':' not part of simulationType or simulationId
 _AUTH_HASH_SEPARATOR = ':'
 
 #: valid chars not including _AUTH_HASH_SEPARATOR or _AUTH_NONCE_SEPARATOR
@@ -46,8 +47,7 @@ def auth_hash(req, verify=False):
         )
     h = hashlib.sha256()
     h.update(
-        # POSIT: ':' not part of simulationType or simulationId
-        _AUTH_NONCE_SEPARATOR.join([
+        _AUTH_HASH_SEPARATOR.join([
             req.authNonce,
             req.simulationType,
             req.simulationId,
