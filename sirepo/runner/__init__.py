@@ -62,6 +62,9 @@ _job_class = None
 
 def init(app, uwsgi):
     """Initialize module"""
+    if pkconfig.channel_in('dev') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        # avoid first call to init() when using reloader
+        return
     global _job_class
 
     if _job_class:
@@ -194,6 +197,36 @@ class Base(object):
             self.cmd, self.run_dir = simulation_db.prepare_simulation(self.data)
             self._start()
             self.set_state(State.RUN)
+
+    def _error_during_start(self, exception, stack):
+        """An exception happened, log what you can.
+
+        Callback from implementations
+
+        POSIT: job already locked or in subprocess (see Background._start)
+        """
+        try:
+            with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
+                f.write(
+                    '{}: error starting simulation: {}\n{}'.format(
+                        self.jid,
+                        exception,
+                        stack,
+                    ),
+                )
+            simulation_db.write_status('error', self.run_dir)
+            pkdlog('{}: unable to start job: {} {}', self.jid, exception, stack)
+        except Exception:
+            pass
+
+    def _is_state_ok_to_start(self):
+        """Is the state START or RUN?
+
+        Callback from implementations
+
+        POSIT: job already locked
+        """
+        return self.state in (State.START, State.RUN)
 
 
 class Collision(Exception):

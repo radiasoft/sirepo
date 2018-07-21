@@ -139,8 +139,10 @@ class Background(runner.Base):
                 pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
-            with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:
-                f.write('{}: error starting simulation: {}'.format(self.jid, e))
+            # NOTE: there's no lock here so just append to the log. This
+            # really shouldn't happen, but it might (out of memory) so just
+            # log to the run log and hope somebody notices
+            self._error_during_start(e, pkdexc())
             raise
 
 

@@ -26,7 +26,12 @@ import time
 _CREATED_TOO_LONG_SECS = runner.INIT_TOO_LONG_SECS
 
 # prefix all report names
-_CONTAINER_PREFIX = 'srjob-'
+_CNAME_PREFIX = 'srd'
+
+_CNAME_SEP = '-'
+
+# Must match cname generation in Docker.__init__
+_CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'[a-z]+', '(.+)')))
 
 _RUN_PREFIX = (
     'run',
@@ -41,6 +46,8 @@ _RUN_PREFIX = (
 # where docker tls files reside relative to sirepo_db_dir
 _TLS_SUBDIR = 'runner/docker_tls'
 
+_SLOT_MANAGER_POLL_SECS = 10
+
 #: Copy of sirepo.mpi.cfg.cores
 _parallel_cores = None
 
@@ -53,10 +60,16 @@ _hosts = None
 # hosts.values() in alphabetical order
 _hosts_ordered = None
 
-# available slots for execution
-_slots = None
-
 _dameon = None
+
+_slot_managers = pkcollections.Dict()
+
+_slots = pkcollections.Dict()
+
+#TODO(robnagler)
+#   simulation status writer with error/completed or just touch in docker.sh
+#   check that the file was modified in last N seconds (probably 5)
+#   if not, docker ps
 
 class Docker(runner.Base):
     """Run a code in docker"""
@@ -65,14 +78,19 @@ class Docker(runner.Base):
         super(Docker, self).__init__(*args, **kwargs)
         self.__cid = None
         #POSIT: jid is valid docker name (word chars and dash)
-        self.__cname = _CONTAINER_PREFIX + self.jid
         self.__kind = 'parallel' if simulation_db.is_parallel(self.data) else 'sequential'
-        self.__slot = None
+        # Must match CNAME_RE
+        self.__cname = _CNAME_SEP.join((_CNAME_PREFIX, self.__kind[0:3], self.jid))
+        self.__host = None
 
     def _is_processing(self):
         """Inspect container to see if still in running state"""
+        if not self.__host:
+            # Still in _SlotManager.pending_jobs
+            return True
         if not self.__cid:
             return False
+#TODO(robnagler) this shouldn't be done every time
         out = _cmd(
             self.__host,
             ('inspect', '--format={{.State.Status}}', self.__cid),
@@ -87,6 +105,10 @@ class Docker(runner.Base):
         return False
 
     def _kill(self):
+        """Stop the container and free the slot if was started
+
+        POSIT: locked by caller
+        """
         if self.__cid:
             pkdlog('{}: stop cid={}', self.jid, self.__cid)
             _cmd(
@@ -94,60 +116,62 @@ class Docker(runner.Base):
                 ('stop', '--time={}'.format(runner.KILL_TIMEOUT_SECS), self.__cid),
             )
             self.__cid = None
-            slot = self.__slot
-            self.__slot = None
-            _slot_manager[self.__kind].free_slot(slot)
+        # NOTE: job is locked
+        _slot_managers[self.__kind]._end_job(self)
 
     def _slot_start(self, slot):
-        """Have a slot so now start docker"""
-        with self.lock:
-            self.__slot = slot
-            ctx = pkcollections.Dict(
-                kill_secs=runner.KILL_TIMEOUT_SECS,
-                run_dir=self.run_dir,
-                run_log=self.run_dir.join(template_common.RUN_LOG),
-                run_secs=self.run_secs(),
-                sh_cmd=self.__sh_cmd(),
-            )
-            self.__image = _image()
-            script = str(self.run_dir.join(_CONTAINER_PREFIX + 'run.sh'))
-            with open(str(script), 'wb') as f:
-                f.write(pkjinja.render_resource('runner/docker.sh', ctx))
-            cmd = _RUN_PREFIX + (
-                '--cpus={}'.format(slot.cores),
-                '--detach',
-                '--init',
-                '--memory={}g'.format(slot.gigabytes),
-                '--name={}'.format(self.__cname),
-                '--network=none',
-    #TODO(robnagler) this doesn't do anything
-    #            '--ulimit=cpu=1',
-                # do not use a user name, because that may not map inside the
-                # container properly. /etc/passwd on the host and guest are
-                # different.
-                '--user={}'.format(os.getuid()),
-            ) + self.__volumes() + (
-    #TODO(robnagler) make this configurable per code (would be structured)
-                self.__image,
-                'bash',
-                script,
-            )
-            self.__cid = _cmd(slot.host, cmd)
-            simulation_db.write_status('running', self.run_dir)
-            pkdc(
-                '{}: started cname={} cid={} dir={} cmd={}',
-                self.jid,
-                self.__cname,
-                self.__cid,
-                self.run_dir,
-                cmd,
-            )
+        """Have a slot so now start docker
+
+        POSIT: locked by caller
+        """
+        # __host is sentinel of the start attempt
+        self.__host = slot.host
+        ctx = pkcollections.Dict(
+            kill_secs=runner.KILL_TIMEOUT_SECS,
+            run_dir=self.run_dir,
+            run_log=self.run_dir.join(template_common.RUN_LOG),
+            run_secs=self.run_secs(),
+            sh_cmd=self.__sh_cmd(),
+        )
+        self.__image = _image()
+        script = str(self.run_dir.join('runner-docker.sh'))
+        with open(str(script), 'wb') as f:
+            f.write(pkjinja.render_resource('runner/docker.sh', ctx))
+        cmd = _RUN_PREFIX + (
+            '--cpus={}'.format(slot.cores),
+            '--detach',
+            '--init',
+            '--memory={}g'.format(slot.gigabytes),
+            '--name={}'.format(self.__cname),
+            '--network=none',
+#TODO(robnagler) this doesn't do anything
+#            '--ulimit=cpu=1',
+            # do not use a user name, because that may not map inside the
+            # container properly. /etc/passwd on the host and guest are
+            # different.
+            '--user={}'.format(os.getuid()),
+        ) + self.__volumes() + (
+#TODO(robnagler) make this configurable per code (would be structured)
+            self.__image,
+            'bash',
+            script,
+        )
+        self.__cid = _cmd(slot.host, cmd)
+        simulation_db.write_status('running', self.run_dir)
+        pkdlog(
+            '{}: started slot={} cid={} dir={} cmd={}',
+            self.__cname,
+            slot,
+            self.__cid,
+            self.run_dir,
+            cmd,
+        )
 
     def _start(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
-        _slot_manager[self.__kind].start_job(self)
+        _slot_managers[self.__kind]._start_job(self)
 
     def __sh_cmd(self):
         """Convert ``self.cmd`` into a bash cmd"""
@@ -157,6 +181,13 @@ class Docker(runner.Base):
                 '{}: sh_cmd contains a single quote'.format(cmd)
             res.append("'{}'".format(c))
         return ' '.join(res)
+
+    def __str__(self):
+        return '{}({}{})'.format(
+            self.__class__.__name__,
+            self.jid,
+            ',' + self.__cid if self.__cid else '',
+        )
 
     def __volumes(self):
         res = []
@@ -195,55 +226,115 @@ def init_class(app, uwsgi):
         '{}: no docker hosts found in directory'.format(_tls_d)
     _init_hosts_slots_balance()
     _init_slots()
+    _init_slot_managers()
     return Docker
 
+
 class _Slot(pkcollections.Dict):
-    pass
+    def __str__(self):
+        return '{}({},{},{}{})'.format(
+            self.__class__.__name__,
+            self.host,
+            self.kind,
+            self.index,
+            ',' + self.job.jid if self.job else '',
+        )
 
 
 #TODO(robnagler) consider multiprocessing
 class _SlotManager(threading.Thread):
 
-    def __init__(self, kind, *args, **kwargs):
-        super(_Daemon, self).__init__(*args, **kwargs)
+    def __init__(self, kind, slots, *args, **kwargs):
+        super(_SlotManager, self).__init__(*args, **kwargs)
         self.daemon = True
         self.__event = threading.Event()
         self.__kind = kind
         self.__lock = threading.RLock()
-        self.__pending = []
-        self.__running = []
-        self.__available = _slots[kind]
+        self.__pending_jobs = []
+        self.__running = pkcollections.Dict()
+        self.__available = slots
         random.shuffle(self.__available)
         self.start()
 
-    def free_slot(self, slot):
-        # This will throw an exception (Full), which shouldn't happen
-        with self.__lock:
-            self.__available.append(slot)
-            self.__event.set()
-
     def run(self):
+        """Start jobs if slots available else check for available"""
+        pkdlog('{}: {}', self.name, self.__kind)
         while True:
-            if self.__event.wait(_SLOT_MANAGER_POLL_SECS):
-                j = None
+            self.__event.wait(_SLOT_MANAGER_POLL_SECS)
+            got_one = False
+            while True:
                 with self.__lock:
-                    if self.__pending and self.__available:
-                        # order here matters in case of a weird exception
-                        j = self.__pending.pop(0)
-                        self.__running.append(j)
-                        s = self.__available.pop(0)
-                if j:
-                    j._slot_start(s)
-            else:
-                with self.__lock:
-                    hosts = set([j._slot for j in self.__running])
-                        docker ps -aq
-                        # check the container is running
+                    self.__event.clear()
+                    if not (self.__pending_jobs and self.__available):
+                        # nothing to do or nothing we can do
+                        break
+                    j = self.__pending_jobs.pop(0)
+                    s = self.__available.pop(0)
+                    s.job = j
+                    self.__running[j.jid] = s
+                try:
+                    with j.lock:
+                        if j._is_state_ok_to_start():
+                            j._slot_start(s)
+                            got_one = True
+                except Exception as e:
+                    j._error_during_start(e, pkdexc())
+                    try:
+                        j.kill()
+                    except Exception as e:
+                        pkdlog(
+                            '{}: error during cleanup after error: {}\n{}',
+                            j.jid,
+                            e,
+                            pkdexc(),
+                        )
+            if not got_one:
+                self._poll_status()
 
-    def start_job(self, job):
-        # This will throw an exception (Full), which shouldn't happen
-        with self.__lock():
-            self.__pending.append(job)
+    def _end_job(self, job):
+        """Free the slot associated with the job"""
+        # NOTE: job is locked
+        slot = None
+        with self.__lock:
+            try:
+                self.__pending_jobs.remove(job)
+                # No slot, just done
+                return
+            except ValueError:
+                pass
+            try:
+                s = self.__running[job.jid]
+                if s.job == job:
+                    slot = s
+                    s.job = None
+                    del self.__running[job.jid]
+            except KeyError:
+                pkdlog(
+                    '{}: PROGRAM ERROR: not in running, ignoring job:\n{}',
+                    job.jid,
+                    pkdexc(),
+                )
+            if slot:
+                self.__available.append(slot)
+                self.__event.set()
+
+    def _poll_status(self):
+        with self.__lock:
+            pkdlog(
+                '{}: running={} available={} pending_jobs={}',
+                self.__kind,
+                len(self.__running),
+                len(self.__available),
+                len(self.__pending_jobs),
+            )
+            for s in self.__running.values():
+                pkdlog('{}: running', s)
+#TODO(robnagler) sanity check on _slots & _total available and running
+        # docker ps -aq
+
+    def _start_job(self, job):
+        with self.__lock:
+            self.__pending_jobs.append(job)
             self.__event.set()
 
 
@@ -282,8 +373,6 @@ def _image():
 
 
 def _init_host(host):
-    global _hosts, _parallel_cores
-
     h = _hosts[host]
     _init_host_spec(h)
     _init_host_num_slots(h)
@@ -301,7 +390,14 @@ def _init_host_num_slots(h):
     h.num_slots.parallel = j
     # Might be 0 see _init_hosts_slots_balance
     h.num_slots.sequential = h.cores - j * _parallel_cores
-    pkdc('{name} {parallel} {sequential} {gigabytes}gb {cores}c', **h, **h.num_slots)
+    pkdc(
+        '{} {} {} {gigabytes}gb {cores}c',
+        h.name,
+        h.num_slots.parallel,
+        h.num_slots.sequential,
+        h.gigabytes,
+        h.cores,
+    )
 
 
 def _init_host_spec(h):
@@ -328,7 +424,7 @@ def _init_host_spec(h):
         '{}: expected only one match for MemTotal'.format(matches.mem)
     h.gigabytes = matches.mem[0] // 1048576
     assert h.gigabytes > 0, \
-        '{}: expected a gigabyte or more'.format(matches.mem[0])
+        '{}: expected a 1GB or more'.format(matches.mem[0])
     c = len(set(matches.cpus))
     assert c > 0, \
         'physical id: not found'
@@ -375,12 +471,8 @@ def _init_hosts_slots_balance():
 
 
 def _init_slots():
-    global _slots
-
-    _slots = pkcollections.Dict(
-        parallel=[],
-        sequential=[],
-    )
+    _slots.parallel = []
+    _slots.sequential = []
     for k, s in _slots.items():
         c = _parallel_cores if k == 'parallel' else 1
         for h in _hosts_ordered:
@@ -388,17 +480,23 @@ def _init_slots():
             g = 1
             if k == 'parallel':
                 # Leave some ram for caching and OS
-                g = (h.gigabyte -  2) // ns
+                g = (h.gigabytes -  2) // ns
                 if g < 1:
                     g = 1
             for i in range(ns):
                 s.append(_Slot(
-                    kind=k,
-                    host=h.name,
-                    index=i,
                     cores=c,
                     gigabytes=g,
+                    host=h.name,
+                    index=i,
+                    job=None,
+                    kind=k,
                 ))
+
+
+def _init_slot_managers():
+    for k, s in _slots.items():
+        _slot_managers[k] = _SlotManager(k, s)
 
 
 def _run_root(host, cmd):
@@ -413,36 +511,3 @@ def _run_root(host, cmd):
             _image(),
         ) + cmd,
     )
-
-
-"""
-persist queue
-user queue
-
-import time
-import threading
-from Queue import Queue
-
-def getter(q):
-    while True:
-        print 'getting...'
-        print q.get(), 'gotten'
-
-def putter(q):
-    for i in range(10):
-        time.sleep(0.5)
-        q.put(i)
-        time.sleep(0.5)
-
-q = Queue()
-get_thread = threading.Thread(target=getter, args=(q,))
-get_thread.daemon = True
-
-
-get_thread.start()
-
-Queue.get([block[, timeout]])
-
-
-putter(q)
-"""
