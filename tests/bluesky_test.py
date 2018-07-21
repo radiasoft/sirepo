@@ -46,7 +46,7 @@ def test_auth_hash_copy():
     import random
     import time
 
-    req = pkcollections.Dict(
+    req = dict(
         simulationType='xyz',
         simulationId='1234',
     )
@@ -64,7 +64,7 @@ def test_auth_hash_copy():
         ]),
     )
     req['authHash'] = 'v1:' + base64.urlsafe_b64encode(h.digest())
-    bluesky.auth_hash(req, verify=True)
+    bluesky.auth_hash(pkcollections.Dict(req), verify=True)
 
 
 def test_auth_login():
