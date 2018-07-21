@@ -15,9 +15,11 @@ from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
 import os
+import random
 import re
 import subprocess
 import threading
+import Queue
 import time
 
 # time expected between created and running
@@ -48,12 +50,24 @@ _tls_d = None
 # map of docker hosts to specification and status
 _hosts = None
 
+# hosts.values() in alphabetical order
+_hosts_ordered = None
+
+# available slots for execution
+_slots = None
+
+_dameon = None
+
 class Docker(runner.Base):
     """Run a code in docker"""
 
     def __init__(self, *args, **kwargs):
         super(Docker, self).__init__(*args, **kwargs)
         self.__cid = None
+        #POSIT: jid is valid docker name (word chars and dash)
+        self.__cname = _CONTAINER_PREFIX + self.jid
+        self.__kind = 'parallel' if simulation_db.is_parallel(self.data) else 'sequential'
+        self.__slot = None
 
     def _is_processing(self):
         """Inspect container to see if still in running state"""
@@ -80,70 +94,60 @@ class Docker(runner.Base):
                 ('stop', '--time={}'.format(runner.KILL_TIMEOUT_SECS), self.__cid),
             )
             self.__cid = None
+            slot = self.__slot
+            self.__slot = None
+            _slot_manager[self.__kind].free_slot(slot)
+
+    def _slot_start(self, slot):
+        """Have a slot so now start docker"""
+        with self.lock:
+            self.__slot = slot
+            ctx = pkcollections.Dict(
+                kill_secs=runner.KILL_TIMEOUT_SECS,
+                run_dir=self.run_dir,
+                run_log=self.run_dir.join(template_common.RUN_LOG),
+                run_secs=self.run_secs(),
+                sh_cmd=self.__sh_cmd(),
+            )
+            self.__image = _image()
+            script = str(self.run_dir.join(_CONTAINER_PREFIX + 'run.sh'))
+            with open(str(script), 'wb') as f:
+                f.write(pkjinja.render_resource('runner/docker.sh', ctx))
+            cmd = _RUN_PREFIX + (
+                '--cpus={}'.format(slot.cores),
+                '--detach',
+                '--init',
+                '--memory={}g'.format(slot.gigabytes),
+                '--name={}'.format(self.__cname),
+                '--network=none',
+    #TODO(robnagler) this doesn't do anything
+    #            '--ulimit=cpu=1',
+                # do not use a user name, because that may not map inside the
+                # container properly. /etc/passwd on the host and guest are
+                # different.
+                '--user={}'.format(os.getuid()),
+            ) + self.__volumes() + (
+    #TODO(robnagler) make this configurable per code (would be structured)
+                self.__image,
+                'bash',
+                script,
+            )
+            self.__cid = _cmd(slot.host, cmd)
+            simulation_db.write_status('running', self.run_dir)
+            pkdc(
+                '{}: started cname={} cid={} dir={} cmd={}',
+                self.jid,
+                self.__cname,
+                self.__cid,
+                self.run_dir,
+                cmd,
+            )
 
     def _start(self):
         """Detach a process from the controlling terminal and run it in the
         background as a daemon.
         """
-        #POSIT: jid is valid docker name (word chars and dash)
-        self.__cname = _CONTAINER_PREFIX + self.jid
-        ctx = pkcollections.Dict(
-            kill_secs=runner.KILL_TIMEOUT_SECS,
-            run_dir=self.run_dir,
-            run_log=self.run_dir.join(template_common.RUN_LOG),
-            run_secs=self.run_secs(),
-            sh_cmd=self.__sh_cmd(),
-        )
-#TODO(robnagler) queue?
-        self.__host = _host_select(self)
-        self.__image = _image()
-        script = str(self.run_dir.join(_CONTAINER_PREFIX + 'run.sh'))
-        with open(str(script), 'wb') as f:
-            f.write(pkjinja.render_resource('runner/docker.sh', ctx))
-        cmd = _RUN_PREFIX + (
-#TODO(robnagler) configurable
-            '--cpus={}'.format(self.__cores()),
-            '--detach',
-            '--init',
-            '--memory={}g'.format(self.__gigabytes()),
-            '--name={}'.format(self.__cname),
-            '--network=none',
-#TODO(robnagler) this doesn't do anything
-#            '--ulimit=cpu=1',
-            # do not use a user name, because that may not map inside the
-            # container properly. /etc/passwd on the host and guest are
-            # different.
-            '--user={}'.format(os.getuid()),
-        ) + self.__volumes() + (
-#TODO(robnagler) make this configurable per code (would be structured)
-            self.__image,
-            'bash',
-            script,
-        )
-        simulation_db.write_status('running', self.run_dir)
-        self.__cid = _cmd(self.__host, cmd)
-        pkdc(
-            '{}: started cname={} cid={} dir={} cmd={}',
-            self.jid,
-            self.__cname,
-            self.__cid,
-            self.run_dir,
-            cmd,
-        )
-
-    def __cores(self):
-#TODO(robnagler) compute cores by interrogating each docker host
-        if simulation_db.is_parallel(self.data):
-            return 2
-        return 1
-
-    def __gigabytes(self):
-#TODO(robnagler) compute gigabytes by interrogating host and dividing by number of processes
-        if simulation_db.is_parallel(self.data):
-            return 16
-#TODO(robnagler) sequential processes probably don't need much memory, but maybe 2g
-#TODO(robnagler) imports definitely don't need more than 1g
-        return 1
+        _slot_manager[self.__kind].start_job(self)
 
     def __sh_cmd(self):
         """Convert ``self.cmd`` into a bash cmd"""
@@ -189,8 +193,58 @@ def init_class(app, uwsgi):
         _init_host(h)
     assert len(_hosts) > 0, \
         '{}: no docker hosts found in directory'.format(_tls_d)
-    _init_job_slots()
+    _init_hosts_slots_balance()
+    _init_slots()
     return Docker
+
+class _Slot(pkcollections.Dict):
+    pass
+
+
+#TODO(robnagler) consider multiprocessing
+class _SlotManager(threading.Thread):
+
+    def __init__(self, kind, *args, **kwargs):
+        super(_Daemon, self).__init__(*args, **kwargs)
+        self.daemon = True
+        self.__event = threading.Event()
+        self.__kind = kind
+        self.__lock = threading.RLock()
+        self.__pending = []
+        self.__running = []
+        self.__available = _slots[kind]
+        random.shuffle(self.__available)
+        self.start()
+
+    def free_slot(self, slot):
+        # This will throw an exception (Full), which shouldn't happen
+        with self.__lock:
+            self.__available.append(slot)
+            self.__event.set()
+
+    def run(self):
+        while True:
+            if self.__event.wait(_SLOT_MANAGER_POLL_SECS):
+                j = None
+                with self.__lock:
+                    if self.__pending and self.__available:
+                        # order here matters in case of a weird exception
+                        j = self.__pending.pop(0)
+                        self.__running.append(j)
+                        s = self.__available.pop(0)
+                if j:
+                    j._slot_start(s)
+            else:
+                with self.__lock:
+                    hosts = set([j._slot for j in self.__running])
+                        docker ps -aq
+                        # check the container is running
+
+    def start_job(self, job):
+        # This will throw an exception (Full), which shouldn't happen
+        with self.__lock():
+            self.__pending.append(job)
+            self.__event.set()
 
 
 def _cmd(host, cmd):
@@ -219,11 +273,6 @@ def _cmd_prefix(host, tls_d):
     )
 
 
-def _host_select(docker):
-#TODO(robnagler) select a host slot. Need queuing algorithm and sequential vs parallel
-    return _hosts.keys()[0]
-
-
 #TODO(robnagler) probably should push this to pykern also in rsconf
 def _image():
     res = runner.cfg.docker_image
@@ -237,10 +286,11 @@ def _init_host(host):
 
     h = _hosts[host]
     _init_host_spec(h)
-    _init_host_max(h)
+    _init_host_num_slots(h)
 
 
-def _init_host_max(h):
+def _init_host_num_slots(h):
+    h.num_slots = pkcollections.Dict()
     j = h.cores // _parallel_cores
     assert j > 0, \
         '{}: host cannot run parallel jobs, min cores required={} and cores={}'.format(
@@ -248,10 +298,10 @@ def _init_host_max(h):
             _parallel_cores,
             h.cores,
         )
-    h.max_parallel = j
-    # Might be 0 see _init_job_slots
-    h.max_sequential = h.cores - j * _parallel_cores
-    pkdc('{name} {max_parallel} {max_sequential} {gigabytes}gb {cores}c', **h)
+    h.num_slots.parallel = j
+    # Might be 0 see _init_hosts_slots_balance
+    h.num_slots.sequential = h.cores - j * _parallel_cores
+    pkdc('{name} {parallel} {sequential} {gigabytes}gb {cores}c', **h, **h.num_slots)
 
 
 def _init_host_spec(h):
@@ -287,39 +337,68 @@ def _init_host_spec(h):
     h.cores = c * matches.cores[0]
 
 
-def _init_job_slots():
+def _init_hosts_slots_balance():
+    global _hosts_ordered
 
     def _ratio_not_ok():
         mp = 0
         ms = 0
         for h in _hosts.values():
-            mp += h.max_parallel
-            ms += h.max_sequential
+            mp += h.num_slots.parallel
+            ms += h.num_slots.sequential
         r = float(ms) / (float(mp) + float(ms))
         if mp + ms == 1:
             # Edge case where ratio calculation can't work
             h = _hosts.values()[0]
-            h.max_sequential = 1
-            h.max_parallel = 1
+            h.num_slots.sequential = 1
+            h.num_slots.parallel = 1
             return False
 #TODO(robnagler) needs to be more complex, because could have many more
 # parallel nodes than sequential, which doesn't need to be so large. This
 # is a good guess for reasonable configurations.
         return r < 0.4
 
-    hosts = sorted(_hosts.values(), key=lambda h: h.name)
+    ho = sorted(_hosts.values(), key=lambda h: h.name)
     while _ratio_not_ok():
-        for h in hosts:
-            if h.max_parallel > 0:
+        for h in ho:
+            if h.num_slots.parallel > 0:
                 # convert a parallel slot on first available host
-                h.max_sequential += _parallel_cores
-                h.max_parallel -= 1
+                h.num_slots.sequential += _parallel_cores
+                h.num_slots.parallel -= 1
                 break
         else:
             raise AssertionError(
                 'should never get here: {}'.format(pkdpretty(hosts)),
             )
+    # thread safe
+    _hosts_ordered = ho
 
+
+def _init_slots():
+    global _slots
+
+    _slots = pkcollections.Dict(
+        parallel=[],
+        sequential=[],
+    )
+    for k, s in _slots.items():
+        c = _parallel_cores if k == 'parallel' else 1
+        for h in _hosts_ordered:
+            ns = h.num_slots[k]
+            g = 1
+            if k == 'parallel':
+                # Leave some ram for caching and OS
+                g = (h.gigabyte -  2) // ns
+                if g < 1:
+                    g = 1
+            for i in range(ns):
+                s.append(_Slot(
+                    kind=k,
+                    host=h.name,
+                    index=i,
+                    cores=c,
+                    gigabytes=g,
+                ))
 
 
 def _run_root(host, cmd):
