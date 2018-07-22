@@ -31,7 +31,7 @@ _CNAME_PREFIX = 'srd'
 _CNAME_SEP = '-'
 
 # Must match cname generation in Docker.__init__
-_CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'[a-z]+', '(.+)')))
+_CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
 
 _RUN_PREFIX = (
     'run',
@@ -253,6 +253,7 @@ class _SlotManager(threading.Thread):
         self.__pending_jobs = []
         self.__running = pkcollections.Dict()
         self.__available = slots
+        self.__cname_prefix = _CNAME_SEP.join((_CNAME_PREFIX, self.__kind[0:3]))
         random.shuffle(self.__available)
         self.start()
 
@@ -308,27 +309,87 @@ class _SlotManager(threading.Thread):
                     slot = s
                     s.job = None
                     del self.__running[job.jid]
-            except KeyError:
+            except KeyError as e:
                 pkdlog(
-                    '{}: PROGRAM ERROR: not in running, ignoring job:\n{}',
+                    '{}: PROGRAM ERROR: not in running, ignoring job: {}\n{}',
                     job.jid,
+                    e,
                     pkdexc(),
                 )
             if slot:
                 self.__available.append(slot)
                 self.__event.set()
 
+    def _parse_ps(self, hosts):
+        res = pkcollections.Dict()
+        for h in hosts:
+            try:
+                o = _cmd(
+                    h,
+                    (
+                        'ps',
+                        '--no-trunc',
+                        '--filter',
+                        'name=' + self.__cname_prefix,
+                        # Do not filter on running, because "created" is
+                        # the same as "running" and "exited" is still running
+                        # from our perspective since '--rm' is passed.
+                        '--format',
+                        '{{.ID}} {{.Names}}',
+                    )
+                )
+                for l in o.splitlines():
+                    i, n = l.split()
+                    m = _CNAME_RE.search(n)
+                    jid = m.group(2)
+                    assert not jid in res, \
+                        '{}: duplicate jid on ({},{}) and {}'.format(
+                            jid,
+                            h,
+                            i,
+                            res[jid],
+                        )
+                    res[jid] = pkcollections.Dict(host=h, cid=i, jid=jid)
+            except Exception as e:
+                pkdlog(
+                    '{}: PROGRAM ERROR: docker ps incorrect: {}\n{}',
+                    h,
+                    e,
+                    pkdexc(),
+                )
+        return res
+
     def _poll_status(self):
         with self.__lock:
-            pkdlog(
-                '{}: running={} available={} pending_jobs={}',
-                self.__kind,
-                len(self.__running),
-                len(self.__available),
-                len(self.__pending_jobs),
-            )
-            for s in self.__running.values():
-                pkdlog('{}: running', s)
+            if len(self.__available) + len(self.__running) != len(_slots[self.__kind]):
+                pkdlog(
+                    '{}: COUNTS ERROR: running={} available={} pending_jobs={}',
+                    self.__kind,
+                    len(self.__running),
+                    len(self.__available),
+                    len(self.__pending_jobs),
+                )
+#TODO(robnagler) need to reason through this
+            # List of containers known to be created, but they may not be running
+            # yet.
+            hosts = set([s.host for s in self.__running.values()])
+        if not hosts:
+            return
+        jobs = self._parse_ps(hosts)
+        dead = []
+        with self.__lock:
+            for jid, s in self.__running.items():
+                if jid not in jobs:
+                    # POSIT: this thread starts all containers so
+                    # __running can only shrink, not grow from the
+                    # time we took a snapshot of the running/created/exited
+                    # jobs actually on the hosts.
+                    dead.append(s.job)
+        for j in dead:
+            we know nothing at this point
+            so only valid if cid is the same(?)
+            pkdp('{}', dead)
+
 #TODO(robnagler) sanity check on _slots & _total available and running
         # docker ps -aq
 
