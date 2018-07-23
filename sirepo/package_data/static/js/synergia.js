@@ -3,9 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
 SIREPO.appHomeTab = 'lattice';
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
 SIREPO.appFieldEditors = [

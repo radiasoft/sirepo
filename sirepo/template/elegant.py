@@ -64,12 +64,6 @@ _INFIX_TO_RPN = {
     ast.USub: '+',
 }
 
-_PLOT_LINE_COLOR = {
-    'y1': '#1f77b4',
-    'y2': '#ff7f0e',
-    'y3': '#2ca02c',
-}
-
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -126,61 +120,48 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
 
 
-def extract_report_data(xFilename, yFilename, data, page_index):
+def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
     xfield = data['x'] if 'x' in data else data[_X_FIELD]
-
     # x, column_names, x_def, err
     x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
-    if 'y1' in data:
+    if _report_type_for_column(x_col['column_names']) == 'parameter':
         # parameter plot
-        y_range = None
         plots = []
+        filename = {
+            'y1': xFilename,
+            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
+            'y2': xFilename,
+            'y3': xFilename,
+        }
         for f in ('y1', 'y2', 'y3'):
-            if data[f] == 'none':
+            if data[f] == 'none' or data[f] == ' ':
                 continue
             yfield = data[f]
-            y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
+            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
             if y_col['err']:
                 return y_col['err']
             y = y_col['values']
-            if y_range:
-                y_range[0] = min(y_range[0], min(y))
-                y_range[1] = max(y_range[1], max(y))
-            else:
-                y_range = [min(y), max(y)]
             plots.append({
                 'points': y,
                 'label': _field_label(yfield, y_col['column_def'][1]),
-                #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
-                'color': _PLOT_LINE_COLOR[f],
             })
         return {
             'title': '',
             'x_range': [min(x), max(x)],
             'y_label': '',
-            'x_label': _field_label(_X_FIELD, x_col['column_def'][1]),
+            'x_label': _field_label(xfield, x_col['column_def'][1]),
             'x_points': x,
             'plots': plots,
-            'y_range': y_range,
+            'y_range': template_common.compute_plot_color_and_range(plots),
         }
-    yfield = data['y']
-    y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
+    yfield = data['y1'] if 'y1' in data else data['y']
+    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
     y = y_col['values']
-    if _is_2d_plot(x_col['column_names']):
-        # 2d plot
-        return {
-            'title': _plot_title(xfield, yfield, page_index),
-            'x_range': [np.min(x), np.max(x)],
-            'x_label': _field_label(xfield, x_col['column_def'][1]),
-            'y_label': _field_label(yfield, y_col['column_def'][1]),
-            'points': y,
-            'x_points': x,
-        }
     bins = data['histogramBins']
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
     return {
@@ -319,24 +300,25 @@ def get_application_data(data):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
+def _file_name_from_id(file_id, model_data, run_dir):
+    return str(run_dir.join(
+        _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
+
+
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     frame_data = template_common.parse_animation_args(
         data,
         {
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
+            '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
+            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
         },
     )
-    if frame_data.version <= 1:
-        frame_data.yFileId = frame_data.xFileId
-    xFileId = frame_data.xFileId.split(_FILE_ID_SEP)
-    yFileId = frame_data.yFileId.split(_FILE_ID_SEP)
-    xFilename = _get_filename_for_element_id(xFileId, model_data)
-    yFilename = _get_filename_for_element_id(yFileId, model_data)
     return extract_report_data(
-        str(run_dir.join(xFilename)),
-        str(run_dir.join(yFilename)),
+        _file_name_from_id(frame_data.xFileId, model_data, run_dir),
+        _file_name_from_id(frame_data.y2FileId, model_data, run_dir),
+        _file_name_from_id(frame_data.y3FileId, model_data, run_dir),
         frame_data,
         frame_index,
     )
@@ -951,17 +933,6 @@ def _infix_to_postfix(expr):
     return expr
 
 
-#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
-def _is_2d_plot(columns):
-    if 'xFrequency' in columns and 'yFrequency' in columns:
-        return True
-    if ('x' in columns and 'xp' in columns) \
-       or ('y' in columns and 'yp' in columns) \
-       or ('t' in columns and 'p' in columns):
-        return False
-    return True
-
-
 def _is_error_text(text):
     return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given', text, re.IGNORECASE)
 
@@ -1170,6 +1141,17 @@ def _plot_title(xfield, yfield, page_index):
     if page_index:
         title += ', Plot ' + str(page_index + 1)
     return title
+
+
+#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
+def _report_type_for_column(columns):
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return 'parameter'
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return 'heatmap'
+    return 'parameter'
 
 
 def _safe_sdds_value(v):
