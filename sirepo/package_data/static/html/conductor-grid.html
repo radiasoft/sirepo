@@ -9,6 +9,7 @@
         <g class="y axis grid"></g>
         <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
         <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
+        <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
             <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
         </svg>

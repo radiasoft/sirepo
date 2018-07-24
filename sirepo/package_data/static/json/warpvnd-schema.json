@@ -49,6 +49,10 @@
             ["80", "80"],
             ["50", "50"],
             ["10", "10"]
+        ],
+        "SimulationMode": [
+            ["2d", "2D"],
+            ["3d", "3D"]
         ]
     },
     "model": {
@@ -116,11 +120,13 @@
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
         "simulationGrid": {
+            "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
             "channel_height": ["Channel Height [µm]", "Float", 5.0],
             "num_x": ["X Grid Points", "Integer"],
             "num_z": ["Z Grid Points", "Integer"],
+            "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"]
@@ -245,16 +251,19 @@
         "simulationGrid": {
             "title": "Simulation Grid",
             "basic": [
+                "simulation_mode",
                 "plate_spacing",
                 "channel_width",
                 "channel_height"
             ],
             "advanced": [
+                "simulation_mode",
                 "plate_spacing",
                 "channel_width",
                 "channel_height",
                 "num_x",
                 "num_z",
+                "num_y",
                 "z_particle_min"
             ]
         },

@@ -53,7 +53,7 @@ cfg = pkconfig.init(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
     ),
     warpvnd=dict(
-        particle_3d_report=(pkconfig.channel_in_internal_test(), bool, 'Show the 3d particle report'),
+        allow_3d_mode=(pkconfig.channel_in_internal_test(), bool, 'Include 3D features in the Warp VND UI'),
     ),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
