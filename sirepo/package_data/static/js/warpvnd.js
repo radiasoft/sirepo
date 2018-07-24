@@ -60,13 +60,13 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     self.allow3D = function() {
         return SIREPO.APP_SCHEMA.feature_config.allow_3d_mode;
     };
-    
-    self.findConductorType = function(id) {
-        return findModelById('conductorTypes', id);
-    };
 
     self.findConductor = function(id) {
         return findModelById('conductors', id);
+    };
+
+    self.findConductorType = function(id) {
+        return findModelById('conductorTypes', id);
     };
 
     self.getXRange = function() {
@@ -167,6 +167,17 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         appState.saveChanges(['conductors']);
     };
 
+    self.deleteConductorPrompt = function(model) {
+        var conductor = warpvndService.findConductor(model.id);
+        var conductorType = warpvndService.findConductorType(conductor.conductorTypeId);
+        self.deleteWarning = {
+            conductor: conductor,
+            name: conductorType.name + ' Conductor',
+            message: '',
+        };
+        $('#sr-delete-conductor-dialog').modal('show');
+    };
+
     self.deleteConductorType = function() {
         var model = self.deleteWarning.conductorType;
         var conductorTypes = [];
@@ -184,17 +195,6 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         });
         appState.models.conductors = conductors;
         appState.saveChanges(['conductorTypes', 'conductors']);
-    };
-
-    self.deleteConductorPrompt = function(model) {
-        var conductor = warpvndService.findConductor(model.id);
-        var conductorType = warpvndService.findConductorType(conductor.conductorTypeId);
-        self.deleteWarning = {
-            conductor: conductor,
-            name: conductorType.name + ' Conductor',
-            message: '',
-        };
-        $('#sr-delete-conductor-dialog').modal('show');
     };
 
     self.deleteConductorTypePrompt = function(model) {
@@ -617,14 +617,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 d3.selectAll('.warpvnd-drag-shadow').remove();
             }
 
-            function d3DragEndCarat(d) {
-                if (d.pos != appState.models.fieldComparisonReport[d.field]) {
-                    appState.models.fieldComparisonReport[d.field] = d.pos;
-                    appState.models.fieldComparisonReport.dimension = d.dimension;
-                    appState.saveChanges('fieldComparisonReport');
-                }
-            }
-
             function d3DragCarat(d) {
                 /*jshint validthis: true*/
                 var p = d.dimension == 'x'
@@ -637,6 +629,14 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     }
                 }
                 d3.select(this).call(updateCarat);
+            }
+
+            function d3DragEndCarat(d) {
+                if (d.pos != appState.models.fieldComparisonReport[d.field]) {
+                    appState.models.fieldComparisonReport[d.field] = d.pos;
+                    appState.models.fieldComparisonReport.dimension = d.dimension;
+                    appState.saveChanges('fieldComparisonReport');
+                }
             }
 
             function d3DragEndShape(shape) {
@@ -677,6 +677,36 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 d3.event.sourceEvent.stopPropagation();
                 dragStart = appState.clone(shape);
                 showShapeLocation(shape);
+            }
+
+            function doesShapeCrossGridLine(shape) {
+                var numX = appState.models.simulationGrid.num_x;  // number of vertical cells
+                var halfChannel = toMicron(appState.models.simulationGrid.channel_width/2.0);
+                var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
+                var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
+                var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
+                if( cellHeight === 0 || cellWidth === 0 ) {  // pathological?
+                    return true;
+                }
+                if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
+                    return true;
+                }
+                var vOffset = numX % 2 === 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
+                var topInCellUnits = (shape.y + vOffset)/cellHeight;
+                var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
+                var top = Math.floor(topInCellUnits);  // closest grid line below top
+                var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
+
+                // note that we do not need to translate coordinates here, since the 1st grid line is
+                // always at 0 in the horizontal direction
+                var leftInCellUnits = shape.x/cellWidth;
+                var rightInCellUnits = (shape.x + shape.width)/cellWidth;
+                var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
+                var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
+
+                // if the top of the shape extends above the top of the channel, it
+                // is ignored.  If the bottom goes below, it is not
+                return (shape.y < halfChannel && top != bottom) || left != right;
             }
 
             function drawCathodeAndAnode() {
@@ -751,36 +781,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     .call(updateCarat)
                     .call(dragCarat).append('title')
                     .text(caratText);
-            }
-
-            function doesShapeCrossGridLine(shape) {
-                var numX = appState.models.simulationGrid.num_x;  // number of vertical cells
-                var halfChannel = toMicron(appState.models.simulationGrid.channel_width/2.0);
-                var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
-                var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
-                var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
-                if( cellHeight === 0 || cellWidth === 0 ) {  // pathological?
-                    return true;
-                }
-                if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
-                    return true;
-                }
-                var vOffset = numX % 2 === 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
-                var topInCellUnits = (shape.y + vOffset)/cellHeight;
-                var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
-                var top = Math.floor(topInCellUnits);  // closest grid line below top
-                var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
-
-                // note that we do not need to translate coordinates here, since the 1st grid line is
-                // always at 0 in the horizontal direction
-                var leftInCellUnits = shape.x/cellWidth;
-                var rightInCellUnits = (shape.x + shape.width)/cellWidth;
-                var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
-                var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
-
-                // if the top of the shape extends above the top of the channel, it
-                // is ignored.  If the bottom goes below, it is not
-                return (shape.y < halfChannel && top != bottom) || left != right;
             }
 
             function editPlate(name) {
