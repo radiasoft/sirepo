@@ -164,7 +164,7 @@ def srwl_und_size_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDe
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-  if kxmax > kmin:
+    if kxmax > kmin:
         dkx = (kxmax-kmin)/numkpts
         kxvals = np.arange(kmin,kxmax,dkx)
     else:
@@ -207,7 +207,7 @@ def srwl_und_div_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDet
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-  if kxmax > kmin:
+    if kxmax > kmin:
         dkx = (kxmax-kmin)/numkpts
         kxvals = np.arange(kmin,kxmax,dkx)
     else:
@@ -256,7 +256,7 @@ def srwl_und_ang_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nP
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
- if kxmax > kmin:
+    if kxmax > kmin:
         dkx = (kxmax-kmin)/numkpts
         kxvals = np.arange(kmin,kxmax,dkx)
     else:
@@ -308,7 +308,7 @@ def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,rel
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-  if kxmax > kmin:
+    if kxmax > kmin:
         dkx = (kxmax-kmin)/numkpts
         kxvals = np.arange(kmin,kxmax,dkx)
     else:
