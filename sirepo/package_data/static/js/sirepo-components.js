@@ -512,7 +512,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
                 model.$render();
             };
 
-            $scope.$on('destroy', function (event) {
+            $scope.$on('$destroy', function (event) {
                 $($element).find('input').off('focus').off('blur');
             });
         },
