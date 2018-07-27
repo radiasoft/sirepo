@@ -552,6 +552,9 @@
       fill: none;
       pointer-events: all;
     }
+    .sr-plot .disabled-overlay {
+      pointer-events: none;
+    }
     .sr-plot .focus circle {
       fill: none;
       stroke: steelblue;
@@ -1309,6 +1312,9 @@ p.hellweg-drop-zone {
 .warpvnd-shape-noncrossing:hover {
   stroke: rgb(255, 0, 0);
   fill: rgba(255, 0, 0, 0.0);
+}
+.warpvnd-shape-inactive {
+  opacity: 0.5;
 }
 .warpvnd-drag-shadow {
   fill: black;

@@ -71,13 +71,15 @@
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
             "zLength": ["Length (Z) [µm]", "Float"],
+            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
             "xCenter": ["Center X [µm]", "Float"],
-            "zCenter": ["Center Z [µm]", "Float"]
+            "zCenter": ["Center Z [µm]", "Float"],
+            "yCenter": ["Center Y [µm]", "Float", 0.0]
         },
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
@@ -123,7 +125,7 @@
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
-            "channel_height": ["Channel Height [µm]", "Float", 5.0],
+            "channel_height": ["Channel Height [µm]", "Float", 0.08],
             "num_x": ["X Grid Points", "Integer"],
             "num_z": ["Z Grid Points", "Integer"],
             "num_y": ["Y Grid Points", "Integer", 10],
@@ -166,6 +168,7 @@
                 "voltage",
                 "zLength",
                 "xLength",
+                "yLength",
                 "isConductor",
                 "permittivity"
             ]
@@ -185,7 +188,8 @@
             "title": "Conductor Position",
             "advanced": [
                 "zCenter",
-                "xCenter"
+                "xCenter",
+                "yCenter"
             ]
         },
         "currentAnimation": {
