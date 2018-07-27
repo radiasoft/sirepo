@@ -322,19 +322,6 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
-SIREPO.app.directive('dragAndDropSupport', function() {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: '',
-        link: function() {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
-        },
-    };
-});
-
 SIREPO.app.directive('labelWithTooltip', function() {
     return {
         restrict: 'A',

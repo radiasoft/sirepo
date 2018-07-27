@@ -453,7 +453,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         restrict: 'A',
         scope: {},
         template: [
-            '<div data-drag-and-drop-support=""></div>',
             '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
                 '<div class="sr-panel-options pull-right">',
