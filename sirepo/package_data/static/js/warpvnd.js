@@ -534,6 +534,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.zHeight = 150;
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
+            $scope.is3dPreview = false;
             var dragCarat, dragShape, dragStart, yRange, zoom;
             var planeLine = 0.0;
             var plateSize = 0;
@@ -1214,6 +1215,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 refresh();
             };
 
+            $scope.toggle3dPreview = function() {
+                $scope.is3dPreview = ! $scope.is3dPreview;
+            };
+
             $scope.$on('cancelChanges', function(e, name) {
                 if (name == 'conductors') {
                     replot();
@@ -1503,6 +1508,206 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('conductors3d', function(appState, vtkService) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div class="sr-plot-particle-3d">',
+              '<div class="vtk-canvas-holder"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var X_Z_ASPECT_RATIO = 4.0 / 7.0;
+            var Y_Z_ASPECT_RATIO = 1.0 / 1.0;
+
+            // rendering
+            var renderWindow = null;
+            var renderer = null;
+            var cam = null;
+            var startPlaneSource = null;
+            var endPlaneSource = null;
+            var boxActors = [];
+            var outlineSource = null;
+            var pointRanges = {};
+
+            // colors - vtk uses a range of 0-1 for RGB components
+            var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
+            var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
+
+            function addActors(actorArr) {
+                actorArr.forEach(function(actor) {
+                    renderer.addActor(actor);
+                });
+            }
+
+            function init() {
+                var rw = $($element).find('.sr-plot-particle-3d .vtk-canvas-holder');
+                rw.on('dblclick', reset);
+                rw.height(rw.width() / 1.3);
+                var fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                    {
+                        background: [1, 1, 1, 1],
+                        container: rw[0],
+                    });
+                renderer = fsRenderer.getRenderer();
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+                cam = renderer.get().activeCamera;
+                var rwInteractor = renderWindow.getInteractor();
+                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
+                    interactor: rwInteractor,
+                    subscribedEvents: ['StartPinch']
+                });
+                zoomObserver.setInteractor(rwInteractor);
+                var startPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var startPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                startPlaneActor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                startPlaneActor.getProperty().setLighting(false);
+                startPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                startPlaneMapper.setInputConnection(startPlaneSource.getOutputPort());
+                startPlaneActor.setMapper(startPlaneMapper);
+                renderer.addActor(startPlaneActor);
+
+                var endPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var endPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                endPlaneActor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                endPlaneActor.getProperty().setLighting(false);
+                endPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                endPlaneMapper.setInputConnection(endPlaneSource.getOutputPort());
+                endPlaneActor.setMapper(endPlaneMapper);
+                renderer.addActor(endPlaneActor);
+
+                var outlineMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var outlineActor = vtk.Rendering.Core.vtkActor.newInstance();
+                outlineSource = vtk.Filters.Sources.vtkCubeSource.newInstance();
+                outlineActor.getProperty().setColor(1, 1, 1);
+                outlineActor.getProperty().setEdgeVisibility(true);
+                outlineActor.getProperty().setEdgeColor(0, 0, 0);
+                outlineActor.getProperty().setFrontfaceCulling(true);
+                outlineActor.getProperty().setLighting(false);
+
+                outlineMapper.setInputConnection(outlineSource.getOutputPort());
+                outlineActor.setMapper(outlineMapper);
+                renderer.addActor(outlineActor);
+            }
+
+            function load() {
+                removeActors(boxActors);
+
+                var grid = appState.models.simulationGrid;
+                var ymax = grid.channel_height / 2.0 * 1e-6;
+                var ymin = -ymax;
+                var xmin = 0;
+                var xmax = grid.plate_spacing * 1e-6;
+                var zmax = grid.channel_width / 2.0 * 1e-6;
+                var zmin = -zmax;
+
+                Y_Z_ASPECT_RATIO = grid.channel_width / grid.channel_height;
+                var pointScales = {
+                    z: 1 / Math.abs((zmax - zmin)),
+                    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
+                    y: 1 / Math.abs((ymax - ymin)) / Y_Z_ASPECT_RATIO
+                };
+                pointRanges = {
+                    z: [pointScales.z * zmin, pointScales.z * zmax],
+                    x: [pointScales.x * xmin, pointScales.x * xmax],
+                    y: [pointScales.y * ymin, pointScales.y * ymax]
+                };
+                var zfactor = pointScales.z;
+                var xfactor = pointScales.x;
+                var yfactor = pointScales.y;
+
+                var typeMap = {};
+                appState.models.conductorTypes.forEach(function(conductorType) {
+                    typeMap[conductorType.id] = conductorType;
+                });
+                appState.models.conductors.forEach(function(conductor) {
+                    // lengths and centers are in µm
+                    var cFactor = 1e6;
+                    var cModel = typeMap[conductor.conductorTypeId];
+                    var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
+                        xLength: xfactor * cModel.zLength / cFactor,
+                        yLength: zfactor * cModel.xLength / cFactor,
+                        zLength: zfactor * cModel.yLength / cFactor,
+                        center: [
+                            xfactor * conductor.zCenter / cFactor,
+                            zfactor * conductor.xCenter / cFactor,
+                            zfactor * conductor.yCenter / cFactor,
+                        ],
+                    });
+                    var bm = vtk.Rendering.Core.vtkMapper.newInstance();
+                    bm.setInputConnection(bs.getOutputPort());
+
+                    var cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
+                    var cEdgeColor = [0, 0, 0];
+                    var ba = vtk.Rendering.Core.vtkActor.newInstance();
+                    ba.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                    ba.getProperty().setEdgeVisibility(true);
+                    ba.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                    ba.getProperty().setLighting(false);
+                    ba.setMapper(bm);
+                    boxActors.push(ba);
+                });
+
+                refresh();
+            }
+
+            function refresh() {
+                startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
+                startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
+                startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
+
+                endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
+                endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
+                endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
+
+                var padding = 0.01;
+                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
+                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
+                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
+                outlineSource.setCenter([
+                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
+                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
+                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
+                ]);
+
+                addActors(boxActors);
+
+                renderer.resetCamera();
+                renderWindow.render();
+            }
+
+            function removeActors(actorArr) {
+                actorArr.forEach(function(actor) {
+                    renderer.removeActor(actor);
+                });
+                actorArr.length = 0;
+            }
+
+            function reset() {
+                cam.setPosition(0, 0, 1);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 1, 0);
+                renderer.resetCamera();
+                renderWindow.render();
+            }
+
+            $scope.$on('$destroy', function() {
+                $($element).find('.sr-plot-particle-3d .vtk-canvas-holder').off();
+                //TODO(pjm): fix memory leaks
+            });
+
+            appState.whenModelsLoaded($scope, function() {
+                vtkService.vtk().then(function() {
+                    init();
+                    load();
+                });
+            });
+
         },
     };
 });
