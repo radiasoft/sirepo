@@ -1522,7 +1522,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
         ].join(''),
         controller: function($scope, $element) {
             var X_Z_ASPECT_RATIO = 4.0 / 7.0;
-            var Y_Z_ASPECT_RATIO = 1.0 / 1.0;
 
             // rendering
             var renderWindow = null;
@@ -1606,11 +1605,11 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 var zmax = grid.channel_width / 2.0 * 1e-6;
                 var zmin = -zmax;
 
-                Y_Z_ASPECT_RATIO = grid.channel_width / grid.channel_height;
+                var yzAspectRatio = grid.channel_width / grid.channel_height;
                 var pointScales = {
                     z: 1 / Math.abs((zmax - zmin)),
                     x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
-                    y: 1 / Math.abs((ymax - ymin)) / Y_Z_ASPECT_RATIO
+                    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
                 };
                 pointRanges = {
                     z: [pointScales.z * zmin, pointScales.z * zmax],
@@ -1676,9 +1675,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 ]);
 
                 addActors(boxActors);
-
-                renderer.resetCamera();
-                renderWindow.render();
+                reset();
             }
 
             function removeActors(actorArr) {
@@ -1693,6 +1690,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 cam.setFocalPoint(0, 0, 0);
                 cam.setViewUp(0, 1, 0);
                 renderer.resetCamera();
+                cam.zoom(1.3);
                 renderWindow.render();
             }
 
