@@ -620,7 +620,7 @@
             "z2": ["Z Maximum [mm]", "Float", 1e16]
         },
         "simulation": {
-            "sourceType": ["Source Type", "SourceType", "geometric"],
+            "sourceType": ["Source Type", "SourceType", "geometricSource"],
             "npoint": ["Number of Rays", "Integer", 5000],
             "istar1": ["Seed", "Integer", 567656]
         },

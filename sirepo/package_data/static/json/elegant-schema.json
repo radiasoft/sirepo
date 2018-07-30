@@ -123,6 +123,7 @@
             ["maximize", "Maximize"]
         ],
         "ParallelOptimizationSetupMethod": [
+            ["simplex", "Simplex"],
             ["genetic", "Genetic"],
             ["hybridsimplex", "Hybridsimplex"],
             ["swarm", "Swarm"]
@@ -301,6 +302,7 @@
             ["integrals", "integrals"]
         ],
         "QufringeDirection": [
+            ["0", "None"],
             ["1", "Entrance"],
             ["-1", "Exit"]
         ],

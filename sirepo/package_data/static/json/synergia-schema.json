@@ -229,7 +229,7 @@
             "charge": ["Charge #", "BeamCharge", 1],
             "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
             "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
-            "momentum": ["Momentum [GeV]", "Float", 0.0, "", 0.0000001],
+            "momentum": ["Momentum [GeV]", "Float", 0.0000001, "", 0.0000001],
             "gamma": ["Gamma", "Float", 1.0, "", 1.0],
             "beta": ["Beta", "Float", 0.0, "", 0.0, 1.0],
             "emit_x": ["Horizontal Emittance [mm-mrad]", "Float"],
