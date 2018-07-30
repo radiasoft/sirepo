@@ -363,6 +363,15 @@
             "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
             "extractor_type": ["Extractor Type", "ExtractorType", "default"]
         },
+        "NLINSERT": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "phase": ["Phase", "Float", "0.0", "The phase advance modulo 2pi through the nonlinear insert"],
+            "t": ["T", "Float", "0.1", "The dimensionless nonlinear strength parameter"],
+            "c": ["C", "Float", "0.01", "The nonlinear aperture parameter (m^-1/2), defining poles in the x-axis"],
+            "num_slices": ["Number of Slices", "Integer", "20", "The number of piecewise constant segements used to construct the insert"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default", "Extractor type for the NLLENS elements"]
+        },
         "NLLENS": {
             "name": ["Name", "ValidatedString"],
             "knll": ["KNLL [m]", "Float", "0.0", "The integrated strength of lens. The strength is parametrized so that the quadrupole term of the multipole expansion is k1=2*KNLL/CNLL²."],
@@ -771,6 +780,20 @@
                 "tilt",
                 "knl",
                 "ksl",
+                "extractor_type"
+            ]
+        },
+        "NLINSERT": {
+            "title": "NLINSERT",
+            "description": "Generates a series of NLLENS elements to constitute a complete nonlinear insert.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "phase",
+                "t",
+                "c",
+                "num_slices",
                 "extractor_type"
             ]
         },

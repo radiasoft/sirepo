@@ -789,7 +789,6 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             parentController: '=',
         },
         template: [
-            '<div data-drag-and-drop-support=""></div>',
             '<div class="row">',
               '<div class="col-sm-12">',
                 '<div class="text-center bg-info sr-toolbar-holder">',

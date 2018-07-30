@@ -3,9 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
 SIREPO.appHomeTab = 'lattice';
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
 SIREPO.appFieldEditors = [
@@ -31,7 +28,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
 
-    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'HMONITOR', 'MARKER', 'MULTIPOLE', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER', 'VMONITOR'];
+    self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'HMONITOR', 'MARKER', 'MULTIPOLE', 'NLINSERT', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER', 'VMONITOR'];
 
     self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
 
@@ -39,13 +36,14 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         QUADRUPOLE: 'red',
         SEXTUPOLE: 'lightgreen',
         VKICKER: 'blue',
+        NLINSERT: 'green',
     };
 
     self.elementPic = {
         aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
         bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
+        magnet: ['NLINSERT', 'QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
         rf: ['RFCAVITY'],
         solenoid: ['SOLENOID'],
         watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],

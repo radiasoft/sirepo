@@ -322,19 +322,6 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
-SIREPO.app.directive('dragAndDropSupport', function() {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: '',
-        link: function() {
-            //TODO(pjm): work-around for iOS 10, it would be better to add into ngDraggable
-            // see discussion here: https://github.com/metafizzy/flickity/issues/457
-            window.addEventListener('touchmove', function() {});
-        },
-    };
-});
-
 SIREPO.app.directive('labelWithTooltip', function() {
     return {
         restrict: 'A',
@@ -512,7 +499,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
                 model.$render();
             };
 
-            $scope.$on('destroy', function (event) {
+            $scope.$on('$destroy', function (event) {
                 $($element).find('input').off('focus').off('blur');
             });
         },
@@ -1508,6 +1495,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+                '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',

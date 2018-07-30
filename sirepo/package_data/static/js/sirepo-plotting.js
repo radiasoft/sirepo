@@ -2682,6 +2682,9 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             function createLegend(plots) {
                 var legend = select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
+                if (plots.length == 1) {
+                    return;
+                }
                 for (var i = 0; i < plots.length; i++) {
                     var plot = plots[i];
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
@@ -2712,6 +2715,22 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
+                // data may contain 2 plots (y1, y2) or multiple plots (plots)
+                var plots = json.plots || [
+                    {
+                        points: json.points[0],
+                        label: json.y1_title,
+                        color: '#1f77b4',
+                    },
+                    {
+                        points: json.points[1],
+                        label: json.y2_title,
+                        color: '#ff7f0e',
+                    },
+                ];
+                if (plots.length == 1 && ! json.y_label) {
+                    json.y_label = plots[0].label;
+                }
                 axes.x.points = json.x_points
                     || plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
@@ -2730,20 +2749,6 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 });
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
-
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                var plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 createLegend(plots);
@@ -2859,7 +2864,38 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
-            var graphLine, zoom;
+            var allPoints, graphLine, zoom;
+
+            function recalculateYDomain() {
+                var ydom;
+                var xdom = axes.x.scale.domain();
+
+                allPoints.forEach(function(points) {
+                    points.forEach(function(p) {
+                        var x = p[0];
+                        var y = p[1];
+                        if (x >= xdom[0] && x <= xdom[1]) {
+                            if (ydom) {
+                                if (y < ydom[0]) {
+                                    ydom[0] = y;
+                                }
+                                else if (y > ydom[1]) {
+                                    ydom[1] = y;
+                                }
+                            }
+                            else {
+                                ydom = [y, y];
+                            }
+                        }
+                    });
+                });
+                if (ydom && ydom[0] != ydom[1]) {
+                    if (ydom[0] > 0 && axes.y.domain[0] == 0) {
+                        ydom[0] = 0;
+                    }
+                    axes.y.scale.domain(ydom).nice();
+                }
+            }
 
             function refresh() {
                 if (! axes.x.domain) {
@@ -2887,6 +2923,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
+                    recalculateYDomain();
                 }
                 resetZoom();
                 select('.overlay').call(zoom);
@@ -2940,6 +2977,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
+                allPoints = [];
                 var xdom = [json.x_range[0], json.x_range[1]];
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
@@ -2950,16 +2988,19 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                 var isFixedX = ! Array.isArray(json.x_points[0]);
                 var i;
                 var lineClass = json.points.length > 20 ? 'line line-7' : 'line line-0';
+                var points;
                 for (i = 0; i < json.points.length; i++) {
-                    var p = d3.zip(
+                    points = d3.zip(
                         isFixedX ? json.x_points : json.x_points[i],
                         json.points[i]);
-                    viewport.append('path').attr('class', lineClass).datum(p);
+                    viewport.append('path').attr('class', lineClass).datum(points);
+                    allPoints.push(points);
                 }
                 if (json.lost_x && json.lost_x.length) {
                     for (i = 0; i < json.lost_x.length; i++) {
-                        viewport.append('path').attr('class', 'line line-reflected').datum(
-                            d3.zip(json.lost_x[i], json.lost_y[i]));
+                        points = d3.zip(json.lost_x[i], json.lost_y[i]);
+                        viewport.append('path').attr('class', 'line line-reflected').datum(points);
+                        allPoints.push(points);
                     }
                     // absorbed/reflected legend
                     select('svg')

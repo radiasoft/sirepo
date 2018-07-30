@@ -531,8 +531,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
-            if (schema[f][2] !== undefined) {
-                model[f] = schema[f][2];
+            if (! model[f]) {
+                if (schema[f][2] !== undefined) {
+                    model[f] = schema[f][2];
+                }
             }
         }
         return model;
