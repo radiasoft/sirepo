@@ -290,6 +290,8 @@ def _validate_schema(schema):
             if len(sch_field_info) <= 2:
                 continue
             field_default = sch_field_info[2]
+            if field_default == '' or field_default == None:
+                continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
 
@@ -1111,20 +1113,34 @@ def _validate_fields(data):
             if not field_name in sch_model:
                 continue
             val = model_data[field_name]
+            if val == '':
+                continue
             sch_field_info = sch_model[field_name]
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
 
 
+# Ensure the value of a numeric field falls within the supplied limits (if any)
+# Note that currently the values in enum arrays at the indices below are sometimes
+# used for other purposes, so we return for non-numeric values rather than fail
 def _validate_number(val, sch_field_info):
     if len(sch_field_info) <= 4:
         return
     min = sch_field_info[4]
-    if float(val) < float(min):
+    try:
+        fv = float(val)
+        fmin = float(min)
+    except ValueError:
+        return
+    if fv < fmin:
         raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
     if len(sch_field_info) > 5:
         max = sch_field_info[5]
-        if float(val) > float(max):
+        try:
+            fmax = float(max)
+        except ValueError:
+            return
+        if fv > fmax:
             raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
 
 
