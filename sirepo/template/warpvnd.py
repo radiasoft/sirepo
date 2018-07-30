@@ -510,6 +510,7 @@ def _extract_particle(run_dir, data, limit):
         'x_range': [0, plate_spacing],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
         'points': y_points,
         'x_points': x_points,
         'z_points': z_points,
