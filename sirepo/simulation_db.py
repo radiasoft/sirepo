@@ -482,7 +482,6 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
                     'userCopySimulationId': user_copy_sid,
                 },
             })
-        #TODO(robnagler) should be a regular exception or abstraction, not bound to werkzeug
         util.raise_not_found()
     data = None
     try:

@@ -1814,7 +1814,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 axes.y.domain = [ymin, d3.max(json.points)];
                 axes.y.scale.domain(axes.y.domain).nice();
                 var p = d3.zip(xPoints, json.points);
-                srdbg('plot2d adding convergence points', points);
+                //srdbg('plot2d adding convergence points', points);
                 plotting.addConvergencePoints(select, '.plot-viewport', points, p);
 
                 for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
@@ -3320,15 +3320,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 outlineActor.setMapper(outlineMapper);
                 renderer.addActor(outlineActor);
 
-                /*
-                srdbg('Common', vtk.Common);
-                srdbg('Filters', vtk.Filters);
-                srdbg('Imaging', vtk.Imaging);
-                srdbg('Interaction', vtk.Interaction);
-                srdbg('IO', vtk.IO);
-                srdbg('Proxy', vtk.Proxy);
-                srdbg('Rendering', vtk.Rendering);
-                */
+                //srdbg('Common', vtk.Common);
+                //srdbg('Filters', vtk.Filters);
+                //srdbg('Imaging', vtk.Imaging);
+                //srdbg('Interaction', vtk.Interaction);
+                //srdbg('IO', vtk.IO);
+                //srdbg('Proxy', vtk.Proxy);
+                //srdbg('Rendering', vtk.Rendering);
+
                 //var oCubeActor = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 //orientationCube = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance();
                 // 6 grid planes indexed by dimension then side
@@ -3706,7 +3705,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                                 break;
                             case 2: case 3:
                                 xres = numZ * zoomStep;
-                                yres = numX * zoomStep
+                                yres = numX * zoomStep;
                                 break;
                             case 4: case 5:
                                 xres = numY * zoomStep;
@@ -3860,7 +3859,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // viewport values seem to be double, not sure why
                 worldCoord.setValue(osLeft);
-                var vpLeft = worldCoord.getComputedViewportValue()
+                var vpLeft = worldCoord.getComputedViewportValue();
                 var vpLeftX = vpLeft[0] / 2.0;
 
                 worldCoord.setValue(osLeftIn);
