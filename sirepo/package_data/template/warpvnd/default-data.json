@@ -42,7 +42,6 @@
         },
         "simulationGrid": {
             "channel_width": 0.11,
-            "channel_height": 5,
             "num_steps": 4000,
             "num_x": 11,
             "num_z": 512,
