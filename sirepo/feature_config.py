@@ -11,12 +11,12 @@ from pykern import pkcollections
 import copy
 
 #: Codes on test and prod
-_NON_DEV_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia', 'myapp')
+_NON_DEV_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
 
 _DEV_CODES = ('myapp', )
 
 #: All possible codes
-_ALL_CODES = _DEV_CODES + _NON_DEV_CODES
+_ALL_CODES = _NON_DEV_CODES + _DEV_CODES
 
 
 #: Configuration
