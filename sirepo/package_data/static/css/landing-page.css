@@ -183,12 +183,15 @@ lp-info-content .lp-launch-button, .jupyter-launch-button, .centered {
   padding-top: 8px;
   padding-bottom: 12px;
 }
-lp-info-content .lp-launch-button .btn {
-  background-color: rgba(95, 187, 70, 0.4);
-  border-color: #c5c5c5 #888888 #222222 #888888;
-  border-width: 1.5px;
-  box-shadow: 1px 1px 0 0;
+.lp-launch-button .btn {
+  background-color: white;
+  border-color: rgba(95, 187, 70, 1.0);
+  border-width: 0.5px;
 }
+.srw-launch-button .btn {
+  vertical-align: bottom;
+}
+
 lp-info-content p {
   padding-bottom: 0.5em;
 }
@@ -293,7 +296,7 @@ div[data-mode-selector] .lp-launch-button {
   background-image: url("/static/img/background_21.png");
   background-blend-mode: normal;
   background-repeat: no-repeat;
-  background-size: cover;
+  background-size: 100% 100%;
 }
 .lp-media-viewport iframe {
   position: absolute;

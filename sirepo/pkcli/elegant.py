@@ -38,7 +38,11 @@ def run(cfg_dir):
             simulation_db.write_result({
                 'error': err[0],
             })
-        _extract_bunch_report()
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if data['report'] == 'twissReport':
+            _extract_twiss_report(data)
+        else:
+            _extract_bunch_report(data)
 
 
 def run_background(cfg_dir):
@@ -72,13 +76,26 @@ def _run_elegant(bunch_report=False, with_mpi=False):
         pass
 
 
-def _extract_bunch_report():
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+def _extract_bunch_report(data):
     info = extract_report_data(
         BUNCH_OUTPUT_FILE,
         BUNCH_OUTPUT_FILE,
+        BUNCH_OUTPUT_FILE,
         data['models'][data['report']],
-        data['models']['bunch']['p_central_mev'],
+        0,
+    )
+    simulation_db.write_result(info)
+
+
+def _extract_twiss_report(data):
+    report = data['models'][data['report']]
+    report['x'] = 's'
+    report['y'] = report['y1']
+    info = extract_report_data(
+        'twiss_output.filename.sdds',
+        'twiss_output.filename.sdds',
+        'twiss_output.filename.sdds',
+        report,
         0,
     )
     simulation_db.write_result(info)

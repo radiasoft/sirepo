@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.dose = '/dose/:simulationId';
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="dicom" data-dicom-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ].join('');
@@ -16,20 +15,11 @@ SIREPO.appFieldEditors = [
         '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
     '</div>',
 ].join('');
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'Rs4piSourceController as source',
-            templateUrl: '/static/html/rs4pi-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.dose, {
-            controller: 'Rs4piDoseController as dose',
-            templateUrl: '/static/html/rs4pi-dose.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender, $rootScope) {
@@ -631,8 +621,10 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
                     .on('brushend', brushend);
                 arc = d3.svg.arc()
                     .startAngle(0)
-                    .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
-                xAxis = plotting.createAxis(xScale, 'bottom');
+                        .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+                xAxis = d3.svg.axis()
+                   .scale(xScale)
+                   .orient('bottom');
             };
 
             $scope.load = function() {

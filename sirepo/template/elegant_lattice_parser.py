@@ -96,6 +96,9 @@ def _parse_element(parser, name, type):
             if f in _FIELD_ALIAS:
                 f = _FIELD_ALIAS[f]
             el[f] = parser.parse_value()
+    # ignore end of line ';'
+    if parser.peek_char() == ';':
+        parser.assert_char(';')
     return el
 
 

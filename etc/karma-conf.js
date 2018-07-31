@@ -4,7 +4,6 @@
 //   npm install karma --save-dev
 //   npm install karma-jasmine --save-dev
 //   npm install karma-phantomjs-launcher
-//   npm install karma-chrome-launcher
 //   npm install jasmine-core --save-dev
 // then:
 //   ./node_modules/karma/bin/karma start etc/karma-conf.js
@@ -30,6 +29,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
         'sirepo/package_data/static/js/ext/angular-d3.js',
+        'sirepo/package_data/static/js/ext/angular-vtk.js',
         'sirepo/package_data/static/js/ext/colorbar.js',
         'sirepo/package_data/static/js/ext/Blob.js',
         'sirepo/package_data/static/js/ext/canvas-toBlob.js',

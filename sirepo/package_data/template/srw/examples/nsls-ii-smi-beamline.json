@@ -62,19 +62,20 @@
                 "type": "crystal"
             },
             {
+                "autocomputeVectors": "horizontal",
                 "grazingAngle": 3.141592653998904,
                 "heightAmplification": 1,
                 "heightProfileFile": "HFM_Rh7.6km.dat",
                 "id": 15,
                 "normalVectorX": 0.9999950652018569,
                 "normalVectorY": 0,
-                "normalVectorZ": -0.003141587486289768,
+                "normalVectorZ": -0.003141587486288672,
                 "orientation": "x",
                 "position": 34.88244,
                 "radius": 7100,
                 "sagittalSize": 0.04,
                 "tangentialSize": 0.5,
-                "tangentialVectorX": 0.003141587486289768,
+                "tangentialVectorX": 0.003141587486288672,
                 "tangentialVectorY": 0,
                 "title": "HFM",
                 "type": "sphericalMirror"
@@ -134,7 +135,7 @@
             },
             {
                 "absoluteFocusPosition": "58.6899",
-                "attenuationLength": "2.854080e-2",
+                "attenuationLength": "0.028541",
                 "focalDistance": "1.3236",
                 "focalPlane": 3,
                 "horizontalApertureSize": 1,

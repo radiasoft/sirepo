@@ -76,6 +76,12 @@ _EXAMPLE_FOLDERS = pkcollections.Dict({
     'Young\'s Double Slit Experiment': '/Wavefront Propagation',
 })
 
+_FILE_TYPE_EXTENSIONS = {
+    'mirror': ['dat', 'txt'],
+    'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
+    'undulatorTable': ['zip'],
+}
+
 # beamline element [template, fields, height profile name, height profile overwrite propagation]
 _ITEM_DEF = {
     'aperture': [
@@ -149,7 +155,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -221,12 +227,12 @@ class MagnMeasZip:
             return self._normalize_eol(f)
 
     def _normalize_eol(self, file_desc):
-        s = file_desc.read().replace('\r\n', '\n').replace('\r', '\n')
+        s = file_desc.read().decode().replace('\r\n', '\n').replace('\r', '\n')
         content = s.split('\n')
         return content
 
 
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     res = pkcollections.Dict({
         'percentComplete': 0,
         'frameCount': 0,
@@ -285,15 +291,7 @@ def clean_run_dir(run_dir):
 
 
 def extensions_for_file_type(file_type):
-    if file_type == 'mirror':
-        return ['*.dat', '*.txt']
-    if file_type == 'sample':
-        exts = ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg']
-        exts += [x.upper() for x in exts]
-        return ['*.{}'.format(x) for x in exts]
-    if file_type == 'undulatorTable':
-        return ['*.zip']
-    raise RuntimeError('unknown file_type: ', file_type)
+    return ['*.{}'.format(x) for x in _FILE_TYPE_EXTENSIONS[file_type]]
 
 
 def extract_report_data(filename, model_data):
@@ -845,8 +843,9 @@ def validate_file(file_type, path):
         extension = match.group(1).lower()
     else:
         return 'invalid file extension'
-
-    if extension == 'dat' or extension == 'txt':
+    if extension not in _FILE_TYPE_EXTENSIONS[file_type]:
+        return 'invalid file type: {}'.format(extension)
+    if file_type == 'mirror':
         # mirror file
         try:
             count = 0
@@ -862,28 +861,25 @@ def validate_file(file_type, path):
                 return 'no data rows found in file'
         except ValueError as e:
             return 'invalid file format: {}'.format(e)
-    elif extension == 'zip':
+    elif file_type == 'undulatorTable':
         # undulator magnetic data file
         #TODO(pjm): add additional zip file validation
         try:
             template_common.validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
             return err.message
-    elif extension.lower() in ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg', 'npy']:
+    elif file_type == 'sample':
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
-    else:
-        return 'invalid file type: {}'.format(extension)
     return None
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
@@ -1147,25 +1143,32 @@ def _delete_user_models(electron_beam, tabulated_undulator):
 
 
 def _extract_brilliance_report(model, data):
-    label = ''
-    for e in _SCHEMA['enum']['BrillianceReportType']:
-        if e[0] == model['reportType']:
-            label = e[1]
-            break
+    label = template_common.enum_text(_SCHEMA, 'BrillianceReportType', model['reportType'])
     if model['reportType'] in ('3', '4'):
         label += ' [rad]'
     elif model['reportType'] in ('5', '6'):
         label += ' [m]'
     x_points = []
     points = []
+    scale_adjustment = 1000.0
+    if 'brightnessComponent' in model and model['brightnessComponent'] == 'spectral-detuning':
+        scale_adjustment = 1.0
     for f in data:
         m = re.search('^f(\d+)', f)
         if m:
-            x_points.append((np.array(data[f]['data']) * 1000.0).tolist())
+            x_points.append((np.array(data[f]['data']) * scale_adjustment).tolist())
             points.append(data['e{}'.format(m.group(1))]['data'])
+    title = template_common.enum_text(_SCHEMA, 'BrightnessComponent', model['brightnessComponent'])
+    if model['brightnessComponent'] == 'k-tuning':
+        if model['initialHarmonic'] == model['finalHarmonic']:
+            title += ', Harmonic {}'.format(model['initialHarmonic'])
+        else:
+            title += ', Harmonic {} - {}'.format(model['initialHarmonic'], model['finalHarmonic'])
+    else:
+        title += ', Harmonic {}'.format(model['harmonic'])
+
     return {
-        'title': '',
-        #'y_label': u'{} log₁₀'.format(label),
+        'title': title,
         'y_label': label,
         'x_label': 'Photon Energy [eV]',
         'x_range': [np.amin(x_points), np.amax(x_points)],
@@ -1193,6 +1196,7 @@ def _extract_trajectory_report(model, data):
             plots.append({
                 'points': points,
                 'label': available_axes[model[f]],
+                #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
                 'color': '#ff7f0e' if len(plots) else '#1f77b4',
             })
     return {
@@ -1321,7 +1325,7 @@ def _generate_beamline_optics(report, models, last_id):
                 if not has_item:
                     res['el'] += '    el.append(srwlib.SRWLOptD({}))'.format(1.0e-16)
                     res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
-                if last_id and last_id == int(item['id']):
+                if last_id and int(last_id) == int(item['id']):
                     last_element = True
             else:
                 _generate_item(res, item)
@@ -1399,6 +1403,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     last_id = None
     if template_common.is_watchpoint(report):
         last_id = template_common.watchpoint_id(report)
+    if report == 'multiElectronAnimation':
+        last_id = data['models']['multiElectronAnimation']['watchpointId']
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
     v = template_common.flatten_data(data['models'], pkcollections.Dict())
@@ -1507,7 +1513,7 @@ def validate_magnet_data_file(zf):
         cols = line.split()
         if len(cols) <= file_name_column:
             return False, 'Index file {} has bad format'.format(index_file_name())
-        file_names_in_index.append(cols[file_name_column])
+        file_names_in_index.append(cols[file_name_column].decode())
 
     # Compare index and zip contents
     # Does not include the index itself, nor any directories
@@ -1813,31 +1819,26 @@ def _process_image(data):
     Returns:
         py.path.local: file to return
     """
-    import werkzeug
     # This should just be a basename, but this ensures it.
-    b = werkzeug.secure_filename(data.baseImage)
-    fn = simulation_db.simulation_lib_dir(data.simulationType).join(b)
+    path = str(simulation_db.simulation_lib_dir(data.simulationType).join(werkzeug.secure_filename(data.baseImage)))
     m = data['model']
-    with pkio.save_chdir(simulation_db.tmp_dir()) as d:
-        res = py.path.local(fn.purebasename)
+    with pkio.save_chdir(simulation_db.tmp_dir()):
         s = srwl_uti_smp.SRWLUtiSmp(
-            file_path=str(fn),
-            area=None if not bool(int(m['cropArea'])) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
+            file_path=path,
+            area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
             rotate_angle=float(m['rotateAngle']),
-            rotate_reshape=bool(int(m['rotateReshape'])),
+            rotate_reshape=int(m['rotateReshape']),
             cutoff_background_noise=float(m['cutoffBackgroundNoise']),
             background_color=int(m['backgroundColor']),
-            invert=bool(int(m['invert'])),
-            tile=None if not bool(int(m['tileImage'])) else (m['tileRows'], m['tileColumns']),
+            invert=int(m['invert']),
+            tile=None if not int(m['tileImage']) else (m['tileRows'], m['tileColumns']),
             shift_x=m['shiftX'],
             shift_y=m['shiftY'],
             is_save_images=True,
-            prefix=str(res),
+            prefix=str(py.path.local()),
             output_image_format=m['outputImageFormat'],
         )
-        res += '_processed.{}'.format(m['outputImageFormat'])
-        res.check()
-    return res
+        return py.path.local(s.processed_image_name)
 
 
 def _process_intensity_reports(source_type, undulator_type):
@@ -1913,22 +1914,6 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         'subtitle': info['subtitle'],
         'z_matrix': ar2d.tolist(),
     })
-
-
-def _report_fields(data, report_name):
-    # if the model has "style" fields, then return the full list of non-style fields
-    # otherwise returns the report name (which implies all model fields)
-    m = data.models[report_name]
-    for style_field in _REPORT_STYLE_FIELDS:
-        if style_field not in m:
-            continue
-        res = []
-        for f in m:
-            if f in _REPORT_STYLE_FIELDS:
-                continue
-            res.append('{}.{}'.format(report_name, f))
-        return res
-    return [report_name]
 
 
 def _save_user_model_list(model_name, beam_list):

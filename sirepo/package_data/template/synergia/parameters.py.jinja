@@ -1,0 +1,56 @@
+
+
+comm = synergia.utils.Commxx(True)
+{% if simulationSettings_space_charge == '2d-open-hockney' %}
+collective = synergia.collective.Space_charge_2d_open_hockney(
+    comm,
+    [32, 32, 32] # grid
+)
+{% elif simulationSettings_space_charge == '2d-bassetti_erskine' %}
+collective = synergia.collective.Space_charge_2d_bassetti_erskine()
+collective.set_longitudinal(0)
+{% elif simulationSettings_space_charge == '2d-kv' %}
+collective = synergia.collective.Space_charge_2d_kv()
+{% elif simulationSettings_space_charge == '3d-open-hockney' %}
+collective = synergia.collective.Space_charge_3d_open_hockney(
+    comm,
+    [32, 32, 32] # grid
+)
+{% else %}
+collective = synergia.simulation.Dummy_collective_operator('stub')
+{% endif %}
+
+lattice = synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE)
+for el in lattice.get_elements():
+    if not el.has_string_attribute('extractor_type'):
+        el.set_string_attribute('extractor_type', '{{ simulationSettings_default_extractor_type }}')
+
+stepper = synergia.simulation.Split_operator_stepper_elements(
+    lattice,
+    {{ simulationSettings_map_order }}, # map_order
+    collective,
+    {{ simulationSettings_steps_per_element }} # num_steps
+)
+
+{% if bunch_distribution == 'file' %}
+from rssynergia.base_diagnostics import read_bunch
+    {% if bunch_z_period_length %}
+bunch = read_bunch.read_bunch('{{ bunchFile }}', lattice.get_reference_particle(), {{ bunch_num_real_particles }}, comm, bucket_length={{ bunch_z_period_length }})
+    {% else %}
+bunch = read_bunch.read_bunch('{{ bunchFile }}', lattice.get_reference_particle(), {{ bunch_num_real_particles }}, comm)
+    {% endif %}
+{% else %}
+{{ bunch }}
+{% endif %}
+
+bunch_simulator = synergia.simulation.Bunch_simulator(bunch)
+bunch_simulator.add_per_step(synergia.bunch.Diagnostics_full2('{{ diagnosticFilename }}'))
+bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles('particles.h5'), {{ simulationSettings_diagnostics_per_turn }})
+
+synergia.simulation.Propagator(stepper).propagate(
+    bunch_simulator,
+    {{ simulationSettings_turn_count }}, # number of turns
+    0, # max_turns, Number of turns to run before writing checkpoint and stopping
+       # When max_turns is 0, the simulation continues until the end.
+    2, # verbosity
+)

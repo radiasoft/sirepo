@@ -9,8 +9,11 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import util
+from sirepo import uri_router
 from sirepo.template import template_common
 import beaker.middleware
 import datetime
@@ -27,6 +30,9 @@ import time
 import werkzeug
 import werkzeug.exceptions
 
+#TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
+if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
+    import h5py
 
 #: where users live under db_dir
 _BEAKER_DATA_DIR = 'beaker'
@@ -44,7 +50,7 @@ _ENVIRON_KEY_BEAKER = 'beaker.session'
 _JSON_RESPONSE_OK = None
 
 #: class that py.path.local() returns
-_PY_PATH_LOCAL_CLASS = type(py.path.local())
+_PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
@@ -67,6 +73,9 @@ _wsgi_app = None
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
+# Default response
+_RESPONSE_OK = {'state': 'ok'}
+
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -77,41 +86,43 @@ app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
 
-def handle_error(error):
-    status_code = 500
-    if isinstance(error, werkzeug.exceptions.HTTPException):
-        status_code = error.code
-    try:
-        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]
-    except:
-        error_file = DEFAULT_ERROR_FILE
-    f = flask.send_from_directory(static_dir('html'), error_file)
+def api_blueskyAuth():
+    from sirepo import bluesky
 
-    return f, status_code
+    req = _json_input()
+    bluesky.auth_login(req)
+    return _json_response_ok(dict(
+        data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
+        schema=simulation_db.get_schema(req.simulationType),
+    ))
+
 
 def api_copyNonSessionSimulation():
     req = _json_input()
     sim_type = req['simulationType']
-    global_path = simulation_db.find_global_simulation(sim_type, req['simulationId'])
-    if global_path:
-        data = simulation_db.open_json_file(
-            sim_type,
-            os.path.join(global_path, simulation_db.SIMULATION_DATA_FILE),
-        )
-        data['models']['simulation']['isExample'] = False
-        data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
-        res = _save_new_and_reply(data)
-        target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
-        template_common.copy_lib_files(
-            data,
-            py.path.local(os.path.dirname(global_path)).join('lib'),
-            target.join('../lib'),
-        )
-        template = sirepo.template.import_module(data)
-        if hasattr(template, 'copy_related_files'):
-            template.copy_related_files(data, global_path, str(target))
-        return res
-    werkzeug.exceptions.abort(404)
+    src = py.path.local(simulation_db.find_global_simulation(
+        sim_type,
+        req['simulationId'],
+        checked=True,
+    ))
+    data = simulation_db.open_json_file(
+        sim_type,
+        src.join(simulation_db.SIMULATION_DATA_FILE),
+    )
+    data['models']['simulation']['isExample'] = False
+    data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+    res = _save_new_and_reply(data)
+    target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+    template_common.copy_lib_files(
+        data,
+        simulation_db.lib_dir_from_sim_dir(src),
+        simulation_db.lib_dir_from_sim_dir(target),
+    )
+    template = sirepo.template.import_module(data)
+    if hasattr(template, 'copy_related_files'):
+        template.copy_related_files(data, str(src), str(target))
+    return res
+
 app_copy_nonsession_simulation = api_copyNonSessionSimulation
 
 
@@ -120,6 +131,7 @@ def api_copySimulation():
     req = _json_input()
     sim_type = req['simulationType']
     name = req['name'] if 'name' in req else None
+    folder = req['folder'] if 'folder' in req else '/'
     data = simulation_db.read_simulation_json(sim_type, sid=req['simulationId'])
     if not name:
         base_name = data['models']['simulation']['name']
@@ -132,6 +144,7 @@ def api_copySimulation():
                 continue
             break
     data['models']['simulation']['name'] = name
+    data['models']['simulation']['folder'] = folder
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(data)
@@ -270,7 +283,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     if cfg.oauth_login:
         from sirepo import oauth
         oauth.set_default_state(logged_out_as_anonymous=True)
-    redirect_uri = None
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
         'simulation.name': simulation_name,
@@ -284,20 +296,16 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                     'simulation.name': simulation_name,
                 })
                 break
-    if len(rows):
-        if application_mode == 'default':
-            redirect_uri = '/{}#/source/{}'.format(simulation_type, rows[0]['simulationId'])
-        elif application_mode == 'lattice':
-            redirect_uri = '/{}#/lattice/{}'.format(simulation_type, rows[0]['simulationId'])
-        elif application_mode == 'wavefront' or application_mode == 'light-sources':
-            redirect_uri = '/{}#/beamline/{}?application_mode={}'.format(
-                simulation_type, rows[0]['simulationId'], application_mode)
         else:
-            redirect_uri = '/{}#/source/{}?application_mode={}'.format(
-                simulation_type, rows[0]['simulationId'], application_mode)
-    if redirect_uri:
-        return javascript_redirect(redirect_uri)
-    werkzeug.exceptions.abort(404)
+            raise AssertionError(util.err(simulation_name, 'simulation not found with type {}', simulation_type))
+    return javascript_redirect(
+        uri_router.format_uri(
+            simulation_type,
+            application_mode,
+            rows[0]['simulationId'],
+            simulation_db.get_schema(simulation_type)
+        )
+    )
 app_find_by_name = api_findByName
 
 
@@ -388,7 +396,6 @@ def api_importFile(simulation_type=None):
 app_import_file = api_importFile
 
 
-
 def api_homePage():
     return _render_root_page('sr-landing-page', pkcollections.Dict())
 light_landing_page = api_homePage
@@ -400,6 +407,8 @@ def api_newSimulation():
     data = simulation_db.default_data(sim_type)
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
+    if 'notes' in new_simulation_data:
+        data['models']['simulation']['notes'] = new_simulation_data['notes']
     template = sirepo.template.import_module(sim_type)
     if hasattr(template, 'new_simulation'):
         template.new_simulation(data, new_simulation_data)
@@ -485,13 +494,13 @@ def api_runCancel():
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
     #TODO(robnagler) mutex required
-    if cfg.job_queue.is_processing(jid):
+    if runner.job_is_processing(jid):
         run_dir = simulation_db.simulation_run_dir(data)
         # Write first, since results are write once, and we want to
         # indicate the cancel instead of the termination error that
         # will happen as a result of the kill.
         simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        cfg.job_queue.kill(jid)
+        runner.job_kill(jid)
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
         t = sirepo.template.import_module(data)
@@ -706,10 +715,9 @@ def init(db_dir=None, uwsgi=None):
     _wsgi_app = _WSGIApp(app, uwsgi)
     _BeakerSession().sirepo_init_app(app, db_dir)
     simulation_db.init_by_server(app, sys.modules[__name__])
-
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(err), handle_error)
-
+        app.register_error_handler(int(err), _handle_error)
+    runner.init(app, uwsgi)
     return app
 
 
@@ -867,6 +875,19 @@ def _cfg_time_limit(value):
     return v
 
 
+def _handle_error(error):
+    status_code = 500
+    if isinstance(error, werkzeug.exceptions.HTTPException):
+        status_code = error.code
+    try:
+        error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]['url']
+    except:
+        error_file = DEFAULT_ERROR_FILE
+    f = flask.send_from_directory(static_dir('html'), error_file)
+
+    return f, status_code
+
+
 def _json_input(assert_sim_type=True):
     req = flask.request
     if req.mimetype != 'application/json':
@@ -900,15 +921,20 @@ def _json_response(value, pretty=False):
     )
 
 
-def _json_response_ok():
+def _json_response_ok(*args, **kwargs):
     """Generate state=ok JSON flask response
 
     Returns:
         Response: flask response
     """
+    if len(args) > 0:
+        assert len(args) == 1
+        res = args[0]
+        res.update(_RESPONSE_OK)
+        return _json_response(res)
     global _JSON_RESPONSE_OK
     if not _JSON_RESPONSE_OK:
-        _JSON_RESPONSE_OK = _json_response({'state': 'ok'})
+        _JSON_RESPONSE_OK = _json_response(_RESPONSE_OK)
     return _JSON_RESPONSE_OK
 
 
@@ -1011,7 +1037,7 @@ def _simulation_run_status(data, quiet=False):
     try:
         #TODO(robnagler): Lock
         rep = simulation_db.report_info(data)
-        is_processing = cfg.job_queue.is_processing(rep.job_id)
+        is_processing = runner.job_is_processing(rep.job_id)
         is_running = rep.job_status in _RUN_STATES
         res = {'state': rep.job_status}
         pkdc(
@@ -1023,7 +1049,7 @@ def _simulation_run_status(data, quiet=False):
             bool(rep.cached_data),
         )
         if is_processing and not is_running:
-            cfg.job_queue.race_condition_reap(rep.job_id)
+            runner.job_race_condition_reap(rep.job_id)
             pkdc('{}: is_processing and not is_running', rep.job_id)
             is_processing = False
         template = sirepo.template.import_module(data)
@@ -1044,6 +1070,10 @@ def _simulation_run_status(data, quiet=False):
                         # allow parallel jobs to use template to parse errors below
                         res['state'] = 'error'
                     else:
+                        if hasattr(template, 'parse_error_log'):
+                            res = template.parse_error_log(rep.run_dir)
+                            if res:
+                                return res
                         return _simulation_error(err, 'error in read_result', rep.run_dir)
                 else:
                     res = res2
@@ -1052,7 +1082,6 @@ def _simulation_run_status(data, quiet=False):
                 rep.model_name,
                 rep.run_dir,
                 is_running,
-                simulation_db.get_schema(data['simulationType']),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)
@@ -1126,7 +1155,7 @@ def _start_simulation(data):
         'startTime': int(time.time()),
         'state': 'pending',
     }
-    cfg.job_queue(data)
+    runner.job_start(data)
 
 
 def _validate_serial(data):
@@ -1147,6 +1176,7 @@ def _validate_serial(data):
         'simulationData': res,
     })
 
+
 def static_dir(dir_name):
     return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
@@ -1158,8 +1188,8 @@ cfg = pkconfig.init(
         secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
-    job_queue=('Background', runner.cfg_job_queue, 'how to run long tasks: Celery or Background'),
-    foreground_time_limit=(5 * 60, _cfg_time_limit, 'timeout for short (foreground) tasks'),
+    job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    enable_bluesky=(False, bool, 'Enable calling simulations directly from NSLS-II/bluesky'),
 )

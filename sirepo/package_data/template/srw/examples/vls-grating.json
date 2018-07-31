@@ -24,7 +24,9 @@
                 "verticalSize": 2.59104332294
             },
             {
+                "autocomputeVectors": "vertical",
                 "diffractionOrder": 1,
+                "grazingAngle": 12.9555790185373,
                 "grooveDensity0": 1800,
                 "grooveDensity1": 0.08997,
                 "grooveDensity2": 3.004e-06,
@@ -33,12 +35,12 @@
                 "id": 11,
                 "normalVectorX": 0,
                 "normalVectorY": 0.99991607766,
-                "normalVectorZ": -0.0129552166147,
+                "normalVectorZ": -0.012955216595673816,
                 "position": 55,
                 "sagittalSize": 0.015,
                 "tangentialSize": 0.2,
                 "tangentialVectorX": 0,
-                "tangentialVectorY": 0.0129552166147,
+                "tangentialVectorY": 0.012955216595673816,
                 "title": "G",
                 "type": "grating"
             },

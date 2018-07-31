@@ -52,23 +52,6 @@ _FIELD_LABEL = {
 #
 _FILE_ID_SEP = '-'
 
-_PLOT_TITLE = {
-    'x-xp': 'Horizontal',
-    'y-yp': 'Vertical',
-    'x-y': 'Cross-section',
-    't-p': 'Longitudinal',
-}
-
-_SDDS_INDEX = 0
-
-_SDDS_DOUBLE_TYPE = 1
-
-_SDDS_STRING_TYPE = 7
-
-_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
-
-_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
-
 _INFIX_TO_RPN = {
     ast.Add: '+',
     ast.Div: '/',
@@ -81,9 +64,29 @@ _INFIX_TO_RPN = {
     ast.USub: '+',
 }
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_PLOT_TITLE = {
+    'x-xp': 'Horizontal',
+    'y-yp': 'Vertical',
+    'x-y': 'Cross-section',
+    't-p': 'Longitudinal',
+}
 
-def background_percent_complete(report, run_dir, is_running, schema):
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+
+_SDDS_INDEX = 0
+
+_SDDS_DOUBLE_TYPE = 1
+
+_SDDS_STRING_TYPE = 7
+
+_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
+
+_SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
+
+_X_FIELD = 's'
+
+
+def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     errors, last_element = parse_elegant_log(run_dir)
     res = {
@@ -98,7 +101,7 @@ def background_percent_complete(report, run_dir, is_running, schema):
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    output_info = _output_info(run_dir, data, schema)
+    output_info = _output_info(run_dir, data)
     return {
         'percentComplete': 100,
         'frameCount': 1,
@@ -117,30 +120,49 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
 
 
-def extract_report_data(xFilename, yFilename, data, p_central_mev, page_index):
-    xfield = data['x']
-    yfield = data['y']
-    bins = data['histogramBins']
-
+def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
+    xfield = data['x'] if 'x' in data else data[_X_FIELD]
     # x, column_names, x_def, err
     x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
-    y_col = sdds_util.extract_sdds_column(yFilename, yfield, page_index)
+    if _report_type_for_column(x_col['column_names']) == 'parameter':
+        # parameter plot
+        plots = []
+        filename = {
+            'y1': xFilename,
+            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
+            'y2': xFilename,
+            'y3': xFilename,
+        }
+        for f in ('y1', 'y2', 'y3'):
+            if data[f] == 'none' or data[f] == ' ':
+                continue
+            yfield = data[f]
+            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
+            if y_col['err']:
+                return y_col['err']
+            y = y_col['values']
+            plots.append({
+                'points': y,
+                'label': _field_label(yfield, y_col['column_def'][1]),
+            })
+        return {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_label': '',
+            'x_label': _field_label(xfield, x_col['column_def'][1]),
+            'x_points': x,
+            'plots': plots,
+            'y_range': template_common.compute_plot_color_and_range(plots),
+        }
+    yfield = data['y1'] if 'y1' in data else data['y']
+    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
     y = y_col['values']
-    if _is_2d_plot(x_col['column_names']):
-        # 2d plot
-        return {
-            'title': _plot_title(xfield, yfield, page_index),
-            'x_range': [np.min(x), np.max(x)],
-            'x_label': _field_label(xfield, x_col['column_def'][1]),
-            'y_label': _field_label(yfield, y_col['column_def'][1]),
-            'points': y,
-            'x_points': x,
-        }
+    bins = data['histogramBins']
     hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
@@ -196,6 +218,9 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
+    if 'twissReport' not in data['models']:
+        m = data['models']['twissReport'] = {}
+        template_common.update_model_defaults(m, 'twissReport', _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -241,45 +266,12 @@ def generate_parameters_file(data, is_parallel=False):
     v['rpn_variables'] = _generate_variables(data)
 
     if is_parallel:
-        filename_map = _build_filename_map(data)
-        beamline_map = _build_beamline_map(data)
-        v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
-        v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
-        v['simulationMode'] = data['models']['simulation']['simulationMode']
-        return template_common.render_jinja(SIM_TYPE, v)
+        return _generate_full_simulation(data, v)
 
-    for f in _SCHEMA['model']['bunch']:
-        info = _SCHEMA['model']['bunch'][f]
-        if info[1] == 'RPNValue':
-            field = 'bunch_{}'.format(f)
-            v[field] = _format_rpn_value(v[field], is_command=True)
+    if 'report' in data and data['report'] == 'twissReport':
+        return _generate_twiss_simulation(data, v)
 
-    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
-    # sigma s, sigma dp, dp s coupling
-    if longitudinal_method == 1:
-        v['bunch_emit_z'] = 0
-        v['bunch_beta_z'] = 0
-        v['bunch_alpha_z'] = 0
-    # sigma s, sigma dp, alpha z
-    elif longitudinal_method == 2:
-        v['bunch_emit_z'] = 0
-        v['bunch_beta_z'] = 0
-        v['bunch_dp_s_coupling'] = 0
-    # emit z, beta z, alpha z
-    elif longitudinal_method == 3:
-        v['bunch_sigma_dp'] = 0
-        v['bunch_sigma_s'] = 0
-        v['bunch_dp_s_coupling'] = 0
-    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
-        v['bunch_beta_x'] = 5
-        v['bunch_beta_y'] = 5
-        v['bunch_alpha_x'] = 0
-        v['bunch_alpha_x'] = 0
-        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
-            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
-            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
-    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
-    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+    return _generate_bunch_simulation(data, v)
 
 
 def get_animation_name(data):
@@ -308,26 +300,26 @@ def get_application_data(data):
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
+def _file_name_from_id(file_id, model_data, run_dir):
+    return str(run_dir.join(
+        _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
+
+
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     frame_data = template_common.parse_animation_args(
         data,
         {
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
+            '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
+            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
         },
     )
-    if frame_data.version <= 1:
-        frame_data.yFileId = frame_data.xFileId
-    xFileId = frame_data.xFileId.split(_FILE_ID_SEP)
-    yFileId = frame_data.yFileId.split(_FILE_ID_SEP)
-    xFilename = _get_filename_for_element_id(xFileId, model_data)
-    yFilename = _get_filename_for_element_id(yFileId, model_data)
     return extract_report_data(
-        str(run_dir.join(xFilename)),
-        str(run_dir.join(yFilename)),
+        _file_name_from_id(frame_data.xFileId, model_data, run_dir),
+        _file_name_from_id(frame_data.y2FileId, model_data, run_dir),
+        _file_name_from_id(frame_data.y3FileId, model_data, run_dir),
         frame_data,
-        model_data['models']['bunch']['p_central_mev'],
         frame_index,
     )
 
@@ -354,8 +346,10 @@ def get_data_file(run_dir, model, frame, options=None):
         return _sdds(_get_filename_for_element_id(i, data))
 
     if model == 'animation':
-        path = str(run_dir.join(ELEGANT_LOG_FILE))
-        with open(path) as f:
+        path = run_dir.join(ELEGANT_LOG_FILE)
+        if not path.exists():
+            return 'elegant-output.txt', '', 'text/plain'
+        with open(str(path)) as f:
             return 'elegant-output.txt', f.read(), 'text/plain'
 
     if model == 'beamlineReport':
@@ -410,12 +404,14 @@ def models_related_to_report(data):
         list: Named models, model fields or values (dict, list) that affect report
     """
     r = data['report']
-    if 'bunchReport' not in r:
-        return []
-    res = [template_common.report_fields(data, r, _REPORT_STYLE_FIELDS), 'bunch', 'bunchSource', 'bunchFile']
-    for f in template_common.lib_files(data):
-        if f.exists():
-            res.append(f.mtime())
+    res = []
+    if r == 'twissReport' or 'bunchReport' in r:
+        res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + ['bunch', 'bunchSource', 'bunchFile']
+        for f in template_common.lib_files(data):
+            if f.exists():
+                res.append(f.mtime())
+    if r == 'twissReport':
+        res += ['elements', 'beamlines', 'simulation.activeBeamlineId']
     return res
 
 
@@ -522,12 +518,11 @@ def validate_file(file_type, path):
     return err
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
@@ -711,14 +706,7 @@ def _create_default_commands(data):
         _create_command('command_twiss_output', {
             "_id": max_id + 3,
             "_type": "twiss_output",
-            "alpha_x": bunch['alpha_x'],
-            "alpha_y": bunch['alpha_y'],
-            "beta_x": bunch['beta_x'],
-            "beta_y": bunch['beta_y'],
             "filename": "1",
-            "matched": "0",
-            "output_at_each_step": "1",
-            "statistics": "1"
         }),
         _create_command('command_bunched_beam', {
             "_id": max_id + 4,
@@ -809,11 +797,15 @@ def _file_info(filename, run_dir, id, output_index):
             pass
 
 
-def _find_first_bunch_command(data):
+def _find_first_command(data, command_type):
     for m in data['models']['commands']:
-        if m['_type'] == 'bunched_beam':
+        if m['_type'] == command_type:
             return m
     return None
+
+
+def _find_first_bunch_command(data):
+    return _find_first_command(data, 'bunched_beam')
 
 
 def _format_rpn_value(value, is_command=False):
@@ -822,6 +814,40 @@ def _format_rpn_value(value, is_command=False):
         if is_command:
             return '({})'.format(value)
     return value
+
+
+def _generate_bunch_simulation(data, v):
+    for f in _SCHEMA['model']['bunch']:
+        info = _SCHEMA['model']['bunch'][f]
+        if info[1] == 'RPNValue':
+            field = 'bunch_{}'.format(f)
+            v[field] = _format_rpn_value(v[field], is_command=True)
+    longitudinal_method = int(data['models']['bunch']['longitudinalMethod'])
+    # sigma s, sigma dp, dp s coupling
+    if longitudinal_method == 1:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_alpha_z'] = 0
+    # sigma s, sigma dp, alpha z
+    elif longitudinal_method == 2:
+        v['bunch_emit_z'] = 0
+        v['bunch_beta_z'] = 0
+        v['bunch_dp_s_coupling'] = 0
+    # emit z, beta z, alpha z
+    elif longitudinal_method == 3:
+        v['bunch_sigma_dp'] = 0
+        v['bunch_sigma_s'] = 0
+        v['bunch_dp_s_coupling'] = 0
+    if data['models']['bunchSource']['inputSource'] == 'sdds_beam':
+        v['bunch_beta_x'] = 5
+        v['bunch_beta_y'] = 5
+        v['bunch_alpha_x'] = 0
+        v['bunch_alpha_x'] = 0
+        if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
+            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
+    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
+    return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
 def _generate_commands(data, filename_map, beamline_map, v):
@@ -833,6 +859,43 @@ def _generate_commands(data, filename_map, beamline_map, v):
     _iterate_model_fields(data, state, _iterator_commands)
     state['commands'] += '&end' + "\n"
     return state['commands']
+
+
+def _generate_full_simulation(data, v):
+    filename_map = _build_filename_map(data)
+    beamline_map = _build_beamline_map(data)
+    v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+    v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+    v['simulationMode'] = data['models']['simulation']['simulationMode']
+    return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _generate_twiss_simulation(data, v):
+    max_id = elegant_lattice_importer.max_id(data)
+    sim = data['models']['simulation']
+    sim['simulationMode'] = 'serial'
+    run_setup = _find_first_command(data, 'run_setup') or {
+        '_id': max_id + 1,
+        '_type': 'run_setup',
+        'lattice': 'Lattice',
+        'p_central_mev': data['models']['bunch']['p_central_mev'],
+    }
+    run_setup['use_beamline'] = sim['activeBeamlineId']
+    twiss_output = _find_first_command(data, 'twiss_output') or {
+        '_id': max_id + 2,
+        '_type': 'twiss_output',
+        'filename': '1',
+    }
+    twiss_output['output_at_each_step'] = "0"
+    data['models']['commands'] = [
+        run_setup,
+        twiss_output,
+    ]
+    filename_map = _build_filename_map(data)
+    beamline_map = _build_beamline_map(data)
+    v['lattice'] = generate_lattice(data, filename_map, beamline_map, v)
+    v['commands'] = _generate_commands(data, filename_map, beamline_map, v)
+    return template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_variable(name, variables, visited):
@@ -868,17 +931,6 @@ def _infix_to_postfix(expr):
         #pkdc('{}: not infix: {}', expr, e)
         pass
     return expr
-
-
-#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
-def _is_2d_plot(columns):
-    if 'xFrequency' in columns and 'yFrequency' in columns:
-        return True
-    if ('x' in columns and 'xp' in columns) \
-       or ('y' in columns and 'yp' in columns) \
-       or ('t' in columns and 'p' in columns):
-        return False
-    return True
 
 
 def _is_error_text(text):
@@ -924,7 +976,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                         value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif element_schema[1] == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
-                    elif element_schema[1] == 'ElegantBeamlineList':
+                    elif element_schema[1] == 'LatticeBeamlineList':
                         value = state['beamline_map'][int(value)]
                     elif element_schema[1] == 'ElegantLatticeList':
                         if value and value == 'Lattice':
@@ -1011,7 +1063,7 @@ def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
-def _output_info(run_dir, data, schema):
+def _output_info(run_dir, data):
     res = []
     filename_map = _build_filename_map(data)
     for k in filename_map['keys_in_order']:
@@ -1089,6 +1141,17 @@ def _plot_title(xfield, yfield, page_index):
     if page_index:
         title += ', Plot ' + str(page_index + 1)
     return title
+
+
+#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
+def _report_type_for_column(columns):
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return 'parameter'
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return 'heatmap'
+    return 'parameter'
 
 
 def _safe_sdds_value(v):

@@ -61,8 +61,10 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _X_FIELD = 't'
 
+_REPORT_STYLE_FIELDS = ['notes']
 
-def background_percent_complete(report, run_dir, is_running, schema):
+
+def background_percent_complete(report, run_dir, is_running):
     if is_running:
         count, settings, has_rates = _background_task_info(run_dir)
         if settings.model == 'particle' and settings.save_particle_interval > 0:
@@ -106,7 +108,9 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def fixup_old_data(data):
-    for m in ('ring', 'particleAnimation'):
+    for m in ('ring', 'particleAnimation', 'twissReport'):
+        if m not in data['models']:
+            data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'coolingRatesAnimation' not in data['models']:
         for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
@@ -129,6 +133,14 @@ def fixup_old_data(data):
         settings['ref_bet_x'] = settings['ref_bet_y'] = 10
         for f in ('ref_alf_x', 'ref_disp_x', 'ref_disp_dx', 'ref_alf_y', 'ref_disp_y', 'ref_disp_dy'):
             settings[f] = 0
+    # if model field value is less than min, set to default value
+    for m in data['models']:
+        model = data['models'][m]
+        if m in _SCHEMA['model']:
+            for f in _SCHEMA['model'][m]:
+                field_def = _SCHEMA['model'][m][f]
+                if len(field_def) > 4 and model[f] < field_def[4]:
+                    model[f] = field_def[2]
 
 
 def get_animation_name(data):
@@ -195,41 +207,80 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
-
 def lib_files(data, source_lib):
     res = []
-    lattice_source = data['models']['ring']['latticeSource']
+    ring = data['models']['ring']
+    lattice_source = ring['latticeSource']
     if lattice_source == 'madx':
-        res.append(template_common.lib_file_name('ring', 'lattice', data['models']['ring']['lattice']))
+        res.append(template_common.lib_file_name('ring', 'lattice', ring['lattice']))
     elif lattice_source == 'elegant':
-        res.append(template_common.lib_file_name('ring', 'elegantTwiss', data['models']['ring']['elegantTwiss']))
-    return template_common.filename_to_path(res, source_lib)
+        res.append(template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
+    res = template_common.filename_to_path(res, source_lib)
+    if lattice_source == 'elegant-sirepo' and 'elegantSirepo' in ring:
+        f = _elegant_dir().join(ring['elegantSirepo'], _ELEGANT_TWISS_PATH)
+        if f.exists():
+            res.append(f)
+    return res
 
 
 def models_related_to_report(data):
     if data['report'] == 'rateCalculationReport':
         return ['cooler', 'electronBeam', 'electronCoolingRate', 'intrabeamScatteringRate', 'ionBeam', 'ring']
+    if data['report'] == 'twissReport':
+        return ['twissReport', 'ring']
     return []
 
 
 def python_source_for_model(data, model):
+    ring = data['models']['ring']
+    elegant_twiss_file = None
+    if ring['latticeSource'] == 'elegant':
+        elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+    elif  ring['latticeSource'] == 'elegant-sirepo':
+        elegant_twiss_file = ELEGANT_TWISS_FILENAME
+    convert_twiss_to_tfs = ''
+    if elegant_twiss_file:
+        convert_twiss_to_tfs = '''
+from pykern import pkconfig
+pkconfig.append_load_path('sirepo')
+from sirepo.template import sdds_util
+sdds_util.twiss_to_madx('{}', '{}')
+        '''.format(elegant_twiss_file, JSPEC_TWISS_FILENAME)
     return '''
 {}
 
 with open('{}', 'w') as f:
     f.write(jspec_file)
-
+{}
 import os
 os.system('jspec {}')
-    '''.format(_generate_parameters_file(data), JSPEC_INPUT_FILENAME, JSPEC_INPUT_FILENAME)
+    '''.format(_generate_parameters_file(data), JSPEC_INPUT_FILENAME, convert_twiss_to_tfs, JSPEC_INPUT_FILENAME)
 
 
 def remove_last_frame(run_dir):
     pass
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
-    _prepare_twiss_file(data, run_dir)
+def validate_file(file_type, path):
+    if file_type == 'ring-elegantTwiss':
+        return None
+    assert file_type == 'ring-lattice'
+    for line in pkio.read_text(str(path)).split("\n"):
+        # mad-x twiss column header starts with '*'
+        match = re.search('^\*\s+(.*)\s+$', line)
+        if match:
+            columns = re.split(r'\s+', match.group(1))
+            is_ok = True
+            for col in sdds_util.MADX_TWISS_COLUMS:
+                if col not in columns:
+                    is_ok = False
+                    break
+            if is_ok:
+                return None
+    return 'TFS file must contain columns: {}'.format(', '.join(sdds_util.MADX_TWISS_COLUMS))
+
+
+def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data)
@@ -285,7 +336,7 @@ def _compute_sdds_range(res):
         values = sdds.sddsdata.GetColumn(sdds_index, column_names.index(field))
         if len(res[field]):
             res[field][0] = _safe_sdds_value(min(min(values), res[field][0]))
-            res[field][1] = _safe_sdds_value(max(max(values), res[field][0]))
+            res[field][1] = _safe_sdds_value(max(max(values), res[field][1]))
         else:
             res[field] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
 
@@ -319,6 +370,7 @@ def _extract_evolution_plot(report, run_dir):
         plots.append({
             'points': y,
             'label': '{}{}'.format(_field_label(yfield, y_col['column_def']), _field_description(yfield, data)),
+            #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': _PLOT_LINE_COLOR[f],
         })
     return {
@@ -442,17 +494,6 @@ def _map_field_name(f):
     if f in _FIELD_MAP:
         return _FIELD_MAP[f]
     return f
-
-
-def _prepare_twiss_file(data, run_dir):
-    if data['models']['ring']['latticeSource'] == 'elegant-sirepo':
-        sim_id = data['models']['ring']['elegantSirepo']
-        if not sim_id:
-            raise RuntimeError('elegant simulation not selected')
-        f = _elegant_dir().join(sim_id, _ELEGANT_TWISS_PATH)
-        if not f.exists():
-            raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
-        f.copy(run_dir)
 
 
 def _safe_sdds_value(v):

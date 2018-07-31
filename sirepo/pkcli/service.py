@@ -63,6 +63,8 @@ def http():
 
     with pkio.save_chdir(_run_dir()):
         app = server.init()
+        # avoid WARNING: Do not use the development server in a production environment.
+        app.env = 'development'
         app.run(
             host=cfg.ip,
             port=cfg.port,
@@ -106,21 +108,19 @@ def rabbitmq():
             '--volume={}:/var/lib/rabbitmq'.format(run_dir),
             'rabbitmq:management',
         ]
-        pksubprocess.check_call_with_signals(cmd)
+        try:
+            pksubprocess.check_call_with_signals(cmd)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                pkcli.command_error('docker is not installed')
 
 
 def uwsgi():
     """Starts UWSGI server"""
-    in_dev = pkconfig.channel_in('dev')
-    if in_dev:
-        from sirepo import server, runner
-        # uwsgi doesn't pass signals right so can't use _Background
-        if not issubclass(server.cfg.job_queue, runner.Celery):
-            pkcli.command_error('uwsgi only works if sirepo.server.cfg.job_queue=_Celery')
     run_dir = _run_dir()
     with pkio.save_chdir(run_dir):
         values = dict(pkcollections.map_items(cfg))
-        values['logto'] = None if in_dev else str(run_dir.join('uwsgi.log'))
+        values['logto'] = None if pkconfig.channel_in('dev') else str(run_dir.join('uwsgi.log'))
         # uwsgi.py must be first, because values['uwsgi_py'] referenced by uwsgi.yml
         for f in ('uwsgi.py', 'uwsgi.yml'):
             output = run_dir.join(f)

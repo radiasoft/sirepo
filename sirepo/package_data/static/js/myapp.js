@@ -3,16 +3,11 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'MyAppSourceController as source',
-            templateUrl: '/static/html/myapp-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.controller('MyAppSourceController', function () {

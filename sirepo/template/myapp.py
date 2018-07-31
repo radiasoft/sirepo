@@ -35,7 +35,7 @@ def python_source_for_model(data, model):
     return ''
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         '# python code goes here\n'

@@ -1,0 +1,1005 @@
+{
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SynergiaSourceController as source",
+                "templateUrl": "/static/html/synergia-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/synergia-visualization.html"
+            }
+        }
+    },
+    "enum": {
+        "BeamCharge": [
+            ["1", "1"],
+            ["-1", "-1"]
+        ],
+        "BeamColumn": [
+            ["numparticles", "particle count"],
+            ["xemit", "x emittance"],
+            ["xmean", "x mean"],
+            ["xstd", "x standard deviation"],
+            ["xxpcorr", "x xp correlation coefficient"],
+            ["xxpmom2", "x xp second moments"],
+            ["xycorr", "x y correlation coefficient"],
+            ["xymom2", "x y second moments"],
+            ["xypcorr", "x yp correlation coefficient"],
+            ["xypmom2", "x yp second moments"],
+            ["xzcorr", "x z correlation coefficient"],
+            ["xzmom2", "x z second moments"],
+            ["xzpcorr", "x zp correlation coefficient"],
+            ["xzpmom2", "x zp second moments"],
+            ["xpmean", "xp mean"],
+            ["xpstd", "xp standard deviation"],
+            ["xpycorr", "xp y correlation coefficient"],
+            ["xpymom2", "xp y second moments"],
+            ["xpypcorr", "xp yp correlation coefficient"],
+            ["xpypmom2", "xp yp second moments"],
+            ["xpzcorr", "xp z correlation coefficient"],
+            ["xpzmom2", "xp z second moments"],
+            ["xpzpcorr", "xp zp correlation coefficient"],
+            ["xpzpmom2", "xp zp second moments"],
+            ["xyemit", "xy emittance"],
+            ["xyzemit", "xyz emittance"],
+            ["yemit", "y emittance"],
+            ["ymean", "y mean"],
+            ["ystd", "y standard deviation"],
+            ["yypcorr", "y yp correlation coefficient"],
+            ["yypmom2", "y yp second moments"],
+            ["yzcorr", "y z correlation coefficient"],
+            ["yzmom2", "y z second moments"],
+            ["yzpcorr", "y zp correlation coefficient"],
+            ["yzpmom2", "y zp second moments"],
+            ["ypmean", "yp mean"],
+            ["ypstd", "yp standard deviation"],
+            ["ypzcorr", "yp z correlation coefficient"],
+            ["ypzmom2", "yp z second moments"],
+            ["ypzpcorr", "yp zp correlation coefficient"],
+            ["ypzpmom2", "yp zp second moments"],
+            ["zemit", "z emittance"],
+            ["zmean", "z mean"],
+            ["zstd", "z standard deviation"],
+            ["zzpcorr", "z zp correlation coefficient"],
+            ["zzpmom2", "z zp second moments"],
+            ["zpmean", "zp mean"],
+            ["zpstd", "zp standard deviation"]
+        ],
+        "BeamDefinition": [
+            ["energy", "From Energy"],
+            ["momentum", "From Momentum"],
+            ["gamma", "From Gamma"]
+        ],
+        "BeamOptionalColumn": [
+            ["numparticles", "particle count"],
+            ["xemit", "x emittance"],
+            ["xmean", "x mean"],
+            ["xstd", "x standard deviation"],
+            ["xxpcorr", "x xp correlation coefficient"],
+            ["xxpmom2", "x xp second moments"],
+            ["xycorr", "x y correlation coefficient"],
+            ["xymom2", "x y second moments"],
+            ["xypcorr", "x yp correlation coefficient"],
+            ["xypmom2", "x yp second moments"],
+            ["xzcorr", "x z correlation coefficient"],
+            ["xzmom2", "x z second moments"],
+            ["xzpcorr", "x zp correlation coefficient"],
+            ["xzpmom2", "x zp second moments"],
+            ["xpmean", "xp mean"],
+            ["xpstd", "xp standard deviation"],
+            ["xpycorr", "xp y correlation coefficient"],
+            ["xpymom2", "xp y second moments"],
+            ["xpypcorr", "xp yp correlation coefficient"],
+            ["xpypmom2", "xp yp second moments"],
+            ["xpzcorr", "xp z correlation coefficient"],
+            ["xpzmom2", "xp z second moments"],
+            ["xpzpcorr", "xp zp correlation coefficient"],
+            ["xpzpmom2", "xp zp second moments"],
+            ["xyemit", "xy emittance"],
+            ["xyzemit", "xyz emittance"],
+            ["yemit", "y emittance"],
+            ["ymean", "y mean"],
+            ["ystd", "y standard deviation"],
+            ["yypcorr", "y yp correlation coefficient"],
+            ["yypmom2", "y yp second moments"],
+            ["yzcorr", "y z correlation coefficient"],
+            ["yzmom2", "y z second moments"],
+            ["yzpcorr", "y zp correlation coefficient"],
+            ["yzpmom2", "y zp second moments"],
+            ["ypmean", "yp mean"],
+            ["ypstd", "yp standard deviation"],
+            ["ypzcorr", "yp z correlation coefficient"],
+            ["ypzmom2", "yp z second moments"],
+            ["ypzpcorr", "yp zp correlation coefficient"],
+            ["ypzpmom2", "yp zp second moments"],
+            ["zemit", "z emittance"],
+            ["zmean", "z mean"],
+            ["zstd", "z standard deviation"],
+            ["zzpcorr", "z zp correlation coefficient"],
+            ["zzpmom2", "z zp second moments"],
+            ["zpmean", "zp mean"],
+            ["zpstd", "zp standard deviation"],
+            ["none", "None"]
+        ],
+        "BunchDistribution": [
+            ["lattice", "Computed From Beamline"],
+            ["standard-gaussian", "Standard - Gaussian"],
+            ["standard-kv", "Standard - K-V"],
+            ["nonlinear-gaussian", "Nonlinear - Gaussian"],
+            ["nonlinear-kv", "Nonlinear - K-V"],
+            ["nonlinear-waterbag", "Nonlinear - Waterbag"],
+            ["file", "From Input File"]
+        ],
+        "ExtractorType": [
+            ["default", "default"],
+            ["chef_map", "chef_map"],
+            ["chef_propagate", "chef_propagate"],
+            ["chef_mixed", "chef_mixed"]
+        ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
+        "Particle": [
+            ["proton", "Proton"],
+            ["electron", "Electron"],
+            ["positron", "Positron"],
+            ["negmuon", "Negmuon"],
+            ["posmuon", "Posmuon"],
+            ["other", "Other"]
+        ],
+        "PhaseSpaceCoordinate6": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["z", "z"],
+            ["zp", "zp"]
+        ],
+        "PhaseSpaceCoordinate8": [
+            ["x", "x"],
+            ["xp", "xp"],
+            ["y", "y"],
+            ["yp", "yp"],
+            ["z", "z"],
+            ["zp", "zp"],
+            ["cdt", "cdt"],
+            ["dpop", "dp/p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
+        ],
+        "Propagator": [
+            ["basic", "basic"],
+            ["yoshida", "yoshida"]
+        ],
+        "SpaceCharge": [
+            ["2d-bassetti_erskine", "2D Bassetti-Erskine"],
+            ["2d-open-hockney", "2D Open Hockney"],
+            ["2d-kv", "2D kv"],
+            ["3d-open-hockney", "3D Open Hockney"],
+            ["none", "None"]
+        ],
+        "TwissParameter": [
+            ["beta_x", "Horizontal beta"],
+            ["alpha_x", "Horizontal alpha"],
+            ["D_x", "Horizontal dispersion"],
+            ["Dprime_x", "Horizontal dispersion derivative"],
+            ["psi_x", "Horizontal PSI"],
+            ["beta_y", "Vertical beta"],
+            ["alpha_y", "Vertical alpha"],
+            ["D_y", "Vertical dispersion"],
+            ["Dprime_y", "Vertical dispersion derivative"],
+            ["psi_y", "Vertical PSI"],
+            ["none", "None"]
+        ]
+    },
+    "model": {
+        "beamEvolutionAnimation": {
+            "y1": ["Y1 Value", "BeamColumn", "xemit"],
+            "y2": ["Y2 Value", "BeamOptionalColumn", "yemit"],
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "beamlineReport": {
+        },
+        "bunch": {
+            "particle": ["Particle", "Particle", "proton"],
+            "mass": ["Mass [GeV]", "Float"],
+            "charge": ["Charge #", "BeamCharge", 1],
+            "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
+            "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
+            "momentum": ["Momentum [GeV]", "Float", 0.0000001, "", 0.0000001],
+            "gamma": ["Gamma", "Float", 1.0, "", 1.0],
+            "beta": ["Beta", "Float", 0.0, "", 0.0, 1.0],
+            "emit_x": ["Horizontal Emittance [mm-mrad]", "Float"],
+            "emit_y": ["Vertical Emittance [mm-mrad]", "Float"],
+            "rms_z": ["Longitudinal Bunch Size [mm]", "Float", 0.0, "The standard deviation of the z-coordinate of the particles"],
+            "dpop": ["Delta-p/p spread", "Float", 0.0, "The standard deviation of the momentum coordinate"],
+            "num_real_particles": ["Number of Real Particles", "Float", 1.5e8, "Real particles, used for space charge, impedance, etc."],
+            "num_macro_particles": ["Number of Macro Particles", "Integer", 10000, "Used for PIC calculations"],
+            "seed": ["Pseudorandom Number Generator Seed", "Integer", 1, "", 0],
+            "z_period_length": ["Longitudinal Length of the Bucket [m]", "Float", 0.0, "For periodic bunches"],
+            "distribution": ["Distribution Type", "BunchDistribution", "lattice"],
+            "particleFile": ["Particle File", "InputFile", ""],
+            "beta_x": ["Horizontal Beta [m]", "Float", 0],
+            "beta_y": ["Vertical Beta [m]", "Float", 0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0],
+            "alpha_y": ["Vertical Alpha", "Float", 0],
+            "nonlinear_t": ["Nonlinear Strength", "Float", 0.1],
+            "nonlinear_c": ["Nonlinear Aperture", "Float", 0.01, "the nonlinear aperture parameter (m^-1/2), defining poles in the x-axis."],
+            "nonlinear_cutoff": ["Nonlinear Cutoff", "Float", 4, "cutoff parameter for the nonlinear Gaussian distributoin"]
+        },
+        "bunchAnimation": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate6", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
+            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
+            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate8", "y"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchTwiss": {
+            "beta_x": ["Horizontal Beta [m]", "Float", 0],
+            "beta_y": ["Vertical Beta [m]", "Float", 0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0],
+            "alpha_y": ["Vertical Alpha", "Float", 0]
+        },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList"]
+        },
+        "simulationSettings": {
+            "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
+            "space_charge": ["Space Charge", "SpaceCharge", "2d-open-hockney"],
+            "turn_count": ["Turn Count", "Integer", 5, "", 1],
+            "map_order": ["Stepper Map Order", "Integer", 1, "Applies to elements using the chef_map or chef_mixed extractor type.", 1, 4],
+            "diagnostics_per_turn": ["Beam Diagnostics per Turn Period", "Integer", 1],
+            "default_extractor_type": ["Default Extractor Type", "ExtractorType", "chef_propagate", "Sets the element extractor type for lattice elements which have no extractor_type specified."]
+        },
+        "simulationStatus": {},
+        "turnComparisonAnimation": {
+            "y": ["Y Value", "BeamColumn", "xstd"],
+            "turn1": ["Turn", "TurnCount", "1"],
+            "turn2": ["Turn", "TurnCount", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
+            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissReport2": {
+            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
+            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
+            "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "DIPEDGE": {
+            "name": ["Name", "ValidatedString"],
+            "h": ["H [1/m]", "Float", "0.0", "The angle/length or 1/rho."],
+            "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the pole face."],
+            "fint": ["FINT", "Float", "0.0", "The field integral as for SBEND sector bend."],
+            "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the associated SBEND bending magnet."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis. A positive angle represents a clockwise rotation."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "DRIFT": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The drift length."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "ECOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "HKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The horizontal momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "HMONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "KICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "hkick": ["HKICK", "Float", "0.0", "The horizontal momentum change"],
+            "vkick": ["VKICK", "Float", "0.0", "The vertical momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "MARKER": {
+            "name": ["Name", "ValidatedString"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "MONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "MULTIPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
+            "knl": ["KNL", "String", "", "An array of the integrated normal multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
+            "ksl": ["KSL", "String", "", "An array of the integrated skew multipole coecients, starting from order zero and up to the maximum order (currently 20). The parameters are positional in the array, therefore zeros must be filled in for components that do not exist."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "NLINSERT": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "phase": ["Phase", "Float", "0.0", "The phase advance modulo 2pi through the nonlinear insert"],
+            "t": ["T", "Float", "0.1", "The dimensionless nonlinear strength parameter"],
+            "c": ["C", "Float", "0.01", "The nonlinear aperture parameter (m^-1/2), defining poles in the x-axis"],
+            "num_slices": ["Number of Slices", "Integer", "20", "The number of piecewise constant segements used to construct the insert"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default", "Extractor type for the NLLENS elements"]
+        },
+        "NLLENS": {
+            "name": ["Name", "ValidatedString"],
+            "knll": ["KNLL [m]", "Float", "0.0", "The integrated strength of lens. The strength is parametrized so that the quadrupole term of the multipole expansion is k1=2*KNLL/CNLL²."],
+            "cnll": ["CNLL [m]", "Float", "0.0", "The dimensional parameter of lens. The singularities of the potential are located at X=-CNLL,+CNLL and Y=0."],
+            "bcoeff": ["BCOEFF", "Float", "0.0"],
+            "dcoeff": ["DCOEFF", "Float", "0.0"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "QUADRUPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "k1": ["K1 [1/m²]", "Float", "0.0", "geometric strength"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "rotation about longitudinal axis"],
+            "k1s": ["K1S [1/m²]", "Float", "0.0", "The skew quadrupole coefficient K1s. A positive skew quadrupole strength implies defocusing, irrespective of the charge of the particles, in the (x,s) plane rotated by 45° around s (particles in this plane have x = y > 0)."],
+            "hoffset": ["HOFFSET [m]", "Float", "0.0"],
+            "voffset": ["VOFFSET [m]", "Float", "0.0"],
+            "kl": ["KL", "Float", "0.0", "base strength/B-rho"],
+            "a1": ["A1", "Float", "0.0", "skew quad"],
+            "a2": ["A2", "Float", "0.0", "skew sextupole"],
+            "a3": ["A3", "Float", "0.0", "skew octupole"],
+            "a4": ["A4", "Float", "0.0", "skew decapole"],
+            "a5": ["A5", "Float", "0.0", "skew dodecapole"],
+            "a6": ["A6", "Float", "0.0", "skew tetradecapole"],
+            "a7": ["A7", "Float", "0.0", "skew hexdecapole"],
+            "b1": ["B1", "Float", "0.0", "quad"],
+            "b2": ["B2", "Float", "0.0", "sextupole"],
+            "b3": ["B3", "Float", "0.0", "octopole"],
+            "b4": ["B4", "Float", "0.0", "decapole"],
+            "b5": ["B5", "Float", "0.0", "dodecapole"],
+            "b6": ["B6", "Float", "0.0", "tetradecapole"],
+            "b7": ["B7", "Float", "0.0", "hexdecapole"],
+            "propagator_type": ["PROPAGATOR", "Propagator", "yoshida"],
+            "yoshida_order": ["YOSHIDA ORDER", "Integer", "2"],
+            "yoshida_steps": ["YOSHIDA STEPS", "Integer", "4"],
+            "basic_kicks": ["BASIC KICKS", "Integer", "40"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "RBEND": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The length of the magnet. For sector bends the declared length is the arc length of the reference orbit."],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The bend angle. A positive bend angle represents a bend to the right, i.e. towards negative x values. Please notice that ANGLE is used to definne bend strength, K0. To define the roll angle use TILT."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a horizontal bend). A positive angle represents a clockwise rotation. An attribute TILT=pi/2 turns a horizontal into a vertical bend, and a positive ANGLE then denotes a downwards deflection."],
+            "k1": ["K1 [1/m²]", "Float", "0.0", "A positive quadrupole strength implies horizontal focussing of particles, irrespective of their charge. K1 is taken into account in thick bend transfer map."],
+            "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the entrance pole face."],
+            "e2": ["E2 [rad]", "Float", "0.0", "The rotation angle for the exit pole face"],
+            "fint": ["FINT", "Float", "0.0", "The fringe field integral at entrance and exit of the bend."],
+            "fintx": ["FINTX", "Float", "0.0", "If positive, the fringe field integral at the exit of the element, overriding FINT for the exit."],
+            "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the magnet."],
+            "k2": ["K2 [1/m³]", "Float", "0.0", "The sextupole coecient."],
+            "h1": ["H1 [1/m]", "Float", "0.0", "The curvature of the entrance pole face."],
+            "h2": ["H2 [1/m]", "Float", "0.0", "The curvature of the exit pole face."],
+            "kl": ["KL", "Float", "0.0", "base strength/B-rho"],
+            "a1": ["A1", "Float", "0.0", "skew quad"],
+            "a2": ["A2", "Float", "0.0", "skew sextupole"],
+            "a3": ["A3", "Float", "0.0", "skew octupole"],
+            "a4": ["A4", "Float", "0.0", "skew decapole"],
+            "a5": ["A5", "Float", "0.0", "skew dodecapole"],
+            "a6": ["A6", "Float", "0.0", "skew tetradecapole"],
+            "a7": ["A7", "Float", "0.0", "skew hexdecapole"],
+            "b1": ["B1", "Float", "0.0", "quad"],
+            "b2": ["B2", "Float", "0.0", "sextupole"],
+            "b3": ["B3", "Float", "0.0", "octopole"],
+            "b4": ["B4", "Float", "0.0", "decapole"],
+            "b5": ["B5", "Float", "0.0", "dodecapole"],
+            "b6": ["B6", "Float", "0.0", "tetradecapole"],
+            "b7": ["B7", "Float", "0.0", "hexdecapole"],
+            "entry_edge_kick": ["ENTRY EDGE KICK", "Float", "1.0"],
+            "exit_edge_kick": ["EXIT EDGE KICK", "Float", "1.0"],
+            "propagator_type": ["PROPAGATOR", "Propagator", "basic"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "RCOLLIMATOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The collimator length."],
+            "xsize": ["XSIZE [m]", "Float", "0.0", "The horizontal half-aperture."],
+            "ysize": ["YSIZE [m]", "Float", "0.0", "The vertical half-aperture."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "RFCAVITY": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "volt": ["VOLT [MV]", "Float", "0.0", "The peak electrical RF voltage"],
+            "lag": ["LAG [2π]", "Float", "0.0"],
+            "harmon": ["HARMON", "Integer", "0.0", "The harmonic number h"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SBEND": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The length of the magnet. For sector bends the declared length is the arc length of the reference orbit."],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The bend angle. A positive bend angle represents a bend to the right, i.e. towards negative x values. Please notice that ANGLE is used to definne bend strength, K0. To define the roll angle use TILT."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a horizontal bend). A positive angle represents a clockwise rotation. An attribute TILT=pi/2 turns a horizontal into a vertical bend, and a positive ANGLE then denotes a downwards deflection."],
+            "k1": ["K1 [1/m²]", "Float", "0.0", "A positive quadrupole strength implies horizontal focussing of particles, irrespective of their charge. K1 is taken into account in thick bend transfer map."],
+            "e1": ["E1 [rad]", "Float", "0.0", "The rotation angle for the entrance pole face."],
+            "e2": ["E2 [rad]", "Float", "0.0", "The rotation angle for the exit pole face"],
+            "fint": ["FINT", "Float", "0.0", "The fringe field integral at entrance and exit of the bend."],
+            "fintx": ["FINTX", "Float", "0.0", "If positive, the fringe field integral at the exit of the element, overriding FINT for the exit."],
+            "hgap": ["HGAP [m]", "Float", "0.0", "The half gap of the magnet."],
+            "k2": ["K2 [1/m³]", "Float", "0.0", "The sextupole coecient."],
+            "h1": ["H1 [1/m]", "Float", "0.0", "The curvature of the entrance pole face."],
+            "h2": ["H2 [1/m]", "Float", "0.0", "The curvature of the exit pole face."],
+            "kicks": ["KICKS", "Float", "40.0"],
+            "kl": ["KL", "Float", "0.0", "base strength/B-rho"],
+            "a1": ["A1", "Float", "0.0", "skew quad"],
+            "a2": ["A2", "Float", "0.0", "skew sextupole"],
+            "a3": ["A3", "Float", "0.0", "skew octupole"],
+            "a4": ["A4", "Float", "0.0", "skew decapole"],
+            "a5": ["A5", "Float", "0.0", "skew dodecapole"],
+            "a6": ["A6", "Float", "0.0", "skew tetradecapole"],
+            "a7": ["A7", "Float", "0.0", "skew hexdecapole"],
+            "b1": ["B1", "Float", "0.0", "quad"],
+            "b2": ["B2", "Float", "0.0", "sextupole"],
+            "b3": ["B3", "Float", "0.0", "octopole"],
+            "b4": ["B4", "Float", "0.0", "decapole"],
+            "b5": ["B5", "Float", "0.0", "dodecapole"],
+            "b6": ["B6", "Float", "0.0", "tetradecapole"],
+            "b7": ["B7", "Float", "0.0", "hexdecapole"],
+            "entry_edge_kick": ["ENTRY EDGE KICK", "Float", "1.0"],
+            "exit_edge_kick": ["EXIT EDGE KICK", "Float", "1.0"],
+            "propagator_type": ["PROPAGATOR", "Propagator", "basic"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SEXTUPOLE": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The sextupole length."],
+            "k2": ["K2 [1/m³]", "Float", "0.0", "The normal sextupole coecient."],
+            "k2s": ["K2S [1/m³]", "Float", "0.0", "The skew sextupole coefficient."],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about the longitudinal axis (default: 0 rad, i.e. a normal sextupole). A positive angle represents a clockwise rotation. An attribute TILT=pi/6 turns a positive normal sextupole into a negative skew sextupole."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SOLENOID": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "The length of the solenoid."],
+            "ks": ["KS [rad/m]", "Float", "0.0", "The solenoid strength."],
+            "ksi": ["KSI [rad]", "Float", "0.0", "The solenoid integrated strength. This additional attribute is needed only when using the thin solenoid, where L = 0"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "SROTATION": {
+            "name": ["Name", "ValidatedString"],
+            "angle": ["ANGLE [rad]", "Float", "0.0", "The rotation angle about the longitudinal axis."],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "VKICKER": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "kick": ["KICK", "Float", "0.0", "The vertical momentum change"],
+            "tilt": ["TILT [rad]", "Float", "0.0", "The roll angle about longitudinal axis. A positive angle represents a clockwise rotation of the kicker"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        },
+        "VMONITOR": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["L [m]", "Float", "0.0", "length"],
+            "extractor_type": ["Extractor Type", "ExtractorType", "default"]
+        }
+    },
+    "view": {
+        "beamEvolutionAnimation": {
+            "title": "Beam Evolution",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "notes"
+            ]
+        },
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+        "beamlineReport": {
+            "title": "Lattice",
+            "advanced": []
+        },
+        "bunch": {
+            "title": "Bunch",
+            "basic": [
+                ["Main", [
+                    "simulation.visualizationBeamlineId",
+                    "particle",
+                    "mass",
+                    "charge",
+                    "beam_definition",
+                    "energy",
+                    "momentum",
+                    "gamma",
+                    "beta"
+                ]],
+                ["Distribution", [
+                    "distribution",
+                    [
+                        ["Horizontal", [
+                            "emit_x",
+                            "beta_x",
+                            "alpha_x"
+                        ]],
+                        ["Vertical", [
+                            "emit_y",
+                            "beta_y",
+                            "alpha_y"
+                        ]]
+                    ],
+                    "rms_z",
+                    "dpop",
+                    "particleFile",
+                    "nonlinear_t",
+                    "nonlinear_c",
+                    "nonlinear_cutoff",
+                    "z_period_length"
+                ]],
+                ["Particle Count", [
+                    "num_real_particles",
+                    "num_macro_particles",
+                    "seed"
+                ]]
+            ],
+            "advanced": []
+        },
+        "bunchAnimation": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "space_charge",
+                "steps_per_element",
+                "turn_count",
+                "diagnostics_per_turn",
+                "map_order",
+                "default_extractor_type"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "SimulationStatus",
+            "advanced": []
+        },
+        "turnComparisonAnimation": {
+            "title": "Turn Comparison",
+            "advanced": [
+                "y",
+                "turn1",
+                "turn2",
+                "notes"
+            ]
+        },
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "notes"
+            ]
+        },
+        "twissReport2": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "notes"
+            ]
+        },
+        "DIPEDGE": {
+            "title": "DIPEDGE",
+            "description": "A thin element describing the edge focusing of a dipole has been introduced in order to make it possible to track trajectories in the presence of dipoles with pole face angles. Only linear terms are considered since the higher order terms would make the tracking non-symplectic. The transformation of the machine elements into thin lenses leaves dipole edge (DIPEDGE) elements untouched and splits correctly the SBENDs.",
+            "advanced": [
+                "name",
+                "h",
+                "e1",
+                "fint",
+                "hgap",
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFT",
+            "description": "Drift Space",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
+            ]
+        },
+        "ECOLLIMATOR": {
+            "title": "ECOLLIMATOR",
+            "description": "Elliptic aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize",
+                "extractor_type"
+            ]
+        },
+        "HKICKER": {
+            "title": "HKICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "HMONITOR": {
+            "title": "HMONITOR",
+            "description": "A monitor for the horizontal beam position.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "description": "A magnetic closed orbit corrector for the horizontal and vertical planes",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "hkick",
+                "vkick",
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "MARKER": {
+            "title": "MARKER",
+            "description": "The simplest element which can occur in a beam line is a MARKER. It has zero length and has no effect on the beam, but it allows one to identify a position in the beam line.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "extractor_type"
+            ]
+        },
+        "MONITOR": {
+            "title": "MONITOR",
+            "description": "A beam monitor has no specific effect on the beam and behaves like a drift space. In addition it serves to record the beam position for closed orbit correction.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "description": "A thin-lens magnet of arbitrary order, including a dipole component.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "tilt",
+                "knl",
+                "ksl",
+                "extractor_type"
+            ]
+        },
+        "NLINSERT": {
+            "title": "NLINSERT",
+            "description": "Generates a series of NLLENS elements to constitute a complete nonlinear insert.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "phase",
+                "t",
+                "c",
+                "num_slices",
+                "extractor_type"
+            ]
+        },
+        "NLLENS": {
+            "title": "NLLENS",
+            "description": "The NLLENS element represents a thin nonlinear lens with the potential of 'Elliptic' type",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "knll",
+                "cnll",
+                "bcoeff",
+                "dcoeff",
+                "extractor_type"
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k1",
+                "tilt",
+                "k1s",
+                "hoffset",
+                "voffset",
+                "kl",
+                "a1",
+                "a2",
+                "a3",
+                "a4",
+                "a5",
+                "a6",
+                "a7",
+                "b1",
+                "b2",
+                "b3",
+                "b4",
+                "b5",
+                "b6",
+                "b7",
+                "propagator_type",
+                "yoshida_order",
+                "yoshida_steps",
+                "basic_kicks",
+                "extractor_type"
+            ]
+        },
+        "RBEND": {
+            "title": "RBEND",
+            "description": "A rectangular bending magnet.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "tilt",
+                "k1",
+                "e1",
+                "e2",
+                "fint",
+                "fintx",
+                "hgap",
+                "k2",
+                "h1",
+                "h2",
+                "kl",
+                "a1",
+                "a2",
+                "a3",
+                "a4",
+                "a5",
+                "a6",
+                "a7",
+                "b1",
+                "b2",
+                "b3",
+                "b4",
+                "b5",
+                "b6",
+                "b7",
+                "entry_edge_kick",
+                "exit_edge_kick",
+                "propagator_type",
+                "extractor_type"
+            ]
+        },
+        "RCOLLIMATOR": {
+            "title": "RCOLLIMATOR",
+            "description": "Rectangular aperture collimator",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "xsize",
+                "ysize",
+                "extractor_type"
+            ]
+        },
+        "RFCAVITY": {
+            "title": "RFCAVITY",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "volt",
+                "lag",
+                "harmon",
+                "extractor_type"
+            ]
+        },
+        "SBEND": {
+            "title": "SBEND",
+            "description": "A sector bending magnet.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "tilt",
+                "k1",
+                "e1",
+                "e2",
+                "fint",
+                "fintx",
+                "hgap",
+                "k2",
+                "h1",
+                "h2",
+                "kicks",
+                "kl",
+                "a1",
+                "a2",
+                "a3",
+                "a4",
+                "a5",
+                "a6",
+                "a7",
+                "b1",
+                "b2",
+                "b3",
+                "b4",
+                "b5",
+                "b6",
+                "b7",
+                "entry_edge_kick",
+                "exit_edge_kick",
+                "propagator_type",
+                "extractor_type"
+            ]
+        },
+        "SEXTUPOLE": {
+            "title": "SEXTUPOLE",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "k2",
+                "k2s",
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "ks",
+                "ksi",
+                "extractor_type"
+            ]
+        },
+        "SROTATION": {
+            "title": "SROTATION",
+            "description": "Rotates the straight reference system about the longitudinal (s) axis",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "angle",
+                "extractor_type"
+            ]
+        },
+        "VKICKER": {
+            "title": "VKICKER",
+            "description": "A magnetic closed orbit corrector for the vertical plane",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "kick",
+                "tilt",
+                "extractor_type"
+            ]
+        },
+        "VMONITOR": {
+            "title": "VMONITOR",
+            "description": "A monitor for the vertical beam position.",
+            "fieldsPerTab": 8,
+            "advanced": [
+                "name",
+                "l",
+                "extractor_type"
+            ]
+        }
+    }
+}

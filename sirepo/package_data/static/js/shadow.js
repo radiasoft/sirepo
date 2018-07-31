@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.beamline = '/beamline/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ReflectivityMaterial" data-ng-class="fieldClass">',
@@ -15,20 +14,11 @@ SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="y"></li>',
 ].join('');
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'ShadowSourceController as source',
-            templateUrl: '/static/html/shadow-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.beamline, {
-            controller: 'ShadowBeamlineController as beamline',
-            templateUrl: '/static/html/shadow-beamline.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
     // ColumnValue enum values which are in mm
@@ -317,7 +307,7 @@ SIREPO.app.directive('appHeader', function() {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav" data-app-url="/#/shadow"></div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',

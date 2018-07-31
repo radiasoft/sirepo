@@ -6,6 +6,8 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 
+import re
+
 
 def create_examples():
     """Adds missing app examples to all users.
@@ -19,6 +21,8 @@ def create_examples():
     server.init()
 
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+        if _is_src_dir(d):
+            continue;
         uid = simulation_db.uid_from_dir_name(d)
         # create a mock session
         flask.session = {
@@ -60,6 +64,9 @@ def purge_users(days=180, confirm=False):
     now = datetime.datetime.utcnow()
     to_remove = []
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+        if _is_src_dir(d):
+            continue;
+        #TODO(pjm): need to skip special "src" user
         if simulation_db.uid_from_dir_name(d) in uids:
             continue
         for f in pkio.walk_tree(d):
@@ -70,3 +77,7 @@ def purge_users(days=180, confirm=False):
     if confirm:
         pkio.unchecked_remove(*to_remove)
     return to_remove
+
+
+def _is_src_dir(d):
+    return re.search(r'/src$', str(d))

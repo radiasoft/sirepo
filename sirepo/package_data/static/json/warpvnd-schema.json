@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "WarpVNDSourceController as source",
+                "templateUrl": "/static/html/warpvnd-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "WarpVNDVisualizationController as visualization",
+                "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamSpecies": [
             ["Electron", "Electron"]
@@ -34,6 +49,10 @@
             ["80", "80"],
             ["50", "50"],
             ["10", "10"]
+        ],
+        "SimulationMode": [
+            ["2d", "2D"],
+            ["3d", "3D"]
         ]
     },
     "model": {
@@ -52,24 +71,27 @@
             "voltage": ["Voltage [eV]", "Float"],
             "xLength": ["Width (X) [µm]", "Float"],
             "zLength": ["Length (Z) [µm]", "Float"],
+            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
             "xCenter": ["Center X [µm]", "Float"],
-            "zCenter": ["Center Z [µm]", "Float"]
+            "zCenter": ["Center Z [µm]", "Float"],
+            "yCenter": ["Center Y [µm]", "Float", 0.0]
         },
         "currentAnimation": {
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
         },
         "egunCurrentAnimation": {
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
         },
         "fieldAnimation": {
             "field": ["Field", "Field"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "fieldComparisonReport": {
             "dimension": ["Dimension", "Dimension"],
@@ -78,25 +100,35 @@
             "xCell3": ["X Position 3", "XCell"],
             "zCell1": ["Z Position 1", "ZCell"],
             "zCell2": ["Z Position 2", "ZCell"],
-            "zCell3": ["Z Position 3", "ZCell"]
+            "zCell3": ["Z Position 3", "ZCell"],
+            "notes": ["Notes", "Text", ""]
         },
         "fieldReport": {
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "impactDensityAnimation": {
-            "colorMap": ["Color Map", "ColorMap", "coolwarm"]
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
+            "notes": ["Notes", "Text", ""]
         },
         "particleAnimation": {
-            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+            "renderCount": ["Particles to Render", "ParticleRenderCount", "100"]
+        },
+        "particle3d": {
+            "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
+            "joinEvery": ["Join Every N Points", "Integer", 1, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
         },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
         },
         "simulationGrid": {
+            "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
+            "channel_height": ["Channel Height [µm]", "Float", 0.08],
             "num_x": ["X Grid Points", "Integer"],
             "num_z": ["Z Grid Points", "Integer"],
+            "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"]
@@ -136,6 +168,7 @@
                 "voltage",
                 "zLength",
                 "xLength",
+                "yLength",
                 "isConductor",
                 "permittivity"
             ]
@@ -155,7 +188,8 @@
             "title": "Conductor Position",
             "advanced": [
                 "zCenter",
-                "xCenter"
+                "xCenter",
+                "yCenter"
             ]
         },
         "currentAnimation": {
@@ -175,7 +209,7 @@
             "advanced": [
                 "field",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap", "notes"
             ]
         },
         "fieldComparisonReport": {
@@ -187,19 +221,22 @@
                 "xCell3",
                 "zCell1",
                 "zCell2",
-                "zCell3"
+                "zCell3",
+                "notes"
             ]
         },
         "fieldReport": {
             "title": "Field Report",
             "advanced": [
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "impactDensityAnimation": {
             "title": "Impact Density",
             "advanced": [
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "particleAnimation": {
@@ -208,17 +245,29 @@
                 "renderCount"
             ]
         },
+        "particle3d": {
+            "title": "Particle Trace 3D",
+            "advanced": [
+                "renderCount",
+                "joinEvery"
+            ]
+        },
         "simulationGrid": {
             "title": "Simulation Grid",
             "basic": [
-                "plate_spacing",
-                "channel_width"
-            ],
-            "advanced": [
+                "simulation_mode",
                 "plate_spacing",
                 "channel_width",
+                "channel_height"
+            ],
+            "advanced": [
+                "simulation_mode",
+                "plate_spacing",
+                "channel_width",
+                "channel_height",
                 "num_x",
                 "num_z",
+                "num_y",
                 "z_particle_min"
             ]
         },

@@ -39,6 +39,7 @@ function Colorbar() {
     thickness = 50, // how thick is the bar
     title = "", // title for the colorbar
     scaleType = "linear";
+    var tickFormat = null;
 
 
     checkScaleType = function (scale) {
@@ -247,8 +248,18 @@ function Colorbar() {
 
             colorAxisFunction = d3.svg.axis()
                 .scale(fillLegendScale)
-                .orient(axis_orient)
-                .tickFormat(d3.format('s'));
+                .orient(axis_orient);
+
+            var d = fillLegendScale.domain();
+            var domainWidth = d[d.length - 1] - d[0];
+            if (domainWidth > 1e-2 && domainWidth < 1e4) {
+                // avoid problems with bad tick values, see #1188
+                tickFormat = fillLegendScale.tickFormat();
+            }
+            else {
+                tickFormat = d3.format('s');
+                colorAxisFunction.tickFormat(tickFormat);
+            }
 
 	    if (typeof(scale.quantiles) != "undefined") {
 		quantileScaleMarkers = scale.quantiles().concat( d3.extent(scale.domain()))
@@ -354,6 +365,10 @@ function Colorbar() {
             console.warn("orient can be only vertical or horizontal, not", value);
         orient = value;
         return chart;
+    }
+
+    chart.tickFormat = function() {
+        return tickFormat;
     }
 
     return chart;

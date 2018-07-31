@@ -3,28 +3,13 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'HellwegSourceController as source',
-            templateUrl: '/static/html/hellweg-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.lattice, {
-            controller: 'HellwegLatticeController as lattice',
-            templateUrl: '/static/html/hellweg-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'HellwegVisualizationController as visualization',
-            templateUrl: '/static/html/hellweg-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
@@ -118,6 +103,17 @@ SIREPO.app.controller('HellwegLatticeController', function (appState, panelState
             beamline[currentIndex] = tmp;
             appState.saveChanges('beamline');
         }
+    };
+    self.copyItem= function(item) {
+        var itemCopy = newItem(item.type);
+        var iIndex = itemIndex(item);
+        for(var prop in item) {
+            if(prop != 'id' && prop != '$$hashKey') {
+                itemCopy[prop] = item[prop];
+            }
+        }
+        self.selectedIndex = iIndex + 1;
+        self.editItem(itemCopy);
     };
 
     self.dropLast = function(item) {

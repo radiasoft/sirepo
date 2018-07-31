@@ -23,7 +23,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
-_REPORT_STYLE_FIELDS = ['colorMap']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
@@ -114,8 +114,7 @@ def models_related_to_report(data):
         list: Named models, model fields or values (dict, list) that affect report
     """
     r = data['report']
-    res = [
-        template_common.report_fields(data, r, _REPORT_STYLE_FIELDS),
+    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'bendingMagnet',
         'electronBeam',
         'geometricSource',
@@ -171,12 +170,11 @@ def validate_file(file_type, path):
     pass
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """

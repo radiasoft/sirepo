@@ -5,9 +5,33 @@ u"""SDDS utilities.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
+from pykern import pksubprocess
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo.template import elegant_common
 import math
+import re
 import sdds
+
+# elegant mux and muy are computed in sddsprocess below
+_ELEGANT_TO_MADX_COLUMNS = [
+    ['ElementName', 'NAME'],
+    ['ElementType', 'TYPE'],
+    ['s', 'S'],
+    ['betax', 'BETX'],
+    ['alphax', 'ALFX'],
+    ['mux', 'MUX'],
+    ['etax', 'DX'],
+    ['etaxp', 'DPX'],
+    ['betay', 'BETY'],
+    ['alphay', 'ALFY'],
+    ['muy', 'MUY'],
+    ['etay', 'DY'],
+    ['etayp', 'DPY'],
+    ['ElementOccurence', 'COUNT'],
+]
+
+MADX_TWISS_COLUMS = map(lambda row: row[1], _ELEGANT_TO_MADX_COLUMNS)
 
 _SDDS_INDEX = 0
 
@@ -41,6 +65,27 @@ def process_sdds_page(filename, page_index, callback, *args, **kwargs):
     return {
         'err': err,
     }
+
+
+def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
+    outfile = 'sdds_output.txt'
+    twiss_file = 'twiss-with-mu.sdds'
+    # convert elegant psix to mad-x MU, rad --> rad / 2pi
+    pksubprocess.check_call_with_signals([
+        'sddsprocess',
+        elegant_twiss_file,
+        '-define=column,mux,psix 2 pi * /',
+        '-define=column,muy,psiy 2 pi * /',
+        twiss_file,
+    ], output=outfile, env=elegant_common.subprocess_env())
+    pksubprocess.check_call_with_signals([
+        'sdds2stream',
+        twiss_file,
+        '-columns={}'.format(','.join(map(lambda x: x[0], _ELEGANT_TO_MADX_COLUMNS))),
+    ], output=outfile, env=elegant_common.subprocess_env())
+    lines = pkio.read_text(outfile).split('\n')
+    header = '* {}\n$ \n'.format(' '.join(map(lambda x: x[1], _ELEGANT_TO_MADX_COLUMNS)))
+    pkio.write_text(madx_twiss_file, header + '\n'.join(lines) + '\n')
 
 
 def _safe_sdds_value(v):

@@ -103,6 +103,16 @@
             "verticalPosition": 0,
             "verticalRange": 0.5
         },
+        "trajectoryReport": {
+            "finalTimeMoment": 0,
+            "initialTimeMoment": 0,
+            "magneticField": 1,
+            "numberOfPoints": 10000,
+            "plotAxisX": "Z",
+            "plotAxisY": "X",
+            "plotAxisY2": "Y",
+            "timeMomentEstimation": "auto"
+        },
         "undulator": {
             "horizontalAmplitude": "0.19",
             "horizontalInitialPhase": 0,

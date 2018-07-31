@@ -12,6 +12,7 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
+        'aenum',
         'beaker',
         'bnlcrl',
         'celery==3.1.23',

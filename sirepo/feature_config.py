@@ -10,13 +10,14 @@ from pykern import pkconfig
 from pykern import pkcollections
 import copy
 
-#: All possible codes
-_ALL_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'myapp')
-assert [] == [x for x in _ALL_CODES if len(x) >= 8], \
-    'codes must be less than 8 characters (simulation_db._ID_LEN)'
-
 #: Codes on test and prod
-_NON_DEV_CODES = _ALL_CODES
+_NON_DEV_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia', 'myapp')
+
+_DEV_CODES = ('myapp', )
+
+#: All possible codes
+_ALL_CODES = _DEV_CODES + _NON_DEV_CODES
+
 
 #: Configuration
 cfg = None
@@ -53,7 +54,9 @@ def _codes(want_all=pkconfig.channel_in('dev')):
 cfg = pkconfig.init(
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
-        brilliance_report=(pkconfig.channel_in_internal_test(), bool, 'Show the Brilliance Report'),
+    ),
+    warpvnd=dict(
+        allow_3d_mode=(pkconfig.channel_in_internal_test(), bool, 'Include 3D features in the Warp VND UI'),
     ),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),

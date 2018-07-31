@@ -1,0 +1,8 @@
+
+{% if bunch_distribution == 'file' %}
+{% else %}
+comm = synergia.utils.Commxx(True)
+{{ bunch }}
+from rssynergia.base_diagnostics import write_bunch
+write_bunch.write_bunch(bunch, file_name='{{ bunchFileName }}', reference_particle=lattice.get_reference_particle())
+{% endif %}

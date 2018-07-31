@@ -5,21 +5,16 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
 SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
-SIREPO.appLocalRoutes.lattice = '/lattice/:simulationId';
-SIREPO.appLocalRoutes.control = '/control/:simulationId';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
 //TODO(pjm): provide API for this, keyed by field type
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamInputFile" class="col-sm-7">',
       '<div data-file-field="field" data-model="model" data-file-type="bunchFile-sourceFile" data-empty-selection-text="No File Selected"></div>',
     '</div>',
-    '<div data-ng-switch-when="ElegantBeamlineList" data-ng-class="fieldClass">',
-      '<div data-elegant-beamline-list="" data-model="model" data-field="field"></div>',
+    '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
+      '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
     '<div data-ng-switch-when="ElegantLatticeList" data-ng-class="fieldClass">',
       '<div data-elegant-lattice-list="" data-model="model" data-field="field"></div>',
@@ -46,7 +41,16 @@ SIREPO.appFieldEditors = [
       '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
     '</div>',
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
+      '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+      '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
+    '</div>',
+    '<div data-ng-switch-when="FileValueList">',
+      '<div data-ng-class="fieldClass">',
+        '<div class="input-group">',
+          '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
+            '<a href class="btn btn-default input-group-addon elegant-download-button" data-file-value-button="" data-ng-href="{{ fileDownloadURL(model) }}"><span class="glyphicon glyphicon-cloud-download"></span></a>',
+        '</div>',
+      '</div>',
     '</div>',
     '<div data-ng-switch-when="DistributionTypeStringArray" class="col-sm-7">',
         '<div data-enum-list="" data-field="model[field]" data-info="info" data-type-list="enum[\'DistributionType\']"></div>',
@@ -71,32 +75,16 @@ SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'ElegantSourceController as source',
-            templateUrl: '/static/html/elegant-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.lattice, {
-            controller: 'LatticeController as lattice',
-            templateUrl: '/static/html/elegant-lattice.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.control, {
-            controller: 'CommandController as control',
-            templateUrl: '/static/html/elegant-control.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/elegant-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
+    var filenameRequired = ['command_floor_coordinates', 'HISTOGRAM', 'SLICE', 'WATCH'];
 
     function bunchChanged() {
         // update bunched_beam fields
@@ -262,24 +250,6 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         return SIREPO.ELEGANT_COMMAND_PREFIX + type;
     };
 
-    self.elementForId = function(id) {
-        var i;
-        id = Math.abs(id);
-        for (i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
-            if (b.id == id) {
-                return b;
-            }
-        }
-        for (i = 0; i < appState.models.elements.length; i++) {
-            var e = appState.models.elements[i];
-            if (e._id == id) {
-                return e;
-            }
-        }
-        return null;
-    };
-
     self.commandFileExtension = function(command) {
         //TODO(pjm): keep in sync with template/elegant.py _command_file_extension()
         if (command) {
@@ -291,6 +261,19 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
             }
         }
         return '.sdds';
+    };
+
+    self.dataFileURL = function(model, index) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': model,
+            '<frame>': index,
+        });
+
     };
 
     self.findFirstCommand = function(types, commands) {
@@ -318,12 +301,11 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         return name.indexOf(SIREPO.ELEGANT_COMMAND_PREFIX) === 0;
     };
 
-    self.nextId = function() {
-        return Math.max(
-            appState.maxId(appState.models.elements, '_id'),
-            appState.maxId(appState.models.beamlines),
-            appState.maxId(appState.models.commands, '_id')) + 1;
-    };
+    appState.whenModelsLoaded($rootScope, function() {
+        //TODO(pjm): only required for when viewing after import
+        // force update to bunch from command.bunched_beam
+        appState.saveChanges('commands');
+    });
 
     // keep source page items in sync with the associated control command
     $rootScope.$on('modelChanged', function(e, name) {
@@ -342,7 +324,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         else if (name == 'commands') {
             commandsChanged();
         }
-        else if (name == 'WATCH' || name == 'HISTOGRAM' || name == 'SLICE') {
+        else if (filenameRequired.indexOf(name) >= 0) {
             // elegant will crash if these element's have no output filename
             var el = appState.models[name];
             if (el && ! el.filename) {
@@ -354,113 +336,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
     return self;
 });
 
-SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
-    var rpnBooleanValues = null;
-
-    function clearBooleanValues() {
-        rpnBooleanValues = null;
-    }
-
-    this.computeRpnValue = function(value, callback) {
-        if (value in appState.models.rpnCache) {
-            callback(appState.models.rpnCache[value]);
-            return;
-        }
-        requestSender.getApplicationData(
-            {
-                method: 'rpn_value',
-                value: value,
-                variables: appState.models.rpnVariables,
-            },
-            function(data) {
-                if (! data.error) {
-                    if (appState.isLoaded()) {
-                        appState.models.rpnCache[value] = data.result;
-                    }
-                }
-                callback(data.result, data.error);
-            });
-    };
-
-    this.getRpnBooleanForField = function(model, field) {
-        if (appState.isLoaded() && model && field) {
-            if (! rpnBooleanValues) {
-                rpnBooleanValues = [];
-                if (appState.models.rpnVariables) {
-                    for (var i = 0; i < appState.models.rpnVariables.length; i++) {
-                        var v = appState.models.rpnVariables[i];
-                        rpnBooleanValues.push([v.name, 'var: ' + v.name]);
-                    }
-                    rpnBooleanValues = rpnBooleanValues.sort(function(a, b) {
-                        return a[1].localeCompare(b[1]);
-                    });
-                }
-                rpnBooleanValues.unshift(
-                    ['0', 'No'],
-                    ['1', 'Yes']);
-            }
-            return rpnBooleanValues;
-        }
-        return null;
-    };
-
-    this.getRpnValue = function(v) {
-        if (angular.isUndefined(v)) {
-            return v;
-        }
-        if (v in appState.models.rpnCache) {
-            return appState.models.rpnCache[v];
-        }
-        var value = parseFloat(v);
-        if (isNaN(value)) {
-            return undefined;
-        }
-        return value;
-    };
-
-    this.getRpnValueForField = function(model, field) {
-        if (appState.isLoaded() && model && field) {
-            var v = model[field];
-            if (SIREPO.NUMBER_REGEXP.test(v)) {
-                return '';
-            }
-            return this.getRpnValue(v);
-        }
-        return '';
-    };
-
-    this.recomputeCache = function(varName, value) {
-        var recomputeRequired = false;
-        var re = new RegExp("\\b" + varName + "\\b");
-        for (var k in appState.models.rpnCache) {
-            if (k == varName) {
-                appState.models.rpnCache[k] = value;
-            }
-            else if (k.match(re)) {
-                recomputeRequired = true;
-            }
-        }
-        if (! recomputeRequired) {
-            return;
-        }
-        requestSender.getApplicationData(
-            {
-                method: 'recompute_rpn_cache_values',
-                cache: appState.models.rpnCache,
-                variables: appState.models.rpnVariables,
-            },
-            function(data) {
-                if (appState.isLoaded() && data.cache) {
-                    appState.models.rpnCache = data.cache;
-                }
-            });
-    };
-
-    $rootScope.$on('rpnVariables.changed', clearBooleanValues);
-    appState.whenModelsLoaded($rootScope, clearBooleanValues);
-});
-
-SIREPO.app.controller('CommandController', function(appState, elegantService, panelState) {
+SIREPO.app.controller('CommandController', function(appState, elegantService, latticeService, panelState) {
     var self = this;
     self.activeTab = 'basic';
     self.basicNames = [
@@ -485,12 +361,11 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
         'touschek_scatter', 'transmute_elements','tune_footprint', 'tune_shift_with_amplitude',
         'twiss_analysis',
     ];
-    self.allNames = self.basicNames.concat(self.advancedNames).sort();
 
     self.createElement = function(name) {
         $('#' + panelState.modalId('newCommand')).modal('hide');
         var model = {
-            _id: elegantService.nextId(),
+            _id: latticeService.nextId(),
             _type: name,
         };
         appState.setModelDefaults(model, elegantService.commandModelName(name));
@@ -504,7 +379,7 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, pa
     };
 });
 
-SIREPO.app.controller('ElegantSourceController', function(appState, elegantService, panelState, $scope) {
+SIREPO.app.controller('ElegantSourceController', function(appState, panelState, $scope) {
     var self = this;
     //TODO(pjm): share with template/elegant.py _PLOT_TITLE
     var plotTitle = {
@@ -619,20 +494,9 @@ SIREPO.app.controller('ElegantSourceController', function(appState, elegantServi
     });
 });
 
-SIREPO.app.controller('LatticeController', function(appState, elegantService, validationService, utilities, panelState, rpnService, $rootScope, $scope) {
+SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
-    var emptyElements = [];
-
-    self.appState = appState;
-    self.activeTab = 'basic';
-    self.activeBeamlineId = null;
-
-    self.basicNames = [
-        'CSBEND', 'CSRCSBEND', 'CSRDRIFT',
-        'DRIF', 'ECOL', 'KICKER',
-        'MARK', 'QUAD', 'SEXT',
-        'WATCH', 'WIGGLER',
-    ];
+    self.latticeService = latticeService;
 
     self.advancedNames = [
         'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
@@ -661,23 +525,12 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
         'VMON', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE',
     ];
 
-    self.allNames = self.basicNames.concat(self.advancedNames).sort();
-
-    self.elementPic = {
-        alpha: ['ALPH'],
-        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
-        lens: ['LTHINLENS'],
-        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
-        mirror: ['LMIRROR', 'REFLECT'],
-        recirc: ['RECIRC'],
-        solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
-        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-    };
+    self.basicNames = [
+        'CSBEND', 'CSRCSBEND', 'CSRDRIFT',
+        'DRIF', 'ECOL', 'KICKER',
+        'MARK', 'QUAD', 'SEXT',
+        'WATCH', 'WIGGLER',
+    ];
 
     self.elementColor = {
         BMAPXY: 'magenta',
@@ -695,306 +548,25 @@ SIREPO.app.controller('LatticeController', function(appState, elegantService, va
         REFLECT: 'blue',
     };
 
-    function elementsByName() {
-        var res = {};
-        var containerNames = ['elements', 'beamlines'];
-        for (var i = 0; i < containerNames.length; i++) {
-            var containerName = containerNames[i];
-            for (var j = 0; j < (appState.models[containerName] || []).length; j++) {
-                res[appState.models[containerName][j].name] = 1;
-            }
-        }
-        return res;
-    }
-
-    function fixModelName(modelName) {
-        var m = appState.models[modelName];
-        // remove invalid characters
-        m.name = m.name.replace(/[\s#*'",]/g, '');
-        return;
-    }
-
-    self.getBeamlinesWhichContainId = function(id) {
-        var res = [];
-        for (var i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
-            for (var j = 0; j < b.items.length; j++) {
-                if (id == Math.abs(b.items[j])) {
-                    res.push(b.id);
-                }
-            }
-        }
-        return res;
-    };
-
-    function showDeleteWarning(type, element, beamlines) {
-        var names = {};
-        for (var i = 0; i < beamlines.length; i++) {
-            names[self.elementForId(beamlines[i]).name] = true;
-        }
-        names = Object.keys(names).sort();
-        var idField = type == 'elements' ? '_id' : 'id';
-        self.deleteWarning = {
-            type: type,
-            element: element,
-            typeName: type == 'elements' ? 'Element' : 'Beamline',
-            name: self.elementForId(element[idField]).name,
-            beamlineName: Object.keys(names).length > 1
-                ? ('beamlines (' + names.join(', ') + ')')
-                : ('beamline ' + names[0]),
-        };
-        $(beamlines.length ? '#sr-element-in-use-dialog' : '#sr-delete-element-dialog').modal('show');
-    }
-
-    function sortBeamlines() {
-        appState.models.beamlines.sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
-    }
-
-    function sortElements() {
-        appState.models.elements.sort(function(a, b) {
-            var res = a.type.localeCompare(b.type);
-            if (res === 0) {
-                res = a.name.localeCompare(b.name);
-            }
-            return res;
-        });
-    }
-
-    function uniqueNameForType(prefix) {
-        var names = elementsByName();
-        var name = prefix;
-        var index = 1;
-        while (names[name + index]) {
-            index++;
-        }
-        return name + index;
-    }
-
-    function updateModels(name, idField, containerName, sortMethod) {
-        // update element/elements or beamline/beamlines
-        var m = appState.models[name];
-        var foundIt = false;
-        for (var i = 0; i < appState.models[containerName].length; i++) {
-            var el = appState.models[containerName][i];
-            if (m[idField] == el[idField]) {
-                foundIt = true;
-                break;
-            }
-        }
-        if (! foundIt) {
-            if (elementsByName()[m.name]) {
-                m.name = uniqueNameForType(m.name + '-');
-            }
-            appState.models[containerName].push(m);
-        }
-        sortMethod();
-        appState.removeModel(name);
-        appState.saveChanges(containerName);
-    }
-
-    self.addToBeamline = function(item) {
-        self.getActiveBeamline().items.push(item.id || item._id);
-        appState.saveChanges('beamlines');
-    };
-
-    self.angleFormat = function(angle) {
-        var degrees = rpnService.getRpnValue(angle) * 180 / Math.PI;
-        degrees = Math.round(degrees * 10) / 10;
-        degrees %= 360;
-        return degrees.toFixed(1);
-    };
-
-    self.createElement = function(type) {
-        $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
-        var model = self.getNextElement(type);
-        appState.setModelDefaults(model, type);
-        self.editElement(type, model);
-    };
-    self.getNextElement = function(type) {
-        return {
-            _id: elegantService.nextId(),
-            type: type,
-            name: uniqueNameForType(type.charAt(0)),
-        };
-    };
-
-    self.deleteElement = function() {
-        var type = self.deleteWarning.type;
-        var element = self.deleteWarning.element;
-        self.deleteWarning = null;
-        var idField = type == 'elements' ? '_id' : 'id';
-        for (var i = 0; i < appState.models[type].length; i++) {
-            var el = appState.models[type][i];
-            if (el[idField] == element[idField]) {
-                if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
-                    appState.models.simulation.visualizationBeamlineId = null;
-                    appState.saveQuietly('simulation');
-                }
-                appState.models[type].splice(i, 1);
-                appState.saveChanges(type);
-                $rootScope.$broadcast('elementDeleted', type);
-                return;
-            }
-        }
-        return;
-    };
-
-    self.deleteElementPrompt = function(type, element) {
-        var idField = type == 'elements' ? '_id' : 'id';
-        var beamlines = self.getBeamlinesWhichContainId(element[idField]);
-        showDeleteWarning(type, element, beamlines);
-    };
-
-    self.editBeamline = function(beamline) {
-        self.activeBeamlineId = beamline.id;
-        appState.models.simulation.activeBeamlineId = beamline.id;
-        appState.saveChanges('simulation');
-        $rootScope.$broadcast('activeBeamlineChanged');
-    };
-
-    self.editElement = function(type, item) {
-        appState.models[type] = item;
-        validationService.setFieldValidator(utilities.modelFieldID(type, 'name'), self.elementNameValidator(item.name), self.elementNameInvalidMsg);
-        panelState.showModalEditor(type);
-    };
-
-    self.elementNameValidator = function(currentName) {
-        // make a copy of the keys as of creation of the function and exclude the starting value
-        var names = Object.keys(elementsByName()).slice();
-        return function(newNameV, newNameM) {
-            var cnIndex = names.indexOf(currentName);
-            if(cnIndex >= 0) {
-                names.splice(cnIndex, 1);
-            }
-            return names.indexOf(newNameV) < 0;
-        };
-    };
-    self.elementNameInvalidMsg = function(newName) {
-        return newName == '' ? '' : newName + ' already exists';
-    };
-
-    self.elementForId = function(id) {
-        return elegantService.elementForId(id);
-    };
-
-    self.getActiveBeamline = function() {
-        var id = self.activeBeamlineId;
-        for (var i = 0; i < appState.models.beamlines.length; i++) {
-            var b = appState.models.beamlines[i];
-            if (b.id == id) {
-                return b;
-            }
-        }
-        return null;
-    };
-
-    self.getElements = function() {
-        if (appState.isLoaded) {
-            return appState.models.elements;
-        }
-        return emptyElements;
-    };
-
-    self.isElementModel = function(name) {
-        return name == name.toUpperCase();
-    };
-
-    self.nameForId = function(id) {
-        return self.elementForId(id).name;
-    };
-
-    self.newBeamline = function() {
-        appState.models.beamline = self.getNextBeamline();
-        panelState.showModalEditor('beamline');
-    };
-    self.getNextBeamline = function() {
-        var beamlime = {
-            name: uniqueNameForType('BL'),
-            id: elegantService.nextId(),
-            l: 0,
-            count: 0,
-            items: [],
-        };
-        validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), self.elementNameValidator(beamlime.name), self.elementNameInvalidMsg);
-        return beamlime;
-    };
-
-    self.newElement = function() {
-        $('#' + panelState.modalId('newBeamlineElement')).modal('show');
-    };
-
-    //TODO(pjm): use library for this
-    self.numFormat = function(num, units) {
-        if (! angular.isDefined(num)) {
-            return '';
-        }
-        num = rpnService.getRpnValue(num);
-        if (num < 1) {
-            num *= 1000;
-            units = 'm' + units;
-        }
-        if (Math.round(num * 100) === 0) {
-            return '0';
-        }
-        if (num >= 1000) {
-            return num.toFixed(0) + units;
-        }
-        if (num >= 100) {
-            return num.toFixed(1) + units;
-        }
-        if (num >= 10) {
-            return num.toFixed(2) + units;
-        }
-        return num.toFixed(3) + units;
-    };
-
-    self.showRpnVariables = function() {
-        appState.models.rpnVariables = appState.models.rpnVariables.sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
-        $('#elegant-rpn-variables').modal('show');
-    };
-
-    self.setActiveTab = function(name) {
-        self.activeTab = name;
+    self.elementPic = {
+        alpha: ['ALPH'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        mirror: ['LMIRROR', 'REFLECT'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
     };
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
-
-    $scope.$on('cancelChanges', function(e, name) {
-        if (name == 'beamline') {
-            appState.removeModel(name);
-            appState.cancelChanges('beamlines');
-        }
-        else if (self.isElementModel(name)) {
-            appState.removeModel(name);
-            appState.cancelChanges('elements');
-        }
-    });
-
-    $scope.$on('modelChanged', function(e, name) {
-        if (name == 'beamline') {
-            fixModelName(name);
-            var id = appState.models.beamline.id;
-            updateModels('beamline', 'id', 'beamlines', sortBeamlines);
-            self.editBeamline({ id: id });
-        }
-        if (self.isElementModel(name)) {
-            fixModelName(name);
-            updateModels(name, '_id', 'elements', sortElements);
-        }
-    });
-
-    appState.whenModelsLoaded($scope, function() {
-        self.activeBeamlineId = appState.models.simulation.activeBeamlineId;
-        //TODO(pjm): only required for when viewing after import
-        // force update to bunch from command.bunched_beam
-        appState.saveChanges('commands');
-    });
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
@@ -1003,7 +575,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     self.panelState = panelState;
     self.outputFiles = [];
     self.outputFileMap = {};
-    self.auxFiles = [];
+    self.statusModel = 'simulationStatus';
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
@@ -1017,18 +589,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
         }
         return columns[1];
-    }
-
-    function fileURL(index, model) {
-        if (! appState.isLoaded()) {
-            return '';
-        }
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': model || self.simState.model,
-            '<frame>': index,
-        });
     }
 
     function handleStatus(data) {
@@ -1048,38 +608,35 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
         }
     }
-
-    function hideField(modelName, field) {
-        $('.model-' + modelName + '-' + field).closest('.form-group').hide();
-    }
+    self.errorHeader = function() {
+        if(! self.simulationErrors || self.simulationErrors == '') {
+            return '';
+        }
+        return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
+    };
 
     function loadElementReports(outputInfo, startTime) {
         self.outputFiles = [];
         self.outputFileMap = {};
-        self.auxFiles = [];
         var animationArgs = {};
         var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
+            info.modelKey = 'elementAnimation' + info.id;
             if (info.isAuxFile) {
-                self.auxFiles.push({
-                    filename: info.filename,
-                    id: info.id,
-                });
                 return;
             }
             if (! info.columns) {
                 return;
             }
-            var modelKey = 'elementAnimation' + info.id;
-            panelState.setError(modelKey, null);
+            panelState.setError(info.modelKey, null);
             var outputFile = {
                 info: info,
                 reportType: reportTypeForColumns(info.plottableColumns),
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
-                    modelKey: modelKey,
+                    modelKey: info.modelKey,
                 },
             };
             self.outputFiles.push(outputFile);
@@ -1096,12 +653,15 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '2',
+                SIREPO.ANIMATION_ARGS_VERSION + '3',
                 'x',
-                'y',
+                'y1',
+                'y2',
+                'y3',
                 'histogramBins',
                 'xFileId',
-                'yFileId',
+                'y2FileId',
+                'y3FileId',
                 'startTime',
             ];
             var m = null;
@@ -1110,23 +670,19 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m.startTime = startTime;
                 m.xFileId = info.id;
                 m.xFile = info.filename;
+                m.y1File = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
             }
             else {
-                m = appState.models[modelKey] = {
+                m = appState.models[modelKey] = appState.setModelDefaults({
                     xFile: info.filename,
-                    yFile: info.filename,
+                    y1File: info.filename,
                     x: info.plottableColumns[0],
-                    y: null,
-                    histogramBins: 200,
-                    fileId: info.id,
                     xFileId: info.id,
-                    yFileId: info.id,
-                    framesPerSecond: 2,
                     startTime: startTime,
-                };
+                }, 'elementAnimation');
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
@@ -1134,9 +690,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
             m.valueList = {
                 x: info.plottableColumns,
-                yFile: info.similarFiles,
+                y1: info.plottableColumns,
+                xFile: [m.xFile],
+                y1File: [m.xFile],
+                y2File: info.similarFiles,
+                y3File: info.similarFiles,
             };
-            self.yFileUpdate(modelKey);
+            m.panelTitle = cleanFilename(m.xFile);
+            yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
             if (! info.pageCount) {
@@ -1144,81 +705,76 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
             appState.watchModelFields(
                 $scope,
-                [modelKey + '.yFile'],
-                function () {self.yFileUpdate(modelKey);}
-            );
+                [modelKey + '.y2File', modelKey + '.y3File'],
+                function () {
+                    yFileUpdate(modelKey);
+                });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
 
-    //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
+    //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
     function reportTypeForColumns(columns) {
         if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return '2d';
+            return 'parameter';
         }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
             return 'heatmap';
         }
-        return '2d';
+        return 'parameter';
     }
 
-    function showField(modelName, field) {
-        $('.model-' + modelName + '-' + field).closest('.form-group').show();
+    function yFileUpdate(modelKey) {
+        var m = appState.models[modelKey];
+        if (! m.y1 && m.y) {
+            m.y1 = m.y;
+        }
+        ['y1', 'y2', 'y3'].forEach(function(f) {
+            var field = f + 'File';
+            if (m.valueList[field].indexOf(m[field]) < 0) {
+                m[field] = m.xFile;
+            }
+            var info = self.outputFileMap[m[field]].info;
+            m[field + 'Id'] = info.id;
+            var cols = m.valueList[f] = appState.clone(info.plottableColumns);
+            if (f != 'y1') {
+                cols.unshift(' ');
+            }
+            if (!m[f] || cols.indexOf(m[f]) < 0) {
+                if (f == 'y1') {
+                    m[f] = defaultYColumn(cols, m.x);
+                }
+                else {
+                    m[f] = ' ';
+                }
+            }
+        });
     }
-
-    self.downloadFileUrl = function(item) {
-        var modelKey = 'elementAnimation' + item.id;
-        return fileURL(1, modelKey);
-    };
 
     self.handleModalShown = function(name, modelKey) {
         self.outputFiles.forEach(function(info) {
             if (info.modelAccess.modelKey == modelKey) {
-                if (info.reportType == 'heatmap') {
-                    showField(name, 'histogramBins');
-                    showField(name, 'colorMap');
-                    hideField(name, 'framesPerSecond');
-                }
-                else {
-                    hideField(name, 'histogramBins');
-                    hideField(name, 'colorMap');
-                    if (frameCache.getFrameCount(modelKey) > 1) {
-                        showField(name, 'framesPerSecond');
-                    }
-                    else {
-                        hideField(name, 'framesPerSecond');
-                    }
-                }
+                ['histogramBins', 'colorMap'].forEach(function(f) {
+                    panelState.showField(name, f, info.reportType == 'heatmap');
+                    panelState.showField(name, f, info.reportType == 'heatmap');
+                });
+                panelState.showField(name, 'framesPerSecond', frameCache.getFrameCount(modelKey) > 1);
+                ['y2', 'y2File', 'y3', 'y3File'].forEach(function(f) {
+                    panelState.showField(name, f, info.reportType == 'parameter');
+                });
             }
         });
     };
 
     self.logFileURL = function() {
-        return fileURL(-1);
+        return elegantService.dataFileURL(self.simState.model, -1);
     };
 
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
-    };
-
-    self.yFileUpdate = function (modelKey) {
-        var m = appState.models[modelKey];
-        if (m.valueList.yFile.indexOf(m.yFile) < 0) {
-            m.yFile = m.xFile;
-        }
-        var info = self.outputFileMap[m.yFile].info;
-        m.yFileId = info.id;
-        var cols = m.valueList.y = info.plottableColumns;
-        if (!m.y || cols.indexOf(m.y) < 0) {
-            m.y = defaultYColumn(cols, m.x);
-        }
-        m.panelTitle = cleanFilename(m.xFile);
-        if (m.xFile != m.yFile) {
-            m.panelTitle += ' / ' + cleanFilename(m.yFile);
-        }
     };
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});
@@ -1252,7 +808,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav" data-app-url="/#/elegant"></div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -1306,381 +862,13 @@ SIREPO.app.directive('appHeader', function(appState) {
             };
 
             $scope.showImportModal = function() {
-                $('#elegant-import').modal('show');
+                $('#simulation-import').modal('show');
             };
         },
     };
 });
 
-SIREPO.app.directive('beamlineEditor', function(appState, panelState, validationService, utilities, $document, $timeout, $window) {
-    return {
-        restrict: 'A',
-        scope: {
-            lattice: '=controller',
-        },
-        template: [
-            '<div data-drag-and-drop-support=""></div>',
-            '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
-              '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
-                '<div class="sr-panel-options pull-right">',
-                  '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
-                '</div>',
-              '</div>',
-              '<div style="height: {{ editorHeight() }}" class="panel-body elegant-beamline-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
-                '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
-                '<div data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" data-ng-drag="true" data-ng-drag-data="item" data-ng-repeat="item in beamlineItems" class="elegant-beamline-element" data-ng-class="{\'elegant-beamline-element-group\': item.inRepeat }" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
-                  '<div class="sr-drop-left">&nbsp;</div>',
-                  '<span data-ng-if="item.repeatCount" class="sr-count">{{ item.repeatCount }}</span>',
-                  '<div style="display: inline-block; cursor: move; -moz-user-select: none" class="badge elegant-icon elegant-beamline-element-with-count" data-ng-class="{\'elegant-item-selected\': isSelected(item.itemId), \'elegant-beamline-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
-                '</div>',
-                '<div class="elegant-beamline-element sr-last-drop" data-ng-drop="true" data-ng-drop-success="dropLast($data)"><div class="sr-drop-left">&nbsp;</div></div>',
-              '</div>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            var selectedItemId = null;
-            $scope.beamlineItems = [];
-            var activeBeamline = null;
-            var dragCanceled = false;
-            var dropSuccess = false;
-
-            function updateBeamline() {
-                var items = [];
-                for (var i = 0; i < $scope.beamlineItems.length; i++) {
-                    items.push($scope.beamlineItems[i].id);
-                }
-                activeBeamline.items = items;
-                appState.saveChanges('beamlines');
-            }
-
-            $scope.beamlineName = function() {
-                return activeBeamline ? activeBeamline.name : '';
-            };
-
-            $scope.dragStart = function(data) {
-                dragCanceled = false;
-                dropSuccess = false;
-                $scope.selectItem(data);
-            };
-
-            $scope.dragStop = function(data) {
-                if (! data || dragCanceled) {
-                    return;
-                }
-                if (data.itemId) {
-                    $timeout(function() {
-                        if (! dropSuccess) {
-                            var curr = $scope.beamlineItems.indexOf(data);
-                            $scope.beamlineItems.splice(curr, 1);
-                            updateBeamline();
-                        }
-                    });
-                }
-            };
-
-            $scope.dropItem = function(index, data) {
-                if (! data) {
-                    return;
-                }
-                if (data.itemId) {
-                    if (dragCanceled) {
-                        return;
-                    }
-                    dropSuccess = true;
-                    var curr = $scope.beamlineItems.indexOf(data);
-                    if (curr < index) {
-                        index--;
-                    }
-                    $scope.beamlineItems.splice(curr, 1);
-                }
-                else {
-                    data = $scope.beamlineItems.splice($scope.beamlineItems.length - 1, 1)[0];
-                }
-                $scope.beamlineItems.splice(index, 0, data);
-                updateBeamline();
-            };
-
-            $scope.dropLast = function(data) {
-                if (! data || ! data.itemId) {
-                    return;
-                }
-                if (dragCanceled) {
-                    return;
-                }
-                dropSuccess = true;
-                var curr = $scope.beamlineItems.indexOf(data);
-                $scope.beamlineItems.splice(curr, 1);
-                $scope.beamlineItems.push(data);
-                updateBeamline();
-            };
-
-            $scope.dropPanel = function(data) {
-                if (! data) {
-                    return;
-                }
-                if (data.itemId) {
-                    dropSuccess = true;
-                    return;
-                }
-                if (data.id == activeBeamline.id) {
-                    return;
-                }
-                var item = {
-                    id: data.id || data._id,
-                    itemId: appState.maxId($scope.beamlineItems, 'itemId') + 1,
-                };
-                $scope.beamlineItems.push(item);
-                $scope.selectItem(item);
-                updateBeamline();
-            };
-
-            $scope.editorHeight = function() {
-                var w = $($window);
-                var el = $('.elegant-beamline-editor-panel');
-                return (w.height() - el.offset().top - 15) + 'px';
-            };
-
-            $scope.editItem = function(item) {
-                var el = $scope.lattice.elementForId(item.id);
-                if (el.type) {
-                    $scope.lattice.editElement(el.type, el);
-                }
-                else {
-                    // reverse the beamline
-                    item.id = -item.id;
-                    updateBeamline();
-                }
-            };
-
-            $scope.isBeamline = function(item) {
-                var el = $scope.lattice.elementForId(item.id);
-                return el.type ? false : true;
-            };
-
-            $scope.isSelected = function(itemId) {
-                if (selectedItemId) {
-                    return itemId == selectedItemId;
-                }
-                return false;
-            };
-
-            $scope.itemName = function(item) {
-                item.name = $scope.lattice.nameForId(item.id);
-                return (item.id < 0 ? '-' : '') + item.name;
-            };
-
-            $scope.onKeyDown = function(e) {
-                // escape key - simulation a mouseup to cancel dragging
-                if (e.keyCode == 27) {
-                    if (selectedItemId) {
-                        dragCanceled = true;
-                        $document.triggerHandler('mouseup');
-                    }
-                }
-            };
-
-            $scope.selectItem = function(item) {
-                selectedItemId = item ? item.itemId : null;
-            };
-
-            $scope.showBeamlineNameModal = function() {
-                if (activeBeamline) {
-                    appState.models.beamline = activeBeamline;
-                    validationService.setFieldValidator(utilities.modelFieldID('beamline', 'name'), $scope.lattice.elementNameValidator(activeBeamline.name), $scope.lattice.elementNameInvalidMsg);
-                    panelState.showModalEditor('beamline');
-                }
-            };
-
-            $scope.showEditor = function() {
-                if (! appState.isLoaded()) {
-                    return false;
-                }
-                if (! $scope.lattice.activeBeamlineId) {
-                    return false;
-                }
-                var beamline = $scope.lattice.getActiveBeamline();
-                if (activeBeamline && activeBeamline == beamline && beamline.items.length == $scope.beamlineItems.length) {
-                    return true;
-                }
-                activeBeamline = beamline;
-                $scope.selectItem();
-                $scope.beamlineItems = [];
-                var itemId = 1;
-                for (var i = 0; i < activeBeamline.items.length; i++) {
-                    $scope.beamlineItems.push({
-                        id: activeBeamline.items[i],
-                        itemId: itemId++,
-                    });
-                }
-                return true;
-            };
-        },
-        link: function(scope) {
-            $document.on('keydown', scope.onKeyDown);
-            scope.$on('$destroy', function() {
-                $document.off('keydown', scope.onKeyDown);
-            });
-        }
-    };
-});
-
-SIREPO.app.directive('beamlineTable', function(appState, panelState, elegantService, $window) {
-    return {
-        restrict: 'A',
-        scope: {
-            lattice: '=controller',
-        },
-        template: [
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 10px" class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col>',
-                '<col data-ng-show="isLargeWindow()" style="width: 10ex">',
-                '<col data-ng-show="isLargeWindow()" style="width: 12ex">',
-                '<col style="width: 12ex">',
-                '<col style="width: 10ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th>Description</th>',
-                  '<th data-ng-show="isLargeWindow()">Elements</th>',
-                  '<th data-ng-show="isLargeWindow()">Start-End</th>',
-                  '<th>Length</th>',
-                  '<th>Bend</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody>',
-                '<tr data-ng-class="{success: isActiveBeamline(beamline)}" data-ng-repeat="beamline in lattice.appState.models.beamlines track by beamline.id">',
-                  '<td><div class="badge elegant-icon elegant-beamline-icon" data-ng-class="{\'elegant-beamline-icon-disabled\': wouldBeamlineSelfNest(beamline)}"><span data-ng-drag="! wouldBeamlineSelfNest(beamline)" data-ng-drag-data="beamline">{{ beamline.name }}</span></div></td>',
-                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ beamlineDescription(beamline) }}</span></td>',
-                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamline.count }}</td>',
-                  '<td data-ng-show="isLargeWindow()" style="text-align: right">{{ beamlineDistance(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineLength(beamline) }}</td>',
-                  '<td style="text-align: right">{{ beamlineBend(beamline, \'&nbsp;\') }}',
-                    '<span data-ng-if="beamlineBend(beamline)">&deg;</span>',
-                    '<div class="sr-button-bar-parent">',
-                        '<div class="sr-button-bar" data-ng-class="{\'sr-button-bar-active\': isActiveBeamline(beamline)}" >',
-                            '<button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>',
-                            '<span data-ng-show="! isActiveBeamline(beamline)" >',
-                            ' <button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="addToBeamline(beamline)">Add to Beamline</button>',
-                            ' <button data-ng-click="editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>',
-                            ' <button data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>',
-                            '</span>',
-                        '</div>',
-                    '<div>',
-                  '</td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
-        controller: function($scope) {
-
-            var windowSize = 0;
-
-            function itemsToString(items) {
-                var res = '(';
-                if (! items.length) {
-                    res += ' ';
-                }
-                for (var i = 0; i < items.length; i++) {
-                    var id = items[i];
-                    res += $scope.lattice.nameForId(id);
-                    if (i != items.length - 1) {
-                        res += ',';
-                    }
-                }
-                res += ')';
-                return res;
-            }
-
-            $scope.wouldBeamlineSelfNest = function (beamline, blItems) {
-                var activeBeamline = $scope.lattice.getActiveBeamline();
-                if(! activeBeamline || activeBeamline.id === beamline.id) {
-                    return true;
-                }
-                if(! blItems) {
-                    blItems = beamline.items || [];
-                }
-                if(blItems.indexOf(activeBeamline.id) >= 0) {
-                    return true;
-                }
-                for(var i = 0; i < blItems.length; i++) {
-                    var nextItems = $scope.lattice.elementForId(blItems[i]).items;
-                    if(nextItems && $scope.wouldBeamlineSelfNest(beamline, nextItems)) {
-                        return true;
-                    }
-                }
-                return false;
-            };
-
-            $scope.addToBeamline = function(beamline) {
-                $scope.lattice.addToBeamline(beamline);
-            };
-            $scope.copyBeamline = function(beamline) {
-                var newBeamline = $scope.lattice.getNextBeamline();
-                for(var prop in beamline) {
-                    if(prop != 'id' && prop != 'name' && prop != 'items') {
-                        newBeamline[prop] = beamline[prop];
-                    }
-                }
-                newBeamline.items = beamline.items.slice();
-                appState.models.beamline = newBeamline;
-                panelState.showModalEditor('beamline');
-            };
-
-            $scope.beamlineBend = function(beamline, defaultValue) {
-                if (angular.isDefined(beamline.angle)) {
-                    return $scope.lattice.angleFormat(beamline.angle);
-                }
-                return defaultValue;
-            };
-
-            $scope.beamlineDescription = function(beamline) {
-                return itemsToString(beamline.items);
-            };
-
-            $scope.beamlineDistance = function(beamline) {
-                return $scope.lattice.numFormat(beamline.distance, 'm');
-            };
-
-            $scope.beamlineLength = function(beamline) {
-                return $scope.lattice.numFormat(beamline.length, 'm');
-            };
-
-            $scope.deleteBeamline = function(beamline) {
-                $scope.lattice.deleteElementPrompt('beamlines', beamline);
-            };
-
-            $scope.editBeamline = function(beamline) {
-                $scope.lattice.editBeamline(beamline);
-            };
-
-            $scope.isActiveBeamline = function(beamline) {
-                if ($scope.lattice.activeBeamlineId) {
-                    return $scope.lattice.activeBeamlineId == beamline.id;
-                }
-                return false;
-            };
-
-            $scope.isLargeWindow = function() {
-                return windowSize >= 1200;
-            };
-
-            function windowResize() {
-                windowSize = $($window).width();
-            }
-
-            $($window).resize(windowResize);
-            windowResize();
-            $scope.$on('$destroy', function() {
-                $($window).off('resize', windowResize);
-            });
-        },
-    };
-});
-
-SIREPO.app.directive('commandTable', function(appState, elegantService, panelState) {
+SIREPO.app.directive('commandTable', function(appState, elegantService, latticeService, panelState) {
     return {
         restrict: 'A',
         scope: {},
@@ -1729,9 +917,8 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
                                     + (commandIndex > 1 ? commandIndex : '')
                                     + '.' + f + elegantService.commandFileExtension(model);
                             }
-                            else if (schema[f][1] == 'ElegantBeamlineList') {
-                                //res += elegantService.elementForId(model[f]).name;
-                                var el = elegantService.elementForId(model[f]);
+                            else if (schema[f][1] == 'LatticeBeamlineList') {
+                                var el = latticeService.elementForId(model[f]);
                                 if (el) {
                                     res += el.name;
                                 }
@@ -1933,32 +1120,6 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, panelSta
     };
 });
 
-SIREPO.app.directive('elegantBeamlineList', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as item.name for item in beamlineList()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.beamlineList = function() {
-                if (! appState.isLoaded() || ! $scope.model) {
-                    return null;
-                }
-                if (! $scope.model[$scope.field]
-                    && appState.models.beamlines
-                    && appState.models.beamlines.length) {
-                    $scope.model[$scope.field] = appState.models.beamlines[0].id;
-                }
-                return appState.models.beamlines;
-            };
-        },
-    };
-});
-
 SIREPO.app.directive('elegantLatticeList', function(appState) {
     return {
         restrict: 'A',
@@ -1998,208 +1159,6 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
     };
 });
 
-SIREPO.app.directive('elementPicker', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            controller: '=',
-            title: '@',
-            id: '@',
-            smallElementClass: '@',
-        },
-        template: [
-            '<div class="modal fade" data-ng-attr-id="{{ id }}" tabindex="-1" role="dialog">',
-              '<div class="modal-dialog modal-lg">',
-                '<div class="modal-content">',
-                  '<div class="modal-header bg-info">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
-                    '<span class="lead modal-title text-info">{{ title }}</span>',
-                  '</div>',
-                  '<div class="modal-body">',
-                    '<div class="container-fluid">',
-                      '<div class="row">',
-                        '<div class="col-sm-12">',
-                          '<ul class="nav nav-tabs">',
-                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'basic\'}"><a href data-ng-click="controller.activeTab = \'basic\'">Basic</a></li>',
-                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'advanced\'}"><a href data-ng-click="controller.activeTab = \'advanced\'">Advanced</a></li>',
-                            '<li role="presentation" data-ng-class="{active: controller.activeTab == \'all\'}"><a href data-ng-click="controller.activeTab = \'all\'">All Elements</a></li>',
-                          '</ul>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div data-ng-if="controller.activeTab == \'basic\'" class="row">',
-                        '<div data-ng-repeat="name in controller.basicNames" class="col-sm-4">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<div data-ng-if="controller.activeTab == \'advanced\'" class="row">',
-                        '<div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<div data-ng-if="controller.activeTab == \'all\'" class="row">',
-                        '<div data-ng-repeat="name in controller.allNames" class="{{ smallElementClass }}">',
-                          '<button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default btn-sm" type="button" data-ng-click="controller.createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>',
-                        '</div>',
-                      '</div>',
-                      '<br />',
-                      '<div class="row">',
-                        '<div class="col-sm-offset-6 col-sm-3">',
-                          '<button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>',
-                        '</div>',
-                      '</div>',
-                    '</div>',
-                  '</div>',
-                '</div>',
-              '</div>',
-            '</div>',
-        ].join(''),
-    };
-});
-
-SIREPO.app.directive('elementTable', function(appState, elegantService, $rootScope) {
-    return {
-        restrict: 'A',
-        scope: {
-            lattice: '=controller',
-        },
-        template: [
-            '<table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">',
-              '<colgroup>',
-                '<col style="width: 20ex">',
-                '<col>',
-                '<col style="width: 12ex">',
-                '<col style="width: 10ex">',
-              '</colgroup>',
-              '<thead>',
-                '<tr>',
-                  '<th>Name</th>',
-                  '<th>Description</th>',
-                  '<th>Length</th>',
-                  '<th>Bend</th>',
-                '</tr>',
-              '</thead>',
-              '<tbody data-ng-repeat="category in tree track by category.name">',
-                '<tr>',
-                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': isExpanded(category), \'glyphicon-collapse-down\': ! isExpanded(category)}"></span> <b>{{ category.name }}</b></td>',
-                '</tr>',
-                '<tr data-ng-show="isExpanded(category)" data-ng-repeat="element in category.elements track by element._id">',
-                  '<td style="padding-left: 1em"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
-                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(category.name, element) }}</span></td>',
-                  '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="lattice.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-disabled="elementInUse(element)" data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
-                '</tr>',
-              '</tbody>',
-            '</table>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.tree = [];
-            var collapsedElements = {};
-
-            function loadTree() {
-                //TODO(pjm): merge new tree with existing to avoid un-needed UI updates
-                $scope.tree = [];
-                var category = null;
-                var elements = appState.applicationState().elements;
-
-                for (var i = 0; i < elements.length; i++) {
-                    var element = elements[i];
-                    if (! category || category.name != element.type) {
-                        category = {
-                            name: element.type,
-                            elements: [],
-                        };
-                        $scope.tree.push(category);
-                    }
-                    category.elements.push(element);
-                }
-            }
-
-            $scope.addToBeamline = function(element) {
-                $scope.lattice.addToBeamline(element);
-            };
-
-            $scope.elementInUse = function(element) {
-                return $scope.lattice.getBeamlinesWhichContainId(element._id).length > 0;
-            };
-            $scope.deleteElement = function(element) {
-                $scope.lattice.deleteElementPrompt('elements', element);
-            };
-
-            $scope.editElement = function(type, item) {
-                var el = $scope.lattice.elementForId(item._id);
-                return $scope.lattice.editElement(type, el);
-            };
-            $scope.copyElement = function(element) {
-                var elementCopy = $scope.lattice.getNextElement(element.type);
-                for(var prop in element) {
-                    if(prop != '_id' && prop != 'name') {
-                        elementCopy[prop] = element[prop];
-                    }
-                }
-                // element does not exist yet so cannot use local edit
-                $scope.lattice.editElement(elementCopy.type, elementCopy);
-            };
-
-            $scope.elementBend = function(element, defaultValue) {
-                if (angular.isDefined(element.angle)) {
-                    return $scope.lattice.angleFormat(element.angle);
-                }
-                return defaultValue;
-            };
-
-            $scope.elementDescription = function(type, element) {
-                if (! element) {
-                    return 'null';
-                }
-                var schema = SIREPO.APP_SCHEMA.model[type];
-                var res = '';
-                var fields = Object.keys(element).sort();
-                for (var i = 0; i < fields.length; i++) {
-                    var f = fields[i];
-                    if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0) {
-                        continue;
-                    }
-                    if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
-                        if (schema[f][1] == 'OutputFile' && element[f]) {
-                            res += (res.length ? ',' : '') + f + '=' + element.name + '.' + f + '.sdds';
-                        }
-                        else if (schema[f][2] != element[f]) {
-                            res += (res.length ? ',' : '') + f + '=' + element[f];
-                        }
-                    }
-                }
-                return res;
-            };
-
-            $scope.elementLength = function(element) {
-                return $scope.lattice.numFormat(element.l, 'm');
-            };
-
-            $scope.isExpanded = function(category) {
-                return ! collapsedElements[category.name];
-            };
-
-            $scope.toggleCategory = function(category) {
-                collapsedElements[category.name] = ! collapsedElements[category.name];
-            };
-
-            $scope.$on('modelChanged', function(e, name) {
-                if (name == 'elements') {
-                    loadTree();
-                }
-            });
-
-            $scope.$on('elementDeleted', function(e, name) {
-                if (name == 'elements') {
-                    loadTree();
-                }
-            });
-            appState.whenModelsLoaded($scope, loadTree);
-        },
-    };
-});
-
 SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     return {
         scope: {
@@ -2226,7 +1185,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="modal fade" data-backdrop="static" id="elegant-import" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">',
               '<div class="modal-dialog modal-lg">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-info">',
@@ -2319,7 +1278,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
             }
 
             function hideAndRedirect() {
-                $('#elegant-import').modal('hide');
+                $('#simulation-import').modal('hide');
                 requestSender.localRedirect('lattice', {
                     ':simulationId': $scope.id,
                 });
@@ -2570,6 +1529,26 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
     };
 });
 
+SIREPO.app.directive('fileValueButton', function(elegantService) {
+    return {
+        controller: function($scope) {
+            $scope.fileDownloadURL = function(model) {
+                var search = model.file;
+                var modelKey;
+                model.valueList.file.forEach(function(filename, index) {
+                    if (search == filename) {
+                        modelKey = model.valueList.modelKey[index];
+                    }
+                });
+                if (modelKey) {
+                    return elegantService.dataFileURL(modelKey, 0);
+                }
+                return '';
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('inputFileXY', function() {
     return {
         restrict: 'A',
@@ -2625,517 +1604,6 @@ SIREPO.app.directive('enumList', function() {
                 }
                 return $scope.values;
             };
-        },
-    };
-});
-
-SIREPO.app.directive('lattice', function(appState, panelState, plotting, rpnService, $window) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelName: '@',
-        },
-        templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
-            //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
-            $scope.latticeController = panelState.findParentAttribute($scope, 'lattice');
-            $scope.isClientOnly = true;
-            $scope.margin = 3;
-            $scope.width = 1;
-            $scope.height = 1;
-            $scope.scale = 1;
-            $scope.xOffset = 0;
-            $scope.yOffset = 0;
-            $scope.zoomScale = 1;
-            $scope.panTranslate = [0, 0];
-            $scope.markerWidth = 1;
-            $scope.markerUnits = '';
-
-            var emptyList = [];
-            $scope.items = [];
-            $scope.svgGroups = [];
-            $scope.svgBounds = null;
-            var picTypeCache = null;
-
-            function rpnValue(num) {
-                return rpnService.getRpnValue(num);
-            }
-
-            function applyGroup(items, pos) {
-                var group = {
-                    rotate: pos.angle,
-                    rotateX: pos.x,
-                    rotateY: pos.y,
-                    items: [],
-                };
-                $scope.svgGroups.push(group);
-                var x = 0;
-                var oldRadius = pos.radius;
-                var newAngle = 0;
-                var maxHeight = 0;
-
-                for (var i = 0; i < items.length; i++) {
-                    var item = items[i];
-                    var picType = $scope.getPicType(item.type);
-                    var length = rpnValue(item.l || item.xmax || 0);
-                    if (picType == 'zeroLength') {
-                        length = 0;
-                    }
-                    var elRadius = rpnValue(item.rx || item.x_max || 0);
-                    pos.length += length;
-                    if (length < 0) {
-                        // negative length, back up
-                        x += length;
-                        length = 0;
-                    }
-                    //TODO(pjm): need to refactor picType processing
-                    if (picType == 'bend') {
-                        var radius = length / 2;
-                        var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
-                        maxHeight = Math.max(maxHeight, length);
-                        var height = 0.75;
-                        var enter = [pos.radius + pos.x + x, pos.y];
-                        //TODO(pjm): if angle is arc length, need to convert it to a rendered length
-                        // if (length > 0 && angle != 0) {
-                        //     var noArcLength = Math.abs(2 * Math.sin(angle / 2) * length / angle);
-                        //     length = noArcLength;
-                        // }
-                        if (length === 0) {
-                            length = 0.1;
-                            enter[0] -= 0.05;
-                        }
-                        var enterEdge = rpnValue(item.e1 || 0);
-                        var exitEdge = rpnValue(item.e2 || 0);
-                        if (item.type == 'RBEN') {
-                            enterEdge = 0;
-                            exitEdge = 0;
-                        }
-                        var exit = [enter[0] + length / 2 + Math.cos(angle) * length / 2,
-                                    pos.y + Math.sin(angle) * length / 2];
-                        var exitAngle = exitEdge - angle;
-                        var points = [
-                                [enter[0] - Math.sin(-enterEdge) * height / 2,
-                                 enter[1] - Math.cos(-enterEdge) * height / 2],
-                                [enter[0] + Math.sin(-enterEdge) * height / 2,
-                                 enter[1] + Math.cos(-enterEdge) * height / 2],
-                                [exit[0] + Math.sin(exitAngle) * height / 2,
-                                 exit[1] + Math.cos(exitAngle) * height / 2],
-                                [exit[0] - Math.sin(exitAngle) * height / 2,
-                                 exit[1] - Math.cos(exitAngle) * height / 2],
-                        ];
-                        // trim overlap if necessary
-                        if (points[1][0] > points[2][0]) {
-                            points[1] = points[2] = lineIntersection(points);
-                        }
-                        else if (points[0][0] > points[3][0]) {
-                            points[0] = points[3] = lineIntersection(points);
-                        }
-                        group.items.push({
-                            picType: picType,
-                            element: item,
-                            color: $scope.getPicColor(item.type, 'blue'),
-                            points: points,
-                        });
-                        x += radius;
-                        newAngle = angle * 180 / Math.PI;
-                        pos.radius = radius;
-                    }
-                    else {
-                        var groupItem = {
-                            picType: picType,
-                            element: item,
-                            x: pos.radius + pos.x + x,
-                            height: 0,
-                            width: length,
-                        };
-                        if (picType == 'watch') {
-                            groupItem.height = 1;
-                            groupItem.y = pos.y;
-                            groupItem.color = $scope.getPicColor(item.type, 'lightgreen');
-                        }
-                        else if (picType == 'drift') {
-                            groupItem.color = $scope.getPicColor(item.type, 'lightgrey');
-                            groupItem.height = 0.1;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                        }
-                        else if (picType == 'aperture') {
-                            groupItem.color = 'lightgrey';
-                            groupItem.apertureColor = $scope.getPicColor(item.type, 'black');
-                            groupItem.height = 0.1;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            if (groupItem.width === 0) {
-                                groupItem.x -= 0.01;
-                                groupItem.width = 0.02;
-                            }
-                            groupItem.opening = elRadius || 0.1;
-                        }
-                        else if (picType == 'alpha') {
-                            var alphaAngle = 40.71;
-                            newAngle = 180 - 2 * alphaAngle;
-                            if (length < 0.3) {
-                                groupItem.width = 0.3;
-                            }
-                            groupItem.angle = alphaAngle;
-                            groupItem.height = groupItem.width;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            length = 0;
-                        }
-                        else if (picType == 'magnet') {
-                            groupItem.height = 0.5;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = $scope.getPicColor(item.type, 'red');
-                        }
-                        else if (picType == 'undulator') {
-                            groupItem.height = 0.25;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = $scope.getPicColor(item.type, 'gray');
-                            var periods = Math.round(rpnValue(item.periods || item.poles || 0));
-                            if (periods <= 0) {
-                                periods = Math.round(5 * length);
-                            }
-                            groupItem.blockWidth = groupItem.width / (2 * periods);
-                            groupItem.blocks = [];
-                            groupItem.blockHeight = 0.03;
-                            for (var j = 0; j < 2 * periods; j++) {
-                                groupItem.blocks.push([
-                                    groupItem.x + j * groupItem.blockWidth,
-                                    j % 2
-                                        ? groupItem.y + groupItem.height / 4
-                                        : groupItem.y + groupItem.height * 3 / 4 - groupItem.blockHeight,
-                                ]);
-                            }
-                        }
-                        else if (picType == 'zeroLength' || picType == 'mirror' || (picType == 'rf' && length < 0.005)) {
-                            groupItem.color = $scope.getPicColor(item.type, 'black');
-                            groupItem.picType = 'zeroLength';
-                            groupItem.height = 0.5;
-                            groupItem.y = pos.y;
-                        }
-                        else if (picType == 'rf') {
-                            groupItem.height = 0.3;
-                            groupItem.y = pos.y;
-                            var ovalCount = Math.round(length / (groupItem.height / 2)) || 1;
-                            groupItem.ovalWidth = length / ovalCount;
-                            groupItem.ovals = [];
-                            for (var k = 0; k < ovalCount; k++) {
-                                groupItem.ovals.push(groupItem.x + k * groupItem.ovalWidth + groupItem.ovalWidth / 2);
-                            }
-                            groupItem.color = $scope.getPicColor(item.type, 'gold');
-                        }
-                        else if (picType == 'recirc') {
-                            groupItem.radius = 0.3;
-                            groupItem.y = pos.y;
-                            groupItem.leftEdge = groupItem.x - groupItem.radius;
-                            groupItem.rightEdge = groupItem.x + groupItem.radius;
-                            groupItem.color = $scope.getPicColor(item.type, 'lightgreen');
-                        }
-                        else if (picType == 'lens') {
-                            groupItem.height = 0.2;
-                            groupItem.width = 0.02;
-                            groupItem.x -= 0.01;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = $scope.getPicColor(item.type, 'lightblue');
-                        }
-                        else if (picType == 'solenoid') {
-                            if (length === 0) {
-                                groupItem.width = 0.3;
-                                groupItem.x -= 0.15;
-                            }
-                            groupItem.height = groupItem.width;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = $scope.getPicColor(item.type, 'lightblue');
-                        }
-                        else {
-                            groupItem.color = $scope.getPicColor(item.type, 'green');
-                            groupItem.height = 0.2;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                        }
-                        maxHeight = Math.max(maxHeight, groupItem.height);
-                        //groupItem.x = pos.radius + pos.x + x;
-                        group.items.push(groupItem);
-                        x += length;
-                    }
-                }
-                if (pos.angle === 0) {
-                    pos.x += x + oldRadius;
-                }
-                else {
-                    pos.x += Math.sin((90 - pos.angle) * Math.PI / 180) * (x + oldRadius);
-                    pos.y += Math.sin(pos.angle * Math.PI / 180) * (x + oldRadius);
-                }
-                updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
-                pos.angle += newAngle;
-            }
-
-            function computePositions() {
-                var pos = {
-                    x: 0,
-                    y: 0,
-                    angle: 0,
-                    radius: 0,
-                    bounds: [0, 0, 0, 0],
-                    count: 0,
-                    length: 0,
-                };
-                var explodedItems = explodeItems($scope.items);
-                var group = [];
-                var groupDone = false;
-                for (var i = 0; i < explodedItems.length; i++) {
-                    if (groupDone) {
-                        applyGroup(group, pos);
-                        group = [];
-                        groupDone = false;
-                    }
-                    //var item = $scope.latticeController.elementForId($scope.items[i]);
-                    var item = explodedItems[i];
-                    var picType = $scope.getPicType(item.type);
-                    if (picType != 'drift') {
-                        pos.count++;
-                    }
-                    if (picType == 'bend' || picType == 'alpha') {
-                        groupDone = true;
-                    }
-                    group.push(item);
-                }
-                if (group.length) {
-                    applyGroup(group, pos);
-                }
-                $scope.svgBounds = pos.bounds;
-                if (explodedItems.length > 0 && 'angle' in explodedItems[explodedItems.length - 1]) {
-                    pos.x += pos.radius;
-                }
-                return pos;
-            }
-
-            //TODO(pjm): will infinitely recurse if beamlines are self-referential
-            function explodeItems(items, res, reversed) {
-                if (! res) {
-                    res = [];
-                }
-                if (reversed) {
-                    items = items.slice().reverse();
-                }
-                for (var i = 0; i < items.length; i++) {
-                    var id = items[i];
-                    var item = $scope.latticeController.elementForId(id);
-                    if (item.type) {
-                        res.push(item);
-                    }
-                    else {
-                        explodeItems(item.items, res, id < 0);
-                    }
-                }
-                return res;
-            }
-
-            function lineIntersection(p) {
-                var s1_x = p[1][0] - p[0][0];
-                var s1_y = p[1][1] - p[0][1];
-                var s2_x = p[3][0] - p[2][0];
-                var s2_y = p[3][1] - p[2][1];
-                var t = (s2_x * (p[0][1] - p[2][1]) - s2_y * (p[0][0] - p[2][0])) / (-s2_x * s1_y + s1_x * s2_y);
-                return [
-                    p[0][0] + (t * s1_x),
-                    p[0][1] + (t * s1_y)];
-            }
-
-            function loadItemsFromBeamline(forceUpdate) {
-                var id = $scope.latticeController.activeBeamlineId;
-                if (! id) {
-                    $scope.items = emptyList;
-                    return;
-                }
-                var beamline = $scope.latticeController.getActiveBeamline();
-                if (! forceUpdate && appState.deepEquals(beamline.items, $scope.items)) {
-                    return;
-                }
-                $scope.items = appState.clone(beamline.items);
-                $scope.svgGroups = [];
-                var pos = computePositions();
-                beamline.distance = Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2));
-                beamline.length = pos.length;
-                beamline.angle = pos.angle * Math.PI / 180;
-                beamline.count = pos.count;
-                $scope.resize();
-            }
-
-            function recalcScaleMarker() {
-                //TODO(pjm): use library for this
-                $scope.markerUnits = '1 m';
-                $scope.markerWidth = $scope.scale * $scope.zoomScale;
-                if ($scope.markerWidth < 20) {
-                    $scope.markerUnits = '10 m';
-                    $scope.markerWidth *= 10;
-                    if ($scope.markerWidth < 20) {
-                        $scope.markerUnits = '100 m';
-                        $scope.markerWidth *= 10;
-                    }
-                }
-                else if ($scope.markerWidth > 200) {
-                    $scope.markerUnits = '10 cm';
-                    $scope.markerWidth /= 10;
-                    if ($scope.markerWidth > 200) {
-                        $scope.markerUnits = '1 cm';
-                        $scope.markerWidth /= 10;
-                    }
-                }
-            }
-
-            function resetZoomAndPan() {
-                $scope.zoomScale = 1;
-                $scope.zoom.scale($scope.zoomScale);
-                $scope.panTranslate = [0, 0];
-                $scope.zoom.translate($scope.panTranslate);
-                updateZoomAndPan();
-            }
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            function updateBounds(bounds, x, y, buffer) {
-                if (x - buffer < bounds[0]) {
-                    bounds[0] = x - buffer;
-                }
-                if (y - buffer < bounds[1]) {
-                    bounds[1] = y - buffer;
-                }
-                if (x + buffer > bounds[2]) {
-                    bounds[2] = x + buffer;
-                }
-                if (y + buffer > bounds[3]) {
-                    bounds[3] = y + buffer;
-                }
-            }
-
-            function updateZoomAndPan() {
-                recalcScaleMarker();
-                $scope.container.attr("transform", "translate(" + $scope.panTranslate + ")scale(" + $scope.zoomScale + ")");
-            }
-
-            function zoomed() {
-                $scope.zoomScale = d3.event.scale;
-
-                if ($scope.zoomScale == 1) {
-                    $scope.panTranslate = [0, 0];
-                    $scope.zoom.translate($scope.panTranslate);
-                }
-                else {
-                    //TODO(pjm): don't allow translation outside of image boundaries
-                    $scope.panTranslate = d3.event.translate;
-                }
-                updateZoomAndPan();
-                $scope.$digest();
-            }
-
-            $scope.getPicColor = function(type, defaultColor) {
-                return $scope.latticeController.elementColor[type] || defaultColor;
-            };
-
-            $scope.getPicType = function(type) {
-                if (! picTypeCache) {
-                    picTypeCache = {};
-                    var elementPic = $scope.latticeController.elementPic;
-                    for (var picType in elementPic) {
-                        var types = elementPic[picType];
-                        for (var i = 0; i < types.length; i++) {
-                            picTypeCache[types[i]] = picType;
-                        }
-                    }
-                }
-                return picTypeCache[type];
-            };
-
-            $scope.itemClicked = function(item) {
-                $scope.latticeController.editElement(item.type, item);
-            };
-
-            $scope.resize = function() {
-                if (select().empty()) {
-                    return;
-                }
-                var width = parseInt(select().style('width'));
-                if (isNaN(width)) {
-                    return;
-                }
-                $scope.width = width;
-                $scope.height = $scope.width;
-                var windowHeight = $($window).height();
-                if ($scope.height > windowHeight / 2.5) {
-                    $scope.height = windowHeight / 2.5;
-                }
-
-                if ($scope.svgBounds) {
-                    var w = $scope.svgBounds[2] - $scope.svgBounds[0];
-                    var h = $scope.svgBounds[3] - $scope.svgBounds[1];
-                    if (w === 0 || h === 0) {
-                        return;
-                    }
-                    var scaleWidth = $scope.width / w;
-                    var scaleHeight = $scope.height / h;
-                    var scale = 1;
-                    var xOffset = 0;
-                    var yOffset = 0;
-                    if (scaleWidth < scaleHeight) {
-                        scale = scaleWidth;
-                        yOffset = ($scope.height - h * scale) / 2;
-                    }
-                    else {
-                        scale = scaleHeight;
-                        xOffset = ($scope.width - w * scale) / 2;
-                    }
-                    $scope.scale = scale;
-                    $scope.xOffset = - $scope.svgBounds[0] * scale + xOffset;
-                    $scope.yOffset = - $scope.svgBounds[1] * scale + yOffset;
-                    recalcScaleMarker();
-                }
-            };
-
-            $scope.init = function() {
-                $scope.zoom = d3.behavior.zoom()
-                    .scaleExtent([1, 50])
-                    .on('zoom', zoomed);
-                //TODO(pjm): call stopPropagation() on item double-click instead, would allow double-click zoom on empty space
-                select('svg').call($scope.zoom)
-                    .on('dblclick.zoom', null);
-                $scope.container = select('.sr-zoom-plot');
-                loadItemsFromBeamline();
-            };
-
-            $scope.destroy = function() {
-                if ($scope.zoom) {
-                    $scope.zoom.on('zoom', null);
-                }
-            };
-
-            $scope.$on('modelChanged', function(e, name) {
-                if (name == 'beamlines') {
-                    loadItemsFromBeamline();
-                }
-                if (name == 'rpnVariables') {
-                    loadItemsFromBeamline(true);
-                }
-                if (appState.models[name] && appState.models[name]._id) {
-                    if ($scope.items.indexOf(appState.models[name]._id) >= 0) {
-                        loadItemsFromBeamline(true);
-                    }
-                }
-            });
-
-            $scope.$on('cancelChanges', function(e, name) {
-                if (name == 'elements') {
-                    loadItemsFromBeamline(true);
-                }
-            });
-
-            $scope.$on('activeBeamlineChanged', function() {
-                loadItemsFromBeamline();
-                resetZoomAndPan();
-            });
-        },
-        link: function link(scope, element) {
-            plotting.linkPlot(scope, element);
         },
     };
 });
@@ -3451,63 +1919,6 @@ SIREPO.app.directive('runSimulationFields', function() {
     };
 });
 
-SIREPO.app.directive('splitPanels', function($window) {
-    var GUTTER_SIZE = 20;
-    var MAX_TOP_PERCENT = 85;
-    var MIN_TOP_PERCENT = 15;
-    var TOP_PAD = 12;
-    return {
-        controller: function($scope) {
-
-            function totalHeight() {
-                return $($window).height() - $scope.el.offset().top;
-            }
-
-            function childHeight(panel) {
-                return panel.children().first().height();
-            }
-
-            $scope.constrainTopPanelHeight = function() {
-                var topPanel = $('#sr-top-panel');
-                var topHeight = topPanel.height();
-                var maxHeight = childHeight(topPanel);
-                var bottomPanel = $('#sr-bottom-panel');
-                var bothFit = maxHeight + TOP_PAD + GUTTER_SIZE + childHeight(bottomPanel) < totalHeight();
-                // if topPanel is sized too large or both panels fit in the page height
-                if (topHeight > maxHeight || bothFit) {
-                    // set split sizes to exactly fit the top panel
-                    var splitterHeight = $scope.el.height();
-                    var x = Math.min(Math.max((maxHeight + TOP_PAD) * 100 / splitterHeight, MIN_TOP_PERCENT), MAX_TOP_PERCENT);
-                    $scope.split.setSizes([x, 100 - x]);
-                }
-                $scope.el.find('.gutter').css('visibility', bothFit ? 'hidden' : 'visible');
-            };
-            $scope.panelHeight = function() {
-                if (! $scope.el) {
-                    return '0';
-                }
-                // the DOM is not yet in the state to be measured, check sizes in next cycle
-                // can't use $timeout() here because it causes an endless digest loop
-                setTimeout($scope.constrainTopPanelHeight, 0);
-                return totalHeight() + 'px';
-            };
-        },
-        link: function(scope, element) {
-            scope.el = $(element);
-            scope.split = Split(['#sr-top-panel', '#sr-bottom-panel'], {
-                direction: 'vertical',
-                gutterSize: GUTTER_SIZE,
-                snapOffset: 0,
-                sizes: [25, 75],
-                onDrag: scope.constrainTopPanelHeight,
-            });
-            scope.$on('$destroy', function() {
-                scope.split.destroy();
-            });
-        },
-    };
-});
-
 SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
     return {
         restrict: 'A',
@@ -3568,10 +1979,13 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                     return;
                 }
                 var files = [];
+                var modelKeys = [];
                 $scope.outputInfo.forEach(function (v) {
                     files.push(v.filename);
+                    modelKeys.push(v.modelKey);
                 });
                 appState.models.parameterTable.valueList.file = files;
+                appState.models.parameterTable.valueList.modelKey = modelKeys;
                 fileChanged();
             }
 
@@ -3616,6 +2030,12 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                 if (units == 'm$a2$n') {
                     return $sce.trustAsHtml(' m<sup>2</sup>');
                 }
+                if (units == '1/m$a2$n') {
+                    return $sce.trustAsHtml(' 1/(m<sup>2</sup>)');
+                }
+                if (units == '1/(2$gp$r)') {
+                    return $sce.trustAsHtml(' 1/(2𝜋)');
+                }
                 if (/^[\w/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);
                 }
@@ -3626,21 +2046,10 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             }
 
             $scope.outputInfo = null;
-            $scope.appState = appState;
             appState.whenModelsLoaded($scope, modelsLoaded);
             $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
             appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
             appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
         }
     };
-});
-
-//TODO(pjm): required for stacked modal for editors with fileUpload field, rework into sirepo-components.js
-// from http://stackoverflow.com/questions/19305821/multiple-modals-overlay
-$(document).on('show.bs.modal', '.modal', function () {
-    var zIndex = 1040 + (10 * $('.modal:visible').length);
-    $(this).css('z-index', zIndex);
-    setTimeout(function() {
-        $('.modal-backdrop').not('.modal-stack').css('z-index', zIndex - 1).addClass('modal-stack');
-    }, 0);
 });

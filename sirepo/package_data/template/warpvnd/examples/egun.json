@@ -85,7 +85,10 @@
             "hidden": []
         },
         "particleAnimation": {
-            "particleLimit": "100",
+            "renderCount": "100",
+            "startTime": 1512001962
+        },
+        "particle3d": {
             "renderCount": "10",
             "startTime": 1512001962
         },
@@ -109,5 +112,5 @@
         }
     },
     "simulationType": "warpvnd",
-    "version": "20171117.000002"
+    "version": "20180613.000000"
 }

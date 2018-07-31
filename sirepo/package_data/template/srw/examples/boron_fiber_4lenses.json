@@ -3,7 +3,7 @@
         "beamline": [
             {
                 "absoluteFocusPosition": "56.9673",
-                "attenuationLength": "6.257350e-3",
+                "attenuationLength": "0.006257",
                 "focalDistance": "13.2501",
                 "focalPlane": 2,
                 "horizontalApertureSize": 1,
@@ -34,7 +34,7 @@
                 "exteriorAttenuationLength": "2.412290e-3",
                 "exteriorMaterial": "B",
                 "exteriorRefractiveIndex": "6.228746e-6",
-                "externalAttenuationLength": "2.412290e-3",
+                "externalAttenuationLength": "0.002412",
                 "externalDiameter": 0.0001,
                 "externalMaterial": "B",
                 "externalRefractiveIndex": "6.228746e-6",

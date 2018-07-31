@@ -4,21 +4,17 @@
 
       <div class="panel panel-info">
         <div class="panel-heading clearfix">
-          <span class="sr-panel-heading">Simulation Status</span>
-          <div class="sr-panel-options pull-right">
+          <div data-simple-heading="Simulation Status" data-model-key="visualization.statusModel">
             <div class="dropdown" style="display: inline-block">
               <a data-ng-if="visualization.simState.isStopped()" href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
               <ul class="dropdown-menu dropdown-menu-right">
                 <li class="dropdown-header">Download</li>
                 <li><a href data-ng-href="{{ visualization.logFileURL() }}" target="_blank">Elegant Log File</a></li>
-                <li data-ng-repeat="item in visualization.auxFiles"><a data-ng-href="{{ visualization.downloadFileUrl(item) }}">{{ item.filename }}</a></li>
               </ul>
             </div>
-            <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-hide="visualization.panelState.isHidden('simulationStatus')" title="Hide"><span class="sr-panel-heading glyphicon glyphicon-chevron-up"></span></a>
-            <a href data-ng-click="visualization.panelState.toggleHidden('simulationStatus')" data-ng-show="visualization.panelState.isHidden('simulationStatus')" title="Show"><span class="sr-panel-heading glyphicon glyphicon-chevron-down"></span></a>
           </div>
         </div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
+        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden(visualization.statusModel)">
           <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="visualization.simState.isProcessing()">
             <div class="col-sm-12" data-ng-show="visualization.simState.isStatePending()">
               <div>
@@ -47,7 +43,7 @@
               </span>
               <br><br>
               <div data-ng-if="visualization.simulationErrors" class="well well-lg">
-                <div class="text-warning"><strong>elegant Errors:</strong></div>
+                <div class="text-warning"><strong>{{ visualization.errorHeader() }}</strong></div>
                   <p class="elegant-error-box">{{ visualization.simulationErrors }}</p>
                   <br>
                   <a data-ng-href="{{ visualization.logFileURL() }}" target="_blank">View elegant log</a>

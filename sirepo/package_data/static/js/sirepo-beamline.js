@@ -3,17 +3,33 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.factory('beamlineService', function(appState, validationService, $window) {
+SIREPO.app.factory('beamlineService', function(appState, panelState, validationService, $window, $rootScope) {
     var self = this;
     var canEdit = true;
     //TODO(pjm) keep in sync with template_common.DEFAULT_INTENSITY_DISTANCE
     // consider moving to "constant" section of schema
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
+    self.coherence = 'full';
+    var browserSupportsSVGForeignObject = false;
 
     // Try to detect mobile/tablet devices using Mozilla recommendation below
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
     var isTouchscreen = /Mobi|Silk/i.test($window.navigator.userAgent);
+
+    function testSVGForeignObject() {
+        var image = new Image();
+        image.onload = function () {
+            browserSupportsSVGForeignObject = true;
+        };
+        // MS Edge will have an error unless the % is replaced with &#37;
+        // there are other SVG rendering issues with MS Edge, so it will be disabled for now
+        image.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect></rect></svg>';
+    }
+
+    self.browserSupportsSVGForeignObject = function() {
+        return browserSupportsSVGForeignObject;
+    };
 
     self.dismissPopup = function() {
         $('.srw-beamline-element-label').popover('hide');
@@ -24,6 +40,16 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
             return self.activeItem.title;
         }
         return '';
+    };
+
+    self.getItemById = function(id) {
+        var savedModelValues = appState.applicationState();
+        if(! id || ! savedModelValues.beamline) {
+            return null;
+        }
+        return savedModelValues.beamline.filter(function (item) {
+            return item.id == id;
+        })[0];
     };
 
     self.getReportTitle = function(modelName, itemId) {
@@ -42,7 +68,10 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
             distance = ', ' + model.distanceFromSource + 'm';
         }
         else if (appState.isAnimationModelName(modelName)) {
-            distance = ', ' + savedModelValues.beamline[savedModelValues.beamline.length - 1].position + 'm';
+            if (savedModelValues.beamline.length) {
+                var item = model.watchpointId ? self.getItemById(model.watchpointId) : savedModelValues.beamline[savedModelValues.beamline.length - 1];
+                distance = ', ' + item.position + 'm';
+            }
         }
         else if (modelName == 'initialIntensityReport') {
             if (savedModelValues.beamline && savedModelValues.beamline.length) {
@@ -73,6 +102,62 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         }
         return [];
     };
+    self.getWatchReports = function() {
+        var items = self.getWatchItems();
+        var rpts = [];
+        for(var iIndex = 0; iIndex < items.length;  ++iIndex) {
+            rpts.push(self.watchpointReportName(items[iIndex].id));
+        }
+        return rpts;
+    };
+    self.getWatchIds = function() {
+        return self.getWatchItems().map(function (item) {
+            return item.id;
+        });
+    };
+
+    self.watchpointPriorityMap = {};
+    self.addPriority = function(name, initialPriority) {
+        if(! name) {
+            return NaN;
+        }
+        // this priority has already been assigned to this watchpoint, ignore
+        if(self.watchpointPriorityMap[name] === initialPriority) {
+            return initialPriority;
+        }
+        // new priority
+        var newPriority = initialPriority;
+        if(! self.watchpointPriorityMap[name]) {
+            self.watchpointPriorityMap[name] = newPriority;
+            return newPriority;
+        }
+        // this priority already in use, change it to the first unused number
+        var priorities = Object.values(self.watchpointPriorityMap);
+        var pIndex = priorities.indexOf(initialPriority) + 1;
+        for(var i = pIndex; i < priorities.length; ++i) {
+            if(priorities[i] != newPriority) {
+                self.watchpointPriorityMap[name] = newPriority;
+                return newPriority;
+            }
+            ++newPriority;
+        }
+        self.watchpointPriorityMap[name] = newPriority;
+        return newPriority;
+    };
+    function cleanPriorityMap() {
+        var rpts = self.getWatchReports();
+        var rptsToClean = [];
+        var prioritizedReports = Object.keys(self.watchpointPriorityMap);
+        for(var prIndex = 0; prIndex < prioritizedReports.length; ++prIndex) {
+            var prName = prioritizedReports[prIndex];
+            if(rpts.indexOf(prName) < 0) {
+                rptsToClean.push(prName);
+            }
+        }
+        for(var cIndex = 0; cIndex < rptsToClean.length; ++cIndex) {
+            delete self.watchpointPriorityMap[rptsToClean[cIndex]];
+        }
+    }
 
     self.isActiveItemValid = function() {
         return self.isItemValid(self.activeItem);
@@ -173,29 +258,39 @@ SIREPO.app.factory('beamlineService', function(appState, validationService, $win
         return 'watchpointReport' + id;
     };
 
+    testSVGForeignObject();
+
+    $rootScope.$on('beamline.changed', function (event) {
+        cleanPriorityMap();
+    });
+
     return self;
 });
 
-SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
+SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, panelState) {
     return {
         restrict: 'A',
         transclude: true,
         scope: {
             parentController: '=beamlineBuilder',
             beamlineModels: '=',
-        },
+            showActiveWatchpoints: '<',
+            activeWatchpointTitle: '@',
+       },
         template: [
             '<div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">',
               '<div data-ng-transclude=""></div>',
-              '<p class="lead text-center">beamline definition area<br>',
-              '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
+              '<p class="lead text-center">beamline definition area ',
+                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-picture"></span></button><br>',
+                '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
-                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)">&nbsp;</div>',
+                  '<div data-ng-if="$first" class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween(0, $data)"> </div>',
                   '<div data-ng-drag="true" data-ng-drag-data="item" data-item="item" data-beamline-item="" ',
+                    'data-show-active-watchpoints="showActiveWatchpoints" data-active-watchpoint-title="{{ activeWatchpointTitle }}" data-is-watchpoint-active="isWatchpointActive(item)" data-set-watchpoint-active="setWatchpointActive(item)" ',
                     'class="srw-beamline-element {{ beamlineService.isTouchscreen() ? \'\' : \'srw-hover\' }}" ',
                     'data-ng-class="{\'srw-disabled-item\': item.isDisabled, \'srw-beamline-invalid\': ! beamlineService.isItemValid(item)}">',
-                  '</div><div class="srw-drop-between-zone" data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)">&nbsp;</div>',
+                  '</div><div class="srw-drop-between-zone" data-ng-attr-style="width: {{ dropBetweenWidth }}px"  data-ng-drop="true" data-ng-drop-success="dropBetween($index + 1, $data)"> </div>',
                 '</div>',
             '</div>',
             '<div class="row"><div class="srw-popup-container-lg col-sm-10 col-md-8 col-lg-6"></div></div>',
@@ -210,8 +305,18 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.beamlineService = beamlineService;
+            $scope.setWatchpointActive = function(item) {
+                if(! $scope.parentController.setWatchpointActive) {
+                    return;
+                }
+                return $scope.parentController.setWatchpointActive(item);
+            };
+            $scope.isWatchpointActive = function(item) {
+                return $scope.parentController.isWatchpointActive(item);
+            };
 
+            $scope.beamlineService = beamlineService;
+            $scope.dropBetweenWidth = 20;
             function addItem(item) {
                 var newItem = appState.clone(item);
                 newItem.id = appState.maxId(appState.models.beamline) + 1;
@@ -242,13 +347,35 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                 beamlineService.dismissPopup();
                 appState.cancelChanges($scope.beamlineModels);
             };
+            $scope.createBeamlinePNG = function() {
+                var container = $('.srw-beamline-container');
+                // adds special class which formats beamline for printing
+                container.addClass('srw-beamline-container-png');
+                domtoimage.toBlob(container[0])
+                    .then(function(blob) {
+                        container.removeClass('srw-beamline-container-png');
+                        window.saveAs(blob, panelState.fileNameFromText(appState.models.simulation.name, 'png'));
+                    })
+                    .catch(function(error) {
+                        container.removeClass('srw-beamline-container-png');
+                    });
+            };
             $scope.dropComplete = function(data) {
                 if (data && ! data.id) {
                     addItem(data);
                 }
             };
             $scope.getBeamline = function() {
+                if (appState.models.beamline) {
+                    $scope.dropBetweenWidth = appState.models.beamline.length > 8 ? 10 : 20;
+                }
                 return appState.models.beamline;
+            };
+            $scope.hasBeamlineElements = function() {
+                if (appState.models.beamline) {
+                    return appState.models.beamline.length > 0;
+                }
+                return false;
             };
             $scope.dropBetween = function(index, data) {
                 if (! data) {
@@ -293,6 +420,10 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService) {
                     });
                 }
                 return isDirty;
+            };
+            $scope.showPNGDownloadLink = function() {
+                return appState.isLoaded() && appState.models.beamline.length
+                    && beamlineService.browserSupportsSVGForeignObject();
             };
 
             $scope.saveBeamlineChanges = function() {
@@ -340,8 +471,8 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
               '</g>',
               '<g data-ng-switch-when="aperture">',
-                '<rect x="23", y="0", width="5", height="24" class="srw-aperture" />',
-                '<rect x="23", y="36", width="5", height="24" class="srw-aperture" />',
+                '<rect x="23" y="0" width="5" height="24" class="srw-aperture" />',
+                '<rect x="23" y="36" width="5" height="24" class="srw-aperture" />',
               '</g>',
               '<g data-ng-switch-when="ellipsoidMirror">',
                 '<path d="M30 2 C40 10 40 50 30 58 L43 58 L43 2 L30 2" class="srw-mirror" />',
@@ -351,17 +482,17 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<polygon points="24,0 20,15, 24,17 20,30 24,32 20,45 24,47 20,60 24,60 28,60 28,0" class="srw-mirror" />',
               '</g>',
               '<g data-ng-switch-when="mirror">',
-                '<rect x="23" y="0" width="5", height="60" class="srw-mirror" />',
+                '<rect x="23" y="0" width="5" height="60" class="srw-mirror" />',
               '</g>',
               '<g data-ng-switch-when="sphericalMirror">',
                 '<path d="M28 6 C54 10 54 50 28 54 L49 54 L49 6 L28 6" class="srw-mirror" />',
                 '<ellipse cx="24" cy="30" rx="23" ry="23" class="srw-curvature" />',
               '</g>',
               '<g data-ng-switch-when="obstacle">',
-                '<rect x="15" y="20" width="20", height="20" class="srw-obstacle" />',
+                '<rect x="15" y="20" width="20" height="20" class="srw-obstacle" />',
               '</g>',
               '<g data-ng-switch-when="crl">',
-                '<rect x="15", y="0", width="20", height="60" class="srw-crl" />',
+                '<rect x="15" y="0" width="20" height="60" class="srw-crl" />',
                 '<path d="M25 0 C30 10 30 50 25 60" class="srw-lens" />',
                 '<path d="M25 60 C20 50 20 10 25 0" class="srw-lens" />',
                 '<path d="M15 0 C20 10 20 50 15 60" class="srw-lens" />',
@@ -370,7 +501,7 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M35 60 C30 50 30 10 35 0" class="srw-lens" />',
               '</g>',
               '<g data-ng-switch-when="crystal">',
-                '<rect x="8" y="25" width="50", height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
+                '<rect x="8" y="25" width="50" height="6" class="srw-crystal" transform="translate(0) rotate(-30 50 50)" />',
               '</g>',
               '<g data-ng-switch-when="fiber" transform="translate(0) rotate(20 20 40)">',
                 '<path d="M-10,35 L10,35" class="srw-fiber"/>',
@@ -380,7 +511,7 @@ SIREPO.app.directive('beamlineIcon', function() {
                 '<path d="M40,35 L60,35" class="srw-fiber"/>',
               '</g>',
               '<g data-ng-switch-when="mask">',
-                '<rect x="0" y="10" width="50", height="50" />',
+                '<rect x="0" y="10" width="50" height="50" />',
                 '<circle cx="10" cy="20" r="2" class="srw-mask" />',
                 '<circle cx="20" cy="20" r="2" class="srw-mask" />',
                 '<circle cx="30" cy="20" r="2" class="srw-mask" />',
@@ -450,17 +581,22 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
     return {
         scope: {
             item: '=',
+            showActiveWatchpoints: '<',
+            activeWatchpointTitle: '@',
+            isWatchpointActive: '&',
+            setWatchpointActive: '&',
         },
         template: [
             '<span class="srw-beamline-badge badge">{{ item.position ? item.position + \'m\' : (item.position === 0 ? \'0m\' : \'⚠ \') }}</span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon glyphicon glyphicon-remove-circle" title="Delete Element"></span>',
+            '<span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon glyphicon glyphicon-ok" data-ng-class="{\'srw-beamline-report-icon-active\': isWatchpointActive(item)}" data-ng-style="activeIconPosition()" title="{{ activeWatchpointTitle }}"></span>',
             '<span data-ng-if="showItemButtons()" data-ng-click="toggleDisableElement(item)" class="srw-beamline-disable-icon glyphicon"  data-ng-class="{\'glyphicon-ok-circle\': item.isDisabled, \' glyphicon-ban-circle\': ! item.isDisabled}" title="{{ enableItemToggleTitle() }}"></span>',
             '<div class="srw-beamline-image">',
-              '<span data-beamline-icon="", data-item="item"></span>',
+              '<span data-beamline-icon="" data-item="item"></span>',
             '</div>',
             '<div data-ng-attr-id="srw-item-{{ item.id }}" class="srw-beamline-element-label">{{ (beamlineService.isItemValid(item) ? \'\' : \'⚠ \') + item.title }}<span class="caret"></span></div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
             $scope.beamlineService = beamlineService;
             $scope.showItemButtons = function() {
                 return beamlineService.isEditable();
@@ -472,6 +608,15 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
                 else {
                     item.isDisabled = true;
                 }
+            };
+
+            $scope.showActiveIcon = function(item) {
+                return item.type === 'watch' && $scope.showActiveWatchpoints;
+            };
+            $scope.activeIconPosition = function() {
+                return {
+                    left: ($($element).width() - $($element).find('.srw-beamline-report-icon').width()) / 2 + 'px'
+                };
             };
         },
         link: function(scope, element) {
@@ -580,7 +725,7 @@ SIREPO.app.directive('beamlineItemEditor', function(appState, beamlineService) {
         },
         template: [
             '<div>',
-              '<button type="button" class="close" ng-click="cancelItemChanges()"><span>&times;</span></button>',
+              '<button type="button" class="close" data-ng-click="beamlineService.dismissPopup()"><span>&times;</span></button>',
               '<div data-help-button="{{ title }}"></div>',
               '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
                 '<div class="sr-beamline-element-title">{{ title }}</div>',
@@ -624,11 +769,14 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
               '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
             '</div>',
             '<div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
-              '<div data-watchpoint-report="" data-request-priority="{{ $index + 2 }}" data-item-id="item.id"></div>',
+              '<div data-watchpoint-report="" data-get-request-priority="getPriorityForItem(item, $index)" data-item-id="item.id"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
+            $scope.getPriorityForItem = function(item, index) {
+                return beamlineService.addPriority(beamlineService.watchpointReportName(item.id), index + 2);
+            };
         },
     };
 });
@@ -641,7 +789,6 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             parentController: '=',
         },
         template: [
-            '<div data-drag-and-drop-support=""></div>',
             '<div class="row">',
               '<div class="col-sm-12">',
                 '<div class="text-center bg-info sr-toolbar-holder">',
@@ -665,7 +812,6 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.allItems = [];
-
             function addItem(name, items) {
                 var featureName = name + '_in_toolbar';
                 if (featureName in SIREPO.APP_SCHEMA.feature_config) {
@@ -725,13 +871,38 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
     return {
         scope: {
             itemId: '=',
-            requestPriority: '@',
+            getRequestPriority: '&',
         },
         template: [
             '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
         ].join(''),
         controller: function($scope) {
             beamlineService.setupWatchpointDirective($scope);
+        },
+    };
+});
+
+SIREPO.app.directive('watchPointList', function(appState, beamlineService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.id as wpOptionTitle(item) for item in watchItems"></select>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.watchItems = null;
+            $scope.wpOptionTitle = function(item) {
+                return item.title + ' (' + item.position + 'm)';
+            };
+            function updateWatchItems() {
+                // need a clone of the items because the ngOptions modifies the values
+                $scope.watchItems = appState.clone(beamlineService.getWatchItems());
+            }
+            appState.whenModelsLoaded($scope, updateWatchItems);
+            $scope.$on('modelChanged', updateWatchItems);
         },
     };
 });

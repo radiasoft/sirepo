@@ -1,4 +1,19 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/jspec-source.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/jspec-visualization.html"
+            }
+        }
+    },
     "enum": {
         "Boolean": [
             ["0", "No"],
@@ -96,20 +111,34 @@
         "SimulationModel": [
             ["rms", "RMS"],
             ["particle", "Particle"]
+        ],
+        "TwissParameter": [
+            ["betx", "betax"],
+            ["alfx", "alphax"],
+            ["mux", "mux"],
+            ["dx", "dx"],
+            ["dpx", "dpx"],
+            ["bety", "betay"],
+            ["alfy", "alphay"],
+            ["muy", "muy"],
+            ["dy", "dy"],
+            ["dpy", "dpy"],
+            ["none", "None"]
         ]
     },
     "model": {
         "beamEvolutionAnimation": {
             "y1": ["Y1 Value", "BeamColumn", "emitx"],
             "y2": ["Y2 Value", "BeamOptionalColumn", "emity"],
-            "y3": ["Y3 Value", "BeamOptionalColumn", "none"]
+            "y3": ["Y3 Value", "BeamOptionalColumn", "none"],
+            "notes": ["Notes", "Text", ""]
         },
         "cooler": {
-            "length": ["Length [m]", "Float"],
+            "length": ["Length (lab frame) [m]", "Float", 3.4, "", 1e-99],
             "section_number": ["Number of Coolers", "Integer", 1],
             "magnetic_field": ["Magnetic Field [T]", "Float", 0.039],
-            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function"],
-            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function"],
+            "bet_x": ["Horizontal Beta [m]", "Float", 10.0, "Beta function", 1e-99],
+            "bet_y": ["Vertical Beta [m]", "Float", 10.0, "Beta function", 1e-99],
             "disp_x": ["Horizontal Dispersion [m]", "Float", 0.0],
             "disp_y": ["Vertical Dispersion [m]", "Float", 0.0],
             "alpha_x": ["Horizontal Alpha", "Float", 0.0],
@@ -120,45 +149,46 @@
         "coolingRatesAnimation": {
             "y1": ["Y1 Value", "CoolingRatesColumn", "rx"],
             "y2": ["Y2 Value", "CoolingRatesOptionalColumn", "ry"],
-            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"]
+            "y3": ["Y3 Value", "CoolingRatesOptionalColumn", "rs"],
+            "notes": ["Notes", "Text", ""]
         },
         "electronBeam": {
             "gamma": ["Gamma", "Float", null, "Lorentz factor gamma for the cooling electron beam."],
-            "tmp_tr": ["Transverse Temperature [eV]", "Float"],
-            "tmp_l": ["Longitudinal Temperature [eV]", "Float"],
+            "tmp_tr": ["Transverse Temperature [eV]", "Float", 0.1, "", 0],
+            "tmp_l": ["Longitudinal Temperature [eV]", "Float", 0.01, "", 0],
             "shape": ["Shape", "ElectronBeamShape", "dc_uniform", "Shape of the electron beam."],
-            "radius": ["Radius [m]", "Float"],
-            "current": ["Current [A]", "Float"],
-            "sigma_x": ["Horizontal RMS Size", "Float"],
-            "sigma_y": ["Vertical RMS Size", "Float"],
-            "sigma_z": ["RMS Bunch Length", "Float"],
-            "length": ["Length [m]", "Float"],
-            "e_number": ["Number of Electrons", "Float"],
+            "radius": ["Radius [m]", "Float", 0.004, "", 1e-99],
+            "current": ["Current [A]", "Float", 2, "", 0],
+            "sigma_x": ["Horizontal RMS Size", "Float", 1.5e-2, "", 1e-99],
+            "sigma_y": ["Vertical RMS Size", "Float", 1.5e-2, "", 1e-99],
+            "sigma_z": ["RMS Bunch Length", "Float", 2e-2, "", 1e-99],
+            "length": ["Length [m]", "Float", 0.2, "", 1e-99],
+            "e_number": ["Number of Electrons", "Float", 1e8, "", 1],
             "beam_type": ["Beam Type", "BeamType", "bunched"],
-            "rh": ["Horizontal Semi-Axis Length [m]", "Float", 0.004],
-            "rv": ["Vertical Semi-Axis Length [m]", "Float", 0.004]
+            "rh": ["Horizontal Semi-Axis Length [m]", "Float", 0.004, "", 1e-99],
+            "rv": ["Vertical Semi-Axis Length [m]", "Float", 0.004, "", 1e-99]
         },
         "electronCoolingRate": {
-            "sample_number": ["Number of Sample Ions", "Float"],
+            "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
             "force_formula": ["Force Formula", "ForceFormula"]
         },
         "intrabeamScatteringRate": {
-            "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration."],
-            "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration."],
+            "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
+            "nv": ["Vertical Grid Size", "Integer", 100, "Set the grid number in vertical direction for the 3D integration.", 1],
             "longitudinalMethod": ["Longitudinal Method", "IBSLongitudinalMethod", "nz"],
-            "nz": ["Longitudinal Grid Size", "Integer", 40, "Set the grid number in longitudinal direction for the 3D integration."],
-            "log_c": ["Coulomb Logarithm", "Float"],
-            "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1."]
+            "nz": ["Longitudinal Grid Size", "Integer", 40, "Set the grid number in longitudinal direction for the 3D integration.", 1],
+            "log_c": ["Coulomb Logarithm", "Float", 20.6, "", 1e-99],
+            "coupling": ["Transverse Coupling Rate", "Float", null, "Transverse coupling rate, ranging from 0 to 1.", 0, 1]
         },
         "ionBeam": {
-            "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion."],
-            "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion."],
-            "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion."],
-            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6],
-            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6],
-            "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam."],
-            "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam."],
-            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam."],
+            "charge_number": ["Ion Charges", "Integer", 1, "Number of the charges of the ion.", 1e-99],
+            "mass": ["Mass [MeV/c²]", "Float", 938.272, "Mass of the ion.", 1e-99],
+            "kinetic_energy": ["Kinetic Energy [MeV]", "Float", 8000.0, "Kinetic energy of the ion.", 1e-99],
+            "norm_emit_x": ["RMS Normalized Horizontal Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
+            "norm_emit_y": ["RMS Normalized Vertical Emittance [m*rad]", "Float", 2.2e-6, "", 1e-99],
+            "momentum_spread": ["RMS Momentum Spread", "Float", 0.0006, "Momentum spread of the ion beam.", 0],
+            "particle_number": ["Number of Ions", "Float", 6.58e11, "Total particle number for coasting ion beam or the particle number of one bunch for bunched ion beam.", 1],
+            "rms_bunch_length": ["RMS Bunch Length [m]", "Float", 7.0, "RMS bunch length for the bunched ion beam.", 1e-99],
             "beam_type": ["Beam Type", "BeamType", "bunched"]
         },
         "particleAnimation": {
@@ -180,26 +210,31 @@
         },
         "ring": {
             "latticeSource": ["Lattice Source", "LatticeSource", "madx", ""],
-            "lattice": ["Ring Lattice File", "InputFile", null, "This file should be in the MAD-X output format (*.tfs)."],
-            "elegantTwiss": ["Elegant twiss_output", "InputFile", null, "This file should be the SDDS output from the twiss_output command."],
+            "lattice": ["Ring Lattice File", "TwissFile", null, "This file should be in the MAD-X output format (*.tfs)."],
+            "elegantTwiss": ["Elegant twiss_output", "TwissFile", null, "This file should be the SDDS output from the twiss_output command."],
             "elegantSirepo": ["Elegant Simulation", "ElegantSimList", null]
         },
         "simulationSettings": {
-            "time": ["Total Simulation Time [s]", "Float"],
-            "step_number": ["Total Number of Steps", "Integer", null, "The time interval of each step is time/step_number."],
-            "sample_number": ["Number of Macroparticles", "Float", 10000, "Number of the sample ions. This is only used when using the Particle model to simulate the IBS expansion process without cooling."],
+            "time": ["Total Simulation Time [s]", "Float", 60, "", 1e-99],
+            "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
-            "model": ["Model", "SimulationModel", "model_beam"],
-            "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero."],
-            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", null, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation."],
-            "ref_bet_y": ["Vertical Beta Reference Point", "Float"],
+            "model": ["Model", "SimulationModel", "particle"],
+            "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.", -1],
+            "ref_bet_x": ["Horizontal Beta Reference Point", "Float", 10, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.", 1e-99],
+            "ref_bet_y": ["Vertical Beta Reference Point", "Float", 10, "", 1e-99],
             "ref_alf_x": ["Horizontal Alpha Reference Point", "Float"],
             "ref_alf_y": ["Vertical Alpha Reference Point", "Float"],
             "ref_disp_x": ["Horizontal Dispersion Reference Point", "Float"],
             "ref_disp_y": ["Vertical Dispersion Reference Point", "Float"],
             "ref_disp_dx": ["Horizontal Dispersion Derivative Reference Point", "Float"],
             "ref_disp_dy": ["Vertical Dispersion Derivative Reference Point", "Float"]
+        },
+        "simulationStatus": {},
+        "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "betx"],
+            "y2": ["Y2 Value", "TwissParameter", "bety"],
+            "y3": ["Y3 Value", "TwissParameter", "dx"]
         }
     },
     "view": {
@@ -208,7 +243,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "cooler": {
@@ -240,7 +276,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "notes"
             ]
         },
         "electronBeam": {
@@ -358,9 +395,9 @@
                 "step_number",
                 "model",
                 "save_particle_interval",
+                "electronCoolingRate.sample_number",
                 "ibs",
                 "e_cool",
-                "sample_number",
                 [
                     ["Horizontal", [
                         "ref_bet_x",
@@ -377,6 +414,18 @@
                 ]
             ],
             "advanced": [
+            ]
+        },
+        "simulationStatus": {
+            "title": "SimulationStatus",
+            "advanced": []
+        },
+        "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3"
             ]
         }
     }

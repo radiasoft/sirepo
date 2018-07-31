@@ -8,7 +8,7 @@ u"""Warp VND/WARP execution template.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 from rswarp.cathode import sources
 from rswarp.utilities.file_utils import readparticles
 from scipy import constants
@@ -19,6 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import random
 
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
@@ -27,15 +28,14 @@ WANT_BROWSER_FRAME_CACHE = True
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
-_DEFAULT_PERMITTIVITY = 7.0
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
-_REPORT_STYLE_FIELDS = ['colorMap']
-
-def background_percent_complete(report, run_dir, is_running, schema):
+def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
@@ -82,26 +82,24 @@ def background_percent_complete(report, run_dir, is_running, schema):
 
 
 def fixup_old_data(data):
-    if 'fieldReport' not in data['models']:
-        data['models']['fieldReport'] = {}
-    if 'egun_mode' not in data['models']['simulation']:
-        data['models']['simulation']['egun_mode'] = '0'
-    if 'renderCount' not in data['models']['particleAnimation']:
-        data['models']['particleAnimation']['renderCount'] = '100'
-    # fixup for old, now invalid, default data
-    if data['models']['particleAnimation']['renderCount'] == 150:
-        data['models']['particleAnimation']['renderCount'] = '100'
-    if 'egunCurrentAnimation' not in data['models']:
-        data['models']['egunCurrentAnimation'] = {
-            'framesPerSecond': '2',
-        }
-    if 'impactDensityAnimation' not in data['models']:
-        data['models']['impactDensityAnimation'] = {}
+    for m in [
+            'egunCurrentAnimation',
+            'fieldReport',
+            'impactDensityAnimation',
+            'particle3d',
+            'particleAnimation',
+            'simulation',
+            'simulationGrid',
+    ]:
+        if m not in data['models']:
+            data['models'][m] = {}
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     for c in data['models']['conductorTypes']:
         if 'isConductor' not in c:
             c['isConductor'] = '1' if c['voltage'] > 0 else '0'
-        if 'permittivity' not in c:
-            c['permittivity'] = _DEFAULT_PERMITTIVITY
+        template_common.update_model_defaults(c, 'box', _SCHEMA)
+    for c in data['models']['conductors']:
+        template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
     if 'fieldComparisonReport' not in data['models']:
         grid = data['models']['simulationGrid']
         data['models']['fieldComparisonReport'] = {
@@ -156,8 +154,8 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    if model == 'particleAnimation' or model == 'egunCurrentAnimation':
-        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' else _EGUN_CURRENT_FILE))
+    if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
+        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
     #TODO(pjm): consolidate with template/warp.py
@@ -199,7 +197,7 @@ def get_simulation_frame(run_dir, data, model_data):
         args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return _extract_field(args.field, model_data, data_file)
-    if data['modelName'] == 'particleAnimation':
+    if data['modelName'] == 'particleAnimation' or data['modelName'] == 'particle3d':
         args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
         return _extract_particle(run_dir, model_data, int(args.renderCount))
     if data['modelName'] == 'egunCurrentAnimation':
@@ -269,12 +267,11 @@ def remove_last_frame(run_dir):
             pkio.unchecked_remove(files[-1])
 
 
-def write_parameters(data, schema, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
     Args:
         data (dict): input
-        schema (dict): to validate data
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
@@ -288,20 +285,26 @@ def write_parameters(data, schema, run_dir, is_parallel):
     )
 
 
-def _add_particle_paths(electrons, x_points, y_points, limit):
+def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, limit):
     # adds paths for the particleAnimation report
     # culls adjacent path points with similar slope
+    # TODO: include z value when available
     count = 0
     cull_count = 0
+    random.seed()
     for i in range(min(len(electrons[1]), limit)):
         xres = []
         yres = []
+        zres = []
         num_points = len(electrons[1][i])
         prev_x = None
         prev_y = None
+        # prev_z = None
+        z = half_height * (2.0 * random.random() - 1.0)
         for j in range(num_points):
             x = electrons[1][i][j]
             y = electrons[0][i][j]
+            # z = electrons[2][i][j]
             if j > 0 and j < num_points - 1:
                 next_x = electrons[1][i][j+1]
                 next_y = electrons[0][i][j+1]
@@ -310,11 +313,14 @@ def _add_particle_paths(electrons, x_points, y_points, limit):
                     continue
             xres.append(x)
             yres.append(y)
+            zres.append(z)
             prev_x = x
             prev_y = y
+            # prev_z = z
         count += len(xres)
         x_points.append(xres)
         y_points.append(yres)
+        z_points.append(zres)
     pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
@@ -345,6 +351,7 @@ def _create_plots(dimension, data, values, x_range):
             pos = '{:.0f} nm'.format(x_points[index] * 1e9)
         plots.append({
             'points': points,
+            #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': color[i - 1],
             'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
         })
@@ -487,22 +494,31 @@ def _extract_particle(run_dir, data, limit):
     plate_spacing = grid['plate_spacing'] * 1e-6
     beam = data['models']['beam']
     radius = grid['channel_width'] / 2. * 1e-6
+    half_height = grid['channel_height'] if 'channel_height' in grid else 5.
+    half_height = half_height / 2. * 1e-6
     x_points = []
     y_points = []
-    _add_particle_paths(kept_electrons, x_points, y_points, limit)
+    z_points = []
+    # TODO(mvk): get zpoints from data.  For now we generate random data to fit the geometry
+    _add_particle_paths(kept_electrons, x_points, y_points, z_points, half_height, limit)
     lost_x = []
     lost_y = []
-    _add_particle_paths(lost_electrons, lost_x, lost_y, limit)
+    lost_z = []
+    _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, half_height, limit)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
         'points': y_points,
         'x_points': x_points,
+        'z_points': z_points,
         'y_range': [-radius, radius],
+        'z_range': [-half_height, half_height],
         'lost_x': lost_x,
         'lost_y': lost_y,
+        'lost_z': lost_z
     }
 
 
@@ -558,7 +574,7 @@ scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
 def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v = None
-    template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
+    template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
     v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD

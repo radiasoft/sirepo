@@ -13,6 +13,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo.template import template_common
+from sirepo import util
 import copy
 import datetime
 import errno
@@ -54,11 +55,17 @@ _ID_CHARS = numconv.BASE62
 #: length of ID
 _ID_LEN = 8
 
+#: Relative regexp from ID_Name
+_ID_PARTIAL_RE_STR = '[{}]{{{}}}'.format(_ID_CHARS, _ID_LEN)
+
 #: Verify ID
-_ID_RE = re.compile('^[{}]{{{}}}$'.format(_ID_CHARS, _ID_LEN))
+_ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
+
+#: lib relative to sim_dir
+_REL_LIB_DIR = '../' + _LIB_DIR
 
 #: Older than any other version
 _OLDEST_VERSION = '20140101.000001'
@@ -159,18 +166,24 @@ def examples(app):
     return [open_json_file(app, path=str(f), fixup=False) for f in files]
 
 
-def find_global_simulation(simulation_type, sid):
-    global_path = None
-    for path in glob.glob(
-        str(user_dir_name().join('*', simulation_type, sid))
-    ):
-        if global_path:
-            raise RuntimeError('{}: duplicate value for global sid'.format(sid))
-        global_path = path
-
-    if global_path:
-        return global_path
-    return None
+def find_global_simulation(sim_type, sid, checked=False):
+    paths = pkio.sorted_glob(user_dir_name().join('*', sim_type, sid))
+    if len(paths) == 1:
+        return str(paths[0])
+    if len(paths) == 0:
+        if checked:
+            util.raise_not_found(
+                '{}/{}: global simulation not found',
+                sim_type,
+                sid,
+            )
+        return None
+    util.raise_not_found(
+        '{}: more than one path found for simulation={}/{}',
+        paths,
+        sim_type,
+        sid,
+    )
 
 
 def fixup_old_data(data, force=False):
@@ -231,24 +244,56 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
+    # merge common local routes into app local routes
+    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], 2)
+
+    if 'appModes' not in schema:
+        schema['appModes'] = {}
+    util.merge_dicts(schema['commonAppModes'], schema['appModes'], 1)
+
     # merge common models into app models
-    common_models = schema['commonModels']
-    app_models = schema['model']
-    for model_Name in common_models:
-        if model_Name not in app_models:
-            app_models[model_Name] = common_models[model_Name]
-        for model_field_name in common_models[model_Name]:
-            if model_field_name not in app_models[model_Name]:
-                app_models[model_Name][model_field_name] = common_models[model_Name][model_field_name]
+    util.merge_dicts(schema['commonModels'], schema['model'], 2)
 
     # merge common enums into app models
-    common_enums = schema['commonEnums']
-    app_enums = schema['enum']
-    for enum_Name in common_enums:
-        if enum_Name not in app_enums:
-            app_enums[enum_Name] = common_enums[enum_Name]
+    util.merge_dicts(schema['commonEnums'], schema['enum'], 1)
 
+    # merge common views into app views - since these can be deeply nested, for now merge only
+    # the title, basic fields, and top level of advanced fields
+    common_views = schema['commonViews']
+    app_views = schema['view']
+    util.merge_dicts(common_views, app_views, 1)
+    for view_Name in common_views:
+        if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
+            app_views[view_Name]['title'] = common_views[view_Name]['title']
+        if 'basic' not in app_views[view_Name] and 'basic' in common_views[view_Name]:
+            for basic_field in common_views[view_Name]['basic']:
+                if basic_field not in app_views[view_Name]['basic']:
+                    app_views[view_Name]['basic'][basic_field] = basic_field
+        if 'advanced' in common_views[view_Name]:
+            for advanced_field in common_views[view_Name]['advanced']:
+                # ignore arrays
+                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
+                    app_views[view_Name]['advanced'].append(advanced_field)
+
+    _validate_schema(schema)
     return schema
+
+# Validate the schema itself.  Start by checking that the default data (if any) is valid -
+# other validation may follow
+def _validate_schema(schema):
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in sch_models:
+        sch_model = sch_models[model_name]
+        for field_name in sch_model:
+            sch_field_info = sch_model[field_name]
+            if len(sch_field_info) <= 2:
+                continue
+            field_default = sch_field_info[2]
+            if field_default == '' or field_default == None:
+                continue
+            _validate_enum(field_default, sch_field_info, sch_enums)
+            _validate_number(field_default, sch_field_info)
 
 
 def init_by_server(app, server):
@@ -314,7 +359,6 @@ def hack_nfs_write_status(status, run_dir):
 def iterate_simulation_datafiles(simulation_type, op, search=None):
     res = []
     sim_dir = simulation_dir(simulation_type)
-    simulation_type = simulation_type_from_dir_name(sim_dir)
     for path in glob.glob(
         str(sim_dir.join('*', SIMULATION_DATA_FILE)),
     ):
@@ -335,7 +379,9 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
 
 
 def job_id(data):
-    """A Job is a simulation and report name
+    """A Job is a simulation and report name.
+
+    A jid is words and dashes.
 
     Args:
         data (dict): extract sid and report
@@ -371,6 +417,18 @@ def json_load(*args, **kwargs):
     # Should work to use pkcollections.Dict
     #kwargs['object_pairs_hook'] = dict
     return pkcollections.json_load_any(*args, **kwargs)
+
+
+def lib_dir_from_sim_dir(sim_dir):
+    """Path to lib dir from simulation dir
+
+    Args:
+        sim_dir (py.path): simulation dir
+
+    Return:
+        py.path: directory name
+    """
+    return sim_dir.join(_REL_LIB_DIR)
 
 
 def move_user_simulations(to_uid):
@@ -424,8 +482,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
                     'userCopySimulationId': user_copy_sid,
                 },
             })
-        #TODO(robnagler) should be a regular exception or abstraction, not bound to werkzeug
-        raise werkzeug.exceptions.NotFound()
+        util.raise_not_found()
     data = None
     try:
         with open(str(path)) as f:
@@ -482,7 +539,7 @@ def poll_seconds(data):
     Returns:
         int: number of seconds to poll
     """
-    return 2 if _IS_PARALLEL_RE.search(_report_name(data)) else 1
+    return 2 if is_parallel(data) else 1
 
 
 def prepare_simulation(data):
@@ -512,7 +569,6 @@ def prepare_simulation(data):
     is_p = is_parallel(data)
     template.write_parameters(
         data,
-        get_schema(sim_type),
         run_dir=run_dir,
         is_parallel=is_p,
     )
@@ -709,6 +765,7 @@ def save_simulation_json(data, do_validate=True):
             pass
         if need_validate and do_validate:
             _validate_name(data)
+            _validate_fields(data)
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
@@ -770,14 +827,6 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
-def simulation_type_from_dir_name(d):
-    """Extract simulation_type from simulation_dir"""
-    res = d.basename
-    if _ID_RE.search(res) or res == _LIB_DIR:
-        res = py.path.local(d.dirname).basename
-    return sirepo.template.assert_sim_type(res)
-
-
 def tmp_dir():
     """Generates new, temporary directory
 
@@ -793,14 +842,24 @@ def uid_from_dir_name(dir_name):
     """Extra user id from user_dir_name
 
     Args:
-        dir_name (py.path): must be top level user dir
+        dir_name (py.path): must be top level user dir or sim_dir
+
     Return:
         str: user id
     """
-    res = dir_name.basename
-    assert _ID_RE.search(res), \
-        '{}: invalid user dir'.format(dir_name)
-    return res
+    r = re.compile(
+        r'^{}/({})(?:$|/)'.format(
+            re.escape(str(user_dir_name())),
+            _ID_PARTIAL_RE_STR,
+        ),
+    )
+    m = r.search(str(dir_name))
+    assert m, \
+        '{}: invalid user or sim dir; did not match re={}'.format(
+            dir_name,
+            r.pattern,
+        )
+    return m.group(1)
 
 
 def user_dir_name(uid=None):
@@ -852,7 +911,7 @@ def verify_app_directory(simulation_type):
     d = simulation_dir(simulation_type)
     if d.exists():
         return
-    _create_example_and_lib_files(simulation_type_from_dir_name(d))
+    _create_example_and_lib_files(simulation_type)
 
 
 def write_json(filename, data):
@@ -901,7 +960,6 @@ def write_status(status, run_dir):
 
 def _create_example_and_lib_files(simulation_type):
     d = simulation_dir(simulation_type)
-    simulation_type = simulation_type_from_dir_name(d)
     pkio.mkdir_parent(d)
     for s in examples(simulation_type):
         save_new_example(s)
@@ -1039,6 +1097,58 @@ def _validate_name(data):
             starts_with[n2] = d.models.simulation.simulationId
     if n in starts_with:
         _validate_name_uniquify(data, starts_with)
+
+# Validate that the data follows the definitions in the schema (fixup_old_data e.g. directly sets data)
+def _validate_fields(data):
+    schema = get_schema(data.simulationType)
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in data.models:
+        if not model_name in sch_models:
+            continue
+        sch_model = sch_models[model_name]
+        model_data = data.models[model_name]
+        for field_name in model_data:
+            if not field_name in sch_model:
+                continue
+            val = model_data[field_name]
+            if val == '':
+                continue
+            sch_field_info = sch_model[field_name]
+            _validate_enum(val, sch_field_info, sch_enums)
+            _validate_number(val, sch_field_info)
+
+
+# Ensure the value of a numeric field falls within the supplied limits (if any)
+# Note that currently the values in enum arrays at the indices below are sometimes
+# used for other purposes, so we return for non-numeric values rather than fail
+def _validate_number(val, sch_field_info):
+    if len(sch_field_info) <= 4:
+        return
+    min = sch_field_info[4]
+    try:
+        fv = float(val)
+        fmin = float(min)
+    except ValueError:
+        return
+    if fv < fmin:
+        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+    if len(sch_field_info) > 5:
+        max = sch_field_info[5]
+        try:
+            fmax = float(max)
+        except ValueError:
+            return
+        if fv > fmax:
+            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+
+
+def _validate_enum(val, sch_field_info, sch_enums):
+    type = sch_field_info[1]
+    if not type in sch_enums:
+        return
+    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
+        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
 
 
 def _validate_name_uniquify(data, starts_with):

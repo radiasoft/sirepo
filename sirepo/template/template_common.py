@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
@@ -17,10 +18,14 @@ import os.path
 import re
 import sirepo.template
 
+ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
+
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
 INPUT_BASE_NAME = 'in'
+
+LIB_FILE_PARAM_RE = re.compile(r'.*File$')
 
 #: Output json file
 OUTPUT_BASE_NAME = 'out'
@@ -31,15 +36,32 @@ PARAMETERS_PYTHON_FILE = 'parameters.py'
 #: stderr and stdout
 RUN_LOG = 'run.log'
 
-LIB_FILE_PARAM_RE = re.compile(r'.*File$')
-
 _HISTOGRAM_BINS_MAX = 500
+
+_PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
-ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
+
+def compute_plot_color_and_range(plots):
+    """ For parameter plots, assign each plot a color and compute the full y_range. """
+    y_range = None
+    for i in range(len(plots)):
+        plot = plots[i]
+        plot['color'] = _PLOT_LINE_COLOR[i]
+        vmin = min(plot['points'])
+        vmax = max(plot['points'])
+        if y_range:
+            if vmin < y_range[0]:
+                y_range[0] = vmin
+            if vmax > y_range[1]:
+                y_range[1] = vmax
+        else:
+            y_range = [vmin, vmax]
+    return y_range
+
 
 def copy_lib_files(data, source, target):
     """Copy auxiliary files to target
@@ -69,6 +91,12 @@ def copy_lib_files(data, source, target):
                 # symlink into the run directory
                 path.mksymlinkto(f, absolute=False)
 
+
+def enum_text(schema, name, value):
+    for e in schema['enum'][name]:
+        if e[0] == value:
+            return e[1]
+    assert False, 'unknown {} enum value: {}'.format(name, value)
 
 
 def flatten_data(d, res, prefix=''):
@@ -209,12 +237,12 @@ def report_parameters_hash(data):
         res = hashlib.md5()
         dm = data['models']
         for m in models:
-            if isinstance(m, basestring):
+            if pkcompat.isinstance_str(m):
                 name, field = m.split('.') if '.' in m else (m, None)
                 value = dm[name][field] if field else dm[name]
             else:
                 value = m
-            res.update(json.dumps(value, sort_keys=True, allow_nan=False))
+            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode())
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 
@@ -282,7 +310,7 @@ def validate_model(model_data, model_schema, enum_info):
             elif re.search('\[ps]', label):
                 v /= 1e12
             #TODO(pjm): need to handle unicode in label better (mu)
-            elif re.search('\[\xb5(m|rad)\]', label):
+            elif re.search('\[\xb5(m|rad)\]', label) or re.search('\[mm-mrad\]', label):
                 v /= 1e6
             model_data[k] = float(v)
         elif field_type == 'Integer':
@@ -364,11 +392,11 @@ def validate_safe_zip(zip_file_name, target_dir='.', *args):
     def file_attrs_ok(attrs):
 
         # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
-        if attrs < 2 << 16L:
+        if attrs < 2 << 16:
             return True
 
         # UNIX file attributes live in the top two bytes
-        mask = attrs >> 16L
+        mask = attrs >> 16
         is_file_or_dir = mask & (0o0100000 | 0o0040000) != 0
         no_exec = mask & (0o0000100 | 0o0000010 | 0o0000001) == 0
 

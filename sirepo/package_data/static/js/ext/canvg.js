@@ -83,26 +83,52 @@
 	}
 
 	// see https://developer.mozilla.org/en-US/docs/Web/API/Element.matches
+	// 2018-05-15 MVK - added try/catch to ignore tricky css
 	var matchesSelector;
 	if (typeof(Element.prototype.matches) != 'undefined') {
 		matchesSelector = function(node, selector) {
-			return node.matches(selector);
+			try {
+				return node.matches(selector);
+            }
+            catch (e) {
+				return false;
+            }
 		};
 	} else if (typeof(Element.prototype.webkitMatchesSelector) != 'undefined') {
 		matchesSelector = function(node, selector) {
-			return node.webkitMatchesSelector(selector);
+			try {
+                return node.webkitMatchesSelector(selector);
+            }
+            catch (e) {
+				return false;
+            }
 		};
 	} else if (typeof(Element.prototype.mozMatchesSelector) != 'undefined') {
 		matchesSelector = function(node, selector) {
-			return node.mozMatchesSelector(selector);
+			try {
+                return node.mozMatchesSelector(selector);
+            }
+            catch (e) {
+				return false;
+            }
 		};
 	} else if (typeof(Element.prototype.msMatchesSelector) != 'undefined') {
 		matchesSelector = function(node, selector) {
-			return node.msMatchesSelector(selector);
+			try {
+                return node.msMatchesSelector(selector);
+            }
+            catch (e) {
+				return false;
+            }
 		};
 	} else if (typeof(Element.prototype.oMatchesSelector) != 'undefined') {
 		matchesSelector = function(node, selector) {
-			return node.oMatchesSelector(selector);
+			try {
+                return node.oMatchesSelector(selector);
+            }
+            catch (e) {
+				return false;
+            }
 		};
 	} else {
 		// requires Sizzle: https://github.com/jquery/sizzle/wiki/Sizzle-Documentation

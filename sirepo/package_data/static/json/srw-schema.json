@@ -1,4 +1,34 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SRWSourceController as source",
+                "templateUrl": "/static/html/srw-source.html"
+            }
+        },
+        "beamline": {
+            "route": "/beamline/:simulationId",
+            "config": {
+                "controller": "SRWBeamlineController as beamline",
+                "templateUrl": "/static/html/srw-beamline.html",
+                "reloadOnSearch": true
+            }
+        }
+    },
+    "appModes": {
+        "calculator": {
+            "localRoute": "source",
+            "includeMode": true
+        },
+        "wavefront": {
+            "localRoute": "beamline",
+            "includeMode": true
+        },
+        "light-sources": {
+            "localRoute": "beamline",
+            "includeMode": true
+        }
+    },
     "enum": {
         "AnalyticalTreatment": [
             ["0", "0 - Standard"],
@@ -33,6 +63,10 @@
         "Boolean": [
             ["0", "No"],
             ["1", "Yes"]
+        ],
+        "BrightnessComponent": [
+            ["k-tuning", "K Tuning"],
+            ["spectral-detuning", "Spectral Detuning"]
         ],
         "BrillianceReportType": [
             ["0", "Flux (Ph/s/.1%)"],
@@ -124,6 +158,16 @@
             ["1", "Rectangular Grids"],
             ["2", "2D Phase Grating"]
         ],
+        "HarmonicList": [
+            ["1", "1"],
+            ["3", "3"],
+            ["5", "5"],
+            ["7", "7"],
+            ["9", "9"],
+            ["11", "11"],
+            ["13", "13"],
+            ["15", "15"]
+        ],
         "IntensityMethod": [
             ["0", "Manual"],
             ["1", "Auto-Undulator"],
@@ -177,6 +221,10 @@
         "MirrorOrientation": [
             ["x", "Horizontal"],
             ["y", "Vertical"]
+        ],
+        "MultiElectronIntegrationMethod": [
+            ["0", "No approximation (use the standard 5D integration method)"],
+            ["1", "Integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance"]
         ],
         "MultipoleOrientation": [
             ["n", "Horizontal"],
@@ -279,7 +327,11 @@
             "finalHarmonic": ["Final Harmonic", "Integer", 5],
             "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
-            "reportType": ["Report Type", "BrillianceReportType", "0"]
+            "reportType": ["Report Type", "BrillianceReportType", "0"],
+            "brightnessComponent": ["Scan Type", "BrightnessComponent", "k-tuning"],
+            "energyDelta": ["Energy Delta [eV]", "Float", 10, "", 1, 1000],
+            "harmonic": ["Harmonic", "HarmonicList", "5"],
+            "notes": ["Notes", "Text", ""]
         },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
@@ -417,7 +469,8 @@
             "method": ["Flux Computation Method", "FluxMethod", "1"],
             "precision": ["Relative Precision", "Float", 0.01],
             "fluxType": ["Entity to Calculate", "Flux", "1"],
-            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "notes": ["Notes", "Text", ""]
         },
         "fluxReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 20],
@@ -437,7 +490,8 @@
             "method": ["Flux Computation Method", "FluxMethod", "-1"],
             "precision": ["Relative Precision", "Float", 0.01],
             "fluxType": ["Entity to Calculate", "Flux", "1"],
-            "polarization": ["Polarization Component to Extract", "Polarization", "6"]
+            "polarization": ["Polarization Component to Extract", "Polarization", "6"],
+            "notes": ["Notes", "Text", ""]
         },
         "gaussianBeam": {
             "waistX": ["Horizontal Waist Offset [µm]", "Float"],
@@ -479,10 +533,12 @@
         "initialIntensityReport": {
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
+            "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "notes": ["Notes", "Text", ""]
         },
         "intensityReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float"],
@@ -495,7 +551,8 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"]
+            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
+            "notes": ["Notes", "Text", ""]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
@@ -540,15 +597,19 @@
         },
         "mirrorReport": {
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
-            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"]
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "notes": ["Notes", "Text", ""]
         },
         "multiElectronAnimation": {
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
+            "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "notes": ["Notes", "Text", ""],
+            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -576,7 +637,8 @@
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "notes": ["Notes", "Text", ""]
         },
         "propagationParameters": {
             "0": ["Auto-resize before propagation", "Boolean", "0"],
@@ -656,7 +718,8 @@
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer"],
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "notes": ["Notes", "Text", ""]
         },
         "sphericalMirror": {
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
@@ -714,7 +777,8 @@
             "plotAxisX": ["Horizontal Value to Plot", "TrajectoryPlotAxis", "Z"],
             "plotAxisY": ["Vertical Value to Plot", "TrajectoryPlotAxis", "X"],
             "plotAxisY2": ["Vertical Value to Plot", "TrajectoryPlotAxis2", "None"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"]
+            "magneticField": ["Magnetic Field Treatment", "MagneticField", "2"],
+            "notes": ["Notes", "Text", ""]
         },
         "undulator": {
             "undulatorParameter": ["Deflecting Parameter (K)", "Float", 0],
@@ -741,7 +805,8 @@
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "colorMap": ["Color Map", "ColorMap", "grayscale"]
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "notes": ["Notes", "Text", ""]
         },
         "zonePlate": {
             "title": ["Element Name", "String", "Zone Plate"],
@@ -784,12 +849,16 @@
             "title": "Brightness Report",
             "basic": [],
             "advanced": [
+                "brightnessComponent",
                 "minDeflection",
                 "initialHarmonic",
                 "finalHarmonic",
+                "harmonic",
                 "detuning",
+                "energyDelta",
                 "energyPointCount",
-                "reportType"
+                "reportType",
+                "notes"
             ]
         },
         "crl": {
@@ -829,9 +898,11 @@
             "title": "Crystal",
             "basic": [],
             "advanced": [
-                ["Geometry", [
+                ["Main", [
                     "title",
-                    "position",
+                    "position"
+                ]],
+                ["Material", [
                     [
                         ["Material of the crystal", [
                             "material"
@@ -841,25 +912,15 @@
                             "k",
                             "l"
                         ]]
-                    ],
+                    ]
+                ]],
+                ["Geometry", [
                     "energy",
                     "grazingAngle",
                     "asymmetryAngle",
                     "rotationAngle",
                     "crystalThickness",
                     "dSpacing",
-                    [
-                        ["Real part of crystal polarizability", [
-                            "psi0r",
-                            "psiHr",
-                            "psiHBr"
-                        ]],
-                        ["Imaginary part of crystal polarizability", [
-                            "psi0i",
-                            "psiHi",
-                            "psiHBi"
-                        ]]
-                    ],
                     [
                         ["Outward normal vector", [
                             "nvx",
@@ -869,6 +930,20 @@
                         ["Central tangential vector", [
                             "tvx",
                             "tvy"
+                        ]]
+                    ]
+                ]],
+                ["Polarizability", [
+                    [
+                        ["Real part", [
+                            "psi0r",
+                            "psiHr",
+                            "psiHBr"
+                        ]],
+                        ["Imaginary part", [
+                            "psi0i",
+                            "psiHi",
+                            "psiHBi"
                         ]]
                     ]
                 ]],
@@ -1035,7 +1110,8 @@
                         ]]
                     ],
                     "fluxType",
-                    "polarization"
+                    "polarization",
+                    "notes"
                 ]],
                 ["Accuracy", [
                     "magneticField",
@@ -1069,7 +1145,8 @@
                         ]]
                     ],
                     "fluxType",
-                    "polarization"
+                    "polarization",
+                    "notes"
                 ]],
                 ["Accuracy", [
                     "initialHarmonic",
@@ -1157,7 +1234,9 @@
                     "simulation.photonEnergy",
                     "polarization",
                     "characteristic",
-                    "fieldUnits"
+                    "copyCharacteristic",
+                    "fieldUnits",
+                    "notes"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
@@ -1186,7 +1265,8 @@
                         ["Vertical", [
                             "verticalPosition"
                         ]]
-                    ]
+                    ],
+                    "notes"
                 ]],
                 ["Accuracy", [
                     "magneticField",
@@ -1267,7 +1347,7 @@
         "mirrorReport": {
             "title": "Mirror",
             "basic": [],
-            "advanced": []
+            "advanced": ["notes"]
         },
         "multipole": {
             "title": "Dipole",
@@ -1283,10 +1363,13 @@
             "basic": [],
             "advanced": [
                 ["Main", [
+                    "watchpointId",
                     "simulation.photonEnergy",
                     "stokesParameter",
                     "numberOfMacroElectrons",
-                    "photonEnergyBandWidth"
+                    "integrationMethod",
+                    "photonEnergyBandWidth",
+                    "notes"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
@@ -1333,7 +1416,8 @@
                             "verticalRange",
                             "verticalPointCount"
                         ]]
-                    ]
+                    ],
+                    "notes"
                 ]],
                 ["Accuracy", [
                     "method",
@@ -1455,7 +1539,8 @@
                             "verticalRange",
                             "verticalPointCount"
                         ]]
-                    ]
+                    ],
+                    "notes"
                 ]],
                 ["Accuracy", [
                     "magneticField",
@@ -1606,7 +1691,8 @@
                         "plotAxisY",
                         "plotAxisY2"
                     ]]
-                ]
+                ],
+                "notes"
             ]
         },
         "undulator": {
@@ -1649,7 +1735,8 @@
                     "simulation.photonEnergy",
                     "polarization",
                     "characteristic",
-                    "fieldUnits"
+                    "fieldUnits",
+                    "notes"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",

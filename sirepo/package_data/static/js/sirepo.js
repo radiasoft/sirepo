@@ -29,19 +29,16 @@ angular.element(document).ready(function() {
     });
 });
 
-SIREPO.appLocalRoutes = {
-    simulations: '/simulations',
-    simulationsFolder: '/simulations/:folderPath?',
-    source: '/source/:simulationId',
-    loggedOut: '/logged-out',
-    notFound: '/not-found',
-    notFoundCopy: '/copy-session/:simulationIds/:section',
-};
+SIREPO.appLocalRoutes = {};
 
 SIREPO.appDefaultSimulationValues = {
-    simulation: {},
+    simulation: {
+        folder: '/'
+    },
     simFolder: {},
 };
+
+SIREPO.appHomeTab = 'source';
 
 SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
@@ -67,40 +64,69 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'ngCookies']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'ngCookies', 'vtk']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
-    var localRoutes = localRoutesProvider.$get();
+    var commonRouteMap = SIREPO.APP_SCHEMA.commonLocalRoutes;
+
+    SIREPO.addRoute = function(routeName, routeMap, addDeferred) {
+        var map = routeMap || commonRouteMap;
+        var route = routeForName(routeName, routeMap);
+        if(! route) {
+            return;
+        }
+        SIREPO.appLocalRoutes[routeName] = route;
+
+        // deferred routes are created but not added to the route provider
+        // until explicitly added.  The only such route now is loggedOut
+        if(map[routeName].doDefer && ! addDeferred) {
+            return;
+        }
+        var rteCfg = routeConfigForName(routeName, map);
+        if(! rteCfg) {
+            return;
+        }
+        if(map[routeName].isFinal) {
+            $routeProvider.otherwise(rteCfg);
+            return;
+        }
+        $routeProvider.when(route, rteCfg);
+    };
+    SIREPO.addRoutes = function(routeMap) {
+        var map = routeMap || commonRouteMap;
+        for(var routeName in map) {
+            SIREPO.addRoute(routeName, map);
+        }
+    };
+
     if (SIREPO.IS_LOGGED_OUT) {
-        $routeProvider.otherwise({
-            controller: 'LoggedOutController as loggedOut',
-            templateUrl: '/static/html/logged-out.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+        SIREPO.addRoute('loggedOut', commonRouteMap, true);
         return;
     }
-    $routeProvider
-        .when(localRoutes.simulations, {
-            controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.simulationsFolder, {
-            controller: 'SimulationsController as simulations',
-            templateUrl: '/static/html/simulations.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.notFound, {
-            templateUrl: '/static/html/not-found.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.notFoundCopy, {
-            controller: 'NotFoundCopyController as notFoundCopy',
-            templateUrl: '/static/html/copy-session.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .otherwise({
-            redirectTo: localRoutes.simulations,
-        });
+
+    SIREPO.addRoutes();
+
+    function routeForName(routeName, routeMap) {
+        return routeMap[routeName].route || routeMap[routeName].localRoute || SIREPO.appLocalRoutes[routeName];
+    }
+    function routeConfigForName(routeName, routeMap) {
+        if(routeMap[routeName].isRedirect) {
+            return {
+                redirectTo: SIREPO.appLocalRoutes[routeMap[routeName].localRoute]
+            };
+        }
+
+        var rteObj = routeMap[routeName].config;
+        if(rteObj && rteObj.templateUrl) {
+            rteObj.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        }
+        return rteObj;
+    }
+
 });
 
 SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
@@ -274,7 +300,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return self.clone(val);
     };
 
-    self.copySimulation = function(simulationId, op, name) {
+    self.copySimulation = function(simulationId, op, name, folder) {
         requestSender.sendRequest(
             'copySimulation',
             op,
@@ -282,6 +308,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 simulationId: simulationId,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 name: name,
+                folder: folder || '/',
             });
     };
 
@@ -426,6 +453,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 name: model.name,
                 folder: model.folder,
                 sourceType: model.sourceType,
+                notes: model.notes,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             });
     };
@@ -503,8 +531,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
-            if (schema[f][2] !== undefined) {
-                model[f] = schema[f][2];
+            if (! model[f]) {
+                if (schema[f][2] !== undefined) {
+                    model[f] = schema[f][2];
+                }
             }
         }
         return model;
@@ -989,6 +1019,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    self.fileNameFromText = function(text, extension) {
+        return text.replace(/(\_|\W|\s)+/g, '-') + '.' + extension;
+    };
+
     self.findParentAttribute = function(scope, name) {
         while (scope && ! scope[name]) {
             scope = scope.$parent;
@@ -1161,10 +1195,6 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 var requestFunction = pendingRequests[name];
                 requestFunction();
             }
-            // needed to resize a hidden report
-            if (appState.isReportModelName(name)) {
-                $($window).trigger('resize');
-            }
         }
         else {
             state.panelState.hidden.push(name);
@@ -1172,6 +1202,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 simulationQueue.cancelItem(queueItems[name]);
                 delete queueItems[name];
             }
+        }
+        // needed to resize a hidden report and other panels
+        if (appState.isReportModelName(name)) {
+            $($window).trigger('resize');
         }
     };
 
@@ -1321,6 +1355,12 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         $location.path(self.formatUrlLocal(routeName, params));
     };
 
+    self.localRedirectHome = function(simulationId) {
+        self.localRedirect(SIREPO.appHomeTab, {
+            ':simulationId': simulationId,
+        });
+    };
+
     self.sendRequest = function(urlOrParams, successCallback, data, errorCallback) {
         if (! errorCallback) {
             errorCallback = logError;
@@ -1345,6 +1385,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
                 1
             );
         }
+        //srdbg('req url/data', url, data);
         var req = data
             ? $http.post(url, data, t)
             : $http.get(url, t);
@@ -1380,6 +1421,12 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             }
             if (! data.state) {
                 data.state = 'error';
+            }
+            if (status == -1) {
+                msg = 'Server unavailable';
+            }
+            else if (SIREPO.APP_SCHEMA.customErrors[status]) {
+                msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
             }
             if (! data.error) {
                 if (msg) {
@@ -1573,6 +1620,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
 SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
     var self = {};
     var queueMap = {};
+    self.currentQI = null;
 
     function getQueue(name) {
         if (! queueMap[name] ) {
@@ -1587,12 +1635,14 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
             return;
         }
         var qi = q[0];
+        self.currentQI = qi;
         if ( qi.requestSent ) {
             return;
         }
         qi.requestSent = true;
         qi.params = qi.paramsCallback();
         var process = function(ok, resp, status) {
+            self.currentQI = null;
             if (qi.canceled) {
                 sendNextItem(name);
                 return;
@@ -1616,6 +1666,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
         var q = getQueue(queueName);
         q.forEach(function(qi) {qi.canceled = true;});
         q.length = 0;
+        self.currentQI = null;
     };
 
     self.addItem = function(queueName, paramsCallback) {
@@ -1624,6 +1675,9 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
             paramsCallback: paramsCallback
         });
         sendNextItem(queueName);
+    };
+    self.getCurrentQI = function(queueName) {
+        return self.currentQI;
     };
     return self;
 });
@@ -1919,6 +1973,44 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return compoundPathToPath(decodeURIComponent(path));
     };
 
+    self.pathName = function(folder) {
+        if (folder == self.rootFolder()) {
+            return '/';
+        }
+        var path = '/' + folder.name;
+        while (folder.parent != self.rootFolder()) {
+            folder = folder.parent;
+            path = '/' + folder.name + path;
+        }
+        return path;
+    };
+    self.getFolderWithPath = function(pathName) {
+        if(pathName === '/') {
+            return self.rootFolder();
+        }
+        var pathArr = pathName.split('/').filter(function (value) {
+            return value !== "";
+        });
+        var folder = self.rootFolder();
+        for(var pIndex = 0; pIndex < pathArr.length; ++pIndex) {
+            var child = null;
+            for(var cIndex = 0; cIndex < folder.children.length; ++cIndex) {
+                child = folder.children[cIndex];
+                if(child.isFolder && child.name === pathArr[pIndex]) {
+                    break;
+                }
+            }
+            if(child == null) {
+                return null;
+            }
+            if(pIndex == pathArr.length - 1) {
+                return child;
+            }
+            folder = child;
+        }
+        return null;
+    };
+
     self.rootFolder = function() {
         return self.fileTree[0];
     };
@@ -1937,6 +2029,57 @@ SIREPO.app.factory('fileManager', function(requestSender) {
 
     self.setActiveFolder = function(item) {
         activeFolder = item;
+    };
+
+    // consider a folder an example if any of the simulations under it is
+    self.isFolderExample = function (item) {
+        if(! item || ! item.isFolder) {
+            return false;
+        }
+        // root folder contains everything so exclude it
+        if(item.name === '/') {
+            return false;
+        }
+        for(var cIndex = 0; cIndex < item.children.length; ++ cIndex) {
+            var child = item.children[cIndex];
+            if(! child.isFolder) {
+                if (child.isExample) {
+                    return true;
+                }
+            }
+            else {
+                if(self.isFolderExample(child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    self.isActiveFolderExample = function () {
+        return self.isFolderExample(self.getActiveFolder());
+    };
+    self.isItemExample = function(item) {
+        if(! item.isFolder) {
+            return item.isExample;
+        }
+        return self.isFolderExample(item);
+    };
+    self.getUserFolders = function(excludeFolder) {
+        return self.flattenTree().filter(function(item) {
+            return item != excludeFolder && item.isFolder && ! self.isFolderExample(item);
+        });
+    };
+    self.getUserFolderPaths = function() {
+        return self.getUserFolders().map(function (item) {
+            return self.pathName(item);
+        });
+    };
+    self.defaultCreationFolder = function() {
+        var cf = self.getUserFolderPaths().indexOf(self.getActiveFolderPath()) >= 0 ? self.getActiveFolder() : self.rootFolder();
+        return cf;
+    };
+    self.defaultCreationFolderPath = function() {
+        return self.pathName(self.defaultCreationFolder());
     };
 
     function findSimInTree(simId) {
@@ -2077,6 +2220,20 @@ SIREPO.app.factory('fileManager', function(requestSender) {
             self.updateFlatTree();
         }
     };
+    self.doesFolderContainFolder = function(f1, f2) {
+        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
+            return true;
+        }
+        if(f2 == self.rootFolder() || ! f1.children) {
+            return false;
+        }
+        for(var cIndex = 0; cIndex < f1.children.length; ++cIndex) {
+            if(self.doesFolderContainFolder(f1.children[cIndex], f2)) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     self.redirectToPath = function(path) {
         var compoundPath = pathToCompoundPath(path);
@@ -2096,7 +2253,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     return self;
 });
 
-SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window) {
+SIREPO.app.controller('NavController', function (activeSection, appState, fileManager, requestSender, $scope, $window, $route) {
 
     var self = this;
 
@@ -2173,7 +2330,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
 
     self.sectionURL = function(name) {
         if (! name) {
-            name = 'source';
+            name = SIREPO.appHomeTab;
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
@@ -2182,7 +2339,13 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
 
     $scope.$on('$locationChangeStart', function () {
-        SIREPO.setPageLoaderVisible(true);
+        // changing the search triggers a location change, but if we don't want to
+        // reload the entire page, do not show the page loader
+        var showPageLoader = true;
+        if($route.current) {
+            showPageLoader = $route.current.reloadOnSearch;
+        }
+        SIREPO.setPageLoaderVisible(showPageLoader);
     });
     $scope.$on('$viewContentLoaded', function () {
         SIREPO.setPageLoaderVisible(false);
@@ -2205,7 +2368,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
         requestSender.sendRequest(
             'copyNonSessionSimulation',
             function(data) {
-                requestSender.localRedirect($route.current.params.section || 'source', {
+                requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
                     ':simulationId': data.models.simulation.simulationId,
                 });
             },
@@ -2221,7 +2384,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.openButton = function() {
-        requestSender.localRedirect($route.current.params.section || 'source', {
+        requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
             ':simulationId': self.userCopySimulationId,
         });
     };
@@ -2253,6 +2416,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         recurs: false,
     });
 
+    self.importText = SIREPO.appImportText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
     self.activeFolder = fileManager.getActiveFolder();
@@ -2269,6 +2433,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     self.selectedItem = null;
     self.sortField = 'name';
     self.isWaitingForSim = false;
+
+    self.fileManager = fileManager;
 
     function clearModels() {
         appState.clearModels(appState.clone(SIREPO.appDefaultSimulationValues));
@@ -2363,6 +2529,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             count++;
         }
         self.copyName = name + ' ' + count;
+        self.copyFolder = fileManager.defaultCreationFolderPath();
         $('#sr-copy-confirmation').modal('show');
     };
 
@@ -2372,7 +2539,8 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             function(data) {
                 self.openItem(data.models.simulation);
             },
-            self.copyName);
+            self.copyName,
+            self.copyFolder);
     };
 
     self.deleteItem = function(item) {
@@ -2409,7 +2577,12 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     self.moveItem = function(item) {
         self.selectedItem = item;
         self.targetFolder = item.parent;
-        self.moveFolderList = fileManager.folderList(item);
+        self.moveFolderList =  fileManager.getUserFolders(item);
+        if(item.isFolder) {
+            self.moveFolderList = self.moveFolderList.filter(function (userFolder) {
+                return ! fileManager.doesFolderContainFolder(item, userFolder);
+            });
+        }
         $('#sr-move-confirmation').modal('show');
     };
 
@@ -2442,22 +2615,12 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
             }
         }
         else {
-            requestSender.localRedirect('source', {
-                ':simulationId': item.simulationId,
-            });
+            requestSender.localRedirectHome(item.simulationId);
         }
     };
 
     self.pathName = function(folder) {
-        if (self.isRootFolder(folder)) {
-            return '/';
-        }
-        var path = '/' + folder.name;
-        while (folder.parent != rootFolder()) {
-            folder = folder.parent;
-            path = '/' + folder.name + path;
-        }
-        return path;
+        return fileManager.pathName(folder);
     };
 
     self.pythonSource = function(item) {
@@ -2535,7 +2698,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     $scope.$on('simulation.changed', function() {
         self.isWaitingForSim = true;
         self.newSimName = appState.models.simulation.name;
-        appState.models.simulation.folder = self.pathName(self.activeFolder);
         appState.newSimulation(
             appState.models.simulation,
             function(data) {
@@ -2550,7 +2712,7 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         name = name.replace(/[\/]/g, '');
         fileManager.addToTree({
             name: name,
-            parent: self.activeFolder,
+            parent: fileManager.getFolderWithPath(appState.models.simFolder.parent) || self.activeFolder,
             isFolder: true,
             children: [],
         });

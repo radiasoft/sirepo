@@ -3,8 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20manual.md';
-SIREPO.appLocalRoutes.visualization = '/visualization/:simulationId';
+SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/master/JSPEC%20User%20Manual.pdf';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
 SIREPO.FILE_UPLOAD_TYPE = {
@@ -17,26 +16,21 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ElegantSimList" data-ng-class="fieldClass">',
       '<div data-elegant-sim-list="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="TwissFile" class="col-sm-7">',
+      '<div data-twiss-file-field="" data-model="model" data-field="field" data-model-name="modelName"></div>',
+    '</div>',
 ].join('');
 
-SIREPO.app.config(function($routeProvider, localRoutesProvider) {
+SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
     }
-    var localRoutes = localRoutesProvider.$get();
-    $routeProvider
-        .when(localRoutes.source, {
-            controller: 'SourceController as source',
-            templateUrl: '/static/html/jspec-source.html' + SIREPO.SOURCE_CACHE_KEY,
-        })
-        .when(localRoutes.visualization, {
-            controller: 'VisualizationController as visualization',
-            templateUrl: '/static/html/jspec-visualization.html' + SIREPO.SOURCE_CACHE_KEY,
-        });
+    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
 });
 
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
+    self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 
     function processElectronBeamShape() {
         var shape = appState.models.electronBeam.shape;
@@ -114,6 +108,10 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         }
     };
 
+    self.showTwissEditor = function() {
+        panelState.showModalEditor('twissReport');
+    };
+
     appState.whenModelsLoaded($scope, function() {
         processIonBeamType();
         processElectronBeamType();
@@ -180,8 +178,8 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     function processModel() {
         var settings = appState.models.simulationSettings;
         panelState.showField('simulationSettings', 'save_particle_interval', settings.model == 'particle');
-        panelState.showField('simulationSettings', 'sample_number', settings.model == 'particle' && settings.e_cool == '0');
         panelState.showRow('simulationSettings', 'ref_bet_x', settings.model == 'particle' && settings.e_cool == '0');
+        panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
     function processPlotRange() {
@@ -262,7 +260,7 @@ SIREPO.app.directive('appHeader', function() {
             nav: '=appHeader',
         },
         template: [
-            '<div data-app-header-brand="nav"  data-app-url="/#/jspec"></div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
@@ -329,11 +327,21 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
               '<div class="lead">&nbsp;</div>',
             '</div>',
             '<div data-ng-if="rates">',
-              '<div data-ng-repeat="rate in rates">',
-                '<div class="col-sm-12">',
-                  '<label>{{ rate[0] }}</label>',
-                '</div>',
-                '<div data-ng-repeat="value in rate[1] track by $index" class="text-right col-sm-4">{{ value }}</div>',
+              '<div class="col-sm-12" style="margin-top: 1ex;">',
+                '<table class="table">',
+                  '<thead>',
+                  '<tr>',
+                    '<th>&nbsp;</th>',
+                    '<th class="text-right">Horizontal</th>',
+                    '<th class="text-right">Vertical</th>',
+                    '<th class="text-right">Longitudinal</th>',
+                  '</tr>',
+                  '</thead>',
+                  '<tr data-ng-repeat="rate in rates">',
+                    '<td><label>{{ rate[0] }}</label></td>',
+                    '<td data-ng-repeat="value in rate[1] track by $index" class="text-right">{{ value }}</td>',
+                  '</tr>',
+                '</table>',
               '</div>',
             '</div>',
         ].join(''),
@@ -351,6 +359,39 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
         link: function link(scope, element) {
             scope.modelName = 'rateCalculationReport';
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('twissFileField', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            model: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div data-file-field="field" data-model="model" data-model-name="modelName" data-selection-required="true">',
+              '<button type="button" title="View Twiss Parameters" class="btn btn-default" data-ng-click="showFileReport()"><span class="glyphicon glyphicon-eye-open"></span></button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showFileReport = function() {
+                appState.saveChanges('ring');
+                var source = panelState.findParentAttribute($scope, 'source');
+                var el = $('#jspec-twiss-plot');
+                el.modal('show');
+                el.on('shown.bs.modal', function() {
+                    // this forces the plot to reload
+                    source.twissReportShown = true;
+                    $scope.$apply();
+                });
+                el.on('hidden.bs.modal', function() {
+                    source.twissReportShown = false;
+                    el.off();
+                });
+            };
         },
     };
 });

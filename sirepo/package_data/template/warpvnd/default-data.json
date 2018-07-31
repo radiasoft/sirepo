@@ -28,6 +28,10 @@
         "particleAnimation": {
             "startTime": 1494013105
         },
+        "particle3d": {
+            "renderCount": "10",
+            "joinEvery": 1
+        },
         "simulation": {
             "folder": "/",
             "isExample": false,

@@ -1,4 +1,12 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "MyAppSourceController as source",
+                "templateUrl": "/static/html/myapp-source.html"
+            }
+        }
+    },
     "enum": {
         "Gender": [
             ["male", "Male"],

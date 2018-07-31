@@ -36,6 +36,7 @@ angular.module("ngDraggable", [])
 
                     var onDragSuccessCallback = $parse(attrs.ngDragSuccess) || null;
                     var allowTransform = angular.isDefined(attrs.allowTransform) ? scope.$eval(attrs.allowTransform) : true;
+                    var isSvg = angular.isDefined(attrs.isSvg) ? scope.$eval(attrs.isSvg) : false;
 
                     var getDragData = $parse(attrs.ngDragData);
 
@@ -45,7 +46,7 @@ angular.module("ngDraggable", [])
                     var initialize = function () {
                         element.attr('draggable', 'false'); // prevent native drag
                         // check to see if drag handle(s) was specified
-                        var dragHandles = element.find('[ng-drag-handle]');
+                        var dragHandles = $(element).find('[ng-drag-handle]');
                         if (dragHandles.length) {
                             _dragHandle = dragHandles;
                         }
@@ -73,6 +74,9 @@ angular.module("ngDraggable", [])
                     };
                     var onDestroy = function (enable) {
                         toggleListeners(false);
+                        if (_dragHandle) {
+                            _dragHandle.off();
+                        }
                     };
                     var onEnableChange = function (newVal, oldVal) {
                         _dragEnabled = (newVal);
@@ -161,8 +165,23 @@ angular.module("ngDraggable", [])
                         });
                     };
 
+                    // Work-around for drag and drop issues with iOS
+                    // see https://github.com/taye/interact.js/issues/631
+                    var iosIsDragging = false;
+                    window.addEventListener(
+                        'touchmove',
+                        function(e) {
+                            if (iosIsDragging) {
+                                e.preventDefault();
+                            }
+                        },
+                        {
+                            passive: false,
+                        });
+
                     var onmove = function (evt) {
                         if (!_dragEnabled)return;
+                        iosIsDragging = true;
                         evt.preventDefault();
 
                         if (!element.hasClass('dragging')) {
@@ -190,6 +209,7 @@ angular.module("ngDraggable", [])
                     var onrelease = function(evt) {
                         if (!_dragEnabled)
                             return;
+                        iosIsDragging = false;
                         evt.preventDefault();
                         $rootScope.$broadcast('draggable:end', {x:_mx, y:_my, tx:_tx, ty:_ty, event:evt, element:element, data:_data, callback:onDragComplete, uid: _myid});
                         element.removeClass('dragging');
@@ -209,14 +229,20 @@ angular.module("ngDraggable", [])
                     };
 
                     var reset = function() {
-                        if(allowTransform)
+                        if (isSvg) {
+                            element.attr('transform', '');
+                        }
+                        else if(allowTransform)
                         element.css({transform:'', 'z-index':'', '-webkit-transform':'', '-ms-transform':''});
                         else
                         element.css({'position':'',top:'',left:''});
                     };
 
                     var moveElement = function (x, y) {
-                        if(allowTransform) {
+                        if (isSvg) {
+                            element.attr('transform', 'translate('+x+', '+y+')');
+                        }
+                        else if(allowTransform) {
                             element.css({
                                 transform: 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ' + x + ', ' + y + ', 0, 1)',
                                 'z-index': 99999,

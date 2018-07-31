@@ -1,4 +1,26 @@
 {
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "HellwegSourceController as source",
+                "templateUrl": "/static/html/hellweg-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "HellwegLatticeController as lattice",
+                "templateUrl": "/static/html/hellweg-lattice.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "HellwegVisualizationController as visualization",
+                "templateUrl": "/static/html/hellweg-visualization.html"
+            }
+        }
+    },
     "enum": {
         "BeamDefinition": [
             ["cst_pid", "CST PID Input File"],
@@ -128,21 +150,25 @@
             "reportType": ["Report", "BeamReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamHistogramAnimation": {
             "reportType": ["Report", "BeamHistogramReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
-            "framesPerSecond": ["Frames per Second", "FramesPerSecond"]
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamHistogramReport": {
             "reportType": ["Report", "BeamHistogramReportType"],
-            "histogramBins": ["Number of Bins", "Integer"]
+            "histogramBins": ["Number of Bins", "Integer"],
+            "notes": ["Notes", "Text", ""]
         },
         "beamReport": {
             "reportType": ["Report", "BeamReportType"],
             "histogramBins": ["Number of Bins", "Integer"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "cellElement": {
             "phaseAdvance": ["Phase Advance [deg]", "Float", 120],
@@ -180,11 +206,13 @@
             "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
         },
         "parameterAnimation": {
-            "reportType": ["Report", "ParameterReportType"]
+            "reportType": ["Report", "ParameterReportType"],
+            "notes": ["Notes", "Text", ""]
         },
         "particleAnimation": {
             "reportType": ["Report", "ParticleReportType"],
-            "renderCount": ["Particles to Render", "ParticleRenderCount"]
+            "renderCount": ["Particles to Render", "ParticleRenderCount"],
+            "notes": ["Notes", "Text", ""]
         },
         "powerElement": {
             "inputPower": ["Pulsed Input Power [MW]", "Float", 2.0],
@@ -298,21 +326,24 @@
                 "reportType",
                 "histogramBins",
                 "framesPerSecond",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "beamHistogramAnimation": {
             "title": "Beam Graph Animation",
             "advanced": [
                 "reportType",
-                "histogramBins"
+                "histogramBins",
+                "notes"
             ]
         },
         "beamHistogramReport": {
             "title": "Beam Graph",
             "advanced": [
                 "reportType",
-                "histogramBins"
+                "histogramBins",
+                "notes"
             ]
         },
         "beamReport": {
@@ -320,7 +351,8 @@
             "advanced": [
                 "reportType",
                 "histogramBins",
-                "colorMap"
+                "colorMap",
+                "notes"
             ]
         },
         "cellElement": {
@@ -355,14 +387,16 @@
         "parameterAnimation": {
             "title": "Parameter Report",
             "advanced": [
-                "reportType"
+                "reportType",
+                "notes"
             ]
         },
         "particleAnimation": {
             "title": "Particle Report",
             "advanced": [
                 "reportType",
-                "renderCount"
+                "renderCount",
+                "notes"
             ]
         },
         "powerElement": {
