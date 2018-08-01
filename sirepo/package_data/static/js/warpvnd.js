@@ -162,7 +162,23 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
             id: appState.maxId(appState.models.conductorTypes) + 1,
         };
         appState.setModelDefaults(model, type);
+        srdbg('conductor model', model);
         self.editConductorType(type, model);
+    };
+
+    self.copyConductor = function(model) {
+        var modelCopy = {
+            name: model.name + " Copy",
+            id: appState.maxId(appState.models.conductorTypes) + 1,
+            voltage: model.voltage,
+            xLength: model.xLength,
+            zLength: model.zLength,
+            yLength: model.yLength,
+            permittivity: model.permittivity,
+            isConductor: model.isConductor
+        };
+
+        self.editConductorType('box', modelCopy);
     };
 
     self.deleteConductor = function() {
@@ -437,7 +453,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                 '<tr>',
                   '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
                   '<td></td><td data-ng-if="! warpvndService.is3D()"></td><th data-ng-if="warpvndService.is3D()">Center Y</th><th>Center Z</th><th>Center X</th>',
