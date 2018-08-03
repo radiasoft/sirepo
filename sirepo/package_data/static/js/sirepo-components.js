@@ -121,11 +121,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             if (scope.pages) {
                 $(element).closest('.modal').on('show.bs.modal', resetActivePage);
                 //TODO(pjm): need a generalized case for this
-                $(element).closest('.srw-editor-holder').on('sr.resetActivePage', resetActivePage);
+                $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', resetActivePage);
             }
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
-                $(element).closest('.srw-editor-holder').off();
+                $(element).closest('.sr-beamline-editor').off();
             });
         }
     };

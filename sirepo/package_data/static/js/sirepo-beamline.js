@@ -634,6 +634,8 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             }).on('show.bs.popover', function() {
                 $('.srw-beamline-element-label').not(el).popover('hide');
                 beamlineService.setActiveItem(scope.item);
+                var editor = el.data('bs.popover').getContent();
+                editor.trigger('sr.resetActivePage');
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
             }).on('hide.bs.popover', function() {
@@ -642,7 +644,6 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
                 // return the editor to the editor-holder so it will be available for the
                 // next element of this type
                 if (editor) {
-                    $('.srw-editor-holder').trigger('sr.resetActivePage');
                     $('.srw-editor-holder').append(editor);
                 }
             });
@@ -806,7 +807,7 @@ SIREPO.app.directive('beamlineToolbar', function(appState) {
             '</div>',
             '<div class="srw-editor-holder" style="display:none">',
               '<div data-ng-repeat="item in ::allItems">',
-                '<div id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
+                '<div class="sr-beamline-editor" id="srw-{{ ::item.type }}-editor" data-beamline-item-editor="" data-model-name="{{ ::item.type }}" data-parent-controller="parentController" ></div>',
               '</div>',
             '</div>',
         ].join(''),
