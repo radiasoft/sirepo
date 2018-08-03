@@ -482,7 +482,11 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
                     'userCopySimulationId': user_copy_sid,
                 },
             })
-        util.raise_not_found()
+        util.raise_not_found(
+            '{}/{}: global simulation not found',
+            sim_type,
+            sid,
+        )
     data = None
     try:
         with open(str(path)) as f:
