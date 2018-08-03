@@ -900,6 +900,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
+    var waitForUICallbacks = null;
 
     $rootScope.$on('clearCache', function() {
         self.clear();
@@ -1147,7 +1148,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         // try show/hide immediately, followed by timeout if UI hasn't finished layout yet
         showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         });
     };
@@ -1155,7 +1156,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         });
     };
@@ -1175,7 +1176,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
-            $timeout(function() {
+            self.waitForUI(function() {
                 $(editorId).modal('show');
             });
         }
@@ -1206,6 +1207,24 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         // needed to resize a hidden report and other panels
         if (appState.isReportModelName(name)) {
             $($window).trigger('resize');
+        }
+    };
+
+    self.waitForUI = function(callback) {
+        // groups callbacks within one $timeout() 
+        if (waitForUICallbacks) {
+            waitForUICallbacks.push(callback);
+        }
+        else {
+            waitForUICallbacks = [callback];
+            $timeout(function() {
+                // new callbacks may be added during this cycle
+                var callbacks = waitForUICallbacks;
+                waitForUICallbacks = null;
+                callbacks.forEach(function(callback) {
+                    callback();
+                });
+            });
         }
     };
 

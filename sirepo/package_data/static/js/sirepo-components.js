@@ -15,7 +15,7 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
+SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -62,7 +62,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 page.isActive = true;
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
-                    $timeout(function() {
+                    panelState.waitForUI(function() {
                         $scope.parentController.handleModalShown($scope.modelName);
                     });
                 }
@@ -349,7 +349,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressService, $timeout) {
+SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -466,7 +466,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
-            $timeout(function () {
+            panelState.waitForUI(function () {
                 var inputElement =  $($element).find('input');
                 if(inputElement.length > 0) {
                     inputElement
@@ -477,8 +477,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
                         keypressService.enableListener(true);
                     });
                 }
-            },
-                100);
+            });
 
             $scope.fieldDelegate = {};
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
@@ -506,7 +505,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
     };
 });
 
-SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
+SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
 
     var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
     var loginNotifyTimeout = 1*24*60*60*1000;
@@ -573,7 +572,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
     };
 });
 
-SIREPO.app.directive('fileField', function(appState, panelState, requestSender, $http, errorService) {
+SIREPO.app.directive('fileField', function(appState, errorService, panelState, requestSender, $http) {
     return {
         restrict: 'A',
         transclude: true,
@@ -983,7 +982,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
+SIREPO.app.directive('modalEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1046,7 +1045,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
-                    $timeout(function() {
+                    panelState.waitForUI(function() {
                         scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
                     });
                 }
@@ -1162,7 +1161,7 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
-SIREPO.app.directive('validatedString', function(validationService, panelState) {
+SIREPO.app.directive('validatedString', function(panelState, validationService) {
 
     return {
         restrict: 'A',
@@ -1350,7 +1349,7 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
     };
 });
 
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, utilities) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, plotToPNG, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1568,7 +1567,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender, $window) {
+SIREPO.app.directive('appHeaderLeft', function(appState, panelState, requestSender, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1619,7 +1618,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, fileManager, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileManager, panelState, $window) {
 
     function helpLink(url, text, icon) {
         return url
@@ -1806,7 +1805,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelState, requestSender, $location, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelState, requestSender, $location, $window) {
 
     return {
         restrict: 'A',
@@ -1953,7 +1952,7 @@ SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
     };
 });
 
-SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, appDataService) {
+SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, requestSender) {
     return {
         restrict: 'A',
         scope: {
