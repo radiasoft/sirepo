@@ -1528,7 +1528,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkService) {
+SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting, warpVTKService) {
     return {
         restrict: 'A',
         template: [
@@ -1548,6 +1548,9 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
             var boxActors = [];
             var outlineSource = null;
             var pointRanges = {};
+
+            // geometry
+            var coordMapper = vtkPlotting.coordMapper();
 
             // colors - vtk uses a range of 0-1 for RGB components
             var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
@@ -1614,18 +1617,41 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 removeActors(boxActors);
 
                 var grid = appState.models.simulationGrid;
+                //var ymax = grid.channel_height / 2.0 * 1e-6;
+                //var ymin = -ymax;
+                //var xmin = 0;
+                //var xmax = grid.plate_spacing * 1e-6;
+                //var zmax = grid.channel_width / 2.0 * 1e-6;
+                //var zmin = -zmax;
                 var ymax = grid.channel_height / 2.0 * 1e-6;
                 var ymin = -ymax;
-                var xmin = 0;
-                var xmax = grid.plate_spacing * 1e-6;
-                var zmax = grid.channel_width / 2.0 * 1e-6;
-                var zmin = -zmax;
+                var zmin = 0;
+                var zmax = grid.plate_spacing * 1e-6;
+                var xmax = grid.channel_width / 2.0 * 1e-6;
+                var xmin = -xmax;
 
-                var yzAspectRatio = grid.channel_width / grid.channel_height;
+                //var xpoints = pointData.points;
+                //var xmin = pointData.y_range[0];
+                //var xmax = pointData.y_range[1];
+                //var zpoints = pointData.x_points;
+                //var zmin = pointData.x_range[0];
+                //var zmax = pointData.x_range[1];
+                // these are randomly generated in python for now
+                //var ypoints = pointData.z_points;
+                //var ymin = pointData.z_range[0];
+                //var ymax = pointData.z_range[1];
+
+                //var yzAspectRatio = grid.channel_width / grid.channel_height;
+                var yzAspectRatio =  grid.channel_height / grid.channel_width;
+                //var pointScales = {
+                //    z: 1 / Math.abs((zmax - zmin)),
+                //    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
+                //    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
+                //};
                 var pointScales = {
                     z: 1 / Math.abs((zmax - zmin)),
-                    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
-                    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
+                    x: X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
+                    y: yzAspectRatio / Math.abs((ymax - ymin))
                 };
                 pointRanges = {
                     z: [pointScales.z * zmin, pointScales.z * zmax],
@@ -1635,6 +1661,21 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 var zfactor = pointScales.z;
                 var xfactor = pointScales.x;
                 var yfactor = pointScales.y;
+                coordMapper = warpVTKService.warpCoordMapper([pointScales.x, pointScales.y, pointScales.z]);
+
+
+                coordMapper.setPlane(startPlaneSource,
+                    [xmin, ymin, zmin],
+                    [xmin, ymax, zmin],
+                    [xmax, ymin, zmin]
+                );
+
+                coordMapper.setPlane(endPlaneSource,
+                    [xmin, ymin, zmax],
+                    [xmin, ymax, zmax],
+                    [xmax, ymin, zmax]
+                );
+
 
                 var typeMap = {};
                 appState.models.conductorTypes.forEach(function(conductorType) {
@@ -1644,6 +1685,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                     // lengths and centers are in µm
                     var cFactor = 1e6;
                     var cModel = typeMap[conductor.conductorTypeId];
+/*
                     var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
                         xLength: xfactor * cModel.zLength / cFactor,
                         yLength: zfactor * cModel.xLength / cFactor,
@@ -1654,6 +1696,12 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                             zfactor * conductor.yCenter / cFactor,
                         ],
                     });
+*/
+
+                    var bs = coordMapper.buildBox(
+                        [cModel.xLength / cFactor, cModel.yLength / cFactor, cModel.zLength / cFactor],
+                        [conductor.xCenter / cFactor, conductor.yCenter / cFactor, conductor.zCenter / cFactor]
+                    );
                     var bm = vtk.Rendering.Core.vtkMapper.newInstance();
                     bm.setInputConnection(bs.getOutputPort());
 
@@ -1672,6 +1720,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
             }
 
             function refresh() {
+/*
                 startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
                 startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
                 startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
@@ -1679,7 +1728,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
                 endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
                 endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
                 endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
-
+*/
                 var padding = 0.01;
                 outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
                 outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
@@ -1731,7 +1780,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
 // TODO (mvk): refactor to allow various directives to use the same conductor builders etc.
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities, vtkService, warpVTKService) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, vtkService, warpVTKService) {
 
     return {
         restrict: 'A',
@@ -1814,6 +1863,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             // orientation cube
             var orientationCube = null;
 
+            // geometry
+            var coordMapper = vtkPlotting.coordMapper();
+
             // data
             var numPoints = 0;
             var pointRanges = {};
@@ -1887,8 +1939,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 cam = renderer.get().activeCamera;
 
                 var rwInteractor = renderWindow.getInteractor();
-                //srdbg('renderWindow', renderWindow);
-                //srdbg('interactor', rwInteractor);
                 var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
                     interactor: rwInteractor,
                     subscribedEvents: ['StartPinch']
@@ -2118,60 +2168,37 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var ymax = pointData.z_range[1];
 
                 var pointScales = {
-                    //z: normFactor / Math.abs((zmax - zmin)),
-                    //x: normFactor / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
-                    //y: normFactor / Math.abs((ymax - ymin)) / Y_Z_ASPECT_RATIO
                     z: normFactor / Math.abs((zmax - zmin)),
                     x: normFactor * X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
                     y: normFactor * Y_Z_ASPECT_RATIO / Math.abs((ymax - ymin))
                 };
+
+                //pointRanges = {
+                //    z: {min: pointScales.z * zmin, max: pointScales.z * zmax},
+                //    x: {min: pointScales.x * xmin, max: pointScales.x * xmax},
+                //    y: {min: pointScales.y * ymin, max: pointScales.y * ymax}
+                //};
                 pointRanges = {
-                    z: {min: pointScales.z * zmin, max: pointScales.z * zmax},
-                    x: {min: pointScales.x * xmin, max: pointScales.x * xmax},
-                    y: {min: pointScales.y * ymin, max: pointScales.y * ymax}
+                    z: {min: zmin, max: zmax},
+                    x: {min: xmin, max: xmax},
+                    y: {min: ymin, max: ymax}
                 };
+
 
                 // vtk makes things fit so it does not particularly care about the
                 // absolute sizes of things - except that really small values don't scale
                 // up properly.  We use these factors to overcome that problem
-                warpVTKService.zscale = pointScales.z;
-                warpVTKService.xscale = pointScales.x;
-                warpVTKService.yscale = pointScales.y;
+                coordMapper = warpVTKService.warpCoordMapper([pointScales.x, pointScales.y, pointScales.z]);
 
-                //zfactor = pointScales.z;
-                //xfactor = pointScales.x;
-                //yfactor = pointScales.y;
-
-                //startPlaneSource.setOrigin(pointRanges.z.min, pointRanges.x.min, pointRanges.y.min);
-                //startPlaneSource.setPoint1(pointRanges.z.min, pointRanges.x.min, pointRanges.y.max);
-                //startPlaneSource.setPoint2(pointRanges.z.min, pointRanges.x.max, pointRanges.y.min);
-                //startPlaneSource.setOrigin(vo[0], vo[1], vo[2]);
-                //startPlaneSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                //startPlaneSource.setPoint2(vp2[0], vp2[1], vp2[2]);
-                setPlane(startPlaneSource,
-                    //[pointRanges.x.min, pointRanges.y.min, pointRanges.z.min],
-                    //[pointRanges.x.min, pointRanges.y.max, pointRanges.z.min],
-                    //[pointRanges.x.max, pointRanges.y.min, pointRanges.z.min],
+                coordMapper.setPlane(startPlaneSource,
                     [xmin, ymin, zmin],
                     [xmin, ymax, zmin],
-                    [xmax, ymin, zmin],
-                    warpVTKService.labToVTK
+                    [xmax, ymin, zmin]
                 );
-
-                //endPlaneSource.setOrigin(pointRanges.z.max, pointRanges.x.min, pointRanges.y.min);
-                //endPlaneSource.setPoint1(pointRanges.z.max, pointRanges.x.min, pointRanges.y.max);
-                //endPlaneSource.setPoint2(pointRanges.z.max, pointRanges.x.max, pointRanges.y.min);
-                //endPlaneSource.setOrigin(vo[0], vo[1], vo[2]);
-                //endPlaneSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                //endPlaneSource.setPoint2(vp2[0], vp2[1], vp2[2]);
-                setPlane(endPlaneSource,
-                    //[pointRanges.x.min, pointRanges.y.min, pointRanges.z.max],
-                    //[pointRanges.x.min, pointRanges.y.max, pointRanges.z.max],
-                    //[pointRanges.x.max, pointRanges.y.min, pointRanges.z.max],
+                coordMapper.setPlane(endPlaneSource,
                     [xmin, ymin, zmax],
                     [xmin, ymax, zmax],
-                    [xmax, ymin, zmax],
-                    warpVTKService.labToVTK
+                    [xmax, ymin, zmax]
                 );
 
                 var padding = 0.01 * normFactor;
@@ -2183,22 +2210,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
                     (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
                 ]);
-
-                var maxNumPoints = Math.max.apply(null, xpoints.map(function (subArr) {
-                    return subArr.length;
-                }));
-                var minNumPoints = Math.min.apply(null, xpoints.map(function (subArr) {
-                    return subArr.length;
-                }));
-                if(pointData.lost_x && pointData.lost_x.length > 0) {
-                    maxNumPoints = Math.max(maxNumPoints, Math.max.apply(null, pointData.lost_x.map(function (subArr) {
-                        return subArr.length;
-                    })));
-                    minNumPoints = Math.min(minNumPoints, Math.min.apply(null, pointData.lost_x.map(function (subArr) {
-                        return subArr.length;
-                    })));
-                }
-                //srdbg('min/max points based on data', minNumPoints, maxNumPoints);
 
                 var joinEvery =  getJoinEvery();
 
@@ -2221,7 +2232,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 axes.z.scale.domain([ymin, ymax]);
                 axes.z.parseLabelAndUnits(pointData.z_label);
 
-                //minZSpacing = zfactor*Math.abs((zmax - zmin)) / numInterPoints;
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestIndex = 0;
                 indexMaps = [];
@@ -2233,18 +2243,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var lastNearestIndex = 0;
                     nearestIndex = joinEvery;
                     var numAdded = 0;
-                    //var newZ = zfactor * zArr[0];
-                    //var finalZ = zfactor * zArr[zArr.length-1];
                     var newZ = zArr[0];
                     var finalZ = zArr[zArr.length-1];
                     var j = 1;
                     var numBetween = 0;
                     while (newZ <= finalZ) {  // ASSUMES MONOTONICALLY INCREASING
-                        //newZ = zfactor * zArr[0] + j * minZSpacing;
                         newZ = zArr[0] + j * minZSpacing;
                         nearestIndex = joinEvery;  // start at the beginning
                         lastNearestIndex = joinEvery;
-                        //var checkZ = zfactor * zArr[nearestIndex];
                         var checkZ = zArr[nearestIndex];
                         while (nearestIndex < zArr.length && checkZ < newZ) {
                             if(! newIndexMap[nearestIndex]) {
@@ -2252,7 +2258,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                                 newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery) || 0;
                             }
                             nearestIndex += joinEvery;
-                            //checkZ = zfactor * zArr[nearestIndex];
                             checkZ = zArr[nearestIndex];
                         }
                         if(nearestIndex != lastNearestIndex) {
@@ -2261,12 +2266,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         }
                         var lowIndex = Math.max(0, nearestIndex - joinEvery);
                         var highIndex = Math.min(zArr.length-1, nearestIndex);
-                        //var z = zfactor * zArr[lowIndex];
-                        //var nextZ = zfactor * zArr[highIndex];
-                        //var y = yfactor * yArr[lowIndex];
-                        //var nextY = yfactor * yArr[highIndex];
-                        //var x = xfactor * xArr[lowIndex];
-                        //var nextX = xfactor * xArr[highIndex];
                         var z = zArr[lowIndex];
                         var nextZ = zArr[highIndex];
                         var y = yArr[lowIndex];
@@ -2281,9 +2280,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var newX = dz ? x + (newZ - z) * dx / dz : x;
                         var newY = dz ? y + (newZ - z) * dy / dz : y;
 
-                        //zArr.splice(lowIndex+1, 0, newZ / zfactor);
-                        //yArr.splice(lowIndex+1, 0, newY / yfactor);
-                        //xArr.splice(lowIndex+1, 0, newX / xfactor);
                         zArr.splice(lowIndex+1, 0, newZ);
                         yArr.splice(lowIndex+1, 0, newY);
                         xArr.splice(lowIndex+1, 0, newX);
@@ -2313,7 +2309,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 buildLineActorsFromPoints(zpoints, ypoints, xpoints, null, true);
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
-                    buildLineActorsFromPoints(pointData.lost_x, pointData.lost_z, pointData.lost_y, reflectedParticleTrackColor, false, warpVTKService.labToVTK);
+                    buildLineActorsFromPoints(pointData.lost_x, pointData.lost_z, pointData.lost_y, reflectedParticleTrackColor, false);
                 }
 
                 // build conductors
@@ -2334,28 +2330,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                     if(cModel) {
 
-                        //var zl = zfactor * cModel.zLength / cFactor;
-                        //var xl = xfactor * cModel.xLength / cFactor;
-                        //var zc = zfactor * conductor.zCenter / cFactor;
-                        //var xc = xfactor * conductor.xCenter / cFactor;
                         var zl = cModel.zLength / cFactor;
                         var xl = cModel.xLength / cFactor;
                         var zc = conductor.zCenter / cFactor;
                         var xc = conductor.xCenter / cFactor;
-                        //var yl = Math.abs(pointRanges.y.max - pointRanges.y.min);
-                        //var yc = pointRanges.y.min + (pointRanges.y.max - pointRanges.y.min) / 2.0;
                         var yl = Math.abs(ymax - ymin);
                         var yc = ymin + (ymax - ymin) / 2.0;
 
-                        var bs = buildBox([xl, yl, zl], [xc, yc, zc], warpVTKService.labToVTK);
-                        /*
-                        var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
-                            xLength: zl,
-                            yLength: xl,
-                            zLength: Math.abs(pointRanges.y.max - pointRanges.y.min),
-                            center: [zc, xc, pointRanges.y.min + (pointRanges.y.max - pointRanges.y.min) / 2.0]
-                        });
-                        */
+                        var bs = coordMapper.buildBox([xl, yl, zl], [xc, yc, zc]);
                         var bm = vtk.Rendering.Core.vtkMapper.newInstance();
                         bm.setInputConnection(bs.getOutputPort());
 
@@ -2374,7 +2356,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             function addActors(actorArr) {
-                for(var aIndex = 0; aIndex < lineActors.length; ++aIndex) {
+                for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
                     renderer.addActor(actorArr[aIndex]);
                 }
             }
@@ -2393,32 +2375,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var l = zpoints[i].length;
                     //srdbg(i, 'making lines from ' + l + ' points, zmin', zmin);
                     for (var j = 0; j < l; j += joinEvery) {
-                        //z = zfactor * zpoints[i][j];
-                        //x = xfactor * xpoints[i][j];
-                        //y = yfactor * ypoints[i][j];
                         z = zpoints[i][j];
                         x = xpoints[i][j];
                         y = ypoints[i][j];
                         ++numPoints;
                         if (j < l - joinEvery) {
-                            //nextZ = zfactor * zpoints[i][j + joinEvery];
-                            //nextX = xfactor * xpoints[i][j + joinEvery];
-                            //nextY = yfactor * ypoints[i][j + joinEvery];
                             k = j + joinEvery;
                             nextZ = zpoints[i][k];
                             nextX = xpoints[i][k];
                             nextY = ypoints[i][k];
-                            //lineActors.push(buildLine(x, nextX, y, nextY, z, nextZ, color || colorAtIndex(indexMaps[i][j])));
-                            lineActors.push(buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j]), warpVTKService.labToVTK));
+                            lineActors.push(coordMapper.buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j])));
                         }
                     }
                     if(l - 1 > j - joinEvery) {
-                        //z = zfactor * zpoints[i][j - joinEvery];
-                        //x = xfactor * xpoints[i][j - joinEvery];
-                        //y = yfactor * ypoints[i][j - joinEvery];
-                        //nextZ = zfactor * zpoints[i][l - 1];
-                        //nextX = xfactor * xpoints[i][l - 1];
-                        //nextY = yfactor * ypoints[i][l - 1];
                         k = j - joinEvery;
                         z = zpoints[i][k];
                         x = xpoints[i][k];
@@ -2427,19 +2396,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         nextX = xpoints[i][l - 1];
                         nextY = ypoints[i][l - 1];
                         ++numPoints;
-                        //lineActors.push(buildLine(x, nextX, y, nextY, z, nextZ, color || colorAtIndex(indexMaps[i][j - joinEvery])));
-                        lineActors.push(buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery]), warpVTKService.labToVTK));
+                        lineActors.push(coordMapper.buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery])));
                     }
                     if(includeImpact) {
-                        var k = xpoints[i].length - 1;
-                        //var lastZ = zfactor * zpoints[i][k];
-                        //var lastX = xfactor * xpoints[i][k];
-                        //var lastY = yfactor * ypoints[i][k];
+                        k = xpoints[i].length - 1;
                         var lastZ = zpoints[i][k];
                         var lastX = xpoints[i][k];
                         var lastY = ypoints[i][k];
-                        //impactSphereActors.push(buildImpactSphere([lastX, lastZ, lastY], impactSphereSize, color || colorAtIndex(indexMaps[i][k])));
-                        impactSphereActors.push(buildImpactSphere([lastX, lastY, lastZ], impactSphereSize, color || colorAtIndex(indexMaps[i][k]), warpVTKService.labToVTK));
+                        impactSphereActors.push(coordMapper.buildSphere([lastX, lastY, lastZ], impactSphereSize, color || colorAtIndex(indexMaps[i][k])));
                     }
                 }
             }
@@ -2464,65 +2428,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 return [parseInt(hexColor.substring(0,2), 16) / 255.0, parseInt(hexColor.substring(2,4), 16) / 255.0, parseInt(hexColor.substring(4,6), 16) / 255.0];
             }
 
-            function setPlane(planeSource, lo, lp1, lp2, transform) {
-                var vo = transform(lo);
-                var vp1 = transform(lp1);
-                var vp2 = transform(lp2);
-                planeSource.setOrigin(vo[0], vo[1], vo[2]);
-                planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
-            }
-            function buildBox(lsize, lcenter, transform) {
-                var vsize = transform(lsize);
-                var vcenter = transform(lcenter);
-                return vtk.Filters.Sources.vtkCubeSource.newInstance({
-                    xLength: vsize[0],
-                    yLength: vsize[1],
-                    zLength: vsize[2],
-                    center: vcenter
-                });
-            }
-
-            // draw a line with 2 dots (the end points) in the given color
-            // The points coming in should be in the *lab* coordinates and will be
-            // converted to the vtk coordinates
-            //function buildLine(x1, x2, y1, y2, z1, z2, colorArray) {
-            function buildLine(lp1, lp2, colorArray, transform) {
-                var vp1 = transform(lp1);
-                var vp2 = transform(lp2);
-                var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
-                    point1: [vp1[0], vp1[1], vp1[2]],
-                    point2: [vp2[0], vp2[1], vp2[2]],
-                    resolution: 2
-                });
-
-                var lm = vtk.Rendering.Core.vtkMapper.newInstance();
-                lm.setInputConnection(ls.getOutputPort());
-
-                var la = vtk.Rendering.Core.vtkActor.newInstance();
-                la.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
-                la.setMapper(lm);
-                return la;
-            }
-            function buildImpactSphere(lcenter, radius, colorArray, transform) {
-               //srdbg('building sphere at', center);
-                var vcenter = transform(lcenter);
-                var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
-                    center: vcenter,
-                    radius: radius,
-                    thetaResolution: 16,
-                    phiResolution: 16
-                });
-
-                var pm = vtk.Rendering.Core.vtkMapper.newInstance();
-                pm.setInputConnection(ps.getOutputPort());
-
-                var pa = vtk.Rendering.Core.vtkActor.newInstance();
-                pa.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
-                pa.getProperty().setLighting(false);
-                pa.setMapper(pm);
-                return pa;
-            }
             function refreshGridPlanes() {
                 var numZ = appState.models.simulationGrid.num_z;
                 var numX = appState.models.simulationGrid.num_x;
@@ -2667,10 +2572,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     z: 200,
                 };
 
-                addActors(lineActors);
-                addActors(reflectedLineActors);
-                addActors(conductorActors);
-                addActors(impactSphereActors);
+                vtkPlotting.addActors(renderer, lineActors);
+                vtkPlotting.addActors(renderer, reflectedLineActors);
+                vtkPlotting.addActors(renderer, conductorActors);
+                vtkPlotting.addActors(renderer, impactSphereActors);
 
                 showActors(lineActors, $scope.showAbsorbed);
                 showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
@@ -2813,8 +2718,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 d3.selectAll('.z.axis line')
                     .attr('transform', 'rotate(' +  (-(90 + $scope.zAxisAngle)) + ')');
 
-                var minPoint = [pointRanges.z.min, pointRanges.x.min, pointRanges.y.min];
-                var minPointRaw = [minPoint[0]/warpVTKService.zscale, minPoint[1]/warpVTKService.xscale, minPoint[2]/warpVTKService.yscale];
+                var minPointRaw = [pointRanges.z.min, pointRanges.x.min, pointRanges.y.min];
+                //var minPointRaw = [minPoint[0]/warpVTKService.zscale, minPoint[1]/warpVTKService.xscale, minPoint[2]/warpVTKService.yscale];
+                //var minPointRaw = [zmin, xmin, ymin];
                 var axisLeftBottomOut = [axes.x.scale(minPointRaw[0]), axes.y.scale(minPointRaw[1]), axes.z.scale(minPointRaw[2])];
                 //srdbg('minpt -> minpt raw -> osLeftBottomOut -> axisLeftBottomOut: ', minPoint, minPointRaw, osLeftBottomOut, axisLeftBottomOut);
 
@@ -2875,9 +2781,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         y: vpRightTopIn[1],
                         color: "yellow"
                     }
-                ];
-           }
-
+                 ];
+            }
             // display values seem to be double, not sure why
             function localCoordFromWorld(coord, point) {
                 coord.setCoordinateSystemToWorld();
@@ -2890,23 +2795,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 return [lCoord[0] / 2.0, lCoord[1] / 2.0];
             }
             function worldCoordFromLocal(coord, point) {
-                //var view = renderWindow.getViews()[0];  // this is a renderwindow
-                //srdbg(view);
                 var newPoint = [2.0 * point[0], 2.0 * point[1]];
-                //var fbSize = mainView.getFramebufferSize();
                 // must first convert from "localDisplay" to "display"  - this is the inverse of
                 // what is done by vtk to get from display to localDisplay
                 var newPointView = [newPoint[0], mainView.getFramebufferSize()[1] - newPoint[1] - 1];
                 //srdbg('localDisplay (y = size[1] - y\'- 1) -> display?:', newPoint, fbSize[1], newPointView);
                 coord.setCoordinateSystemToDisplay();
                 coord.setValue(newPointView);
-                //var wCoord = coord.getComputedWorldValue();
                 //srdbg('localDisplay -> world:', newPointView, wCoord);
-                //var lCoord = localCoordFromWorld(coord, wCoord);
                 return coord.getComputedWorldValue();
             }
             function refreshAxes() {
-
             }
 
             function reset() {
@@ -2981,23 +2880,28 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
     };
 });
 
-SIREPO.app.service('warpVTKService', function() {
+SIREPO.app.service('warpVTKService', function(vtkPlotting) {
 
     var svc = this;
 
-    this.xscale = 1.0;
-    this.yscale = 1.0;
-    this.zscale = 1.0;
+    this.warpCoordMapper = function(scale) {
+        return vtkPlotting.coordMapper(labToVTK(scale || [1.0, 1.0, 1.0]));
+    };
 
-    // TODO (mvk): include the various scaling factors in these transforms
-    this.labToVTK = function(lpoint) {
-        var vpoint = [svc.zscale * lpoint[2], svc.xscale * lpoint[0], svc.yscale * lpoint[1]];
-        srdbg('labToVTK: ', lpoint, '->', vpoint);
-        return [svc.zscale * lpoint[2], svc.xscale * lpoint[0], svc.yscale * lpoint[1]];
-    };
-    this.vtkToLab = function(vpoint) {
-        return [vpoint[1], vpoint[2], vpoint[0]];
-    };
+    function labToVTK(scale) {
+        return function (lpoint) {
+            var vpoint = [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
+            //srdbg('labToVTK: ', lpoint, '->', vpoint);
+            return [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
+        };
+    }
+
+    // this inverse transform should really be calculated
+    function vtkToLab(scale) {
+        return function (vpoint) {
+            return [vpoint[1] / scale[0], vpoint[2] / scale[1], vpoint[0] / scale[2]];
+        };
+    }
 
 
 });
