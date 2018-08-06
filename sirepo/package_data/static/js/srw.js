@@ -509,7 +509,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
         // store the coherence
         beamlineService.coherence = value ? 'full' : 'partial';
-        $location.search('coherence', beamlineService.coherence);
+        var currentCoherence = $location.search().coherence || 'full';
+        if (beamlineService.coherence != currentCoherence) {
+            // only set search if changed - it causes a page reload
+            $location.search('coherence', beamlineService.coherence);
+        }
     };
 
     self.showPropagationModal = function() {
