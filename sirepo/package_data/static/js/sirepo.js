@@ -830,6 +830,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     else {
                         callback(index, data);
                     }
+                },
+                null,
+                // error handling
+                function(data) {
+                    //TODO(pjm): need error wrapping on server similar to runStatus route
+                    panelState.setError(modelName, 'Report not generated');
                 });
         };
         if (isHidden) {
