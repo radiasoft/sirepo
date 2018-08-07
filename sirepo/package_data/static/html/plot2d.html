@@ -16,8 +16,7 @@
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
         <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
         <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-          <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp" data-plot-info-delegate="focusCircleDelegates[$index]">
-          </g>
+          <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp" data-plot-info-delegate="focusCircleDelegates[$index]"><circle r="6"></circle></g>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
           <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
           <path class="line line-0"></path>

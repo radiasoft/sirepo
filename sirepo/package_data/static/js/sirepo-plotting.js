@@ -1341,7 +1341,9 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Serv
             plotInfoDelegate: '=',
         },
         template: [
-            '<circle r="6"></circle>',
+            '',
+            // svg element outside a <svg> element don't work in MS Edge 38.14393
+            //'<circle r="6"></circle>',
         ].join(''),
         controller: function($scope, $element) {
 
@@ -3279,7 +3281,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     lastVU = camVU;
                     lastFP = camFP;
                     lastPos = cam.getPosition();
-                    
+
                     //refreshGridPlanes();
                     //refresh();
                 };
