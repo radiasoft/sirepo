@@ -22,10 +22,10 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-        'sirepo/package_data/static/js/ext/angular-1.6.7.js',
-        'sirepo/package_data/static/js/ext/angular-route-1.6.7.js',
-        'sirepo/package_data/static/js/ext/angular-cookies-1.6.7.js',
-        'sirepo/package_data/static/js/ext/jquery-2.1.4.js',
+        'sirepo/package_data/static/js/ext/angular.js',
+        'sirepo/package_data/static/js/ext/angular-route.js',
+        'sirepo/package_data/static/js/ext/angular-cookies.js',
+        'sirepo/package_data/static/js/ext/jquery-2.2.4.js',
         'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
         'sirepo/package_data/static/js/ext/angular-d3.js',

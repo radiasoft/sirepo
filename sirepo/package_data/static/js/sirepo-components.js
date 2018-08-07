@@ -1643,7 +1643,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
-                    '<li data-ng-if="isLoaded()" data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
                     '<li data-settings-menu="nav">',
                         '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
