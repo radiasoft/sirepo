@@ -1381,6 +1381,39 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
             $scope.appState = appState;
             $scope.latticeService = latticeService;
             var windowSize = 0;
+            var isNested = {};
+
+            function computeNesting() {
+                isNested = {};
+                appState.models.beamlines.forEach(function(beamline) {
+                    computeNestingBeamline(beamline);
+                });
+            }
+
+            function computeNestingBeamline(beamline, blItems) {
+                if (isNested[beamline.id]) {
+                    return;
+                }
+                var activeBeamline = latticeService.getActiveBeamline();
+                if(! activeBeamline || activeBeamline.id === beamline.id) {
+                    isNested[beamline.id] = true;
+                    return;
+                }
+                if(! blItems) {
+                    blItems = beamline.items || [];
+                }
+                if(blItems.indexOf(activeBeamline.id) >= 0) {
+                    isNested[beamline.id] = true;
+                    return;
+                }
+                for(var i = 0; i < blItems.length; i++) {
+                    var nextItems = latticeService.elementForId(blItems[i]).items;
+                    if(nextItems && computeNestingBeamline(beamline, nextItems)) {
+                        isNested[beamline.id] = true;
+                        return;
+                    }
+                }
+            }
 
             function itemsToString(items) {
                 var res = '(';
@@ -1398,25 +1431,9 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                 return res;
             }
 
-            $scope.wouldBeamlineSelfNest = function (beamline, blItems) {
-                var activeBeamline = latticeService.getActiveBeamline();
-                if(! activeBeamline || activeBeamline.id === beamline.id) {
-                    return true;
-                }
-                if(! blItems) {
-                    blItems = beamline.items || [];
-                }
-                if(blItems.indexOf(activeBeamline.id) >= 0) {
-                    return true;
-                }
-                for(var i = 0; i < blItems.length; i++) {
-                    var nextItems = latticeService.elementForId(blItems[i]).items;
-                    if(nextItems && $scope.wouldBeamlineSelfNest(beamline, nextItems)) {
-                        return true;
-                    }
-                }
-                return false;
-            };
+            function windowResize() {
+                windowSize = $($window).width();
+            }
 
             $scope.copyBeamline = function(beamline) {
                 var newBeamline = latticeService.getNextBeamline();
@@ -1464,15 +1481,26 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                 return windowSize >= 1200;
             };
 
-            function windowResize() {
-                windowSize = $($window).width();
-            }
+            $scope.wouldBeamlineSelfNest = function (beamline) {
+                return isNested[beamline.id];
+            };
+            
+            $scope.$on('modelChanged', function(e, name) {
+                if (name == 'beamlines') {
+                    computeNesting();
+                }
+            });
 
-            $($window).resize(windowResize);
-            windowResize();
+            $scope.$on('activeBeamlineChanged', computeNesting);
+
             $scope.$on('$destroy', function() {
                 $($window).off('resize', windowResize);
             });
+            
+            $($window).resize(windowResize);
+            windowResize();
+
+            appState.whenModelsLoaded($scope, computeNesting);
         },
     };
 });
