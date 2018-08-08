@@ -2091,7 +2091,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     };
     self.getUserFolders = function(excludeFolder) {
         return self.flattenTree().filter(function(item) {
-            return item != excludeFolder && item.isFolder && ! self.isFolderExample(item);
+            if (item != excludeFolder && item.isFolder) {
+                if (SIREPO.INCLUDE_EXAMPLE_FOLDERS || ! self.isFolderExample(item)) {
+                    return true;
+                }
+            }
+            return false;
         });
     };
     self.getUserFolderPaths = function() {
@@ -2246,11 +2251,11 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
     };
     self.doesFolderContainFolder = function(f1, f2) {
-        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
-            return true;
-        }
         if(f2 == self.rootFolder() || ! f1.children) {
             return false;
+        }
+        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
+            return true;
         }
         for(var cIndex = 0; cIndex < f1.children.length; ++cIndex) {
             if(self.doesFolderContainFolder(f1.children[cIndex], f2)) {

@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
