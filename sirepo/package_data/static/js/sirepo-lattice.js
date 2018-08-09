@@ -821,7 +821,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             var d1 = 2 * length / angle;
                             length = d1 * Math.sin(length / d1);
                         }
-                        if (item.type.indexOf('RBEN') >= 0 || item.type.indexOf('SBEN') >= 0) {
+                        if (angle != 0 && (item.type.indexOf('RBEN') >= 0 || item.type.indexOf('SBEN') >= 0)) {
                             // compute bend radius
                             radius = length * Math.sin(angle / 2) / Math.sin(Math.PI - angle);
                         }
@@ -900,6 +900,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         else if (picType == 'alpha') {
                             var alphaAngle = 40.71;
                             newAngle = 180 - 2 * alphaAngle;
+                            //TODO(pjm): implement different angle depending on ALPH.part field
                             if (length < 0.3) {
                                 groupItem.width = 0.3;
                             }
@@ -907,6 +908,19 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
+                        }
+                        else if (picType == 'malign') {
+                            groupItem.color = getPicColor(item.type, 'black');
+                            groupItem.picType = 'zeroLength';
+                            groupItem.height = 0.5;
+                            groupItem.y = pos.y;
+                            // adjust position by z and x offsets
+                            var radAngle = latticeService.degreesToRadians(pos.angle);
+                            pos.x += rpnValue(item.dz) * Math.cos(radAngle);
+                            pos.y += rpnValue(item.dz) * Math.sin(radAngle);
+                            pos.x -= rpnValue(item.dx) * Math.sin(radAngle);
+                            pos.y += rpnValue(item.dx) * Math.cos(radAngle);
+                            newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(rpnValue(item.dxp) ** 2)));
                         }
                         else if (picType == 'mirror') {
                             if ('theta' in item) {
@@ -1096,7 +1110,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function isAngleItem(picType) {
-                return picType == 'bend' || picType == 'alpha' || picType == 'mirror';
+                return picType == 'bend' || picType == 'alpha' || picType == 'mirror' || picType == 'malign';
             }
 
             function lineIntersection(p) {
@@ -1484,7 +1498,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
             $scope.wouldBeamlineSelfNest = function (beamline) {
                 return isNested[beamline.id];
             };
-            
+
             $scope.$on('modelChanged', function(e, name) {
                 if (name == 'beamlines') {
                     computeNesting();
@@ -1496,7 +1510,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
             $scope.$on('$destroy', function() {
                 $($window).off('resize', windowResize);
             });
-            
+
             $($window).resize(windowResize);
             windowResize();
 
