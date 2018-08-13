@@ -1217,7 +1217,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     };
 
     self.waitForUI = function(callback) {
-        // groups callbacks within one $timeout() 
+        // groups callbacks within one $timeout()
         if (waitForUICallbacks) {
             waitForUICallbacks.push(callback);
         }
@@ -2102,6 +2102,8 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     self.getUserFolderPaths = function() {
         return self.getUserFolders().map(function (item) {
             return self.pathName(item);
+        }).sort(function(a, b) {
+            return a.localeCompare(b);
         });
     };
     self.defaultCreationFolder = function() {
