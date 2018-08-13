@@ -34,7 +34,7 @@ _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 
 _FILE_ID_SEP = '-'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_REPORT_STYLE_FIELDS = ['colorMap', 'includeLattice', 'notes']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 

@@ -17,6 +17,24 @@ SIREPO.appImportText = 'Import a MAD-X Lattice';
 SIREPO.FILE_UPLOAD_TYPE = {
     'bunch-particleFile': '.h5,.hdf5',
 };
+SIREPO.lattice = {
+    elementColor: {
+        QUADRUPOLE: 'red',
+        SEXTUPOLE: 'lightgreen',
+        VKICKER: 'blue',
+        NLINSERT: 'green',
+    },
+    elementPic: {
+        aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
+        bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
+        drift: ['DRIFT'],
+        magnet: ['NLINSERT', 'QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
+        rf: ['RFCAVITY'],
+        solenoid: ['SOLENOID'],
+        watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
+        zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
+    },
+};
 SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
         return;
@@ -31,24 +49,6 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.advancedNames = ['DIPEDGE', 'ECOLLIMATOR', 'HKICKER', 'HMONITOR', 'MARKER', 'MULTIPOLE', 'NLINSERT', 'NLLENS', 'RCOLLIMATOR', 'SEXTUPOLE', 'SOLENOID', 'SROTATION', 'VKICKER', 'VMONITOR'];
 
     self.basicNames = ['DRIFT', 'MONITOR', 'KICKER', 'QUADRUPOLE', 'RFCAVITY', 'SBEND'];
-
-    self.elementColor = {
-        QUADRUPOLE: 'red',
-        SEXTUPOLE: 'lightgreen',
-        VKICKER: 'blue',
-        NLINSERT: 'green',
-    };
-
-    self.elementPic = {
-        aperture: ['ECOLLIMATOR', 'RCOLLIMATOR'],
-        bend: ['HKICKER', 'KICKER', 'RBEND', 'SBEND'],
-        drift: ['DRIFT'],
-        magnet: ['NLINSERT', 'QUADRUPOLE', 'SEXTUPOLE', 'VKICKER'],
-        rf: ['RFCAVITY'],
-        solenoid: ['SOLENOID'],
-        watch: ['HMONITOR', 'MARKER', 'MONITOR', 'VMONITOR'],
-        zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
-    };
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;

@@ -74,6 +74,39 @@ SIREPO.appFieldEditors = [
 SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
+SIREPO.lattice = {
+    elementColor: {
+        BMAPXY: 'magenta',
+        FTABLE: 'magenta',
+        KOCT: 'lightyellow',
+        KQUAD: 'tomato',
+        KSEXT: 'lightgreen',
+        MATTER: 'black',
+        OCTU: 'yellow',
+        QUAD: 'red',
+        QUFRINGE: 'salmon',
+        SEXT: 'lightgreen',
+        VKICK: 'blue',
+        LMIRROR: 'lightblue',
+        REFLECT: 'blue',
+    },
+    elementPic: {
+        alpha: ['ALPH'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        malign: ['MALIGN'],
+        mirror: ['LMIRROR'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    },
+};
 
 SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -532,39 +565,6 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'WATCH', 'WIGGLER',
     ];
 
-    self.elementColor = {
-        BMAPXY: 'magenta',
-        FTABLE: 'magenta',
-        KOCT: 'lightyellow',
-        KQUAD: 'tomato',
-        KSEXT: 'lightgreen',
-        MATTER: 'black',
-        OCTU: 'yellow',
-        QUAD: 'red',
-        QUFRINGE: 'salmon',
-        SEXT: 'lightgreen',
-        VKICK: 'blue',
-        LMIRROR: 'lightblue',
-        REFLECT: 'blue',
-    };
-
-    self.elementPic = {
-        alpha: ['ALPH'],
-        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
-        lens: ['LTHINLENS'],
-        magnet: ['BMAPXY', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
-        malign: ['MALIGN'],
-        mirror: ['LMIRROR'],
-        recirc: ['RECIRC'],
-        solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
-        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-    };
-
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
@@ -718,14 +718,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
     function reportTypeForColumns(columns) {
         if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return 'parameter';
+            return 'parameterWithLattice';
         }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
             return 'heatmap';
         }
-        return 'parameter';
+        return 'parameterWithLattice';
     }
 
     function yFileUpdate(modelKey) {
@@ -760,12 +760,15 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (info.modelAccess.modelKey == modelKey) {
                 ['histogramBins', 'colorMap'].forEach(function(f) {
                     panelState.showField(name, f, info.reportType == 'heatmap');
-                    panelState.showField(name, f, info.reportType == 'heatmap');
                 });
                 panelState.showField(name, 'framesPerSecond', frameCache.getFrameCount(modelKey) > 1);
                 ['y2', 'y2File', 'y3', 'y3File'].forEach(function(f) {
-                    panelState.showField(name, f, info.reportType == 'parameter');
+                    panelState.showField(name, f, info.reportType.indexOf('parameter') >= 0);
                 });
+                panelState.showField(
+                    name, 'includeLattice',
+                    info.reportType.indexOf('parameter') >= 0
+                        && appState.models[modelKey].valueList.x.indexOf('s') >= 0);
             }
         });
     };

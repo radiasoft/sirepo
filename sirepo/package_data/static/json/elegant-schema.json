@@ -409,7 +409,7 @@
             "notes": ["Notes", "Text", ""]
         },
         "bunchSource": {
-            "inputSource": ["Bunch Source", "BunchInputSource"]
+            "inputSource": ["Bunch Source", "BunchInputSource", "bunched_beam"]
         },
         "bunch": {
             "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command."],
@@ -465,6 +465,7 @@
             "y2File": ["File Y2", "ValueList", ""],
             "y3": ["Vertical Value to Plot", "ValueList", ""],
             "y3File": ["File Y3", "ValueList", ""],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
@@ -486,7 +487,8 @@
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "betax"],
             "y2": ["Y2 Value", "TwissParameter", "betay"],
-            "y3": ["Y3 Value", "TwissParameter", "etax"]
+            "y3": ["Y3 Value", "TwissParameter", "etax"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
         },
         "command_alter_elements": {
             "name": ["Name", "OptionalStringUpper", "", "A possibly-wildcard-containing string giving the names of the elements to alter. If not specified, then one must specify type."],
@@ -4021,6 +4023,7 @@
                         "y3"
                     ]]
                 ],
+                "includeLattice",
                 "histogramBins",
                 "framesPerSecond",
                 "colorMap",
@@ -4050,7 +4053,8 @@
             "advanced": [
                 "y1",
                 "y2",
-                "y3"
+                "y3",
+                "includeLattice"
             ]
         },
         "command_alter_elements": {

@@ -33,6 +33,20 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return res;
     }
 
+    function findBeamline(id) {
+        if (! appState.isLoaded()) {
+            return null;
+        }
+        var res = null;
+        var beamlines = appState.models.beamlines;
+        for (var i = 0; i < beamlines.length; i++) {
+            if (beamlines[i].id == id) {
+                return beamlines[i];
+            }
+        }
+        return null;
+    }
+
     function fixModelName(modelName) {
         var m = appState.models[modelName];
         // remove invalid characters
@@ -196,16 +210,14 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.getActiveBeamline = function() {
-        if (! appState.isLoaded()) {
-            return null;
+        return findBeamline(self.activeBeamlineId);
+    };
+
+    self.getSimulationBeamline = function() {
+        if (appState.isLoaded()) {
+            return findBeamline(appState.applicationState().simulation.visualizationBeamlineId);
         }
-        var res = null;
-        appState.models.beamlines.forEach(function(b) {
-            if (b.id == self.activeBeamlineId) {
-                res = b;
-            }
-        });
-        return res;
+        return null;
     };
 
     self.getBeamlinesWhichContainId = function(id) {
@@ -748,28 +760,87 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
     };
 });
 
+SIREPO.app.directive('parameterWithLattice', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+            beamlineId: '<',
+        },
+        template: [
+            '<div data-ng-if="showLattice()"><div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelName }}" data-flatten="1"></div></div>',
+            '<div id="sr-parameters" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelName }}" data-report-id="reportId"></div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var latticeScope, plotScope;
+            var isNestedSVG = false;
+
+            function updateLattice() {
+                if ($scope.showLattice() && latticeScope && plotScope) {
+                    if (! isNestedSVG) {
+                        // nest the SVG so the "download as png" gets both images
+                        isNestedSVG = true;
+                        var svgs = $($element).find('svg');
+                        $(svgs[1]).prepend(svgs[0]);
+                    }
+                    latticeScope.updateFixedAxis(plotScope.getXAxis(), plotScope.margin.left);
+                    $scope.$applyAsync();
+                }
+                else if (isNestedSVG) {
+                    isNestedSVG = false;
+                    $($element).find('svg svg').first().remove();
+                }
+            }
+
+            $scope.showLattice = function() {
+                if (appState.isLoaded()) {
+                    if (appState.applicationState()[$scope.modelName].includeLattice == '1') {
+                        if (plotScope && ! plotScope.onRefresh) {
+                            plotScope.onRefresh = updateLattice;
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            $scope.$on('sr-latticeLinked', function(event) {
+                latticeScope = event.targetScope;
+                event.stopPropagation();
+                updateLattice();
+            });
+            $scope.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+                event.stopPropagation();
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('lattice', function(appState, latticeService, panelState, plotting, rpnService, utilities, $window) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
+            flatten: '@',
         },
         templateUrl: '/static/html/lattice.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             var emptyList = [];
             var beamlineItems = emptyList;
-            //TODO(pjm): need a way to get at the controller for info, or provide in a common service.
-            var latticeController = panelState.findParentAttribute($scope, 'lattice');
             var panTranslate = [0, 0];
             var picTypeCache = null;
             var svgBounds = null;
             var zoom = null;
             var zoomScale = 1;
+            $scope.plotStyle = $scope.flatten ? '' : 'cursor: zoom-in;';
             $scope.isClientOnly = true;
-            $scope.margin = 3;
+            $scope.margin = $scope.flatten ? 0 : 3;
             $scope.width = 1;
             $scope.height = 1;
-            $scope.scale = 1;
+            $scope.xScale = 1;
+            $scope.yScale = 1;
             $scope.xOffset = 0;
             $scope.yOffset = 0;
             $scope.markerWidth = 1;
@@ -803,7 +874,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         var bendAngle = rpnValue(item.angle || 0);
                         if (bendAngle != 0) {
                             travelLength = bendAngle * length / (2 * Math.sin(bendAngle / 2));
+                            if ($scope.flatten) {
+                                length = travelLength;
+                            }
                         }
+
                     }
                     var elRadius = rpnValue(item.rx || item.x_max || 0);
                     pos.length += travelLength;
@@ -816,6 +891,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (picType == 'bend') {
                         var radius = length / 2;
                         var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
+                        if ($scope.flatten) {
+                            angle = 0;
+                        }
                         if (item.type.indexOf('SBEN') >= 0 && angle != 0) {
                             // compute the chord length from the arclength
                             var d1 = 2 * length / angle;
@@ -837,6 +915,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         if (item.type.indexOf('RBEN') >= 0) {
                             enterEdge += angle / 2;
                             exitEdge += angle / 2;
+                        }
+                        if ($scope.flatten) {
+                            enterEdge = 0;
+                            exitEdge = 0;
                         }
                         var exit = [enter[0] + radius + Math.cos(angle) * radius,
                                     pos.y + Math.sin(angle) * radius];
@@ -920,7 +1002,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             pos.y += rpnValue(item.dz) * Math.sin(radAngle);
                             pos.x -= rpnValue(item.dx) * Math.sin(radAngle);
                             pos.y += rpnValue(item.dx) * Math.cos(radAngle);
-                            newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(rpnValue(item.dxp) ** 2)));
+                            newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(Math.pow(rpnValue(item.dxp), 2))));
                         }
                         else if (picType == 'mirror') {
                             if ('theta' in item) {
@@ -1020,6 +1102,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     pos.y += Math.sin(latticeService.degreesToRadians(pos.angle)) * (x + oldRadius);
                 }
                 updateBounds(pos.bounds, pos.x, pos.y, Math.max(maxHeight, pos.radius));
+                if ($scope.flatten) {
+                    newAngle = 0;
+                }
                 pos.angle += newAngle;
             }
 
@@ -1092,13 +1177,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function getPicColor(type, defaultColor) {
-                return latticeController.elementColor[type] || defaultColor;
+                return SIREPO.lattice.elementColor[type] || defaultColor;
             }
 
             function getPicType(type) {
                 if (! picTypeCache) {
                     picTypeCache = {};
-                    var elementPic = latticeController.elementPic;
+                    var elementPic = SIREPO.lattice.elementPic;
                     for (var picType in elementPic) {
                         var types = elementPic[picType];
                         for (var i = 0; i < types.length; i++) {
@@ -1125,12 +1210,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function loadItemsFromBeamline(forceUpdate) {
-                var id = latticeService.activeBeamlineId;
-                if (! id) {
+                //TODO(pjm): twissReport and lattice uses the active beamline
+                var beamline = $scope.flatten && $scope.modelName != 'twissReport'
+                    ? latticeService.getSimulationBeamline()
+                    : latticeService.getActiveBeamline();
+                if (! beamline) {
                     beamlineItems = emptyList;
                     return;
                 }
-                var beamline = latticeService.getActiveBeamline();
                 if (! forceUpdate && appState.deepEquals(beamline.items, beamlineItems)) {
                     return;
                 }
@@ -1147,9 +1234,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function recalcScaleMarker() {
+                if ($scope.flatten) {
+                    return;
+                }
                 //TODO(pjm): use library for this
                 $scope.markerUnits = '1 m';
-                $scope.markerWidth = $scope.scale * zoomScale;
+                $scope.markerWidth = $scope.xScale * zoomScale;
                 if ($scope.markerWidth < 20) {
                     $scope.markerUnits = '10 m';
                     $scope.markerWidth *= 10;
@@ -1228,11 +1318,13 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
 
             $scope.init = function() {
                 zoom = d3.behavior.zoom()
-                    .scaleExtent([1, 50])
-                    .on('zoom', zoomed);
-                //TODO(pjm): call stopPropagation() on item double-click instead, would allow double-click zoom on empty space
-                select('svg').call(zoom)
-                    .on('dblclick.zoom', null);
+                    .scaleExtent([1, 50]);
+                if (! $scope.flatten) {
+                    zoom.on('zoom', zoomed);
+                    //TODO(pjm): call stopPropagation() on item double-click instead, would allow double-click zoom on empty space
+                    select('svg').call(zoom)
+                        .on('dblclick.zoom', null);
+                }
                 $scope.resize();
             };
 
@@ -1249,11 +1341,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     return;
                 }
                 $scope.width = width;
+                if ($scope.flatten) {
+                    return;
+                }
                 $scope.height = $scope.width;
                 var windowHeight = $($window).height();
                 var maxHeightFactor = utilities.isFullscreen() ? 1.5 : 2.5;
                 if ($scope.height > windowHeight / maxHeightFactor) {
-                        $scope.height = windowHeight / maxHeightFactor;
+                    $scope.height = windowHeight / maxHeightFactor;
                 }
 
                 if (svgBounds) {
@@ -1275,11 +1370,27 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         scale = scaleHeight;
                         xOffset = ($scope.width - w * scale) / 2;
                     }
-                    $scope.scale = scale;
+                    $scope.xScale = scale;
+                    $scope.yScale = scale;
                     $scope.xOffset = - svgBounds[0] * scale + xOffset;
                     $scope.yOffset = - svgBounds[1] * scale + yOffset;
                     recalcScaleMarker();
                 }
+            };
+
+            $scope.updateFixedAxis = function(axis, leftMargin) {
+                if (! axis.domain) {
+                    return;
+                }
+                var widthInPixels = axis.scale.range()[1];
+                var currentDomainWidth = axis.scale.domain()[1] - axis.scale.domain()[0];
+                var scale = widthInPixels / currentDomainWidth;
+                var leftPoint = (axis.scale.domain()[0] - axis.domain[0]) * scale;
+                $scope.yScale = 20;
+                $scope.height = 50;
+                $scope.yOffset = 40;
+                $scope.xScale = scale;
+                $scope.xOffset = leftMargin - leftPoint;
             };
 
             appState.whenModelsLoaded($scope, function() {
@@ -1313,6 +1424,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+            scope.$emit('sr-latticeLinked');
         },
     };
 });
@@ -1736,7 +1848,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                     '<div class="container-fluid">',
                       '<div class="row">',
                         '<div class="col-sm-12" data-ng-if="twissReportShown">',
-                          '<div data-report-content="parameter" data-model-key="twissReport" data-report-id="reportId"></div>',
+                          '<div data-report-content="parameterWithLattice" data-model-key="twissReport" data-report-id="reportId"></div>',
                         '</div>',
                       '</div>',
                       '<br />',

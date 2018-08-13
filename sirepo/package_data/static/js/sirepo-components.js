@@ -1495,6 +1495,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -1567,7 +1568,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(appState, panelState, requestSender, $window) {
+SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {

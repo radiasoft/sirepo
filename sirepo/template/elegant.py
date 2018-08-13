@@ -175,10 +175,13 @@ def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
 
 
 def fixup_old_data(data):
-    if 'bunchSource' not in data['models']:
-        data['models']['bunchSource'] = {
-            'inputSource': 'bunched_beam',
-        }
+    for m in [
+            'bunchSource',
+            'twissReport',
+    ]:
+        if m not in data['models']:
+            data['models'][m] = {}
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'bunchFile' not in data['models']:
         data['models']['bunchFile'] = {
             'sourceFile': None,
@@ -218,9 +221,6 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
-    if 'twissReport' not in data['models']:
-        m = data['models']['twissReport'] = {}
-        template_common.update_model_defaults(m, 'twissReport', _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):

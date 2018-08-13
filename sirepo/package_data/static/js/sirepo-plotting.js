@@ -2639,6 +2639,9 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope.plotInfoDelegates);
                 }
+                if ($scope.onRefresh) {
+                    $scope.onRefresh();
+                }
             }
 
             function resetZoom() {
@@ -2664,6 +2667,10 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 $($scope.element).find('.overlay').off();
                 $($scope.element).find('.sr-plot-legend-item text').off();
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.getXAxis = function() {
+                return axes.x;
             };
 
             $scope.init = function() {
@@ -2787,7 +2794,12 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope.plotInfoDelegates);
                     }
                 }
-                $scope.margin.top = json.title ? 50 : 20;
+                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
+                $scope.margin.top = json.title
+                    ? 50
+                    : $scope.onRefresh
+                        ? 65
+                        : 20;
                 $scope.margin.bottom = 50 + 20 * plots.length;
                 $scope.resize();
             };
@@ -2842,6 +2854,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+            scope.$emit('sr-plotLinked');
         },
     };
 });
