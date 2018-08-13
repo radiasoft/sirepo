@@ -272,6 +272,8 @@ def validate_file(file_type, path):
             columns = re.split(r'\s+', match.group(1))
             is_ok = True
             for col in sdds_util.MADX_TWISS_COLUMS:
+                if col == 'NAME' or col == 'TYPE' or col == 'COUNT':
+                    continue
                 if col not in columns:
                     is_ok = False
                     break
