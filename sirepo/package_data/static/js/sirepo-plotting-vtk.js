@@ -69,23 +69,23 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
 
         coordMapper: function(transform) {
 
-            var mapper = this;
-            this.xform = transform || identityTransform;
             return {
+
+                xform: transform || identityTransform,
 
                 // These functions take an optional transformation to go from "lab"
                 // coordinates to vtk screen coordinates
                 setPlane: function(planeSource, lo, lp1, lp2) {
-                    var vo = mapper.xform(lo);
-                    var vp1 = mapper.xform(lp1);
-                    var vp2 = mapper.xform(lp2);
+                    var vo = this.xform(lo);
+                    var vp1 = this.xform(lp1);
+                    var vp2 = this.xform(lp2);
                     planeSource.setOrigin(vo[0], vo[1], vo[2]);
                     planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
                     planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
                 },
                 buildBox: function(lsize, lcenter) {
-                    var vsize = mapper.xform(lsize);
-                    var vcenter = mapper.xform(lcenter);
+                    var vsize = this.xform(lsize);
+                    var vcenter = this.xform(lcenter);
                     return vtk.Filters.Sources.vtkCubeSource.newInstance({
                         xLength: vsize[0],
                         yLength: vsize[1],
@@ -94,8 +94,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
                     });
                 },
                 buildLine: function(lp1, lp2, colorArray) {
-                    var vp1 = mapper.xform(lp1);
-                    var vp2 = mapper.xform(lp2);
+                    var vp1 = this.xform(lp1);
+                    var vp2 = this.xform(lp2);
                     var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
                         point1: [vp1[0], vp1[1], vp1[2]],
                         point2: [vp2[0], vp2[1], vp2[2]],
@@ -111,7 +111,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
                     return la;
                 },
                 buildSphere: function(lcenter, radius, colorArray, transform) {
-                    var vcenter = mapper.xform(lcenter);
+                    var vcenter = this.xform(lcenter);
                     var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                         center: vcenter,
                         radius: radius,
@@ -131,6 +131,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
             };
         },
 
+        // Takes a vtk sphere source and returns a box in viewport coordinates with a bunch of useful
+        // geometric properties and methods
+        // TODO (mvk): the whole thing
+        vpBox: function(vtkSphereSource) {
+        },
+
         addActors: function(renderer, actorArr) {
             for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
                 renderer.addActor(actorArr[aIndex]);
@@ -141,6 +147,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
                 renderer.removeActor(actorArr[aIndex]);
             }
         },
+        showActors: function(renderWindow, actorArray, doShow, visibleOpacity, hiddenOpacity) {
+            for(var aIndex = 0; aIndex < actorArray.length; ++aIndex) {
+                actorArray[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+            }
+            renderWindow.render();
+        }
 
 
     };

@@ -1617,12 +1617,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting,
                 removeActors(boxActors);
 
                 var grid = appState.models.simulationGrid;
-                //var ymax = grid.channel_height / 2.0 * 1e-6;
-                //var ymin = -ymax;
-                //var xmin = 0;
-                //var xmax = grid.plate_spacing * 1e-6;
-                //var zmax = grid.channel_width / 2.0 * 1e-6;
-                //var zmin = -zmax;
                 var ymax = grid.channel_height / 2.0 * 1e-6;
                 var ymin = -ymax;
                 var zmin = 0;
@@ -1630,51 +1624,41 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting,
                 var xmax = grid.channel_width / 2.0 * 1e-6;
                 var xmin = -xmax;
 
-                //var xpoints = pointData.points;
-                //var xmin = pointData.y_range[0];
-                //var xmax = pointData.y_range[1];
-                //var zpoints = pointData.x_points;
-                //var zmin = pointData.x_range[0];
-                //var zmax = pointData.x_range[1];
-                // these are randomly generated in python for now
-                //var ypoints = pointData.z_points;
-                //var ymin = pointData.z_range[0];
-                //var ymax = pointData.z_range[1];
-
-                //var yzAspectRatio = grid.channel_width / grid.channel_height;
                 var yzAspectRatio =  grid.channel_height / grid.channel_width;
-                //var pointScales = {
-                //    z: 1 / Math.abs((zmax - zmin)),
-                //    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
-                //    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
-                //};
                 var pointScales = {
                     z: 1 / Math.abs((zmax - zmin)),
                     x: X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
-                    y: yzAspectRatio / Math.abs((ymax - ymin))
+                    y: X_Z_ASPECT_RATIO * yzAspectRatio / Math.abs((ymax - ymin))
                 };
                 pointRanges = {
                     z: [pointScales.z * zmin, pointScales.z * zmax],
                     x: [pointScales.x * xmin, pointScales.x * xmax],
                     y: [pointScales.y * ymin, pointScales.y * ymax]
                 };
-                var zfactor = pointScales.z;
-                var xfactor = pointScales.x;
-                var yfactor = pointScales.y;
+                //var zfactor = pointScales.z;
+                //var xfactor = pointScales.x;
+                //var yfactor = pointScales.y;
                 coordMapper = warpVTKService.warpCoordMapper([pointScales.x, pointScales.y, pointScales.z]);
-
 
                 coordMapper.setPlane(startPlaneSource,
                     [xmin, ymin, zmin],
                     [xmin, ymax, zmin],
                     [xmax, ymin, zmin]
                 );
-
                 coordMapper.setPlane(endPlaneSource,
                     [xmin, ymin, zmax],
                     [xmin, ymax, zmax],
                     [xmax, ymin, zmax]
                 );
+                var padding = 0.01;
+                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
+                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
+                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
+                outlineSource.setCenter([
+                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
+                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
+                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
+                ]);
 
 
                 var typeMap = {};
@@ -1685,19 +1669,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting,
                     // lengths and centers are in µm
                     var cFactor = 1e6;
                     var cModel = typeMap[conductor.conductorTypeId];
-/*
-                    var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
-                        xLength: xfactor * cModel.zLength / cFactor,
-                        yLength: zfactor * cModel.xLength / cFactor,
-                        zLength: zfactor * cModel.yLength / cFactor,
-                        center: [
-                            xfactor * conductor.zCenter / cFactor,
-                            zfactor * conductor.xCenter / cFactor,
-                            zfactor * conductor.yCenter / cFactor,
-                        ],
-                    });
-*/
-
                     var bs = coordMapper.buildBox(
                         [cModel.xLength / cFactor, cModel.yLength / cFactor, cModel.zLength / cFactor],
                         [conductor.xCenter / cFactor, conductor.yCenter / cFactor, conductor.zCenter / cFactor]
@@ -1720,25 +1691,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting,
             }
 
             function refresh() {
-/*
-                startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
-                startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
-                startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
-
-                endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
-                endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
-                endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
-*/
-                var padding = 0.01;
-                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
-                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
-                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
-                outlineSource.setCenter([
-                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
-                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
-                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
-                ]);
-
                 addActors(boxActors);
                 reset();
             }
@@ -1779,7 +1731,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService, vtkPlotting,
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
-// TODO (mvk): refactor to allow various directives to use the same conductor builders etc.
 SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, vtkService, warpVTKService) {
 
     return {
@@ -1789,10 +1740,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
         },
         templateUrl: '/static/html/particle3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
+
+            var d3self;
             //srdbg(appState.models.fieldReport, appState.models.simulationGrid, appState.models.particle3d);
             var X_Z_ASPECT_RATIO = 4.0 / 7.0;
-            var Y_Z_ASPECT_RATIO = 4.0 / 7.0;
+            //var Y_Z_ASPECT_RATIO = 4.0 / 7.0;
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
+            $scope.xAxisAngle = 0;
+            $scope.yAxisAngle = 0;
             $scope.zAxisAngle = -35;
             $scope.width = $scope.height = 0;
             $scope.axesMargins = {
@@ -1800,6 +1755,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 y: { width: 0.0, height: 16.0 }
             };
 
+            // little test boxes are useful for translating vtk space to screen space
+            $scope.testBoxes = [];
+
+            $scope.side = 'y';
+            $scope.xdir = 1;  $scope.ydir = 1;  $scope.zdir = 1;
 
             $scope.dataCleared = true;
 
@@ -1827,7 +1787,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var mainView = null;
             var renderer = null;
             var cam = null;
-            var firstRender = true;
+            var camPos = [0, 0, 1];
+            var camViewUp = [0, 1, 0];
 
             // planes
             var startPlaneActor = null;
@@ -1836,8 +1797,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var endPlaneActor = null;
             var endPlaneMapper = null;
             var endPlaneSource = null;
-            var impactPlaneActors = [];
-            var viewPlane = null;
             var gridPlaneSources = [];
             var gridPlaneActors = [];
 
@@ -1852,16 +1811,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var impactSphereActors = [];
             var fieldSphereActors = [];
 
-            // grid
-            var gridBoxActors = [];
-
             // outline
             var outlineSource = null;
             var outlineMapper = null;
             var outlineActor = null;
 
             // orientation cube
-            var orientationCube = null;
+            var orientationMarker = null;
 
             // geometry
             var coordMapper = vtkPlotting.coordMapper();
@@ -1871,6 +1827,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var pointRanges = {};
             var pointData = {};
             var fieldData = {};
+            var xmin = 0.0;  var xmax = 1.0;
+            var ymin = 0.0;  var ymax = 1.0;
+            var zmin = 0.0;  var zmax = 1.0;
+
+            // these are randomly generated in python for now
+            var ypoints = pointData.z_points;
+
             var heatmap = [];
             var fieldXFactor = 1.0;
             var fieldZFactor = 1.0;
@@ -1884,9 +1847,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var minZSpacing = Number.MAX_VALUE;
 
             // normFactor scales all data to a reasonable viewing size
-            var normFactor = 1.0;
-            var impactSphereSize = 0.0125 * normFactor * X_Z_ASPECT_RATIO;
+            //var normFactor = 1.0;
+            //var impactSphereSize = 0.0125 * normFactor * X_Z_ASPECT_RATIO;
+            var impactSphereSize = 0.0125 * X_Z_ASPECT_RATIO;
             var zoomUnits = 0;
+            var didPan = false;
             var minZoomUnits = -256;
             var maxZoomUnits = 256;
 
@@ -1928,10 +1893,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.init = function() {
                 //srdbg('p3d init', $scope);
+                d3self = d3.selectAll($element);
+
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({ background: [1, 1, 1, 1], container: rw });
                 renderer = fsRenderer.getRenderer();
-                //renderer.setBackground([1,1,1,0]);
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
                 mainView = renderWindow.getViews()[0];
@@ -1961,8 +1927,21 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 });
                 worldCoord.setCoordinateSystemToWorld();
 
+                var isDragging = false;
+                rw.onpointerdown = function(evt) {
+                    isDragging = true;
+                };
+                rw.onpointermove = function(evt) {
+                    if(! isDragging) {
+                        return;
+                    }
+                    didPan = didPan || evt.shiftKey;
+                    $scope.side = null;
+                    utilities.debounce(refresh, 100)();
+                };
                 rw.onpointerup = function(evt) {
                     lastPos = cam.getPosition();
+                    isDragging = false;
                     refresh();
                 };
                 rw.onwheel = function (evt) {
@@ -2017,8 +1996,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     lastFP = camFP;
                     lastPos = cam.getPosition();
 
-                    //refreshGridPlanes();
-                    //refresh();
                     utilities.debounce(refresh, 100)();
                 };
 
@@ -2100,26 +2077,27 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     //edgeThickness: 0
                 });
 
-                orientationCube = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: oCubeActor,  // axesActor
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: axesActor, //oCubeActor,  // axesActor
                     interactor: renderWindow.getInteractor()
                 });
-                orientationCube.setEnabled(true);
-                orientationCube.setViewportCorner(
+                orientationMarker.setEnabled(true);
+                orientationMarker.setViewportCorner(
                     vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
                 );
-                orientationCube.setViewportSize(0.08);
-                orientationCube.setMinPixelSize(100);
-                orientationCube.setMaxPixelSize(300);
+                orientationMarker.setViewportSize(0.08);
+                orientationMarker.setMinPixelSize(100);
+                orientationMarker.setMaxPixelSize(300);
+
                 // 6 grid planes indexed by dimension then side
-                /*
                 for(var d = 0; d < 3; ++d) {
                     var dps = [];
                     var dpa = [];
                     for(var s = 0; s < 1; ++s) {
                         var pm = vtk.Rendering.Core.vtkMapper.newInstance();
                         var pa  = vtk.Rendering.Core.vtkActor.newInstance();
-                        pa.getProperty().setColor(0,0,0);
+                        //pa.getProperty().setColor(0.7, 0.7, 0.7);
+                        pa.getProperty().setColor(0, 0, 0);
                         pa.getProperty().setLighting(false);
                         pa.getProperty().setRepresentationToWireframe();
                         var ps = vtk.Filters.Sources.vtkPlaneSource.newInstance();
@@ -2132,17 +2110,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     gridPlaneSources.push(dps);
                     gridPlaneActors.push(dpa);
                 }
-                */
             };
 
             $scope.load = function() {
                 //srdbg('p3d load', pointData, fieldData);
                 $scope.dataCleared = false;
 
-                removeActors(lineActors);
-                removeActors(reflectedLineActors);
-                removeActors(impactSphereActors);
-                removeActors(conductorActors);
+                vtkPlotting.removeActors(renderer, lineActors);
+                vtkPlotting.removeActors(renderer, reflectedLineActors);
+                vtkPlotting.removeActors(renderer, impactSphereActors);
+                vtkPlotting.removeActors(renderer, conductorActors);
 
                 lineActors = [];
                 reflectedLineActors = [];
@@ -2155,39 +2132,37 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
 
                 var xpoints = pointData.points;
-                var xmin = pointData.y_range[0];
-                var xmax = pointData.y_range[1];
+                xmin = pointData.y_range[0];
+                xmax = pointData.y_range[1];
 
                 var zpoints = pointData.x_points;
-                var zmin = pointData.x_range[0];
-                var zmax = pointData.x_range[1];
+                zmin = pointData.x_range[0];
+                zmax = pointData.x_range[1];
 
                 // these are randomly generated in python for now
                 var ypoints = pointData.z_points;
-                var ymin = pointData.z_range[0];
-                var ymax = pointData.z_range[1];
+                ymin = pointData.z_range[0];
+                ymax = pointData.z_range[1];
 
+                var grid = appState.models.simulationGrid;
+                var yzAspectRatio =  grid.channel_height / grid.channel_width;
                 var pointScales = {
-                    z: normFactor / Math.abs((zmax - zmin)),
-                    x: normFactor * X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
-                    y: normFactor * Y_Z_ASPECT_RATIO / Math.abs((ymax - ymin))
+                    //z: normFactor / Math.abs((zmax - zmin)),
+                    //x: normFactor * X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
+                    //y: normFactor * yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs((ymax - ymin))
+                    z: 1.0 / Math.abs((zmax - zmin)),
+                    x: 1.0 * X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
+                    y: 1.0 * yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs((ymax - ymin))
                 };
-
-                //pointRanges = {
-                //    z: {min: pointScales.z * zmin, max: pointScales.z * zmax},
-                //    x: {min: pointScales.x * xmin, max: pointScales.x * xmax},
-                //    y: {min: pointScales.y * ymin, max: pointScales.y * ymax}
-                //};
                 pointRanges = {
                     z: {min: zmin, max: zmax},
                     x: {min: xmin, max: xmax},
                     y: {min: ymin, max: ymax}
                 };
 
-
                 // vtk makes things fit so it does not particularly care about the
-                // absolute sizes of things - except that really small values don't scale
-                // up properly.  We use these factors to overcome that problem
+                // absolute sizes of things - except that really small values (e.g. 10^-7) don't scale
+                // up properly.  We use these scaling factors to overcome that problem
                 coordMapper = warpVTKService.warpCoordMapper([pointScales.x, pointScales.y, pointScales.z]);
 
                 coordMapper.setPlane(startPlaneSource,
@@ -2201,15 +2176,77 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     [xmax, ymin, zmax]
                 );
 
-                var padding = 0.01 * normFactor;
-                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
-                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
-                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
-                outlineSource.setCenter([
-                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
-                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
-                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
-                ]);
+                var padding = 0.01;  // * normFactor;
+                var spsOrigin = startPlaneSource.getOrigin();
+                var epsOrigin = endPlaneSource.getOrigin();
+                var epsP1 = endPlaneSource.getPoint1();
+                var epsP2 = endPlaneSource.getPoint2();
+
+                var osXLen = Math.abs(epsOrigin[0] - spsOrigin[0]) + padding;
+                var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
+                var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
+                var osCtr = [
+                    (epsOrigin[0] - spsOrigin[0]) / 2.0,
+                    (epsOrigin[1] - spsOrigin[1]) / 2.0,
+                    (epsOrigin[2] - spsOrigin[2]) / 2.0
+                ];
+                outlineSource.setXLength(osXLen);
+                outlineSource.setYLength(osYLen);
+                outlineSource.setZLength(osZLen);
+                outlineSource.setCenter(osCtr);
+
+                //var oaBounds = outlineActor.getBounds();
+                //var ospd = outlineSource.getOutputData().getPolys().getTuple();
+                //srdbg('outlinesource', osCtr, osXLen, osYLen, osZLen, oaBounds);
+
+
+                for(var d = 0; d < 3; ++d) {
+                    for(var s = 0; s < 1; ++s) {
+                        var ps = gridPlaneSources[d][s];
+                        var pa = gridPlaneActors[d][s];
+                        var gpOrigin = s == 0 ?
+                            [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
+                            [osCtr[0] + osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] + osZLen/2.0];
+                        var gpP1 = [0,0,1];
+                        var gpP2 = [0,1,0];
+                        switch (2*d + s) {
+                            // bottom
+                            case 0:
+                                gpP1 = [osCtr[0] + osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                gpP2 = [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                break;
+                            // top
+                            case 1:
+                                gpP1 = [osCtr[0] - osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                gpP2 = [osCtr[0] + osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                break;
+                            // left
+                            case 2:
+                                gpP1 = [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                gpP2 = [osCtr[0] - osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                break;
+                            // right
+                            case 3:
+                                gpP1 = [osCtr[0] + osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                gpP2 = [osCtr[0] + osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                break;
+                            // back
+                            case 4:
+                                gpP1 = [osCtr[0] + osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                gpP2 = [osCtr[0] - osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] - osZLen/2.0];
+                                break;
+                            // front
+                            case 5:
+                                gpP1 = [osCtr[0] - osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                gpP2 = [osCtr[0] + osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] + osZLen/2.0];
+                                break;
+                            default:
+                                break;
+                        }
+                        // all coords are within vtk, so use the default (identity) coordMapper
+                        vtkPlotting.coordMapper().setPlane(ps, gpOrigin, gpP1, gpP2);
+                    }
+                }
 
                 var joinEvery =  getJoinEvery();
 
@@ -2218,16 +2255,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numInterPoints = 50;
 
                 axes.x.init();
+                axes.x.svgAxis.tickSize(0);
                 axes.x.values = plotting.linspace(zmin, zmax, zpoints.length);
                 axes.x.scale.domain([zmin, zmax]);
                 axes.x.parseLabelAndUnits(pointData.x_label);
 
                 axes.y.init();
+                axes.y.svgAxis.tickSize(0);
                 axes.y.values = plotting.linspace(xmin, xmax, xpoints.length);
                 axes.y.scale.domain([xmin, xmax]);
                 axes.y.parseLabelAndUnits(pointData.y_label);
 
                 axes.z.init();
+                axes.z.svgAxis.tickSize(0);
                 axes.z.values = plotting.linspace(ymin, ymax, ypoints.length);
                 axes.z.scale.domain([ymin, ymax]);
                 axes.z.parseLabelAndUnits(pointData.z_label);
@@ -2242,11 +2282,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var newIndexMap = {0:0};
                     var lastNearestIndex = 0;
                     nearestIndex = joinEvery;
-                    var numAdded = 0;
                     var newZ = zArr[0];
                     var finalZ = zArr[zArr.length-1];
                     var j = 1;
-                    var numBetween = 0;
                     while (newZ <= finalZ) {  // ASSUMES MONOTONICALLY INCREASING
                         newZ = zArr[0] + j * minZSpacing;
                         nearestIndex = joinEvery;  // start at the beginning
@@ -2261,7 +2299,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             checkZ = zArr[nearestIndex];
                         }
                         if(nearestIndex != lastNearestIndex) {
-                            numBetween = 0;
                             lastNearestIndex = nearestIndex;
                         }
                         var lowIndex = Math.max(0, nearestIndex - joinEvery);
@@ -2284,8 +2321,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         yArr.splice(lowIndex+1, 0, newY);
                         xArr.splice(lowIndex+1, 0, newX);
 
-                        ++numAdded;
-                        ++numBetween;
                         newIndexMap[highIndex] = j;
                         ++j;
                     }  // END WHILE
@@ -2306,13 +2341,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var hm_zmax = plotting.max2d(heatmap);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'fieldAnimation');
 
-                buildLineActorsFromPoints(zpoints, ypoints, xpoints, null, true);
+                buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
-                    buildLineActorsFromPoints(pointData.lost_x, pointData.lost_z, pointData.lost_y, reflectedParticleTrackColor, false);
+                    buildLineActorsFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
                 }
 
-                // build conductors
+                // build conductors -- make them a tiny bit small so the edges do not bleed into each other
+                var shave = 0.001;
                 for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
                     var conductor = appState.models.conductors[cIndex];
 
@@ -2324,15 +2360,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
                             cModel = appState.models.conductorTypes[ctIndex];
                             cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
-                            //cEdgeColor = cModel.voltage > 0 ? [228.0/255.0, 176.0/255.0, 95.0/255.0] : [95.0/255.0, 176.0/255.0, 228.0/255.0];
                             break;
                         }
                     }
                     if(cModel) {
 
-                        var zl = cModel.zLength / cFactor;
-                        var xl = cModel.xLength / cFactor;
-                        var zc = conductor.zCenter / cFactor;
+                        var zl = (1.0 - shave) * cModel.zLength / cFactor;
+                        var xl = (1.0 - shave) * cModel.xLength / cFactor;
+                        var zc = (1.0 - shave) * conductor.zCenter / cFactor;
                         var xc = conductor.xCenter / cFactor;
                         var yl = Math.abs(ymax - ymin);
                         var yc = ymin + (ymax - ymin) / 2.0;
@@ -2355,6 +2390,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 refresh();
             };
 
+            /*
             function addActors(actorArr) {
                 for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
                     renderer.addActor(actorArr[aIndex]);
@@ -2365,15 +2401,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     renderer.removeActor(actorArr[aIndex]);
                 }
             }
-
-            function buildLineActorsFromPoints(zpoints, ypoints, xpoints, color, includeImpact) {
+            */
+            function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
                 var joinEvery = getJoinEvery();
                 var x = 0.0;  var y = 0.0;  var z = 0.0;
                 var nextX = 0.0;  var nextY = 0.0;  var nextZ = 0.0;
                 var k = 0;
                 for (var i = 0; i < zpoints.length; ++i) {
                     var l = zpoints[i].length;
-                    //srdbg(i, 'making lines from ' + l + ' points, zmin', zmin);
                     for (var j = 0; j < l; j += joinEvery) {
                         z = zpoints[i][j];
                         x = xpoints[i][j];
@@ -2420,53 +2455,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
-                return colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]));
+                //return colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]));
+                return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
             }
             // accepts a string of the form '#abcdef' and returns an array of rgb values ranging from 0-1
-            function colorsFromHexString(color) {
-                var hexColor = color.substring(1, color.length);
-                return [parseInt(hexColor.substring(0,2), 16) / 255.0, parseInt(hexColor.substring(2,4), 16) / 255.0, parseInt(hexColor.substring(4,6), 16) / 255.0];
-            }
-
-            function refreshGridPlanes() {
-                var numZ = appState.models.simulationGrid.num_z;
-                var numX = appState.models.simulationGrid.num_x;
-                var numY = 5;
-                var minXRes = 5;
-                var minYRes = 5;
-                var maxXRes = 20;
-                var maxYRes = 20;
-                var zoomStep = (1 - Math.floor(zoomUnits/200));
-                for(var d = 0; d < 3; ++d) {
-                    for(var s = 0; s < 1; ++s) {
-                        var ps = gridPlaneSources[d][s];
-                        var xres = 2;
-                        var yres = 2;
-                        switch (2*d + s) {
-                            case 0: case 1:
-                                xres = numY * zoomStep;  //maxXRes = Math.min(numY, )
-                                yres = numZ * zoomStep;
-                                break;
-                            case 2: case 3:
-                                xres = numZ * zoomStep;
-                                yres = numX * zoomStep
-                                break;
-                            case 4: case 5:
-                                xres = numY * zoomStep;
-                                yres = numX * zoomStep;
-                                break;
-                            default:
-                                break;
-                        }
-                        xres = Math.min(Math.max(minXRes, xres), maxXRes);
-                        yres = Math.min(Math.max(minYRes, yres), maxYRes);
-                        //srdbg('setting res x/y/zoom', xres, yres, zoomUnits, zoomStep);
-                        ps.setXResolution(xres);
-                        ps.setYResolution(yres);
-                    }
-                }
-            }
-
+            //function colorsFromHexString(color) {
+                //var hexColor = color.substring(1, color.length);
+                //return [parseInt(hexColor.substring(0,2), 16) / 255.0, parseInt(hexColor.substring(2,4), 16) / 255.0, parseInt(hexColor.substring(4,6), 16) / 255.0];
+            //    return plotting.colorsFromHexString(color, 255.0);
+            //}
 
             $scope.vtkCanvasGeometry = function() {
                 var vtkCanvasHolder = $($element).find('.vtk-canvas-holder')[0];
@@ -2562,6 +2559,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     width: $('.vtk-canvas-holder').width(),
                     height: $('.vtk-canvas-holder').height()
                 };
+                var vtkCanvasHolderBounds = {
+                    left: $scope.axesMargins.x.width,
+                    top: $scope.axesMargins.y.height,
+                    right: vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
+                    bottom: vtkCanvasHolderSize.height - $scope.axesMargins.y.height
+                };
                 var vtkCanvasSize = {
                     width: $scope.width + $scope.margin.left + $scope.margin.right,
                     height: $scope.height + $scope.margin.top + $scope.margin.bottom
@@ -2572,111 +2575,304 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     z: 200,
                 };
 
+                // Note that vtk does not re-add actors to the renderer if they already exist
                 vtkPlotting.addActors(renderer, lineActors);
                 vtkPlotting.addActors(renderer, reflectedLineActors);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
 
-                showActors(lineActors, $scope.showAbsorbed);
-                showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
-                showActors(reflectedLineActors, $scope.showReflected);
-                showActors(conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
 
-                // reset camera will negate zoom but not rotation
-                if(zoomUnits == 0) {
+                // reset camera will negate zoom and pan but *not* rotation
+                if(zoomUnits == 0 && ! didPan) {
                     renderer.resetCamera();
                 }
-                //srdbg('cam pos before', cam.getPosition());
-                //renderer.resetCamera();  // reset camera will negate zoom
-                //srdbg('cam pos after reset', cam.getPosition());
                 renderWindow.render();
 
                 var osCenter = outlineSource.getCenter();
                 var osLeftCenterOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1], osCenter[2] + 0.5 * outlineSource.getZLength()];
                 var osRightCenterOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1], osCenter[2] + 0.5 * outlineSource.getZLength()];
 
-                // outline corners - project onto axes (?)
+                // outline corners - axes will adhere to the proper sides
                 var osLeftBottomOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osLeftBottomIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                var osRightBottomOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osRightBottomIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
                 var osLeftTopOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osLeftTopIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
                 var osRightTopOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
+                var osRightBottomOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
+                var osLeftBottomIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
+                var osLeftTopIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
                 var osRightTopIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
+                var osRightBottomIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
+
+                // put in array for ease of transformation
+                var osCorners = [
+                    osLeftBottomOut, osLeftTopOut, osRightTopOut, osRightBottomOut,
+                    osLeftBottomIn, osLeftTopIn, osRightTopIn, osRightBottomIn
+                ];
 
                 var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
                     renderer: renderer
                 });
                 worldCoord.setCoordinateSystemToWorld();
 
+                // "vp" for "viewPort"
+                var vpCorners = osCorners.map(function (corner) {
+                    return localCoordFromWorld(worldCoord, corner);
+                });
+
+                // names are easier to think about
+                var vpLeftBottomOut = vpCorners[0];
+                var vpLeftBottomIn = vpCorners[4];
+                var vpLeftTopOut = vpCorners[1];
+                var vpLeftTopIn = vpCorners[5];
+
+                var vpRightBottomOut = vpCorners[3];
+                var vpRightBottomIn = vpCorners[7];
+                var vpRightTopOut = vpCorners[2];
+                var vpRightTopIn = vpCorners[6];
+
+                // edges
+                var vpBottomOut = [vpLeftBottomOut, vpRightBottomOut];
+                var vpBottomIn = [vpLeftBottomIn, vpRightBottomIn];
+                var vpTopOut = [vpLeftTopOut, vpRightTopOut];
+                var vpTopIn = [vpLeftTopIn, vpRightTopIn];
+
+                var vpLeftBottom = [vpLeftBottomOut, vpLeftBottomIn];
+                var vpRightBottom = [vpRightBottomOut, vpRightBottomIn];
+                var vpLeftTop = [vpLeftTopOut, vpLeftTopIn];
+                var vpRightTop = [vpRightTopOut, vpRightTopIn];
+
+                var vpLeftOut = [vpLeftBottomOut, vpLeftTopOut];
+                var vpLeftIn = [vpLeftBottomIn, vpLeftTopIn];
+                var vpRightOut = [vpRightBottomOut, vpRightTopOut];
+                var vpRightIn = [vpRightBottomIn, vpRightTopIn];
+
+                // arrays for axis handling
+                var vpXEdges = [
+                    vpBottomOut, vpBottomIn, vpTopOut, vpTopIn
+                ];
+                var vpYEdges = [
+                    vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
+                ];
+                var vpZEdges = [
+                    vpBottomOut, vpBottomIn, vpTopOut, vpTopIn
+                ];
+
                 var vpLeftCenterOut = localCoordFromWorld(worldCoord, osLeftCenterOut);
-                var vpLeftCenterOutX = vpLeftCenterOut[0];
-                //srdbg('vpLeftCenterOut', vpLeftCenterOut);
-                //var tmp = worldCoordFromLocal(worldCoord, vpLeftCenterOut);
-
                 var vpRightCenterOut = localCoordFromWorld(worldCoord, osRightCenterOut);
-                var vpRightCenterOutX = vpRightCenterOut[0];
 
-                var vpLeftBottomOut = localCoordFromWorld(worldCoord, osLeftBottomOut);
-                var vpBottomLeftOutY = vpLeftBottomOut[1];
+                var lowestCorners = extrema(vpCorners, 1, 1);
+                var leftmostCorners = extrema(vpCorners, 0, 0);
+                var highestCorners = extrema(vpCorners, 1, 0);
+                var rightmostCorners = extrema(vpCorners, 0, 1);
 
-                var vpLeftBottomIn = localCoordFromWorld(worldCoord, osLeftBottomIn);
+                //srdbg('low corners', lowestCorners, 'left corners', leftmostCorners);
 
-                var vpLeftTopOut = localCoordFromWorld(worldCoord, osLeftTopOut);
-                var vpTopLeftOutY = vpLeftTopOut[1];
+                var edges = edgesWithCorners(vpXEdges, lowestCorners)[0];
+                var isXReversed = edges[0][0] > edges[1][0];
+                // x-direction limits, sorted left to right
+                var sceneXEnds = sortInDimension(edges, 0);
+                // points where the x limits intersect the screen boundaries
+                var screenXEnds = boundsIntersections(vtkCanvasHolderBounds, sceneXEnds[0], sceneXEnds[1]);
+                var sceneXLen = dist(sceneXEnds[0], sceneXEnds[1]);
+                srdbg('edges', edges, 'scene', sceneXEnds, 'screen x ends', screenXEnds);
+                /*
+                if(lowestCorners.includes(vpLeftBottomOut) || lowestCorners.includes(vpRightBottomOut) ) {
+                    //sceneXEnds = sortInDimension([vpLeftBottomOut, vpRightBottomOut], 0, 0);
+                    srdbg('bottom out');
+                }
+                if(lowestCorners.includes(vpLeftBottomIn) || lowestCorners.includes(vpRightBottomIn) ) {
+                    //sceneXEnds = [vpLeftBottomIn, vpRightBottomIn];
+                    srdbg('bottom in');
+                }
+                if(lowestCorners.includes(vpLeftTopOut) || lowestCorners.includes(vpRightTopOut) ) {
+                    //sceneXEnds = [vpLeftTopOut, vpRightTopOut];
+                    srdbg('top out');
+                }
+                if(lowestCorners.includes(vpLeftTopIn) || lowestCorners.includes(vpRightTopIn) ) {
+                    //sceneXEnds = [vpLeftTopIn, vpRightTopIn];
+                    srdbg('top in');
+                }
+                */
+                /*
+                var bottomOutLen = Math.sqrt(
+                    (vpLeftBottomOut[0] - vpRightBottomOut[0]) * (vpLeftBottomOut[0] - vpRightBottomOut[0]) +
+                    (vpLeftBottomOut[1] - vpRightBottomOut[1]) * (vpLeftBottomOut[1] - vpRightBottomOut[1])
+                );
+                var bottomInLen = Math.sqrt(
+                    (vpLeftBottomIn[0] - vpRightBottomIn[0]) * (vpLeftBottomIn[0] - vpRightBottomIn[0]) +
+                    (vpLeftBottomIn[1] - vpRightBottomIn[1]) * (vpLeftBottomIn[1] - vpRightBottomIn[1])
+                );
+*/
+                var leftOutLen = Math.sqrt(
+                    (vpLeftTopOut[0] - vpLeftBottomOut[0]) * (vpLeftTopOut[0] - vpLeftBottomOut[0]) +
+                    (vpLeftTopOut[1] - vpLeftBottomOut[1]) * (vpLeftTopOut[1] - vpLeftBottomOut[1])
+                );
+                var leftInLen = Math.sqrt(
+                    (vpLeftTopIn[0] - vpLeftBottomIn[0]) * (vpLeftTopIn[0] - vpLeftBottomIn[0]) +
+                    (vpLeftTopIn[1] - vpLeftBottomIn[1]) * (vpLeftTopIn[1] - vpLeftBottomIn[1])
+                );
 
-                var vpLeftTopIn = localCoordFromWorld(worldCoord, osLeftTopIn);
-
-                var vpRightBottomOut = localCoordFromWorld(worldCoord, osRightBottomOut);
-                var vpRightBottomIn = localCoordFromWorld(worldCoord, osRightBottomIn);
-                var vpRightTopOut = localCoordFromWorld(worldCoord, osRightTopOut);
-                var vpRightTopIn = localCoordFromWorld(worldCoord, osRightTopIn);
-
-                var vpWidth = axisMax.x;  //Math.abs(vpRightCenterOutX - vpLeftCenterOutX);
-                var vpHeight = axisMax.y;  // Math.abs(vpTopLeftOutY - vpBottomLeftOutY);
+                //var vpWidth = bottomOutLen;  //Math.abs(vpRightCenterOut[0] - vpLeftCenterOut[0]);  // axisMax.x;  //
+                //var vpHeight = Math.abs(vpLeftTopOut[1] - vpLeftBottomOut[1]); // axisMax.y;  //
                 var dx = (vpLeftBottomIn[0] - vpLeftBottomOut[0]);
                 var dy = (vpLeftBottomIn[1] - vpLeftBottomOut[1]);
-                //srdbg('dx', dx, 'dy', dy);
-                var vpDepth = 200;  //Math.sqrt(dx * dx + dy * dy);
+
+                //var tanPsi = (vpLeftBottomOut[1] - vpRightBottomOut[1]) / (vpLeftBottomOut[0] - vpRightBottomOut[0]);
+                var tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
+                var psi = 180 * Math.atan(tanPsi) / Math.PI;
+                var psiMod = Math.abs(psi) % 180;
+                $scope.xAxisAngle = psi;
+
+                var tanPhi = (vpLeftBottomIn[1] - vpLeftTopIn[1]) / (vpLeftBottomIn[0] - vpLeftTopIn[0]);
+                var phi = 180 * Math.atan(tanPhi) / Math.PI - 90;
+                if(phi < -90 ) {
+                    phi += 180;
+                }
+                var tanPhiComp = Math.tan(Math.PI * phi / 180);
+                $scope.yAxisAngle = phi;
+
+                var vpDepth = Math.sqrt(dx * dx + dy * dy);  //200;
                 var tanTheta = (vpLeftBottomOut[1] - vpLeftBottomIn[1]) / (vpLeftBottomOut[0] - vpLeftBottomIn[0]);
                 var theta = 180 * Math.atan(tanTheta) / Math.PI;
-                //$scope.zAxisAngle = theta;
+                $scope.zAxisAngle = theta;
 
+                //srdbg('psi phi theta', $scope.xAxisAngle, $scope.yAxisAngle, $scope.zAxisAngle);
 
-                //var axisLeftBottomIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                //var axisRightBottomOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                //var axisRightBottomIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                //var axisLeftTopOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                //var axisLeftTopIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                //var axisRightTopOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                //var axisRightTopIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
+                // vpWidth is the length of the x-direction of the scene
+                //var vpWidth = theta <= 0 ? bottomOutLen : bottomInLen;  //Math.abs(vpRightCenterOut[0] - vpLeftCenterOut[0]);  // axisMax.x;  //
+                var vpHeight = phi <= 0 ? leftOutLen : leftInLen;  //Math.abs(vpLeftTopOut[1] - vpLeftBottomOut[1]); // axisMax.y;  //
 
-                $scope.yAxisTop = $scope.axesMargins.y.height;  //Math.max(vpTopLeftOut[1], $scope.axesMargins.y.height);
-                $scope.xAxisLeft = $scope.axesMargins.x.width;  //Math.max($scope.axesMargins.x.width, vpLeftCenterOut[0]);
+                var yAxisStartX = Math.min(
+                    vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
+                    Math.max(Math.min(vpLeftTopOut[0], vpLeftTopIn[0]), $scope.axesMargins.x.width)
+                );
+                var yAxisStartY = Math.max(Math.min(vpLeftTopOut[1], vpLeftTopIn[1]), $scope.axesMargins.y.height);
+                var yAxisProjXMax = yAxisStartX - tanPhiComp * (vtkCanvasHolderSize.height - $scope.axesMargins.y.height - yAxisStartY);
+                var yAxisProjXMin = yAxisStartX + tanPhiComp * (yAxisStartY - $scope.axesMargins.y.height);
+                var yAxisProjLen = Math.sqrt(
+                    (yAxisProjXMax -  yAxisProjXMin) * (yAxisProjXMax -  yAxisProjXMin) +
+                    (vtkCanvasHolderSize.height - 2.0 * $scope.axesMargins.y.height) * (vtkCanvasHolderSize.height - 2.0 * $scope.axesMargins.y.height)
+                );
+                //srdbg('y proj min', yAxisProjXMin, 'tan phi', tanPhi, 'phi', phi, 'proj max', yAxisProjXMax);
 
-                //srdbg('scope w/h / vtl w/h', $scope.width, $scope.height, vtkCanvasHolderSize.width, vtkCanvasHolderSize.height);
-                //srdbg('box in vp L:', vpLeftCenterOutX, 'r:', vpRightCenterOutX, 'b:', vpBottomLeftOutY, 't:', vpTopLeftOutY, 'w:', vpWidth, 'h:', vpHeight, 'd:', vpDepth);
-                //srdbg('box in vp b:', vpBottomLeftOut, 'bi:', vpBottomLeftIn, 'th:', theta, 'tanth:', tanTheta);
-                //var x0 = axes.x.scale.invert(point[0] - 1);
-                //var y0 = axes.y.scale.invert(point[1] - 1);
+                $scope.yAxisTop = Math.max(Math.min(vpLeftTopOut[1], vpLeftTopIn[1]), $scope.axesMargins.y.height); // $scope.axesMargins.y.height;  //
+                $scope.yAxisLeft = Math.min(
+                    vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
+                    Math.max(Math.min(vpLeftTopOut[0], vpLeftTopIn[0]), $scope.axesMargins.x.width)
+                );
 
-                var vtkCanvas;
-                if(firstRender) {
-                    //vtkCanvas = $($element).find('.sr-plot-particle-3d canvas')[0];
-                    //srdbg('ctx', vtkCanvas.getContext('webgl2'));
-                    //srdbg('found canvas', vtkCanvas, $(vtkCanvas).width(), $(vtkCanvas).height());
-                    //var w = $(vtkCanvas).attr('width');
-                    //$(vtkCanvas).attr('height', ASPECT_RATIO * w);
-                    //$(vtkCanvas)
-                    /*
-                    viewPlane = vtk.Common.DataModel.vtkPlane.newInstance({
-                        origin: [camPos[0], camPos[1], camPos[2]],
-                        normal: [0,0,1]
-                    });
-                    */
-                    firstRender = false;
+                // These are the coordinates of each end of the scene, which may be off screen
+                //var sceneXEnds1 = theta <= 0 ?
+                //    (vpLeftBottomIn[0] < vpLeftBottomOut[0] ? vpLeftBottomIn : vpLeftBottomOut) :
+                //    (vpLeftBottomIn[0] > vpLeftBottomOut[0] ? vpLeftBottomIn : vpLeftBottomOut);
+                //var sceneXEnds2 = theta <= 0 ?
+                //    (vpLeftBottomIn[0] < vpLeftBottomOut[0] ? vpRightBottomIn : vpRightBottomOut) :
+                //    (vpLeftBottomIn[0] > vpLeftBottomOut[0] ? vpRightBottomIn : vpRightBottomOut);
+                //var sceneXEnds = [sceneXEnds1, sceneXEnds2];
+                //var screenXEnds = boundsIntersections(vtkCanvasHolderBounds, sceneXEnds1, sceneXEnds2);
+
+                var clippedXEnds = [];
+                for(var edge in screenXEnds) {
+                    var p = screenXEnds[edge];
+                    //srdbg(p, 'in', vtkCanvasHolderBounds, isPointWithinBounds(p,vtkCanvasHolderBounds));
+                    //if(p[0] < vtkCanvasHolderBounds.left ||
+                    //    p[0] > vtkCanvasHolderBounds.right ||
+                    //    p[1] < vtkCanvasHolderBounds.top ||
+                    //    p[1] > vtkCanvasHolderBounds.bottom
+                    //) {
+                    //    // point is outside the screen
+                    //    continue;
+                    //}
+                    if(! isPointWithinBounds(p, vtkCanvasHolderBounds)) {
+                        continue;
+                    }
+
+                    //if(p[0] == Infinity || p[1] == Infinity) {
+                    //    continue;
+                    //}
+
+                    clippedXEnds.push(p);
                 }
+                srdbg('clipped', clippedXEnds);
+                clippedXEnds = sortInDimension(clippedXEnds, 0, 0);
+                srdbg('xaxis screen intersections', sceneXEnds, clippedXEnds);
+                var xAxisProjLen = 0;
+                if(clippedXEnds.length == 2) {
+                    $scope.xAxisLeft = Math.max(sceneXEnds[0][0], clippedXEnds[0][0]);
+                    $scope.xAxisTop = $scope.xAxisLeft == sceneXEnds[0][0] ? sceneXEnds[0][1] : clippedXEnds[0][1]; // Math.max(sceneXEnds[0][1], visibleXEnds[0][1]);
+                    $scope.xAxisRight = Math.min(sceneXEnds[1][0], clippedXEnds[1][0]);
+                    $scope.xAxisBottom = $scope.xAxisLeft == sceneXEnds[1][0] ? sceneXEnds[1][1] : clippedXEnds[1][1]; // Math.min(sceneXEnds[1][0], visibleXEnds[1][1]);
+                    xAxisProjLen = Math.sqrt(
+                        ($scope.xAxisRight - $scope.xAxisLeft) * ($scope.xAxisRight - $scope.xAxisLeft) +
+                        ($scope.xAxisBottom - $scope.xAxisTop) * ($scope.xAxisBottom - $scope.xAxisTop)
+                    );
+                }
+
+                //var xAxisStartX = theta <= 0 ? Math.min(vpLeftBottomIn[0], vpLeftBottomOut[0]) : Math.max(vpLeftBottomIn[0], vpLeftBottomOut[0]);
+                var sceneXStartX = sceneXEnds[0][0];  var sceneXEndX = sceneXEnds[1][0];
+                //var xAxisStartY = Math.max(vpLeftBottomIn[1], vpLeftBottomOut[1]);
+                var sceneXStartY = sceneXEnds[0][1];  var sceneXEndY = sceneXEnds[1][1];
+
+                // intersection of scene and screen boundaries
+                var  sceneXScreenBottomY = vtkCanvasHolderSize.height - $scope.axesMargins.y.height;
+               // var  sceneXScreenBottomX = sceneXStartX + (sceneXScreenBottomY - sceneXStartY) / tanPsi;
+                var  sceneXScreenTopY = $scope.axesMargins.y.height;
+                //var  sceneXScreenTopX = sceneXStartX + (sceneXScreenTopY - sceneXStartY) / tanPsi;
+
+                var  sceneXScreenLeftX = $scope.axesMargins.x.width;
+                var  sceneXScreenLeftY = sceneXStartY + tanPsi * (sceneXScreenLeftX - sceneXStartX);
+                var  sceneXScreenRightX = vtkCanvasHolderSize.width - $scope.axesMargins.x.width;
+                var  sceneXScreenRightY = sceneXStartY + tanPsi * (sceneXScreenRightX - sceneXStartX);
+
+
+
+                // projection of the x-axis to the margins of the viewport
+                var xAxisProjYMax = sceneXStartY + tanPsi * (vtkCanvasHolderSize.width - $scope.axesMargins.x.width - sceneXStartX);
+                if(xAxisProjYMax > vtkCanvasHolderSize.width - $scope.axesMargins.y.height) {
+                    if(tanPsi < 0) {  // low end of x axis intersects bottom of scene
+                        //xAxisStartX = xAxisStartX + (xAxisProjYMax - xAxisStartY) / tanPsi;
+                    }
+                    //xAxisStartX = tanPsi != 0 ? $scope.axesMargins.x.width + (xAxisProjYMax - xAxisStartY) / tanPsi : $scope.axesMargins.x.width;
+                    xAxisProjYMax = vtkCanvasHolderSize.width - $scope.axesMargins.y.height;
+                }
+                var xAxisProjYMin = sceneXStartY - tanPsi * (sceneXStartX - $scope.axesMargins.x.width);
+                xAxisProjYMin = Math.max(xAxisProjYMin, $scope.axesMargins.y.height);
+                //var xAxisProjLen = Math.sqrt(
+                //    (xAxisProjYMax -  xAxisProjYMin) * (xAxisProjYMax -  xAxisProjYMin) +
+                //    (vtkCanvasHolderSize.width - 2.0 * $scope.axesMargins.x.width) * (vtkCanvasHolderSize.width - 2.0 * $scope.axesMargins.x.width)
+                //);
+                //srdbg('x proj min', xAxisProjYMin, 'tan psi', tanPsi, 'psi', psi, 'proj max', xAxisProjYMax);
+/*
+                $scope.xAxisTop = Math.min(
+                    Math.max(vpLeftBottomIn[1], vpLeftBottomOut[1]),
+                    vtkCanvasHolderSize.height - $scope.axesMargins.y.height
+                );
+                $scope.xAxisLeft = Math.max(
+                    $scope.axesMargins.x.width,
+                    theta <= 0 ? Math.min(vpLeftBottomIn[0], vpLeftBottomOut[0]) : Math.max(vpLeftBottomIn[0], vpLeftBottomOut[0])
+                );
+*/
+                var zAxisStartX = theta <= 0 ? Math.min(vpLeftBottomIn[0], vpLeftBottomOut[0]) : Math.max(vpLeftBottomIn[0], vpLeftBottomOut[0]);
+                var zAxisStartY = Math.max(vpLeftBottomIn[1], vpLeftBottomOut[1]);
+                var zAxisProjYMax = zAxisStartY + tanPsi * (vtkCanvasHolderSize.width - $scope.axesMargins.x.width - zAxisStartX);
+                var zAxisProjYMin = zAxisStartY - tanPsi * (zAxisStartX - $scope.axesMargins.x.width);
+                var zAxisProjLen = Math.sqrt(
+                    (zAxisProjYMax -  zAxisProjYMin) * (zAxisProjYMax -  zAxisProjYMin) +
+                    (vtkCanvasHolderSize.width - 2.0 * $scope.axesMargins.x.width) * (vtkCanvasHolderSize.width - 2.0 * $scope.axesMargins.x.width)
+                );
+                //srdbg('x proj min', xAxisProjYMin, 'tan psi', tanPsi, 'psi', psi, 'proj max', xAxisProjYMax);
+
+                $scope.zAxisTop = Math.min(
+                    Math.max(vpLeftBottomIn[1], vpLeftBottomOut[1]),
+                    vtkCanvasHolderSize.height - $scope.axesMargins.y.height
+                );
+                $scope.zAxisLeft = Math.max(
+                    $scope.axesMargins.x.width,
+                    theta <= 0 ? Math.min(vpLeftBottomIn[0], vpLeftBottomOut[0]) : Math.max(vpLeftBottomIn[0], vpLeftBottomOut[0])
+                );
 
                 select('.vtk-canvas-holder svg')
                     .attr('width', vtkCanvasSize.width)
@@ -2686,111 +2882,215 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // range is the position on the screen
                 // TODO (mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
                 //plotting.recalculateDomainFromPoints(axes.y.scale, points[0], axes.x.scale.domain());
-                axes.x.scale.range([0, Math.min(vpWidth, axisMax.x)]);
-                axes.y.scale.range([Math.min(vpHeight, axisMax.y), 0]);
-                axes.y.svgAxis.tickSize(0);
-                axes.z.scale.range([0, vpDepth]);
-                $.each(axes, function(dim, axis) {
-                    axis.updateLabelAndTicks({
-                        width: $scope.vtkCanvasGeometry().size.width,
-                        height: $scope.vtkCanvasGeometry().size.height
-                    }, select);
-                });
-                var xl = 'translate(' +  $scope.xAxisLeft + ',' + ($scope.labelGeometry().x.pos.top - $scope.labelGeometry().x.size.height - 24) +')';
+                //var xrange = Math.min(vpWidth, axisMax.x);
+                var xrange = Math.min(xAxisProjLen, sceneXLen);
+                var newMin = zmin;  var newMax = zmax;  var domainPct = 0.0;
+                var domainChanged = false;
+                if(sceneXEnds[0][0] < vtkCanvasHolderBounds.left ) {
+                    domainPct = (vtkCanvasHolderBounds.left - sceneXEnds[0][0]) / xrange;
+                    newMin = zmin + (zmax - zmin) * domainPct;
+                    domainChanged = true;
+                }
+                if(sceneXEnds[1][0] > vtkCanvasHolderBounds.right) {
+                    domainPct = (sceneXEnds[1][0] - vtkCanvasHolderBounds.right ) / xrange;
+                    newMax = zmax - (zmax - zmin) * domainPct;
+                    domainChanged = true;
+                }
+                //srdbg('new min/max', newMin, newMax);
+                if(domainChanged) {
+                    axes.x.scale.domain([newMin, newMax]).nice();
+                }
+                //var isReversed = $scope.xAxisLeft > $scope.xAxisRight;
+                //srdbg('xaxis reveresed?', isReversed);
+                axes.x.scale.range([isXReversed ? xrange : 0, isXReversed ? 0 :xrange]);
+                axes.x.updateLabelAndTicks({
+                    width: xrange,
+                    height: $scope.vtkCanvasGeometry().size.height
+                }, select);
+                var xl = 'translate(' +
+                    Math.min($scope.xAxisLeft, $scope.xAxisRight) + ',' +
+                    $scope.xAxisTop +') ' +
+                    //($scope.labelGeometry().x.pos.top - $scope.labelGeometry().x.size.height - 24) +') ' +
+                    'rotate(' + $scope.xAxisAngle + ')';
                 select('.x.axis').attr('transform', xl);
-                var yl = 'translate(' +  ($scope.labelGeometry().y.pos.left + $scope.labelGeometry().y.size.width + 32)+ ',' + $scope.yAxisTop +')';
+                // counter-rotate the tick labels
+                var xlabels = d3self.selectAll('.x.axis text');
+                var maxXLabelLen = maxLabelLen(xlabels);
+
+                xlabels.attr('transform', 'rotate(' +  (-$scope.xAxisAngle) + ')');
+                select('.x.axis .domain').style({'stroke': 'none'});
+                select('.x.axis').style('opacity', xrange < 50 ? 0.0 : 1.0);
+                select('.x-axis-label').style('opacity', xrange < 50 ? 0.0 : 1.0);
+
+
+                //var yrange = Math.min(vpHeight, axisMax.y);
+                var yrange = Math.min(vpHeight, yAxisProjLen);
+                axes.y.scale.range([yrange, 0]);
+                axes.y.updateLabelAndTicks({
+                    width: $scope.vtkCanvasGeometry().size.width,
+                    height: yrange
+                }, select);
+                var yl = 'translate(' +
+                    //($scope.labelGeometry().y.pos.left + $scope.labelGeometry().y.size.width + 32) + ',' +
+                    $scope.yAxisLeft + ',' +
+                    $scope.yAxisTop +') ' +
+                    'rotate(' + $scope.yAxisAngle + ')';
                 select('.y.axis').attr('transform', yl);
+                d3self.selectAll('.y.axis text')
+                    .attr('transform', 'rotate(' +  (-$scope.yAxisAngle) + ')');
+                select('.y.axis .domain').style({'stroke': 'none'});
+                select('.y.axis').style('opacity', yrange < 50 ? 0.0 : 1.0);
 
-                // do z axis again to get ticks and labels looking reasonable
-                axes.z.svgAxis.ticks(5);
-                axes.z.svgAxis.tickPadding(12);
-                axes.z.svgAxis.outerTickSize(0);
-                select('.z.axis').call(axes.z.svgAxis);
-
-                var zl = 'translate(' +  $scope.xAxisLeft + ',' + ($scope.vtkCanvasGeometry().size.height - 64) +') ' +
+                axes.z.scale.range([0, vpDepth]);
+                axes.z.updateLabelAndTicks({
+                    width: vpDepth,
+                    height: vpDepth
+                }, select);
+                select('.z.axis .domain').style({'stroke': 'none'});
+                var zl = 'translate(' +
+                    $scope.xAxisLeft + ',' +
+                    //($scope.vtkCanvasGeometry().size.height - 64) +') ' +
+                    ($scope.yAxisTop + vpHeight) + ') ' +
                     'rotate(' + $scope.zAxisAngle + ')';
-                d3.selectAll('.z.axis')
+                d3self.selectAll('.z.axis')
                     .attr('transform', zl);
-
-                // counter-rotate the labels and ticks
-                d3.selectAll('.z.axis text')
+                // counter-rotate the tick labels
+                d3self.selectAll('.z.axis text')
                     .attr('transform', 'translate(24, -12) rotate(' +  (-$scope.zAxisAngle) + ') translate(8,0)');
-                d3.selectAll('.z.axis line')
-                    .attr('transform', 'rotate(' +  (-(90 + $scope.zAxisAngle)) + ')');
+                //select('.z.axis').style('opacity', vpDepth < 50 ? 0.0 : 1.0);
 
-                var minPointRaw = [pointRanges.z.min, pointRanges.x.min, pointRanges.y.min];
+                //d3.selectAll('.z.axis line')
+                //    .attr('transform', 'rotate(' +  (-(90 + $scope.zAxisAngle)) + ')');
+
+
+                //refreshAxes();
+                refreshGridPlanes();
+
+                //var minPointRaw = [pointRanges.z.min, pointRanges.x.min, pointRanges.y.min];
                 //var minPointRaw = [minPoint[0]/warpVTKService.zscale, minPoint[1]/warpVTKService.xscale, minPoint[2]/warpVTKService.yscale];
                 //var minPointRaw = [zmin, xmin, ymin];
-                var axisLeftBottomOut = [axes.x.scale(minPointRaw[0]), axes.y.scale(minPointRaw[1]), axes.z.scale(minPointRaw[2])];
+                //var axisLeftBottomOut = [axes.x.scale(minPointRaw[0]), axes.y.scale(minPointRaw[1]), axes.z.scale(minPointRaw[2])];
                 //srdbg('minpt -> minpt raw -> osLeftBottomOut -> axisLeftBottomOut: ', minPoint, minPointRaw, osLeftBottomOut, axisLeftBottomOut);
 
-                // little test boxes are useful for translating vtk space to screen space
                 $scope.testBoxes = [
+
                     {
-                        x: vpLeftTopOut[0],
-                        y: vpLeftTopOut[1],
+                        x: clippedXEnds[0][0],
+                        y: clippedXEnds[0][1],
                         color: "red"
                     },
                     {
-                        x: vpLeftBottomOut[0],
-                        y: vpLeftBottomOut[1],
+                        x: clippedXEnds[1][0],
+                        y: clippedXEnds[1][1],
                         color: "blue"
                     },
+
+/*
                     {
-                        x: $scope.xAxisLeft + axisLeftBottomOut[0],
-                        y: $scope.labelGeometry().x.pos.top - $scope.labelGeometry().x.size.height - 24,
-                        color: "blue"
-                    },
-                    {
-                        x: $scope.labelGeometry().y.pos.left + $scope.labelGeometry().y.size.width + 32,
-                        y: $scope.yAxisTop + axisLeftBottomOut[1],
-                        color: "blue"
-                    },
-                    {
-                        x: $scope.xAxisLeft + axisLeftBottomOut[2] * Math.sin($scope.zAxisAngle),
-                        y: $scope.vtkCanvasGeometry().size.height - 64 + axisLeftBottomOut[2] * Math.cos($scope.zAxisAngle),
-                        color: "blue"
-                    },
-                    {
-                        x: vpLeftBottomIn[0],
-                        y: vpLeftBottomIn[1],
-                        color: "green"
-                    },
-                    {
-                        x: vpLeftTopIn[0],
-                        y: vpLeftTopIn[1],
-                        color: "yellow"
-                    },
-                    {
-                        x: vpRightTopOut[0],
-                        y: vpRightTopOut[1],
+                        x: yAxisProjXMin,
+                        y: $scope.axesMargins.y.height,
                         color: "red"
                     },
                     {
-                        x: vpRightBottomOut[0],
-                        y: vpRightBottomOut[1],
+                        x: yAxisProjXMax,
+                        y: vtkCanvasHolderSize.height - $scope.axesMargins.y.height,
                         color: "blue"
-                    },
-                    {
-                        x: vpRightBottomIn[0],
-                        y: vpRightBottomIn[1],
-                        color: "green"
-                    },
-                    {
-                        x: vpRightTopIn[0],
-                        y: vpRightTopIn[1],
-                        color: "yellow"
                     }
-                 ];
+                    */
+                ];
             }
+
+            // TODO (mvk): most of this geometry should be moved to various plotting services
+
+            // Finds the intersections of the line defined by the given points [x,y]
+            // with the rectangle defined by the bounds {left, top, right, bottom}.
+            // Any of the intersections could be outside the rectangle
+            function boundsIntersections(bounds, startPoint, endPoint) {
+                //srdbg('x of', startPoint, endPoint, 'with bounds', bounds);
+                var startX = startPoint[0];  var startY = startPoint[1];
+                var endX = endPoint[0];  var endY = endPoint[1];
+                var infFactor = 1;
+
+                // horizontal line
+                if(startY == endY) {
+                    //infFactor = startY < bounds.top || startY > bounds.bottom ? -1 : 1;
+                    return {
+                        left: [bounds.left, startY],
+                        top: [infFactor * Infinity, bounds.top],
+                        right: [bounds.right, endY],
+                        bottom: [infFactor * Infinity, bounds.bottom]
+                    };
+                }
+                // vertical line
+                if(startX == endX) {
+                    //infFactor = startX < bounds.left || startX > bounds.right ? -1 : 1;
+                    return {
+                        left: [bounds.left, infFactor * Infinity],
+                        top: [startX, bounds.top],
+                        right: [bounds.right, infFactor * Infinity],
+                        bottom: [endX, bounds.bottom]
+                    };
+                }
+
+                var m = (endY - startY) / (endX - startX);
+                return {
+                    left: [bounds.left, startY + m * (bounds.left - startX)],
+                    top: [startX + (bounds.top - startY) / m, bounds.top],
+                    right: [bounds.right, startY + m * (bounds.right - startX)],
+                    bottom: [startX + (bounds.bottom - startY) / m, bounds.bottom]
+                };
+            }
+
+            function isPointWithinBounds(p, b) {
+                return p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom;
+            }
+
+            // Returns the point(s) that have the smallest (minMax == 0) or largest value in the given dimension
+            function extrema(pArr, dim, loHi) {
+                var sPArr = sortInDimension(pArr, dim, loHi);
+                if(! sPArr) {
+                    return null;
+                }
+                return sPArr.filter(function (point) {
+                    return point[dim] == sPArr[0][dim];
+                });
+            }
+
+            // Returns the members of an array of edges (point pairs) that
+            // contain any of the points in another array
+            function edgesWithCorners(edgeArr, pArr) {
+                var edges = edgeArr.filter(function (edge) {
+                    return edge.some(function (corner) {
+                        return pArr.includes(corner);
+                    });
+                });
+                return edges;
+            }
+
+            // Sort the point array by the values in the given dimension; reversed if loHi is
+            // Array is cloned first so the original is unchanged
+            function sortInDimension(pArr, dim, loHi) {
+                if(!pArr || !pArr.length || dim >= pArr[0].length ) {
+                    return null;
+                }
+                var pArrClone = pArr.slice(0);
+                return pArrClone.sort(function (p1, p2) {
+                    return loHi ? (p1[dim] < p2[dim]) : (p1[dim] >= p2[dim]);
+                });
+            }
+
+            // returns the distance bewteen two (2d) points
+            function dist(p1, p2) {
+                return Math.sqrt(
+                    (p2[0] - p1[0]) * (p2[0] - p1[0]) +
+                    (p2[1] - p1[1]) * (p2[1] - p1[1])
+                );
+            }
+
             // display values seem to be double, not sure why
             function localCoordFromWorld(coord, point) {
                 coord.setCoordinateSystemToWorld();
                 coord.setValue(point);
-                //var fbSize = mainView.getFramebufferSize();
-                //srdbg('world -> display:', point, coord.getComputedDisplayValue());
-                //srdbg('display (y\' = size[1] - y- 1) -> localDisplay:', coord.getComputedDisplayValue(), fbSize[1], coord.getComputedLocalDisplayValue());
-                //srdbg('world -> localDisplay:', point, coord.getComputedLocalDisplayValue());
                 var lCoord = coord.getComputedLocalDisplayValue();
                 return [lCoord[0] / 2.0, lCoord[1] / 2.0];
             }
@@ -2805,17 +3105,72 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('localDisplay -> world:', newPointView, wCoord);
                 return coord.getComputedWorldValue();
             }
+
             function refreshAxes() {
+            }
+
+            // takes the result of a d3.selectAll
+            function maxLabelLen(lSelect) {
+                return Math.max.apply(null, lSelect[0].map(function (item) {
+                    return item.textContent.length;
+                }));
+            }
+
+            // Redraw the grid planes to match the number of tick marks
+            // on the axes
+            function refreshGridPlanes() {
+
+                var numX = $($element).find('.x.axis .tick').length - 1;
+                var numY = $($element).find('.y.axis .tick').length - 1;
+                var numZ = $($element).find('.z.axis .tick').length - 1;
+                for(var d = 0; d < 3; ++d) {
+                    for(var s = 0; s < 1; ++s) {
+                        var ps = gridPlaneSources[d][s];
+                        var xres = 2;
+                        var yres = 2;
+                        switch (2*d + s) {
+                            // bottom, top
+                            case 0: case 1:
+                                xres = numX;
+                                yres = numZ;
+                                break;
+                            // left, right
+                            case 2: case 3:
+                                xres = numZ;
+                                yres = numY;
+                                break;
+                            // back, front
+                            case 4: case 5:
+                                xres = numX;
+                                yres = numY;
+                                break;
+                            default:
+                                break;
+                        }
+                        ps.setXResolution(xres);
+                        ps.setYResolution(yres);
+                    }
+                }
             }
 
             function reset() {
                 //srdbg('reset');
-                cam.setPosition(0, 0, 1);
+                camPos = [0, 0, 1];
+                camViewUp = [0, 1, 0];
+                $scope.side = 'y';
+                $scope.xdir = 1;  $scope.ydir = 1;  $scope.zdir = 1;
+                resetCam();
+            }
+            function resetCam() {
+                //srdbg('reset cam');
+                cam.setPosition(camPos[0], camPos[1], camPos[2]);
                 cam.setFocalPoint(0, 0, 0);
-                cam.setViewUp(0, 1, 0);
+                cam.setViewUp(camViewUp[0], camViewUp[1], camViewUp[2]);
+                cam.zoom(1.3);
                 renderer.resetCamera();
                 zoomUnits = 0;
-                orientationCube.updateMarkerOrientation();
+                didPan = false;
+                orientationMarker.updateMarkerOrientation();
                 refresh();
             }
 
@@ -2840,27 +3195,54 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
-                showActors(lineActors, $scope.showAbsorbed);
-                showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
                 $scope.showImpact = ! $scope.showImpact;
-                showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleReflected = function() {
                 $scope.showReflected = ! $scope.showReflected;
-                showActors(reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActors(reflectedLineActors, $scope.showReflected);
             };
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
-                showActors(conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(conductorActors, $scope.showConductors, 0.80);
             };
+
+
+            $scope.xdir = 1;  $scope.ydir = 1;  $scope.zdir = 1;
+            $scope.side = 'y';
+            $scope.showSide = function(side) {
+                var dir = side === 'x' ? $scope.xdir : (side === 'y' ? $scope.ydir : $scope.zdir);
+                if( side == $scope.side ) {
+                    dir *= -1;
+                    if(side === 'x') {
+                        $scope.xdir = dir;
+                    }
+                    if(side === 'y') {
+                        $scope.ydir = dir;
+                    }
+                    if(side === 'z') {
+                        $scope.zdir = dir;
+                    }
+                }
+                $scope.side = side;
+
+                camPos = side === 'x' ? [0, dir, 0] : (side === 'y' ? [0, 0, dir] : [dir, 0, 0] );
+                camViewUp = side === 'x' ? [0, 0, 1] : [0, 1, 0];
+                resetCam();
+            };
+
+            /*
             function showActors(actorArray, doShow, visibleOpacity, hiddenOpacity) {
                 for(var aIndex = 0; aIndex < actorArray.length; ++aIndex) {
                     actorArray[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
                 }
                 renderWindow.render();
             }
+            */
 
             function select(selector) {
                 var e = d3.select($scope.element);
@@ -2890,13 +3272,11 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting) {
 
     function labToVTK(scale) {
         return function (lpoint) {
-            var vpoint = [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
-            //srdbg('labToVTK: ', lpoint, '->', vpoint);
             return [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
         };
     }
 
-    // this inverse transform should really be calculated
+    // TODO (mvk): this inverse transform should really be calculated not supplied
     function vtkToLab(scale) {
         return function (vpoint) {
             return [vpoint[1] / scale[0], vpoint[2] / scale[1], vpoint[0] / scale[2]];

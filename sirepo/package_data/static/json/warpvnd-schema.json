@@ -116,7 +116,7 @@
         },
         "particle3d": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
-            "joinEvery": ["Join Every N Points", "Integer", 1, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
+            "joinEvery": ["Join Every N Points", "Integer", 5, "Reduce render times by drawing lines between fewer data points (min 1, max 100)", 1, 100]
         },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]

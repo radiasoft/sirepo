@@ -348,6 +348,13 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
+        // takes a string of format '#xxxxxx' and returns an array of numeric values divided by range
+        colorsFromHexString: function(color, range) {
+            var r = range || 1.0;
+            var hexColor = color.substring(1, color.length);
+            return [parseInt(hexColor.substring(0,2), 16) / r, parseInt(hexColor.substring(2,4), 16) / r, parseInt(hexColor.substring(4,6), 16) / r];
+        },
+
         formatValue: function (v, formatter, ordinateFormatter) {
             var fmt = formatter ? formatter : d3.format('.3f');
             var ordfmt = ordinateFormatter ? ordinateFormatter : d3.format('.3e');
@@ -393,6 +400,10 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         isPlottingReady: function() {
             return isPlottingReady;
+        },
+
+        initAnimation: function(scope) {
+            initAnimation(scope);
         },
 
         linkPlot: function(scope, element) {
@@ -455,6 +466,7 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 }
             });
         },
+
 
         vtkPlot: function(scope, element) {
 
