@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
@@ -509,7 +510,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
         // store the coherence
         beamlineService.coherence = value ? 'full' : 'partial';
-        $location.search('coherence', beamlineService.coherence);
+        var currentCoherence = $location.search().coherence || 'full';
+        if (beamlineService.coherence != currentCoherence) {
+            // only set search if changed - it causes a page reload
+            $location.search('coherence', beamlineService.coherence);
+        }
     };
 
     self.showPropagationModal = function() {

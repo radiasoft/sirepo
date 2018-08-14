@@ -164,10 +164,17 @@ def srwl_und_size_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDe
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-    dkx = (kxmax -kmin)/numkpts
-    dkz = (kzmax -kmin)/numkpts
-    kxvals = np.arange(kmin,kxmax,dkx)
-    kzvals = np.arange(kmin,kzmax,dkz)
+    if kxmax > kmin:
+        dkx = (kxmax-kmin)/numkpts
+        kxvals = np.arange(kmin,kxmax,dkx)
+    else:
+        kxvals = np.zeros(numkpts)
+
+    if kzmax > kmin:
+        dkz = (kzmax-kmin)/numkpts
+        kzvals = np.arange(kmin,kzmax,dkz)
+    else:
+        kzvals = np.zeros(numkpts)
 
     L=(lam_u/100.)*nPer
     #compute size for each k value
@@ -200,10 +207,17 @@ def srwl_und_div_en(kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nPer,enDet
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-    dkx = (kxmax -kmin)/numkpts
-    dkz = (kzmax -kmin)/numkpts
-    kxvals = np.arange(kmin,kxmax,dkx)
-    kzvals = np.arange(kmin,kzmax,dkz)
+    if kxmax > kmin:
+        dkx = (kxmax-kmin)/numkpts
+        kxvals = np.arange(kmin,kxmax,dkx)
+    else:
+        kxvals = np.zeros(numkpts)
+
+    if kzmax > kmin:
+        dkz = (kzmax-kmin)/numkpts
+        kzvals = np.arange(kmin,kzmax,dkz)
+    else:
+        kzvals = np.zeros(numkpts)
 
     L=(lam_u/100.)*nPer
     #compute divergence for each k value
@@ -242,10 +256,17 @@ def srwl_und_ang_flux_en(Ib,kxmax,kzmax,kmin,numkpts,E_elec,lam_u,phix,phiz,n,nP
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-    dkx = (kxmax -kmin)/numkpts
-    dkz = (kzmax -kmin)/numkpts
-    kxvals = np.arange(kmin,kxmax,dkx)
-    kzvals = np.arange(kmin,kzmax,dkz)
+    if kxmax > kmin:
+        dkx = (kxmax-kmin)/numkpts
+        kxvals = np.arange(kmin,kxmax,dkx)
+    else:
+        kxvals = np.zeros(numkpts)
+
+    if kzmax > kmin:
+        dkz = (kzmax-kmin)/numkpts
+        kzvals = np.arange(kmin,kzmax,dkz)
+    else:
+        kzvals = np.zeros(numkpts)
 
     L=(lam_u/100.)*nPer
     #compute flux for each k value
@@ -287,10 +308,17 @@ def srwl_und_bright_en(Ib,kx,kz,phix,phiz,n,E_elec,lam_u,nPer,epeak,enDetPar,rel
     #compute Evals
     Evals = KtoE(kvals,E_elec,lam_u,n)
     #compute kxvals and kzvals
-    dkx = (kxmax -kmin)/numkpts
-    dkz = (kzmax -kmin)/numkpts
-    kxvals = np.arange(kmin,kxmax,dkx)
-    kzvals = np.arange(kmin,kzmax,dkz)
+    if kxmax > kmin:
+        dkx = (kxmax-kmin)/numkpts
+        kxvals = np.arange(kmin,kxmax,dkx)
+    else:
+        kxvals = np.zeros(numkpts)
+
+    if kzmax > kmin:
+        dkz = (kzmax-kmin)/numkpts
+        kzvals = np.arange(kmin,kzmax,dkz)
+    else:
+        kzvals = np.zeros(numkpts)
 
     brightnessvals = []
     for j in range(len(kvals)):

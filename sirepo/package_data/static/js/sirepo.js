@@ -531,8 +531,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         var fields = Object.keys(schema);
         for (var i = 0; i < fields.length; i++) {
             var f = fields[i];
-            if (schema[f][2] !== undefined) {
-                model[f] = schema[f][2];
+            if (! model[f]) {
+                if (schema[f][2] !== undefined) {
+                    model[f] = schema[f][2];
+                }
             }
         }
         return model;
@@ -828,6 +830,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     else {
                         callback(index, data);
                     }
+                },
+                null,
+                // error handling
+                function(data) {
+                    //TODO(pjm): need error wrapping on server similar to runStatus route
+                    panelState.setError(modelName, 'Report not generated');
                 });
         };
         if (isHidden) {
@@ -898,6 +906,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
+    var waitForUICallbacks = null;
 
     $rootScope.$on('clearCache', function() {
         self.clear();
@@ -1145,7 +1154,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         // try show/hide immediately, followed by timeout if UI hasn't finished layout yet
         showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         });
     };
@@ -1153,7 +1162,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         });
     };
@@ -1173,7 +1182,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
-            $timeout(function() {
+            self.waitForUI(function() {
                 $(editorId).modal('show');
             });
         }
@@ -1204,6 +1213,24 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         // needed to resize a hidden report and other panels
         if (appState.isReportModelName(name)) {
             $($window).trigger('resize');
+        }
+    };
+
+    self.waitForUI = function(callback) {
+        // groups callbacks within one $timeout() 
+        if (waitForUICallbacks) {
+            waitForUICallbacks.push(callback);
+        }
+        else {
+            waitForUICallbacks = [callback];
+            $timeout(function() {
+                // new callbacks may be added during this cycle
+                var callbacks = waitForUICallbacks;
+                waitForUICallbacks = null;
+                callbacks.forEach(function(callback) {
+                    callback();
+                });
+            });
         }
     };
 
@@ -2064,7 +2091,12 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     };
     self.getUserFolders = function(excludeFolder) {
         return self.flattenTree().filter(function(item) {
-            return item != excludeFolder && item.isFolder && ! self.isFolderExample(item);
+            if (item != excludeFolder && item.isFolder) {
+                if (SIREPO.INCLUDE_EXAMPLE_FOLDERS || ! self.isFolderExample(item)) {
+                    return true;
+                }
+            }
+            return false;
         });
     };
     self.getUserFolderPaths = function() {
@@ -2219,11 +2251,11 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
     };
     self.doesFolderContainFolder = function(f1, f2) {
-        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
-            return true;
-        }
         if(f2 == self.rootFolder() || ! f1.children) {
             return false;
+        }
+        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
+            return true;
         }
         for(var cIndex = 0; cIndex < f1.children.length; ++cIndex) {
             if(self.doesFolderContainFolder(f1.children[cIndex], f2)) {

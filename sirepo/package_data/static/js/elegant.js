@@ -5,9 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.USER_MANUAL_URL = 'https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html';
 SIREPO.USER_FORUM_URL = 'https://www3.aps.anl.gov/forums/elegant/';
-SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-].join('');
 SIREPO.ELEGANT_COMMAND_PREFIX = 'command_';
 SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
 SIREPO.appImportText = 'Import an elegant command (.ele) or lattice (.lte) file';
@@ -44,7 +41,8 @@ SIREPO.appFieldEditors = [
       '<input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />',
     '</div>',
     '<div data-ng-switch-when="ValueList" data-ng-class="fieldClass">',
-      '<select class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model[\'valueList\'][field]"></select>',
+      '<div class="form-control-static" data-ng-if="model.valueList[field].length == 1">{{ model.valueList[field][0] }}</div>',
+      '<select data-ng-if="model.valueList[field].length != 1" class="form-control" data-ng-model="model[field]" data-ng-options="item as item for item in model.valueList[field]"></select>',
     '</div>',
     '<div data-ng-switch-when="FileValueList">',
       '<div data-ng-class="fieldClass">',
@@ -76,6 +74,39 @@ SIREPO.appFieldEditors = [
 SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
+SIREPO.lattice = {
+    elementColor: {
+        BMAPXY: 'magenta',
+        FTABLE: 'magenta',
+        KOCT: 'lightyellow',
+        KQUAD: 'tomato',
+        KSEXT: 'lightgreen',
+        MATTER: 'black',
+        OCTU: 'yellow',
+        QUAD: 'red',
+        QUFRINGE: 'salmon',
+        SEXT: 'lightgreen',
+        VKICK: 'blue',
+        LMIRROR: 'lightblue',
+        REFLECT: 'blue',
+    },
+    elementPic: {
+        alpha: ['ALPH'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        malign: ['MALIGN'],
+        mirror: ['LMIRROR'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    },
+};
 
 SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -86,6 +117,7 @@ SIREPO.app.config(function() {
 
 SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
+    var filenameRequired = ['command_floor_coordinates', 'HISTOGRAM', 'SLICE', 'WATCH'];
 
     function bunchChanged() {
         // update bunched_beam fields
@@ -325,7 +357,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
         else if (name == 'commands') {
             commandsChanged();
         }
-        else if (name == 'WATCH' || name == 'HISTOGRAM' || name == 'SLICE') {
+        else if (filenameRequired.indexOf(name) >= 0) {
             // elegant will crash if these element's have no output filename
             var el = appState.models[name];
             if (el && ! el.filename) {
@@ -502,13 +534,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.advancedNames = [
         'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
-        'CWIGGLER', 'DSCATTER', 'EDRIFT', 'ELSE',
-        'EMATRIX', 'EMITTANCE', 'ENERGY', 'FLOOR',
+        'CWIGGLER', 'DSCATTER', 'EDRIFT', 'EHKICK', 'EKICKER', 'ELSE',
+        'EMATRIX', 'EMITTANCE', 'ENERGY', 'EVKICK', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
         'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
         'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
-        'LMIRROR', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
+        'LMIRROR', 'LRWAKE', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
         'MAGNIFY', 'MALIGN', 'MAPSOLENOID', 'MATR',
         'MATTER', 'MAXAMP', 'MBUMPER', 'MHISTOGRAM',
         'MODRF', 'MONI', 'MRFDF', 'MULT',
@@ -521,7 +553,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT',
         'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
         'TFBPICKUP', 'TMCF', 'TRCOUNT', 'TRFMODE',
-        'TRWAKE', 'TUBEND', 'TWISS', 'TWLA',
+        'TRWAKE', 'TSCATTER', 'TUBEND', 'TWISS', 'TWLA',
         'TWMTA', 'TWPL', 'UKICKMAP', 'VKICK',
         'VMON', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE',
     ];
@@ -532,38 +564,6 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'MARK', 'QUAD', 'SEXT',
         'WATCH', 'WIGGLER',
     ];
-
-    self.elementColor = {
-        BMAPXY: 'magenta',
-        FTABLE: 'magenta',
-        KOCT: 'lightyellow',
-        KQUAD: 'tomato',
-        KSEXT: 'lightgreen',
-        MATTER: 'black',
-        OCTU: 'yellow',
-        QUAD: 'red',
-        QUFRINGE: 'salmon',
-        SEXT: 'lightgreen',
-        VKICK: 'blue',
-        LMIRROR: 'lightblue',
-        REFLECT: 'blue',
-    };
-
-    self.elementPic = {
-        alpha: ['ALPH'],
-        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
-        lens: ['LTHINLENS'],
-        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
-        mirror: ['LMIRROR', 'REFLECT'],
-        recirc: ['RECIRC'],
-        solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
-        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-    };
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
@@ -616,10 +616,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName + ' ' + (self.simulationErrors.toLowerCase().indexOf('error') >= 0 ? 'Errors:' : 'Warnings:');
     };
 
-    function hideField(modelName, field) {
-        $('.model-' + modelName + '-' + field).closest('.form-group').hide();
-    }
-
     function loadElementReports(outputInfo, startTime) {
         self.outputFiles = [];
         self.outputFileMap = {};
@@ -658,12 +654,15 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '2',
+                SIREPO.ANIMATION_ARGS_VERSION + '3',
                 'x',
-                'y',
+                'y1',
+                'y2',
+                'y3',
                 'histogramBins',
                 'xFileId',
-                'yFileId',
+                'y2FileId',
+                'y3FileId',
                 'startTime',
             ];
             var m = null;
@@ -672,23 +671,19 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m.startTime = startTime;
                 m.xFileId = info.id;
                 m.xFile = info.filename;
+                m.y1File = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
             }
             else {
-                m = appState.models[modelKey] = {
+                m = appState.models[modelKey] = appState.setModelDefaults({
                     xFile: info.filename,
-                    yFile: info.filename,
+                    y1File: info.filename,
                     x: info.plottableColumns[0],
-                    y: null,
-                    histogramBins: 200,
-                    fileId: info.id,
                     xFileId: info.id,
-                    yFileId: info.id,
-                    framesPerSecond: 2,
                     startTime: startTime,
-                };
+                }, 'elementAnimation');
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
@@ -696,9 +691,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
             m.valueList = {
                 x: info.plottableColumns,
-                yFile: info.similarFiles,
+                y1: info.plottableColumns,
+                xFile: [m.xFile],
+                y1File: [m.xFile],
+                y2File: info.similarFiles,
+                y3File: info.similarFiles,
             };
-            self.yFileUpdate(modelKey);
+            m.panelTitle = cleanFilename(m.xFile);
+            yFileUpdate(modelKey);
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount, modelKey);
             if (! info.pageCount) {
@@ -706,49 +706,69 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
             appState.watchModelFields(
                 $scope,
-                [modelKey + '.yFile'],
-                function () {self.yFileUpdate(modelKey);}
-            );
+                [modelKey + '.y2File', modelKey + '.y3File'],
+                function () {
+                    yFileUpdate(modelKey);
+                });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
     }
 
-    //TODO(pjm): keep in sync with template/elegant.py _is_2d_plot()
+    //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
     function reportTypeForColumns(columns) {
         if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return '2d';
+            return 'parameterWithLattice';
         }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
             return 'heatmap';
         }
-        return '2d';
+        return 'parameterWithLattice';
     }
 
-    function showField(modelName, field) {
-        $('.model-' + modelName + '-' + field).closest('.form-group').show();
+    function yFileUpdate(modelKey) {
+        var m = appState.models[modelKey];
+        if (! m.y1 && m.y) {
+            m.y1 = m.y;
+        }
+        ['y1', 'y2', 'y3'].forEach(function(f) {
+            var field = f + 'File';
+            if (m.valueList[field].indexOf(m[field]) < 0) {
+                m[field] = m.xFile;
+            }
+            var info = self.outputFileMap[m[field]].info;
+            m[field + 'Id'] = info.id;
+            var cols = m.valueList[f] = appState.clone(info.plottableColumns);
+            if (f != 'y1') {
+                cols.unshift(' ');
+            }
+            if (!m[f] || cols.indexOf(m[f]) < 0) {
+                if (f == 'y1') {
+                    m[f] = defaultYColumn(cols, m.x);
+                }
+                else {
+                    m[f] = ' ';
+                }
+            }
+        });
     }
 
     self.handleModalShown = function(name, modelKey) {
         self.outputFiles.forEach(function(info) {
             if (info.modelAccess.modelKey == modelKey) {
-                if (info.reportType == 'heatmap') {
-                    showField(name, 'histogramBins');
-                    showField(name, 'colorMap');
-                    hideField(name, 'framesPerSecond');
-                }
-                else {
-                    hideField(name, 'histogramBins');
-                    hideField(name, 'colorMap');
-                    if (frameCache.getFrameCount(modelKey) > 1) {
-                        showField(name, 'framesPerSecond');
-                    }
-                    else {
-                        hideField(name, 'framesPerSecond');
-                    }
-                }
+                ['histogramBins', 'colorMap'].forEach(function(f) {
+                    panelState.showField(name, f, info.reportType == 'heatmap');
+                });
+                panelState.showField(name, 'framesPerSecond', frameCache.getFrameCount(modelKey) > 1);
+                ['y2', 'y2File', 'y3', 'y3File'].forEach(function(f) {
+                    panelState.showField(name, f, info.reportType.indexOf('parameter') >= 0);
+                });
+                panelState.showField(
+                    name, 'includeLattice',
+                    info.reportType.indexOf('parameter') >= 0
+                        && appState.models[modelKey].valueList.x.indexOf('s') >= 0);
             }
         });
     };
@@ -759,23 +779,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
-    };
-
-    self.yFileUpdate = function (modelKey) {
-        var m = appState.models[modelKey];
-        if (m.valueList.yFile.indexOf(m.yFile) < 0) {
-            m.yFile = m.xFile;
-        }
-        var info = self.outputFileMap[m.yFile].info;
-        m.yFileId = info.id;
-        var cols = m.valueList.y = info.plottableColumns;
-        if (!m.y || cols.indexOf(m.y) < 0) {
-            m.y = defaultYColumn(cols, m.x);
-        }
-        m.panelTitle = cleanFilename(m.xFile);
-        if (m.xFile != m.yFile) {
-            m.panelTitle += ' / ' + cleanFilename(m.yFile);
-        }
     };
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {});

@@ -1,3 +1,20 @@
+
+
+
+// Work-around for drag and drop issues with iOS
+// see https://github.com/taye/interact.js/issues/631
+var GLOBALiosIsDragging = false;
+window.addEventListener(
+    'touchmove',
+    function(e) {
+        if (GLOBALiosIsDragging) {
+            e.preventDefault();
+        }
+    },
+    {
+        passive: false,
+    });
+
 /*
  *
  * https://github.com/fatlinesofcode/ngDraggable
@@ -167,6 +184,7 @@ angular.module("ngDraggable", [])
 
                     var onmove = function (evt) {
                         if (!_dragEnabled)return;
+                        GLOBALiosIsDragging = true;
                         evt.preventDefault();
 
                         if (!element.hasClass('dragging')) {
@@ -194,6 +212,7 @@ angular.module("ngDraggable", [])
                     var onrelease = function(evt) {
                         if (!_dragEnabled)
                             return;
+                        GLOBALiosIsDragging = false;
                         evt.preventDefault();
                         $rootScope.$broadcast('draggable:end', {x:_mx, y:_my, tx:_tx, ty:_ty, event:evt, element:element, data:_data, callback:onDragComplete, uid: _myid});
                         element.removeClass('dragging');

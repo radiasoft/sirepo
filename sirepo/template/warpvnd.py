@@ -28,7 +28,6 @@ WANT_BROWSER_FRAME_CACHE = True
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
-_DEFAULT_PERMITTIVITY = 7.0
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
@@ -98,8 +97,9 @@ def fixup_old_data(data):
     for c in data['models']['conductorTypes']:
         if 'isConductor' not in c:
             c['isConductor'] = '1' if c['voltage'] > 0 else '0'
-        if 'permittivity' not in c:
-            c['permittivity'] = _DEFAULT_PERMITTIVITY
+        template_common.update_model_defaults(c, 'box', _SCHEMA)
+    for c in data['models']['conductors']:
+        template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
     if 'fieldComparisonReport' not in data['models']:
         grid = data['models']['simulationGrid']
         data['models']['fieldComparisonReport'] = {
@@ -510,6 +510,7 @@ def _extract_particle(run_dir, data, limit):
         'x_range': [0, plate_spacing],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
         'points': y_points,
         'x_points': x_points,
         'z_points': z_points,

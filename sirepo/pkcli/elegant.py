@@ -80,6 +80,7 @@ def _extract_bunch_report(data):
     info = extract_report_data(
         BUNCH_OUTPUT_FILE,
         BUNCH_OUTPUT_FILE,
+        BUNCH_OUTPUT_FILE,
         data['models'][data['report']],
         0,
     )
@@ -91,6 +92,7 @@ def _extract_twiss_report(data):
     report['x'] = 's'
     report['y'] = report['y1']
     info = extract_report_data(
+        'twiss_output.filename.sdds',
         'twiss_output.filename.sdds',
         'twiss_output.filename.sdds',
         report,

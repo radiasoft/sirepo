@@ -57,58 +57,39 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
         return '' + value;
     }
 
-    self.createAxis = function(scale, orient) {
-        return d3.svg.axis()
-            .scale(scale)
-            .orient(orient);
-    };
-
-    self.extractUnits = function(scope, axis, label) {
-        scope[axis + 'units'] = '';
-        var match = label.match(/\[(.*?)\]/);
-        if (match) {
-            scope[axis + 'units'] = match[1];
-            label = label.replace(/\[.*?\]/, '');
-        }
-        return label;
-    };
-
-    self.findConductorType = function(id) {
-        return findModelById('conductorTypes', id);
+    self.allow3D = function() {
+        return SIREPO.APP_SCHEMA.feature_config.allow_3d_mode;
     };
 
     self.findConductor = function(id) {
         return findModelById('conductors', id);
     };
 
-    self.fixFormat = function(scope, axis, precision) {
-        var format = d3.format('.' + (precision || '3') + 's');
-        // amounts near zero may appear as NNNz, change them to 0
-        return function(n) {
-            var units = scope[axis + 'units'];
-            if (! units) {
-                return cleanNumber(formatNumber(n));
-            }
-            var v = format(n);
-            //TODO(pjm): use a regexp
-            if ((v && (v.indexOf('z') > 0 || v.indexOf('y') > 0)) || v == '0.00' || v == '0.0000') {
-                return '0';
-            }
-            v = cleanNumber(v);
-            return v + units;
-        };
+    self.findConductorType = function(id) {
+        return findModelById('conductorTypes', id);
     };
 
-    self.getXRange = function() {
+    function gridRange(sizeField, countField) {
         var grid = appState.models.simulationGrid;
-        var channel = grid.channel_width;
-        return plotting.linspace(-channel / 2, channel / 2, grid.num_x + 1);
+        var channel = grid[sizeField];
+        return plotting.linspace(-channel / 2, channel / 2, grid[countField] + 1);
+    }
+
+    self.getXRange = function() {
+        return gridRange('channel_width', 'num_x');
+    };
+
+    self.getYRange = function() {
+        return gridRange('channel_height', 'num_y');
     };
 
     self.getZRange = function() {
         var grid = appState.models.simulationGrid;
-        var plateSpacing = grid.plate_spacing;
-        return plotting.linspace(0, plateSpacing, grid.num_z + 1);
+        return plotting.linspace(0, grid.plate_spacing, grid.num_z + 1);
+    };
+
+    self.is3D = function() {
+        return self.allow3D() && appState.isLoaded() && appState.applicationState().simulationGrid.simulation_mode == '3d';
     };
 
     self.isEGunMode = function(isSavedValues) {
@@ -119,10 +100,6 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
         return false;
     };
 
-    self.showParticle3DReport = function() {
-        return SIREPO.APP_SCHEMA.feature_config.particle_3d_report;
-    };
-
     return self;
 });
 
@@ -131,6 +108,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     var MAX_PARTICLES_PER_STEP = 1000;
 
     function updateAllFields() {
+        updateSimulationMode();
         updateBeamCurrent();
         updateBeamRadius();
         updateParticleZMin();
@@ -169,6 +147,16 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         panelState.showField('box', 'permittivity', appState.models.box.isConductor == '0');
     }
 
+    function updateSimulationMode() {
+        panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D());
+        var is3d = appState.models.simulationGrid.simulation_mode == '3d';
+        ['channel_height', 'num_y'].forEach(function(f) {
+            panelState.showField('simulationGrid', f, is3d);
+        });
+        panelState.showField('box', 'yLength', is3d);
+        panelState.showField('conductorPosition', 'yCenter', is3d);
+    }
+
     self.createConductorType = function(type) {
         var model = {
             id: appState.maxId(appState.models.conductorTypes) + 1,
@@ -188,6 +176,17 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         appState.saveChanges(['conductors']);
     };
 
+    self.deleteConductorPrompt = function(model) {
+        var conductor = warpvndService.findConductor(model.id);
+        var conductorType = warpvndService.findConductorType(conductor.conductorTypeId);
+        self.deleteWarning = {
+            conductor: conductor,
+            name: conductorType.name + ' Conductor',
+            message: '',
+        };
+        $('#sr-delete-conductor-dialog').modal('show');
+    };
+
     self.deleteConductorType = function() {
         var model = self.deleteWarning.conductorType;
         var conductorTypes = [];
@@ -205,17 +204,6 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         });
         appState.models.conductors = conductors;
         appState.saveChanges(['conductorTypes', 'conductors']);
-    };
-
-    self.deleteConductorPrompt = function(model) {
-        var conductor = warpvndService.findConductor(model.id);
-        var conductorType = warpvndService.findConductorType(conductor.conductorTypeId);
-        self.deleteWarning = {
-            conductor: conductor,
-            name: conductorType.name + ' Conductor',
-            message: '',
-        };
-        $('#sr-delete-conductor-dialog').modal('show');
     };
 
     self.deleteConductorTypePrompt = function(model) {
@@ -297,13 +285,16 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         }
     });
 
-    appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
-    appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
-    appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
-    appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
-    appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
-    appState.watchModelFields($scope, ['box.isConductor'], updatePermittivity);
-    appState.whenModelsLoaded($scope, updateAllFields);
+    appState.whenModelsLoaded($scope, function() {
+        updateAllFields();
+        appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
+        appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
+        appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
+        appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
+        appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
+        appState.watchModelFields($scope, ['box.isConductor'], updatePermittivity);
+        appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
+    });
 });
 
 SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
@@ -425,18 +416,16 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
         },
     };
 });
-SIREPO.app.directive('conductorTable', function(appState) {
+SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
     return {
         restrict: 'A',
         scope: {
             source: '=controller',
         },
         template: [
-            '<div data-drag-and-drop-support=""></div>',
             '<table data-ng-show="appState.models.conductorTypes.length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
               '<colgroup>',
                 '<col>',
-                '<col style="width: 12ex">',
                 '<col style="width: 12ex">',
               '</colgroup>',
               '<thead>',
@@ -446,15 +435,17 @@ SIREPO.app.directive('conductorTable', function(appState) {
               '</thead>',
               '<tbody data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
                 '<tr>',
-                  '<td style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
+                  '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
                   '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
-                  '<td></td><th>Center Z</th><th>Center X</th>',
+                  '<td></td><td data-ng-if="! warpvndService.is3D()"></td><th data-ng-if="warpvndService.is3D()">Center Y</th><th>Center Z</th><th>Center X</th>',
                 '</tr>',
                 '<tr data-ng-show="! isCollapsed(conductorType)" data-ng-repeat="conductor in conductors(conductorType) track by conductor.id">',
                   '<td></td>',
+                  '<td data-ng-if="! warpvndService.is3D()"></td>',
+                  '<td data-ng-if="warpvndService.is3D()" style="text-align: right">{{ formatSize(conductor.yCenter) }}</td>',
                   '<td style="text-align: right">{{ formatSize(conductor.zCenter) }}</td>',
                   '<td style="text-align: right">{{ formatSize(conductor.xCenter) }}<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductor(conductor)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductor(conductor)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
@@ -463,6 +454,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.appState = appState;
+            $scope.warpvndService = warpvndService;
             var collapsed = {};
             var conductorsByType = {};
 
@@ -525,7 +517,7 @@ SIREPO.app.directive('conductorTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, warpvndService) {
+SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelState, plotting, warpvndService) {
     return {
         restrict: 'A',
         scope: {
@@ -536,14 +528,23 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
             //TODO(pjm): keep in sync with pkcli/warpvnd.py color
             var CELL_COLORS = ['red', 'green', 'blue'];
             var ASPECT_RATIO = 6.0 / 14;
-            $scope.margin = {top: 20, right: 20, bottom: 50, left: 70};
+            $scope.warpvndService = warpvndService;
+            $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
             $scope.width = $scope.height = 0;
+            $scope.zHeight = 150;
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
-            var dragCarat, dragShape, dragStart, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
+            $scope.is3dPreview = false;
+            var dragCarat, dragShape, dragStart, yRange, zoom;
+            var planeLine = 0.0;
             var plateSize = 0;
             var plateSpacing = 0;
             var isInitialized = false;
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh),
+            };
 
             function adjustConductorLocation(diff) {
                 appState.models.conductors.forEach(function(m) {
@@ -560,7 +561,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 // iterate shapes (and anode)
                 //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
                 //      set drag-shape right edge to shape left edge
-                var anodeLeft = toMicron(appState.models.simulationGrid.plate_spacing);
+                var anodeLeft = toMicron(plateSpacing);
                 var shapeCenter = shape.x + shape.width / 2;
                 var shapeRight = shape.x + shape.width;
                 if (shapeRight > anodeLeft && shapeCenter < anodeLeft) {
@@ -631,26 +632,27 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 d3.selectAll('.warpvnd-drag-shadow').remove();
             }
 
+            function d3DragCarat(d) {
+                /*jshint validthis: true*/
+                var p = d.dimension == 'x'
+                    ? axes.x.scale.invert(d3.event.x) * 1e6
+                    : axes.y.scale.invert(d3.event.y) * 1e6;
+                var halfWidth = (d.range[1] - d.range[0]) / 2.0;
+                for (var i = 0; i < d.range.length; i++) {
+                    if (d.range[i] + halfWidth >= p) {
+                        d.pos = i;
+                        break;
+                    }
+                }
+                d3.select(this).call(updateCarat);
+            }
+
             function d3DragEndCarat(d) {
                 if (d.pos != appState.models.fieldComparisonReport[d.field]) {
                     appState.models.fieldComparisonReport[d.field] = d.pos;
                     appState.models.fieldComparisonReport.dimension = d.dimension;
                     appState.saveChanges('fieldComparisonReport');
                 }
-            }
-
-            function d3DragCarat(d) {
-                /*jshint validthis: true*/
-                var p = d.dimension == 'x'
-                    ? xAxisScale.invert(d3.event.x) * 1e6
-                    : yAxisScale.invert(d3.event.y) * 1e6;
-                for (var i = 0; i < d.range.length; i++) {
-                    if (d.range[i] >= p) {
-                        d.pos = i;
-                        break;
-                    }
-                }
-                d3.select(this).call(updateCarat);
             }
 
             function d3DragEndShape(shape) {
@@ -674,12 +676,36 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 hideShapeLocation();
             }
 
+            function d3DragLine() {
+                var oldPlaneLine = planeLine;
+                planeLine = axes.z.scale.invert(d3.event.y);
+                var grid = appState.models.simulationGrid;
+                var depth = toMicron(grid.channel_height / 2.0);
+                if (planeLine < -depth) {
+                    planeLine = -depth;
+                }
+                else if (planeLine > depth) {
+                    planeLine = depth;
+                }
+                var halfWidth = (yRange[1] - yRange[0]) / 2.0;
+                for (var i = 0; i < yRange.length; i++) {
+                    if (yRange[i] + halfWidth >= planeLine * 1e6) {
+                        planeLine = yRange[i] / 1e6;
+                        break;
+                    }
+                }
+                if (oldPlaneLine != planeLine) {
+                    drawShapes();
+                }
+                updateDragLine();
+            }
+
             function d3DragShape(shape) {
                 /*jshint validthis: true*/
-                var xdomain = xAxisScale.domain();
+                var xdomain = axes.x.scale.domain();
                 var xPixelSize = (xdomain[1] - xdomain[0]) / $scope.width;
                 shape.x = dragStart.x + xPixelSize * d3.event.x;
-                var ydomain = yAxisScale.domain();
+                var ydomain = axes.y.scale.domain();
                 var yPixelSize = (ydomain[1] - ydomain[0]) / $scope.height;
                 shape.y = dragStart.y - yPixelSize * d3.event.y;
                 alignShapeOnGrid(shape);
@@ -693,86 +719,15 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 showShapeLocation(shape);
             }
 
-            function drawCathodeAndAnode() {
-                var viewport = select('.plot-viewport');
-                viewport.selectAll('.warpvnd-plate').remove();
-                var grid = appState.models.simulationGrid;
-                var channel = toMicron(grid.channel_width / 2.0);
-                var plateSpacing = toMicron(grid.plate_spacing);
-                var h = yAxisScale(-channel) - yAxisScale(channel);
-                var w = xAxisScale(0) - xAxisScale(-plateSize);
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate')
-                    .attr('x', xAxisScale(-plateSize))
-                    .attr('y', yAxisScale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('cathode'); })
-                    .append('title').text('Cathode');
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
-                    .attr('x', xAxisScale(plateSpacing))
-                    .attr('y', yAxisScale(channel))
-                    .attr('width', w)
-                    .attr('height', h)
-                    .on('dblclick', function() { editPlate('anode'); })
-                    .append('title').text('Anode');
-            }
-
-            function drawShapes() {
-                var typeMap = {};
-                appState.models.conductorTypes.forEach(function(conductorType) {
-                    typeMap[conductorType.id] = conductorType;
-                });
-                var shapes = [];
-                appState.models.conductors.forEach(function(conductorPosition) {
-                    var conductorType = typeMap[conductorPosition.conductorTypeId];
-                    var w = toMicron(conductorType.zLength);
-                    var h = toMicron(conductorType.xLength);
-                    shapes.push({
-                        x: toMicron(conductorPosition.zCenter) - w / 2,
-                        y: toMicron(conductorPosition.xCenter) + h / 2,
-                        width: w,
-                        height: h,
-                        id: conductorPosition.id,
-                        conductorType: conductorType,
-                    });
-                });
-                d3.select('.plot-viewport').selectAll('.warpvnd-shape').remove();
-                d3.select('.plot-viewport').selectAll('.warpvnd-shape')
-                    .data(shapes)
-                    .enter().append('rect')
-                    .on('dblclick', editPosition)
-                    .call(updateShapeAttributes)
-                    .call(dragShape);
-
-                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector').remove();
-                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector')
-                    .data(caratData())
-                    .enter().append('path')
-                    .attr('class', 'warpvnd-cell-selector')
-                    .attr('d', function(d) {
-                        return d.dimension == 'x'
-                            ? 'M0,-14L7,0 -7,0Z'
-                            : 'M0,-7L0,7 14,0Z';
-                    })
-                    .style('cursor', function(d) {
-                        return d.dimension == 'x' ? 'ew-resize' : 'ns-resize';
-                    })
-                    .style('fill', function(d) {
-                        return CELL_COLORS[d.index - 1];
-                    })
-                    .call(updateCarat)
-                    .call(dragCarat).append('title')
-                    .text(caratText);
-            }
-
             function doesShapeCrossGridLine(shape) {
+                if (shape.dim == 'y') {
+                    return true;
+                }
                 var numX = appState.models.simulationGrid.num_x;  // number of vertical cells
                 var halfChannel = toMicron(appState.models.simulationGrid.channel_width/2.0);
                 var cellHeight = toMicron(appState.models.simulationGrid.channel_width / numX);  // height of one cell
                 var numZ = appState.models.simulationGrid.num_z;  // number of horizontal cells
-                var cellWidth = toMicron(appState.models.simulationGrid.plate_spacing / numZ);  // width of one cell
+                var cellWidth = toMicron(plateSpacing / numZ);  // width of one cell
                 if( cellHeight === 0 || cellWidth === 0 ) {  // pathological?
                     return true;
                 }
@@ -795,6 +750,103 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 // if the top of the shape extends above the top of the channel, it
                 // is ignored.  If the bottom goes below, it is not
                 return (shape.y < halfChannel && top != bottom) || left != right;
+            }
+
+            function drawCathodeAndAnode(dim) {
+                var info = plotInfoForDimension(dim);
+                var viewport = select(info.viewportClass);
+                viewport.selectAll('.warpvnd-plate').remove();
+                var grid = appState.models.simulationGrid;
+                var channel = toMicron(grid[info.heightField] / 2.0);
+                var h = info.axis.scale(-channel) - info.axis.scale(channel);
+                var w = axes.x.scale(0) - axes.x.scale(-plateSize);
+                viewport.append('rect')
+                    .attr('class', 'warpvnd-plate')
+                    .attr('x', axes.x.scale(-plateSize))
+                    .attr('y', info.axis.scale(channel))
+                    .attr('width', w)
+                    .attr('height', h)
+                    .on('dblclick', function() { editPlate('cathode'); })
+                    .append('title').text('Cathode');
+                viewport.append('rect')
+                    .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
+                    .attr('x', axes.x.scale(toMicron(plateSpacing)))
+                    .attr('y', info.axis.scale(channel))
+                    .attr('width', w)
+                    .attr('height', h)
+                    .on('dblclick', function() { editPlate('anode'); })
+                    .append('title').text('Anode');
+            }
+
+            function drawCathodeAndAnodes() {
+                drawCathodeAndAnode('x');
+                if (warpvndService.is3D()) {
+                    drawCathodeAndAnode('y');
+                }
+            }
+
+            function drawCarats() {
+                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector').remove();
+                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector')
+                    .data(caratData())
+                    .enter().append('path')
+                    .attr('class', 'warpvnd-cell-selector')
+                    .attr('d', function(d) {
+                        return d.dimension == 'x'
+                            ? 'M0,-14L7,0 -7,0Z'
+                            : 'M0,-7L0,7 14,0Z';
+                    })
+                    .style('cursor', function(d) {
+                        return d.dimension == 'x' ? 'ew-resize' : 'ns-resize';
+                    })
+                    .style('fill', function(d) {
+                        return CELL_COLORS[d.index - 1];
+                    })
+                    .call(updateCarat)
+                    .call(dragCarat).append('title')
+                    .text(caratText);
+            }
+
+            function drawConductors(typeMap, dim) {
+                var info = plotInfoForDimension(dim);
+                var shapes = [];
+                appState.models.conductors.forEach(function(conductorPosition) {
+                    var conductorType = typeMap[conductorPosition.conductorTypeId];
+                    var w = toMicron(conductorType.zLength);
+                    var h = toMicron(conductorType[info.lengthField]);
+                    shapes.push({
+                        x: toMicron(conductorPosition.zCenter) - w / 2,
+                        y: toMicron(conductorPosition[info.centerField]) + h / 2,
+                        plane: toMicron(conductorPosition.yCenter),
+                        width: w,
+                        height: h,
+                        depth: toMicron(conductorType.yLength),
+                        id: conductorPosition.id,
+                        conductorType: conductorType,
+                        dim: dim,
+                    });
+                });
+                d3.select(info.viewportClass).selectAll('.warpvnd-shape').remove();
+                d3.select(info.viewportClass).selectAll('.warpvnd-shape')
+                    .data(shapes)
+                    .enter().append('rect')
+                    .on('dblclick', editPosition)
+                    .call(updateShapeAttributes);
+                if (dim == 'x') {
+                    d3.select(info.viewportClass).selectAll('.warpvnd-shape').call(dragShape);
+                }
+            }
+
+            function drawShapes() {
+                var typeMap = {};
+                appState.models.conductorTypes.forEach(function(conductorType) {
+                    typeMap[conductorType.id] = conductorType;
+                });
+                drawConductors(typeMap, 'x');
+                if (warpvndService.is3D()) {
+                    drawConductors(typeMap, 'y');
+                }
+                drawCarats();
             }
 
             function editPlate(name) {
@@ -843,85 +895,164 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                     left: shape.x,
                     right: shape.x + shape.width,
                 };
-                if (bounds.right < xDomain[0] || bounds.left > xDomain[1]
-                    || bounds.top < yDomain[0] || bounds.bottom > yDomain[1]) {
+                if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
+                    || bounds.top < axes.y.domain[0] || bounds.bottom > axes.y.domain[1]) {
                     return false;
                 }
                 return true;
             }
 
+            function plotInfoForDimension(dim) {
+                if (dim === 'x') {
+                    return {
+                        viewportClass: '.plot-viewport',
+                        axis: axes.y,
+                        heightField: 'channel_width',
+                        centerField: 'xCenter',
+                        lengthField: 'xLength',
+                    };
+                }
+                else if (dim === 'y') {
+                    return {
+                        viewportClass: '.z-plot-viewport',
+                        axis: axes.z,
+                        heightField: 'channel_height',
+                        centerField: 'yCenter',
+                        lengthField: 'yLength',
+                    };
+                }
+                throw 'invalid dim: ' + dim;
+            }
+
             function refresh() {
-                if (! xDomain) {
+                if (! axes.x.domain) {
                     return;
                 }
-                var xdom = xAxisScale.domain();
-                var zoomWidth = xdom[1] - xdom[0];
-
-                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                if (layoutService.plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (isNaN(width)) {
+                        return;
+                    }
+                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                    select('.z-plot')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.zHeight + $scope.margin.bottom);
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.z.scale.range([$scope.zHeight, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                    axes.z.grid.tickSize(-$scope.width);
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    xAxisScale.domain(xDomain);
-                    yAxisScale.domain(yDomain);
+                    select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-zoom');
+                    axes.y.scale.domain(axes.y.domain);
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    if (xdom[0] < xDomain[0]) {
-                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
-                    }
-                    if (xdom[1] > xDomain[1]) {
-                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
-                    }
+                    select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-move-ew');
                 }
 
                 var grid = appState.models.simulationGrid;
                 var channel = toMicron(grid.channel_width);
-                yAxisGrid.tickValues(plotting.linspace(-channel / 2, channel / 2, grid.num_x + 1));
-                // var plate = toMicron(grid.plate_spacing);
-                // xAxisGrid.tickValues(plotting.linspace(0, plate, grid.num_z + 1));
+                axes.y.grid.tickValues(plotting.linspace(-channel / 2, channel / 2, grid.num_x + 1));
+                var depth = toMicron(grid.channel_height);
+                axes.z.grid.tickValues(plotting.linspace(-depth / 2, depth / 2, grid.num_y + 1));
                 resetZoom();
                 select('.plot-viewport').call(zoom);
-                select('.x.axis').call(xAxis);
-                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
-                select('.y.axis').call(yAxis);
-                select('.y.axis.grid').call(yAxisGrid);
-                drawCathodeAndAnode();
+                select('.z-plot-viewport').call(zoom);
+                $.each(axes, function(dim, axis) {
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
+                select('.zx.axis.grid').call(axes.x.grid);
+                drawCathodeAndAnodes();
                 drawShapes();
+                updateDragLine();
             }
 
             function replot() {
                 var grid = appState.models.simulationGrid;
-                var plateSpacing = toMicron(grid.plate_spacing);
-                plateSize = plateSpacing / 15;
-                var newXDomain = [-plateSize, plateSpacing + plateSize];
-                if (! xDomain || ! appState.deepEquals(xDomain, newXDomain)) {
-                    xDomain = newXDomain;
-                    xAxisScale.domain(xDomain);
-                    $scope.xRange = appState.clone(xDomain);
+                plateSize = toMicron(plateSpacing) / 15;
+                var newXDomain = [-plateSize, toMicron(plateSpacing) + plateSize];
+                if (! axes.x.domain || ! appState.deepEquals(axes.x.domain, newXDomain)) {
+                    axes.x.domain = newXDomain;
+                    axes.x.scale.domain(axes.x.domain);
+                    $scope.xRange = appState.clone(axes.x.domain);
                 }
                 var channel = toMicron(grid.channel_width / 2.0);
                 var newYDomain = [- channel, channel];
-                if (! yDomain || ! appState.deepEquals(yDomain, newYDomain)) {
-                    yDomain = newYDomain;
-                    yAxisScale.domain(yDomain);
+                if (! axes.y.domain || ! appState.deepEquals(axes.y.domain, newYDomain)) {
+                    axes.y.domain = newYDomain;
+                    axes.y.scale.domain(axes.y.domain);
+                }
+                if (warpvndService.is3D()) {
+                    yRange = warpvndService.getYRange();
+                    var depth = toMicron(grid.channel_height / 2.0);
+                    var newZDomain = [- depth, depth];
+                    if (! axes.z.domain || ! appState.deepEquals(axes.z.domain, newZDomain)) {
+                        axes.z.domain = newZDomain;
+                        axes.z.scale.domain(axes.z.domain);
+                    }
+                    if (select('.z-plot-viewport line.cross-hair').empty()) {
+                        select('.z-plot-viewport')
+                            .append('line')
+                            .attr('class', 'cross-hair')
+                            .attr('x1', 0);
+                    }
+                    if (select('.z-plot-viewport line.plane-dragline').empty()) {
+                        var dragLine = d3.behavior.drag()
+                            .on('drag', d3DragLine)
+                            .on('dragstart', function() {
+                                d3.event.sourceEvent.stopPropagation();
+                            });
+                        select('.z-plot-viewport')
+                            .append('line')
+                            .attr('class', 'plane-dragline plane-dragline-y selectable-path')
+                            .attr('x1', 0)
+                            .call(dragLine);
+                    }
                 }
                 $scope.resize();
             }
 
             function resetZoom() {
-                zoom = d3.behavior.zoom()
-                    .x(xAxisScale)
-                    .on('zoom', refresh);
+                zoom = axes.x.createZoom($scope);
             }
 
             function updateCarat(selection) {
                 selection.attr('transform', function(d) {
                     if (d.dimension == 'x') {
                         return 'translate('
-                            + xAxisScale(d.range[d.pos] * 1e-6)
+                            + axes.x.scale(toMicron(d.range[d.pos]))
                             + ',' + $scope.height + ')';
                     }
-                    return 'translate(' + '0' + ',' + yAxisScale(d.range[d.pos] * 1e-6) + ')';
+                    return 'translate(' + '0' + ',' + axes.y.scale(toMicron(d.range[d.pos])) + ')';
                 });
                 selection.select('title').text(caratText);
+            }
+
+            function updateDragLine() {
+                var l1 = select('.z-plot-viewport line.cross-hair');
+                var l2 = select('.z-plot-viewport line.plane-dragline');
+                var y = axes.z.scale(planeLine);
+                [l1, l2].forEach(function(line) {
+                    line.attr('x1', 0)
+                        .attr('x2', $scope.width)
+                        .attr('y1', y)
+                        .attr('y2', y);
+                });
+                select('.z-plot .focus-text').text('Y=' + formatNumber(planeLine * 1e6, 4) + 'µm');
             }
 
             function select(selector) {
@@ -935,8 +1066,8 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 return {
                     width: w,
                     height: h,
-                    x: xAxisScale.invert(p[0]) - w / 2,
-                    y: yAxisScale.invert(p[1]) + h / 2,
+                    x: axes.x.scale.invert(p[0]) - w / 2,
+                    y: axes.y.scale.invert(p[1]) + h / 2,
                 };
             }
 
@@ -957,12 +1088,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 showShapeLocation(shape);
                 d3.select('.plot-viewport')
                     .append('rect').attr('class', 'warpvnd-shape warpvnd-drag-shadow')
-                    .attr('x', function() { return xAxisScale(shape.x); })
-                    .attr('y', function() { return yAxisScale(shape.y); })
+                    .attr('x', function() { return axes.x.scale(shape.x); })
+                    .attr('y', function() { return axes.y.scale(shape.y); })
                     .attr('width', function() {
-                        return xAxisScale(shape.x + shape.width) - xAxisScale(shape.x);
+                        return axes.x.scale(shape.x + shape.width) - axes.x.scale(shape.x);
                     })
-                    .attr('height', function() { return yAxisScale(shape.y) - yAxisScale(shape.y + shape.height); });
+                    .attr('height', function() { return axes.y.scale(shape.y) - axes.y.scale(shape.y + shape.height); });
             }
 
             function updateShapeAttributes(selection) {
@@ -974,12 +1105,32 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                     .classed('warpvnd-shape-voltage', function(d) {
                         return d.conductorType.voltage > 0;
                     })
-                    .attr('x', function(d) { return xAxisScale(d.x); })
-                    .attr('y', function(d) { return yAxisScale(d.y); })
-                    .attr('width', function(d) {
-                        return xAxisScale(d.x + d.width) - xAxisScale(d.x);
+                    .classed('warpvnd-shape-inactive', function(d) {
+                        if (! warpvndService.is3D()) {
+                            return false;
+                        }
+                        var halfDepth = d.depth / 2;
+                        if (planeLine >= d.plane - halfDepth && planeLine <= d.plane + halfDepth) {
+                            return false;
+                        }
+                        return true;
                     })
-                    .attr('height', function(d) { return yAxisScale(d.y) - yAxisScale(d.y + d.height); });
+                    .attr('x', function(d) { return axes.x.scale(d.x); })
+                    .attr('y', function(d) {
+                        var axis = d.dim === 'x'
+                            ? axes.y
+                            : axes.z;
+                        return axis.scale(d.y);
+                    })
+                    .attr('width', function(d) {
+                        return axes.x.scale(d.x + d.width) - axes.x.scale(d.x);
+                    })
+                    .attr('height', function(d) {
+                        var axis = d.dim === 'x'
+                            ? axes.y
+                            : axes.z;
+                        return axis.scale(d.y) - axis.scale(d.y + d.height);
+                    });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {
                     tooltip = selection.append('title');
@@ -1021,6 +1172,7 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                         conductorTypeId: conductorType.id,
                         zCenter: formatMicron(shape.x + shape.width / 2),
                         xCenter: formatMicron(shape.y - shape.height / 2),
+                        yCenter: formatMicron(planeLine),
                     });
                     appState.saveChanges('conductors');
                 }
@@ -1031,15 +1183,12 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                     appState.whenModelsLoaded($scope, $scope.init);
                     return;
                 }
+                plateSpacing = appState.models.simulationGrid.plate_spacing;
                 select('svg').attr('height', plotting.initialHeight($scope));
-                xAxisScale = d3.scale.linear();
-                yAxisScale = d3.scale.linear();
-                xAxis = warpvndService.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(warpvndService.fixFormat($scope, 'x', 4));
-                xAxisGrid = warpvndService.createAxis(xAxisScale, 'bottom');
-                yAxis = warpvndService.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(warpvndService.fixFormat($scope, 'y'));
-                yAxisGrid = warpvndService.createAxis(yAxisScale, 'left');
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
                 resetZoom();
                 dragShape = d3.behavior.drag()
                     .origin(function(d) { return d; })
@@ -1052,8 +1201,9 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                         d3.event.sourceEvent.stopPropagation();
                     })
                     .on('dragend', d3DragEndCarat);
-                select('.y-axis-label').text(warpvndService.extractUnits($scope, 'y', 'x [m]'));
-                select('.x-axis-label').text(warpvndService.extractUnits($scope, 'x', 'z [m]'));
+                axes.x.parseLabelAndUnits('z [m]');
+                axes.y.parseLabelAndUnits('x [m]');
+                axes.z.parseLabelAndUnits('y [m]');
                 isInitialized = true;
                 replot();
             };
@@ -1062,24 +1212,11 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                 if (select().empty()) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! xDomain || isNaN(width)) {
-                    return;
-                }
-                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                $scope.width = width;
-                $scope.height = ASPECT_RATIO * $scope.width;
-                select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                plotting.ticks(xAxis, $scope.width, true);
-                plotting.ticks(xAxisGrid, $scope.width, true);
-                plotting.ticks(yAxis, $scope.height, false);
-                xAxisScale.range([0, $scope.width]);
-                yAxisScale.range([$scope.height, 0]);
-                xAxisGrid.tickSize(-$scope.height);
-                yAxisGrid.tickSize(-$scope.width);
                 refresh();
+            };
+
+            $scope.toggle3dPreview = function() {
+                $scope.is3dPreview = ! $scope.is3dPreview;
             };
 
             $scope.$on('cancelChanges', function(e, name) {
@@ -1103,9 +1240,6 @@ SIREPO.app.directive('conductorGrid', function(appState, panelState, plotting, w
                         replot();
                     }
                 }
-            });
-            appState.whenModelsLoaded($scope, function() {
-                plateSpacing = appState.models.simulationGrid.plate_spacing;
             });
         },
         link: function link(scope, element) {
@@ -1196,7 +1330,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndService) {
+SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plotting) {
     return {
         restrict: 'A',
         scope: {
@@ -1209,7 +1343,11 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
             $scope.width = $scope.height = 0;
             $scope.dataCleared = true;
             $scope.wantColorbar = true;
-            var colorbar, graphLine, pointer, xAxis, xAxisGrid, xAxisScale, xDomain, yAxis, yAxisGrid, yAxisScale, yDomain, zoom;
+            var colorbar, graphLine, pointer, zoom;
+            var axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+            };
 
             function mouseOver() {
                 /*jshint validthis: true*/
@@ -1221,39 +1359,50 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
             }
 
             function refresh() {
-                if (! xDomain) {
+                if (! axes.x.domain) {
                     return;
                 }
-                var xdom = xAxisScale.domain();
-                var zoomWidth = xdom[1] - xdom[0];
-
-                if (zoomWidth >= (xDomain[1] - xDomain[0])) {
+                if (layoutService.plotAxis.allowUpdates) {
+                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
+                    if (isNaN(width)) {
+                        return;
+                    }
+                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
+                    $scope.width = width;
+                    $scope.height = ASPECT_RATIO * $scope.width;
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                    colorbar.barlength($scope.height)
+                        .origin([0, 0]);
+                    pointer = select('.colorbar').call(colorbar);
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.plot-viewport').attr('class', 'plot-viewport mouse-zoom');
-                    xAxisScale.domain(xDomain);
-                    yAxisScale.domain(yDomain).nice();
+                    axes.y.scale.domain(axes.y.domain);
                 }
                 else {
                     select('.plot-viewport').attr('class', 'plot-viewport mouse-move-ew');
-                    if (xdom[0] < xDomain[0]) {
-                        xAxisScale.domain([xDomain[0], zoomWidth + xDomain[0]]);
-                    }
-                    if (xdom[1] > xDomain[1]) {
-                        xAxisScale.domain([xDomain[1] - zoomWidth, xDomain[1]]);
-                    }
                 }
                 resetZoom();
                 select('.plot-viewport').call(zoom);
-                select('.x.axis').call(xAxis);
-                select('.x.axis.grid').call(xAxisGrid); // tickLine == gridline
-                select('.y.axis').call(yAxis);
-                select('.y.axis.grid').call(yAxisGrid);
+                $.each(axes, function(dim, axis) {
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(axis.tickCount);
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
                 select('.plot-viewport').selectAll('.line').attr('d', graphLine);
             }
 
             function resetZoom() {
-                zoom = d3.behavior.zoom()
-                    .x(xAxisScale)
-                    .on('zoom', refresh);
+                zoom = axes.x.createZoom($scope);
             }
 
             function select(selector) {
@@ -1263,7 +1412,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
 
             $scope.clearData = function() {
                 $scope.dataCleared = true;
-                xDomain = null;
+                axes.x.domain = null;
             };
 
             $scope.destroy = function() {
@@ -1273,21 +1422,18 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
 
             $scope.init = function() {
                 select('svg').attr('height', plotting.initialHeight($scope));
-                select('svg').selectAll('.overlay').remove();
-                xAxisScale = d3.scale.linear();
-                yAxisScale = d3.scale.linear();
-                xAxis = warpvndService.createAxis(xAxisScale, 'bottom');
-                xAxis.tickFormat(warpvndService.fixFormat($scope, 'x'));
-                xAxisGrid = warpvndService.createAxis(xAxisScale, 'bottom');
-                yAxis = warpvndService.createAxis(yAxisScale, 'left');
-                yAxis.tickFormat(warpvndService.fixFormat($scope, 'y'));
-                yAxisGrid = warpvndService.createAxis(yAxisScale, 'left');
+                // can't remove the overlay or it causes a memory leak
+                select('svg').selectAll('.overlay').classed('disabled-overlay', true);
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
                 graphLine = d3.svg.line()
                     .x(function(d) {
-                        return xAxisScale(d[0]);
+                        return axes.x.scale(d[0]);
                     })
                     .y(function(d) {
-                        return yAxisScale(d[1]);
+                        return axes.y.scale(d[1]);
                     });
                 resetZoom();
             };
@@ -1299,14 +1445,16 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
                 xdom[0] -= smallDiff;
                 xdom[1] += smallDiff;
-                xDomain = xdom;
-                xAxisScale.domain(xdom);
-                yDomain = [json.y_range[0], json.y_range[1]];
-                yAxisScale.domain(yDomain).nice();
+                axes.x.domain = xdom;
+                axes.x.scale.domain(xdom);
+                axes.y.domain = [json.y_range[0], json.y_range[1]];
+                axes.y.scale.domain(axes.y.domain).nice();
                 var viewport = select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                select('.y-axis-label').text(warpvndService.extractUnits($scope, 'y', json.y_label));
-                select('.x-axis-label').text(warpvndService.extractUnits($scope, 'x', json.x_label));
+                $.each(axes, function (dim, axis) {
+                    axis.parseLabelAndUnits(json[dim + '_label']);
+                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                });
                 select('.main-title').text(json.title);
 
                 var colorMap = plotting.colorMapFromModel($scope.modelName);
@@ -1316,7 +1464,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
                 colorbar = Colorbar()
                     .scale(colorScale)
                     .thickness(30)
-                    .margin({top: 0, right: 60, bottom: 20, left: 10})
+                    .margin({top: 10, right: 60, bottom: 20, left: 10})
                     .orient("vertical");
 
                 var i;
@@ -1355,32 +1503,209 @@ SIREPO.app.directive('impactDensityPlot', function(appState, plotting, warpvndSe
                 if (select().empty()) {
                     return;
                 }
-                var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                if (! xDomain || isNaN(width)) {
-                    return;
-                }
-                width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                $scope.width = width;
-                $scope.height = ASPECT_RATIO * $scope.width;
-                select('svg')
-                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                plotting.ticks(xAxis, $scope.width, true);
-                plotting.ticks(xAxisGrid, $scope.width, true);
-                plotting.ticks(yAxis, $scope.height, false);
-                plotting.ticks(yAxisGrid, $scope.height, false);
-                xAxisScale.range([0, $scope.width]);
-                yAxisScale.range([$scope.height, 0]);
-                xAxisGrid.tickSize(-$scope.height);
-                yAxisGrid.tickSize(-$scope.width);
-                colorbar.barlength($scope.height)
-                    .origin([0, 0]);
-                pointer = select('.colorbar').call(colorbar);
                 refresh();
             };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('conductors3d', function(appState, vtkService) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div class="sr-plot-particle-3d">',
+              '<div class="vtk-canvas-holder"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var X_Z_ASPECT_RATIO = 4.0 / 7.0;
+
+            // rendering
+            var renderWindow = null;
+            var renderer = null;
+            var cam = null;
+            var startPlaneSource = null;
+            var endPlaneSource = null;
+            var boxActors = [];
+            var outlineSource = null;
+            var pointRanges = {};
+
+            // colors - vtk uses a range of 0-1 for RGB components
+            var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
+            var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
+
+            function addActors(actorArr) {
+                actorArr.forEach(function(actor) {
+                    renderer.addActor(actor);
+                });
+            }
+
+            function init() {
+                var rw = $($element).find('.sr-plot-particle-3d .vtk-canvas-holder');
+                rw.on('dblclick', reset);
+                rw.height(rw.width() / 1.3);
+                var fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                    {
+                        background: [1, 1, 1, 1],
+                        container: rw[0],
+                    });
+                renderer = fsRenderer.getRenderer();
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+                cam = renderer.get().activeCamera;
+                var rwInteractor = renderWindow.getInteractor();
+                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
+                    interactor: rwInteractor,
+                    subscribedEvents: ['StartPinch']
+                });
+                zoomObserver.setInteractor(rwInteractor);
+                var startPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var startPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                startPlaneActor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                startPlaneActor.getProperty().setLighting(false);
+                startPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                startPlaneMapper.setInputConnection(startPlaneSource.getOutputPort());
+                startPlaneActor.setMapper(startPlaneMapper);
+                renderer.addActor(startPlaneActor);
+
+                var endPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var endPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
+                endPlaneActor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                endPlaneActor.getProperty().setLighting(false);
+                endPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                endPlaneMapper.setInputConnection(endPlaneSource.getOutputPort());
+                endPlaneActor.setMapper(endPlaneMapper);
+                renderer.addActor(endPlaneActor);
+
+                var outlineMapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                var outlineActor = vtk.Rendering.Core.vtkActor.newInstance();
+                outlineSource = vtk.Filters.Sources.vtkCubeSource.newInstance();
+                outlineActor.getProperty().setColor(1, 1, 1);
+                outlineActor.getProperty().setEdgeVisibility(true);
+                outlineActor.getProperty().setEdgeColor(0, 0, 0);
+                outlineActor.getProperty().setFrontfaceCulling(true);
+                outlineActor.getProperty().setLighting(false);
+
+                outlineMapper.setInputConnection(outlineSource.getOutputPort());
+                outlineActor.setMapper(outlineMapper);
+                renderer.addActor(outlineActor);
+            }
+
+            function load() {
+                removeActors(boxActors);
+
+                var grid = appState.models.simulationGrid;
+                var ymax = grid.channel_height / 2.0 * 1e-6;
+                var ymin = -ymax;
+                var xmin = 0;
+                var xmax = grid.plate_spacing * 1e-6;
+                var zmax = grid.channel_width / 2.0 * 1e-6;
+                var zmin = -zmax;
+
+                var yzAspectRatio = grid.channel_width / grid.channel_height;
+                var pointScales = {
+                    z: 1 / Math.abs((zmax - zmin)),
+                    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
+                    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
+                };
+                pointRanges = {
+                    z: [pointScales.z * zmin, pointScales.z * zmax],
+                    x: [pointScales.x * xmin, pointScales.x * xmax],
+                    y: [pointScales.y * ymin, pointScales.y * ymax]
+                };
+                var zfactor = pointScales.z;
+                var xfactor = pointScales.x;
+                var yfactor = pointScales.y;
+
+                var typeMap = {};
+                appState.models.conductorTypes.forEach(function(conductorType) {
+                    typeMap[conductorType.id] = conductorType;
+                });
+                appState.models.conductors.forEach(function(conductor) {
+                    // lengths and centers are in µm
+                    var cFactor = 1e6;
+                    var cModel = typeMap[conductor.conductorTypeId];
+                    var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
+                        xLength: xfactor * cModel.zLength / cFactor,
+                        yLength: zfactor * cModel.xLength / cFactor,
+                        zLength: zfactor * cModel.yLength / cFactor,
+                        center: [
+                            xfactor * conductor.zCenter / cFactor,
+                            zfactor * conductor.xCenter / cFactor,
+                            zfactor * conductor.yCenter / cFactor,
+                        ],
+                    });
+                    var bm = vtk.Rendering.Core.vtkMapper.newInstance();
+                    bm.setInputConnection(bs.getOutputPort());
+
+                    var cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
+                    var cEdgeColor = [0, 0, 0];
+                    var ba = vtk.Rendering.Core.vtkActor.newInstance();
+                    ba.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                    ba.getProperty().setEdgeVisibility(true);
+                    ba.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                    ba.getProperty().setLighting(false);
+                    ba.setMapper(bm);
+                    boxActors.push(ba);
+                });
+
+                refresh();
+            }
+
+            function refresh() {
+                startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
+                startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
+                startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
+
+                endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
+                endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
+                endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
+
+                var padding = 0.01;
+                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
+                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
+                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
+                outlineSource.setCenter([
+                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
+                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
+                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
+                ]);
+
+                addActors(boxActors);
+                reset();
+            }
+
+            function removeActors(actorArr) {
+                actorArr.forEach(function(actor) {
+                    renderer.removeActor(actor);
+                });
+                actorArr.length = 0;
+            }
+
+            function reset() {
+                cam.setPosition(0, 0, 1);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 1, 0);
+                renderer.resetCamera();
+                cam.zoom(1.3);
+                renderWindow.render();
+            }
+
+            $scope.$on('$destroy', function() {
+                $($element).find('.sr-plot-particle-3d .vtk-canvas-holder').off();
+                //TODO(pjm): fix memory leaks
+            });
+
+            appState.whenModelsLoaded($scope, function() {
+                vtkService.vtk().then(function() {
+                    init();
+                    load();
+                });
+            });
+
         },
     };
 });

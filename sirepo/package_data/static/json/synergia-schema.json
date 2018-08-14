@@ -132,6 +132,10 @@
             ["zpstd", "zp standard deviation"],
             ["none", "None"]
         ],
+        "Boolean": [
+            ["0", "No"],
+            ["1", "Yes"]
+        ],
         "BunchDistribution": [
             ["lattice", "Computed From Beamline"],
             ["standard-gaussian", "Standard - Gaussian"],
@@ -229,7 +233,7 @@
             "charge": ["Charge #", "BeamCharge", 1],
             "beam_definition": ["Beam Definition", "BeamDefinition", "momentum"],
             "energy": ["Energy [GeV]", "Float", 1.0, "", 1e-99],
-            "momentum": ["Momentum [GeV]", "Float", 0.0, "", 0.0000001],
+            "momentum": ["Momentum [GeV]", "Float", 0.0000001, "", 0.0000001],
             "gamma": ["Gamma", "Float", 1.0, "", 1.0],
             "beta": ["Beta", "Float", 0.0, "", 0.0, 1.0],
             "emit_x": ["Horizontal Emittance [mm-mrad]", "Float"],
@@ -292,18 +296,21 @@
             "y": ["Y Value", "BeamColumn", "xstd"],
             "turn1": ["Turn", "TurnCount", "1"],
             "turn2": ["Turn", "TurnCount", "1"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
             "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "twissReport2": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
             "y2": ["Y2 Value", "TwissParameter", "beta_y"],
             "y3": ["Y3 Value", "TwissParameter", "D_x"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "DIPEDGE": {
@@ -661,6 +668,7 @@
                 "y",
                 "turn1",
                 "turn2",
+                "includeLattice",
                 "notes"
             ]
         },
@@ -670,6 +678,7 @@
                 "y1",
                 "y2",
                 "y3",
+                "includeLattice",
                 "notes"
             ]
         },
@@ -679,6 +688,7 @@
                 "y1",
                 "y2",
                 "y3",
+                "includeLattice",
                 "notes"
             ]
         },
