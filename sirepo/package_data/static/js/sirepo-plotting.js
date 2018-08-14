@@ -3048,3 +3048,107 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
     };
 });
 
+SIREPO.app.service('plotUtilities', function() {
+
+    var self = this;
+
+    this.boundsIntersections = function(bounds, startPoint, endPoint) {
+        var startX = startPoint[0];  var startY = startPoint[1];
+        var endX = endPoint[0];  var endY = endPoint[1];
+
+        // horizontal line
+        if(startY == endY) {
+            return {
+                left: [bounds.left, startY],
+                top: [-Infinity, bounds.top],
+                right: [bounds.right, endY],
+                bottom: [Infinity, bounds.bottom]
+            };
+        }
+        // vertical line
+        if(startX == endX) {
+            return {
+                left: [bounds.left, -Infinity],
+                top: [startX, bounds.top],
+                right: [bounds.right, Infinity],
+                bottom: [endX, bounds.bottom]
+            };
+        }
+
+        var m = (endY - startY) / (endX - startX);
+        return {
+            left: [bounds.left, startY + m * (bounds.left - startX)],
+            top: [startX + (bounds.top - startY) / m, bounds.top],
+            right: [bounds.right, startY + m * (bounds.right - startX)],
+            bottom: [startX + (bounds.bottom - startY) / m, bounds.bottom]
+        };
+    };
+
+    this.isPointWithinBounds = function (p, b) {
+        return p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom;
+    };
+
+    // TODO: reverse is wrong direction!!
+    // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
+    this.extrema = function(pArr, dim, reverse) {
+        var sPArr = self.sortInDimension(pArr, dim, reverse);
+        //srdbg('extrema arrs', pArr, '->', sPArr);
+        if(! sPArr) {
+            return null;
+        }
+        return sPArr.filter(function (point) {
+            return point[dim] == sPArr[0][dim];
+        });
+    };
+
+    // Returns the members of an array of edges (point pairs) that
+    // contain any of the points in another array
+    this.edgesWithCorners = function(edgeArr, pArr) {
+        var edges = edgeArr.filter(function (edge) {
+            return edge.some(function (corner) {
+                return pArr.includes(corner);
+            });
+        });
+        return edges;
+    };
+
+    // Returns edges that fit within the given bounds (if any)
+    this.edgesClippedByBounds = function(edges, bounds) {
+        var clippedEnds = [];
+        for(var edge in edges) {
+            var p = edges[edge];
+            if(! self.isPointWithinBounds(p, bounds)) {
+                continue;
+            }
+            clippedEnds.push(p);
+        }
+        //srdbg('clipped', clippedEnds);
+        return clippedEnds;
+    };
+
+    // Sort (with optional reversal) the point array by the values in the given dimension;
+    // Array is cloned first so the original is unchanged
+    // TODO: reverse is wrong direction!!
+    this.sortInDimension = function (pArr, dim, reverse) {
+        if(!pArr || !pArr.length || dim >= pArr[0].length ) {
+            return null;
+        }
+        var pArrClone = pArr.slice(0);
+        return pArrClone.sort(function (p1, p2) {
+            return reverse ? (p1[dim] < p2[dim]) : (p1[dim] >= p2[dim]);
+        });
+    };
+
+    // returns the distance bewteen two points
+    this.dist = function(p1, p2) {
+        if(p1.length != p2.length) {
+            return -1;
+        }
+        var dsq = 0;
+        for(var i = 0; i < p1.length; ++i) {
+            dsq += ((p2[i] - p1[i]) * (p2[i] - p1[i]));
+        }
+        return Math.sqrt(dsq);
+    };
+
+});

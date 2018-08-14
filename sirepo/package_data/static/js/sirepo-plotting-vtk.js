@@ -4,19 +4,13 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, panelState, utilities, $window) {
 
     var isPlottingReady = false;
 
     vtkService.vtk().then(function() {
         isPlottingReady = true;
     });
-
-    function colorsFromString(s) {
-        return s.match(/.{6}/g).map(function(x) {
-            return "#" + x;
-        });
-    }
 
     function identityTransform(lpoint) {
         return lpoint;
@@ -134,7 +128,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, frame
         // Takes a vtk sphere source and returns a box in viewport coordinates with a bunch of useful
         // geometric properties and methods
         // TODO (mvk): the whole thing
-        vpBox: function(vtkSphereSource) {
+        vpBox: function(vtkCubeSource) {
         },
 
         addActors: function(renderer, actorArr) {
