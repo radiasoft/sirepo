@@ -90,8 +90,7 @@ def auth_login(req):
 
     if cfg.auth_secret:
         auth_hash(req, verify=True)
-    # DEPRECATED
-    elif not server.cfg.enable_bluesky:
+    else:
         util.raise_not_found('bluesky is not enabled')
     sid = req.simulationId
     sim_type = req.simulationType
