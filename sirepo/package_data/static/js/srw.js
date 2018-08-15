@@ -33,6 +33,14 @@ SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="y"></li>',
     '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
 ].join('');
+SIREPO.appPanelHeadingButtons = [
+    '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
+      '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+      '<ul class="dropdown-menu dropdown-menu-right">',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+      '</ul>',
+    '</div>',
+].join('');
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
