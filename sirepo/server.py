@@ -1191,5 +1191,4 @@ cfg = pkconfig.init(
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
-    enable_bluesky=(False, bool, 'Enable calling simulations directly from NSLS-II/bluesky'),
 )
