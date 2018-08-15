@@ -238,6 +238,7 @@ def init_class(app, uwsgi):
         '{}: no docker hosts found in directory'.format(_tls_d)
     _init_hosts_slots_balance()
     _init_slots()
+    _init_parse_jobs()
     _init_slot_managers()
     return DockerJob
 
@@ -341,47 +342,6 @@ class _SlotManager(threading.Thread):
             self.__queued_jobs.append(job)
             self.__event.set()
 
-    def _parse_ps(self, hosts):
-        """Parse hosts for running containers that match jobs"""
-        res = pkcollections.Dict()
-        for h in hosts:
-            try:
-                o = _cmd(
-                    h,
-                    (
-                        'ps',
-                        '--no-trunc',
-                        '--filter',
-                        'name=' + self.__cname_prefix,
-                        # Do not filter on running, because "created" is
-                        # the same as "running" and "exited" is still running
-                        # from our perspective since '--rm' is passed.
-                        '--format',
-                        '{{.ID}} {{.Names}}',
-                    )
-                )
-                for l in o.splitlines():
-                    i, n = l.split()
-                    m = _CNAME_RE.search(n)
-                    jid = m.group(2)
-                    assert not jid in res, \
-                        '{}: duplicate jid on ({},{}) and {}'.format(
-                            jid,
-                            h,
-                            i,
-                            res[jid],
-                        )
-                    res[jid] = pkcollections.Dict(host=h, cid=i, jid=jid)
-            except Exception as e:
-                # Can't do anything except log and try to recover at next poll
-                pkdlog(
-                    '{}: PROGRAM ERROR: unexpected docker ps: {}\n{}',
-                    h,
-                    e,
-                    pkdexc(),
-                )
-        return res
-
     def _poll_running_jobs(self):
         """Validate jobs are actually running in containers on docker hosts"""
         with self.__lock:
@@ -401,7 +361,7 @@ class _SlotManager(threading.Thread):
             # No jobs are running so no containers to check
             return
         # Don't hold the lock while parsing, too long
-        containers = self._parse_ps(rh)
+        containers = _parse_ps(rh, cname_prefix=self.__cname_prefix)
         not_in_running = []
         with self.__lock:
             # containers is not correlated at this point, but if
@@ -566,6 +526,26 @@ def _init_hosts_slots_balance():
     _hosts_ordered = ho
 
 
+def _init_parse_jobs():
+    """Kill any jobs that might be running at init
+    """
+#TODO(robnagler) parse the jobs and re-insert into jobs and slots.
+    hosts = [h.name for h in _hosts_ordered]
+    containers = _parse_ps(hosts, _CNAME_PREFIX)
+    for c in containers.values():
+        try:
+            pkdlog('{jid}@{host}: stopping container', **c)
+            o = _cmd(c.host, ('rm', '--force', c.cid))
+        except Exception as e:
+            # Can't do anything except log and try to recover at next poll
+            pkdlog(
+                '{}: unexpected docker rm output: {}\n{}',
+                c.host,
+                e,
+                pkdexc(),
+            )
+
+
 def _init_slots():
     """Create Slot objects based on specification per machine"""
     _slots.parallel = []
@@ -595,6 +575,48 @@ def _init_slot_managers():
     """Create SlotManager objects, which starts threads"""
     for k, s in _slots.items():
         _slot_managers[k] = _SlotManager(k, s)
+
+
+def _parse_ps(hosts, cname_prefix):
+    """Parse hosts for running containers that match jobs"""
+    res = pkcollections.Dict()
+    for h in hosts:
+        try:
+            o = _cmd(
+                h,
+                (
+                    'ps',
+                    '--no-trunc',
+                    '--filter',
+                    'name=' + cname_prefix,
+                    # Do not filter on running, because "created" is
+                    # the same as "running" and "exited" is still running
+                    # from our perspective since '--rm' is passed.
+                    '--format',
+                    '{{.ID}} {{.Names}}',
+                )
+            )
+            for l in o.splitlines():
+                i, n = l.split()
+                m = _CNAME_RE.search(n)
+                jid = m.group(2)
+                assert not jid in res, \
+                    '{}: duplicate jid on ({},{}) and {}'.format(
+                        jid,
+                        h,
+                        i,
+                        res[jid],
+                    )
+                res[jid] = pkcollections.Dict(host=h, cid=i, jid=jid)
+        except Exception as e:
+            # Can't do anything except log and try to recover at next poll
+            pkdlog(
+                '{}: PROGRAM ERROR: unexpected docker ps: {}\n{}',
+                h,
+                e,
+                pkdexc(),
+            )
+    return res
 
 
 def _run_root(host, cmd):
