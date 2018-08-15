@@ -34,8 +34,6 @@ _job_map = pkcollections.Dict()
 
 _job_map_lock = threading.RLock()
 
-_parallel_cores = None
-
 class State(aenum.UniqueEnum):
     INIT = 1
     START = 2
@@ -126,7 +124,7 @@ def job_start(data):
     job.start()
 
 
-class Base(object):
+class JobBase(object):
     """Super of all job classes"""
     def __init__(self, jid, data):
         self.data = data

@@ -14,11 +14,11 @@ from sirepo import simulation_db
 import time
 
 
-class Celery(runner.Base):
+class CeleryJob(runner.JobBase):
     """Run job in Celery (prod)"""
 
     def __init__(self, *args, **kwargs):
-        super(Celery, self).__init__(*args, **kwargs)
+        super(CeleryJob, self).__init__(*args, **kwargs)
         self.__async_result = None
 
     def _is_processing(self):
@@ -61,7 +61,7 @@ class Celery(runner.Base):
 def init_class(app, uwsgi):
     """Verify celery & rabbit are running"""
     if pkconfig.channel_in('dev'):
-        return Celery
+        return CeleryJob
     for x in range(10):
         err = None
         try:
@@ -72,7 +72,7 @@ def init_class(app, uwsgi):
             # Rabbit doesn't have a long timeout, but celery ping does
             time.sleep(.5)
         if not err:
-           return Celery
+           return CeleryJob
     #TODO(robnagler) really should be pkconfig.Error() or something else
     # but this prints a nice message. Don't call sys.exit, not nice
     pkcli.command_error(err)

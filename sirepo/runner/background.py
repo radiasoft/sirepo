@@ -19,11 +19,11 @@ import sys
 import time
 
 
-class Background(runner.Base):
+class BackgroundJob(runner.Base):
     """Run as subprocess"""
 
     def __init__(self, *args, **kwargs):
-        super(Background, self).__init__(*args, **kwargs)
+        super(BackgroundJob, self).__init__(*args, **kwargs)
         self.__pid = None
 
     def _is_processing(self):
@@ -84,7 +84,7 @@ class Background(runner.Base):
                     return
                 for self in runner._job_map.values():
                     # state of '__pid' is unknown since outside self.lock
-                    if isinstance(self, Background) and self.__pid == pid:
+                    if isinstance(self, BackgroundJob) and self.__pid == pid:
                         pkdlog('{}: waitpid pid={} status={}', self.jid, pid, status)
                         break
                 else:
@@ -149,5 +149,5 @@ class Background(runner.Base):
 def init_class(app, uwsgi):
     assert not uwsgi, \
         'uwsgi does not work if sirepo.runner.cfg.job_class=background'
-    signal.signal(signal.SIGCHLD, Background._sigchld_handler)
-    return Background
+    signal.signal(signal.SIGCHLD, BackgroundJob._sigchld_handler)
+    return BackgroundJob

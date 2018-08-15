@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 u"""Run jobs in Docker
 
+Locking is very tricky, because there are many long running operations. We
+try to release locks when possible when talking to docker daemons, for example.
+
+Always grab `_SlotManager.__lock` first and then `Job.lock`
+
 :copyright: Copyright (c) 2016-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
@@ -22,15 +27,16 @@ import threading
 import Queue
 import time
 
-# time expected between created and running
+#: max time expected between created and running
 _CREATED_TOO_LONG_SECS = runner.INIT_TOO_LONG_SECS
 
-# prefix all report names
+#: prefix all container names. Full syntax: srd-par-uid-sid-repot
 _CNAME_PREFIX = 'srd'
 
+#: separator for container names
 _CNAME_SEP = '-'
 
-# Must match cname generation in Docker.__init__
+#: Must match cname generation in DockerJob.__init__
 _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
 
 _RUN_PREFIX = (
@@ -43,39 +49,44 @@ _RUN_PREFIX = (
     '--ulimit=nofile={}'.format(runner.MAX_OPEN_FILES),
 )
 
-# where docker tls files reside relative to sirepo_db_dir
+#: where docker tls files reside relative to sirepo_db_dir
 _TLS_SUBDIR = 'runner/docker_tls'
 
+#: how often does _SlotManager wake up to _poll_running_jobs
 _SLOT_MANAGER_POLL_SECS = 10
 
-#: Copy of sirepo.mpi.cfg.cores
+#: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies
 _parallel_cores = None
 
-# absolute path to _TLS_SUBDIR
+#: absolute path to _TLS_SUBDIR (init_class sentinel)
 _tls_d = None
 
-# map of docker hosts to specification and status
+#: map of docker host names to their machine/run specs and status
 _hosts = None
 
-# hosts.values() in alphabetical order
+#: used for slot creation so that order is predictable across runs
 _hosts_ordered = None
 
-_dameon = None
-
+#: parallel and sequential threads that run the jobs
 _slot_managers = pkcollections.Dict()
 
+#: State management for parallel and sequential allocations on all hosts
 _slots = pkcollections.Dict()
 
 #TODO(robnagler)
 #   simulation status writer with error/completed or just touch in docker.sh
 #   check that the file was modified in last N seconds (probably 5)
 #   if not, docker ps
+#TODO(robnagler)
+#   need to collect the state of all the docker hosts. extracting jobs
+#   from containers and filling _slots and _slot_managers.__running and
+#   runner._job_map.
 
-class Docker(runner.Base):
-    """Run a code in docker"""
+class DockerJob(runner.JobBase):
+    """Manage jobs running in containers"""
 
     def __init__(self, *args, **kwargs):
-        super(Docker, self).__init__(*args, **kwargs)
+        super(DockerJob, self).__init__(*args, **kwargs)
         self.__cid = None
         #POSIT: jid is valid docker name (word chars and dash)
         self.__kind = 'parallel' if simulation_db.is_parallel(self.data) else 'sequential'
@@ -90,7 +101,8 @@ class Docker(runner.Base):
             return True
         if not self.__cid:
             return False
-#TODO(robnagler) this shouldn't be done every time
+#TODO(robnagler) this shouldn't be done every time, need to trust
+#  _SlotManager to do this
         out = _cmd(
             self.__host,
             ('inspect', '--format={{.State.Status}}', self.__cid),
@@ -120,9 +132,9 @@ class Docker(runner.Base):
         _slot_managers[self.__kind]._end_job(self)
 
     def _slot_start(self, slot):
-        """Have a slot so now start docker
+        """Have a slot so now ask docker to run the job
 
-        POSIT: locked by caller
+        POSIT: SlotManager and Job locked by caller
         """
         # __host is sentinel of the start attempt
         self.__host = slot.host
@@ -168,10 +180,8 @@ class Docker(runner.Base):
         )
 
     def _start(self):
-        """Detach a process from the controlling terminal and run it in the
-        background as a daemon.
-        """
-        _slot_managers[self.__kind]._start_job(self)
+        """Queue the job and wake up the _SlotManager"""
+        _slot_managers[self.__kind]._enqueue_job(self)
 
     def __sh_cmd(self):
         """Convert ``self.cmd`` into a bash cmd"""
@@ -227,7 +237,7 @@ def init_class(app, uwsgi):
     _init_hosts_slots_balance()
     _init_slots()
     _init_slot_managers()
-    return Docker
+    return DockerJob
 
 
 class _Slot(pkcollections.Dict):
@@ -290,7 +300,7 @@ class _SlotManager(threading.Thread):
                             pkdexc(),
                         )
             if not got_one:
-                self._poll_status()
+                self._poll_running_jobs()
 
     def _end_job(self, job):
         """Free the slot associated with the job"""
@@ -320,7 +330,14 @@ class _SlotManager(threading.Thread):
                 self.__available.append(slot)
                 self.__event.set()
 
+    def _enqueue_job(self, job):
+        """Add to queue and ping me"""
+        with self.__lock:
+            self.__pending_jobs.append(job)
+            self.__event.set()
+
     def _parse_ps(self, hosts):
+        """Parse hosts for running containers that match jobs"""
         res = pkcollections.Dict()
         for h in hosts:
             try:
@@ -351,52 +368,57 @@ class _SlotManager(threading.Thread):
                         )
                     res[jid] = pkcollections.Dict(host=h, cid=i, jid=jid)
             except Exception as e:
+                # Can't do anything except log and try to recover at next poll
                 pkdlog(
-                    '{}: PROGRAM ERROR: docker ps incorrect: {}\n{}',
+                    '{}: PROGRAM ERROR: unexpected docker ps: {}\n{}',
                     h,
                     e,
                     pkdexc(),
                 )
         return res
 
-    def _poll_status(self):
+    def _poll_running_jobs(self):
+        """Validate jobs are actually running in containers on docker hosts"""
         with self.__lock:
             if len(self.__available) + len(self.__running) != len(_slots[self.__kind]):
+                # This is probably a bug in _SlotManager, but could be a
+                # lock error so log for now.
                 pkdlog(
-                    '{}: COUNTS ERROR: running={} available={} pending_jobs={}',
+                    '{}: PROGRAM ERROR: running={} available={} pending_jobs={}',
                     self.__kind,
                     len(self.__running),
                     len(self.__available),
                     len(self.__pending_jobs),
                 )
 #TODO(robnagler) need to reason through this
-            # List of containers known to be created, but they may not be running
-            # yet.
+            # List of jobs which should be running on hosts
             hosts = set([s.host for s in self.__running.values()])
         if not hosts:
+            # No jobs are running so no containers to check
             return
-        jobs = self._parse_ps(hosts)
-        dead = []
+        # Don't hold the lock while parsing, too long
+        containers = self._parse_ps(hosts)
+        not_in_running = []
         with self.__lock:
+            # containers is not correlated at this point, but if
+            # we have a job that's not in containers, then it
+            # might be dead or just starting. If it is dead, it'll
+            # have mismatch on the cid and jid, which is checked below.
             for jid, s in self.__running.items():
-                if jid not in jobs:
+                if jid not in containers:
                     # POSIT: this thread starts all containers so
                     # __running can only shrink, not grow from the
                     # time we took a snapshot of the running/created/exited
                     # jobs actually on the hosts.
-                    dead.append(s.job)
-        for j in dead:
+                    not_in_running.append(s.job)
+        for j in not_in_running:
+            j.cid
             we know nothing at this point
             so only valid if cid is the same(?)
             pkdp('{}', dead)
 
 #TODO(robnagler) sanity check on _slots & _total available and running
         # docker ps -aq
-
-    def _start_job(self, job):
-        with self.__lock:
-            self.__pending_jobs.append(job)
-            self.__event.set()
 
 
 def _cmd(host, cmd):
@@ -505,7 +527,7 @@ def _init_hosts_slots_balance():
             ms += h.num_slots.sequential
         r = float(ms) / (float(mp) + float(ms))
         if mp + ms == 1:
-            # Edge case where ratio calculation can't work
+            # Edge case where ratio calculation can't work (probably dev)
             h = _hosts.values()[0]
             h.num_slots.sequential = 1
             h.num_slots.parallel = 1
