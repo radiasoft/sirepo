@@ -4,7 +4,8 @@ u"""Run jobs in Docker
 Locking is very tricky, because there are many long running operations. We
 try to release locks when possible when talking to docker daemons, for example.
 
-Always grab `_SlotManager.__lock` first and then `Job.lock`
+Always grab `Job.lock` then `_SlotManager.__lock`, and try to avoid holding
+both locks.
 
 :copyright: Copyright (c) 2016-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -97,7 +98,7 @@ class DockerJob(runner.JobBase):
     def _is_processing(self):
         """Inspect container to see if still in running state"""
         if not self.__host:
-            # Still in _SlotManager.pending_jobs
+            # Still in _SlotManager.queued_jobs
             return True
         if not self.__cid:
             return False
@@ -134,7 +135,7 @@ class DockerJob(runner.JobBase):
     def _slot_start(self, slot):
         """Have a slot so now ask docker to run the job
 
-        POSIT: SlotManager and Job locked by caller
+        POSIT: Job locked by caller
         """
         # __host is sentinel of the start attempt
         self.__host = slot.host
@@ -222,11 +223,12 @@ def init_class(app, uwsgi):
     _tls_d = app.sirepo_db_dir.join(_TLS_SUBDIR)
     assert _tls_d.check(dir=True), \
         '{}: tls directory does not exist'.format(_tls_d)
-    # Require at least three levels to the domain name
     _hosts = pkcollections.Dict()
     _parallel_cores = mpi.cfg.cores
+    # Require at least three levels to the domain name
+    # just to make the directory parsing easier.
     for d in pkio.sorted_glob(_tls_d.join('*.*.*')):
-        h = d.basename.lower()
+        h = d.basename
         _hosts[h] = pkcollections.Dict(
             name=h,
             cmd_prefix=_cmd_prefix(h, d)
@@ -260,11 +262,11 @@ class _SlotManager(threading.Thread):
         self.__event = threading.Event()
         self.__kind = kind
         self.__lock = threading.RLock()
-        self.__pending_jobs = []
-        self.__running = pkcollections.Dict()
-        self.__available = slots
+        self.__queued_jobs = []
+        self.__running_slots = pkcollections.Dict()
+        self.__available_slots = slots
         self.__cname_prefix = _CNAME_SEP.join((_CNAME_PREFIX, self.__kind[0:3]))
-        random.shuffle(self.__available)
+        random.shuffle(self.__available_slots)
         self.start()
 
     def run(self):
@@ -276,13 +278,14 @@ class _SlotManager(threading.Thread):
             while True:
                 with self.__lock:
                     self.__event.clear()
-                    if not (self.__pending_jobs and self.__available):
+                    if not (self.__queued_jobs and self.__available_slots):
                         # nothing to do or nothing we can do
                         break
-                    j = self.__pending_jobs.pop(0)
-                    s = self.__available.pop(0)
+                    j = self.__queued_jobs.pop(0)
+                    s = self.__available_slots.pop(0)
                     s.job = j
-                    self.__running[j.jid] = s
+                    self.__running_slots[j.jid] = s
+                # have to release slot lock before locking job
                 try:
                     with j.lock:
                         if j._is_state_ok_to_start():
@@ -303,22 +306,24 @@ class _SlotManager(threading.Thread):
                 self._poll_running_jobs()
 
     def _end_job(self, job):
-        """Free the slot associated with the job"""
-        # NOTE: job is locked
+        """Free the slot associated with the job
+
+        POSIT: job is locked
+        """
         slot = None
         with self.__lock:
             try:
-                self.__pending_jobs.remove(job)
+                self.__queued_jobs.remove(job)
                 # No slot, just done
                 return
             except ValueError:
                 pass
             try:
-                s = self.__running[job.jid]
+                s = self.__running_slots[job.jid]
                 if s.job == job:
                     slot = s
                     s.job = None
-                    del self.__running[job.jid]
+                    del self.__running_slots[job.jid]
             except KeyError as e:
                 pkdlog(
                     '{}: PROGRAM ERROR: not in running, ignoring job: {}\n{}',
@@ -327,13 +332,13 @@ class _SlotManager(threading.Thread):
                     pkdexc(),
                 )
             if slot:
-                self.__available.append(slot)
+                self.__available_slots.append(slot)
                 self.__event.set()
 
     def _enqueue_job(self, job):
         """Add to queue and ping me"""
         with self.__lock:
-            self.__pending_jobs.append(job)
+            self.__queued_jobs.append(job)
             self.__event.set()
 
     def _parse_ps(self, hosts):
@@ -380,42 +385,42 @@ class _SlotManager(threading.Thread):
     def _poll_running_jobs(self):
         """Validate jobs are actually running in containers on docker hosts"""
         with self.__lock:
-            if len(self.__available) + len(self.__running) != len(_slots[self.__kind]):
-                # This is probably a bug in _SlotManager, but could be a
-                # lock error so log for now.
+            if len(self.__available_slots) + len(self.__running_slots) \
+                != len(_slots[self.__kind]):
+                # This path is probably a bug in _SlotManager, but could be a
+                # lock error so just log until we see what comes up in real-time.
                 pkdlog(
-                    '{}: PROGRAM ERROR: running={} available={} pending_jobs={}',
+                    '{}: PROGRAM ERROR: running={} available={} queued_jobs={}',
                     self.__kind,
-                    len(self.__running),
-                    len(self.__available),
-                    len(self.__pending_jobs),
+                    len(self.__running_slots),
+                    len(self.__available_slots),
+                    len(self.__queued_jobs),
                 )
-#TODO(robnagler) need to reason through this
-            # List of jobs which should be running on hosts
-            hosts = set([s.host for s in self.__running.values()])
-        if not hosts:
+            rh = set([s.host for s in self.__running_slots.values()])
+        if not rh:
             # No jobs are running so no containers to check
             return
         # Don't hold the lock while parsing, too long
-        containers = self._parse_ps(hosts)
+        containers = self._parse_ps(rh)
         not_in_running = []
         with self.__lock:
             # containers is not correlated at this point, but if
             # we have a job that's not in containers, then it
             # might be dead or just starting. If it is dead, it'll
             # have mismatch on the cid and jid, which is checked below.
-            for jid, s in self.__running.items():
+            for jid, s in self.__running_slots.items():
                 if jid not in containers:
                     # POSIT: this thread starts all containers so
-                    # __running can only shrink, not grow from the
+                    # __running_slots can only shrink, not grow from the
                     # time we took a snapshot of the running/created/exited
                     # jobs actually on the hosts.
                     not_in_running.append(s.job)
-        for j in not_in_running:
-            j.cid
-            we know nothing at this point
-            so only valid if cid is the same(?)
-            pkdp('{}', dead)
+#TODO(robnagler)
+#for j in not_in_running:
+#            j.cid
+#            we know nothing at this point
+#            so only valid if cid is the same(?)
+#            pkdp('{}', dead)
 
 #TODO(robnagler) sanity check on _slots & _total available and running
         # docker ps -aq
@@ -456,12 +461,14 @@ def _image():
 
 
 def _init_host(host):
+    """Calculate basic machine characteristics (specs) for a host"""
     h = _hosts[host]
     _init_host_spec(h)
     _init_host_num_slots(h)
 
 
 def _init_host_num_slots(h):
+    """Compute how many slots available based on a fixed `_parallel_cores`"""
     h.num_slots = pkcollections.Dict()
     j = h.cores // _parallel_cores
     assert j > 0, \
@@ -484,6 +491,7 @@ def _init_host_num_slots(h):
 
 
 def _init_host_spec(h):
+    """Extract mem, cpus, and cores from /proc"""
     out = _run_root(h.name, ('cat', '/proc/cpuinfo', '/proc/meminfo'))
     pats = pkcollections.Dict()
     matches = pkcollections.Dict()
@@ -517,9 +525,11 @@ def _init_host_spec(h):
 
 
 def _init_hosts_slots_balance():
+    """Balance sequential and parallel slot counts"""
     global _hosts_ordered
 
     def _ratio_not_ok():
+        """Minimum sequential job slots should be 40% of total"""
         mp = 0
         ms = 0
         for h in _hosts.values():
@@ -540,6 +550,10 @@ def _init_hosts_slots_balance():
     ho = sorted(_hosts.values(), key=lambda h: h.name)
     while _ratio_not_ok():
         for h in ho:
+            # Balancing consists of making the first host have
+            # all the sequential jobs, then the next host. This
+            # is a guess at the best way to distribute sequential
+            # vs parallel jobs.
             if h.num_slots.parallel > 0:
                 # convert a parallel slot on first available host
                 h.num_slots.sequential += _parallel_cores
@@ -549,11 +563,11 @@ def _init_hosts_slots_balance():
             raise AssertionError(
                 'should never get here: {}'.format(pkdpretty(hosts)),
             )
-    # thread safe
     _hosts_ordered = ho
 
 
 def _init_slots():
+    """Create Slot objects based on specification per machine"""
     _slots.parallel = []
     _slots.sequential = []
     for k, s in _slots.items():
@@ -578,11 +592,16 @@ def _init_slots():
 
 
 def _init_slot_managers():
+    """Create SlotManager objects, which starts threads"""
     for k, s in _slots.items():
         _slot_managers[k] = _SlotManager(k, s)
 
 
 def _run_root(host, cmd):
+    """Run docker_image as root to see all mem and cpus.
+
+    This also validates the docker tls configuration at startup.
+    """
     return _cmd(
         host,
         _RUN_PREFIX + (
