@@ -1119,6 +1119,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return 0;
             }
 
+            function calculateInitialBeamlineMetrics() {
+                // when lattice is initially loaded after import, calculate stats for all beamlines
+                var beamlines = appState.models.beamlines;
+                if (beamlines.length && ! angular.isDefined(beamlines[0].count)) {
+                    beamlines.forEach(function(beamline) {
+                        loadItemsFromBeamline(true, beamline);
+                    });
+                }
+            }
+
             function computePositions() {
                 var pos = {
                     x: 0,
@@ -1212,11 +1222,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     p[0][1] + (t * s1_y)];
             }
 
-            function loadItemsFromBeamline(forceUpdate) {
-                //TODO(pjm): twissReport and lattice uses the active beamline
-                var beamline = $scope.flatten && $scope.modelName != 'twissReport'
+            function loadItemsFromBeamline(forceUpdate, beamline) {
+                beamline = beamline || ($scope.flatten && $scope.modelName != 'twissReport'
                     ? latticeService.getSimulationBeamline()
-                    : latticeService.getActiveBeamline();
+                    : latticeService.getActiveBeamline());
                 if (! beamline) {
                     beamlineItems = emptyList;
                     return;
@@ -1397,6 +1406,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             appState.whenModelsLoaded($scope, function() {
+                calculateInitialBeamlineMetrics();
                 loadItemsFromBeamline();
 
                 $scope.$on('modelChanged', function(e, name) {

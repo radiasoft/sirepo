@@ -10,22 +10,11 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
-import json
-import math
 import ntpath
-import os
-import py.path
 import re
 import subprocess
 
-
 _IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
-
-_ANGLE_FIELDS = ['angle', 'kick', 'hkick']
-_BEND_TYPES = ['BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND']
-_DRIFT_TYPES = ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT']
-_IGNORE_LENGTH_TYPES = ['ILMATRIX', 'STRAY', 'SCRIPT']
-_LENGTH_FIELDS = ['l', 'xmax', 'length']
 
 _SCHEMA = simulation_db.get_schema('elegant')
 
@@ -68,7 +57,6 @@ def import_file(text, data=None):
 
     if len(models['elements']) == 0 or len(models['beamlines']) == 0:
         raise IOError('no beamline elements found in file')
-    _calculate_beamline_metrics(models, rpn_cache)
 
     if not data:
         data = simulation_db.default_data(elegant_common.SIM_TYPE)
@@ -143,58 +131,6 @@ def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
-def _calculate_beamline_metrics(models, rpn_cache):
-    metrics = {}
-    for el in models['elements']:
-        metrics[el['_id']] = {
-            'length': _element_length(el, rpn_cache),
-            'angle': _element_angle(el, rpn_cache),
-            'count': _element_count(el),
-        }
-    for bl in models['beamlines']:
-        bl['length'] = 0
-        bl['angle'] = 0
-        bl['distance'] = 0
-        bl['count'] = 0
-        bl['end_x'] = 0
-        bl['end_y'] = 0
-        #TODO(pjm): convert key not found to IOError
-        for id in bl['items']:
-            if id < 0:
-                id = -id
-            el_metrics = metrics[id]
-
-            if 'distance' in el_metrics:
-                angle = bl['angle'] + el_metrics['end_angle']
-                bl['end_x'] += math.cos(angle) * el_metrics['distance']
-                bl['end_y'] += math.sin(angle) * el_metrics['distance']
-            elif el_metrics['angle']:
-                radius = el_metrics['length'] / 2
-                bl['end_x'] += math.cos(bl['angle']) * radius
-                bl['end_y'] += math.sin(bl['angle']) * radius
-
-            bl['length'] += el_metrics['length']
-            bl['angle'] += el_metrics['angle']
-            bl['count'] += el_metrics['count']
-
-            if 'distance' in el_metrics:
-                pass
-            elif el_metrics['angle']:
-                radius = el_metrics['length'] / 2
-                bl['end_x'] += math.cos(bl['angle']) * radius
-                bl['end_y'] += math.sin(bl['angle']) * radius
-            else:
-                bl['end_x'] += math.cos(bl['angle']) * el_metrics['length']
-                bl['end_y'] += math.sin(bl['angle']) * el_metrics['length']
-        bl['distance'] = math.sqrt(bl['end_x'] ** 2 + bl['end_y'] ** 2)
-        bl['end_angle'] = math.atan2(bl['end_y'], bl['end_x'])
-        metrics[bl['id']] = bl
-
-    for bl in models['beamlines']:
-        for f in ['end_x', 'end_y', 'end_angle']:
-            del bl[f]
-
-
 def _create_name_map(models):
     name_to_id = {}
     last_beamline_id = None
@@ -207,29 +143,6 @@ def _create_name_map(models):
         name_to_id[el['name'].upper()] = el['_id']
 
     return name_to_id, last_beamline_id
-
-
-def _element_angle(el, rpn_cache):
-    if el['type'] in _BEND_TYPES:
-        for f in _ANGLE_FIELDS:
-            if f in el:
-                return _rpn_value(el[f], rpn_cache)
-    return 0
-
-
-def _element_count(el):
-    if el['type'] in _DRIFT_TYPES:
-        return 0
-    return 1
-
-
-def _element_length(el, rpn_cache):
-    if el['type'] in _IGNORE_LENGTH_TYPES:
-        return 0
-    for f in _LENGTH_FIELDS:
-        if f in el:
-            return _rpn_value(el[f], rpn_cache)
-    return 0
 
 
 def _field_type_for_field(el, field):
@@ -246,12 +159,6 @@ def _field_type_for_field(el, field):
             pkdlog('{}: unknown field type for {}', field, model_name)
         del el[field]
     return field_type
-
-
-def _rpn_value(v, rpn_cache):
-    if v in rpn_cache:
-        return float(rpn_cache[v])
-    return float(v)
 
 
 def _validate_beamline(bl, name_to_id, element_names):
