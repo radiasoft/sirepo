@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
+from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 import h5py
@@ -41,7 +42,7 @@ def run_background(cfg_dir):
     res = {}
     try:
         with pkio.save_chdir(cfg_dir):
-            exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+            mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
     except Exception as e:
         res = {
             'error': str(e),
