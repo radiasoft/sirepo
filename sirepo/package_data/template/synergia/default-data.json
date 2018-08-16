@@ -20,7 +20,7 @@
             "z_period_length": 0
         },
         "bunchReport": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "histogramBins": 200,
             "x": "x",
             "y": "y"

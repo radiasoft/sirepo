@@ -131,9 +131,16 @@ def import_file(request, lib_dir=None, tmp_dir=None):
     filename = werkzeug.secure_filename(f.filename)
     if re.search(r'.madx$', filename, re.IGNORECASE):
         data = _import_madx_file(f.read())
+    elif re.search(r'.mad8$', filename, re.IGNORECASE):
+        import pyparsing
+        try:
+            data = _import_mad8_file(f.read())
+        except pyparsing.ParseException as e:
+            # ParseException has no message attribute
+            raise IOError(str(e))
     else:
-        raise IOError('invalid file extension, expecting .madx')
-    data['models']['simulation']['name'] = re.sub(r'\.madx$', '', filename, re.IGNORECASE)
+        raise IOError('invalid file extension, expecting .madx or .mad8')
+    data['models']['simulation']['name'] = re.sub(r'\.mad.$', '', filename, flags=re.IGNORECASE)
     return data
 
 
@@ -579,7 +586,10 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants
+    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    if not lattice.has_reference_particle():
+        # create a default reference particle, proton,energy=1.5
+        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'
@@ -646,20 +656,31 @@ def _import_elements(lattice, data):
     data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 
 
-def _import_madx_file(text):
-    import synergia
+def _import_mad_file(reader, beamline_names):
     data = simulation_db.default_data(SIM_TYPE)
-    reader = synergia.lattice.MadX_reader()
-    reader.parse(text)
-    lattice = _import_main_beamline(reader, data)
+    lattice = _import_main_beamline(reader, data, beamline_names)
     _import_elements(lattice, data)
     _import_bunch(lattice, data)
     return data
 
 
-def _import_main_beamline(reader, data):
+def _import_mad8_file(text):
+    import synergia
+    reader = synergia.lattice.Mad8_reader()
+    reader.parse_string(text)
+    return _import_mad_file(reader, reader.get_lines())
+
+
+def _import_madx_file(text):
+    import synergia
+    reader = synergia.lattice.MadX_reader()
+    reader.parse(text)
+    return _import_mad_file(reader, reader.get_line_names() + reader.get_sequence_names())
+
+
+def _import_main_beamline(reader, data, beamline_names):
     lines = {}
-    for name in reader.get_line_names() + reader.get_sequence_names():
+    for name in beamline_names:
         names = []
         for el in reader.get_lattice(name).get_elements():
             names.append(el.get_name())

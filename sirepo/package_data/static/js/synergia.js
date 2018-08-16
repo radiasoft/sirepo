@@ -238,7 +238,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select MAD-X (.madx) or Sirepo Export (.zip)" data-file-formats=".madx,.zip"></div>',
+            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select MAD-X (.madx), MAD8 (.mad8) or Sirepo Export (.zip)" data-file-formats=".madx,.mad8,.zip"></div>',
         ].join(''),
     };
 });
