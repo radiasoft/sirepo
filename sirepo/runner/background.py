@@ -19,7 +19,7 @@ import sys
 import time
 
 
-class BackgroundJob(runner.Base):
+class BackgroundJob(runner.JobBase):
     """Run as subprocess"""
 
     def __init__(self, *args, **kwargs):
