@@ -146,8 +146,24 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, panel
                 actorArray[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
             }
             renderWindow.render();
-        }
+        },
 
+        // display values seem to be double, not sure why
+        localCoordFromWorld: function (coord, point) {
+            coord.setCoordinateSystemToWorld();
+            coord.setValue(point);
+            var lCoord = coord.getComputedLocalDisplayValue();
+            return [lCoord[0] / 2.0, lCoord[1] / 2.0];
+        },
+        worldCoordFromLocal: function (coord, point, view) {
+            var newPoint = [2.0 * point[0], 2.0 * point[1]];
+            // must first convert from "localDisplay" to "display"  - this is the inverse of
+            // what is done by vtk to get from display to localDisplay
+            var newPointView = [newPoint[0], view.getFramebufferSize()[1] - newPoint[1] - 1];
+            coord.setCoordinateSystemToDisplay();
+            coord.setValue(newPointView);
+            return coord.getComputedWorldValue();
+        },
 
     };
 });

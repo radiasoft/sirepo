@@ -669,6 +669,7 @@
 
     .sr-plot-particle-3d {
     }
+
     .vtk-info-overlay {
         position: absolute;
         background-color: transparent;
@@ -679,6 +680,9 @@
     }
     .vtk-info-overlay .x-axis-label, .y-axis-label, .z-axis-label {
 
+    }
+    .vtk-info-overlay .axis text {
+        font-size: 14px;
     }
 
     /* Full-screen styles */

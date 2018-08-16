@@ -19,6 +19,7 @@
                 <div class="btn btn-default pull-right" data-ng-class="{'btn-primary': side == 'z'}" style="margin: 2px;" data-ng-click="showSide('z')">Z{{ zdir == 1 ? '+' : '-' }}</div>
                 <div class="btn btn-default pull-right" data-ng-class="{'btn-primary': side == 'y'}" style="margin: 2px;" data-ng-click="showSide('y')">Y{{ ydir == 1 ? '+' : '-' }}</div>
                 <div class="btn btn-default pull-right" data-ng-class="{'btn-primary': side == 'x'}" style="margin: 2px;" data-ng-click="showSide('x')">X{{ xdir == 1 ? '+' : '-' }}</div>
+                <div class="btn btn-default pull-right" data-ng-class="{'btn-primary': true}" style="margin: 2px;" data-ng-click=""><span class="glyphicon glyphicon-hand-up"></span></div>
             </div>
         </div>
     </div>
@@ -31,15 +32,18 @@
        <!-- <g class="x axis" data-ng-attr-transform="translate({{ xAxisLeft }}, {{ labelGeometry().x.pos.top - labelGeometry().x.size.height - 24 }})"></g>
         -->
         <g class="x axis"></g>
-        <text class="x-axis-label" data-ng-attr-x="{{ vtkCanvasGeometry().size.width / 2 }}" data-ng-attr-y="{{ vtkCanvasGeometry().size.height - labelGeometry.x.size.height - 4}}"></text>
+        <!--<text class="x-axis-label" data-ng-attr-x="{{ vtkCanvasGeometry().size.width / 2 }}" data-ng-attr-y="{{ vtkCanvasGeometry().size.height - labelGeometry.x.size.height - 4}}"></text>-->
+        <text class="x-axis-label"></text>
 
         <!--<g class="y axis" data-ng-attr-transform="translate({{ labelGeometry().y.pos.left + labelGeometry().y.size.width + 32 }}, {{ yAxisTop }})"></g>-->
         <g class="y axis"></g>
-        <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -vtkCanvasGeometry().size.height / 2 }}" data-ng-attr-y="0" dy="1.1em"></text>
+        <!--<text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -vtkCanvasGeometry().size.height / 2 }}" data-ng-attr-y="0" dy="1.1em"></text>-->
+        <text class="y-axis-label" transform="rotate(-90)"></text>
 
         <!--<g class="z axis" data-ng-attr-transform="translate({{ xAxisLeft }}, {{ vtkCanvasGeometry().size.height - 64 }} ) rotate({{ zAxisAngle }}, {{ 0 }}, {{ 0 }})"></g>-->
         <g class="z axis"></g>
-        <text class="z-axis-label" data-ng-attr-transform=" translate(90, {{ vtkCanvasGeometry().size.height - 120 }}) "></text>
+        <Q!--<text class="z-axis-label" data-ng-attr-transform=" translate(90, {{ vtkCanvasGeometry().size.height - 120 }}) "></text>-->
+        <text class="z-axis-label"></text>
 
         <!-- little test boxes are useful for translating vtk space to screen space -->
 

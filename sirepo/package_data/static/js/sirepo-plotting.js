@@ -923,6 +923,9 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
         svc.plotAxis.allowUpdates = true;
 
         var self = {};
+        self.dimension = dimension;
+        self.orientation = orientation;
+
         var debouncedRefresh = utilities.debounce(function() {
             var sum = margin.left + margin.right;
             refresh();
@@ -3052,6 +3055,8 @@ SIREPO.app.service('plotUtilities', function() {
 
     var self = this;
 
+    // Find where the line defined by startPoint and endPoint intersects the given
+    // bounds
     this.boundsIntersections = function(bounds, startPoint, endPoint) {
         var startX = startPoint[0];  var startY = startPoint[1];
         var endX = endPoint[0];  var endY = endPoint[1];
@@ -3085,10 +3090,10 @@ SIREPO.app.service('plotUtilities', function() {
     };
 
     this.isPointWithinBounds = function (p, b) {
+        //srdbg('checking point', p, 'in bounds', b, '?', (p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom));
         return p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom;
     };
 
-    // TODO: reverse is wrong direction!!
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(pArr, dim, reverse) {
         var sPArr = self.sortInDimension(pArr, dim, reverse);
@@ -3122,13 +3127,11 @@ SIREPO.app.service('plotUtilities', function() {
             }
             clippedEnds.push(p);
         }
-        //srdbg('clipped', clippedEnds);
         return clippedEnds;
     };
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
-    // TODO: reverse is wrong direction!!
     this.sortInDimension = function (pArr, dim, reverse) {
         if(!pArr || !pArr.length || dim >= pArr[0].length ) {
             return null;
