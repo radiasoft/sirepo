@@ -376,7 +376,7 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
+    data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
     return data
