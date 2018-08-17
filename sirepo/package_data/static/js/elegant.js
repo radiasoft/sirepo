@@ -179,7 +179,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
 
     function commandsChanged() {
         var cmd = self.findFirstCommand('run_setup');
-        if (cmd) {
+        if (cmd && cmd.use_beamline) {
             appState.models.simulation.visualizationBeamlineId = cmd.use_beamline;
             appState.saveQuietly('simulation');
         }
@@ -335,37 +335,35 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
     };
 
     appState.whenModelsLoaded($rootScope, function() {
+        // keep source page items in sync with the associated control command
+        $rootScope.$on('modelChanged', function(e, name) {
+            if (name == 'bunchSource') {
+                bunchSourceChanged();
+            }
+            else if (name == 'bunchFile') {
+                bunchFileChanged();
+            }
+            else if (name == 'bunch') {
+                bunchChanged();
+            }
+            else if (name == 'simulation') {
+                simulationChanged();
+            }
+            else if (name == 'commands') {
+                commandsChanged();
+            }
+            else if (filenameRequired.indexOf(name) >= 0) {
+                // elegant will crash if these element's have no output filename
+                var el = appState.models[name];
+                if (el && ! el.filename) {
+                    el.filename = '1';
+                }
+            }
+        });
         //TODO(pjm): only required for when viewing after import
         // force update to bunch from command.bunched_beam
         appState.saveChanges('commands');
     });
-
-    // keep source page items in sync with the associated control command
-    $rootScope.$on('modelChanged', function(e, name) {
-        if (name == 'bunchSource') {
-            bunchSourceChanged();
-        }
-        else if (name == 'bunchFile') {
-            bunchFileChanged();
-        }
-        else if (name == 'bunch') {
-            bunchChanged();
-        }
-        else if (name == 'simulation') {
-            simulationChanged();
-        }
-        else if (name == 'commands') {
-            commandsChanged();
-        }
-        else if (filenameRequired.indexOf(name) >= 0) {
-            // elegant will crash if these element's have no output filename
-            var el = appState.models[name];
-            if (el && ! el.filename) {
-                el.filename = '1';
-            }
-        }
-    });
-
     return self;
 });
 
@@ -519,8 +517,8 @@ SIREPO.app.controller('ElegantSourceController', function(appState, panelState, 
         return modelAccessByItemId[itemId];
     };
 
-    $scope.$on('bunch.changed', validateSaving);
     appState.whenModelsLoaded($scope, function() {
+        $scope.$on('bunch.changed', validateSaving);
         appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
         appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
         appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
@@ -623,7 +621,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
-            info.modelKey = 'elementAnimation' + info.id;
             if (info.isAuxFile) {
                 return;
             }
@@ -654,15 +651,13 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '3',
+                SIREPO.ANIMATION_ARGS_VERSION + '4',
                 'x',
                 'y1',
                 'y2',
                 'y3',
                 'histogramBins',
                 'xFileId',
-                'y2FileId',
-                'y3FileId',
                 'startTime',
             ];
             var m = null;
@@ -1085,41 +1080,41 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, latticeS
                 return '';
             };
 
-            $scope.$on('modelChanged', function(e, name) {
-                if (name == 'commands') {
-                    loadCommands();
-                }
-                if (elegantService.isCommandModelName(name)) {
-                    var foundIt = false;
-                    for (var i = 0; i < $scope.commands.length; i++) {
-                        if ($scope.commands[i]._id == appState.models[name]._id) {
-                            foundIt = true;
-                            break;
-                        }
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('modelChanged', function(e, name) {
+                    if (name == 'commands') {
+                        loadCommands();
                     }
-                    if (! foundIt) {
-                        var index = selectedItemIndex();
-                        if (index >= 0) {
-                            appState.models.commands.splice(index + 1, 0, appState.models[name]);
+                    if (elegantService.isCommandModelName(name)) {
+                        var foundIt = false;
+                        for (var i = 0; i < $scope.commands.length; i++) {
+                            if ($scope.commands[i]._id == appState.models[name]._id) {
+                                foundIt = true;
+                                break;
+                            }
                         }
-                        else {
-                            appState.models.commands.push(appState.models[name]);
+                        if (! foundIt) {
+                            var index = selectedItemIndex();
+                            if (index >= 0) {
+                                appState.models.commands.splice(index + 1, 0, appState.models[name]);
+                            }
+                            else {
+                                appState.models.commands.push(appState.models[name]);
+                            }
+                            $scope.selectItem(appState.models[name]);
                         }
-                        $scope.selectItem(appState.models[name]);
+                        appState.removeModel(name);
+                        appState.saveChanges('commands');
                     }
-                    appState.removeModel(name);
-                    appState.saveChanges('commands');
-                }
+                });
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (elegantService.isCommandModelName(name)) {
+                        appState.removeModel(name);
+                        appState.cancelChanges('commands');
+                    }
+                });
+                loadCommands();
             });
-
-            $scope.$on('cancelChanges', function(e, name) {
-                if (elegantService.isCommandModelName(name)) {
-                    appState.removeModel(name);
-                    appState.cancelChanges('commands');
-                }
-            });
-
-            appState.whenModelsLoaded($scope, loadCommands);
         },
     };
 });
@@ -2050,10 +2045,12 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             }
 
             $scope.outputInfo = null;
-            appState.whenModelsLoaded($scope, modelsLoaded);
-            $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
-            appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
-            appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
+                appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
+                appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
+                modelsLoaded();
+            });
         }
     };
 });

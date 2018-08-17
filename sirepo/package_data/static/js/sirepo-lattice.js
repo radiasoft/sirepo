@@ -156,7 +156,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
                 if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
-                    appState.models.simulation.visualizationBeamlineId = null;
+                    appState.models.simulation.visualizationBeamlineId = '';
                     appState.saveQuietly('simulation');
                 }
                 appState.models[type].splice(i, 1);

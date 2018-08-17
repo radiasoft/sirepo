@@ -281,7 +281,7 @@
             "alpha_y": ["Vertical Alpha", "Float", 0]
         },
         "simulation": {
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList"]
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
             "steps_per_element": ["Steps Per Element", "Integer", 2, "", 1],
