@@ -42,7 +42,13 @@ def run_background(cfg_dir):
     res = {}
     try:
         with pkio.save_chdir(cfg_dir):
-            mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
+            data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+            distribution = data['models']['bunch']['distribution']
+            if distribution == 'lattice' or distribution == 'file':
+                mpi.run_script(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE))
+            else:
+                #TODO(pjm): MPI doesn't work with rsbeams distributions yet
+                exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
     except Exception as e:
         res = {
             'error': str(e),
