@@ -110,6 +110,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         for (var i = 0; i < appState.models[containerName].length; i++) {
             var el = appState.models[containerName][i];
             if (m[idField] == el[idField]) {
+                appState.models[containerName][i] = m;
                 foundIt = true;
                 break;
             }
@@ -1111,6 +1112,25 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 pos.angle += newAngle;
             }
 
+            function beamlineContainsElement(beamlineItems, id, beamlineCache) {
+                if (beamlineItems.indexOf(id) >= 0) {
+                    return true;
+                }
+                if (! beamlineCache) {
+                    beamlineCache = {};
+                    appState.models.beamlines.forEach(function(b) {
+                        beamlineCache[b.id] = b.items;
+                    });
+                }
+                for (var i = 0; i < beamlineItems.length; i++) {
+                    var bid = beamlineItems[i];
+                    if (beamlineCache[bid]) {
+                        return beamlineContainsElement(beamlineCache[bid], id, beamlineCache);
+                    }
+                }
+                return false;
+            }
+
             function beamlineValue(beamline, field, value) {
                 if (beamline[field] != value) {
                     beamline[field] = value;
@@ -1417,7 +1437,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         loadItemsFromBeamline(true);
                     }
                     if (appState.models[name] && appState.models[name]._id) {
-                        if (beamlineItems.indexOf(appState.models[name]._id) >= 0) {
+                        if (beamlineContainsElement(beamlineItems, appState.models[name]._id)) {
                             loadItemsFromBeamline(true);
                         }
                     }
