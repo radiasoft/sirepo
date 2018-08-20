@@ -27,7 +27,8 @@
         },
         "elements": [],
         "simulation": {
-            "name": "test"
+            "name": "test",
+            "visualizationBeamlineId": ""
         }
     },
     "simulationType": "synergia",

@@ -69,6 +69,8 @@ def import_file(text, data=None):
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id
         data['models']['simulation']['visualizationBeamlineId'] = default_beamline_id
 
+    # used by synergia app to get values for rpn expressions
+    data['models']['rpnCache'] = rpn_cache
     return data
 
 

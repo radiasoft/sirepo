@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.template import template_common
+from sirepo.template import template_common, elegant_lattice_importer
 import glob
 import h5py
 import math
@@ -33,6 +33,8 @@ WANT_BROWSER_FRAME_CACHE = True
 _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 
 _FILE_ID_SEP = '-'
+
+_IGNORE_ATTRIBUTES = ['lrad']
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'includeLattice', 'notes']
 
@@ -138,9 +140,11 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         except pyparsing.ParseException as e:
             # ParseException has no message attribute
             raise IOError(str(e))
+    elif re.search(r'.lte$', filename, re.IGNORECASE):
+        data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
-    data['models']['simulation']['name'] = re.sub(r'\.mad.$', '', filename, flags=re.IGNORECASE)
+    data['models']['simulation']['name'] = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
 
@@ -498,10 +502,16 @@ def _generate_lattice(data, beamline_map, v):
     report = data['report'] if 'report' in data else ''
     beamline_id_field = _beamline_id_for_report(report)
 
+    selected_beamline_id = 0
+    sim = data['models']['simulation']
+    if beamline_id_field in sim and sim[beamline_id_field]:
+        selected_beamline_id = int(sim[beamline_id_field])
+    elif len(data['models']['beamlines']):
+        selected_beamline_id = data['models']['beamlines'][0]['id']
+
     for bl in data['models']['beamlines']:
-        if beamline_id_field in data['models']['simulation']:
-            if int(data['models']['simulation'][beamline_id_field]) == int(bl['id']):
-                v['use_beamline'] = bl['name'].lower()
+        if selected_beamline_id == int(bl['id']):
+            v['use_beamline'] = bl['name'].lower()
         beamlines[bl['id']] = bl
 
     ordered_beamlines = []
@@ -610,7 +620,104 @@ def _import_bunch(lattice, data):
     elif bunch['mass'] == pconstants.mmu:
         bunch['particle'] = 'posmuon' if bunch['charge'] == pconstants.antimuon_charge else 'negmuon'
 
-_IGNORE_ATTRIBUTES = ['lrad']
+_ELEGANT_NAME_MAP = {
+    'DRIF': 'DRIFT',
+    'CSRDRIFT': 'DRIFT',
+    'SBEN': 'SBEND',
+    'KSBEND': 'SBEND',
+    'CSBEND': 'SBEND',
+    'CSRCSBEND': 'SBEND',
+    'QUAD': 'QUADRUPOLE',
+    'KQUAD': 'QUADRUPOLE',
+    'SEXT': 'SEXTUPOLE',
+    'KSEXT': 'SEXTUPOLE',
+    'MARK': 'MARKER',
+    'HCOR': 'HKICKER',
+    'HVCOR': 'HKICKER',
+    'EHCOR': 'HKICKER',
+    'VCOR': 'VKICKER',
+    'EVCOR': 'VKICKER',
+    'EHVCOR': 'KICKER',
+    'RFCA': 'RFCAVITY',
+    'HKICK': 'HKICKER',
+    'VKICK': 'VKICKER',
+    'KICK': 'KICKER',
+    'SOLE': 'SOLENOID',
+    'HMON': 'HMONITOR',
+    'VMON': 'VMONITOR',
+    'MONI': 'MONITOR',
+    'ECOL': 'ECOLLIMATOR',
+    'RCOL': 'RCOLLIMATOR',
+    'ROTATE': 'SROTATION',
+}
+
+_ELEGANT_FIELD_MAP = {
+    'ECOL': {
+        'x_max': 'xsize',
+        'y_max': 'ysize',
+    },
+    'RCOL': {
+        'x_max': 'xsize',
+        'y_max': 'ysize',
+    },
+    'ROTATE': {
+        'tilt': 'angle',
+    },
+}
+
+def _import_elegant_file(text):
+    elegant_data = elegant_lattice_importer.import_file(text)
+    rpn_cache = elegant_data['models']['rpnCache']
+    data = simulation_db.default_data(SIM_TYPE)
+    element_ids = {}
+    for el in elegant_data['models']['elements']:
+        if el['type'] not in _ELEGANT_NAME_MAP:
+            if 'l' in el:
+                el['name'] += '_{}'.format(el['type'])
+                el['type'] = 'DRIF'
+            else:
+                continue
+        el['name'] = re.sub(r':', '_', el['name'])
+        name = _ELEGANT_NAME_MAP[el['type']]
+        schema = _SCHEMA['model'][name]
+        m = {
+            '_id': el['_id'],
+            'type': name,
+        }
+        for f in el:
+            v = el[f]
+            if el['type'] in _ELEGANT_FIELD_MAP and f in _ELEGANT_FIELD_MAP[el['type']]:
+                f = _ELEGANT_FIELD_MAP[el['type']][f]
+            if f in schema:
+                if v in rpn_cache:
+                    v = rpn_cache[v]
+                m[f] = v
+        template_common.update_model_defaults(m, name, _SCHEMA)
+        data['models']['elements'].append(m)
+        element_ids[m['_id']] = True
+    beamline_ids = {}
+    for bl in elegant_data['models']['beamlines']:
+        bl['name'] = re.sub(r':', '_', bl['name'])
+        element_ids[bl['id']] = True
+        element_ids[-bl['id']] = True
+    for bl in elegant_data['models']['beamlines']:
+        items = []
+        for element_id in bl['items']:
+            if element_id in element_ids:
+                items.append(element_id)
+        data['models']['beamlines'].append({
+            'id': bl['id'],
+            'items': items,
+            'name': bl['name'],
+        })
+    elegant_sim = elegant_data['models']['simulation']
+    if 'activeBeamlineId' in elegant_sim:
+        data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
+        data['models']['simulation']['visualizationBeamlineId'] = elegant_sim['activeBeamlineId']
+    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: el['type'])
+    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
+    return data
+
 
 def _import_elements(lattice, data):
     name_to_id = {}

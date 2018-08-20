@@ -234,6 +234,8 @@ def generate_lattice(data, filename_map, beamline_map, v):
     sim = data['models']['simulation']
     if 'visualizationBeamlineId' in sim and sim['visualizationBeamlineId']:
         selected_beamline_id = int(sim['visualizationBeamlineId'])
+    elif len(data['models']['beamlines']):
+        selected_beamline_id = data['models']['beamlines'][0]['id']
 
     for bl in data['models']['beamlines']:
         if selected_beamline_id == int(bl['id']):
