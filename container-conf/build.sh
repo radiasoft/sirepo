@@ -38,9 +38,10 @@ build_as_run_user() {
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
         https://github.com/radiasoft/sirepo
     cd sirepo
-    if [[ $TRAVIS_COMMIT ]]; then
-        git checkout -qf "$TRAVIS_COMMIT"
-    fi
+    #TODO(pjm): removed this for current build
+    # if [[ $TRAVIS_COMMIT ]]; then
+    #     git checkout -qf "$TRAVIS_COMMIT"
+    # fi
     pip install -r requirements.txt
     python setup.py install
 
