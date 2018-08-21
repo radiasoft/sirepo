@@ -13,7 +13,7 @@ SIREPO.appFieldEditors = [
       '<div data-turn-count-field="" field="field" data-model="model"></div>',
     '</div>',
 ].join('');
-SIREPO.appImportText = 'Import a MAD-X Lattice';
+SIREPO.appImportText = 'Import a MAD-X or elegant Lattice';
 SIREPO.FILE_UPLOAD_TYPE = {
     'bunch-particleFile': '.h5,.hdf5',
 };
@@ -238,7 +238,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select MAD-X (.madx) or Sirepo Export (.zip)" data-file-formats=".madx,.zip"></div>',
+            '<div data-import-dialog="" data-title="Import Synergia File" data-description="Select an MAD-X (.madx), MAD8 (.mad8), elegant (.lte) or Sirepo Export (.zip)" data-file-formats=".madx,.mad8,.lte,.zip"></div>',
         ].join(''),
     };
 });

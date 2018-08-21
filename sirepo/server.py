@@ -391,7 +391,9 @@ def api_importFile(simulation_type=None):
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = str(e.message) if hasattr(e, 'message') else str(e)
-    return _json_response({'error': error})
+    return _json_response({
+        'error': error if error else 'An unknown error occurred',
+    })
 
 app_import_file = api_importFile
 

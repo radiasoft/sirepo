@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from scipy.ndimage import zoom
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -1889,11 +1888,19 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     if scale != 'linear':
         ar2d[np.where(ar2d <= 0.)] = 1.e-23
         ar2d = getattr(np, scale)(ar2d)
-    if width_pixels and width_pixels < x_range[2]:
+
+    # rescale width and height to maximum of width_pixels
+    if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
+        x_resize = 1.0
+        y_resize = 1.0
+        if width_pixels < x_range[2]:
+            x_resize = float(width_pixels) / float(x_range[2])
+        if width_pixels < y_range[2]:
+            y_resize = float(width_pixels) / float(y_range[2])
+        pkdlog('Size before: {}  Dimensions: {}, Resize: [{}, {}]', ar2d.size, ar2d.shape, y_resize, x_resize)
         try:
-            resize_factor = float(width_pixels) / float(x_range[2])
-            pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
-            ar2d = zoom(ar2d, resize_factor, order=1)
+            from scipy.ndimage import zoom
+            ar2d = zoom(ar2d, [y_resize, x_resize], order=1)
             # Remove for #670, this may be required for certain reports?
             # if scale == 'linear':
             #     ar2d[np.where(ar2d < 0.)] = 0.0
