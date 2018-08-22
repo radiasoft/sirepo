@@ -204,8 +204,10 @@ def fixup_old_data(data):
                 if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
                     m[k] = "1"
     for m in data['models']['elements']:
-        if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
-            m['mode'] = 'coordinate'
+        if m['type'] == 'WATCH':
+            m['filename'] = '1'
+            if m['mode'] == 'coordinates' or m['mode'] == 'coord':
+                m['mode'] = 'coordinate'
         template_common.update_model_defaults(m, m['type'], _SCHEMA)
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
@@ -949,7 +951,7 @@ def _infix_to_postfix(expr):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given|^MPI_ERR', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
