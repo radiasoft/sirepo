@@ -564,6 +564,9 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
 
         tickFontSize: function(node) {
             var defaultSize = 12;
+            if(! node || ! node[0] || ! node[0][0]) {
+                return defaultSize;
+            }
             if (node.style) {
                 return utilities.fontSizeFromString(node.style('font-size')) || defaultSize;
             }
@@ -1024,6 +1027,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 }
                 return res.replace(/e\+0$/, '');
             });
+            self.unitSymbol = formatInfo.unit.symbol;
             return formatInfo;
         }
 
@@ -1081,6 +1085,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             else {
                 self.units = '';
             }
+            self.unitSymbol = '';
             self.label = label;
         };
 
@@ -3055,8 +3060,8 @@ SIREPO.app.service('plotUtilities', function() {
 
     var self = this;
 
-    // Find where the line defined by startPoint and endPoint intersects the given
-    // bounds
+    // Find where the line defined by startPoint and endPoint intersects the lines that
+    // define the given bounds
     this.boundsIntersections = function(bounds, startPoint, endPoint) {
         var startX = startPoint[0];  var startY = startPoint[1];
         var endX = endPoint[0];  var endY = endPoint[1];
@@ -3090,14 +3095,12 @@ SIREPO.app.service('plotUtilities', function() {
     };
 
     this.isPointWithinBounds = function (p, b) {
-        //srdbg('checking point', p, 'in bounds', b, '?', (p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom));
         return p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(pArr, dim, reverse) {
         var sPArr = self.sortInDimension(pArr, dim, reverse);
-        //srdbg('extrema arrs', pArr, '->', sPArr);
         if(! sPArr) {
             return null;
         }
@@ -3111,14 +3114,19 @@ SIREPO.app.service('plotUtilities', function() {
     this.edgesWithCorners = function(edgeArr, pArr) {
         var edges = edgeArr.filter(function (edge) {
             return edge.some(function (corner) {
-                return pArr.includes(corner);
+                return pArr.some(function (point) {
+                    return point[0] == corner[0] && point[1] == corner[1];
+                });
             });
         });
         return edges;
     };
+    this.firstEdgeWithCorners = function(edgeArr, pArr) {
+        return this.edgesWithCorners(edgeArr, pArr)[0];
+    };
 
-    // Returns edges that fit within the given bounds (if any)
-    this.edgesClippedByBounds = function(edges, bounds) {
+    // Returns edges that fit entirely within the given bounds (if any)
+    this.edgesInsideBounds = function(edges, bounds) {
         var clippedEnds = [];
         for(var edge in edges) {
             var p = edges[edge];
