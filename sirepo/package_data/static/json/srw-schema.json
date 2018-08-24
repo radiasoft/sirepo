@@ -535,7 +535,7 @@
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "copyCharacteristic": ["Use Characteristic Across Reports", "Boolean", "0"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "notes": ["Notes", "Text", ""]
@@ -596,7 +596,7 @@
             "verticalTransverseSize": ["Vertical Transverse Size [mm]", "Float", 1]
         },
         "mirrorReport": {
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
@@ -604,7 +604,7 @@
             "stokesParameter": ["Representation of Stokes Parameters", "StokesParameter", "0"],
             "numberOfMacroElectrons": ["Number of Macro-Electrons", "Integer", 100000, "Number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation"],
             "integrationMethod": ["Multi-electron Integration Approximation Method", "MultiElectronIntegrationMethod", "0"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
@@ -635,7 +635,7 @@
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "notes": ["Notes", "Text", ""]
@@ -707,7 +707,7 @@
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer"],
             "horizontalPosition": ["Horizontal Center Position [mm]", "Float"],
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
@@ -803,7 +803,7 @@
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "characteristic": ["Characteristic to be Extracted", "Characteristic"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
-            "intensityPlotsWidth": ["Maximum Plot Width [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "notes": ["Notes", "Text", ""]
@@ -1032,7 +1032,7 @@
                         ]]
                     ]
                 ]],
-                ["Grazing Angle", [
+                ["Orientation", [
                     "grazingAngle",
                     "autocomputeVectors",
                     [
@@ -1201,7 +1201,7 @@
                         ]]
                     ]
                 ]],
-                ["Grazing Angle", [
+                ["Orientation", [
                     "grazingAngle",
                     "autocomputeVectors",
                     [
@@ -1574,7 +1574,7 @@
                         ]]
                     ]
                 ]],
-                ["Grazing Angle", [
+                ["Orientation", [
                     "grazingAngle",
                     "autocomputeVectors",
                     [
@@ -1653,7 +1653,7 @@
                     ],
                     "apertureShape"
                 ]],
-                ["Grazing Angle", [
+                ["Orientation", [
                     "grazingAngle",
                     "autocomputeVectors",
                     [

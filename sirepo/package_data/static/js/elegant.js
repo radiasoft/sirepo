@@ -74,6 +74,39 @@ SIREPO.appFieldEditors = [
 SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
+SIREPO.lattice = {
+    elementColor: {
+        BMAPXY: 'magenta',
+        FTABLE: 'magenta',
+        KOCT: 'lightyellow',
+        KQUAD: 'tomato',
+        KSEXT: 'lightgreen',
+        MATTER: 'black',
+        OCTU: 'yellow',
+        QUAD: 'red',
+        QUFRINGE: 'salmon',
+        SEXT: 'lightgreen',
+        VKICK: 'blue',
+        LMIRROR: 'lightblue',
+        REFLECT: 'blue',
+    },
+    elementPic: {
+        alpha: ['ALPH'],
+        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
+        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
+        lens: ['LTHINLENS'],
+        magnet: ['BMAPXY', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
+        malign: ['MALIGN'],
+        mirror: ['LMIRROR'],
+        recirc: ['RECIRC'],
+        solenoid: ['MAPSOLENOID', 'SOLE'],
+        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
+        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
+        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MHISTOGRAM', 'PFILTER', 'REFLECT','REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
+        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
+    },
+};
 
 SIREPO.app.config(function() {
     if (SIREPO.IS_LOGGED_OUT) {
@@ -146,7 +179,7 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
 
     function commandsChanged() {
         var cmd = self.findFirstCommand('run_setup');
-        if (cmd) {
+        if (cmd && cmd.use_beamline) {
             appState.models.simulation.visualizationBeamlineId = cmd.use_beamline;
             appState.saveQuietly('simulation');
         }
@@ -302,37 +335,35 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
     };
 
     appState.whenModelsLoaded($rootScope, function() {
+        // keep source page items in sync with the associated control command
+        $rootScope.$on('modelChanged', function(e, name) {
+            if (name == 'bunchSource') {
+                bunchSourceChanged();
+            }
+            else if (name == 'bunchFile') {
+                bunchFileChanged();
+            }
+            else if (name == 'bunch') {
+                bunchChanged();
+            }
+            else if (name == 'simulation') {
+                simulationChanged();
+            }
+            else if (name == 'commands') {
+                commandsChanged();
+            }
+            else if (filenameRequired.indexOf(name) >= 0) {
+                // elegant will crash if these element's have no output filename
+                var el = appState.models[name];
+                if (el && ! el.filename) {
+                    el.filename = '1';
+                }
+            }
+        });
         //TODO(pjm): only required for when viewing after import
         // force update to bunch from command.bunched_beam
         appState.saveChanges('commands');
     });
-
-    // keep source page items in sync with the associated control command
-    $rootScope.$on('modelChanged', function(e, name) {
-        if (name == 'bunchSource') {
-            bunchSourceChanged();
-        }
-        else if (name == 'bunchFile') {
-            bunchFileChanged();
-        }
-        else if (name == 'bunch') {
-            bunchChanged();
-        }
-        else if (name == 'simulation') {
-            simulationChanged();
-        }
-        else if (name == 'commands') {
-            commandsChanged();
-        }
-        else if (filenameRequired.indexOf(name) >= 0) {
-            // elegant will crash if these element's have no output filename
-            var el = appState.models[name];
-            if (el && ! el.filename) {
-                el.filename = '1';
-            }
-        }
-    });
-
     return self;
 });
 
@@ -486,8 +517,8 @@ SIREPO.app.controller('ElegantSourceController', function(appState, panelState, 
         return modelAccessByItemId[itemId];
     };
 
-    $scope.$on('bunch.changed', validateSaving);
     appState.whenModelsLoaded($scope, function() {
+        $scope.$on('bunch.changed', validateSaving);
         appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
         appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
         appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
@@ -501,13 +532,13 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     self.advancedNames = [
         'ALPH', 'BGGEXP', 'BMAPXY', 'BMXYZ', 'BRANCH', 'BRAT', 'BUMPER', 'CENTER',
         'CEPL', 'CHARGE', 'CLEAN', 'CORGPIPE',
-        'CWIGGLER', 'DSCATTER', 'EDRIFT', 'ELSE',
-        'EMATRIX', 'EMITTANCE', 'ENERGY', 'FLOOR',
+        'CWIGGLER', 'DSCATTER', 'EDRIFT', 'EHKICK', 'EKICKER', 'ELSE',
+        'EMATRIX', 'EMITTANCE', 'ENERGY', 'EVKICK', 'FLOOR',
         'FMULT', 'FRFMODE', 'FTABLE', 'FTRFMODE',
         'GFWIGGLER', 'HISTOGRAM', 'HKICK', 'HMON',
         'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'KOCT', 'KPOLY',
         'KQUAD', 'KQUSE', 'KSBEND', 'KSEXT',
-        'LMIRROR', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
+        'LMIRROR', 'LRWAKE', 'LSCDRIFT', 'LSRMDLTR', 'LTHINLENS',
         'MAGNIFY', 'MALIGN', 'MAPSOLENOID', 'MATR',
         'MATTER', 'MAXAMP', 'MBUMPER', 'MHISTOGRAM',
         'MODRF', 'MONI', 'MRFDF', 'MULT',
@@ -520,7 +551,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'SCATTER', 'SCMULT', 'SCRAPER', 'SCRIPT',
         'SLICE', 'SOLE', 'SPEEDBUMP', 'SREFFECTS', 'STRAY', 'TFBDRIVER',
         'TFBPICKUP', 'TMCF', 'TRCOUNT', 'TRFMODE',
-        'TRWAKE', 'TUBEND', 'TWISS', 'TWLA',
+        'TRWAKE', 'TSCATTER', 'TUBEND', 'TWISS', 'TWLA',
         'TWMTA', 'TWPL', 'UKICKMAP', 'VKICK',
         'VMON', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE',
     ];
@@ -531,38 +562,6 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         'MARK', 'QUAD', 'SEXT',
         'WATCH', 'WIGGLER',
     ];
-
-    self.elementColor = {
-        BMAPXY: 'magenta',
-        FTABLE: 'magenta',
-        KOCT: 'lightyellow',
-        KQUAD: 'tomato',
-        KSEXT: 'lightgreen',
-        MATTER: 'black',
-        OCTU: 'yellow',
-        QUAD: 'red',
-        QUFRINGE: 'salmon',
-        SEXT: 'lightgreen',
-        VKICK: 'blue',
-        LMIRROR: 'lightblue',
-        REFLECT: 'blue',
-    };
-
-    self.elementPic = {
-        alpha: ['ALPH'],
-        bend: ['BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'HKICK', 'KICKER', 'KPOLY', 'KSBEND', 'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
-        drift: ['CSRDRIFT', 'DRIF', 'EDRIFT', 'EMATRIX', 'LSCDRIFT'],
-        aperture: ['CLEAN', 'ECOL', 'MAXAMP', 'RCOL', 'SCRAPER'],
-        lens: ['LTHINLENS'],
-        magnet: ['BMAPXY', 'FTABLE', 'KOCT', 'KQUAD', 'KSEXT', 'MATTER', 'OCTU', 'QUAD', 'QUFRINGE', 'SEXT', 'VKICK'],
-        mirror: ['LMIRROR', 'REFLECT'],
-        recirc: ['RECIRC'],
-        solenoid: ['MAPSOLENOID', 'SOLE'],
-        undulator: ['CORGPIPE', 'CWIGGLER', 'GFWIGGLER', 'LSRMDLTR', 'MATR', 'UKICKMAP', 'WIGGLER'],
-        watch: ['HMON', 'MARK', 'MONI', 'PEPPOT', 'VMON', 'WATCH'],
-        zeroLength: ['BRANCH', 'CENTER', 'CHARGE', 'DSCATTER', 'ELSE', 'EMITTANCE', 'ENERGY', 'FLOOR', 'HISTOGRAM', 'IBSCATTER', 'ILMATRIX', 'IONEFFECTS', 'MAGNIFY', 'MALIGN', 'MHISTOGRAM', 'PFILTER', 'REMCOR', 'RIMULT', 'ROTATE', 'SAMPLE', 'SCATTER', 'SCMULT', 'SCRIPT', 'SLICE', 'SREFFECTS', 'STRAY', 'TFBDRIVER', 'TFBPICKUP', 'TRCOUNT', 'TRWAKE', 'TWISS', 'WAKE', 'ZLONGIT', 'ZTRANSVERSE'],
-        rf: ['CEPL', 'FRFMODE', 'FTRFMODE', 'MODRF', 'MRFDF', 'RAMPP', 'RAMPRF', 'RFCA', 'RFCW', 'RFDF', 'RFMODE', 'RFTM110', 'RFTMEZ0', 'RMDF', 'TMCF', 'TRFMODE', 'TWLA', 'TWMTA', 'TWPL'],
-    };
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
@@ -622,7 +621,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
-            info.modelKey = 'elementAnimation' + info.id;
             if (info.isAuxFile) {
                 return;
             }
@@ -653,15 +651,13 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '3',
+                SIREPO.ANIMATION_ARGS_VERSION + '4',
                 'x',
                 'y1',
                 'y2',
                 'y3',
                 'histogramBins',
                 'xFileId',
-                'y2FileId',
-                'y3FileId',
                 'startTime',
             ];
             var m = null;
@@ -717,14 +713,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
     function reportTypeForColumns(columns) {
         if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return 'parameter';
+            return 'parameterWithLattice';
         }
         if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
             || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
             || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
             return 'heatmap';
         }
-        return 'parameter';
+        return 'parameterWithLattice';
     }
 
     function yFileUpdate(modelKey) {
@@ -759,12 +755,15 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (info.modelAccess.modelKey == modelKey) {
                 ['histogramBins', 'colorMap'].forEach(function(f) {
                     panelState.showField(name, f, info.reportType == 'heatmap');
-                    panelState.showField(name, f, info.reportType == 'heatmap');
                 });
                 panelState.showField(name, 'framesPerSecond', frameCache.getFrameCount(modelKey) > 1);
                 ['y2', 'y2File', 'y3', 'y3File'].forEach(function(f) {
-                    panelState.showField(name, f, info.reportType == 'parameter');
+                    panelState.showField(name, f, info.reportType.indexOf('parameter') >= 0);
                 });
+                panelState.showField(
+                    name, 'includeLattice',
+                    info.reportType.indexOf('parameter') >= 0
+                        && appState.models[modelKey].valueList.x.indexOf('s') >= 0);
             }
         });
     };
@@ -1081,41 +1080,41 @@ SIREPO.app.directive('commandTable', function(appState, elegantService, latticeS
                 return '';
             };
 
-            $scope.$on('modelChanged', function(e, name) {
-                if (name == 'commands') {
-                    loadCommands();
-                }
-                if (elegantService.isCommandModelName(name)) {
-                    var foundIt = false;
-                    for (var i = 0; i < $scope.commands.length; i++) {
-                        if ($scope.commands[i]._id == appState.models[name]._id) {
-                            foundIt = true;
-                            break;
-                        }
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('modelChanged', function(e, name) {
+                    if (name == 'commands') {
+                        loadCommands();
                     }
-                    if (! foundIt) {
-                        var index = selectedItemIndex();
-                        if (index >= 0) {
-                            appState.models.commands.splice(index + 1, 0, appState.models[name]);
+                    if (elegantService.isCommandModelName(name)) {
+                        var foundIt = false;
+                        for (var i = 0; i < $scope.commands.length; i++) {
+                            if ($scope.commands[i]._id == appState.models[name]._id) {
+                                foundIt = true;
+                                break;
+                            }
                         }
-                        else {
-                            appState.models.commands.push(appState.models[name]);
+                        if (! foundIt) {
+                            var index = selectedItemIndex();
+                            if (index >= 0) {
+                                appState.models.commands.splice(index + 1, 0, appState.models[name]);
+                            }
+                            else {
+                                appState.models.commands.push(appState.models[name]);
+                            }
+                            $scope.selectItem(appState.models[name]);
                         }
-                        $scope.selectItem(appState.models[name]);
+                        appState.removeModel(name);
+                        appState.saveChanges('commands');
                     }
-                    appState.removeModel(name);
-                    appState.saveChanges('commands');
-                }
+                });
+                $scope.$on('cancelChanges', function(e, name) {
+                    if (elegantService.isCommandModelName(name)) {
+                        appState.removeModel(name);
+                        appState.cancelChanges('commands');
+                    }
+                });
+                loadCommands();
             });
-
-            $scope.$on('cancelChanges', function(e, name) {
-                if (elegantService.isCommandModelName(name)) {
-                    appState.removeModel(name);
-                    appState.cancelChanges('commands');
-                }
-            });
-
-            appState.whenModelsLoaded($scope, loadCommands);
         },
     };
 });
@@ -2046,10 +2045,12 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
             }
 
             $scope.outputInfo = null;
-            appState.whenModelsLoaded($scope, modelsLoaded);
-            $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
-            appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
-            appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('elementAnimation.outputInfo', outputInfoChanged);
+                appState.watchModelFields($scope, ['parameterTable.page'], pageChanged);
+                appState.watchModelFields($scope, ['parameterTable.file'], fileChanged);
+                modelsLoaded();
+            });
         }
     };
 });

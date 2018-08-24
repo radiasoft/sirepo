@@ -64,6 +64,8 @@ _INFIX_TO_RPN = {
     ast.USub: '+',
 }
 
+_OUTPUT_INFO_FILE = 'outputInfo.json'
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -100,8 +102,7 @@ def background_percent_complete(report, run_dir, is_running):
         return res
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    output_info = _output_info(run_dir, data)
+    output_info = _output_info(run_dir)
     return {
         'percentComplete': 100,
         'frameCount': 1,
@@ -120,7 +121,7 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
 
 
-def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
+def extract_report_data(xFilename, data, page_index, page_count=0):
     xfield = data['x'] if 'x' in data else data[_X_FIELD]
     # x, column_names, x_def, err
     x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
@@ -148,8 +149,11 @@ def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
                 'points': y,
                 'label': _field_label(yfield, y_col['column_def'][1]),
             })
+        title = ''
+        if page_count > 1:
+            title = 'Plot {} of {}'.format(page_index + 1, page_count)
         return {
-            'title': '',
+            'title': title,
             'x_range': [min(x), max(x)],
             'y_label': '',
             'x_label': _field_label(xfield, x_col['column_def'][1]),
@@ -169,16 +173,19 @@ def extract_report_data(xFilename, y2Filename, y3Filename, data, page_index):
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
         'x_label': _field_label(xfield, x_col['column_def'][1]),
         'y_label': _field_label(yfield, y_col['column_def'][1]),
-        'title': _plot_title(xfield, yfield, page_index),
+        'title': _plot_title(xfield, yfield, page_index, page_count),
         'z_matrix': hist.T.tolist(),
     }
 
 
 def fixup_old_data(data):
-    if 'bunchSource' not in data['models']:
-        data['models']['bunchSource'] = {
-            'inputSource': 'bunched_beam',
-        }
+    for m in [
+            'bunchSource',
+            'twissReport',
+    ]:
+        if m not in data['models']:
+            data['models'][m] = {}
+        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'bunchFile' not in data['models']:
         data['models']['bunchFile'] = {
             'sourceFile': None,
@@ -197,8 +204,10 @@ def fixup_old_data(data):
                 if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
                     m[k] = "1"
     for m in data['models']['elements']:
-        if m['type'] == 'WATCH' and (m['mode'] == 'coordinates' or m['mode'] == 'coord'):
-            m['mode'] = 'coordinate'
+        if m['type'] == 'WATCH':
+            m['filename'] = '1'
+            if m['mode'] == 'coordinates' or m['mode'] == 'coord':
+                m['mode'] = 'coordinate'
         template_common.update_model_defaults(m, m['type'], _SCHEMA)
     if 'centroid' not in data['models']['bunch']:
         bunch = data['models']['bunch']
@@ -218,18 +227,21 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
-    if 'twissReport' not in data['models']:
-        m = data['models']['twissReport'] = {}
-        template_common.update_model_defaults(m, 'twissReport', _SCHEMA)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
     beamlines = {}
 
+    selected_beamline_id = 0
+    sim = data['models']['simulation']
+    if 'visualizationBeamlineId' in sim and sim['visualizationBeamlineId']:
+        selected_beamline_id = int(sim['visualizationBeamlineId'])
+    elif len(data['models']['beamlines']):
+        selected_beamline_id = data['models']['beamlines'][0]['id']
+
     for bl in data['models']['beamlines']:
-        if 'visualizationBeamlineId' in data['models']['simulation']:
-            if int(data['models']['simulation']['visualizationBeamlineId']) == int(bl['id']):
-                v['use_beamline'] = bl['name']
+        if selected_beamline_id == int(bl['id']):
+            v['use_beamline'] = bl['name']
         beamlines[bl['id']] = bl
 
     ordered_beamlines = []
@@ -312,15 +324,19 @@ def get_simulation_frame(run_dir, data, model_data):
         {
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
-            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
+            '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
+            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
         },
     )
+    page_count = 0
+    for info in _output_info(run_dir):
+        if info['modelKey'] == data['modelName']:
+            page_count = info['pageCount']
     return extract_report_data(
         _file_name_from_id(frame_data.xFileId, model_data, run_dir),
-        _file_name_from_id(frame_data.y2FileId, model_data, run_dir),
-        _file_name_from_id(frame_data.y3FileId, model_data, run_dir),
         frame_data,
         frame_index,
+        page_count=page_count,
     )
 
 
@@ -376,7 +392,7 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
             _map_commands_to_lattice(data)
     else:
         raise IOError('invalid file extension, expecting .ele or .lte')
-    data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, re.IGNORECASE)
+    data['models']['simulation']['name'] = re.sub(r'\.(lte|ele)$', '', filename, flags=re.IGNORECASE)
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
     return data
@@ -411,7 +427,7 @@ def models_related_to_report(data):
             if f.exists():
                 res.append(f.mtime())
     if r == 'twissReport':
-        res += ['elements', 'beamlines', 'simulation.activeBeamlineId']
+        res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
     return res
 
 
@@ -886,7 +902,8 @@ def _generate_twiss_simulation(data, v):
         '_type': 'twiss_output',
         'filename': '1',
     }
-    twiss_output['output_at_each_step'] = "0"
+    twiss_output['final_values_only'] = '0'
+    twiss_output['output_at_each_step'] = '0'
     data['models']['commands'] = [
         run_setup,
         twiss_output,
@@ -934,7 +951,7 @@ def _infix_to_postfix(expr):
 
 
 def _is_error_text(text):
-    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given', text, re.IGNORECASE)
+    return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given|^MPI_ERR', text, re.IGNORECASE)
 
 
 def _is_ignore_error_text(text):
@@ -1063,7 +1080,12 @@ def _model_name_for_data(model):
     return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
-def _output_info(run_dir, data):
+def _output_info(run_dir):
+    # cache outputInfo to file, used later for report frames
+    info_file = run_dir.join(_OUTPUT_INFO_FILE)
+    if os.path.isfile(str(info_file)):
+        return simulation_db.read_json(info_file)
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
     for k in filename_map['keys_in_order']:
@@ -1071,7 +1093,9 @@ def _output_info(run_dir, data):
         id = k.split(_FILE_ID_SEP)
         info = _file_info(filename, run_dir, id[0], id[1])
         if info:
+            info['modelKey'] = 'elementAnimation{}'.format(info['id'])
             res.append(info)
+    simulation_db.write_json(info_file, res)
     return res
 
 
@@ -1131,15 +1155,15 @@ def _parse_expr_infix(expr):
     return ' '.join(_do(tree))
 
 
-def _plot_title(xfield, yfield, page_index):
+def _plot_title(xfield, yfield, page_index, page_count):
     key = '{}-{}'.format(xfield, yfield)
     title = ''
     if key in _PLOT_TITLE:
         title = _PLOT_TITLE[key]
     else:
         title = '{} / {}'.format(xfield, yfield)
-    if page_index:
-        title += ', Plot ' + str(page_index + 1)
+    if page_count > 1:
+        title += ', Plot {} of {}'.format(page_index + 1, page_count)
     return title
 
 

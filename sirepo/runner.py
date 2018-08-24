@@ -284,7 +284,7 @@ class Background(Base):
                 self.pid = 0
                 self.kill()
         except OSError as e:
-            if not e.errno in (errno,ESRCH, errno.ECHILD):
+            if not e.errno in (errno.ESRCH, errno.ECHILD):
                 pkdlog('waitpid: OSError: {} errno={}', e.strerror, e.errno)
 
     def _start(self):

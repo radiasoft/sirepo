@@ -15,7 +15,7 @@ SIREPO.INFO_INDEX_MAX = 5;
 SIREPO.ENUM_INDEX_VALUE = 0;
 SIREPO.ENUM_INDEX_LABEL = 1;
 
-SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
+SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -62,7 +62,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
                 page.isActive = true;
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
-                    $timeout(function() {
+                    panelState.waitForUI(function() {
                         $scope.parentController.handleModalShown($scope.modelName);
                     });
                 }
@@ -121,11 +121,11 @@ SIREPO.app.directive('advancedEditorPane', function(appState, $timeout) {
             if (scope.pages) {
                 $(element).closest('.modal').on('show.bs.modal', resetActivePage);
                 //TODO(pjm): need a generalized case for this
-                $(element).closest('.srw-editor-holder').on('sr.resetActivePage', resetActivePage);
+                $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', resetActivePage);
             }
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
-                $(element).closest('.srw-editor-holder').off();
+                $(element).closest('.sr-beamline-editor').off();
             });
         }
     };
@@ -349,7 +349,7 @@ SIREPO.app.directive('labelWithTooltip', function() {
     };
 });
 
-SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressService, $timeout) {
+SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelState, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -466,7 +466,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
-            $timeout(function () {
+            panelState.waitForUI(function () {
                 var inputElement =  $($element).find('input');
                 if(inputElement.length > 0) {
                     inputElement
@@ -477,8 +477,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
                         keypressService.enableListener(true);
                     });
                 }
-            },
-                100);
+            });
 
             $scope.fieldDelegate = {};
             $scope.labelClass = 'col-sm-' + ($scope.labelSize || '5');
@@ -506,7 +505,7 @@ SIREPO.app.directive('fieldEditor', function(appState, utilities, keypressServic
     };
 });
 
-SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
+SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
 
     var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
     var loginNotifyTimeout = 1*24*60*60*1000;
@@ -573,7 +572,7 @@ SIREPO.app.directive('loginMenu', function(requestSender, notificationService) {
     };
 });
 
-SIREPO.app.directive('fileField', function(appState, panelState, requestSender, $http, errorService) {
+SIREPO.app.directive('fileField', function(appState, errorService, panelState, requestSender, $http) {
     return {
         restrict: 'A',
         transclude: true,
@@ -983,7 +982,7 @@ SIREPO.app.directive('lineoutCsvLink', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
+SIREPO.app.directive('modalEditor', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1046,7 +1045,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState, $timeout) {
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
-                    $timeout(function() {
+                    panelState.waitForUI(function() {
                         scope.parentController.handleModalShown(scope.modelName, scope.modelKey);
                     });
                 }
@@ -1162,7 +1161,7 @@ SIREPO.app.directive('safePath', function() {
     };
 });
 
-SIREPO.app.directive('validatedString', function(validationService, panelState) {
+SIREPO.app.directive('validatedString', function(panelState, validationService) {
 
     return {
         restrict: 'A',
@@ -1350,18 +1349,18 @@ SIREPO.app.directive('simpleHeading', function(panelState, utilities) {
     };
 });
 
-SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, requestSender, plotToPNG, utilities) {
+SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, plotToPNG, requestSender, utilities) {
     return {
         restrict: 'A',
         scope: {
             panelHeading: '@',
             modelKey: '=',
-            allowFullScreen: '@',
+            isReport: '@',
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
               '<a href data-ng-show="hasEditor && ! utilities.isFullscreen()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
-              '<div data-ng-if="allowFullScreen" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">',
+              '<div data-ng-if="isReport" data-ng-show="hasData() && ! utilities.isFullscreen()" class="dropdown" style="display: inline-block">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
                 '<ul class="dropdown-menu dropdown-menu-right">',
                   '<li class="dropdown-header">Download Report</li>',
@@ -1373,7 +1372,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                   SIREPO.appDownloadLinks || '',
                 '</ul>',
               '</div>',
-              '<a href data-ng-show="allowFullScreen && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
+              SIREPO.appPanelHeadingButtons || '',
+              '<a href data-ng-show="isReport && ! panelState.isHidden(modelKey)" data-ng-attr-title="{{ fullscreenIconTitle() }}" data-ng-click="toggleFullScreen()"><span class="sr-panel-heading glyphicon" data-ng-class="{\'glyphicon-resize-full\': ! utilities.isFullscreen(), \'glyphicon-resize-small\': utilities.isFullscreen()}"></span></a> ',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -1496,6 +1496,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 SIREPO.appReportTypes || '',
               '</div>',
               '<div data-ng-transclude=""></div>',
@@ -1525,7 +1526,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
         },
         template: [
             '<div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-allow-full-screen="1"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>',
               '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
             '</div>',
         ].join(''),
@@ -1568,7 +1569,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSender, $window) {
+SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1619,7 +1620,7 @@ SIREPO.app.directive('appHeaderLeft', function(panelState, appState, requestSend
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataService, fileManager, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileManager, panelState, $window) {
 
     function helpLink(url, text, icon) {
         return url
@@ -1644,7 +1645,7 @@ SIREPO.app.directive('appHeaderRight', function(panelState, appState, appDataSer
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
                 '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
-                    '<li data-ng-if="isLoaded()" data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
+                    '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
                     '<li data-settings-menu="nav">',
                         '<app-settings data-ng-transclude="appSettingsSlot"></app-settings>',
@@ -1806,7 +1807,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appState, appDataService, panelState, requestSender, $location, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelState, requestSender, $location, $window) {
 
     return {
         restrict: 'A',
@@ -1953,7 +1954,7 @@ SIREPO.app.directive('deleteSimulationModal', function(appState, $location) {
     };
 });
 
-SIREPO.app.directive('resetSimulationModal', function(appState, requestSender, appDataService) {
+SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, requestSender) {
     return {
         restrict: 'A',
         scope: {

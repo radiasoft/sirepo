@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
+SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 //TODO(pjm): provide API for this, keyed by field type
@@ -31,6 +32,14 @@ SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="x"></li>',
     '<li data-lineout-csv-link="y"></li>',
     '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+].join('');
+SIREPO.appPanelHeadingButtons = [
+    '<div data-ng-if="isReport && ! hasData()" class="dropdown" style="display: inline-block">',
+      '<a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a> ',
+      '<ul class="dropdown-menu dropdown-menu-right">',
+        '<li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>',
+      '</ul>',
+    '</div>',
 ].join('');
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
@@ -509,7 +518,11 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
         // store the coherence
         beamlineService.coherence = value ? 'full' : 'partial';
-        $location.search('coherence', beamlineService.coherence);
+        var currentCoherence = $location.search().coherence || 'full';
+        if (beamlineService.coherence != currentCoherence) {
+            // only set search if changed - it causes a page reload
+            $location.search('coherence', beamlineService.coherence);
+        }
     };
 
     self.showPropagationModal = function() {

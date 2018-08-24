@@ -1,0 +1,57 @@
+{
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "MyAppSourceController as source",
+                "templateUrl": "/static/html/myapp-source.html"
+            }
+        }
+    },
+    "enum": {
+        "Gender": [
+            ["male", "Male"],
+            ["female", "Female"]
+        ]
+    },
+    "model": {
+        "dog": {
+            "breed": ["Breed", "String"],
+            "gender": ["Gender", "Gender"],
+            "height": ["Height [cm]", "Float", null, "Distance from front paws to withers"],
+            "weight": ["Weight [lbs]", "Float"]
+        },
+        "dogReport": {}
+    },
+    "view": {
+        "dog": {
+            "title": "Dog",
+            "basic": [
+                "breed",
+                "weight",
+                "height"
+            ],
+            "advanced": [
+                "breed",
+                "gender",
+                "weight",
+                "height"
+            ]
+        },
+        "dogReport": {
+            "title": "Dog Report",
+            "advanced": []
+        },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name"
+            ]
+        },
+        "simulationFolder": {
+            "title": "New Folder",
+            "advanced": [
+                "name"
+            ]
+        }
+    }
+}

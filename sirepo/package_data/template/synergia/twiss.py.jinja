@@ -1,6 +1,12 @@
 
 from rssynergia.base_diagnostics import lfplot
 
+def row_has_data(row):
+    for k in row:
+        if k != 'name' and row[k] != 0:
+            return True
+    return False
+
 lattice = synergia.lattice.MadX_reader().get_lattice('{{ use_beamline }}', LATTICE_FILE)
 stepper = synergia.simulation.Independent_stepper_elements(
     lattice,
@@ -14,6 +20,10 @@ import numpy as np
 h5file = h5py.File('{{ twissFileName }}', 'w')
 for k in twiss[0]:
     dtype = np.dtype('a30') if k == 'name' else np.dtype(float)
-    data = h5file.create_dataset(k, (len(twiss),), dtype=dtype)
-    data[:] = list(map(lambda row: row[k], twiss))
+    rows = []
+    for row in twiss:
+        if row_has_data(row):
+            rows.append(row[k])
+    data = h5file.create_dataset(k, (len(rows),), dtype=dtype)
+    data[:] = rows
 h5file.close()

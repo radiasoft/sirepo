@@ -193,8 +193,8 @@
         "ellipticalDistribution": {
             "aX": ["a(x) [cm]", "Float"],
             "bY": ["b(y) [cm]", "Float"],
-            "rotationAngle": ["Rotation Angle [deg]", "Float", "0"],
-            "rmsDeviationFactor": ["RMS Deviation Factor (σ = a/factor)", "Float", "1"]
+            "rotationAngle": ["Rotation Angle [deg]", "Float", 0],
+            "rmsDeviationFactor": ["RMS Deviation Factor (σ = a/factor)", "Float", 1]
         },
         "energyPhaseDistribution": {
             "distributionType": ["Distribution Type", "EnergyDistributionType"],

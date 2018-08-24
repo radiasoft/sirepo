@@ -2402,7 +2402,8 @@
             "y2FileId": "31-13",
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "31-13"
+            "y3FileId": "31-13",
+            "includeLattice": true
         },
         "elementAnimation4-54": {
             "fileId": "4-54",

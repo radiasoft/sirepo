@@ -110,8 +110,7 @@
         ],
         "SimulationModel": [
             ["rms", "RMS"],
-            ["particle", "Particle"],
-            ["model_beam", "Model Beam"]
+            ["particle", "Particle"]
         ],
         "TwissParameter": [
             ["betx", "betax"],
@@ -220,7 +219,7 @@
             "step_number": ["Total Number of Steps", "Integer", 60, "The time interval of each step is time/step_number.", 1],
             "ibs": ["Simulate the IBS Effect", "Boolean", "1"],
             "e_cool": ["Simulate Electron Cooling Effect", "Boolean", "1"],
-            "model": ["Model", "SimulationModel", "model_beam"],
+            "model": ["Model", "SimulationModel", "particle"],
             "save_particle_interval": ["Save Particle Interval", "Integer", -1, "The interval of steps to save the 6D coordinates of the ions. No saving if the value is less than zero.", -1],
             "ref_bet_x": ["Horizontal Beta Reference Point", "Float", 10, "TWISS parameters for the reference point. Only needed when the Particle model is selected and the electron cooling effect is not included in the simulation.", 1e-99],
             "ref_bet_y": ["Vertical Beta Reference Point", "Float", 10, "", 1e-99],

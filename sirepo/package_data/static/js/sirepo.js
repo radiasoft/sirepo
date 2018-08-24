@@ -830,6 +830,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
                     else {
                         callback(index, data);
                     }
+                },
+                null,
+                // error handling
+                function(data) {
+                    //TODO(pjm): need error wrapping on server similar to runStatus route
+                    panelState.setError(modelName, 'Report not generated');
                 });
         };
         if (isHidden) {
@@ -900,6 +906,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
+    var waitForUICallbacks = null;
 
     $rootScope.$on('clearCache', function() {
         self.clear();
@@ -1147,7 +1154,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         // try show/hide immediately, followed by timeout if UI hasn't finished layout yet
         showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.form-group'), isShown);
         });
     };
@@ -1155,7 +1162,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
         showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
-        $timeout(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
+        self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
             showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
         });
     };
@@ -1175,7 +1182,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
-            $timeout(function() {
+            self.waitForUI(function() {
                 $(editorId).modal('show');
             });
         }
@@ -1206,6 +1213,24 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         // needed to resize a hidden report and other panels
         if (appState.isReportModelName(name)) {
             $($window).trigger('resize');
+        }
+    };
+
+    self.waitForUI = function(callback) {
+        // groups callbacks within one $timeout()
+        if (waitForUICallbacks) {
+            waitForUICallbacks.push(callback);
+        }
+        else {
+            waitForUICallbacks = [callback];
+            $timeout(function() {
+                // new callbacks may be added during this cycle
+                var callbacks = waitForUICallbacks;
+                waitForUICallbacks = null;
+                callbacks.forEach(function(callback) {
+                    callback();
+                });
+            });
         }
     };
 
@@ -2066,12 +2091,19 @@ SIREPO.app.factory('fileManager', function(requestSender) {
     };
     self.getUserFolders = function(excludeFolder) {
         return self.flattenTree().filter(function(item) {
-            return item != excludeFolder && item.isFolder && ! self.isFolderExample(item);
+            if (item != excludeFolder && item.isFolder) {
+                if (SIREPO.INCLUDE_EXAMPLE_FOLDERS || ! self.isFolderExample(item)) {
+                    return true;
+                }
+            }
+            return false;
         });
     };
     self.getUserFolderPaths = function() {
         return self.getUserFolders().map(function (item) {
             return self.pathName(item);
+        }).sort(function(a, b) {
+            return a.localeCompare(b);
         });
     };
     self.defaultCreationFolder = function() {
@@ -2221,11 +2253,11 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
     };
     self.doesFolderContainFolder = function(f1, f2) {
-        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
-            return true;
-        }
         if(f2 == self.rootFolder() || ! f1.children) {
             return false;
+        }
+        if(f1 == self.rootFolder() || f1.children.indexOf(f2) >= 0) {
+            return true;
         }
         for(var cIndex = 0; cIndex < f1.children.length; ++cIndex) {
             if(self.doesFolderContainFolder(f1.children[cIndex], f2)) {
@@ -2396,7 +2428,7 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, fileManager, panelState, requestSender, activeSection, notificationService, $location, $scope, $window, $cookies) {
+SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, $cookies, $location, $scope, $window) {
     var self = this;
     var simListViewCookie = 'net.sirepo.sim_list_view';
     var cookiePrefTimeout = 5*365*24*60*60*1000;
@@ -2445,6 +2477,11 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         appState.listSimulations(
             $location.search(),
             function(data) {
+                if (! $scope.$parent) {
+                    // callback may occur after scope has been destroyed
+                    // if the user has navigated off the simulations page
+                    return;
+                }
                 self.isWaitingForList = false;
                 data.sort(function(a, b) {
                     return a.last_modified.localeCompare(b.last_modified);
@@ -2721,33 +2758,21 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
     });
     loadList();
 
-    var scopeOK = true;
     // invoked in loadList() callback
     function checkURLForFolder() {
-
-        if (! scopeOK ) {
+        //TODO(pjm): need a generalized way to get path
+        var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
+        if (canonicalPath === fileManager.getActiveFolderPath()) {
             return;
         }
-        if (! fileManager.getActiveFolder() ) {
-            self.openItem(rootFolder());
+        var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
+        if (newFolder) {
+            fileManager.setActiveFolderPath(canonicalPath);
+            fileManager.setActiveFolder(newFolder);
+            self.openItem(newFolder);
         }
         else {
-            if ($location.path().indexOf('/simulations') < 0) {
-                return;
-            }
-            var canonicalPath = fileManager.decodePath($location.path().replace('/simulations', ''));
-            if (canonicalPath === fileManager.getActiveFolderPath()) {
-                return;
-            }
-            var newFolder = folderForPathInList(canonicalPath, [rootFolder()]);
-            if (newFolder) {
-                fileManager.setActiveFolderPath(canonicalPath);
-                fileManager.setActiveFolder(newFolder);
-                self.openItem(newFolder);
-            }
-            else {
-                requestSender.localRedirect('notFound');
-            }
+            requestSender.localRedirect('notFound');
         }
     }
     function folderForPathInList (folderPath, folderList) {
@@ -2767,9 +2792,6 @@ SIREPO.app.controller('SimulationsController', function (appState, fileManager, 
         }
         return null;
     }
-    $scope.$on('$destroy', function() {
-        scopeOK = false;
-    });
 
     function initCookiePrefs() {
         self.isIconView = initCookiePref(simListViewCookie, 'true') === 'true';

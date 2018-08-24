@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.template import template_common
+from sirepo.template import template_common, elegant_lattice_importer
 import glob
 import h5py
 import math
@@ -34,7 +34,9 @@ _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 
 _FILE_ID_SEP = '-'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_IGNORE_ATTRIBUTES = ['lrad']
+
+_REPORT_STYLE_FIELDS = ['colorMap', 'includeLattice', 'notes']
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
@@ -131,9 +133,18 @@ def import_file(request, lib_dir=None, tmp_dir=None):
     filename = werkzeug.secure_filename(f.filename)
     if re.search(r'.madx$', filename, re.IGNORECASE):
         data = _import_madx_file(f.read())
+    elif re.search(r'.mad8$', filename, re.IGNORECASE):
+        import pyparsing
+        try:
+            data = _import_mad8_file(f.read())
+        except pyparsing.ParseException as e:
+            # ParseException has no message attribute
+            raise IOError(str(e))
+    elif re.search(r'.lte$', filename, re.IGNORECASE):
+        data = _import_elegant_file(f.read())
     else:
-        raise IOError('invalid file extension, expecting .madx')
-    data['models']['simulation']['name'] = re.sub(r'\.madx$', '', filename, re.IGNORECASE)
+        raise IOError('invalid file extension, expecting .madx or .mad8')
+    data['models']['simulation']['name'] = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
 
@@ -491,10 +502,16 @@ def _generate_lattice(data, beamline_map, v):
     report = data['report'] if 'report' in data else ''
     beamline_id_field = _beamline_id_for_report(report)
 
+    selected_beamline_id = 0
+    sim = data['models']['simulation']
+    if beamline_id_field in sim and sim[beamline_id_field]:
+        selected_beamline_id = int(sim[beamline_id_field])
+    elif len(data['models']['beamlines']):
+        selected_beamline_id = data['models']['beamlines'][0]['id']
+
     for bl in data['models']['beamlines']:
-        if beamline_id_field in data['models']['simulation']:
-            if int(data['models']['simulation'][beamline_id_field]) == int(bl['id']):
-                v['use_beamline'] = bl['name'].lower()
+        if selected_beamline_id == int(bl['id']):
+            v['use_beamline'] = bl['name'].lower()
         beamlines[bl['id']] = bl
 
     ordered_beamlines = []
@@ -579,7 +596,10 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants
+    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    if not lattice.has_reference_particle():
+        # create a default reference particle, proton,energy=1.5
+        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'
@@ -600,7 +620,104 @@ def _import_bunch(lattice, data):
     elif bunch['mass'] == pconstants.mmu:
         bunch['particle'] = 'posmuon' if bunch['charge'] == pconstants.antimuon_charge else 'negmuon'
 
-_IGNORE_ATTRIBUTES = ['lrad']
+_ELEGANT_NAME_MAP = {
+    'DRIF': 'DRIFT',
+    'CSRDRIFT': 'DRIFT',
+    'SBEN': 'SBEND',
+    'KSBEND': 'SBEND',
+    'CSBEND': 'SBEND',
+    'CSRCSBEND': 'SBEND',
+    'QUAD': 'QUADRUPOLE',
+    'KQUAD': 'QUADRUPOLE',
+    'SEXT': 'SEXTUPOLE',
+    'KSEXT': 'SEXTUPOLE',
+    'MARK': 'MARKER',
+    'HCOR': 'HKICKER',
+    'HVCOR': 'HKICKER',
+    'EHCOR': 'HKICKER',
+    'VCOR': 'VKICKER',
+    'EVCOR': 'VKICKER',
+    'EHVCOR': 'KICKER',
+    'RFCA': 'RFCAVITY',
+    'HKICK': 'HKICKER',
+    'VKICK': 'VKICKER',
+    'KICK': 'KICKER',
+    'SOLE': 'SOLENOID',
+    'HMON': 'HMONITOR',
+    'VMON': 'VMONITOR',
+    'MONI': 'MONITOR',
+    'ECOL': 'ECOLLIMATOR',
+    'RCOL': 'RCOLLIMATOR',
+    'ROTATE': 'SROTATION',
+}
+
+_ELEGANT_FIELD_MAP = {
+    'ECOL': {
+        'x_max': 'xsize',
+        'y_max': 'ysize',
+    },
+    'RCOL': {
+        'x_max': 'xsize',
+        'y_max': 'ysize',
+    },
+    'ROTATE': {
+        'tilt': 'angle',
+    },
+}
+
+def _import_elegant_file(text):
+    elegant_data = elegant_lattice_importer.import_file(text)
+    rpn_cache = elegant_data['models']['rpnCache']
+    data = simulation_db.default_data(SIM_TYPE)
+    element_ids = {}
+    for el in elegant_data['models']['elements']:
+        if el['type'] not in _ELEGANT_NAME_MAP:
+            if 'l' in el:
+                el['name'] += '_{}'.format(el['type'])
+                el['type'] = 'DRIF'
+            else:
+                continue
+        el['name'] = re.sub(r':', '_', el['name'])
+        name = _ELEGANT_NAME_MAP[el['type']]
+        schema = _SCHEMA['model'][name]
+        m = {
+            '_id': el['_id'],
+            'type': name,
+        }
+        for f in el:
+            v = el[f]
+            if el['type'] in _ELEGANT_FIELD_MAP and f in _ELEGANT_FIELD_MAP[el['type']]:
+                f = _ELEGANT_FIELD_MAP[el['type']][f]
+            if f in schema:
+                if v in rpn_cache:
+                    v = rpn_cache[v]
+                m[f] = v
+        template_common.update_model_defaults(m, name, _SCHEMA)
+        data['models']['elements'].append(m)
+        element_ids[m['_id']] = True
+    beamline_ids = {}
+    for bl in elegant_data['models']['beamlines']:
+        bl['name'] = re.sub(r':', '_', bl['name'])
+        element_ids[bl['id']] = True
+        element_ids[-bl['id']] = True
+    for bl in elegant_data['models']['beamlines']:
+        items = []
+        for element_id in bl['items']:
+            if element_id in element_ids:
+                items.append(element_id)
+        data['models']['beamlines'].append({
+            'id': bl['id'],
+            'items': items,
+            'name': bl['name'],
+        })
+    elegant_sim = elegant_data['models']['simulation']
+    if 'activeBeamlineId' in elegant_sim:
+        data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
+        data['models']['simulation']['visualizationBeamlineId'] = elegant_sim['activeBeamlineId']
+    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: el['type'])
+    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
+    return data
+
 
 def _import_elements(lattice, data):
     name_to_id = {}
@@ -646,20 +763,31 @@ def _import_elements(lattice, data):
     data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 
 
-def _import_madx_file(text):
-    import synergia
+def _import_mad_file(reader, beamline_names):
     data = simulation_db.default_data(SIM_TYPE)
-    reader = synergia.lattice.MadX_reader()
-    reader.parse(text)
-    lattice = _import_main_beamline(reader, data)
+    lattice = _import_main_beamline(reader, data, beamline_names)
     _import_elements(lattice, data)
     _import_bunch(lattice, data)
     return data
 
 
-def _import_main_beamline(reader, data):
+def _import_mad8_file(text):
+    import synergia
+    reader = synergia.lattice.Mad8_reader()
+    reader.parse_string(text)
+    return _import_mad_file(reader, reader.get_lines())
+
+
+def _import_madx_file(text):
+    import synergia
+    reader = synergia.lattice.MadX_reader()
+    reader.parse(text)
+    return _import_mad_file(reader, reader.get_line_names() + reader.get_sequence_names())
+
+
+def _import_main_beamline(reader, data, beamline_names):
     lines = {}
-    for name in reader.get_line_names() + reader.get_sequence_names():
+    for name in beamline_names:
         names = []
         for el in reader.get_lattice(name).get_elements():
             names.append(el.get_name())
