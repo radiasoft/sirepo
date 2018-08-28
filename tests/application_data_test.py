@@ -16,6 +16,7 @@ def test_processed_image():
 
     fc = sr_unit.flask_client()
     sim_type = 'srw'
+    fc.get('/{}'.format(sim_type))
     sim_id = fc.sr_sim_data(sim_type, 'Sample from Image')
     resp = fc.sr_post(
         'getApplicationData',

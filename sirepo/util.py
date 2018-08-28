@@ -9,6 +9,11 @@ from pykern.pkdebug import pkdlog
 import werkzeug.exceptions
 
 
+def raise_forbidden(fmt, *args, **kwargs):
+    pkdlog(fmt, *args, **kwargs)
+    raise werkzeug.exceptions.Forbidden()
+
+
 def raise_not_found(fmt, *args, **kwargs):
     pkdlog(fmt, *args, **kwargs)
     raise werkzeug.exceptions.NotFound()

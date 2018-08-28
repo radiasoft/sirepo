@@ -99,7 +99,7 @@ def auth_login(req):
         sid,
         checked=True,
     )
-    server.session_user(simulation_db.uid_from_dir_name(path))
+    server.set_session_user(simulation_db.uid_from_dir_name(path))
 
 
 cfg = pkconfig.init(

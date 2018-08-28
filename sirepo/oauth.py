@@ -162,7 +162,7 @@ def _update_database(user_data, oauth_type):
                 simulation_db.move_user_simulations(user.uid)
             user.user_name = user_data['login']
             user.display_name = user_data['name']
-            server.session_user(user.uid)
+            server.set_session_user(user.uid)
         else:
             if not session_uid:
                 # ensures the user session (uid) is ready if new user logs in from logged-out session

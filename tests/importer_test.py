@@ -53,6 +53,7 @@ def _do(file_ext, parse):
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
             json, stream = parse(f)
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
+            fc.get('/{}'.format(sim_type))
             is_dev = 'deviance' in f.basename
             if not is_dev:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name
