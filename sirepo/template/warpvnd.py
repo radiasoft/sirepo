@@ -582,6 +582,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['impactDensityCalculation'] = _generate_impact_density()
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
+    v['maxConductorVoltage'] = _max_conductor_voltage(data)
     template_name = ''
     if 'report' not in data:
         template_name = 'visualization'
@@ -602,6 +603,18 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
+
+
+def _max_conductor_voltage(data):
+    type_by_id = {}
+    for conductor_type in data.models.conductorTypes:
+        type_by_id[conductor_type.id] = conductor_type
+    max_voltage = data.models.beam.anode_voltage
+    for conductor in data.models.conductors:
+        conductor_type = type_by_id[conductor.conductorTypeId]
+        if conductor_type.voltage > max_voltage:
+            max_voltage = conductor_type.voltage
+    return max_voltage
 
 
 def _slope(x1, y1, x2, y2):

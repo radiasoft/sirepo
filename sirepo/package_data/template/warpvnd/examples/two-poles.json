@@ -4,7 +4,7 @@
             "anode_voltage": 0.4,
             "anode_work_function": 0.1,
             "beam_current": 0.0025,
-            "cathode_temperature": 1273.15,
+            "cathode_temperature": 1000,
             "cathode_work_function": 2,
             "currentMode": "3",
             "species": "Electron",
