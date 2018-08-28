@@ -22,17 +22,9 @@ build_as_root() {
 build_as_run_user() {
     . ~/.bashrc
     cd "$build_guest_conf"
-
     sirepo_boot_init
-
-    # Remove print statements from SRW
-    # Patch srwlib.py to not print stuff
-    local srwlib="$(python -c 'import srwlib; print srwlib.__file__')"
-    # Trim .pyc to .py (if there)
-    perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
-
-    # reinstall pykern always
-    install_repo_eval code pykern
+    sirepo_fix_srw
+    sirepo_reinstall_pykern
 
     # sirepo
     git clone -q --depth=50 "--branch=${TRAVIS_BRANCH:-master}" \
@@ -42,7 +34,7 @@ build_as_run_user() {
         git checkout -qf "$TRAVIS_COMMIT"
     fi
     pip install -r requirements.txt
-    python setup.py install
+    pip install
 
     # test & deploy
     # npm gets ECONNRESET due to a node error, which shouldn't happen
@@ -63,6 +55,22 @@ sirepo_boot_init() {
     # legacy init
     install -m 555 radia-run-sirepo.sh ~/bin/radia-run-sirepo
 
+}
+
+sirepo_fix_srw() {
+    # Remove print statements from SRW
+    # Patch srwlib.py to not print stuff
+    local srwlib="$(python -c 'import srwlib; print srwlib.__file__')"
+    # Trim .pyc to .py (if there)
+    perl -pi.bak -e  's/^(\s+)(print)/$1pass#$2/' "${srwlib%c}"
+}
+
+sirepo_reinstall_pykern() {
+    git clone -q --depth=50 https://github.com/radiasoft/pykern
+    cd pykern
+    pip uninstall -y pykern >& /dev/null || true
+    pip install .
+    cd ..
 }
 
 build_vars
