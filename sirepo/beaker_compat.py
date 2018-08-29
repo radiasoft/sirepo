@@ -31,6 +31,7 @@ def load_from_header(header):
             with open(path, 'rb') as fh:
                 values = pickle.load(fh)
                 if 'session' in values and 'uid' in values['session']:
+                    pkdlog('retrieved user from beaker cookie: {}', values['session']['uid'])
                     return values['session']['uid']
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
