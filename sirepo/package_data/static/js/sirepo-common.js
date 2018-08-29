@@ -10,6 +10,9 @@ window.cookieconsent.initialise({
         dismiss: 'I accept',
         link: null,
     },
+    cookie: {
+        name: 'sr_cookieconsent',
+    },
     palette: {
         popup: {
             background: "#000",
