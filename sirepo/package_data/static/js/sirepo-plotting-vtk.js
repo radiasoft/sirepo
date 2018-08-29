@@ -614,7 +614,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, vtkService, panel
         coord.setCoordinateSystemToWorld();
         coord.setValue(point);
         var lCoord = coord.getComputedLocalDisplayValue();
-        //return [lCoord[0] / 2.0, lCoord[1] / 2.0];
         return [lCoord[0] / pixels, lCoord[1] / pixels];
     };
     self.worldCoordFromLocal = function (coord, point, view) {

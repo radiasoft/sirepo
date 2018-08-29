@@ -1027,7 +1027,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 }
                 return res.replace(/e\+0$/, '');
             });
-            self.unitSymbol = formatInfo.unit.symbol;
+            self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
             return formatInfo;
         }
 
@@ -3078,8 +3078,10 @@ SIREPO.app.service('plotUtilities', function() {
     // Find where the line defined by startPoint and endPoint intersects the lines that
     // define the given bounds
     this.boundsIntersections = function(bounds, startPoint, endPoint) {
-        var startX = startPoint[0];  var startY = startPoint[1];
-        var endX = endPoint[0];  var endY = endPoint[1];
+        var startX = startPoint[0];
+        var startY = startPoint[1];
+        var endX = endPoint[0];
+        var endY = endPoint[1];
 
         // horizontal line
         if(startY == endY) {
@@ -3109,35 +3111,32 @@ SIREPO.app.service('plotUtilities', function() {
         };
     };
 
-    this.isPointWithinBounds = function (p, b) {
-        return p[0] >= b.left && p[0] <= b.right && p[1] >= b.top && p[1] <= b.bottom;
+    this.isPointWithinBounds = function (point, bounds) {
+        return point[0] >= bounds.left && point[0] <= bounds.right && point[1] >= bounds.top && point[1] <= bounds.bottom;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
-    this.extrema = function(pArr, dim, reverse) {
-        var sPArr = self.sortInDimension(pArr, dim, reverse);
-        if(! sPArr) {
-            return null;
-        }
-        return sPArr.filter(function (point) {
-            return point[dim] == sPArr[0][dim];
+    this.extrema = function(pointArray, sortDimension, doReverse) {
+        var res = self.sortInDimension(pointArray, sortDimension, doReverse);
+        return res.filter(function (point) {
+            return point[sortDimension] == res[0][sortDimension];
         });
     };
 
     // Returns the members of an array of edges (point pairs) that
     // contain any of the points in another array
-    this.edgesWithCorners = function(edgeArr, pArr) {
-        var edges = edgeArr.filter(function (edge) {
+    this.edgesWithCorners = function(edgeArray, pointArray) {
+        var edges = edgeArray.filter(function (edge) {
             return edge.some(function (corner) {
-                return pArr.some(function (point) {
+                return pointArray.some(function (point) {
                     return point[0] == corner[0] && point[1] == corner[1];
                 });
             });
         });
         return edges;
     };
-    this.firstEdgeWithCorners = function(edgeArr, pArr) {
-        return this.edgesWithCorners(edgeArr, pArr)[0];
+    this.firstEdgeWithCorners = function(edgeArray, pointArray) {
+        return this.edgesWithCorners(edgeArray, pointArray)[0];
     };
 
     // Returns edges that fit entirely within the given bounds (if any)
@@ -3165,10 +3164,21 @@ SIREPO.app.service('plotUtilities', function() {
         });
     };
 
+/*
+        this.sortInDimension = function (pointArray, sortDimension, doReverse) {
+        if(!pointArray || !pointArray.length || sortDimension >= pointArray[0].length ) {
+            throw pointArray + ': Invalid point array';
+        }
+        var clone = pointArray.slice(0);
+        return clone.sort(function (p1, p2) {
+            return doReverse ? (p1[sortDimension] < p2[sortDimension]) : (p1[sortDimension] >= p2[sortDimension]);
+        });
+    };
+*/
     // returns the distance bewteen two points
     this.dist = function(p1, p2) {
         if(p1.length != p2.length) {
-            return -1;
+            throw 'Points do not have same dimension: ' + p1.length + ' != ' + p2.length;
         }
         var dsq = 0;
         for(var i = 0; i < p1.length; ++i) {
