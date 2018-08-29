@@ -1172,9 +1172,8 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    try:
-        uid = _server.session_user()
-    except KeyError:
+    uid = _server.session_user(checked=False)
+    if not uid:
         uid = _user_dir_create()
     d = user_dir_name(uid)
     if d.check():

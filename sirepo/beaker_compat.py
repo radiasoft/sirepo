@@ -33,5 +33,5 @@ def load_from_header(header):
                 if 'session' in values and 'uid' in values['session']:
                     return values['session']['uid']
     except Exception as e:
-        pkdlog('ignoring exception with beaker compat: {}', e)
+        pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
     return None

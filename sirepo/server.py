@@ -718,8 +718,8 @@ def init(db_dir=None, uwsgi=None):
     global _wsgi_app
     _wsgi_app = _WSGIApp(app, uwsgi)
     app.sirepo_db_dir = db_dir
-    app.secret_key = cfg.beaker_session.secret
-    app.session_cookie_name = cfg.beaker_session.key
+    app.secret_key = cfg.app_secret_key or cfg.beaker_session.secret
+    app.session_cookie_name = cfg.app_session_cookie_name or cfg.beaker_session.key
     app.before_request(flask_before_request)
     app.after_request(flask_after_request)
     simulation_db.init_by_server(app, sys.modules[__name__])
@@ -755,15 +755,15 @@ def session_user(checked=True):
     Returns:
         str: user id
     """
+    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
+        util.raise_forbidden('Missing session, cookies may be disabled')
     res = flask.session.get(_SESSION_KEY_USER)
     if not res and 'HTTP_COOKIE' in flask.request.environ:
         res = beaker_compat.load_from_header(flask.request.environ['HTTP_COOKIE'])
         if res:
             set_session_user(res)
-    if not res and checked:
-        if flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
-            raise KeyError(_SESSION_KEY_USER)
-        util.raise_forbidden('Missing session, cookies may be disabled')
+    if checked and not res:
+        raise ValueError(_SESSION_KEY_USER)
     return res
 
 
@@ -830,6 +830,7 @@ def _cfg_db_dir(value):
 def _cfg_session_secret(value):
     """Reads file specified as config value"""
     if not value:
+        assert pkconfig.channel_in('dev'), 'missing session secret configuration'
         return 'dev dummy secret'
     with open(value) as f:
         return f.read()
@@ -1149,6 +1150,7 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
+    # beaker_session is historical, used only for deserializing old session
     beaker_session=dict(
         key=('sirepo_' + pkconfig.cfg.channel, str, 'Beaker: Name of the cookie key used to save the session under'),
         secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
@@ -1157,4 +1159,6 @@ cfg = pkconfig.init(
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    app_secret_key=(None, str, 'Secret for flask session serialization'),
+    app_session_cookie_name=(None, str, 'Cookie key for serialized flask sessions'),
 )
