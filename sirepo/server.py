@@ -49,7 +49,7 @@ _RUN_STATES = ('pending', 'running')
 _SESSION_KEY_USER = 'uid'
 
 #: Identifies if the session has been returned by the client
-_SESSION_KEY_VALID = 'valid'
+_SESSION_KEY_COOKIE_SENTINEL = 'ok'
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
@@ -689,23 +689,21 @@ def all_uids():
     return oauth.all_uids(app)
 
 
-@app.after_request
-def app_after_request(response):
-    if re.search(r'^(2|3)', str(response.status_code)):
-        flask.session[_SESSION_KEY_VALID] = 1
-    return response
-
-
-@app.before_request
-def app_before_request():
-    _wsgi_app.set_log_user(flask.session.get(_SESSION_KEY_USER))
-
-
 def clear_session_user():
     """Remove the current user from the flask session.
     """
     if _SESSION_KEY_USER in flask.session:
         del flask.session[_SESSION_KEY_USER]
+
+
+def flask_after_request(response):
+    if 200 <= response.status_code < 400:
+        flask.session.setdefault(_SESSION_KEY_COOKIE_SENTINEL, 1)
+    return response
+
+
+def flask_before_request():
+    _wsgi_app.set_log_user(flask.session.get(_SESSION_KEY_USER))
 
 
 def init(db_dir=None, uwsgi=None):
@@ -722,6 +720,8 @@ def init(db_dir=None, uwsgi=None):
     app.sirepo_db_dir = db_dir
     app.secret_key = cfg.beaker_session.secret
     app.session_cookie_name = cfg.beaker_session.key
+    app.before_request(flask_before_request)
+    app.after_request(flask_after_request)
     simulation_db.init_by_server(app, sys.modules[__name__])
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
@@ -750,7 +750,7 @@ def session_user(checked=True):
     """Get the user from the Flask session
 
     Args:
-        checked (bool): if kwargs['checked'], assert the user is truthy
+        checked (bool): if checked, assert the user is truthy
 
     Returns:
         str: user id
@@ -761,7 +761,7 @@ def session_user(checked=True):
         if res:
             set_session_user(res)
     if not res and checked:
-        if flask.session.get(_SESSION_KEY_VALID):
+        if flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
             raise KeyError(_SESSION_KEY_USER)
         util.raise_forbidden('Missing session, cookies may be disabled')
     return res
