@@ -18,7 +18,7 @@ def raise_not_found(fmt, *args, **kwargs):
     pkdlog(fmt, *args, **kwargs)
     raise werkzeug.exceptions.NotFound()
 
-def merge_dicts(base, derived, depth):
+def merge_dicts(base, derived, depth = 1):
     if depth <= 0:
         return
     for key in base:

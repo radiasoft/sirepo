@@ -669,16 +669,30 @@
 
     .sr-plot-particle-3d {
     }
+
     .vtk-info-overlay {
         position: absolute;
         background-color: transparent;
         border-color: black;
         border-style: solid;
         border-width: 1.0px;
+    }
+    .vtk-info-overlay-move {
         pointer-events: none;
     }
+    .vtk-info-overlay-select {
+        pointer-events: all;
+    }
+
     .vtk-info-overlay .x-axis-label, .y-axis-label, .z-axis-label {
 
+    }
+    .vtk-info-overlay .axis text {
+        font-size: 13px;
+    }
+    .vtk-info-overlay text.axis-end {
+        opacity: 0;
+        font-size: 13px;
     }
 
     /* Full-screen styles */
