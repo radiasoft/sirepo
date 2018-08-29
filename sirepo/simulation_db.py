@@ -1178,7 +1178,7 @@ def _user_dir():
     d = user_dir_name(uid)
     if d.check():
         return d
-    # Beaker session might have been deleted (in dev) so "logout" and "login"
+    # flask session might have been deleted (in dev) so "logout" and "login"
     uid = _user_dir_create()
     return user_dir_name(uid)
 

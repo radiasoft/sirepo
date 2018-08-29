@@ -703,6 +703,9 @@ def flask_after_request(response):
 
 
 def flask_before_request():
+    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
+        if 'HTTP_COOKIE' in flask.request.environ:
+            beaker_compat.update_session_from_cookie_header(flask.request.environ['HTTP_COOKIE'])
     _wsgi_app.set_log_user(flask.session.get(_SESSION_KEY_USER))
 
 
@@ -758,10 +761,6 @@ def session_user(checked=True):
     if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
         util.raise_forbidden('Missing session, cookies may be disabled')
     res = flask.session.get(_SESSION_KEY_USER)
-    if not res and 'HTTP_COOKIE' in flask.request.environ:
-        res = beaker_compat.load_from_header(flask.request.environ['HTTP_COOKIE'])
-        if res:
-            set_session_user(res)
     if checked and not res:
         raise ValueError(_SESSION_KEY_USER)
     return res

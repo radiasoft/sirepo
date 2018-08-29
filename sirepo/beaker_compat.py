@@ -10,11 +10,12 @@ from __future__ import absolute_import, division, print_function
 from beaker.session import SignedCookie
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import beaker
+import flask
 import pickle
 
 
-def load_from_header(header):
-    """Returns the uid from the beaker file identified by the cookie header
+def update_session_from_cookie_header(header):
+    """Update the flask session from the beaker file identified by the cookie header
     """
     from sirepo.server import cfg
     try:
@@ -22,7 +23,7 @@ def load_from_header(header):
         if cfg.beaker_session.key in cookie:
             identifier = cookie[cfg.beaker_session.key].value
             if not identifier:
-                return None
+                return
             path = beaker.util.encoded_path(
                 str(cfg.db_dir.join('beaker/container_file')),
                 [identifier],
@@ -32,7 +33,9 @@ def load_from_header(header):
                 values = pickle.load(fh)
                 if 'session' in values and 'uid' in values['session']:
                     pkdlog('retrieved user from beaker cookie: {}', values['session']['uid'])
-                    return values['session']['uid']
+                    for f in ('uid', 'oauth_login_state', 'oauth_user_name'):
+                        if f in values['session']:
+                            flask.session[f] = values['session'][f]
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
-    return None
+    return
