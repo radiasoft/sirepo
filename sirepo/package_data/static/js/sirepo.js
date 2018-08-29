@@ -52,11 +52,7 @@ angular.element(document).ready(function() {
         }
         return promises;
     }
-
-    //function loadDynamicModule(name) {
-    //    return initDynamicModule(name);
-    //}
-
+    
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
