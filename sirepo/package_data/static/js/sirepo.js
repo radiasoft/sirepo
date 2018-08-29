@@ -1247,6 +1247,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         if (status == 404) {
             self.localRedirect('notFound');
         }
+        else if (status == 403) {
+            self.localRedirect('forbidden');
+        }
         else {
             errorService.alertText('Request failed: ' + data.error);
         }

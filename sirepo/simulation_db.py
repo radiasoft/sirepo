@@ -1172,14 +1172,13 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    try:
-        uid = _server.session_user()
-    except KeyError:
+    uid = _server.session_user(checked=False)
+    if not uid:
         uid = _user_dir_create()
     d = user_dir_name(uid)
     if d.check():
         return d
-    # Beaker session might have been deleted (in dev) so "logout" and "login"
+    # flask session might have been deleted (in dev) so "logout" and "login"
     uid = _user_dir_create()
     return user_dir_name(uid)
 
@@ -1192,7 +1191,7 @@ def _user_dir_create():
     """
     uid = _random_id(user_dir_name())['id']
     # Must set before calling simulation_dir
-    _server.session_user(uid)
+    _server.set_session_user(uid)
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid

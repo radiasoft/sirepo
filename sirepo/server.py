@@ -9,18 +9,17 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import beaker_compat
 from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo import util
 from sirepo import uri_router
 from sirepo.template import template_common
-import beaker.middleware
 import datetime
 import flask
 import flask.sessions
 import glob
-import os
 import os.path
 import py.path
 import re
@@ -34,17 +33,8 @@ import werkzeug.exceptions
 if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
     import h5py
 
-#: where users live under db_dir
-_BEAKER_DATA_DIR = 'beaker'
-
-#: where users live under db_dir
-_BEAKER_LOCK_DIR = 'lock'
-
 #: Relative to current directory only in test mode
 _DEFAULT_DB_SUBDIR = 'run'
-
-#: What's the key in environ for the session
-_ENVIRON_KEY_BEAKER = 'beaker.session'
 
 #: Cache for _json_response_ok
 _JSON_RESPONSE_OK = None
@@ -55,8 +45,11 @@ _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
 
-#: Identifies the user in the Beaker session
+#: Identifies the user in the session
 _SESSION_KEY_USER = 'uid'
+
+#: Identifies if the session has been returned by the client
+_SESSION_KEY_COOKIE_SENTINEL = 'ok'
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
@@ -394,7 +387,6 @@ def api_importFile(simulation_type=None):
     return _json_response({
         'error': error if error else 'An unknown error occurred',
     })
-
 app_import_file = api_importFile
 
 
@@ -704,6 +696,19 @@ def clear_session_user():
         del flask.session[_SESSION_KEY_USER]
 
 
+def flask_after_request(response):
+    if 200 <= response.status_code < 400:
+        flask.session.setdefault(_SESSION_KEY_COOKIE_SENTINEL, 1)
+    return response
+
+
+def flask_before_request():
+    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
+        if 'HTTP_COOKIE' in flask.request.environ:
+            beaker_compat.update_session_from_cookie_header(flask.request.environ['HTTP_COOKIE'])
+    _wsgi_app.set_log_user(flask.session.get(_SESSION_KEY_USER))
+
+
 def init(db_dir=None, uwsgi=None):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
@@ -715,7 +720,11 @@ def init(db_dir=None, uwsgi=None):
     uri_router.init(app, sys.modules[__name__], simulation_db)
     global _wsgi_app
     _wsgi_app = _WSGIApp(app, uwsgi)
-    _BeakerSession().sirepo_init_app(app, db_dir)
+    app.sirepo_db_dir = db_dir
+    app.secret_key = cfg.app_secret_key or cfg.beaker_session.secret
+    app.session_cookie_name = cfg.app_session_cookie_name or cfg.beaker_session.key
+    app.before_request(flask_before_request)
+    app.after_request(flask_after_request)
     simulation_db.init_by_server(app, sys.modules[__name__])
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
@@ -732,73 +741,29 @@ def javascript_redirect(redirect_uri):
     )
 
 
-def session_user(*args, **kwargs):
-    """Get/set the user from the Flask session
+def set_session_user(user):
+    """Set the user for the Flask session
+    """
+    assert user
+    flask.session[_SESSION_KEY_USER] = user
+    _wsgi_app.set_log_user(user)
 
-    With no positional arguments, is a getter. Else a setter.
+
+def session_user(checked=True):
+    """Get the user from the Flask session
 
     Args:
-        user (str): if args[0], will set the user; else gets
-        checked (bool): if kwargs['checked'], assert the user is truthy
-        environ (dict): session environment to use instead of `flask.session`
+        checked (bool): if checked, assert the user is truthy
 
     Returns:
         str: user id
     """
-    environ = kwargs.get('environ', None)
-    session = environ.get(_ENVIRON_KEY_BEAKER) if environ else flask.session
-    if args:
-        session[_SESSION_KEY_USER] = args[0]
-        _wsgi_app.set_log_user(args[0])
-    res = session.get(_SESSION_KEY_USER)
-    if not res and kwargs.get('checked', True):
-        raise KeyError(_SESSION_KEY_USER)
+    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
+        util.raise_forbidden('Missing session, cookies may be disabled')
+    res = flask.session.get(_SESSION_KEY_USER)
+    if checked and not res:
+        raise ValueError(_SESSION_KEY_USER)
     return res
-
-
-class _BeakerSession(flask.sessions.SessionInterface):
-    """Session manager for Flask using Beaker.
-
-    Stores session info in files in sirepo.server.data_dir. Minimal info kept
-    in session.
-    """
-    def __init__(self, app=None):
-        if app is None:
-            self.app = None
-        else:
-            self.init_app(app)
-
-    def sirepo_init_app(self, app, db_dir):
-        """Initialize cfg with db_dir and register self with Flask
-
-        Args:
-            app (flask): Flask application object
-            db_dir (py.path.local): db_dir passed on command line
-        """
-        app.sirepo_db_dir = db_dir
-        data_dir = db_dir.join(_BEAKER_DATA_DIR)
-        lock_dir = data_dir.join(_BEAKER_LOCK_DIR)
-        pkio.mkdir_parent(lock_dir)
-        sc = {
-            'session.auto': True,
-            'session.cookie_expires': False,
-            'session.type': 'file',
-            'session.data_dir': str(data_dir),
-            'session.lock_dir': str(lock_dir),
-        }
-        #TODO(robnagler) Generalize? seems like we'll be shadowing lots of config
-        for k in cfg.beaker_session:
-            sc['session.' + k] = cfg.beaker_session[k]
-        app.wsgi_app = beaker.middleware.SessionMiddleware(app.wsgi_app, sc)
-        app.session_interface = self
-
-    def open_session(self, app, request):
-        """Called by flask to create the session"""
-        return request.environ[_ENVIRON_KEY_BEAKER]
-
-    def save_session(self, *args, **kwargs):
-        """Necessary to complete abstraction, but Beaker autosaves"""
-        pass
 
 
 class _WSGIApp(object):
@@ -826,7 +791,6 @@ class _WSGIApp(object):
     def __call__(self, environ, start_response):
         """An "app" called by uwsgi with requests.
         """
-        self.set_log_user(session_user(checked=False, environ=environ))
         return self.wsgi_app(environ, start_response)
 
 
@@ -865,6 +829,7 @@ def _cfg_db_dir(value):
 def _cfg_session_secret(value):
     """Reads file specified as config value"""
     if not value:
+        assert pkconfig.channel_in('dev'), 'missing session secret configuration'
         return 'dev dummy secret'
     with open(value) as f:
         return f.read()
@@ -1184,13 +1149,15 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
+    # beaker_session is historical, used only for deserializing old session
     beaker_session=dict(
         key=('sirepo_' + pkconfig.cfg.channel, str, 'Beaker: Name of the cookie key used to save the session under'),
         secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
-        secure=(False, bool, 'Beaker: Whether or not the session cookie should be marked as secure'),
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    app_secret_key=(None, str, 'Secret for flask session serialization'),
+    app_session_cookie_name=(None, str, 'Cookie key for serialized flask sessions'),
 )

@@ -1,5 +1,5 @@
 {
-    "version": "20180821.000000",
+    "version": "20180828.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -108,6 +108,12 @@
             "config": {
               "controller": "LoggedOutController as loggedOut",
               "templateUrl": "/static/html/logged-out.html"
+            }
+        },
+        "forbidden": {
+            "route": "/forbidden",
+            "config": {
+              "templateUrl": "/static/html/forbidden.html"
             }
         },
         "notFound": {

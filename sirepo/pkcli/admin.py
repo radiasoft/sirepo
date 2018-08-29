@@ -26,9 +26,9 @@ def create_examples():
         uid = simulation_db.uid_from_dir_name(d)
         # create a mock session
         flask.session = {
-            server._ENVIRON_KEY_BEAKER: {},
+            server._SESSION_KEY_COOKIE_SENTINEL: 1,
         }
-        server.session_user(uid)
+        server.set_session_user(uid)
         for sim_type in feature_config.cfg.sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = map(

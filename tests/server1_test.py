@@ -20,6 +20,7 @@ def test_1_serial_stomp():
 
     fc = sr_unit.flask_client()
     sim_type = 'srw'
+    fc.get('/{}'.format(sim_type))
     data = fc.sr_post('listSimulations', {'simulationType': sim_type})
     for youngs in data:
         if youngs['name'] == "Young's Double Slit Experiment":
@@ -70,6 +71,16 @@ def test_1_serial_stomp():
     )
 
 
+def test_missing_cookies():
+    from pykern.pkunit import pkeq
+    from sirepo import sr_unit
+    import json
+    fc = sr_unit.flask_client()
+    sim_type = 'srw'
+    resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
+    pkeq(403, resp.status_code)
+
+
 def test_oauth():
     from pykern import pkconfig
     pkconfig.reset_state_for_testing({
@@ -86,6 +97,7 @@ def test_oauth():
 
     sim_type = 'srw'
     fc = sr_unit.flask_client()
+    fc.get('/{}'.format(sim_type))
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     text = fc.sr_get(
         'oauthLogin',
