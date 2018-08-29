@@ -34,7 +34,7 @@ build_as_run_user() {
         git checkout -qf "$TRAVIS_COMMIT"
     fi
     pip install -r requirements.txt
-    pip install
+    pip install .
 
     # test & deploy
     # npm gets ECONNRESET due to a node error, which shouldn't happen
@@ -68,7 +68,7 @@ sirepo_fix_srw() {
 sirepo_reinstall_pykern() {
     git clone -q --depth=50 https://github.com/radiasoft/pykern
     cd pykern
-    pip uninstall -y pykern >& /dev/null || true
+    pip uninstall -y pykern || true
     pip install .
     cd ..
 }
