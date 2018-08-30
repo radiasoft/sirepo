@@ -87,8 +87,6 @@ def auth_hash(req, verify=False):
 
 
 def auth_login(req):
-    import flask
-
     if cfg.auth_secret:
         auth_hash(req, verify=True)
     else:
