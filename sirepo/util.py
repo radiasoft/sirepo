@@ -26,5 +26,9 @@ def merge_dicts(base, derived, depth = 1):
             derived[key] = base[key]
         merge_dicts(base[key], derived[key], depth-1)
 
+def merge_lists(base, derived):
+    for item in base:
+        derived.append(item)
+
 def err(obj, format='', *args, **kwargs):
     return '{}: '.format(obj) + format.format(*args, **kwargs)

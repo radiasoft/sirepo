@@ -383,7 +383,7 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
         controller: function($scope) {
             var cells = null;
             $scope.cellList = function() {
-                if (appState.isLoaded() && plotting.isPlottingReady()) {
+                if (appState.isLoaded()) {
                     if (cells) {
                         return cells;
                     }

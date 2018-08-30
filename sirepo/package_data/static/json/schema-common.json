@@ -83,6 +83,9 @@
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
+    "commonDynamicModules": [
+        "/static/js/ext/d3-3.5.9.min.js"
+    ],
     "commonLocalRoutes": {
         "simulations": {
             "route": "/simulations",
