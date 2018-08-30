@@ -7,7 +7,9 @@ u"""Handles dispatching of uris to server.api_* functions
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import cookie
 from sirepo import util
+import flask
 import re
 
 #: route for sirepo.sr_unit
@@ -30,6 +32,9 @@ _uri_to_route = None
 
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _api_to_route = None
+
+#: WSGIApp instance (see `init`)
+_wsgi_app = None
 
 
 class NotFound(Exception):
@@ -75,7 +80,7 @@ def func_for_api(api_name, api_module):
     return res
 
 
-def init(app, api_module, simulation_db):
+def init(app, api_module, simulation_db, wsgi_app):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -89,7 +94,8 @@ def init(app, api_module, simulation_db):
     if _uri_to_route:
         # Already initialized
         return
-    global _default_route, _empty_route, sr_unit_uri, _api_to_route
+    global _default_route, _empty_route, sr_unit_uri, _api_to_route, _wsgi_app
+    _wsgi_app = wsgi_app
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
@@ -124,7 +130,6 @@ def uri_for_api(api_name, params=None, external=True):
     Returns:
         str: formmatted external URI
     """
-    import flask
     import urllib
 
     r = _api_to_route[api_name]
@@ -160,9 +165,10 @@ def _dispatch(path):
         Flask.response
     """
     import werkzeug.exceptions
+    cookie.init(_wsgi_app)
     try:
         if path is None:
-            return _empty_route.func()
+            return _response(_empty_route.func())
         parts = path.split('/')
         try:
             route = _uri_to_route[parts[0]]
@@ -178,7 +184,7 @@ def _dispatch(path):
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
-        return route.func(**kwargs)
+        return _response(route.func(**kwargs))
     except NotFound as e:
         #TODO(robnagler) cascade calling context
         pkdlog(e.log_fmt, *e.args, **e.kwargs)
@@ -186,6 +192,12 @@ def _dispatch(path):
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
+
+
+def _response(*args, **kwargs):
+    response = flask.make_response(*args, **kwargs)
+    cookie.save_to_cookie(response)
+    return response
 
 
 def _dispatch_empty():

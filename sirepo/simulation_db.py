@@ -11,13 +11,13 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import cookie
 from sirepo import feature_config
-from sirepo.template import template_common
 from sirepo import util
+from sirepo.template import template_common
 import copy
 import datetime
 import errno
-import flask
 import glob
 import json
 import numconv
@@ -93,9 +93,6 @@ _serial_prev = 0
 
 #: Locking for global operations like serial, user moves, etc.
 _global_lock = threading.RLock()
-
-#: sirepo.server module, initialized manually to avoid circularity
-_server = None
 
 #: configuration
 cfg = None
@@ -298,17 +295,14 @@ def _validate_schema(schema):
             _validate_number(field_default, sch_field_info)
 
 
-def init_by_server(app, server):
+def init_by_server(app):
     """Avoid circular import by explicit call from `sirepo.server`.
 
     Args:
         app (Flask): flask instance
-        server (module): sirepo.server
     """
     global _app
     _app = app
-    global _server
-    _server = server
 
 
 def is_parallel(data):
@@ -391,7 +385,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        _server.session_user(),
+        cookie.get_user(),
         data['simulationId'],
         data['report'],
     )
@@ -436,7 +430,7 @@ def lib_dir_from_sim_dir(sim_dir):
 def move_user_simulations(to_uid):
     """Moves all non-example simulations for the current session into the target user's dir.
     """
-    from_uid = _server.session_user()
+    from_uid = cookie.get_user()
     with _global_lock:
         for path in glob.glob(
                 str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
@@ -1174,7 +1168,7 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = _server.session_user(checked=False)
+    uid = cookie.get_user(checked=False)
     if not uid:
         uid = _user_dir_create()
     d = user_dir_name(uid)
@@ -1193,7 +1187,7 @@ def _user_dir_create():
     """
     uid = _random_id(user_dir_name())['id']
     # Must set before calling simulation_dir
-    _server.set_session_user(uid)
+    cookie.set_user(uid)
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid

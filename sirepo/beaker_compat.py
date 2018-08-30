@@ -10,9 +10,14 @@ from __future__ import absolute_import, division, print_function
 from beaker.session import SignedCookie
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import beaker
-import flask
 import pickle
+import sirepo
 
+_KEY_MAP = {
+    'uid': 'sru',
+    'oauth_login_state': 'sros',
+    'oauth_user_name': 'sron',
+}
 
 def update_session_from_cookie_header(header):
     """Update the flask session from the beaker file identified by the cookie header
@@ -33,9 +38,9 @@ def update_session_from_cookie_header(header):
                 values = pickle.load(fh)
                 if 'session' in values and 'uid' in values['session']:
                     pkdlog('retrieved user from beaker cookie: {}', values['session']['uid'])
-                    for f in ('uid', 'oauth_login_state', 'oauth_user_name'):
+                    for f in _KEY_MAP.keys():
                         if f in values['session']:
-                            flask.session[f] = values['session'][f]
+                            sirepo.cookie.set(_KEY_MAP[f], values['session'][f])
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
     return
