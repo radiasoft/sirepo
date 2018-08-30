@@ -244,24 +244,26 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
+    # TODO (mvk): merge common modules into app modules
+
     # merge common local routes into app local routes
-    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], 2)
+    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], depth=2)
 
     if 'appModes' not in schema:
         schema['appModes'] = {}
-    util.merge_dicts(schema['commonAppModes'], schema['appModes'], 1)
+    util.merge_dicts(schema['commonAppModes'], schema['appModes'])
 
     # merge common models into app models
-    util.merge_dicts(schema['commonModels'], schema['model'], 2)
+    util.merge_dicts(schema['commonModels'], schema['model'], depth=2)
 
     # merge common enums into app models
-    util.merge_dicts(schema['commonEnums'], schema['enum'], 1)
+    util.merge_dicts(schema['commonEnums'], schema['enum'])
 
     # merge common views into app views - since these can be deeply nested, for now merge only
     # the title, basic fields, and top level of advanced fields
     common_views = schema['commonViews']
     app_views = schema['view']
-    util.merge_dicts(common_views, app_views, 1)
+    util.merge_dicts(common_views, app_views)
     for view_Name in common_views:
         if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
             app_views[view_Name]['title'] = common_views[view_Name]['title']

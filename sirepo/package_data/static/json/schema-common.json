@@ -1,5 +1,5 @@
 {
-    "version": "20180828.000000",
+    "version": "20180829.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -62,7 +62,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
         "homePage": "/light",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
+        "listFiles": "/file-list/<simulation_type>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",

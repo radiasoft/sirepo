@@ -10,6 +10,28 @@ var srdbg = SIREPO.srdbg;
 
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
+
+    function loadDynamicModule(src) {
+        var d = $.Deferred();
+        var scriptTag = document.createElement('script');
+        scriptTag.type = 'text/javascript';
+        scriptTag.async = true;
+        scriptTag.onload = function() {
+            d.resolve();
+        }
+        scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
+        document.getElementsByTagName('body')[0].appendChild(scriptTag);
+        return d.promise();
+    }
+
+    function loadDynamicModules() {
+        return $.map(
+            SIREPO.APP_SCHEMA.dynamicModules || [],
+            function(src) {
+                return loadDynamicModule(src);
+            });
+    }
+
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -17,7 +39,11 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            angular.bootstrap(document, ['SirepoApp']);
+            $.when.apply($, loadDynamicModules()).then(
+                function() {
+                    angular.bootstrap(document, ['SirepoApp']);
+                }
+            );
         },
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {

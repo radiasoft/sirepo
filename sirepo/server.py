@@ -244,7 +244,7 @@ def api_favicon():
 app_favicon = api_favicon
 
 
-def api_listFiles(simulation_type, simulation_id, file_type):
+def api_listFiles(simulation_type, file_type):
     file_type = werkzeug.secure_filename(file_type)
     res = []
     exclude = None
