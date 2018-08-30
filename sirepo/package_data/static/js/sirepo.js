@@ -11,48 +11,27 @@ var srdbg = SIREPO.srdbg;
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
 
-    function loadDynamicModule(name) {
-
+    function loadDynamicModule(src) {
         var d = $.Deferred();
-
-        function onScriptLoad(name) {
-            // Load client in the browser
-            // need the timeout?
-            window.setTimeout(function() {
-                d.resolve(window[name]);
-            });
-        }
-
-        // Create a script tag with the provided source
-        // and call our onScriptLoad callback when it
-        // has been loaded
         var scriptTag = document.createElement('script');
         scriptTag.type = 'text/javascript';
         scriptTag.async = true;
-        scriptTag.src = SIREPO.APP_SCHEMA.dynamicModules[name].src + SIREPO.SOURCE_CACHE_KEY;
-        // onreadystatechange needed?
-        scriptTag.onreadystatechange = function () {
-            if (this.readyState === 'complete') {
-                onScriptLoad(name);
-            }
-        };
-        scriptTag.onload = function (ev) {
-            onScriptLoad(name);
-        };
-        var s = document.getElementsByTagName('body')[0];
-        s.appendChild(scriptTag);
-
+        scriptTag.onload = function() {
+            d.resolve();
+        }
+        scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
+        document.getElementsByTagName('body')[0].appendChild(scriptTag);
         return d.promise();
     }
 
     function loadDynamicModules() {
-        var promises = [];
-        for(var name in SIREPO.APP_SCHEMA.dynamicModules) {
-            promises.push(loadDynamicModule(name));
-        }
-        return promises;
+        return $.map(
+            SIREPO.APP_SCHEMA.dynamicModules || [],
+            function(src) {
+                return loadDynamicModule(src);
+            });
     }
-    
+
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -60,15 +39,6 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            // TODO (mvk): do this validation in simulation_db.py
-            var modules = SIREPO.APP_SCHEMA.dynamicModules;
-            if(modules) {
-                for(var name in modules) {
-                    if(! modules[name].src) {
-                        throw modules[name] + ': src required';
-                    }
-                }
-            }
             $.when.apply($, loadDynamicModules()).then(
                 function() {
                     angular.bootstrap(document, ['SirepoApp']);
