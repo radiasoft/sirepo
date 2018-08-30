@@ -18,7 +18,7 @@ angular.element(document).ready(function() {
         scriptTag.async = true;
         scriptTag.onload = function() {
             d.resolve();
-        }
+        };
         scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
         document.getElementsByTagName('body')[0].appendChild(scriptTag);
         return d.promise();
