@@ -10,27 +10,22 @@ from __future__ import absolute_import, division, print_function
 from beaker.session import SignedCookie
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
-from sirepo import oauth
 import beaker
 import pickle
 import sirepo
 
-_KEY_MAP = {
-    'uid': cookie._COOKIE_USER,
-    'oauth_login_state': oauth._COOKIE_STATE,
-    'oauth_user_name': oauth._COOKIE_NAME,
-}
 
 def update_session_from_cookie_header(header):
     """Update the flask session from the beaker file identified by the cookie header
     """
     from sirepo.server import cfg
+    maps = _init_maps(cfg.oauth_login)
     try:
         cookie = SignedCookie(cfg.beaker_session.secret, input=header)
         if cfg.beaker_session.key in cookie:
             identifier = cookie[cfg.beaker_session.key].value
             if not identifier:
-                return
+                return False
             path = beaker.util.encoded_path(
                 str(cfg.db_dir.join('beaker/container_file')),
                 [identifier],
@@ -40,9 +35,26 @@ def update_session_from_cookie_header(header):
                 values = pickle.load(fh)
             if 'session' in values and 'uid' in values['session']:
                 pkdlog('retrieved user from beaker cookie: {}', values['session']['uid'])
-                for f in _KEY_MAP.keys():
+                for f in maps['key'].keys():
                     if f in values['session']:
-                        sirepo.cookie.set_value(_KEY_MAP[f], values['session'][f])
+                        sirepo.cookie.set_value(maps['key'][f], maps['value'].get(values['session'][f], values['session'][f]))
+                return True
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
-    return
+    return False
+
+
+def _init_maps(is_oauth):
+    res = {
+        'key': {
+            'uid': cookie._COOKIE_USER,
+        },
+        'value': {}
+    }
+    if is_oauth:
+        from sirepo import oauth
+        res['key']['oauth_login_state'] = oauth._COOKIE_STATE
+        res['key']['oauth_user_name'] = oauth._COOKIE_NAME
+        # reverse map of login state values
+        res['value'] = dict(map(lambda k: (oauth._LOGIN_STATE_MAP[k], k), oauth._LOGIN_STATE_MAP))
+    return res

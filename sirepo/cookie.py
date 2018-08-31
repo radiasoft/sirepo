@@ -43,16 +43,14 @@ def has_key(key):
 
 def init():
     header = flask.request.environ.get('HTTP_COOKIE', '')
-    assert not 'sirepo_cookie' in flask.g
-    flask.g.sirepo_cookie = _State(header)
+    _State(header)
 
 
 def init_mock(uid):
     """A mock cookie for pkcli"""
-    flask.g = pkcollections.Dict({
-        'sirepo_cookie': _State('', None),
-    })
-    set_value(_COOKIE_SENTINEL, 1)
+    flask.g = pkcollections.Dict()
+    _State('')
+    set_value(_COOKIE_SENTINEL, '1')
     set_user(uid)
 
 
@@ -82,6 +80,8 @@ def _state():
 class _State(dict):
 
     def __init__(self, header):
+        assert not 'sirepo_cookie' in flask.g
+        flask.g.sirepo_cookie = self
         self.incoming_cookie_text = ''
         self.crypto = None
         self._from_cookie_header(header)
@@ -93,7 +93,7 @@ class _State(dict):
 
     def save_to_cookie(self, response):
         if 200 <= response.status_code < 400:
-            self[_COOKIE_SENTINEL] = 1
+            self[_COOKIE_SENTINEL] = '1'
             text = ' '.join(map(lambda k: '{}={}'.format(k, self[k]), self.keys()))
             if text != self.incoming_cookie_text:
                 response.set_cookie(cfg.key, self._encode_value(text), max_age=_MAX_AGE_SECONDS)
@@ -112,7 +112,7 @@ class _State(dict):
     def _decode_value(self, value):
         try:
             return self._crypto().decrypt(base64.urlsafe_b64decode(value))
-        except cryptography.fernet.InvalidToken:
+        except cryptography.fernet.InvalidToken, TypeError:
             pkdlog('Cookie decryption failed: {}', value)
             return ''
 
@@ -122,10 +122,7 @@ class _State(dict):
     def _from_cookie_header(self, header):
         match = re.search(r'\b{}=([^;]+)'.format(cfg.key), header)
         if match:
-            try:
-                values = self._decode_value(match.group(1))
-            except TypeError:
-                values = ''
+            values = self._decode_value(match.group(1))
             self.incoming_cookie_text = values
             for pair in values.split(' '):
                 match = re.search(r'^([^=]+)=(.*)', pair)
@@ -134,7 +131,8 @@ class _State(dict):
                     self[k] = v
         if not self.get(_COOKIE_SENTINEL):
             import sirepo.beaker_compat
-            sirepo.beaker_compat.update_session_from_cookie_header(header)
+            if sirepo.beaker_compat.update_session_from_cookie_header(header):
+                self[_COOKIE_SENTINEL] = '1'
 
 
 cfg = pkconfig.init(
