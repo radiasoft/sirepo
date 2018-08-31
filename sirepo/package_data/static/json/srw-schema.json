@@ -1,4 +1,8 @@
 {
+    "dynamicModules": [
+        "/static/js/sirepo-beamline.js",
+        "/static/js/ext/dom-to-image.min.js"
+    ],
     "localRoutes": {
         "source": {
             "config": {

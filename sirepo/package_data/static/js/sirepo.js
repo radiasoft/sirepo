@@ -18,7 +18,7 @@ angular.element(document).ready(function() {
         scriptTag.async = true;
         scriptTag.onload = function() {
             d.resolve();
-        }
+        };
         scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
         document.getElementsByTagName('body')[0].appendChild(scriptTag);
         return d.promise();
@@ -90,7 +90,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'ngCookies', 'vtk']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 

@@ -241,13 +241,16 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
-    # TODO (mvk): merge common modules into app modules
+    # TODO (mvk): improve merging common and local schema
+    if 'dynamicModules' not in schema:
+        schema['dynamicModules'] = []
+    util.merge_lists(schema['commonDynamicModules'], schema['dynamicModules'])
 
     # merge common local routes into app local routes
     util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], depth=2)
 
     if 'appModes' not in schema:
-        schema['appModes'] = {}
+        schema['appModes'] = pkcollections.Dict()
     util.merge_dicts(schema['commonAppModes'], schema['appModes'])
 
     # merge common models into app models
