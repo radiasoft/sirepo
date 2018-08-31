@@ -2351,7 +2351,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('keypressService', function(d3Service) {
+SIREPO.app.service('keypressService', function() {
 
     var listeners = {};
     var reports = {};
@@ -2439,7 +2439,6 @@ SIREPO.app.service('keypressService', function(d3Service) {
             showPanelActive(reportId, true);
             return;
         }
-        // d3Service needs to be imported above or this will fail
         d3.select('body').on('keydown', null);
         showPanelActive(reportId, false);
     };

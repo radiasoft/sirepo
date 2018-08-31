@@ -1365,7 +1365,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             };
 
             $scope.resize = function() {
-                if (! plotting.isPlottingReady() || select().empty()) {
+                if (select().empty()) {
                     return;
                 }
                 var width = parseInt(select().style('width'));
