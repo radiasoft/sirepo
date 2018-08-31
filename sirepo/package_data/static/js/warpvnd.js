@@ -1512,7 +1512,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkService) {
+SIREPO.app.directive('conductors3d', function(appState) {
     return {
         restrict: 'A',
         template: [
@@ -1700,10 +1700,8 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
             });
 
             appState.whenModelsLoaded($scope, function() {
-                vtkService.vtk().then(function() {
-                    init();
-                    load();
-                });
+                init();
+                load();
             });
 
         },
