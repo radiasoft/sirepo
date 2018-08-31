@@ -7,7 +7,9 @@ u"""Handles dispatching of uris to server.api_* functions
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import cookie
 from sirepo import util
+import flask
 import re
 
 #: route for sirepo.sr_unit
@@ -124,7 +126,6 @@ def uri_for_api(api_name, params=None, external=True):
     Returns:
         str: formmatted external URI
     """
-    import flask
     import urllib
 
     r = _api_to_route[api_name]
@@ -160,9 +161,10 @@ def _dispatch(path):
         Flask.response
     """
     import werkzeug.exceptions
+    cookie.init()
     try:
         if path is None:
-            return _empty_route.func()
+            return _response(_empty_route.func())
         parts = path.split('/')
         try:
             route = _uri_to_route[parts[0]]
@@ -178,7 +180,7 @@ def _dispatch(path):
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
-        return route.func(**kwargs)
+        return _response(route.func(**kwargs))
     except NotFound as e:
         #TODO(robnagler) cascade calling context
         pkdlog(e.log_fmt, *e.args, **e.kwargs)
@@ -186,6 +188,12 @@ def _dispatch(path):
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
+
+
+def _response(*args, **kwargs):
+    response = flask.make_response(*args, **kwargs)
+    cookie.save_to_cookie(response)
+    return response
 
 
 def _dispatch_empty():

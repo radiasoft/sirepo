@@ -5,3 +5,4 @@ pykern
 flask
 # install_requires does not support git
 git+git://github.com/dicompyler/dicompyler-core.git@1d52ea9322c6c889e6f1e3319a331d6a22d7a8c4#egg=dicompyler-core
+cryptography

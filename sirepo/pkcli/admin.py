@@ -16,7 +16,7 @@ def create_examples():
     from sirepo import feature_config
     from sirepo import server
     from sirepo import simulation_db
-    import flask
+    from sirepo import cookie
 
     server.init()
 
@@ -24,11 +24,7 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        # create a mock session
-        flask.session = {
-            server._SESSION_KEY_COOKIE_SENTINEL: 1,
-        }
-        server.set_session_user(uid)
+        cookie.init_mock(uid)
         for sim_type in feature_config.cfg.sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = map(

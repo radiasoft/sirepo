@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 from flask_sqlalchemy import SQLAlchemy
 from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import cookie
 from sirepo import server
 from sirepo import simulation_db
 import flask
@@ -19,12 +20,25 @@ import threading
 import werkzeug.exceptions
 import werkzeug.security
 
-# flask session oauth_login_state values
-_ANONYMOUS = 'anonymous'
-_LOGGED_IN = 'logged_in'
-_LOGGED_OUT = 'logged_out'
+# oauth_login_state values
+_ANONYMOUS = 'a'
+_LOGGED_IN = 'li'
+_LOGGED_OUT = 'lo'
+
+_ANONYMOUS_OAUTH_TYPE = 'anonymous'
+_LOGIN_STATE_MAP = {
+    _ANONYMOUS: _ANONYMOUS_OAUTH_TYPE,
+    _LOGGED_IN: 'logged_in',
+    _LOGGED_OUT: 'logged_out',
+}
 
 _USER_DB_FILE = 'user.db'
+
+# cookie keys for oauth
+_COOKIE_NAME = 'sron'
+_COOKIE_NEXT = 'sronx'
+_COOKIE_NONCE = 'sronn'
+_COOKIE_STATE = 'sros'
 
 _db = None
 
@@ -45,13 +59,13 @@ def authorize(simulation_type, app, oauth_type):
     If oauth_type is 'anonymous', the current session is cleared.
     """
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next') or '')
-    if oauth_type == _ANONYMOUS:
+    if oauth_type == _ANONYMOUS_OAUTH_TYPE:
         _update_session(_ANONYMOUS)
-        server.clear_session_user()
+        cookie.clear_user()
         return server.javascript_redirect(oauth_next)
     state = werkzeug.security.gen_salt(64)
-    flask.session['oauth_nonce'] = state
-    flask.session['oauth_next'] = oauth_next
+    cookie.set_value(_COOKIE_NONCE, state)
+    cookie.set_value(_COOKIE_NEXT, oauth_next)
     callback = cfg.github_callback_uri
     if not callback:
         from sirepo import uri_router
@@ -74,7 +88,7 @@ def authorized_callback(app, oauth_type):
     if not resp:
         pkdlog('missing oauth response')
         werkzeug.exceptions.abort(403)
-    state = _remove_session_key('oauth_nonce')
+    state = _remove_cookie_key(_COOKIE_NONCE)
     if state != flask.request.args.get('state'):
         pkdlog('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
         werkzeug.exceptions.abort(403)
@@ -82,25 +96,25 @@ def authorized_callback(app, oauth_type):
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
     user = _update_database(user_data, oauth_type)
     _update_session(_LOGGED_IN, user.user_name)
-    return server.javascript_redirect(_remove_session_key('oauth_next'))
+    return server.javascript_redirect(_remove_cookie_key(_COOKIE_NEXT))
 
 
 def logout(simulation_type):
     """Sets the login_state to logged_out and clears the user session.
     """
     _update_session(_LOGGED_OUT)
-    server.clear_session_user()
+    cookie.clear_user()
     return flask.redirect('/{}'.format(simulation_type))
 
 
 def set_default_state(logged_out_as_anonymous=False):
-    if 'oauth_login_state' not in flask.session:
+    if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
-    elif logged_out_as_anonymous and flask.session['oauth_login_state'] == _LOGGED_OUT:
+    elif logged_out_as_anonymous and cookie.get_value(_COOKIE_STATE) == _LOGGED_OUT:
         _update_session(_ANONYMOUS)
     return pkcollections.Dict(
-        login_state=flask.session['oauth_login_state'],
-        user_name=flask.session['oauth_user_name'],
+        login_state=_LOGIN_STATE_MAP.get(cookie.get_value(_COOKIE_STATE), _ANONYMOUS_OAUTH_TYPE),
+        user_name=cookie.get_value(_COOKIE_NAME),
     )
 
 
@@ -147,35 +161,35 @@ def _oauth_client(app, oauth_type):
     raise RuntimeError('Unknown oauth_type: {}'.format(oauth_type))
 
 
-def _remove_session_key(name):
-    value = flask.session[name]
-    del flask.session[name]
+def _remove_cookie_key(name):
+    value = cookie.get_value(name)
+    cookie.unchecked_remove(name)
     return value
 
 
 def _update_database(user_data, oauth_type):
     with _db_serial_lock:
         user = User.query.filter_by(oauth_id=user_data['id'], oauth_type=oauth_type).first()
-        session_uid = server.session_user(checked=False)
+        session_uid = cookie.get_user(checked=False)
         if user:
             if session_uid and session_uid != user.uid:
                 simulation_db.move_user_simulations(user.uid)
             user.user_name = user_data['login']
             user.display_name = user_data['name']
-            server.set_session_user(user.uid)
+            cookie.set_user(user.uid)
         else:
             if not session_uid:
                 # ensures the user session (uid) is ready if new user logs in from logged-out session
                 pkdlog('creating new session for user: {}', user_data['id'])
                 simulation_db.simulation_dir('')
-            user = User(server.session_user(), user_data['login'], user_data['name'], oauth_type, user_data['id'])
+            user = User(cookie.get_user(), user_data['login'], user_data['name'], oauth_type, user_data['id'])
         _db.session.add(user)
         _db.session.commit()
         return user
 
 def _update_session(login_state, user_name=''):
-    flask.session['oauth_login_state'] = login_state
-    flask.session['oauth_user_name'] = user_name
+    cookie.set_value(_COOKIE_STATE, login_state)
+    cookie.set_value(_COOKIE_NAME, user_name)
 
 
 _init(server.app)

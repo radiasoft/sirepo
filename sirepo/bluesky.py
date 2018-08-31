@@ -8,8 +8,9 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkdebug import pkdp
-from sirepo import util
+from sirepo import cookie
 from sirepo import simulation_db
+from sirepo import util
 import base64
 import hashlib
 import numconv
@@ -86,8 +87,6 @@ def auth_hash(req, verify=False):
 
 
 def auth_login(req):
-    from sirepo import server
-
     if cfg.auth_secret:
         auth_hash(req, verify=True)
     else:
@@ -99,7 +98,7 @@ def auth_login(req):
         sid,
         checked=True,
     )
-    server.set_session_user(simulation_db.uid_from_dir_name(path))
+    cookie.set_user(simulation_db.uid_from_dir_name(path))
 
 
 cfg = pkconfig.init(

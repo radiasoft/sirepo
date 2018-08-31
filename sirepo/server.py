@@ -9,16 +9,14 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import beaker_compat
 from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
-from sirepo import util
 from sirepo import uri_router
+from sirepo import util
 from sirepo.template import template_common
 import datetime
 import flask
-import flask.sessions
 import glob
 import os.path
 import py.path
@@ -45,12 +43,6 @@ _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
 
-#: Identifies the user in the session
-_SESSION_KEY_USER = 'uid'
-
-#: Identifies if the session has been returned by the client
-_SESSION_KEY_COOKIE_SENTINEL = 'ok'
-
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
@@ -59,9 +51,6 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
 #: See sirepo.sr_unit
 SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
-
-#: WSGIApp instance (see `init_by_server`)
-_wsgi_app = None
 
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
@@ -689,24 +678,10 @@ def all_uids():
     return oauth.all_uids(app)
 
 
-def clear_session_user():
-    """Remove the current user from the flask session.
-    """
-    if _SESSION_KEY_USER in flask.session:
-        del flask.session[_SESSION_KEY_USER]
-
-
-def flask_after_request(response):
-    if 200 <= response.status_code < 400:
-        flask.session.setdefault(_SESSION_KEY_COOKIE_SENTINEL, 1)
-    return response
-
-
 def flask_before_request():
-    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
-        if 'HTTP_COOKIE' in flask.request.environ:
-            beaker_compat.update_session_from_cookie_header(flask.request.environ['HTTP_COOKIE'])
-    _wsgi_app.set_log_user(flask.session.get(_SESSION_KEY_USER))
+    # set a dummy flask.session, required for temporary per request data by flask_oauthlib.client
+    # this must be set before flask starts the request
+    flask.session = {}
 
 
 def init(db_dir=None, uwsgi=None):
@@ -718,14 +693,9 @@ def init(db_dir=None, uwsgi=None):
     else:
         db_dir = cfg.db_dir
     uri_router.init(app, sys.modules[__name__], simulation_db)
-    global _wsgi_app
-    _wsgi_app = _WSGIApp(app, uwsgi)
     app.sirepo_db_dir = db_dir
-    app.secret_key = cfg.app_secret_key or cfg.beaker_session.secret
-    app.session_cookie_name = cfg.app_session_cookie_name or cfg.beaker_session.key
     app.before_request(flask_before_request)
-    app.after_request(flask_after_request)
-    simulation_db.init_by_server(app, sys.modules[__name__])
+    simulation_db.init_by_server(app)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
     runner.init(app, uwsgi)
@@ -739,59 +709,6 @@ def javascript_redirect(redirect_uri):
         'html/javascript-redirect.html',
         redirect_uri=redirect_uri
     )
-
-
-def set_session_user(user):
-    """Set the user for the Flask session
-    """
-    assert user
-    flask.session[_SESSION_KEY_USER] = user
-    _wsgi_app.set_log_user(user)
-
-
-def session_user(checked=True):
-    """Get the user from the Flask session
-
-    Args:
-        checked (bool): if checked, assert the user is truthy
-
-    Returns:
-        str: user id
-    """
-    if not flask.session.get(_SESSION_KEY_COOKIE_SENTINEL):
-        util.raise_forbidden('Missing session, cookies may be disabled')
-    res = flask.session.get(_SESSION_KEY_USER)
-    if checked and not res:
-        raise ValueError(_SESSION_KEY_USER)
-    return res
-
-
-class _WSGIApp(object):
-    """Wraps Flask's wsgi_app for logging
-
-    Args:
-        app (Flask.app): Flask application being wrapped
-        uwsgi (module): `uwsgi` module passed from ``uwsgi.py.jinja``
-    """
-    def __init__(self, app, uwsgi):
-        self.app = app
-        # Is None if called from sirepo.pkcli.service.http or FlaskClient
-        self.uwsgi = uwsgi
-        self.wsgi_app = app.wsgi_app
-        app.wsgi_app = self
-
-    def set_log_user(self, user):
-        if self.uwsgi:
-            log_user = 'li-' + user if user else '-'
-            # Only works for uWSGI (service.uwsgi). For service.http,
-            # werkzeug.serving.WSGIRequestHandler.log hardwires '%s - - [%s] %s\n',
-            # and no point in overriding, since just for development.
-            self.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, log_user)
-
-    def __call__(self, environ, start_response):
-        """An "app" called by uwsgi with requests.
-        """
-        return self.wsgi_app(environ, start_response)
 
 
 def _as_attachment(response, content_type, filename):
@@ -1158,6 +1075,4 @@ cfg = pkconfig.init(
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
-    app_secret_key=(None, str, 'Secret for flask session serialization'),
-    app_session_cookie_name=(None, str, 'Cookie key for serialized flask sessions'),
 )
