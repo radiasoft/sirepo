@@ -86,6 +86,8 @@ def test_auth_login():
         'listSimulations',
         {'simulationType': 'srw', 'search': {'simulationName': 'Bending Magnet Radiation'}},
     )
+    # calling bluesky directly with no cookies
+    fc.cookie_jar.clear()
     data = data[0].simulation
     req = pkcollections.Dict(
         simulationType='srw',

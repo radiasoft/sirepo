@@ -50,7 +50,6 @@ def init_mock(uid):
     """A mock cookie for pkcli"""
     flask.g = pkcollections.Dict()
     _State('')
-    set_value(_COOKIE_SENTINEL, '1')
     set_user(uid)
 
 
@@ -66,6 +65,7 @@ def set_value(key, value):
 def set_user(uid):
     assert uid
     set_value(_COOKIE_USER, uid)
+    set_value(_COOKIE_SENTINEL, '1')
 
 
 def unchecked_remove(key):
