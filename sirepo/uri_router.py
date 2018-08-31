@@ -33,9 +33,6 @@ _uri_to_route = None
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _api_to_route = None
 
-#: WSGIApp instance (see `init`)
-_wsgi_app = None
-
 
 class NotFound(Exception):
     """Raised to indicate page not found exception (404)"""
@@ -80,7 +77,7 @@ def func_for_api(api_name, api_module):
     return res
 
 
-def init(app, api_module, simulation_db, wsgi_app):
+def init(app, api_module, simulation_db):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -94,8 +91,7 @@ def init(app, api_module, simulation_db, wsgi_app):
     if _uri_to_route:
         # Already initialized
         return
-    global _default_route, _empty_route, sr_unit_uri, _api_to_route, _wsgi_app
-    _wsgi_app = wsgi_app
+    global _default_route, _empty_route, sr_unit_uri, _api_to_route
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
@@ -165,7 +161,7 @@ def _dispatch(path):
         Flask.response
     """
     import werkzeug.exceptions
-    cookie.init(_wsgi_app)
+    cookie.init()
     try:
         if path is None:
             return _response(_empty_route.func())

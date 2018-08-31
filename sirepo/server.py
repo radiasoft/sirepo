@@ -21,7 +21,6 @@ import glob
 import os.path
 import py.path
 import re
-import sirepo.session
 import sirepo.template
 import sys
 import time
@@ -693,8 +692,7 @@ def init(db_dir=None, uwsgi=None):
         cfg.db_dir = py.path.local(db_dir)
     else:
         db_dir = cfg.db_dir
-    global _wsgi_app
-    uri_router.init(app, sys.modules[__name__], simulation_db, _WSGIApp(app, uwsgi))
+    uri_router.init(app, sys.modules[__name__], simulation_db)
     app.sirepo_db_dir = db_dir
     app.before_request(flask_before_request)
     simulation_db.init_by_server(app)
@@ -711,34 +709,6 @@ def javascript_redirect(redirect_uri):
         'html/javascript-redirect.html',
         redirect_uri=redirect_uri
     )
-
-
-class _WSGIApp(object):
-    """Wraps Flask's wsgi_app for logging
-
-    Args:
-        app (Flask.app): Flask application being wrapped
-        uwsgi (module): `uwsgi` module passed from ``uwsgi.py.jinja``
-    """
-    def __init__(self, app, uwsgi):
-        self.app = app
-        # Is None if called from sirepo.pkcli.service.http or FlaskClient
-        self.uwsgi = uwsgi
-        self.wsgi_app = app.wsgi_app
-        app.wsgi_app = self
-
-    def set_log_user(self, user):
-        if self.uwsgi:
-            log_user = 'li-' + user if user else '-'
-            # Only works for uWSGI (service.uwsgi). For service.http,
-            # werkzeug.serving.WSGIRequestHandler.log hardwires '%s - - [%s] %s\n',
-            # and no point in overriding, since just for development.
-            self.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, log_user)
-
-    def __call__(self, environ, start_response):
-        """An "app" called by uwsgi with requests.
-        """
-        return self.wsgi_app(environ, start_response)
 
 
 def _as_attachment(response, content_type, filename):

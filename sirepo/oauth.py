@@ -21,17 +21,24 @@ import werkzeug.exceptions
 import werkzeug.security
 
 # oauth_login_state values
-_ANONYMOUS = 'anonymous'
-_LOGGED_IN = 'logged_in'
-_LOGGED_OUT = 'logged_out'
+_ANONYMOUS = 'a'
+_LOGGED_IN = 'li'
+_LOGGED_OUT = 'lo'
+
+_ANONYMOUS_OAUTH_TYPE = 'anonymous'
+_LOGIN_STATE_MAP = {
+    _ANONYMOUS: _ANONYMOUS_OAUTH_TYPE,
+    _LOGGED_IN: 'logged_in',
+    _LOGGED_OUT: 'logged_out',
+}
 
 _USER_DB_FILE = 'user.db'
 
-# session keys for oauth
-_SESSION_KEY_NAME = 'sron'
-_SESSION_KEY_NEXT = 'sronx'
-_SESSION_KEY_NONCE = 'sronn'
-_SESSION_KEY_STATE = 'sros'
+# cookie keys for oauth
+_COOKIE_NAME = 'sron'
+_COOKIE_NEXT = 'sronx'
+_COOKIE_NONCE = 'sronn'
+_COOKIE_STATE = 'sros'
 
 _db = None
 
@@ -52,13 +59,13 @@ def authorize(simulation_type, app, oauth_type):
     If oauth_type is 'anonymous', the current session is cleared.
     """
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next') or '')
-    if oauth_type == _ANONYMOUS:
+    if oauth_type == _ANONYMOUS_OAUTH_TYPE:
         _update_session(_ANONYMOUS)
         cookie.clear_user()
         return server.javascript_redirect(oauth_next)
     state = werkzeug.security.gen_salt(64)
-    cookie.set(_SESSION_KEY_NONCE, state)
-    cookie.set(_SESSION_KEY_NEXT, oauth_next)
+    cookie.set_value(_COOKIE_NONCE, state)
+    cookie.set_value(_COOKIE_NEXT, oauth_next)
     callback = cfg.github_callback_uri
     if not callback:
         from sirepo import uri_router
@@ -81,7 +88,7 @@ def authorized_callback(app, oauth_type):
     if not resp:
         pkdlog('missing oauth response')
         werkzeug.exceptions.abort(403)
-    state = _remove_session_key(_SESSION_KEY_NONCE)
+    state = _remove_cookie_key(_COOKIE_NONCE)
     if state != flask.request.args.get('state'):
         pkdlog('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
         werkzeug.exceptions.abort(403)
@@ -89,7 +96,7 @@ def authorized_callback(app, oauth_type):
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
     user = _update_database(user_data, oauth_type)
     _update_session(_LOGGED_IN, user.user_name)
-    return server.javascript_redirect(_remove_session_key(_SESSION_KEY_NEXT))
+    return server.javascript_redirect(_remove_cookie_key(_COOKIE_NEXT))
 
 
 def logout(simulation_type):
@@ -101,13 +108,13 @@ def logout(simulation_type):
 
 
 def set_default_state(logged_out_as_anonymous=False):
-    if not cookie.has_key(_SESSION_KEY_STATE):
+    if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
-    elif logged_out_as_anonymous and cookie.get(_SESSION_KEY_STATE) == _LOGGED_OUT:
+    elif logged_out_as_anonymous and cookie.get_value(_COOKIE_STATE) == _LOGGED_OUT:
         _update_session(_ANONYMOUS)
     return pkcollections.Dict(
-        login_state=cookie.get(_SESSION_KEY_STATE),
-        user_name=cookie.get(_SESSION_KEY_NAME),
+        login_state=_LOGIN_STATE_MAP.get(cookie.get_value(_COOKIE_STATE), _ANONYMOUS_OAUTH_TYPE),
+        user_name=cookie.get_value(_COOKIE_NAME),
     )
 
 
@@ -154,9 +161,9 @@ def _oauth_client(app, oauth_type):
     raise RuntimeError('Unknown oauth_type: {}'.format(oauth_type))
 
 
-def _remove_session_key(name):
-    value = cookie.get(name)
-    cookie.remove(name)
+def _remove_cookie_key(name):
+    value = cookie.get_value(name)
+    cookie.unchecked_remove(name)
     return value
 
 
@@ -181,8 +188,8 @@ def _update_database(user_data, oauth_type):
         return user
 
 def _update_session(login_state, user_name=''):
-    cookie.set(_SESSION_KEY_STATE, login_state)
-    cookie.set(_SESSION_KEY_NAME, user_name)
+    cookie.set_value(_COOKIE_STATE, login_state)
+    cookie.set_value(_COOKIE_NAME, user_name)
 
 
 _init(server.app)
