@@ -24,6 +24,7 @@ def test_1():
         cookie.get_user()
     with pkunit.pkexcept('Forbidden'):
         cookie.get_user(checked=False)
+    cookie.prepare_for_fresh_login()
     cookie.set_user('abc')
     cookie.set_value('hi', 'hello')
     r = _Response(status_code=200)

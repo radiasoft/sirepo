@@ -98,6 +98,7 @@ def auth_login(req):
         sid,
         checked=True,
     )
+    cookie.prepare_for_fresh_login()
     cookie.set_user(simulation_db.uid_from_dir_name(path))
 
 

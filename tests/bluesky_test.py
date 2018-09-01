@@ -80,12 +80,14 @@ def test_auth_login():
     )
     from sirepo import simulation_db
     from sirepo import bluesky
+    from sirepo import cookie
 
     fc.get('/srw')
     data = fc.sr_post(
         'listSimulations',
         {'simulationType': 'srw', 'search': {'simulationName': 'Bending Magnet Radiation'}},
     )
+    fc.cookie_jar.clear()
     data = data[0].simulation
     req = pkcollections.Dict(
         simulationType='srw',
