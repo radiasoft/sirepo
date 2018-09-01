@@ -105,7 +105,6 @@ def api_copyNonSessionSimulation():
         template.copy_related_files(data, str(src), str(target))
     return res
 
-app_copy_nonsession_simulation = api_copyNonSessionSimulation
 
 
 def api_copySimulation():
@@ -130,7 +129,6 @@ def api_copySimulation():
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = ''
     return _save_new_and_reply(data)
-app_copy_simulation = api_copySimulation
 
 
 def api_deleteFile():
@@ -147,14 +145,12 @@ def api_deleteFile():
     p = _lib_filepath(req['simulationType'], filename, req['fileType'])
     pkio.unchecked_remove(p)
     return _json_response({})
-app_delete_file = api_deleteFile
 
 
 def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return _json_response_ok()
-app_delete_simulation = api_deleteSimulation
 
 
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
@@ -174,7 +170,6 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     run_dir = simulation_db.simulation_run_dir(data)
     filename, content, content_type = template.get_data_file(run_dir, model, frame, options=options)
     return _as_attachment(flask.make_response(content), content_type, filename)
-app_download_data_file = api_downloadDataFile
 
 
 def api_downloadFile(simulation_type, simulation_id, filename):
@@ -187,7 +182,6 @@ def api_downloadFile(simulation_type, simulation_id, filename):
         # strip file_type prefix from attachment filename
         attachment_name = re.sub(r'^.*?-.*?\.', '', filename)
     return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
-app_download_file = api_downloadFile
 
 
 def api_errorLogging():
@@ -206,7 +200,6 @@ def api_errorLogging():
             flask.request.data.decode('unicode-escape'),
         )
     return _json_response_ok()
-app_error_logging = api_errorLogging
 
 
 def api_exportArchive(simulation_type, simulation_id, filename):
@@ -230,7 +223,6 @@ def api_favicon():
         'favicon.ico',
         mimetype='image/vnd.microsoft.icon'
     )
-app_favicon = api_favicon
 
 
 def api_listFiles(simulation_type, file_type):
@@ -258,7 +250,6 @@ def api_listFiles(simulation_type, file_type):
                 res.append(filename)
     res.sort()
     return _json_response(res)
-app_file_list = api_listFiles
 
 
 def api_findByName(simulation_type, application_mode, simulation_name):
@@ -288,7 +279,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
             simulation_db.get_schema(simulation_type)
         )
     )
-app_find_by_name = api_findByName
 
 
 def api_getApplicationData(filename=''):
@@ -312,7 +302,6 @@ def api_getApplicationData(filename=''):
             attachment_filename=filename,
         )
     return _json_response(res)
-app_get_application_data = api_getApplicationData
 
 
 def api_importArchive():
@@ -376,7 +365,6 @@ def api_importFile(simulation_type=None):
     return _json_response({
         'error': error if error else 'An unknown error occurred',
     })
-app_import_file = api_importFile
 
 
 def api_homePage():
@@ -396,15 +384,14 @@ def api_newSimulation():
     if hasattr(template, 'new_simulation'):
         template.new_simulation(data, new_simulation_data)
     return _save_new_and_reply(data)
-app_new_simulation = api_newSimulation
 
 
 def api_oauthAuthorized(oauth_type):
+
     if cfg.oauth_login:
         from sirepo import oauth
         return oauth.authorized_callback(app, oauth_type)
     raise RuntimeError('OAUTH Login not configured')
-app_oauth_authorized = api_oauthAuthorized
 
 
 def api_oauthLogin(simulation_type, oauth_type):
@@ -412,7 +399,6 @@ def api_oauthLogin(simulation_type, oauth_type):
         from sirepo import oauth
         return oauth.authorize(simulation_type, app, oauth_type)
     raise RuntimeError('OAUTH Login not configured')
-app_oauth_login = api_oauthLogin
 
 
 def api_oauthLogout(simulation_type):
@@ -420,7 +406,6 @@ def api_oauthLogout(simulation_type):
         from sirepo import oauth
         return oauth.logout(simulation_type)
     raise RuntimeError('OAUTH Login not configured')
-app_oauth_logout = api_oauthLogout
 
 
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
@@ -437,7 +422,6 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
         'text/x-python',
         '{}.py'.format(py_name),
     )
-app_python_source = api_pythonSource
 
 
 def api_robotsTxt():
@@ -446,7 +430,6 @@ def api_robotsTxt():
         'User-agent: *\nDisallow: /\n',
         mimetype='text/plain',
     )
-app_robots_txt = api_robotsTxt
 
 
 def api_root(simulation_type):
@@ -467,7 +450,6 @@ def api_root(simulation_type):
     values.app_name = simulation_type
     values.oauth_login = cfg.oauth_login
     return _render_root_page('index', values)
-app_root = api_root
 
 
 def api_runCancel():
@@ -490,7 +472,6 @@ def api_runCancel():
         t.remove_last_frame(run_dir)
     # Always true from the client's perspective
     return _json_response({'state': 'canceled'})
-app_run_cancel = api_runCancel
 
 
 def api_runSimulation():
@@ -508,13 +489,11 @@ def api_runSimulation():
             pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
         res = _simulation_run_status(data)
     return _json_response(res)
-app_run_simulation = api_runSimulation
 
 
 def api_runStatus():
     data = _parse_data_input()
     return _json_response(_simulation_run_status(data))
-app_run_status = api_runStatus
 
 
 def api_saveSimulationData():
@@ -532,7 +511,6 @@ def api_saveSimulationData():
         data['models']['simulation']['simulationId'],
         pretty=False,
     )
-app_save_simulation_data = api_saveSimulationData
 
 
 def api_simulationData(simulation_type, simulation_id, pretty, section=None):
@@ -559,7 +537,6 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         response = _json_response(e.sr_response)
     _no_cache(response)
     return response
-app_simulation_data = api_simulationData
 
 
 def api_simulationFrame(frame_id):
@@ -581,7 +558,6 @@ def api_simulationFrame(frame_id):
     else:
         _no_cache(response)
     return response
-app_simulation_frame = api_simulationFrame
 
 
 def api_listSimulations():
@@ -595,13 +571,11 @@ def api_listSimulations():
             key=lambda row: row['name'],
         )
     )
-app_simulation_list = api_listSimulations
 
 
 def api_simulationSchema():
     sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
     return _json_response(simulation_db.get_schema(sim_type))
-app_simulation_schema = api_simulationSchema
 
 
 def api_srLandingPage():
@@ -612,7 +586,6 @@ sr_landing_page = api_srLandingPage
 def api_srUnit():
     getattr(app, SR_UNIT_TEST_IN_REQUEST)()
     return ''
-app_sr_unit = api_srUnit
 
 
 def api_updateFolder():
@@ -626,7 +599,6 @@ def api_updateFolder():
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
             simulation_db.save_simulation_json(row)
     return _json_response_ok()
-app_update_folder = api_updateFolder
 
 
 def api_uploadFile(simulation_type, simulation_id, file_type):
@@ -663,7 +635,6 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         'fileType': file_type,
         'simulationId': simulation_id,
     })
-app_upload_file = api_uploadFile
 
 
 def all_uids():
