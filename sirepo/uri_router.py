@@ -46,40 +46,6 @@ class NotFound(Exception):
         self.kwargs = kwargs
 
 
-def api_for_func(func):
-    """Returns api name for given function
-
-    Args:
-        func (code): for __name__
-
-    Returns:
-        str: name of api
-    """
-    n = func.__name__
-    assert n.startswith(_FUNC_PREFIX), \
-        '{}: not an api function'.format(n)
-    return n[len(_FUNC_PREFIX):]
-
-
-def func_for_api(api_name, api_module):
-    """Returns func for given api name and module
-
-    Args:
-        api_name (str): camelCase
-        api_module (module): where from
-
-    Returns:
-        code: what to call
-    """
-    import types
-
-    res = getattr(api_module, _FUNC_PREFIX + api_name, None)
-    # Be very restrictive for this since we are calling arbitrary code
-    assert res and isinstance(res, types.FunctionType), \
-        '{}: unknown api in {}'.format(api_name, api_module.__name__)
-    return res
-
-
 def init(app, api_module, simulation_db):
     """Convert route map to dispatchable callables
 
@@ -100,7 +66,7 @@ def init(app, api_module, simulation_db):
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         r.decl_uri = v
-        r.func = func_for_api(k, api_module)
+        r.func = _func_for_api(k, api_module)
         r.name = k
         assert not r.base_uri in _uri_to_route, \
             '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
@@ -159,6 +125,7 @@ def format_uri(simulation_type, application_mode, simulation_id, app_schema):
                'includeMode'] else ''
             )
 
+
 def _dispatch(path):
     """Called by Flask and routes the base_uri with parameters
 
@@ -197,6 +164,25 @@ def _dispatch(path):
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
+
+
+def _func_for_api(api_name, api_module):
+    """Returns func for given api name and module
+
+    Args:
+        api_name (str): camelCase
+        api_module (module): where from
+
+    Returns:
+        code: what to call
+    """
+    import types
+
+    res = getattr(api_module, _FUNC_PREFIX + api_name, None)
+    # Be very restrictive for this since we are calling arbitrary code
+    assert res and isinstance(res, types.FunctionType), \
+        '{}: unknown api in {}'.format(api_name, api_module.__name__)
+    return res
 
 
 def _response(*args, **kwargs):
