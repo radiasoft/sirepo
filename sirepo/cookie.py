@@ -67,7 +67,7 @@ def prepare_for_fresh_login():
     Bypasses the state where the cookie has not come back from the
     client. This is used by bluesky and testing only, right now.
     """
-    _state().set_sentinel()
+    _state().prepare_for_fresh_login()
 
 
 def save_to_cookie(response):
@@ -109,13 +109,16 @@ class _State(dict):
             util.raise_forbidden('Missing sentinel, cookies may be disabled')
         return self[_COOKIE_USER] if checked else self.get(_COOKIE_USER)
 
-    def set_sentinel(self):
+    def prepare_for_fresh_login(self, values=None):
+        self.clear()
+        if values:
+            self.update(values)
         self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def save_to_cookie(self, response):
         if not 200 <= response.status_code < 400:
             return
-        self.set_sentinel()
+        self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
         s = self._serialize()
         if s == self.incoming_serialized:
             return
@@ -168,9 +171,7 @@ class _State(dict):
             import sirepo.beaker_compat
             res = sirepo.beaker_compat.update_session_from_cookie_header(header)
             if not res is None:
-                self.clear()
-                self.update(res)
-                self.set_sentinel()
+                self.prepare_for_fresh_login(res)
                 err = None
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)

@@ -61,7 +61,7 @@ _RESPONSE_OK = {'state': 'ok'}
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
-    static_folder=str(simulation_db.STATIC_FOLDER),
+    static_folder=None,
     template_folder=str(simulation_db.STATIC_FOLDER),
 )
 app.config.update(

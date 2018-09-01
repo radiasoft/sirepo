@@ -60,8 +60,8 @@ def authorize(simulation_type, app, oauth_type):
     """
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next') or '')
     if oauth_type == _ANONYMOUS_OAUTH_TYPE:
+        cookie.prepare_for_fresh_login()
         _update_session(_ANONYMOUS)
-        cookie.clear_user()
         return server.javascript_redirect(oauth_next)
     state = werkzeug.security.gen_salt(64)
     cookie.set_value(_COOKIE_NONCE, state)
@@ -102,13 +102,14 @@ def authorized_callback(app, oauth_type):
 def logout(simulation_type):
     """Sets the login_state to logged_out and clears the user session.
     """
+    cookie.prepare_for_fresh_login()
     _update_session(_LOGGED_OUT)
-    cookie.clear_user()
     return flask.redirect('/{}'.format(simulation_type))
 
 
 def set_default_state(logged_out_as_anonymous=False):
     if not cookie.has_key(_COOKIE_STATE):
+        cookie.prepare_for_fresh_login()
         _update_session(_ANONYMOUS)
     elif logged_out_as_anonymous and cookie.get_value(_COOKIE_STATE) == _LOGGED_OUT:
         _update_session(_ANONYMOUS)

@@ -34,7 +34,7 @@ def _test_cookie(filename, header, uid):
     except KeyError:
         pass
     cookie.init(header)
-    pkeq(cookie.get_user(checked=False), uid)
+    pkeq(uid, cookie.get_user(checked=False))
 
 
 def test_anonymous_user():
@@ -45,10 +45,10 @@ def test_anonymous_user():
     )
     from pykern.pkunit import pkeq
     from sirepo import cookie
-    pkeq(cookie.get_value('sros'), 'a')
+    pkeq('a', cookie.get_value('sros'))
 
 
-def xtest_no_user():
+def test_no_user():
     _test_cookie(
         'eff2360ca9184155a6757ac096f9d44c.cache',
         'net.sirepo.first_visit=1535555450168; net.sirepo.get_started_notify=1535555451699; sr_cookieconsent=dismiss; net.sirepo.sim_list_view=true; net.sirepo.login_notify_timeout=1535742744032; sirepo_dev=dd68627088f9d783ab32c3a0a63797cc170a80ebeff2360ca9184155a6757ac096f9d44c',
@@ -56,10 +56,10 @@ def xtest_no_user():
     )
     from pykern.pkunit import pkeq
     from sirepo import cookie
-    pkeq(cookie.has_key('sros'), False)
+    pkeq(False, cookie.has_key('sros'))
 
 
-def xtest_oauth_user():
+def test_oauth_user():
     _test_cookie(
         'daaf2aa83ac34f65b42102389c4ff11f.cache',
         'sirepo_dev=2f4adb8e95a2324a12f9607b2347ecbce93463bddaaf2aa83ac34f65b42102389c4ff11f; net.sirepo.first_visit=1535736574400; net.sirepo.get_started_notify=1535736579192; sr_cookieconsent=dismiss; net.sirepo.login_notify_timeout=1535746957193',
@@ -67,5 +67,5 @@ def xtest_oauth_user():
     from pykern.pkunit import pkeq
     from sirepo import cookie
     import flask
-    pkeq(cookie.get_value('sros'), 'li')
-    pkeq(cookie.get_value('sron'), 'moellep')
+    pkeq('li', cookie.get_value('sros'))
+    pkeq('moellep', cookie.get_value('sron'))

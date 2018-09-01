@@ -17,6 +17,7 @@ def do_form(form):
     Returns:
         dict: data
     """
+    from sirepo import cookie
     from sirepo import uri_router
     from sirepo import simulation_db
     import base64
@@ -27,6 +28,7 @@ def do_form(form):
     data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
+    cookie.prepare_for_fresh_login()
     return simulation_db.save_new_simulation(data)
 
 

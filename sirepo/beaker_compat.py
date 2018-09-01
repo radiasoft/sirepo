@@ -34,16 +34,16 @@ def update_session_from_cookie_header(header):
             digest_filenames=False)
         with open(path, 'rb') as fh:
             values = pickle.load(fh)
-        if 'session' in values and _ORIG_KEY in values['session']:
-            return {}
-        # beaker session was found but empty or no uid so
-        pkdlog('retrieved user from beaker cookie: {}', values['session'][_ORIG_KEY])
         res = {}
-        for f in maps['key'].keys():
-            if f in values['session']:
-                res[maps['key'][f]] = maps['value'].get(
-                    values['session'][f], values['session'][f],
-                )
+        if 'session' in values and _ORIG_KEY in values['session']:
+            # beaker session was found but empty or no uid so
+            for f in maps['key'].keys():
+                if f in values['session']:
+                    res[maps['key'][f]] = maps['value'].get(
+                        values['session'][f], values['session'][f],
+                    )
+            pkdlog('retrieved user from beaker cookie: res={}', res)
+        return res
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: error={}, header={}', e, header)
     return None
