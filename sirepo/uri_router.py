@@ -6,10 +6,12 @@ u"""Handles dispatching of uris to server.api_* functions
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
 from sirepo import util
 import flask
+import inspect
 import re
 
 #: route for sirepo.sr_unit
@@ -36,6 +38,12 @@ _uri_to_route = None
 #: dict of base_uri to route (base_uri, func, name, decl_uri, params)
 _api_to_route = None
 
+#: modules which support APIs
+_api_modules = []
+
+#: functions which implement APIs
+_api_funcs = pkcollections.Dict()
+
 
 class NotFound(Exception):
     """Raised to indicate page not found exception (404)"""
@@ -46,7 +54,7 @@ class NotFound(Exception):
         self.kwargs = kwargs
 
 
-def init(app, api_module, simulation_db):
+def init(app, simulation_db):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -54,7 +62,6 @@ def init(app, api_module, simulation_db):
 
     Args:
         app (Flask): flask app
-        api_module (module): where to get callables
     """
     global _uri_to_route
     if _uri_to_route:
@@ -66,7 +73,7 @@ def init(app, api_module, simulation_db):
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
         r.decl_uri = v
-        r.func = _func_for_api(k, api_module)
+        r.func = _func_for_api(k)
         r.name = k
         assert not r.base_uri in _uri_to_route, \
             '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
@@ -82,6 +89,23 @@ def init(app, api_module, simulation_db):
     _empty_route = _uri_to_route.light
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
+
+
+def register_api_module():
+    """Add caller_module to the list of modules which implements apis.
+
+    The module must have methods: api_XXX which do not collide with
+    other apis.
+    """
+    m = pkinspect.caller_module()
+    assert not m in _api_modules, \
+        'module is a duplicate: module={}'.format(m.__name__)
+    _api_modules.append(m)
+    for n, o in inspect.getmembers(m):
+        if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
+            assert not n in _api_funcs, \
+                'function is duplicate: func={} module={}'.format(n, m.__name__)
+            _api_funcs[n] = o
 
 
 def uri_for_api(api_name, params=None, external=True):
@@ -166,23 +190,16 @@ def _dispatch(path):
         raise
 
 
-def _func_for_api(api_name, api_module):
-    """Returns func for given api name and module
+def _func_for_api(api_name):
+    """Returns func for given api name
 
     Args:
         api_name (str): camelCase
-        api_module (module): where from
 
     Returns:
         code: what to call
     """
-    import types
-
-    res = getattr(api_module, _FUNC_PREFIX + api_name, None)
-    # Be very restrictive for this since we are calling arbitrary code
-    assert res and isinstance(res, types.FunctionType), \
-        '{}: unknown api in {}'.format(api_name, api_module.__name__)
-    return res
+    return _api_funcs[_FUNC_PREFIX + api_name]
 
 
 def _response(*args, **kwargs):

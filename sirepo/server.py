@@ -671,7 +671,7 @@ def init(db_dir=None, uwsgi=None):
         cfg.db_dir = py.path.local(db_dir)
     else:
         db_dir = cfg.db_dir
-    uri_router.init(app, sys.modules[__name__], simulation_db)
+    uri_router.init(app, simulation_db)
     app.sirepo_db_dir = db_dir
     app.before_request(flask_before_request)
     simulation_db.init_by_server(app)
@@ -1055,3 +1055,4 @@ cfg = pkconfig.init(
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
 )
+uri_router.register_api_module()
