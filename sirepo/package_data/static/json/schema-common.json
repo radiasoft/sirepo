@@ -80,6 +80,7 @@
         "simulationSchema": "/simulation-schema",
         "srLandingPage": "/sr",
         "srUnit": "/ sr_unit",
+        "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },

@@ -61,6 +61,10 @@ def init_mock(uid='invalid-uid'):
     set_user(uid)
 
 
+def sentinel_is_valid():
+    return COOKIE_SENTINEL in _state()
+
+
 def prepare_for_fresh_login():
     """Called in special authentication cases
 

@@ -387,7 +387,6 @@ def api_newSimulation():
 
 
 def api_oauthAuthorized(oauth_type):
-
     if cfg.oauth_login:
         from sirepo import oauth
         return oauth.authorized_callback(app, oauth_type)
@@ -506,7 +505,7 @@ def api_saveSimulationData():
     if hasattr(template, 'prepare_for_save'):
         data = template.prepare_for_save(data)
     data = simulation_db.save_simulation_json(data)
-    return app_simulation_data(
+    return api_simulationData(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
         pretty=False,
@@ -586,6 +585,15 @@ sr_landing_page = api_srLandingPage
 def api_srUnit():
     getattr(app, SR_UNIT_TEST_IN_REQUEST)()
     return ''
+
+
+def api_staticFile(path_info=None):
+    pkdp(path_info)
+    # send_from_directory uses safe_join and doesn't allow indexing.
+    return flask.send_from_directory(
+        str(simulation_db.STATIC_FOLDER),
+        path_info,
+    )
 
 
 def api_updateFolder():
@@ -837,7 +845,7 @@ def _render_root_page(page, values):
 
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
-    return app_simulation_data(
+    return api_simulationData(
         data['simulationType'],
         data['models']['simulation']['simulationId'],
         pretty=False,

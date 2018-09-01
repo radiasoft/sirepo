@@ -15,8 +15,11 @@ import re
 #: route for sirepo.sr_unit
 sr_unit_uri = None
 
+#: optional parameter that consumes rest of parameters
+_PATH_INFO_CHAR = '*'
+
 #: route parsing
-_PARAM_RE = re.compile(r'^(\??)<(.+?)>$')
+_PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
 
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
@@ -132,11 +135,16 @@ def uri_for_api(api_name, params=None, external=True):
     res = (flask.url_for('_dispatch_empty', _external=external) + r.base_uri).rstrip('/')
     for p in r.params:
         if p.name in params:
-            res += '/' + params[p.name]
-            continue
-        assert p.optional, \
-            '{}: missing parameter for api ({})'.format(p.name, api_name)
+            v = params[p.name]
+            if not v is None and len(v) > 0:
+                if not (p.is_path_info and v.startwith('/')):
+                    res += '/'
+                res += v
+                continue
+        assert p.is_optional, \
+            'missing parameter={} for api={}'.format(p.name, api_name)
     return res
+
 
 def format_uri(simulation_type, application_mode, simulation_id, app_schema):
     local_routes = app_schema['localRoutes']
@@ -160,7 +168,6 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    import werkzeug.exceptions
     cookie.init()
     try:
         if path is None:
@@ -174,17 +181,19 @@ def _dispatch(path):
         kwargs = pkcollections.Dict()
         for p in route.params:
             if not parts:
-                if not p.optional:
+                if not p.is_optional:
                     raise NotFound('{}: uri missing parameter ({})', path, p.name)
+                break
+            if p.is_path_info:
+                kwargs[p.name] = '/'.join(parts)
+                parts = None
                 break
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
         return _response(route.func(**kwargs))
     except NotFound as e:
-        #TODO(robnagler) cascade calling context
-        pkdlog(e.log_fmt, *e.args, **e.kwargs)
-        raise werkzeug.exceptions.NotFound()
+        util.raise_not_found(e.log_fmt, *e.args, **e.kwargs)
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
@@ -214,9 +223,12 @@ def _split_uri(uri):
     assert '' == parts.pop(0)
     params = []
     res = pkcollections.Dict(params=params)
-    in_optional = False
+    in_optional = None
+    in_path_info = None
     first = None
     for p in parts:
+        assert not in_path_info, \
+            'path_info parameter={} must be last: next={}'.format(rp.name, p)
         m = _PARAM_RE.search(p)
         if not m:
             assert first is None, \
@@ -225,9 +237,14 @@ def _split_uri(uri):
             continue
         rp = pkcollections.Dict()
         params.append(rp)
-        rp.optional = bool(m.group(1))
+        rp.is_optional = bool(m.group(1))
+        if rp.is_optional:
+            rp.is_path_info = m.group(1) == _PATH_INFO_CHAR
+            in_path_info = rp.is_path_info
+        else:
+            rp.is_path_info = False
         rp.name = m.group(2)
-        if rp.optional:
+        if rp.is_optional:
             in_optional = True
         else:
             assert not in_optional, \
