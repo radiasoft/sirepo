@@ -14,6 +14,7 @@ import beaker
 import pickle
 import sirepo
 
+_ORIG_KEY = 'uid'
 
 def update_session_from_cookie_header(header):
     """Update the flask session from the beaker file identified by the cookie header
@@ -33,12 +34,18 @@ def update_session_from_cookie_header(header):
                 digest_filenames=False)
             with open(path, 'rb') as fh:
                 values = pickle.load(fh)
-            if 'session' in values and 'uid' in values['session']:
-                pkdlog('retrieved user from beaker cookie: {}', values['session']['uid'])
+            if 'session' in values and _ORIG_KEY in values['session']:
+                pkdlog('retrieved user from beaker cookie: {}', values['session'][_ORIG_KEY])
                 for f in maps['key'].keys():
                     if f in values['session']:
-                        sirepo.cookie.set_value(maps['key'][f], maps['value'].get(values['session'][f], values['session'][f]))
-                return True
+                        sirepo.cookie.set_value(
+                            maps['key'][f],
+                            maps['value'].get(values['session'][f], values['session'][f]),
+                        )
+            else:
+                # beaker session was found but empty or no uid so
+                sirepo.cookie.clear_user()
+            return True
     except Exception as e:
         pkdlog('ignoring exception with beaker compat: e: {}, header: {}', e, header)
     return False
@@ -47,7 +54,7 @@ def update_session_from_cookie_header(header):
 def _init_maps(is_oauth):
     res = {
         'key': {
-            'uid': cookie._COOKIE_USER,
+            _ORIG_KEY: cookie._COOKIE_USER,
         },
         'value': {}
     }
