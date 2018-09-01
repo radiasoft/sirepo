@@ -11,6 +11,7 @@ def test_auth_hash(monkeypatch):
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
+        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
         'SIREPO_BLUESKY_AUTH_SECRET': 'a simple string is fine',
     })
     from sirepo import bluesky
@@ -35,6 +36,7 @@ def test_auth_hash_copy():
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
+        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
         'SIREPO_BLUESKY_AUTH_SECRET': 'anything',
     })
     from pykern import pkcollections
@@ -73,11 +75,10 @@ def test_auth_login():
     from pykern.pkunit import pkeq
     from sirepo import sr_unit
 
-    fc = sr_unit.flask_client(
-        cfg=dict(
-            SIREPO_BLUESKY_AUTH_SECRET='3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
-        ),
-    )
+    fc = sr_unit.flask_client({
+        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
+        'SIREPO_BLUESKY_AUTH_SECRET': '3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
+    })
     from sirepo import simulation_db
     from sirepo import bluesky
     from sirepo import cookie

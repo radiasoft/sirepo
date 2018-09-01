@@ -39,4 +39,4 @@ def err(obj, format='', *args, **kwargs):
 
 def _raise(exc, fmt, *args, **kwargs):
     pkdlog(fmt, *args, **kwargs)
-    raise werkzeug.exceptions.getattr(exc)()
+    raise getattr(werkzeug.exceptions, exc)()

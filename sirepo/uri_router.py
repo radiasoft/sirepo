@@ -72,8 +72,12 @@ def init(app, simulation_db):
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
         r = _split_uri(v)
+        try:
+            r.func = _api_funcs[_FUNC_PREFIX + k]
+        except KeyError:
+            pkdlog('not adding api, because module not registered: uri={}', v)
+            continue
         r.decl_uri = v
-        r.func = _func_for_api(k)
         r.name = k
         assert not r.base_uri in _uri_to_route, \
             '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
@@ -188,18 +192,6 @@ def _dispatch(path):
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
-
-
-def _func_for_api(api_name):
-    """Returns func for given api name
-
-    Args:
-        api_name (str): camelCase
-
-    Returns:
-        code: what to call
-    """
-    return _api_funcs[_FUNC_PREFIX + api_name]
 
 
 def _response(*args, **kwargs):

@@ -20,6 +20,7 @@ from sirepo.template import template_common
 import datetime
 import flask
 import glob
+import importlib
 import os.path
 import py.path
 import re
@@ -63,16 +64,6 @@ app = flask.Flask(
 app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
-
-def api_blueskyAuth():
-    from sirepo import bluesky
-
-    req = sr_req.parse_json()
-    bluesky.auth_login(req)
-    return sr_resp.gen_json_ok(dict(
-        data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
-        schema=simulation_db.get_schema(req.simulationType),
-    ))
 
 
 def api_copyNonSessionSimulation():
@@ -747,6 +738,12 @@ def _handle_error(error):
     return f, status_code
 
 
+def _module_init():
+    uri_router.register_api_module()
+    for m in feature_config.cfg.api_modules:
+        importlib.import_module('sirepo.' + m).module_init()
+
+
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()
 
@@ -1001,4 +998,4 @@ cfg = pkconfig.init(
     oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
 )
-uri_router.register_api_module()
+_module_init()

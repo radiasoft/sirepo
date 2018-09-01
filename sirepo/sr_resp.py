@@ -51,9 +51,9 @@ def gen_json_ok(*args, **kwargs):
         assert len(args) == 1
         res = args[0]
         res.update(_RESPONSE_OK)
-        return _json_response(res)
+        return gen_json(res)
 
     global _JSON_RESPONSE_OK
     if not _JSON_RESPONSE_OK:
-        _JSON_RESPONSE_OK = _json_response(_RESPONSE_OK)
+        _JSON_RESPONSE_OK = gen_json(_RESPONSE_OK)
     return _JSON_RESPONSE_OK
