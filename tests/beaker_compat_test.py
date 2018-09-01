@@ -48,7 +48,7 @@ def test_anonymous_user():
     pkeq(cookie.get_value('sros'), 'a')
 
 
-def test_no_user():
+def xtest_no_user():
     _test_cookie(
         'eff2360ca9184155a6757ac096f9d44c.cache',
         'net.sirepo.first_visit=1535555450168; net.sirepo.get_started_notify=1535555451699; sr_cookieconsent=dismiss; net.sirepo.sim_list_view=true; net.sirepo.login_notify_timeout=1535742744032; sirepo_dev=dd68627088f9d783ab32c3a0a63797cc170a80ebeff2360ca9184155a6757ac096f9d44c',
@@ -59,7 +59,7 @@ def test_no_user():
     pkeq(cookie.has_key('sros'), False)
 
 
-def test_oauth_user():
+def xtest_oauth_user():
     _test_cookie(
         'daaf2aa83ac34f65b42102389c4ff11f.cache',
         'sirepo_dev=2f4adb8e95a2324a12f9607b2347ecbce93463bddaaf2aa83ac34f65b42102389c4ff11f; net.sirepo.first_visit=1535736574400; net.sirepo.get_started_notify=1535736579192; sr_cookieconsent=dismiss; net.sirepo.login_notify_timeout=1535746957193',

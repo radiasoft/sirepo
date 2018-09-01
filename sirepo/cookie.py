@@ -166,7 +166,10 @@ class _State(dict):
             # wait for decoding errors until after beaker attempt
         if not self.get(_COOKIE_SENTINEL):
             import sirepo.beaker_compat
-            if sirepo.beaker_compat.update_session_from_cookie_header(header):
+            res = sirepo.beaker_compat.update_session_from_cookie_header(header)
+            if not res is None:
+                self.clear()
+                self.update(res)
                 self.set_sentinel()
                 err = None
         if err:
