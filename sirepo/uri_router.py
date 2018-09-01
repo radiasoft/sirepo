@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
+from sirepo import sr_auth
 from sirepo import util
 import flask
 import inspect
@@ -77,6 +78,7 @@ def init(app, simulation_db):
         except KeyError:
             pkdlog('not adding api, because module not registered: uri={}', v)
             continue
+        sr_auth.assert_api_def(r.func)
         r.decl_uri = v
         r.name = k
         assert not r.base_uri in _uri_to_route, \
@@ -166,7 +168,7 @@ def _dispatch(path):
     cookie.init()
     try:
         if path is None:
-            return _response(_empty_route.func())
+            return _dispatch_call(_empty_route.func, {})
         parts = path.split('/')
         try:
             route = _uri_to_route[parts[0]]
@@ -186,7 +188,7 @@ def _dispatch(path):
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
-        return _response(route.func(**kwargs))
+        return _dispatch_call(route.func, kwargs)
     except NotFound as e:
         util.raise_not_found(e.log_fmt, *e.args, **e.kwargs)
     except Exception as e:
@@ -194,8 +196,9 @@ def _dispatch(path):
         raise
 
 
-def _response(*args, **kwargs):
-    response = flask.make_response(*args, **kwargs)
+def _dispatch_call(func, kwargs):
+    sr_auth.assert_api_call(func)
+    response = flask.make_response(func(**kwargs))
     cookie.save_to_cookie(response)
     return response
 

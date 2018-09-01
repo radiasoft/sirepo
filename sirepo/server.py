@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import sr_api_perm
 from sirepo import sr_req
 from sirepo import sr_resp
 from sirepo import uri_router
@@ -66,6 +67,20 @@ app.config.update(
 )
 
 
+#TODO(robnagler) this shouldn't be here
+def all_uids():
+    """List of all users
+
+    Returns:
+        set: set of all uids
+    """
+    if not cfg.oauth_login:
+        return set()
+    from sirepo import oauth
+    return oauth.all_uids(app)
+
+
+@sr_api_perm.require_user
 def api_copyNonSessionSimulation():
     req = sr_req.parse_json()
     sim_type = req['simulationType']
@@ -93,7 +108,7 @@ def api_copyNonSessionSimulation():
     return res
 
 
-
+@sr_api_perm.require_user
 def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = sr_req.parse_json()
@@ -118,6 +133,7 @@ def api_copySimulation():
     return _save_new_and_reply(data)
 
 
+@sr_api_perm.require_user
 def api_deleteFile():
     req = sr_req.parse_json()
     filename = werkzeug.secure_filename(req['fileName'])
@@ -134,12 +150,14 @@ def api_deleteFile():
     return sr_resp.gen_json({})
 
 
+@sr_api_perm.require_user
 def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return sr_resp.gen_json_ok()
 
 
+@sr_api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
     data = {
         'simulationType': sirepo.template.assert_sim_type(simulation_type),
@@ -159,6 +177,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     return _as_attachment(flask.make_response(content), content_type, filename)
 
 
+@sr_api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(filename)
@@ -171,6 +190,7 @@ def api_downloadFile(simulation_type, simulation_id, filename):
     return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
 
 
+@sr_api_perm.allow_visitor
 def api_errorLogging():
     ip = flask.request.remote_addr
     try:
@@ -189,6 +209,7 @@ def api_errorLogging():
     return sr_resp.gen_json_ok()
 
 
+@sr_api_perm.require_user
 def api_exportArchive(simulation_type, simulation_id, filename):
     from sirepo import exporter
     fn, mt = exporter.create_archive(simulation_type, simulation_id, filename)
@@ -203,6 +224,7 @@ def api_exportArchive(simulation_type, simulation_id, filename):
     )
 
 
+@sr_api_perm.allow_visitor
 def api_favicon():
     """Routes to favicon.ico file."""
     return flask.send_from_directory(
@@ -212,6 +234,7 @@ def api_favicon():
     )
 
 
+@sr_api_perm.require_user
 def api_listFiles(simulation_type, file_type):
     file_type = werkzeug.secure_filename(file_type)
     res = []
@@ -239,6 +262,7 @@ def api_listFiles(simulation_type, file_type):
     return sr_resp.gen_json(res)
 
 
+@sr_api_perm.allow_cookieless_user
 def api_findByName(simulation_type, application_mode, simulation_name):
     if cfg.oauth_login:
         from sirepo import oauth
@@ -268,6 +292,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     )
 
 
+@sr_api_perm.require_user
 def api_getApplicationData(filename=''):
     """Get some data from the template
 
@@ -291,6 +316,7 @@ def api_getApplicationData(filename=''):
     return sr_resp.gen_json(res)
 
 
+@sr_api_perm.allow_cookieless_user
 def api_importArchive():
     """
     Args:
@@ -309,6 +335,7 @@ def api_importArchive():
     )
 
 
+@sr_api_perm.require_user
 def api_importFile(simulation_type=None):
     """
     Args:
@@ -354,11 +381,13 @@ def api_importFile(simulation_type=None):
     })
 
 
+@sr_api_perm.allow_visitor
 def api_homePage():
     return _render_root_page('sr-landing-page', pkcollections.Dict())
 light_landing_page = api_homePage
 
 
+@sr_api_perm.require_user
 def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
@@ -373,6 +402,7 @@ def api_newSimulation():
     return _save_new_and_reply(data)
 
 
+@sr_api_perm.allow_login
 def api_oauthAuthorized(oauth_type):
     if cfg.oauth_login:
         from sirepo import oauth
@@ -380,6 +410,7 @@ def api_oauthAuthorized(oauth_type):
     raise RuntimeError('OAUTH Login not configured')
 
 
+@sr_api_perm.allow_cookieless_user
 def api_oauthLogin(simulation_type, oauth_type):
     if cfg.oauth_login:
         from sirepo import oauth
@@ -387,6 +418,7 @@ def api_oauthLogin(simulation_type, oauth_type):
     raise RuntimeError('OAUTH Login not configured')
 
 
+@sr_api_perm.allow_visitor
 def api_oauthLogout(simulation_type):
     if cfg.oauth_login:
         from sirepo import oauth
@@ -394,6 +426,7 @@ def api_oauthLogout(simulation_type):
     raise RuntimeError('OAUTH Login not configured')
 
 
+@sr_api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
     import string
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
@@ -410,6 +443,7 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
     )
 
 
+@sr_api_perm.allow_visitor
 def api_robotsTxt():
     """Tell robots to go away"""
     return flask.Response(
@@ -418,6 +452,7 @@ def api_robotsTxt():
     )
 
 
+@sr_api_perm.allow_visitor
 def api_root(simulation_type):
     try:
         sirepo.template.assert_sim_type(simulation_type)
@@ -428,16 +463,13 @@ def api_root(simulation_type):
             return flask.redirect('/warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         werkzeug.exceptions.abort(404)
-    if cfg.oauth_login:
-        from sirepo import oauth
-        values = oauth.set_default_state()
-    else:
-        values = pkcollections.Dict()
+    values = pkcollections.Dict()
     values.app_name = simulation_type
     values.oauth_login = cfg.oauth_login
     return _render_root_page('index', values)
 
 
+@sr_api_perm.require_user
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
@@ -460,6 +492,7 @@ def api_runCancel():
     return sr_resp.gen_json({'state': 'canceled'})
 
 
+@sr_api_perm.require_user
 def api_runSimulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data, quiet=True)
@@ -477,11 +510,13 @@ def api_runSimulation():
     return sr_resp.gen_json(res)
 
 
+@sr_api_perm.require_user
 def api_runStatus():
     data = _parse_data_input()
     return sr_resp.gen_json(_simulation_run_status(data))
 
 
+@sr_api_perm.require_user
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
     res = _validate_serial(data)
@@ -499,6 +534,7 @@ def api_saveSimulationData():
     )
 
 
+@sr_api_perm.require_user
 def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
@@ -525,6 +561,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     return response
 
 
+@sr_api_perm.require_user
 def api_simulationFrame(frame_id):
     #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
@@ -546,6 +583,7 @@ def api_simulationFrame(frame_id):
     return response
 
 
+@sr_api_perm.require_user
 def api_listSimulations():
     data = _parse_data_input()
     sim_type = data['simulationType']
@@ -559,23 +597,26 @@ def api_listSimulations():
     )
 
 
+@sr_api_perm.require_user
 def api_simulationSchema():
     sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
     return sr_resp.gen_json(simulation_db.get_schema(sim_type))
 
 
+@sr_api_perm.allow_visitor
 def api_srLandingPage():
     return flask.redirect('/light')
 sr_landing_page = api_srLandingPage
 
 
+@sr_api_perm.allow_visitor
 def api_srUnit():
     getattr(app, SR_UNIT_TEST_IN_REQUEST)()
     return ''
 
 
+@sr_api_perm.allow_visitor
 def api_staticFile(path_info=None):
-    pkdp(path_info)
     # send_from_directory uses safe_join and doesn't allow indexing.
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
@@ -583,6 +624,7 @@ def api_staticFile(path_info=None):
     )
 
 
+@sr_api_perm.require_user
 def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     data = _parse_data_input()
@@ -596,6 +638,7 @@ def api_updateFolder():
     return sr_resp.gen_json_ok()
 
 
+@sr_api_perm.require_user
 def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
     filename = werkzeug.secure_filename(f.filename)
@@ -630,18 +673,6 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         'fileType': file_type,
         'simulationId': simulation_id,
     })
-
-
-def all_uids():
-    """List of all users
-
-    Returns:
-        set: set of all uids
-    """
-    if not cfg.oauth_login:
-        return set()
-    from sirepo import oauth
-    return oauth.all_uids(app)
 
 
 def flask_before_request():

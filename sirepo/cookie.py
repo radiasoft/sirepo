@@ -47,6 +47,14 @@ def has_key(key):
     return key in _state()
 
 
+def has_sentinel():
+    return _COOKIE_SENTINEL in _state()
+
+
+def has_user_value():
+    return bool(has_key(_COOKIE_USER) and get_value(_COOKIE_USER))
+
+
 def init(unit_test=None):
     if not unit_test:
         assert not 'sirepo_cookie' in flask.g
@@ -57,21 +65,15 @@ def init_mock(uid='invalid-uid'):
     """A mock cookie for pkcli"""
     flask.g = pkcollections.Dict()
     _State('')
-    prepare_for_fresh_login()
+    set_sentinel()
     set_user(uid)
 
 
-def sentinel_is_valid():
-    return COOKIE_SENTINEL in _state()
-
-
-def prepare_for_fresh_login():
-    """Called in special authentication cases
-
-    Bypasses the state where the cookie has not come back from the
+def set_sentinel():
+    """Bypasses the state where the cookie has not come back from the
     client. This is used by bluesky and testing only, right now.
     """
-    _state().prepare_for_fresh_login()
+    _state().set_sentinel()
 
 
 def save_to_cookie(response):
@@ -113,16 +115,13 @@ class _State(dict):
             util.raise_forbidden('Missing sentinel, cookies may be disabled')
         return self[_COOKIE_USER] if checked else self.get(_COOKIE_USER)
 
-    def prepare_for_fresh_login(self, values=None):
-        self.clear()
-        if values:
-            self.update(values)
+    def set_sentinel(self):
         self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def save_to_cookie(self, response):
         if not 200 <= response.status_code < 400:
             return
-        self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+        self.set_sentinel()
         s = self._serialize()
         if s == self.incoming_serialized:
             return
@@ -175,7 +174,9 @@ class _State(dict):
             import sirepo.beaker_compat
             res = sirepo.beaker_compat.update_session_from_cookie_header(header)
             if not res is None:
-                self.prepare_for_fresh_login(res)
+                self.clear()
+                self.set_sentinel()
+                self.update(res)
                 err = None
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)

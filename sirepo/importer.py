@@ -28,7 +28,6 @@ def do_form(form):
     data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
-    cookie.prepare_for_fresh_login()
     return simulation_db.save_new_simulation(data)
 
 
