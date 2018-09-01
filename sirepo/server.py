@@ -12,6 +12,8 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import feature_config
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import sr_req
+from sirepo import sr_resp
 from sirepo import uri_router
 from sirepo import util
 from sirepo.template import template_common
@@ -34,9 +36,6 @@ if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd'
 #: Relative to current directory only in test mode
 _DEFAULT_DB_SUBDIR = 'run'
 
-#: Cache for _json_response_ok
-_JSON_RESPONSE_OK = None
-
 #: class that py.path.local() returns
 _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
 
@@ -55,9 +54,6 @@ SR_UNIT_TEST_IN_REQUEST = 'test_in_request'
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
-# Default response
-_RESPONSE_OK = {'state': 'ok'}
-
 #: Flask app instance, must be bound globally
 app = flask.Flask(
     __name__,
@@ -71,16 +67,16 @@ app.config.update(
 def api_blueskyAuth():
     from sirepo import bluesky
 
-    req = _json_input()
+    req = sr_req.parse_json()
     bluesky.auth_login(req)
-    return _json_response_ok(dict(
+    return sr_resp.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),
     ))
 
 
 def api_copyNonSessionSimulation():
-    req = _json_input()
+    req = sr_req.parse_json()
     sim_type = req['simulationType']
     src = py.path.local(simulation_db.find_global_simulation(
         sim_type,
@@ -109,7 +105,7 @@ def api_copyNonSessionSimulation():
 
 def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
-    req = _json_input()
+    req = sr_req.parse_json()
     sim_type = req['simulationType']
     name = req['name'] if 'name' in req else None
     folder = req['folder'] if 'folder' in req else '/'
@@ -132,25 +128,25 @@ def api_copySimulation():
 
 
 def api_deleteFile():
-    req = _json_input()
+    req = sr_req.parse_json()
     filename = werkzeug.secure_filename(req['fileName'])
     search_name = _lib_filename(req['simulationType'], filename, req['fileType'])
     err = _simulations_using_file(req['simulationType'], req['fileType'], search_name)
     if len(err):
-        return _json_response({
+        return sr_resp.gen_json({
             'error': 'File is in use in other simulations.',
             'fileList': err,
             'fileName': filename,
         })
     p = _lib_filepath(req['simulationType'], filename, req['fileType'])
     pkio.unchecked_remove(p)
-    return _json_response({})
+    return sr_resp.gen_json({})
 
 
 def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
-    return _json_response_ok()
+    return sr_resp.gen_json_ok()
 
 
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
@@ -190,7 +186,7 @@ def api_errorLogging():
         pkdlog(
             '{}: javascript error: {}',
             ip,
-            simulation_db.generate_json(_json_input(), pretty=True),
+            simulation_db.generate_json(sr_req.parse_json(), pretty=True),
         )
     except ValueError as e:
         pkdlog(
@@ -199,7 +195,7 @@ def api_errorLogging():
             e,
             flask.request.data.decode('unicode-escape'),
         )
-    return _json_response_ok()
+    return sr_resp.gen_json_ok()
 
 
 def api_exportArchive(simulation_type, simulation_id, filename):
@@ -249,7 +245,7 @@ def api_listFiles(simulation_type, file_type):
                     filename = filename[len(file_type) + 1:]
                 res.append(filename)
     res.sort()
-    return _json_response(res)
+    return sr_resp.gen_json(res)
 
 
 def api_findByName(simulation_type, application_mode, simulation_name):
@@ -301,7 +297,7 @@ def api_getApplicationData(filename=''):
             as_attachment=True,
             attachment_filename=filename,
         )
-    return _json_response(res)
+    return sr_resp.gen_json(res)
 
 
 def api_importArchive():
@@ -362,7 +358,7 @@ def api_importFile(simulation_type=None):
     except Exception as e:
         pkdlog('{}: exception: {}', f and f.filename, pkdexc())
         error = str(e.message) if hasattr(e, 'message') else str(e)
-    return _json_response({
+    return sr_resp.gen_json({
         'error': error if error else 'An unknown error occurred',
     })
 
@@ -470,7 +466,7 @@ def api_runCancel():
         t = sirepo.template.import_module(data)
         t.remove_last_frame(run_dir)
     # Always true from the client's perspective
-    return _json_response({'state': 'canceled'})
+    return sr_resp.gen_json({'state': 'canceled'})
 
 
 def api_runSimulation():
@@ -487,12 +483,12 @@ def api_runSimulation():
         except runner.Collision:
             pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
         res = _simulation_run_status(data)
-    return _json_response(res)
+    return sr_resp.gen_json(res)
 
 
 def api_runStatus():
     data = _parse_data_input()
-    return _json_response(_simulation_run_status(data))
+    return sr_resp.gen_json(_simulation_run_status(data))
 
 
 def api_saveSimulationData():
@@ -520,7 +516,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'prepare_for_client'):
             data = template.prepare_for_client(data)
-        response = _json_response(
+        response = sr_resp.gen_json(
             data,
             pretty=pretty,
         )
@@ -533,7 +529,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
-        response = _json_response(e.sr_response)
+        response = sr_resp.gen_json(e.sr_response)
     _no_cache(response)
     return response
 
@@ -547,7 +543,7 @@ def api_simulationFrame(frame_id):
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     frame = template.get_simulation_frame(run_dir, data, model_data)
-    response = _json_response(frame)
+    response = sr_resp.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(365)
@@ -564,7 +560,7 @@ def api_listSimulations():
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
     simulation_db.verify_app_directory(sim_type)
-    return _json_response(
+    return sr_resp.gen_json(
         sorted(
             simulation_db.iterate_simulation_datafiles(sim_type, simulation_db.process_simulation_list, search),
             key=lambda row: row['name'],
@@ -574,7 +570,7 @@ def api_listSimulations():
 
 def api_simulationSchema():
     sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
-    return _json_response(simulation_db.get_schema(sim_type))
+    return sr_resp.gen_json(simulation_db.get_schema(sim_type))
 
 
 def api_srLandingPage():
@@ -606,7 +602,7 @@ def api_updateFolder():
         if folder.startswith(old_name):
             row['models']['simulation']['folder'] = re.sub(re.escape(old_name), new_name, folder, 1)
             simulation_db.save_simulation_json(row)
-    return _json_response_ok()
+    return sr_resp.gen_json_ok()
 
 
 def api_uploadFile(simulation_type, simulation_id, file_type):
@@ -631,14 +627,14 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
             if err:
                 pkio.unchecked_remove(p)
     if err:
-        return _json_response({
+        return sr_resp.gen_json({
             'error': err,
             'filename': filename,
             'fileList': file_list,
             'fileType': file_type,
             'simulationId': simulation_id,
         })
-    return _json_response({
+    return sr_resp.gen_json({
         'filename': filename,
         'fileType': file_type,
         'simulationId': simulation_id,
@@ -751,56 +747,6 @@ def _handle_error(error):
     return f, status_code
 
 
-def _json_input(assert_sim_type=True):
-    req = flask.request
-    if req.mimetype != 'application/json':
-        pkdlog('{}: req.mimetype is not application/json', req.mimetype)
-        raise werkzeug.exceptions.BadRequest('expecting application/json')
-    # Adapted from flask.wrappers.Request.get_json
-    # We accept a request charset against the specification as
-    # certain clients have been using this in the past.  This
-    # fits our general approach of being nice in what we accept
-    # and strict in what we send out.
-    charset = req.mimetype_params.get('charset')
-    data = req.get_data(cache=False)
-    res = simulation_db.json_load(data, encoding=charset)
-    if assert_sim_type and 'simulationType' in res:
-        res.simulationType = sirepo.template.assert_sim_type(res.simulationType)
-    return res
-
-
-def _json_response(value, pretty=False):
-    """Generate JSON flask response
-
-    Args:
-        value (dict): what to format
-        pretty (bool): pretty print [False]
-    Returns:
-        Response: flask response
-    """
-    return app.response_class(
-        simulation_db.generate_json(value, pretty=pretty),
-        mimetype=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-    )
-
-
-def _json_response_ok(*args, **kwargs):
-    """Generate state=ok JSON flask response
-
-    Returns:
-        Response: flask response
-    """
-    if len(args) > 0:
-        assert len(args) == 1
-        res = args[0]
-        res.update(_RESPONSE_OK)
-        return _json_response(res)
-    global _JSON_RESPONSE_OK
-    if not _JSON_RESPONSE_OK:
-        _JSON_RESPONSE_OK = _json_response(_RESPONSE_OK)
-    return _JSON_RESPONSE_OK
-
-
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()
 
@@ -830,7 +776,7 @@ def _no_cache(response):
 
 
 def _parse_data_input(validate=False):
-    data = _json_input(assert_sim_type=False)
+    data = sr_req.parse_json(assert_sim_type=False)
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
@@ -1033,7 +979,7 @@ def _validate_serial(data):
     res = simulation_db.validate_serial(data)
     if not res:
         return None
-    return _json_response({
+    return sr_resp.gen_json({
         'state': 'error',
         'error': 'invalidSerial',
         'simulationData': res,

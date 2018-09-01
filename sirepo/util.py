@@ -9,14 +9,17 @@ from pykern.pkdebug import pkdlog
 import werkzeug.exceptions
 
 
-def raise_forbidden(fmt, *args, **kwargs):
-    pkdlog(fmt, *args, **kwargs)
-    raise werkzeug.exceptions.Forbidden()
+def raise_bad_request(*args, **kwargs):
+    _raise('BadRequest', *args, **kwargs)
 
 
-def raise_not_found(fmt, *args, **kwargs):
-    pkdlog(fmt, *args, **kwargs)
-    raise werkzeug.exceptions.NotFound()
+def raise_forbidden(*args, **kwargs):
+    _raise('Forbidden', *args, **kwargs)
+
+
+def raise_not_found(*args, **kwargs):
+    _raise('NotFound', *args, **kwargs)
+
 
 def merge_dicts(base, derived, depth = 1):
     if depth <= 0:
@@ -32,3 +35,8 @@ def merge_lists(base, derived):
 
 def err(obj, format='', *args, **kwargs):
     return '{}: '.format(obj) + format.format(*args, **kwargs)
+
+
+def _raise(exc, fmt, *args, **kwargs):
+    pkdlog(fmt, *args, **kwargs)
+    raise werkzeug.exceptions.getattr(exc)()
