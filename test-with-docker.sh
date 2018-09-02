@@ -15,7 +15,7 @@ for m in pykern sirepo; do
     git clone -q --depth 1 https://github.com/radiasoft/"$m"
     cd "$m"
     pip install -r requirements.txt
-    python setup.py install
+    python install .
     cd ..
 done
 curl radia.run | bash -s code srw

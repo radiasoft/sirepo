@@ -2,7 +2,7 @@
 #
 # Check for debug statements and run all tests
 #
-set -e
+set -euo pipefail
 
 assert_no_prints() {
     local pat=$1
@@ -10,7 +10,7 @@ assert_no_prints() {
     local files=( $@ )
     if egrep "$pat" ${files[@]}; then
         echo "$pat: remove all debugging calls" 1>&2
-        exit 1
+        return 1
     fi
 }
 

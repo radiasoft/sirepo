@@ -8,12 +8,15 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkdebug import pkdp
-from sirepo import util
+from sirepo import cookie
 from sirepo import simulation_db
+from sirepo import sr_api_perm
+from sirepo import sr_req
+from sirepo import sr_resp
+from sirepo import uri_router
+from sirepo import util
 import base64
 import hashlib
-import numconv
-import random
 import time
 
 #: configuration
@@ -23,12 +26,6 @@ cfg = None
 # POSIT: ':' not part of simulationType or simulationId
 _AUTH_HASH_SEPARATOR = ':'
 
-#: valid chars not including _AUTH_HASH_SEPARATOR or _AUTH_NONCE_SEPARATOR
-_AUTH_NONCE_CHARS = numconv.BASE62
-
-#: uniqifier length
-_AUTH_NONCE_UNIQUE_LEN = 32
-
 #: half the window length for replay attacks
 _AUTH_NONCE_REPLAY_SECS = 10
 
@@ -36,15 +33,30 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
+@sr_api_perm.allow_login
+def api_blueskyAuth():
+    req = sr_req.parse_json()
+    auth_hash(req, verify=True)
+    sid = req.simulationId
+    sim_type = req.simulationType
+    path = simulation_db.find_global_simulation(
+        sim_type,
+        sid,
+        checked=True,
+    )
+    cookie.set_user(simulation_db.uid_from_dir_name(path))
+    return sr_resp.gen_json_ok(dict(
+        data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
+        schema=simulation_db.get_schema(req.simulationType),
+    ))
+
+
 def auth_hash(req, verify=False):
     now = int(time.time())
     if not 'authNonce' in req:
         if verify:
            util.raise_not_found('authNonce: missing field in request')
-        r = random.SystemRandom()
-        req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + ''.join(
-            r.choice(_AUTH_NONCE_CHARS) for x in range(_AUTH_NONCE_UNIQUE_LEN)
-        )
+        req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
         _AUTH_HASH_SEPARATOR.join([
@@ -85,21 +97,10 @@ def auth_hash(req, verify=False):
         )
 
 
-def auth_login(req):
-    from sirepo import server
-
-    if cfg.auth_secret:
-        auth_hash(req, verify=True)
-    else:
-        util.raise_not_found('bluesky is not enabled')
-    sid = req.simulationId
-    sim_type = req.simulationType
-    path = simulation_db.find_global_simulation(
-        sim_type,
-        sid,
-        checked=True,
-    )
-    server.session_user(simulation_db.uid_from_dir_name(path))
+def init_apis(app):
+    assert cfg.auth_secret, \
+        'sirepo_bluesky_auth_secret is not configured'
+    uri_router.register_api_module()
 
 
 cfg = pkconfig.init(

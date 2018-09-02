@@ -6,20 +6,39 @@ u"""Utilities for requests
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdlog
+import numconv
+import random
 import werkzeug.exceptions
 
 
-def raise_not_found(fmt, *args, **kwargs):
-    pkdlog(fmt, *args, **kwargs)
-    raise werkzeug.exceptions.NotFound()
-
-def merge_dicts(base, derived, depth):
-    if depth <= 0:
-        return
-    for key in base:
-        if key not in derived:
-            derived[key] = base[key]
-        merge_dicts(base[key], derived[key], depth-1)
-
 def err(obj, format='', *args, **kwargs):
     return '{}: '.format(obj) + format.format(*args, **kwargs)
+
+
+def raise_bad_request(*args, **kwargs):
+    _raise('BadRequest', *args, **kwargs)
+
+
+def raise_forbidden(*args, **kwargs):
+    _raise('Forbidden', *args, **kwargs)
+
+
+def raise_not_found(*args, **kwargs):
+    _raise('NotFound', *args, **kwargs)
+
+
+def random_base62(length=32):
+    """Returns a safe string of sufficient length to be a nonce
+
+    Args:
+        length (int): how long to make the base62 string [32]
+    Returns:
+        str: random base62 characters
+    """
+    r = random.SystemRandom()
+    return ''.join(r.choice(numconv.BASE62) for x in range(length))
+
+
+def _raise(exc, fmt, *args, **kwargs):
+    pkdlog(fmt, *args, **kwargs)
+    raise getattr(werkzeug.exceptions, exc)()

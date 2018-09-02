@@ -698,19 +698,18 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
                 return false;
             };
             $scope.itemList = function() {
+                if (! appState.isLoaded()) {
+                    return null;
+                }
                 if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
                 }
                 if (requestSender.getAuxiliaryData($scope.fileType)) {
                     return requestSender.getAuxiliaryData($scope.fileType);
                 }
-                if (! appState.isLoaded()) {
-                    return null;
-                }
                 requestSender.loadAuxiliaryData(
                     $scope.fileType,
                     requestSender.formatUrl('listFiles', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
                     }), sortList);
@@ -2352,7 +2351,7 @@ SIREPO.app.service('fileUpload', function($http) {
     };
 });
 
-SIREPO.app.service('keypressService', function(d3Service) {
+SIREPO.app.service('keypressService', function() {
 
     var listeners = {};
     var reports = {};
@@ -2440,7 +2439,6 @@ SIREPO.app.service('keypressService', function(d3Service) {
             showPanelActive(reportId, true);
             return;
         }
-        // d3Service needs to be imported above or this will fail
         d3.select('body').on('keydown', null);
         showPanelActive(reportId, false);
     };

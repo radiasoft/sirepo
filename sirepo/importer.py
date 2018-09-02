@@ -17,6 +17,7 @@ def do_form(form):
     Returns:
         dict: data
     """
+    from sirepo import cookie
     from sirepo import uri_router
     from sirepo import simulation_db
     import base64

@@ -57,6 +57,8 @@ _PLOT_LINE_COLOR = {
     'y3': '#2ca02c',
 }
 
+_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
+
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _X_FIELD = 't'
@@ -259,6 +261,15 @@ os.system('jspec {}')
 
 def remove_last_frame(run_dir):
     pass
+
+
+def resource_files():
+    """Library shared between simulations of this type
+
+    Returns:
+        list: py.path.local objects
+    """
+    return pkio.sorted_glob(_RESOURCE_DIR.join('*.tfs'))
 
 
 def validate_file(file_type, path):

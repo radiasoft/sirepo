@@ -11,13 +11,13 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import cookie
 from sirepo import feature_config
-from sirepo.template import template_common
 from sirepo import util
+from sirepo.template import template_common
 import copy
 import datetime
 import errno
-import flask
 import glob
 import json
 import numconv
@@ -93,9 +93,6 @@ _serial_prev = 0
 
 #: Locking for global operations like serial, user moves, etc.
 _global_lock = threading.RLock()
-
-#: sirepo.server module, initialized manually to avoid circularity
-_server = None
 
 #: configuration
 cfg = None
@@ -244,24 +241,17 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
-    # merge common local routes into app local routes
-    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], 2)
-
+    #TODO(mvk): improve merging common and local schema
+    schema.setdefault('dynamicModules', []).extend(schema['commonDynamicModules'])
+    _merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], depth=2)
     if 'appModes' not in schema:
-        schema['appModes'] = {}
-    util.merge_dicts(schema['commonAppModes'], schema['appModes'], 1)
-
-    # merge common models into app models
-    util.merge_dicts(schema['commonModels'], schema['model'], 2)
-
-    # merge common enums into app models
-    util.merge_dicts(schema['commonEnums'], schema['enum'], 1)
-
-    # merge common views into app views - since these can be deeply nested, for now merge only
-    # the title, basic fields, and top level of advanced fields
+        schema['appModes'] = pkcollections.Dict()
+    _merge_dicts(schema['commonAppModes'], schema['appModes'])
+    _merge_dicts(schema['commonModels'], schema['model'], depth=2)
+    _merge_dicts(schema['commonEnums'], schema['enum'])
     common_views = schema['commonViews']
     app_views = schema['view']
-    util.merge_dicts(common_views, app_views, 1)
+    _merge_dicts(common_views, app_views)
     for view_Name in common_views:
         if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
             app_views[view_Name]['title'] = common_views[view_Name]['title']
@@ -274,39 +264,18 @@ def get_schema(sim_type):
                 # ignore arrays
                 if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
                     app_views[view_Name]['advanced'].append(advanced_field)
-
     _validate_schema(schema)
     return schema
 
-# Validate the schema itself.  Start by checking that the default data (if any) is valid -
-# other validation may follow
-def _validate_schema(schema):
-    sch_models = schema['model']
-    sch_enums = schema['enum']
-    for model_name in sch_models:
-        sch_model = sch_models[model_name]
-        for field_name in sch_model:
-            sch_field_info = sch_model[field_name]
-            if len(sch_field_info) <= 2:
-                continue
-            field_default = sch_field_info[2]
-            if field_default == '' or field_default == None:
-                continue
-            _validate_enum(field_default, sch_field_info, sch_enums)
-            _validate_number(field_default, sch_field_info)
 
-
-def init_by_server(app, server):
+def init_by_server(app):
     """Avoid circular import by explicit call from `sirepo.server`.
 
     Args:
         app (Flask): flask instance
-        server (module): sirepo.server
     """
     global _app
     _app = app
-    global _server
-    _server = server
 
 
 def is_parallel(data):
@@ -389,7 +358,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        _server.session_user(),
+        cookie.get_user(),
         data['simulationId'],
         data['report'],
     )
@@ -434,7 +403,7 @@ def lib_dir_from_sim_dir(sim_dir):
 def move_user_simulations(to_uid):
     """Moves all non-example simulations for the current session into the target user's dir.
     """
-    from_uid = _server.session_user()
+    from_uid = cookie.get_user()
     with _global_lock:
         for path in glob.glob(
                 str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
@@ -987,14 +956,22 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 
 def _init():
-    global SCHEMA_COMMON
+    global SCHEMA_COMMON, cfg
     with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
         SCHEMA_COMMON = json_load(f)
-    global cfg
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
+
+
+def _merge_dicts(base, derived, depth=1):
+    if depth <= 0:
+        return
+    for key in base:
+        if key not in derived:
+            derived[key] = base[key]
+        _merge_dicts(base[key], derived[key], depth - 1)
 
 
 def _random_id(parent_dir, simulation_type=None):
@@ -1082,6 +1059,45 @@ def _sid_from_path(path):
     return sid
 
 
+def _user_dir():
+    """User for the session
+
+    Returns:
+        str: unique id for user from flask session
+    """
+    uid = cookie.get_user(checked=False)
+    if not uid:
+        uid = _user_dir_create()
+    d = user_dir_name(uid)
+    if d.check():
+        return d
+    # flask session might have been deleted (in dev) so "logout" and "login"
+    uid = _user_dir_create()
+    return user_dir_name(uid)
+
+
+def _user_dir_create():
+    """Create a user and initialize the directory
+
+    Returns:
+        str: New user id
+    """
+    uid = _random_id(user_dir_name())['id']
+    # Must set before calling simulation_dir
+    cookie.set_user(uid)
+    for simulation_type in feature_config.cfg.sim_types:
+        _create_example_and_lib_files(simulation_type)
+    return uid
+
+
+def _validate_enum(val, sch_field_info, sch_enums):
+    type = sch_field_info[1]
+    if not type in sch_enums:
+        return
+    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
+        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
+
+
 def _validate_name(data):
     """Validate and if necessary uniquify name
 
@@ -1102,6 +1118,7 @@ def _validate_name(data):
     if n in starts_with:
         _validate_name_uniquify(data, starts_with)
 
+
 # Validate that the data follows the definitions in the schema (fixup_old_data e.g. directly sets data)
 def _validate_fields(data):
     schema = get_schema(data.simulationType)
@@ -1121,6 +1138,18 @@ def _validate_fields(data):
             sch_field_info = sch_model[field_name]
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
+
+
+def _validate_name_uniquify(data, starts_with):
+    """Uniquify data.models.simulation.name"""
+    i = 2
+    n = data.models.simulation.name
+    n2 = n
+    while n2 in starts_with:
+        n2 = n + ' ({})'.format(i)
+        i += 1
+    data.models.simulation.name = n2
+
 
 
 # Ensure the value of a numeric field falls within the supplied limits (if any)
@@ -1147,55 +1176,22 @@ def _validate_number(val, sch_field_info):
             raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
 
 
-def _validate_enum(val, sch_field_info, sch_enums):
-    type = sch_field_info[1]
-    if not type in sch_enums:
-        return
-    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
-        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
-
-
-def _validate_name_uniquify(data, starts_with):
-    """Uniquify data.models.simulation.name"""
-    i = 2
-    n = data.models.simulation.name
-    n2 = n
-    while n2 in starts_with:
-        n2 = n + ' ({})'.format(i)
-        i += 1
-    data.models.simulation.name = n2
-
-
-def _user_dir():
-    """User for the session
-
-    Returns:
-        str: unique id for user from flask session
-    """
-    try:
-        uid = _server.session_user()
-    except KeyError:
-        uid = _user_dir_create()
-    d = user_dir_name(uid)
-    if d.check():
-        return d
-    # Beaker session might have been deleted (in dev) so "logout" and "login"
-    uid = _user_dir_create()
-    return user_dir_name(uid)
-
-
-def _user_dir_create():
-    """Create a user and initialize the directory
-
-    Returns:
-        str: New user id
-    """
-    uid = _random_id(user_dir_name())['id']
-    # Must set before calling simulation_dir
-    _server.session_user(uid)
-    for simulation_type in feature_config.cfg.sim_types:
-        _create_example_and_lib_files(simulation_type)
-    return uid
+# Validate the schema itself.  Start by checking that the default data (if any) is valid -
+# other validation may follow
+def _validate_schema(schema):
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in sch_models:
+        sch_model = sch_models[model_name]
+        for field_name in sch_model:
+            sch_field_info = sch_model[field_name]
+            if len(sch_field_info) <= 2:
+                continue
+            field_default = sch_field_info[2]
+            if field_default == '' or field_default == None:
+                continue
+            _validate_enum(field_default, sch_field_info, sch_enums)
+            _validate_number(field_default, sch_field_info)
 
 
 _init()

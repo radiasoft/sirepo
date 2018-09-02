@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -16,12 +16,6 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
         jet: colorsFromString('00008000008400008900008d00009200009600009b00009f0000a40000a80000ad0000b20000b60000bb0000bf0000c40000c80000cd0000d10000d60000da0000df0000e30000e80000ed0000f10000f60000fa0000ff0000ff0000ff0000ff0000ff0004ff0008ff000cff0010ff0014ff0018ff001cff0020ff0024ff0028ff002cff0030ff0034ff0038ff003cff0040ff0044ff0048ff004cff0050ff0054ff0058ff005cff0060ff0064ff0068ff006cff0070ff0074ff0078ff007cff0080ff0084ff0088ff008cff0090ff0094ff0098ff009cff00a0ff00a4ff00a8ff00acff00b0ff00b4ff00b8ff00bcff00c0ff00c4ff00c8ff00ccff00d0ff00d4ff00d8ff00dcfe00e0fb00e4f802e8f406ecf109f0ee0cf4eb0ff8e713fce416ffe119ffde1cffdb1fffd723ffd426ffd129ffce2cffca30ffc733ffc436ffc139ffbe3cffba40ffb743ffb446ffb149ffad4dffaa50ffa753ffa456ffa05aff9d5dff9a60ff9763ff9466ff906aff8d6dff8a70ff8773ff8377ff807aff7d7dff7a80ff7783ff7387ff708aff6d8dff6a90ff6694ff6397ff609aff5d9dff5aa0ff56a4ff53a7ff50aaff4dadff49b1ff46b4ff43b7ff40baff3cbeff39c1ff36c4ff33c7ff30caff2cceff29d1ff26d4ff23d7ff1fdbff1cdeff19e1ff16e4ff13e7ff0febff0ceeff09f1fc06f4f802f8f500fbf100feed00ffea00ffe600ffe200ffde00ffdb00ffd700ffd300ffd000ffcc00ffc800ffc400ffc100ffbd00ffb900ffb600ffb200ffae00ffab00ffa700ffa300ff9f00ff9c00ff9800ff9400ff9100ff8d00ff8900ff8600ff8200ff7e00ff7a00ff7700ff7300ff6f00ff6c00ff6800ff6400ff6000ff5d00ff5900ff5500ff5200ff4e00ff4a00ff4700ff4300ff3f00ff3b00ff3800ff3400ff3000ff2d00ff2900ff2500ff2200ff1e00ff1a00ff1600ff1300fa0f00f60b00f10800ed0400e80000e40000df0000da0000d60000d10000cd0000c80000c40000bf0000bb0000b60000b20000ad0000a80000a400009f00009b00009600009200008d0000890000840000800000'),
         viridis: colorsFromString('44015444025645045745055946075a46085c460a5d460b5e470d60470e6147106347116447136548146748166848176948186a481a6c481b6d481c6e481d6f481f70482071482173482374482475482576482677482878482979472a7a472c7a472d7b472e7c472f7d46307e46327e46337f463480453581453781453882443983443a83443b84433d84433e85423f854240864241864142874144874045884046883f47883f48893e49893e4a893e4c8a3d4d8a3d4e8a3c4f8a3c508b3b518b3b528b3a538b3a548c39558c39568c38588c38598c375a8c375b8d365c8d365d8d355e8d355f8d34608d34618d33628d33638d32648e32658e31668e31678e31688e30698e306a8e2f6b8e2f6c8e2e6d8e2e6e8e2e6f8e2d708e2d718e2c718e2c728e2c738e2b748e2b758e2a768e2a778e2a788e29798e297a8e297b8e287c8e287d8e277e8e277f8e27808e26818e26828e26828e25838e25848e25858e24868e24878e23888e23898e238a8d228b8d228c8d228d8d218e8d218f8d21908d21918c20928c20928c20938c1f948c1f958b1f968b1f978b1f988b1f998a1f9a8a1e9b8a1e9c891e9d891f9e891f9f881fa0881fa1881fa1871fa28720a38620a48621a58521a68522a78522a88423a98324aa8325ab8225ac8226ad8127ad8128ae8029af7f2ab07f2cb17e2db27d2eb37c2fb47c31b57b32b67a34b67935b77937b87838b9773aba763bbb753dbc743fbc7340bd7242be7144bf7046c06f48c16e4ac16d4cc26c4ec36b50c46a52c56954c56856c66758c7655ac8645cc8635ec96260ca6063cb5f65cb5e67cc5c69cd5b6ccd5a6ece5870cf5773d05675d05477d1537ad1517cd2507fd34e81d34d84d44b86d54989d5488bd6468ed64590d74393d74195d84098d83e9bd93c9dd93ba0da39a2da37a5db36a8db34aadc32addc30b0dd2fb2dd2db5de2bb8de29bade28bddf26c0df25c2df23c5e021c8e020cae11fcde11dd0e11cd2e21bd5e21ad8e219dae319dde318dfe318e2e418e5e419e7e419eae51aece51befe51cf1e51df4e61ef6e620f8e621fbe723fde725'),
     };
-
-    var isPlottingReady = false;
-
-    d3Service.d3().then(function() {
-        isPlottingReady = true;
-    });
 
     function colorsFromString(s) {
         return s.match(/.{6}/g).map(function(x) {
@@ -391,69 +385,63 @@ SIREPO.app.factory('plotting', function(appState, d3Service, frameCache, panelSt
                 .clamp(true);
         },
 
-        isPlottingReady: function() {
-            return isPlottingReady;
-        },
-
         linkPlot: function(scope, element) {
-            d3Service.d3().then(function(d3) {
-                scope.element = element[0];
-                scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
-                var requestData;
+            scope.element = element[0];
+            scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
+            var requestData;
 
-                if (scope.isClientOnly) {
-                    requestData = function() {};
+            if (scope.isClientOnly) {
+                requestData = function() {};
+            }
+            else if (scope.isAnimation) {
+                requestData = initAnimation(scope);
+            }
+            else {
+                requestData = initPlot(scope);
+            }
+
+            scope.windowResize = utilities.debounce(function() {
+                scope.resize();
+            }, 250);
+
+            scope.$on('$destroy', function() {
+                scope.destroy();
+                $(d3.select(scope.element).select('svg').node()).off();
+                scope.element = null;
+                $($window).off('resize', scope.windowResize);
+            });
+
+            scope.$on(
+                scope.modelName + '.changed',
+                function() {
+                    scope.prevFrameIndex = -1;
+                    if (scope.modelChanged) {
+                        scope.modelChanged();
+                    }
+                    panelState.clear(scope.modelName);
+                    requestData();
+                });
+            scope.isLoading = function() {
+                if (scope.isAnimation) {
+                    return false;
                 }
-                else if (scope.isAnimation) {
-                    requestData = initAnimation(scope);
+                return panelState.isLoading(scope.modelName);
+            };
+            $($window).resize(scope.windowResize);
+            // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
+            $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            scope.init();
+            if (appState.isLoaded()) {
+                if (scope.isAnimation && scope.defaultFrame) {
+                    scope.defaultFrame();
                 }
                 else {
-                    requestData = initPlot(scope);
+                    requestData();
                 }
-
-                scope.windowResize = utilities.debounce(function() {
-                    scope.resize();
-                }, 250);
-
-                scope.$on('$destroy', function() {
-                    scope.destroy();
-                    $(d3.select(scope.element).select('svg').node()).off();
-                    scope.element = null;
-                    $($window).off('resize', scope.windowResize);
-                });
-
-                scope.$on(
-                    scope.modelName + '.changed',
-                    function() {
-                        scope.prevFrameIndex = -1;
-                        if (scope.modelChanged) {
-                            scope.modelChanged();
-                        }
-                        panelState.clear(scope.modelName);
-                        requestData();
-                    });
-                scope.isLoading = function() {
-                    if (scope.isAnimation) {
-                        return false;
-                    }
-                    return panelState.isLoading(scope.modelName);
-                };
-                $($window).resize(scope.windowResize);
-                // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
-                $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                });
-                scope.init();
-                if (appState.isLoaded()) {
-                    if (scope.isAnimation && scope.defaultFrame) {
-                        scope.defaultFrame();
-                    }
-                    else {
-                        requestData();
-                    }
-                }
-            });
+            }
         },
 
         vtkPlot: function(scope, element) {
@@ -1126,7 +1114,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
 
 });
 
-SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService, d3Service, keypressService, $window) {
+SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService, keypressService, $window) {
     return {
         restrict: 'A',
         scope: {
@@ -1157,7 +1145,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 delegates[dIndex].interface = this;
             }
 
-            d3Service.d3().then(init);
+            init();
 
             function setupGeometry(isMainFocus) {
                 return {
@@ -1333,7 +1321,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
     };
 });
 
-SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Service) {
+SIREPO.app.directive('focusCircle', function(plotting, focusPointService) {
     return {
         restrict: 'A',
         scope: {
@@ -1354,7 +1342,8 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Serv
                 $scope.plotInfoDelegate.hideFocusPointInfo = hideFocusCircle;
                 $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
             }
-            d3Service.d3().then(init);
+
+            init();
 
             var defaultCircleSize;
 
@@ -1410,7 +1399,7 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService, d3Serv
     };
 });
 
-SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointService, utilities) {
+SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -1463,7 +1452,7 @@ SIREPO.app.directive('popupReport', function(plotting, d3Service, focusPointServ
             var axisIndex = $scope.invertAxis ? 1 : 0;
             $scope.plotting = plotting;
 
-            d3Service.d3().then(init);
+            init();
 
             function init() {
                 d3self = d3.selectAll($element);
@@ -3056,7 +3045,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities, vtkService) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, layoutService, utilities) {
 
     return {
         restrict: 'A',
@@ -4033,11 +4022,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
         },
 
         link: function link(scope, element) {
-            if (vtkService.vtk) {
-                vtkService.vtk().then(function(vtk) {
-                    plotting.vtkPlot(scope, element);
-                });
-            }
+            plotting.vtkPlot(scope, element);
         },
     };
 });

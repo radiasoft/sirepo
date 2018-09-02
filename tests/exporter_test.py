@@ -19,6 +19,7 @@ def test_create_zip():
     import zipfile
 
     fc = sr_unit.flask_client()
+    fc.get('/srw')
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),

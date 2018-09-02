@@ -1,4 +1,7 @@
 {
+    "dynamicModules": [
+        "/static/js/sirepo-lattice.js"
+    ],
     "localRoutes": {
         "source": {
             "config": {

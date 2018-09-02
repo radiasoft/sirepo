@@ -811,7 +811,7 @@ SIREPO.app.directive('appHeader', function(appState) {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
+		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   '<li class="sim-section" data-ng-if="hasSourceCommand()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a data-ng-href="{{ nav.sectionURL(\'lattice\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-if="hasBeamlines()" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>',
@@ -1293,7 +1293,6 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                 requestSender.loadAuxiliaryData(
                     fileType,
                     requestSender.formatUrl('listFiles', {
-                        '<simulation_id>': $scope.id,
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': fileType,
                     }),

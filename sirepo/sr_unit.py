@@ -64,15 +64,26 @@ def init_user_db():
     )
 
 
-def test_in_request(op):
+def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True):
     from sirepo import uri_router
 
-    fc = flask_client()
+    fc = flask_client(cfg)
     try:
-        setattr(server.app, server.SR_UNIT_TEST_IN_REQUEST, op)
-        fc.get(uri_router.sr_unit_uri)
+        if before_request:
+            before_request(fc)
+        setattr(
+            server.app,
+            server.SR_UNIT_TEST_IN_REQUEST,
+            pkcollections.Dict(op=op, want_cookie=want_cookie),
+        )
+        resp = fc.get(
+            uri_router.sr_unit_uri,
+            headers=headers,
+        )
+        pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
     finally:
         delattr(server.app, server.SR_UNIT_TEST_IN_REQUEST)
+    return resp
 
 
 class _TestClient(flask.testing.FlaskClient):

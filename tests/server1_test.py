@@ -20,6 +20,7 @@ def test_1_serial_stomp():
 
     fc = sr_unit.flask_client()
     sim_type = 'srw'
+    fc.get('/{}'.format(sim_type))
     data = fc.sr_post('listSimulations', {'simulationType': sim_type})
     for youngs in data:
         if youngs['name'] == "Young's Double Slit Experiment":
@@ -70,46 +71,11 @@ def test_1_serial_stomp():
     )
 
 
-def test_oauth():
-    from pykern import pkconfig
-    pkconfig.reset_state_for_testing({
-        'SIREPO_SERVER_OAUTH_LOGIN': '1',
-        'SIREPO_OAUTH_GITHUB_KEY': 'n/a',
-        'SIREPO_OAUTH_GITHUB_SECRET': 'n/a',
-        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': 'n/a',
-    })
-
-    from pykern.pkunit import pkfail, pkok
-    from sirepo import server
+def test_missing_cookies():
+    from pykern.pkunit import pkeq
     from sirepo import sr_unit
-    import re
-
-    sim_type = 'srw'
+    import json
     fc = sr_unit.flask_client()
-    fc.sr_post('listSimulations', {'simulationType': sim_type})
-    text = fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': 'github',
-        },
-        raw_response=True,
-    ).data
-    state = re.search(r'state=(.*?)"', text).group(1)
-    #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
-    text = fc.get('/oauth-authorized/github')
-    text = fc.sr_get(
-        'oauthLogout',
-        {
-            'simulation_type': sim_type,
-        },
-        raw_response=True,
-    ).data
-    pkok(
-        text.find('Redirecting') > 0,
-        'missing redirect',
-    )
-    pkok(
-        text.find('"/{}"'.format(sim_type)) > 0,
-        'missing redirect target',
-    )
+    sim_type = 'srw'
+    resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
+    pkeq(403, resp.status_code)

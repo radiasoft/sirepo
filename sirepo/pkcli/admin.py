@@ -16,7 +16,7 @@ def create_examples():
     from sirepo import feature_config
     from sirepo import server
     from sirepo import simulation_db
-    import flask
+    from sirepo import cookie
 
     server.init()
 
@@ -24,11 +24,7 @@ def create_examples():
         if _is_src_dir(d):
             continue;
         uid = simulation_db.uid_from_dir_name(d)
-        # create a mock session
-        flask.session = {
-            server._ENVIRON_KEY_BEAKER: {},
-        }
-        server.session_user(uid)
+        cookie.init_mock(uid)
         for sim_type in feature_config.cfg.sim_types:
             simulation_db.verify_app_directory(sim_type)
             names = map(
@@ -54,13 +50,14 @@ def purge_users(days=180, confirm=False):
     from pykern import pkio
     from sirepo import server
     from sirepo import simulation_db
+    from sirepo import sr_auth
     import datetime
 
     days = int(days)
     assert days >= 1, \
         '{}: days must be a positive integer'
     server.init()
-    uids = server.all_uids()
+    uids = sr_auth.all_uids()
     now = datetime.datetime.utcnow()
     to_remove = []
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):

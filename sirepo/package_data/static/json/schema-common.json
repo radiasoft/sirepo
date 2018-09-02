@@ -1,5 +1,5 @@
 {
-    "version": "20180815.000000",
+    "version": "20180829.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -62,7 +62,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
         "homePage": "/light",
-        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
+        "listFiles": "/file-list/<simulation_type>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
@@ -80,9 +80,13 @@
         "simulationSchema": "/simulation-schema",
         "srLandingPage": "/sr",
         "srUnit": "/ sr_unit",
+        "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
+    "commonDynamicModules": [
+        "/static/js/ext/d3-3.5.9.min.js"
+    ],
     "commonLocalRoutes": {
         "simulations": {
             "route": "/simulations",
@@ -108,6 +112,12 @@
             "config": {
               "controller": "LoggedOutController as loggedOut",
               "templateUrl": "/static/html/logged-out.html"
+            }
+        },
+        "forbidden": {
+            "route": "/forbidden",
+            "config": {
+              "templateUrl": "/static/html/forbidden.html"
             }
         },
         "notFound": {

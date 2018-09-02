@@ -356,7 +356,7 @@ SIREPO.app.directive('appHeader', function() {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-                '<div data-sim-sections="">',
+		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
@@ -383,7 +383,7 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
         controller: function($scope) {
             var cells = null;
             $scope.cellList = function() {
-                if (appState.isLoaded() && plotting.isPlottingReady()) {
+                if (appState.isLoaded()) {
                     if (cells) {
                         return cells;
                     }
@@ -1512,7 +1512,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkService) {
+SIREPO.app.directive('conductors3d', function(appState) {
     return {
         restrict: 'A',
         template: [
@@ -1700,10 +1700,8 @@ SIREPO.app.directive('conductors3d', function(appState, vtkService) {
             });
 
             appState.whenModelsLoaded($scope, function() {
-                vtkService.vtk().then(function() {
-                    init();
-                    load();
-                });
+                init();
+                load();
             });
 
         },

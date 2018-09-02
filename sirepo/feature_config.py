@@ -37,6 +37,15 @@ def for_sim_type(sim_type):
 
 
 @pkconfig.parse_none
+def _cfg_api_modules(value):
+    if isinstance(value, (tuple, list)):
+        return tuple(value)
+    if not value:
+        return tuple()
+    return tuple(value.split(':'))
+
+
+@pkconfig.parse_none
 def _cfg_sim_types(value):
     if not value:
         return _codes()
@@ -52,12 +61,14 @@ def _codes(want_all=pkconfig.channel_in('dev')):
 
 
 cfg = pkconfig.init(
+    api_modules=(None, _cfg_api_modules, 'optional api modules, e.g. bluesky'),
+    #TODO(robnagler) make sim_type config
+    rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
+    sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
     ),
     warpvnd=dict(
         allow_3d_mode=(pkconfig.channel_in_internal_test(), bool, 'Include 3D features in the Warp VND UI'),
     ),
-    sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
-    rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
 )

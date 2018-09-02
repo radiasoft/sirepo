@@ -10,6 +10,28 @@ var srdbg = SIREPO.srdbg;
 
 // start the angular app after the app's json schema file has been loaded
 angular.element(document).ready(function() {
+
+    function loadDynamicModule(src) {
+        var d = $.Deferred();
+        var scriptTag = document.createElement('script');
+        scriptTag.type = 'text/javascript';
+        scriptTag.async = true;
+        scriptTag.onload = function() {
+            d.resolve();
+        };
+        scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
+        document.getElementsByTagName('body')[0].appendChild(scriptTag);
+        return d.promise();
+    }
+
+    function loadDynamicModules() {
+        return $.map(
+            SIREPO.APP_SCHEMA.dynamicModules || [],
+            function(src) {
+                return loadDynamicModule(src);
+            });
+    }
+
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -17,7 +39,11 @@ angular.element(document).ready(function() {
         },
         success: function(result) {
             SIREPO.APP_SCHEMA = result;
-            angular.bootstrap(document, ['SirepoApp']);
+            $.when.apply($, loadDynamicModules()).then(
+                function() {
+                    angular.bootstrap(document, ['SirepoApp']);
+                }
+            );
         },
         error: function(xhr, status, err) {
             if (! SIREPO.APP_SCHEMA) {
@@ -64,7 +90,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'd3', 'ngCookies', 'vtk']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies']);
 
 SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 
@@ -1246,6 +1272,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     function logError(data, status) {
         if (status == 404) {
             self.localRedirect('notFound');
+        }
+        else if (status == 403) {
+            self.localRedirect('forbidden');
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
