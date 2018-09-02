@@ -156,6 +156,12 @@ class _FlaskSession(dict, flask.sessions.SessionMixin):
 
 
 class _FlaskSessionInterface(flask.sessions.SessionInterface):
+    """Emphemeral session for oauthlib.client state
+
+    Without this class, Flask creates a NullSession which can't
+    be written to. Flask assumes the session needs to be persisted
+    to cookie or a db, which isn't true in our case.
+    """
     def open_session(*args, **kwargs):
         return _FlaskSession()
 
@@ -200,13 +206,16 @@ def _init_beaker_compat():
     beaker_compat.oauth_hook = _beaker_compat_map_keys
 
 
+
 def _init_tables(app):
+    """Creates sql lite tables"""
     if not os.path.exists(_db_filename(app)):
         pkdlog('creating user oauth database')
         _db.create_all()
 
 
 def _init_user_model():
+    """Creates User class bound to dynamic `_db` variable"""
     global User
 
     class User(_db.Model):
