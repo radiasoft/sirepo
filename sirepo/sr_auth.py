@@ -13,7 +13,6 @@ from sirepo import util
 
 def assert_api_call(func):
     p = getattr(func, sr_api_perm.ATTR)
-    pkdp(func)
     a = sr_api_perm.APIPerm
     if p == a.REQUIRE_USER:
         if not cookie.has_sentinel():
