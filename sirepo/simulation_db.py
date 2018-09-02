@@ -241,29 +241,17 @@ def get_schema(sim_type):
     schema['simulationType'] = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
-    # TODO (mvk): improve merging common and local schema
-    if 'dynamicModules' not in schema:
-        schema['dynamicModules'] = []
-    util.merge_lists(schema['commonDynamicModules'], schema['dynamicModules'])
-
-    # merge common local routes into app local routes
-    util.merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], depth=2)
-
+    #TODO(mvk): improve merging common and local schema
+    schema.setdefault('dynamicModules', []).extend(schema['commonDynamicModules'])
+    _merge_dicts(schema['commonLocalRoutes'], schema['localRoutes'], depth=2)
     if 'appModes' not in schema:
         schema['appModes'] = pkcollections.Dict()
-    util.merge_dicts(schema['commonAppModes'], schema['appModes'])
-
-    # merge common models into app models
-    util.merge_dicts(schema['commonModels'], schema['model'], depth=2)
-
-    # merge common enums into app models
-    util.merge_dicts(schema['commonEnums'], schema['enum'])
-
-    # merge common views into app views - since these can be deeply nested, for now merge only
-    # the title, basic fields, and top level of advanced fields
+    _merge_dicts(schema['commonAppModes'], schema['appModes'])
+    _merge_dicts(schema['commonModels'], schema['model'], depth=2)
+    _merge_dicts(schema['commonEnums'], schema['enum'])
     common_views = schema['commonViews']
     app_views = schema['view']
-    util.merge_dicts(common_views, app_views)
+    _merge_dicts(common_views, app_views)
     for view_Name in common_views:
         if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
             app_views[view_Name]['title'] = common_views[view_Name]['title']
@@ -276,26 +264,8 @@ def get_schema(sim_type):
                 # ignore arrays
                 if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
                     app_views[view_Name]['advanced'].append(advanced_field)
-
     _validate_schema(schema)
     return schema
-
-# Validate the schema itself.  Start by checking that the default data (if any) is valid -
-# other validation may follow
-def _validate_schema(schema):
-    sch_models = schema['model']
-    sch_enums = schema['enum']
-    for model_name in sch_models:
-        sch_model = sch_models[model_name]
-        for field_name in sch_model:
-            sch_field_info = sch_model[field_name]
-            if len(sch_field_info) <= 2:
-                continue
-            field_default = sch_field_info[2]
-            if field_default == '' or field_default == None:
-                continue
-            _validate_enum(field_default, sch_field_info, sch_enums)
-            _validate_number(field_default, sch_field_info)
 
 
 def init_by_server(app):
@@ -986,14 +956,22 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 
 def _init():
-    global SCHEMA_COMMON
+    global SCHEMA_COMMON, cfg
     with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
         SCHEMA_COMMON = json_load(f)
-    global cfg
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
+
+
+def _merge_dicts(base, derived, depth=1):
+    if depth <= 0:
+        return
+    for key in base:
+        if key not in derived:
+            derived[key] = base[key]
+        _merge_dicts(base[key], derived[key], depth - 1)
 
 
 def _random_id(parent_dir, simulation_type=None):
@@ -1081,90 +1059,6 @@ def _sid_from_path(path):
     return sid
 
 
-def _validate_name(data):
-    """Validate and if necessary uniquify name
-
-    Args:
-        data (dict): what to validate
-    """
-    starts_with = pkcollections.Dict()
-    s = data.models.simulation
-    n = s.name
-    for d in iterate_simulation_datafiles(
-        data.simulationType,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': s.folder},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
-            starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with:
-        _validate_name_uniquify(data, starts_with)
-
-# Validate that the data follows the definitions in the schema (fixup_old_data e.g. directly sets data)
-def _validate_fields(data):
-    schema = get_schema(data.simulationType)
-    sch_models = schema['model']
-    sch_enums = schema['enum']
-    for model_name in data.models:
-        if not model_name in sch_models:
-            continue
-        sch_model = sch_models[model_name]
-        model_data = data.models[model_name]
-        for field_name in model_data:
-            if not field_name in sch_model:
-                continue
-            val = model_data[field_name]
-            if val == '':
-                continue
-            sch_field_info = sch_model[field_name]
-            _validate_enum(val, sch_field_info, sch_enums)
-            _validate_number(val, sch_field_info)
-
-
-# Ensure the value of a numeric field falls within the supplied limits (if any)
-# Note that currently the values in enum arrays at the indices below are sometimes
-# used for other purposes, so we return for non-numeric values rather than fail
-def _validate_number(val, sch_field_info):
-    if len(sch_field_info) <= 4:
-        return
-    min = sch_field_info[4]
-    try:
-        fv = float(val)
-        fmin = float(min)
-    except ValueError:
-        return
-    if fv < fmin:
-        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
-    if len(sch_field_info) > 5:
-        max = sch_field_info[5]
-        try:
-            fmax = float(max)
-        except ValueError:
-            return
-        if fv > fmax:
-            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
-
-
-def _validate_enum(val, sch_field_info, sch_enums):
-    type = sch_field_info[1]
-    if not type in sch_enums:
-        return
-    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
-        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
-
-
-def _validate_name_uniquify(data, starts_with):
-    """Uniquify data.models.simulation.name"""
-    i = 2
-    n = data.models.simulation.name
-    n2 = n
-    while n2 in starts_with:
-        n2 = n + ' ({})'.format(i)
-        i += 1
-    data.models.simulation.name = n2
-
-
 def _user_dir():
     """User for the session
 
@@ -1194,6 +1088,110 @@ def _user_dir_create():
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
+
+
+def _validate_enum(val, sch_field_info, sch_enums):
+    type = sch_field_info[1]
+    if not type in sch_enums:
+        return
+    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
+        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
+
+
+def _validate_name(data):
+    """Validate and if necessary uniquify name
+
+    Args:
+        data (dict): what to validate
+    """
+    starts_with = pkcollections.Dict()
+    s = data.models.simulation
+    n = s.name
+    for d in iterate_simulation_datafiles(
+        data.simulationType,
+        lambda res, _, d: res.append(d),
+        {'simulation.folder': s.folder},
+    ):
+        n2 = d.models.simulation.name
+        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
+            starts_with[n2] = d.models.simulation.simulationId
+    if n in starts_with:
+        _validate_name_uniquify(data, starts_with)
+
+
+# Validate that the data follows the definitions in the schema (fixup_old_data e.g. directly sets data)
+def _validate_fields(data):
+    schema = get_schema(data.simulationType)
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in data.models:
+        if not model_name in sch_models:
+            continue
+        sch_model = sch_models[model_name]
+        model_data = data.models[model_name]
+        for field_name in model_data:
+            if not field_name in sch_model:
+                continue
+            val = model_data[field_name]
+            if val == '':
+                continue
+            sch_field_info = sch_model[field_name]
+            _validate_enum(val, sch_field_info, sch_enums)
+            _validate_number(val, sch_field_info)
+
+
+def _validate_name_uniquify(data, starts_with):
+    """Uniquify data.models.simulation.name"""
+    i = 2
+    n = data.models.simulation.name
+    n2 = n
+    while n2 in starts_with:
+        n2 = n + ' ({})'.format(i)
+        i += 1
+    data.models.simulation.name = n2
+
+
+
+# Ensure the value of a numeric field falls within the supplied limits (if any)
+# Note that currently the values in enum arrays at the indices below are sometimes
+# used for other purposes, so we return for non-numeric values rather than fail
+def _validate_number(val, sch_field_info):
+    if len(sch_field_info) <= 4:
+        return
+    min = sch_field_info[4]
+    try:
+        fv = float(val)
+        fmin = float(min)
+    except ValueError:
+        return
+    if fv < fmin:
+        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+    if len(sch_field_info) > 5:
+        max = sch_field_info[5]
+        try:
+            fmax = float(max)
+        except ValueError:
+            return
+        if fv > fmax:
+            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
+
+
+# Validate the schema itself.  Start by checking that the default data (if any) is valid -
+# other validation may follow
+def _validate_schema(schema):
+    sch_models = schema['model']
+    sch_enums = schema['enum']
+    for model_name in sch_models:
+        sch_model = sch_models[model_name]
+        for field_name in sch_model:
+            sch_field_info = sch_model[field_name]
+            if len(sch_field_info) <= 2:
+                continue
+            field_default = sch_field_info[2]
+            if field_default == '' or field_default == None:
+                continue
+            _validate_enum(field_default, sch_field_info, sch_enums)
+            _validate_number(field_default, sch_field_info)
 
 
 _init()

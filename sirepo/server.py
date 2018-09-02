@@ -21,7 +21,6 @@ from sirepo.template import template_common
 import datetime
 import flask
 import glob
-import importlib
 import os.path
 import py.path
 import re
@@ -65,19 +64,6 @@ app = flask.Flask(
 app.config.update(
     PROPAGATE_EXCEPTIONS=True,
 )
-
-
-#TODO(robnagler) this shouldn't be here
-def all_uids():
-    """List of all users
-
-    Returns:
-        set: set of all uids
-    """
-    if not cfg.oauth_login:
-        return set()
-    from sirepo import oauth
-    return oauth.all_uids(app)
 
 
 @sr_api_perm.require_user
@@ -264,9 +250,6 @@ def api_listFiles(simulation_type, file_type):
 
 @sr_api_perm.allow_cookieless_user
 def api_findByName(simulation_type, application_mode, simulation_name):
-    if cfg.oauth_login:
-        from sirepo import oauth
-        oauth.set_default_state(logged_out_as_anonymous=True)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
         'simulation.name': simulation_name,
@@ -402,30 +385,6 @@ def api_newSimulation():
     return _save_new_and_reply(data)
 
 
-@sr_api_perm.allow_login
-def api_oauthAuthorized(oauth_type):
-    if cfg.oauth_login:
-        from sirepo import oauth
-        return oauth.authorized_callback(app, oauth_type)
-    raise RuntimeError('OAUTH Login not configured')
-
-
-@sr_api_perm.allow_cookieless_user
-def api_oauthLogin(simulation_type, oauth_type):
-    if cfg.oauth_login:
-        from sirepo import oauth
-        return oauth.authorize(simulation_type, app, oauth_type)
-    raise RuntimeError('OAUTH Login not configured')
-
-
-@sr_api_perm.allow_visitor
-def api_oauthLogout(simulation_type):
-    if cfg.oauth_login:
-        from sirepo import oauth
-        return oauth.logout(simulation_type)
-    raise RuntimeError('OAUTH Login not configured')
-
-
 @sr_api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
     import string
@@ -465,7 +424,6 @@ def api_root(simulation_type):
         werkzeug.exceptions.abort(404)
     values = pkcollections.Dict()
     values.app_name = simulation_type
-    values.oauth_login = cfg.oauth_login
     return _render_root_page('index', values)
 
 
@@ -675,12 +633,6 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def flask_before_request():
-    # set a dummy flask.session, required for temporary per request data by flask_oauthlib.client
-    # this must be set before flask starts the request
-    flask.session = {}
-
-
 def init(db_dir=None, uwsgi=None):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
@@ -689,14 +641,17 @@ def init(db_dir=None, uwsgi=None):
         cfg.db_dir = py.path.local(db_dir)
     else:
         db_dir = cfg.db_dir
-    uri_router.init(app, simulation_db)
     app.sirepo_db_dir = db_dir
-    app.before_request(flask_before_request)
     simulation_db.init_by_server(app)
+    uri_router.init(app, simulation_db)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
     runner.init(app, uwsgi)
     return app
+
+
+def init_apis(app):
+    uri_router.register_api_module()
 
 
 def javascript_redirect(redirect_uri):
@@ -767,12 +722,6 @@ def _handle_error(error):
     f = flask.send_from_directory(static_dir('html'), error_file)
 
     return f, status_code
-
-
-def _module_init():
-    uri_router.register_api_module()
-    for m in feature_config.cfg.api_modules:
-        importlib.import_module('sirepo.' + m).module_init()
 
 
 def _mtime_or_now(path):
@@ -1026,7 +975,5 @@ cfg = pkconfig.init(
     ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
-    oauth_login=(False, bool, 'OAUTH: enable login'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
 )
-_module_init()

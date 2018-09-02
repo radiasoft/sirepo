@@ -12,6 +12,7 @@ from sirepo import cookie
 from sirepo import sr_auth
 from sirepo import util
 import flask
+import importlib
 import inspect
 import re
 
@@ -64,37 +65,13 @@ def init(app, simulation_db):
     Args:
         app (Flask): flask app
     """
-    global _uri_to_route
+    from sirepo import feature_config
+
     if _uri_to_route:
-        # Already initialized
         return
-    global _default_route, _empty_route, sr_unit_uri, _api_to_route
-    _uri_to_route = pkcollections.Dict()
-    _api_to_route = pkcollections.Dict()
-    for k, v in simulation_db.SCHEMA_COMMON.route.items():
-        r = _split_uri(v)
-        try:
-            r.func = _api_funcs[_FUNC_PREFIX + k]
-        except KeyError:
-            pkdlog('not adding api, because module not registered: uri={}', v)
-            continue
-        sr_auth.assert_api_def(r.func)
-        r.decl_uri = v
-        r.name = k
-        assert not r.base_uri in _uri_to_route, \
-            '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
-        _uri_to_route[r.base_uri] = r
-        _api_to_route[k] = r
-        if r.base_uri == '':
-            _default_route = r
-        if 'sr_unit' in v:
-            sr_unit_uri = v
-    assert _default_route, \
-        'missing default route'
-    # 'light' is the homePage, not 'root'
-    _empty_route = _uri_to_route.light
-    app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
-    app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
+    for m in ('server',) + feature_config.cfg.api_modules:
+        importlib.import_module('sirepo.' + m).init_apis(app)
+    _init_uris(app, simulation_db)
 
 
 def register_api_module():
@@ -206,6 +183,37 @@ def _dispatch_call(func, kwargs):
 def _dispatch_empty():
     """Hook for '/' route"""
     return _dispatch(None)
+
+
+def _init_uris(app, simulation_db):
+    global _default_route, _empty_route, sr_unit_uri, _api_to_route, _uri_to_route
+
+    _uri_to_route = pkcollections.Dict()
+    _api_to_route = pkcollections.Dict()
+    for k, v in simulation_db.SCHEMA_COMMON.route.items():
+        r = _split_uri(v)
+        try:
+            r.func = _api_funcs[_FUNC_PREFIX + k]
+        except KeyError:
+            pkdc('not adding api, because module not registered: uri={}', v)
+            continue
+        sr_auth.assert_api_def(r.func)
+        r.decl_uri = v
+        r.name = k
+        assert not r.base_uri in _uri_to_route, \
+            '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
+        _uri_to_route[r.base_uri] = r
+        _api_to_route[k] = r
+        if r.base_uri == '':
+            _default_route = r
+        if 'sr_unit' in v:
+            sr_unit_uri = v
+    assert _default_route, \
+        'missing default route'
+    # 'light' is the homePage, not 'root'
+    _empty_route = _uri_to_route.light
+    app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
+    app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
 
 def _split_uri(uri):

@@ -17,8 +17,6 @@ from sirepo import uri_router
 from sirepo import util
 import base64
 import hashlib
-import numconv
-import random
 import time
 
 #: configuration
@@ -27,12 +25,6 @@ cfg = None
 #: separates the values of the clear text for the hash
 # POSIT: ':' not part of simulationType or simulationId
 _AUTH_HASH_SEPARATOR = ':'
-
-#: valid chars not including _AUTH_HASH_SEPARATOR or _AUTH_NONCE_SEPARATOR
-_AUTH_NONCE_CHARS = numconv.BASE62
-
-#: uniqifier length
-_AUTH_NONCE_UNIQUE_LEN = 32
 
 #: half the window length for replay attacks
 _AUTH_NONCE_REPLAY_SECS = 10
@@ -64,10 +56,7 @@ def auth_hash(req, verify=False):
     if not 'authNonce' in req:
         if verify:
            util.raise_not_found('authNonce: missing field in request')
-        r = random.SystemRandom()
-        req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + ''.join(
-            r.choice(_AUTH_NONCE_CHARS) for x in range(_AUTH_NONCE_UNIQUE_LEN)
-        )
+        req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
         _AUTH_HASH_SEPARATOR.join([
@@ -108,10 +97,11 @@ def auth_hash(req, verify=False):
         )
 
 
-def module_init():
+def init_apis(app):
     assert cfg.auth_secret, \
         'sirepo_bluesky_auth_secret is not configured'
     uri_router.register_api_module()
+
 
 cfg = pkconfig.init(
     auth_secret=(None, str, 'Shared secret between Sirepo and BlueSky server'),

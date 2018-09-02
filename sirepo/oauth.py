@@ -12,13 +12,17 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
 from sirepo import server
 from sirepo import simulation_db
+from sirepo import sr_api_perm
+from sirepo import sr_auth
+from sirepo import uri_router
+from sirepo import util
 import flask
+import flask.sessions
 import flask_oauthlib.client
 import os.path
 import sqlalchemy
 import threading
-import werkzeug.exceptions
-import werkzeug.security
+
 
 # oauth_login_state values
 _ANONYMOUS = 'a'
@@ -47,22 +51,42 @@ _db_serial_lock = threading.RLock()
 
 
 def all_uids(app):
+#TODO(robnagler) do we need locking
     res = set()
     for u in User.query.all():
         res.add(u.uid)
     return res
 
 
-def authorize(simulation_type, app, oauth_type):
+def allow_cookieless_user():
+    set_default_state(logged_out_as_anonymous=True)
+
+
+@sr_api_perm.allow_login
+def api_oauthAuthorized(oauth_type):
+    return authorized_callback(oauth_type)
+
+
+@sr_api_perm.allow_cookieless_user
+def api_oauthLogin(simulation_type, oauth_type):
+    return authorize(simulation_type, oauth_type)
+
+
+@sr_api_perm.allow_visitor
+def api_oauthLogout(simulation_type):
+    return logout(simulation_type)
+
+
+def authorize(simulation_type, oauth_type):
     """Redirects to an OAUTH request for the specified oauth_type ('github').
 
     If oauth_type is 'anonymous', the current session is cleared.
     """
-    oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next') or '')
+    oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
     if oauth_type == _ANONYMOUS_OAUTH_TYPE:
         _update_session(_ANONYMOUS)
         return server.javascript_redirect(oauth_next)
-    state = werkzeug.security.gen_salt(64)
+    state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_NEXT, oauth_next)
     callback = cfg.github_callback_uri
@@ -72,25 +96,27 @@ def authorize(simulation_type, app, oauth_type):
             'oauthAuthorized',
             dict(oauth_type=oauth_type),
         )
-    return _oauth_client(app, oauth_type).authorize(
+    return _oauth_client(oauth_type).authorize(
         callback=callback,
         state=state,
     )
 
 
-def authorized_callback(app, oauth_type):
+def authorized_callback(oauth_type):
     """Handle a callback from a successful OAUTH request. Tracks oauth
     users in a database.
     """
-    oauth = _oauth_client(app, oauth_type)
-    resp = oauth.authorized_response()
+    oc = _oauth_client(oauth_type)
+    resp = oc.authorized_response()
     if not resp:
-        pkdlog('missing oauth response')
-        werkzeug.exceptions.abort(403)
+        util.raise_forbidden('missing oauth response')
     state = _remove_cookie_key(_COOKIE_NONCE)
-    if state != flask.request.args.get('state'):
-        pkdlog('mismatch oauth state: {} != {}', state, flask.request.args.get('state'))
-        werkzeug.exceptions.abort(403)
+    if state != flask.request.args.get('state', ''):
+        util.raise_forbidden(
+            'mismatch oauth state: {} != {}',
+            state,
+            flask.request.args.get('state'),
+        )
     # fields: id, login, name
     user_data = oauth.get('user', token=(resp['access_token'], '')).data
     user = _update_database(user_data, oauth_type)
@@ -105,6 +131,15 @@ def logout(simulation_type):
     return flask.redirect('/{}'.format(simulation_type))
 
 
+def init_apis(app):
+    _init(app)
+    _init_user_model()
+    _init_tables(app)
+    uri_router.register_api_module()
+    sr_auth.register_login_module()
+    _init_beaker_compat()
+
+
 def set_default_state(logged_out_as_anonymous=False):
     if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
@@ -116,12 +151,33 @@ def set_default_state(logged_out_as_anonymous=False):
     )
 
 
+class _FlaskSession(dict, flask.sessions.SessionMixin):
+    pass
+
+
+class _FlaskSessionInterface(flask.sessions.SessionInterface):
+    def open_session(*args, **kwargs):
+        return _FlaskSession()
+
+    def save_session(*args, **kwargs):
+        pass
+
+
+def _beaker_compat_map_keys(key_map):
+    key_map['key']['oauth_login_state'] = _COOKIE_STATE
+    key_map['key']['oauth_user_name'] = _COOKIE_NAME
+    # reverse map of login state values
+    key_map['value'] = dict(map(lambda k: (_LOGIN_STATE_MAP[k], k), _LOGIN_STATE_MAP))
+
+
 def _db_filename(app):
     return str(app.sirepo_db_dir.join(_USER_DB_FILE))
 
 
 def _init(app):
     global _db
+
+    app.session_interface = _FlaskSessionInterface()
     app.config.update(
         SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
         SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
@@ -138,15 +194,44 @@ def _init(app):
         raise RuntimeError('Missing GitHub oauth config')
 
 
+
+def _init_beaker_compat():
+    from sirepo import beaker_compat
+    beaker_compat.oauth_hook = _beaker_compat_map_keys
+
+
 def _init_tables(app):
     if not os.path.exists(_db_filename(app)):
         pkdlog('creating user oauth database')
         _db.create_all()
 
 
-def _oauth_client(app, oauth_type):
+def _init_user_model():
+    global User
+
+    class User(_db.Model):
+        __tablename__ = 'user_t'
+        uid = _db.Column(_db.String(8), primary_key=True)
+        user_name = _db.Column(_db.String(100), nullable=False)
+        display_name = _db.Column(_db.String(100))
+        oauth_type = _db.Column(
+            _db.Enum('github', 'test', name='oauth_type'),
+            nullable=False
+        )
+        oauth_id = _db.Column(_db.String(100), nullable=False)
+        __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
+
+        def __init__(self, uid, user_name, display_name, oauth_type, oauth_id):
+            self.uid = uid
+            self.user_name = user_name
+            self.display_name = display_name
+            self.oauth_type = oauth_type
+            self.oauth_id = oauth_id
+
+
+def _oauth_client(oauth_type):
     if oauth_type == 'github':
-        return flask_oauthlib.client.OAuth(app).remote_app(
+        return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
             'github',
             consumer_key=cfg.github_key,
             consumer_secret=cfg.github_secret,
@@ -188,29 +273,3 @@ def _update_database(user_data, oauth_type):
 def _update_session(login_state, user_name=''):
     cookie.set_value(_COOKIE_STATE, login_state)
     cookie.set_value(_COOKIE_NAME, user_name)
-
-
-_init(server.app)
-
-
-class User(_db.Model):
-    __tablename__ = 'user_t'
-    uid = _db.Column(_db.String(8), primary_key=True)
-    user_name = _db.Column(_db.String(100), nullable=False)
-    display_name = _db.Column(_db.String(100))
-    oauth_type = _db.Column(
-        _db.Enum('github', 'test', name='oauth_type'),
-        nullable=False
-    )
-    oauth_id = _db.Column(_db.String(100), nullable=False)
-    __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
-
-    def __init__(self, uid, user_name, display_name, oauth_type, oauth_id):
-        self.uid = uid
-        self.user_name = user_name
-        self.display_name = display_name
-        self.oauth_type = oauth_type
-        self.oauth_id = oauth_id
-
-
-_init_tables(server.app)

@@ -12,14 +12,18 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import beaker
 import pickle
 
+
 _ORIG_KEY = 'uid'
+
+oauth_hook = None
+
 
 def update_session_from_cookie_header(header):
     """Update the flask session from the beaker file identified by the cookie header
     """
     from sirepo.server import cfg
 
-    maps = _init_maps(cfg.oauth_login)
+    maps = _init_maps()
     try:
         cookie = SignedCookie(cfg.beaker_session.secret, input=header)
         if not cfg.beaker_session.key in cookie:
@@ -49,7 +53,7 @@ def update_session_from_cookie_header(header):
     return None
 
 
-def _init_maps(is_oauth):
+def _init_maps():
     import sirepo.cookie
 
     res = {
@@ -58,10 +62,6 @@ def _init_maps(is_oauth):
         },
         'value': {}
     }
-    if is_oauth:
-        from sirepo import oauth
-        res['key']['oauth_login_state'] = oauth._COOKIE_STATE
-        res['key']['oauth_user_name'] = oauth._COOKIE_NAME
-        # reverse map of login state values
-        res['value'] = dict(map(lambda k: (oauth._LOGIN_STATE_MAP[k], k), oauth._LOGIN_STATE_MAP))
+    if oauth_hook:
+        oauth_hook(res)
     return res
