@@ -13,18 +13,18 @@ def test_purge_users(monkeypatch):
     from pykern.pkunit import pkeq, pkok
     from pykern.pkdebug import pkdp
     from pykern import pkio
-    from sirepo import sr_unit
+    from pykern import pkconfig
+    pkconfig.reset_state_for_testing({
+        'SIREPO_SERVER_CFG_OAUTH_LOGIN': '',
+    })
 
-    # Need to initialize first
+    from sirepo import sr_unit
     sr_unit.init_user_db()
 
     from sirepo.pkcli import admin
     from sirepo import simulation_db
     from sirepo import server
     import datetime
-
-    #TODO(pjm): tried pkconfig.reset_state_for_testing() but couldn't override bool to False
-    server.cfg.oauth_login = False
 
     res = admin.purge_users(days=1, confirm=False)
     pkeq([], res, '{}: no old users so empty')
