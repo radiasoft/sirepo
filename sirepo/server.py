@@ -569,7 +569,11 @@ sr_landing_page = api_srLandingPage
 
 @sr_api_perm.allow_visitor
 def api_srUnit():
-    getattr(app, SR_UNIT_TEST_IN_REQUEST)()
+    v = getattr(app, SR_UNIT_TEST_IN_REQUEST)
+    if v.want_cookie:
+        from sirepo import cookie
+        cookie.set_sentinel()
+    v.op()
     return ''
 
 
@@ -692,16 +696,6 @@ def _cfg_db_dir(value):
             root = py.path.local('.')
         value = pkio.mkdir_parent(root.join(_DEFAULT_DB_SUBDIR))
     return value
-
-
-@pkconfig.parse_none
-def _cfg_session_secret(value):
-    """Reads file specified as config value"""
-    if not value:
-        assert pkconfig.channel_in('dev'), 'missing session secret configuration'
-        return 'dev dummy secret'
-    with open(value) as f:
-        return f.read()
 
 
 def _cfg_time_limit(value):
@@ -968,11 +962,6 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
-    # beaker_session is historical, used only for deserializing old session
-    beaker_session=dict(
-        key=('sirepo_' + pkconfig.cfg.channel, str, 'Beaker: Name of the cookie key used to save the session under'),
-        secret=(None, _cfg_session_secret, 'Beaker: Used with the HMAC to ensure session integrity'),
-    ),
     db_dir=(None, _cfg_db_dir, 'where database resides'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
