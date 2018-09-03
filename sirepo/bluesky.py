@@ -10,9 +10,9 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdp
 from sirepo import cookie
 from sirepo import simulation_db
-from sirepo import sr_api_perm
-from sirepo import sr_req
-from sirepo import sr_resp
+from sirepo import api_perm
+from sirepo import http_request
+from sirepo import http_reply
 from sirepo import uri_router
 from sirepo import util
 import base64
@@ -33,9 +33,9 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-@sr_api_perm.allow_login
+@api_perm.allow_login
 def api_blueskyAuth():
-    req = sr_req.parse_json()
+    req = http_request.parse_json()
     auth_hash(req, verify=True)
     sid = req.simulationId
     sim_type = req.simulationType
@@ -45,7 +45,7 @@ def api_blueskyAuth():
         checked=True,
     )
     cookie.set_user(simulation_db.uid_from_dir_name(path))
-    return sr_resp.gen_json_ok(dict(
+    return http_reply.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),
     ))

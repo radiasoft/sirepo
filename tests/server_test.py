@@ -18,20 +18,20 @@ pytest.importorskip('sdds')
 
 
 def test_basic():
-    from sirepo import sr_unit
-    fc = sr_unit.flask_client()
+    from sirepo import srunit
+    fc = srunit.flask_client()
     resp = fc.get('/')
     assert 'LandingPageController' in resp.get_data(), \
         'Top level document is the landing page'
 
 
 def test_get_data_file():
-    from sirepo import sr_unit
+    from sirepo import srunit
     from pykern import pkunit
     from pykern import pkio
     import sdds
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     fc.get('/elegant')
     data = fc.sr_post(
         'listSimulations',
@@ -104,10 +104,10 @@ def test_get_data_file():
 def test_srw():
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
-    from sirepo import sr_unit
+    from sirepo import srunit
     import json
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     resp = fc.get('/srw')
     assert '<!DOCTYPE html' in resp.get_data(), \
         'Top level document is html'

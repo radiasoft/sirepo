@@ -13,10 +13,10 @@ def _test_cookie(filename, header, uid, cases):
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkeq
     from pykern.pkdebug import pkdp
-    from sirepo import sr_unit
+    from sirepo import srunit
 
     def _before_request(fc):
-        target = sr_unit.server.app.sirepo_db_dir.join(
+        target = srunit.server.app.sirepo_db_dir.join(
             'beaker', 'container_file', filename[0:1], filename[0:2], filename)
         pkio.mkdir_parent_only(target)
         shutil.copy(str(pkunit.data_dir().join(filename)), str(target))
@@ -31,7 +31,7 @@ def _test_cookie(filename, header, uid, cases):
             else:
                 pkeq(expect, cookie.get_value(key))
 
-    sr_unit.test_in_request(
+    srunit.test_in_request(
         op=_op,
         cfg={
             'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',

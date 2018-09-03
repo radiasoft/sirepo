@@ -10,7 +10,7 @@ from pykern import pkinspect
 import aenum
 
 #: decorator sets this attribute with an APIPerm
-ATTR = 'sr_api_perm'
+ATTR = 'api_perm'
 
 
 class APIPerm(aenum.Flag):

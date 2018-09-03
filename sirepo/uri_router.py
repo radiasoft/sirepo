@@ -9,15 +9,15 @@ from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
-from sirepo import sr_auth
+from sirepo import api_auth
 from sirepo import util
 import flask
 import importlib
 import inspect
 import re
 
-#: route for sirepo.sr_unit
-sr_unit_uri = None
+#: route for sirepo.srunit
+srunit_uri = None
 
 #: optional parameter that consumes rest of parameters
 _PATH_INFO_CHAR = '*'
@@ -174,10 +174,10 @@ def _dispatch(path):
 
 
 def _dispatch_call(func, kwargs):
-    sr_auth.assert_api_call(func)
-    response = flask.make_response(func(**kwargs))
-    cookie.save_to_cookie(response)
-    return response
+    api_auth.assert_api_call(func)
+    resp = flask.make_response(func(**kwargs))
+    cookie.save_to_cookie(resp)
+    return resp
 
 
 def _dispatch_empty():
@@ -186,7 +186,7 @@ def _dispatch_empty():
 
 
 def _init_uris(app, simulation_db):
-    global _default_route, _empty_route, sr_unit_uri, _api_to_route, _uri_to_route
+    global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
 
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
@@ -197,7 +197,7 @@ def _init_uris(app, simulation_db):
         except KeyError:
             pkdc('not adding api, because module not registered: uri={}', v)
             continue
-        sr_auth.assert_api_def(r.func)
+        api_auth.assert_api_def(r.func)
         r.decl_uri = v
         r.name = k
         assert not r.base_uri in _uri_to_route, \
@@ -206,8 +206,8 @@ def _init_uris(app, simulation_db):
         _api_to_route[k] = r
         if r.base_uri == '':
             _default_route = r
-        if 'sr_unit' in v:
-            sr_unit_uri = v
+        if 'srunit' in v:
+            srunit_uri = v
     assert _default_route, \
         'missing default route'
     # 'light' is the homePage, not 'root'

@@ -36,7 +36,7 @@ def flask_client(cfg=None):
     """
     global server
 
-    a = 'sr_unit_flask_client'
+    a = 'srunit_flask_client'
     if not cfg:
         cfg = {}
     wd = pkunit.work_dir()
@@ -73,16 +73,16 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
             before_request(fc)
         setattr(
             server.app,
-            server.SR_UNIT_TEST_IN_REQUEST,
+            server.SRUNIT_TEST_IN_REQUEST,
             pkcollections.Dict(op=op, want_cookie=want_cookie),
         )
         resp = fc.get(
-            uri_router.sr_unit_uri,
+            uri_router.srunit_uri,
             headers=headers,
         )
         pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
     finally:
-        delattr(server.app, server.SR_UNIT_TEST_IN_REQUEST)
+        delattr(server.app, server.SRUNIT_TEST_IN_REQUEST)
     return resp
 
 

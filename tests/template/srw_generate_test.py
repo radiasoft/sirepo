@@ -15,8 +15,8 @@ def test_generate_python():
     from pykern import pkio
     from pykern.pkunit import pkeq
     from sirepo.template import srw
-    from sirepo import sr_unit
-    fc = sr_unit.flask_client()
+    from sirepo import srunit
+    fc = srunit.flask_client()
     fc.get('/{}'.format(srw.SIM_TYPE))
 
     for name in ('NSLS-II CHX beamline', 'Sample from Image', 'Boron Fiber (CRL with 3 lenses)', 'Tabulated Undulator Example', 'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors', 'NSLS-II SRX beamline', 'NSLS-II ESM beamline', 'Mask example', 'NSLS-II SMI beamline'):

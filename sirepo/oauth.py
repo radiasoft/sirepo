@@ -12,8 +12,8 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
 from sirepo import server
 from sirepo import simulation_db
-from sirepo import sr_api_perm
-from sirepo import sr_auth
+from sirepo import api_perm
+from sirepo import api_auth
 from sirepo import uri_router
 from sirepo import util
 import flask
@@ -62,17 +62,17 @@ def allow_cookieless_user():
     set_default_state(logged_out_as_anonymous=True)
 
 
-@sr_api_perm.allow_login
+@api_perm.allow_login
 def api_oauthAuthorized(oauth_type):
     return authorized_callback(oauth_type)
 
 
-@sr_api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_user
 def api_oauthLogin(simulation_type, oauth_type):
     return authorize(simulation_type, oauth_type)
 
 
-@sr_api_perm.allow_visitor
+@api_perm.allow_visitor
 def api_oauthLogout(simulation_type):
     return logout(simulation_type)
 
@@ -136,7 +136,7 @@ def init_apis(app):
     _init_user_model()
     _init_tables(app)
     uri_router.register_api_module()
-    sr_auth.register_login_module()
+    api_auth.register_login_module()
     _init_beaker_compat()
 
 

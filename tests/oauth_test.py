@@ -12,10 +12,10 @@ pytest.importorskip('srwl_bl')
 def test_login_logout():
     from pykern import pkconfig
     from pykern.pkunit import pkfail, pkok
-    from sirepo import sr_unit
+    from sirepo import srunit
     import re
 
-    fc = sr_unit.flask_client({
+    fc = srunit.flask_client({
         'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',
         'SIREPO_OAUTH_GITHUB_KEY': 'n/a',
         'SIREPO_OAUTH_GITHUB_SECRET': 'n/a',
