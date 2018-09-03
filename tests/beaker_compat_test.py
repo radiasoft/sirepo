@@ -16,7 +16,7 @@ def _test_cookie(filename, header, uid, cases):
     from sirepo import sr_unit
 
     def _before_request(fc):
-        target = sr_unit.server.cfg.db_dir.join(
+        target = sr_unit.server.app.sirepo_db_dir.join(
             'beaker', 'container_file', filename[0:1], filename[0:2], filename)
         pkio.mkdir_parent_only(target)
         shutil.copy(str(pkunit.data_dir().join(filename)), str(target))
