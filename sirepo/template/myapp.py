@@ -4,12 +4,12 @@ u"""Myapp execution template.
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
+from sirepo import simulation_db
 from sirepo.template import template_common
 
 SIM_TYPE = 'myapp'
@@ -17,6 +17,11 @@ SIM_TYPE = 'myapp'
 
 def fixup_old_data(data):
     pass
+
+
+def get_data_file(run_dir, model, frame, options=None):
+    f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+    return f.basename, f.read(), 'application/json'
 
 
 def lib_files(data, source_lib):
