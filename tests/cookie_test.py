@@ -14,8 +14,8 @@ def test_1():
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkeq
     from pykern.pkdebug import pkdp
-    from sirepo import sr_unit
-    sr_unit.flask_client()
+    from sirepo import srunit
+    srunit.flask_client()
 
     from sirepo import cookie
     cookie.init_mock()

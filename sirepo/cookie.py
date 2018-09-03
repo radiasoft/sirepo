@@ -76,8 +76,8 @@ def set_sentinel():
     _state().set_sentinel()
 
 
-def save_to_cookie(response):
-    _state().save_to_cookie(response)
+def save_to_cookie(resp):
+    _state().save_to_cookie(resp)
 
 
 def set_value(key, value):
@@ -118,14 +118,14 @@ class _State(dict):
     def set_sentinel(self):
         self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
-    def save_to_cookie(self, response):
-        if not 200 <= response.status_code < 400:
+    def save_to_cookie(self, resp):
+        if not 200 <= resp.status_code < 400:
             return
         self.set_sentinel()
         s = self._serialize()
         if s == self.incoming_serialized:
             return
-        response.set_cookie(
+        resp.set_cookie(
             cfg.http_name,
             self._encrypt(s),
             max_age=_MAX_AGE_SECONDS,

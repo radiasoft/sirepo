@@ -99,9 +99,9 @@ cfg = None
 
 
 class CopyRedirect(Exception):
-    def __init__(self, response):
+    def __init__(self, resp):
         super(CopyRedirect, self).__init__()
-        self.sr_response = response
+        self.sr_response = resp
 
 
 def app_version():

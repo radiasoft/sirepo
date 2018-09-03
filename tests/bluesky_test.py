@@ -73,9 +73,9 @@ def test_auth_login():
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
-    from sirepo import sr_unit
+    from sirepo import srunit
 
-    fc = sr_unit.flask_client({
+    fc = srunit.flask_client({
         'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
         'SIREPO_BLUESKY_AUTH_SECRET': '3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
     })

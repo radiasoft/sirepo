@@ -79,7 +79,7 @@
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
         "srLandingPage": "/sr",
-        "srUnit": "/ sr_unit",
+        "srUnit": "/ srunit",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"

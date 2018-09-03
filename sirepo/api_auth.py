@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkinspect
 from sirepo import cookie
-from sirepo import sr_api_perm
+from sirepo import api_perm
 from sirepo import util
 
 
@@ -22,8 +22,8 @@ def all_uids():
 
 
 def assert_api_call(func):
-    p = getattr(func, sr_api_perm.ATTR)
-    a = sr_api_perm.APIPerm
+    p = getattr(func, api_perm.ATTR)
+    a = api_perm.APIPerm
     if p == a.REQUIRE_USER:
         if not cookie.has_sentinel():
             util.raise_forbidden(
@@ -41,15 +41,15 @@ def assert_api_call(func):
 #TODO(robnagler) need state so that set_user can happen
         cookie.set_sentinel()
     else:
-        raise AssertionError('unexpected sr_api_perm={}'.format(p))
+        raise AssertionError('unexpected api_perm={}'.format(p))
 
 
 def assert_api_def(func):
     try:
-        assert isinstance(getattr(func, sr_api_perm.ATTR), sr_api_perm.APIPerm)
+        assert isinstance(getattr(func, api_perm.ATTR), api_perm.APIPerm)
     except Exception as e:
         raise AssertionError(
-            'function needs sr_api_perm decoration: func={} err={}'.format(
+            'function needs api_perm decoration: func={} err={}'.format(
                 func.__name__,
                 e,
             ),

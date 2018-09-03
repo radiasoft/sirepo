@@ -12,16 +12,16 @@ pytest.importorskip('srwl_bl')
 def test_not_found():
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq
-    from sirepo import sr_unit
+    from sirepo import srunit
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     for uri in ('/some random uri', '/srw/wrong-param', '/export-archive'):
         resp = fc.get(uri)
         pkeq(404, resp.status_code)
 
 
 def test_uri_for_api():
-    from sirepo import sr_unit
+    from sirepo import srunit
 
     def t():
         from pykern.pkdebug import pkdp
@@ -29,7 +29,7 @@ def test_uri_for_api():
         from sirepo import uri_router
         import re
 
-        fc = sr_unit.flask_client()
+        fc = srunit.flask_client()
         uri = uri_router.uri_for_api('homePage')
         pkre('http://[^/]+/light$', uri)
         uri = uri_router.uri_for_api('homePage', external=False)
@@ -39,4 +39,4 @@ def test_uri_for_api():
         with pkexcept('missing parameter'):
             uri_router.uri_for_api('exportArchive', {'simulation_type': 'srw'})
 
-    sr_unit.test_in_request(t)
+    srunit.test_in_request(t)

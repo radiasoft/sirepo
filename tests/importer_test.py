@@ -45,10 +45,10 @@ def _do(file_ext, parse):
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail, pkok
-    from sirepo import sr_unit
+    from sirepo import srunit
     import re
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     for suffix in '', ' (2)', ' (3)':
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
             json, stream = parse(f)

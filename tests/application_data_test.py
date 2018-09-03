@@ -12,9 +12,9 @@ def test_processed_image():
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail
     from pykern import pkunit
-    from sirepo import sr_unit
+    from sirepo import srunit
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     sim_type = 'srw'
     fc.get('/{}'.format(sim_type))
     sim_id = fc.sr_sim_data(sim_type, 'Sample from Image')

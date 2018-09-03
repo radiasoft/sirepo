@@ -15,10 +15,10 @@ _MIN_SERIAL = 10000000
 def test_1_serial_stomp():
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
-    from sirepo import sr_unit
+    from sirepo import srunit
     import copy
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     sim_type = 'srw'
     fc.get('/{}'.format(sim_type))
     data = fc.sr_post('listSimulations', {'simulationType': sim_type})
@@ -73,9 +73,9 @@ def test_1_serial_stomp():
 
 def test_missing_cookies():
     from pykern.pkunit import pkeq
-    from sirepo import sr_unit
+    from sirepo import srunit
     import json
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     sim_type = 'srw'
     resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
     pkeq(403, resp.status_code)

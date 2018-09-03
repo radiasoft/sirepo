@@ -14,11 +14,11 @@ def test_create_zip():
     from pykern import pkunit
     from pykern.pkdebug import pkdp, pkdpretty
     from pykern.pkunit import pkfail, pkok
-    from sirepo import sr_unit
+    from sirepo import srunit
     import copy
     import zipfile
 
-    fc = sr_unit.flask_client()
+    fc = srunit.flask_client()
     fc.get('/srw')
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [

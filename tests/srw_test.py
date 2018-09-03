@@ -84,5 +84,5 @@ def test_prepare_aux_files():
         d = pkunit.empty_work_dir()
         template_common.copy_lib_files(data, None, d)
 
-    from sirepo import sr_unit
-    sr_unit.test_in_request(t)
+    from sirepo import srunit
+    srunit.test_in_request(t)
