@@ -56,6 +56,12 @@ def assert_api_def(func):
         )
 
 
+def get_auth_user_state():
+    if login_module:
+        return login_module.set_default_state()
+    return None
+
+
 def register_login_module():
     global login_module
 

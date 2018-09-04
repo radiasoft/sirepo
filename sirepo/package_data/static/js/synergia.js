@@ -35,12 +35,6 @@ SIREPO.lattice = {
         zeroLength: ['DIPEDGE', 'MULTIPOLE', 'NLLENS', 'SROTATION'],
     },
 };
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
 
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;

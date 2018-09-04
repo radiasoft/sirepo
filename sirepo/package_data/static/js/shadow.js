@@ -14,12 +14,6 @@ SIREPO.appDownloadLinks = [
     '<li data-lineout-csv-link="y"></li>',
 ].join('');
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
 SIREPO.app.factory('shadowService', function(appState, beamlineService, panelState) {
     // ColumnValue enum values which are in mm
     var MM_COLUMN_VALUES = ['1', '2', '3'];

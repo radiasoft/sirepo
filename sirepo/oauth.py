@@ -50,7 +50,7 @@ _db = None
 _db_serial_lock = threading.RLock()
 
 
-def all_uids(app):
+def all_uids():
 #TODO(robnagler) do we need locking
     res = set()
     for u in User.query.all():
@@ -85,6 +85,7 @@ def authorize(simulation_type, oauth_type):
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
     if oauth_type == _ANONYMOUS_OAUTH_TYPE:
         _update_session(_ANONYMOUS)
+        cookie.clear_user()
         return server.javascript_redirect(oauth_next)
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
@@ -118,7 +119,7 @@ def authorized_callback(oauth_type):
             flask.request.args.get('state'),
         )
     # fields: id, login, name
-    user_data = oauth.get('user', token=(resp['access_token'], '')).data
+    user_data = oc.get('user', token=(resp['access_token'], '')).data
     user = _update_database(user_data, oauth_type)
     _update_session(_LOGGED_IN, user.user_name)
     return server.javascript_redirect(_remove_cookie_key(_COOKIE_NEXT))

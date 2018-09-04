@@ -9,12 +9,13 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import api_auth
+from sirepo import api_perm
 from sirepo import feature_config
+from sirepo import http_reply
+from sirepo import http_request
 from sirepo import runner
 from sirepo import simulation_db
-from sirepo import api_perm
-from sirepo import http_request
-from sirepo import http_reply
 from sirepo import uri_router
 from sirepo import util
 from sirepo.template import template_common
@@ -475,6 +476,19 @@ def api_runStatus():
 
 
 @api_perm.require_user
+def api_userState():
+    return _no_cache(
+        flask.Response(
+            flask.render_template(
+                'js/user-state.js',
+                user_state=api_auth.get_auth_user_state(),
+            ),
+            mimetype='application/javascript',
+        )
+    )
+
+
+@api_perm.require_user
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
     res = _validate_serial(data)
@@ -515,8 +529,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
-    _no_cache(resp)
-    return resp
+    return _no_cache(resp)
 
 
 @api_perm.require_user
@@ -745,6 +758,7 @@ def _lib_filepath(simulation_type, filename, file_type):
 def _no_cache(resp):
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 def _parse_data_input(validate=False):

@@ -82,10 +82,12 @@
         "srUnit": "/ srunit",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "userState": "/user-state"
     },
     "commonDynamicModules": [
-        "/static/js/ext/d3-3.5.9.min.js"
+        "/static/js/ext/d3-3.5.9.min.js",
+        "/user-state"
     ],
     "commonLocalRoutes": {
         "simulations": {
@@ -93,7 +95,8 @@
             "config": {
               "controller": "SimulationsController as simulations",
               "templateUrl": "/static/html/simulations.html"
-            }
+            },
+            "isDefault": true
         },
         "simulationsFolder": {
             "route": "/simulations/:folderPath?",
@@ -106,8 +109,6 @@
             "route": "/source/:simulationId"
         },
         "loggedOut": {
-            "isFinal": true,
-            "doDefer": true,
             "route": "/logged-out",
             "config": {
               "controller": "LoggedOutController as loggedOut",
@@ -138,11 +139,6 @@
             "config": {
               "templateUrl": "/static/html/not-authorized.html"
             }
-        },
-        "fallback": {
-            "isFinal": true,
-            "isRedirect": true,
-            "localRoute": "simulations"
         }
     },
     "commonAppModes": {

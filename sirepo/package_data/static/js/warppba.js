@@ -5,13 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'laserPulse';
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     var self = {};
     self.laserGridDimensions = null;

@@ -108,13 +108,6 @@ SIREPO.lattice = {
     },
 };
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
     var filenameRequired = ['command_floor_coordinates', 'HISTOGRAM', 'SLICE', 'WATCH'];

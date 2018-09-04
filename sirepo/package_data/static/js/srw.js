@@ -44,13 +44,6 @@ SIREPO.appPanelHeadingButtons = [
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location, $route) {
     var self = {};
     self.applicationMode = 'default';

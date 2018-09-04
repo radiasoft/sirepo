@@ -15,12 +15,6 @@ SIREPO.appFieldEditors = [
         '<div data-roi-selection-list="" data-field="model[field]" data-model-name="modelName"></div>',
     '</div>',
 ].join('');
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
 
 SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender, $rootScope) {
     var self = {};

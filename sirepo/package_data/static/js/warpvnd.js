@@ -15,12 +15,6 @@ SIREPO.appFieldEditors = [
       '<div data-cell-selector=""></div>',
     '</div>',
 ].join('');
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
 
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     var self = {};

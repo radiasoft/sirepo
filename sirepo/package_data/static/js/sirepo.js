@@ -66,8 +66,6 @@ SIREPO.appDefaultSimulationValues = {
 
 SIREPO.appHomeTab = 'source';
 
-SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
-
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
 SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
@@ -97,62 +95,40 @@ SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
-    var commonRouteMap = SIREPO.APP_SCHEMA.commonLocalRoutes;
 
-    SIREPO.addRoute = function(routeName, routeMap, addDeferred) {
-        var map = routeMap || commonRouteMap;
-        var route = routeForName(routeName, routeMap);
-        if(! route) {
-            return;
-        }
+    function addRoute(routeName, routeMap, isDefault) {
+        var route = routeMap[routeName].route;
         SIREPO.appLocalRoutes[routeName] = route;
-
-        // deferred routes are created but not added to the route provider
-        // until explicitly added.  The only such route now is loggedOut
-        if(map[routeName].doDefer && ! addDeferred) {
-            return;
+        var rteCfg = routeConfigForName(routeName, routeMap);
+        if (rteCfg) {
+            $routeProvider.when(route, rteCfg);
+            if (isDefault || routeMap[routeName].isDefault) {
+                $routeProvider.otherwise(rteCfg);
+            }
         }
-        var rteCfg = routeConfigForName(routeName, map);
-        if(! rteCfg) {
-            return;
-        }
-        if(map[routeName].isFinal) {
-            $routeProvider.otherwise(rteCfg);
-            return;
-        }
-        $routeProvider.when(route, rteCfg);
-    };
-    SIREPO.addRoutes = function(routeMap) {
-        var map = routeMap || commonRouteMap;
-        for(var routeName in map) {
-            SIREPO.addRoute(routeName, map);
-        }
-    };
-
-    if (SIREPO.IS_LOGGED_OUT) {
-        SIREPO.addRoute('loggedOut', commonRouteMap, true);
-        return;
     }
 
-    SIREPO.addRoutes();
-
-    function routeForName(routeName, routeMap) {
-        return routeMap[routeName].route || routeMap[routeName].localRoute || SIREPO.appLocalRoutes[routeName];
+    function addRoutes() {
+        [SIREPO.APP_SCHEMA.commonLocalRoutes, SIREPO.APP_SCHEMA.localRoutes].forEach(function(map) {
+            for (var routeName in map) {
+                addRoute(routeName, map);
+            }
+        });
     }
+
     function routeConfigForName(routeName, routeMap) {
-        if(routeMap[routeName].isRedirect) {
-            return {
-                redirectTo: SIREPO.appLocalRoutes[routeMap[routeName].localRoute]
-            };
-        }
-
         var rteObj = routeMap[routeName].config;
-        if(rteObj && rteObj.templateUrl) {
+        if (rteObj && rteObj.templateUrl) {
             rteObj.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         }
         return rteObj;
     }
 
+    if (SIREPO.IS_LOGGED_OUT) {
+        addRoute('loggedOut', SIREPO.APP_SCHEMA.commonLocalRoutes, true);
+    } else {
+        addRoutes();
+    }
 });
 
 SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
