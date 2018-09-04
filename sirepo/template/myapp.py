@@ -25,8 +25,8 @@ def fixup_old_data(data):
 
 
 def get_data_file(run_dir, model, frame, options=None):
-    f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-    return f.basename, f.read(), 'application/json'
+    f = run_dir.join(OUTPUT_NAME)
+    return f.basename, f.read(), 'text/csv'
 
 
 def lib_files(data, source_lib):
