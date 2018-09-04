@@ -57,7 +57,6 @@ def _generate_parameters_file(data):
     assert data['report'] == 'dogReport', \
         'unknown report: {}'.format(data['report'])
     v = copy.deepcopy(data['models'], pkcollections.Dict())
-    pkdp(list(v.keys()))
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME
     return template_common.render_jinja(
