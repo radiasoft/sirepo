@@ -1,0 +1,15 @@
+# {{ simulation_name }}
+params = '''---
+breed: "{{ dog_breed }}"
+gender: "{{ dog_gender }}"
+height: {{ dog_height }}
+weight: {{ dog_weight }}
+'''
+
+with open('{{ input_name }}', 'w') as f:
+    f.write(params)
+
+import subprocess
+subprocess.check_call(
+    ['hundli', '{{ input_name }}', '{{ output_name }}'],
+)

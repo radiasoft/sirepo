@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""Myapp execution template.
 
-:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2017-2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -12,7 +12,12 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 
+
 SIM_TYPE = 'myapp'
+
+INPUT_NAME = 'hundli.yml'
+
+OUTPUT_NAME = 'hundli.csv'
 
 
 def fixup_old_data(data):
@@ -37,11 +42,24 @@ def models_related_to_report(data):
 
 
 def python_source_for_model(data, model):
-    return ''
+    return _generate_parameters_file(data)
 
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        '# python code goes here\n'
+        _generate_parameters_file(data),
+    )
+
+
+def _generate_parameters_file(data):
+    assert data['report'] == 'dogReport', \
+        'unknown report: {}'.format(data['report'])
+    v = template_common.flatten_data(data['models'], pkcollections.Dict())
+    v.input_name = INPUT_NAME
+    v.output_name = OUTPUT_NAME
+    return template_common.render_jinja(
+        SIM_TYPE,
+        v,
+        template_common.PARAMETERS_PYTHON_FILE,
     )
