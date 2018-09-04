@@ -142,6 +142,8 @@ def init_apis(app):
 
 
 def set_default_state(logged_out_as_anonymous=False):
+    if not cookie.has_sentinel():
+        return None
     if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
     elif logged_out_as_anonymous and cookie.get_value(_COOKIE_STATE) == _LOGGED_OUT:

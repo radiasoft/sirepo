@@ -475,7 +475,7 @@ def api_runStatus():
     return http_reply.gen_json(_simulation_run_status(data))
 
 
-@api_perm.require_user
+@api_perm.allow_visitor
 def api_userState():
     return _no_cache(
         flask.Response(

@@ -96,38 +96,23 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
 
-    function addRoute(routeName, routeMap, isDefault) {
-        var route = routeMap[routeName].route;
-        SIREPO.appLocalRoutes[routeName] = route;
-        var rteCfg = routeConfigForName(routeName, routeMap);
-        if (rteCfg) {
-            $routeProvider.when(route, rteCfg);
-            if (isDefault || routeMap[routeName].isDefault) {
-                $routeProvider.otherwise(rteCfg);
-            }
+    function addRoute(routeName, isDefault) {
+        var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
+        SIREPO.appLocalRoutes[routeName] = routeInfo.route;
+        var cfg = routeInfo.config;
+        $routeProvider.when(routeInfo.route, cfg);
+        cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        if (isDefault || routeInfo.isDefault) {
+            $routeProvider.otherwise(cfg);
         }
-    }
-
-    function addRoutes() {
-        [SIREPO.APP_SCHEMA.commonLocalRoutes, SIREPO.APP_SCHEMA.localRoutes].forEach(function(map) {
-            for (var routeName in map) {
-                addRoute(routeName, map);
-            }
-        });
-    }
-
-    function routeConfigForName(routeName, routeMap) {
-        var rteObj = routeMap[routeName].config;
-        if (rteObj && rteObj.templateUrl) {
-            rteObj.templateUrl += SIREPO.SOURCE_CACHE_KEY;
-        }
-        return rteObj;
     }
 
     if (SIREPO.IS_LOGGED_OUT) {
-        addRoute('loggedOut', SIREPO.APP_SCHEMA.commonLocalRoutes, true);
+        addRoute('loggedOut', true);
     } else {
-        addRoutes();
+        for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
+            addRoute(routeName);
+        }
     }
 });
 
