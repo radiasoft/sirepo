@@ -103,6 +103,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         $routeProvider.when(routeInfo.route, cfg);
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         if (isDefault || routeInfo.isDefault) {
+            cfg.redirectTo = routeName;
             $routeProvider.otherwise(cfg);
         }
     }
