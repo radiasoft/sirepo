@@ -11,6 +11,7 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import copy
 
 
 SIM_TYPE = 'myapp'
@@ -55,7 +56,8 @@ def write_parameters(data, run_dir, is_parallel):
 def _generate_parameters_file(data):
     assert data['report'] == 'dogReport', \
         'unknown report: {}'.format(data['report'])
-    v = template_common.flatten_data(data['models'], pkcollections.Dict())
+    v = copy.deepcopy(data['models'], pkcollections.Dict())
+    pkdp(list(v.keys()))
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME
     return template_common.render_jinja(
