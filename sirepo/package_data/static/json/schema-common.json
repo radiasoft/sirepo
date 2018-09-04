@@ -1,5 +1,5 @@
 {
-    "version": "20180903.000000",
+    "version": "20180904.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -131,6 +131,12 @@
             "config": {
               "controller": "NotFoundCopyController as notFoundCopy",
               "templateUrl": "/static/html/copy-session.html"
+            }
+        },
+        "notAuthorized": {
+            "route": "/missing-cookies",
+            "config": {
+              "templateUrl": "/static/html/not-authorized.html"
             }
         },
         "fallback": {

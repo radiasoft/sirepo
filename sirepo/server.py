@@ -555,7 +555,8 @@ def api_listSimulations():
     )
 
 
-@api_perm.require_user
+# visitor rather than user because error pages are rendered by the application
+@api_perm.allow_visitor
 def api_simulationSchema():
     sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
     return http_reply.gen_json(simulation_db.get_schema(sim_type))

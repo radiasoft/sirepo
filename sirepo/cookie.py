@@ -112,7 +112,7 @@ class _State(dict):
 
     def get_user(self, checked=True):
         if not self.get(_COOKIE_SENTINEL):
-            util.raise_forbidden('Missing sentinel, cookies may be disabled')
+            util.raise_unauthorized('Missing sentinel, cookies may be disabled')
         return self[_COOKIE_USER] if checked else self.get(_COOKIE_USER)
 
     def set_sentinel(self):

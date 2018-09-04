@@ -1268,13 +1268,15 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var ERROR_PAGES = {
+        401: 'notAuthorized',
+        403: 'forbidden',
+        404: 'notFound',
+    };
 
     function logError(data, status) {
-        if (status == 404) {
-            self.localRedirect('notFound');
-        }
-        else if (status == 403) {
-            self.localRedirect('forbidden');
+        if (ERROR_PAGES[status]) {
+            self.localRedirect(ERROR_PAGES[status]);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
