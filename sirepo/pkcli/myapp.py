@@ -6,64 +6,66 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdp, pkdc
+from pykern import pksubprocess
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-import numpy as np
-import random
+import csv
 import sirepo.template.myapp as template
+import sys
+
 
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
-_MAX_AGE_BY_WEIGHT = [
-    [0, 16],
-    [20, 13],
-    [50, 11],
-    [90, 10],
-]
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if data['report'] == 'dogReport':
+        try:
+            pksubprocess.check_call_with_signals(
+                [sys.executable, template_common.PARAMETERS_PYTHON_FILE],
+            )
+        except Exception as e:
+            pkdlog('script failed: dir={} err={}', cfg_dir, e)
+            simulation_db.write_result({
+                'error': 'program error occured',
+            })
+            return
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        assert data['report'] == 'dogReport', \
+            'unknown report: {}'.format(data['report'])
         dog = data.models.dog
-        max_age = _max_age(dog.weight)
-        x = np.linspace(0, max_age, int(max_age) + 1).tolist()
+        cols = _csv_to_cols()
+        x_points = cols['year']
         plots = [
-            _plot(dog, 'height', x),
-            _plot(dog, 'weight', x),
+            _plot(dog, 'height', cols),
+            _plot(dog, 'weight', cols),
         ]
         res = {
             'title': 'Dog Height and Weight Over Time',
-            'x_range': [0, max_age],
+            'x_range': [x_points[0], x_points[-1]],
             'y_label': '',
             'x_label': 'Age (years)',
-            'x_points': x,
+            'x_points': x_points,
             'plots': plots,
             'y_range': template_common.compute_plot_color_and_range(plots),
         }
-    else:
-        raise RuntimeError('unknown report: {}'.format(data['report']))
     simulation_db.write_result(res)
 
 
-def _max_age(weight):
-    prev = None
-    for bracket in _MAX_AGE_BY_WEIGHT:
-        if weight <= bracket[0]:
-            break;
-        prev = bracket[1]
-    return prev
+def _csv_to_cols():
+    with open(template.OUTPUT_NAME, 'r') as f:
+        rows = csv.reader(f)
+        headers = rows.next()
+        cols = [[] for _ in headers]
+        for row in rows:
+            for i, c in enumerate(row):
+                cols[i].append(c)
+    return dict((k.lower(), cols[i]) for i, k in enumerate(headers))
 
 
-def _plot(dog, field, x):
+def _plot(dog, field, cols):
     return {
         'name': field,
         'label': _SCHEMA.model.dog[field][0],
-        'points': _points(dog[field], x),
+        'points': cols[field],
     }
-
-
-def _points(max_value, x):
-    return map(lambda v: (random.random() * 0.5) * max_value / 20.0 + max_value * 19.0 / 20.0 * (1.0 - 1.0 / (1.0 + v ** 2)), x)
