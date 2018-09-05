@@ -30,8 +30,15 @@ _COOKIE_USER = 'sru'
 
 _SERIALIZER_SEP = ' '
 
+#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
+_UWSGI_LOG_KEY_USER = 'sirepo_user'
+
+#: uwsgi object for logging
+_uwsgi = None
+
 
 def clear_user():
+    set_log_user(None)
     unchecked_remove(_COOKIE_USER)
 
 
@@ -69,6 +76,15 @@ def init_mock(uid='invalid-uid'):
     set_user(uid)
 
 
+def init_module(app, uwsgi):
+    global _uwsgi
+    _uwsgi = uwsgi
+
+
+def save_to_cookie(resp):
+    _state().save_to_cookie(resp)
+
+
 def set_sentinel():
     """Bypasses the state where the cookie has not come back from the
     client. This is used by bluesky and testing only, right now.
@@ -76,8 +92,22 @@ def set_sentinel():
     _state().set_sentinel()
 
 
-def save_to_cookie(resp):
-    _state().save_to_cookie(resp)
+def set_log_user(uid):
+    if not _uwsgi:
+        # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
+        # the limited http server for development only. This uses
+        # werkzeug.serving.WSGIRequestHandler.log which hardwires the
+        # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
+        # but we only use the limited http server for development.
+        return
+    u = 'li-' + uid if uid else '-'
+    _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+
+
+def set_user(uid):
+    assert uid
+    set_value(_COOKIE_USER, uid)
+    set_log_user(uid)
 
 
 def set_value(key, value):
@@ -88,11 +118,6 @@ def set_value(key, value):
     assert key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s, \
         'cookie is not valid so cannot set key={}'.format(key)
     s[key] = value
-
-
-def set_user(uid):
-    assert uid
-    set_value(_COOKIE_USER, uid)
 
 
 def unchecked_remove(key):
@@ -167,6 +192,7 @@ class _State(dict):
                 s = self._decrypt(match.group(1))
                 self.update(self._deserialize(s))
                 self.incoming_serialized = s
+                set_log_user(self.get(_COOKIE_USER))
                 return
         except Exception as e:
             if 'crypto' in type(e).__module__:
@@ -184,6 +210,7 @@ class _State(dict):
                 self.set_sentinel()
                 self.update(res)
                 err = None
+                set_log_user(self.get(_COOKIE_USER))
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 

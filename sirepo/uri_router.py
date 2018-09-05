@@ -56,7 +56,7 @@ class NotFound(Exception):
         self.kwargs = kwargs
 
 
-def init(app, simulation_db):
+def init(app, uwsgi):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -64,11 +64,14 @@ def init(app, simulation_db):
 
     Args:
         app (Flask): flask app
+        uwsgi (WSGIApp): uwsgi server object (or None)
     """
     from sirepo import feature_config
+    from sirepo import simulation_db
 
     if _uri_to_route:
         return
+    cookie.init_module(app, uwsgi)
     for m in ('server',) + feature_config.cfg.api_modules:
         importlib.import_module('sirepo.' + m).init_apis(app)
     _init_uris(app, simulation_db)
