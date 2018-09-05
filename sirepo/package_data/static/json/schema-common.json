@@ -193,9 +193,32 @@
         ]
     },
     "customErrors": {
-        "404": {"url": "not-found.html", "msg": "File Not Found"},
-        "422": {"url": "srw-magnet-file-error.html", "msg": "Invalid Magnet File"},
-        "500": {"url": "server-error.html", "msg": "Server Error"},
-        "502": {"url": "server-error.html", "msg": "Proxy Error"}
+        "401": {
+            "url": "not-authorized.html",
+            "msg": "Missing Cookies",
+            "route": "notAuthorized"
+        },
+        "403": {
+            "url": "forbidden.html",
+            "msg": "Forbidden",
+            "route": "forbidden"
+        },
+        "404": {
+            "url": "not-found.html",
+            "msg": "File Not Found",
+            "route": "notFound"
+        },
+        "422": {
+            "url": "srw-magnet-file-error.html",
+            "msg": "Invalid Magnet File"
+        },
+        "500": {
+            "url": "server-error.html",
+            "msg": "Server Error"
+        },
+        "502": {
+            "url": "server-error.html",
+            "msg": "Proxy Error"
+        }
     }
 }
