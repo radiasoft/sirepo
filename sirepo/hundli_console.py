@@ -26,7 +26,7 @@ _MAX_AGE_BY_WEIGHT = [
 def main():
     """Read the input yaml and write the output csv"""
     if len(sys.argv) != 3:
-        #print('usage: hundli input.yml output.csv')
+        sys.err.write('usage: hundli input.yml output.csv\n')
         exit(1)
     input_yaml, output_csv = sys.argv[1:]
     with open(input_yaml, 'r') as f:
