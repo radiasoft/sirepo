@@ -135,6 +135,12 @@ class _State(dict):
 
     def _crypto(self):
         if not self.crypto:
+            if cfg.private_key is None:
+                assert pkconfig.channel_in('dev'), \
+                    'must configure private_key in non-dev channel={}'.format(pkconfig.cfg.channel)
+                cfg.private_key = base64.urlsafe_b64encode(b'01234567890123456789012345678912')
+            assert len(base64.urlsafe_b64decode(cfg.private_key)) == 32, \
+                'private_key must be 32 characters and encoded with urlsafe_b64encode'
             self.crypto = cryptography.fernet.Fernet(cfg.private_key)
         return self.crypto
 
@@ -190,17 +196,6 @@ class _State(dict):
 
 
 @pkconfig.parse_none
-def _cfg_private_key(value):
-    if value is None:
-        assert pkconfig.channel_in('dev'), \
-            'must configure private_key in non-dev channel={}'.format(pkconfig.cfg.channel)
-        value = base64.urlsafe_b64encode(b'01234567890123456789012345678912')
-    assert len(base64.urlsafe_b64decode(value)) == 32, \
-        'must be 32 characters and encoded with urlsafe_b64encode'
-    return value
-
-
-@pkconfig.parse_none
 def _cfg_http_name(value):
     assert re.search(r'^\w{1,32}$', value), \
         'must be 1-32 word characters; http_name={}'.format(value)
@@ -213,7 +208,7 @@ def _state():
 
 cfg = pkconfig.init(
     http_name=('sirepo_' + pkconfig.cfg.channel, _cfg_http_name, 'Set-Cookie name'),
-    private_key=(None, _cfg_private_key, 'urlsafe base64 encrypted 32-byte key'),
+    private_key=(None, str, 'urlsafe base64 encrypted 32-byte key'),
     is_secure=(
         not pkconfig.channel_in('dev'),
         pkconfig.parse_bool,
