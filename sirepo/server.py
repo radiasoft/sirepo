@@ -422,7 +422,7 @@ def api_root(simulation_type):
         if simulation_type == 'fete':
             return flask.redirect('/warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
-        werkzeug.exceptions.abort(404)
+        util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()
     values.app_name = simulation_type
     return _render_root_page('index', values)

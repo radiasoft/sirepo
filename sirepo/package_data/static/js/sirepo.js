@@ -55,8 +55,6 @@ angular.element(document).ready(function() {
     });
 });
 
-SIREPO.appLocalRoutes = {};
-
 SIREPO.appDefaultSimulationValues = {
     simulation: {
         folder: '/'
@@ -90,15 +88,18 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
 SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies']);
 
-SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
+SIREPO.app.value('localRoutes', {});
 
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
+    var localRoutes = localRoutesProvider.$get();
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
+    $compileProvider.commentDirectivesEnabled(false);
+    $compileProvider.cssClassDirectivesEnabled(false);
 
     function addRoute(routeName, isDefault) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
-        SIREPO.appLocalRoutes[routeName] = routeInfo.route;
+        localRoutes[routeName] = routeInfo.route;
         var cfg = routeInfo.config;
         $routeProvider.when(routeInfo.route, cfg);
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
@@ -1230,15 +1231,11 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
-    var ERROR_PAGES = {
-        401: 'notAuthorized',
-        403: 'forbidden',
-        404: 'notFound',
-    };
 
     function logError(data, status) {
-        if (ERROR_PAGES[status]) {
-            self.localRedirect(ERROR_PAGES[status]);
+        var err = SIREPO.APP_SCHEMA.customErrors[status];
+        if (err && err.route) {
+            self.localRedirect(err.route);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
