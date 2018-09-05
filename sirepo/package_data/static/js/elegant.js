@@ -1288,6 +1288,8 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                     requestSender.formatUrl('listFiles', {
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': fileType,
+                        // unused param
+                        '<simulation_id>': $scope.id,
                     }),
                     loadFileLists);
             }

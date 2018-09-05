@@ -1363,6 +1363,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             function() {
                 srlog(path, ' load failed!');
                 delete self[name + ".loading"];
+                if (! self[name]) {
+                    // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
+                    self[name] = [];
+                }
             });
     };
 

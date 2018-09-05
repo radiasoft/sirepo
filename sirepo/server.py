@@ -222,7 +222,8 @@ def api_favicon():
 
 
 @api_perm.require_user
-def api_listFiles(simulation_type, file_type):
+def api_listFiles(simulation_type, simulation_id, file_type):
+    # simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
     res = []
     exclude = None
