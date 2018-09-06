@@ -21,13 +21,6 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
     self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);

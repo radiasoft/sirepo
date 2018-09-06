@@ -9,12 +9,13 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo import api_auth
+from sirepo import api_perm
 from sirepo import feature_config
+from sirepo import http_reply
+from sirepo import http_request
 from sirepo import runner
 from sirepo import simulation_db
-from sirepo import api_perm
-from sirepo import http_request
-from sirepo import http_reply
 from sirepo import uri_router
 from sirepo import util
 from sirepo.template import template_common
@@ -45,9 +46,6 @@ _RUN_STATES = ('pending', 'running')
 
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
-
-#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
-_UWSGI_LOG_KEY_USER = 'sirepo_user'
 
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'test_in_request'
@@ -221,7 +219,8 @@ def api_favicon():
 
 
 @api_perm.require_user
-def api_listFiles(simulation_type, file_type):
+def api_listFiles(simulation_type, simulation_id, file_type):
+    # simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
     res = []
     exclude = None
@@ -421,7 +420,7 @@ def api_root(simulation_type):
         if simulation_type == 'fete':
             return flask.redirect('/warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
-        werkzeug.exceptions.abort(404)
+        util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()
     values.app_name = simulation_type
     return _render_root_page('index', values)
@@ -474,6 +473,19 @@ def api_runStatus():
     return http_reply.gen_json(_simulation_run_status(data))
 
 
+@api_perm.allow_visitor
+def api_userState():
+    return _no_cache(
+        flask.Response(
+            flask.render_template(
+                'js/user-state.js',
+                user_state=api_auth.get_auth_user_state(),
+            ),
+            mimetype='application/javascript',
+        )
+    )
+
+
 @api_perm.require_user
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
@@ -515,8 +527,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
-    _no_cache(resp)
-    return resp
+    return _no_cache(resp)
 
 
 @api_perm.require_user
@@ -555,7 +566,8 @@ def api_listSimulations():
     )
 
 
-@api_perm.require_user
+# visitor rather than user because error pages are rendered by the application
+@api_perm.allow_visitor
 def api_simulationSchema():
     sim_type = sirepo.template.assert_sim_type(flask.request.form['simulationType'])
     return http_reply.gen_json(simulation_db.get_schema(sim_type))
@@ -647,7 +659,7 @@ def init(db_dir=None, uwsgi=None):
         db_dir = cfg.db_dir
     app.sirepo_db_dir = db_dir
     simulation_db.init_by_server(app)
-    uri_router.init(app, simulation_db)
+    uri_router.init(app, uwsgi)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
     runner.init(app, uwsgi)
@@ -744,6 +756,7 @@ def _lib_filepath(simulation_type, filename, file_type):
 def _no_cache(resp):
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 def _parse_data_input(validate=False):

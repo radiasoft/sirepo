@@ -78,4 +78,4 @@ def test_missing_cookies():
     fc = srunit.flask_client()
     sim_type = 'srw'
     resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
-    pkeq(403, resp.status_code)
+    pkeq(401, resp.status_code)

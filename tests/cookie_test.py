@@ -20,9 +20,9 @@ def test_1():
     from sirepo import cookie
     cookie.init_mock()
     cookie.init('x')
-    with pkunit.pkexcept('Forbidden'):
+    with pkunit.pkexcept('Unauthorized'):
         cookie.get_user()
-    with pkunit.pkexcept('Forbidden'):
+    with pkunit.pkexcept('Unauthorized'):
         cookie.get_user(checked=False)
     cookie.set_sentinel()
     cookie.set_user('abc')

@@ -3,13 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.controller('MyAppSourceController', function () {
     var self = this;
 });

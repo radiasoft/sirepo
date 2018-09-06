@@ -712,6 +712,8 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
                     requestSender.formatUrl('listFiles', {
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
+                        // unused param
+                        '<simulation_id>': appState.models.simulation.simulationId,
                     }), sortList);
                 return null;
             };

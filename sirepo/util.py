@@ -27,6 +27,10 @@ def raise_not_found(*args, **kwargs):
     _raise('NotFound', *args, **kwargs)
 
 
+def raise_unauthorized(*args, **kwargs):
+    _raise('Unauthorized', *args, **kwargs)
+
+
 def random_base62(length=32):
     """Returns a safe string of sufficient length to be a nonce
 
