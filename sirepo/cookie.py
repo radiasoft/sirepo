@@ -30,8 +30,15 @@ _COOKIE_USER = 'sru'
 
 _SERIALIZER_SEP = ' '
 
+#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
+_UWSGI_LOG_KEY_USER = 'sirepo_user'
+
+#: uwsgi object for logging
+_uwsgi = None
+
 
 def clear_user():
+    set_log_user(None)
     unchecked_remove(_COOKIE_USER)
 
 
@@ -69,6 +76,15 @@ def init_mock(uid='invalid-uid'):
     set_user(uid)
 
 
+def init_module(app, uwsgi):
+    global _uwsgi
+    _uwsgi = uwsgi
+
+
+def save_to_cookie(resp):
+    _state().save_to_cookie(resp)
+
+
 def set_sentinel():
     """Bypasses the state where the cookie has not come back from the
     client. This is used by bluesky and testing only, right now.
@@ -76,8 +92,22 @@ def set_sentinel():
     _state().set_sentinel()
 
 
-def save_to_cookie(resp):
-    _state().save_to_cookie(resp)
+def set_log_user(uid):
+    if not _uwsgi:
+        # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
+        # the limited http server for development only. This uses
+        # werkzeug.serving.WSGIRequestHandler.log which hardwires the
+        # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
+        # but we only use the limited http server for development.
+        return
+    u = 'li-' + uid if uid else '-'
+    _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+
+
+def set_user(uid):
+    assert uid
+    set_value(_COOKIE_USER, uid)
+    set_log_user(uid)
 
 
 def set_value(key, value):
@@ -88,11 +118,6 @@ def set_value(key, value):
     assert key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s, \
         'cookie is not valid so cannot set key={}'.format(key)
     s[key] = value
-
-
-def set_user(uid):
-    assert uid
-    set_value(_COOKIE_USER, uid)
 
 
 def unchecked_remove(key):
@@ -112,7 +137,7 @@ class _State(dict):
 
     def get_user(self, checked=True):
         if not self.get(_COOKIE_SENTINEL):
-            util.raise_forbidden('Missing sentinel, cookies may be disabled')
+            util.raise_unauthorized('Missing sentinel, cookies may be disabled')
         return self[_COOKIE_USER] if checked else self.get(_COOKIE_USER)
 
     def set_sentinel(self):
@@ -135,6 +160,12 @@ class _State(dict):
 
     def _crypto(self):
         if not self.crypto:
+            if cfg.private_key is None:
+                assert pkconfig.channel_in('dev'), \
+                    'must configure private_key in non-dev channel={}'.format(pkconfig.cfg.channel)
+                cfg.private_key = base64.urlsafe_b64encode(b'01234567890123456789012345678912')
+            assert len(base64.urlsafe_b64decode(cfg.private_key)) == 32, \
+                'private_key must be 32 characters and encoded with urlsafe_b64encode'
             self.crypto = cryptography.fernet.Fernet(cfg.private_key)
         return self.crypto
 
@@ -161,6 +192,7 @@ class _State(dict):
                 s = self._decrypt(match.group(1))
                 self.update(self._deserialize(s))
                 self.incoming_serialized = s
+                set_log_user(self.get(_COOKIE_USER))
                 return
         except Exception as e:
             if 'crypto' in type(e).__module__:
@@ -178,6 +210,7 @@ class _State(dict):
                 self.set_sentinel()
                 self.update(res)
                 err = None
+                set_log_user(self.get(_COOKIE_USER))
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 
@@ -187,17 +220,6 @@ class _State(dict):
                 [(k, self[k]) for k in sorted(self.keys())],
             ),
         )
-
-
-@pkconfig.parse_none
-def _cfg_private_key(value):
-    if value is None:
-        assert pkconfig.channel_in('dev'), \
-            'must configure private_key in non-dev channel={}'.format(pkconfig.cfg.channel)
-        value = base64.urlsafe_b64encode(b'01234567890123456789012345678912')
-    assert len(base64.urlsafe_b64decode(value)) == 32, \
-        'must be 32 characters and encoded with urlsafe_b64encode'
-    return value
 
 
 @pkconfig.parse_none
@@ -213,7 +235,7 @@ def _state():
 
 cfg = pkconfig.init(
     http_name=('sirepo_' + pkconfig.cfg.channel, _cfg_http_name, 'Set-Cookie name'),
-    private_key=(None, _cfg_private_key, 'urlsafe base64 encrypted 32-byte key'),
+    private_key=(None, str, 'urlsafe base64 encrypted 32-byte key'),
     is_secure=(
         not pkconfig.channel_in('dev'),
         pkconfig.parse_bool,

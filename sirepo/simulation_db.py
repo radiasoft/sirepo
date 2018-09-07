@@ -246,7 +246,7 @@ def get_schema(sim_type):
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles, depth=-1, merge_style='merge')
-    schema.dynamicModules = _file_list_in_schema_section(schema.dynamicFiles, 'js')
+    schema.dynamicModules = _file_list_in_schema(schema.dynamicFiles, 'js')
 
     if 'appModes' not in schema:
         schema.appModes = pkcollections.Dict()
@@ -260,16 +260,16 @@ def get_schema(sim_type):
     _merge_dicts(common_views, app_views)
     for view_Name in common_views:
         if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
-            app_views[view_Name]['title'] = common_views[view_Name]['title']
+            app_views[view_Name].title = common_views[view_Name].title
         if 'basic' not in app_views[view_Name] and 'basic' in common_views[view_Name]:
-            for basic_field in common_views[view_Name]['basic']:
-                if basic_field not in app_views[view_Name]['basic']:
-                    app_views[view_Name]['basic'][basic_field] = basic_field
+            for basic_field in common_views[view_Name].basic:
+                if basic_field not in app_views[view_Name].basic:
+                    app_views[view_Name].basic[basic_field] = basic_field
         if 'advanced' in common_views[view_Name]:
-            for advanced_field in common_views[view_Name]['advanced']:
+            for advanced_field in common_views[view_Name].advanced:
                 # ignore arrays
-                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name]['advanced']:
-                    app_views[view_Name]['advanced'].append(advanced_field)
+                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name].advanced:
+                    app_views[view_Name].advanced.append(advanced_field)
     _validate_schema(schema)
     return schema
 
@@ -807,11 +807,11 @@ def simulation_run_dir(data, remove_dir=False):
 
 
 def static_css():
-    return _file_list_in_schema_section(SCHEMA_COMMON.common.staticFiles, 'css')
+    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'css')
 
 
 def static_modules():
-    return _file_list_in_schema_section(SCHEMA_COMMON.common.staticFiles, 'js')
+    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'js')
 
 
 def static_file_path(file_dir, file_name):
@@ -974,26 +974,12 @@ def _create_example_and_lib_files(simulation_type):
             f.copy(d)
 
 
-def _common_file_rel_paths(load_type, type):
+def _file_list_in_schema(schema, file_type):
     """Relative paths of local and external files of the given load and file type listed in the schema
     The order matters for javascript files
 
     Args:
-        load_type (str): 'static' or 'dynamic'
-        type (str): type of the file (css, js, etc.)
-
-    Returns:
-        [str]: combined list of local and external file paths
-    """
-    return _file_list_in_schema_section(SCHEMA_COMMON.common[load_type + 'Files'], type)
-
-
-def _file_list_in_schema_section(sch_section, file_type):
-    """Relative paths of local and external files of the given load and file type listed in the schema
-    The order matters for javascript files
-
-    Args:
-        load_type (str): 'static' or 'dynamic'
+        schema (pkcollections.Dict): schema (or portion thereof) to inspect
         type (str): type of the file (css, js, etc.)
 
     Returns:
@@ -1003,8 +989,8 @@ def _file_list_in_schema_section(sch_section, file_type):
     for lf_prop in LOADED_FILE_PROPS:
         paths.extend(
             map(lambda file_name:
-               _pkg_relative_path_static(file_type + '/' + lf_prop.dir, file_name),
-               sch_section[lf_prop.source][file_type])
+                _pkg_relative_path_static(file_type + '/' + lf_prop.dir, file_name),
+                schema[lf_prop.source][file_type])
         )
     return paths
 
@@ -1072,11 +1058,14 @@ def _pkg_relative_path_static(file_dir, file_name):
 
     Args:
         file_dir (str): sub-directory of package_data/static
-        file_name (str): name of the file
+        file_name (str): name of the file.  If starts with '/', just return file_name
 
     Returns:
         str: full relative path of the file
     """
+    pkdlog('getting static path for {}:{}', file_dir, file_name)
+    if file_name[0] == '/':
+        return file_name
     root = str(pkresource.filename(''))
     return str(static_file_path(file_dir, file_name))[len(root):]
 
@@ -1331,6 +1320,9 @@ def _validate_schema(schema):
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
     for src in schema.dynamicModules:
+        # ignore "absolute" source paths
+        if src[0] == '/':
+            continue
         pkresource.filename(src)
 
 

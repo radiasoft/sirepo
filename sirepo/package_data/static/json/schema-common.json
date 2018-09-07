@@ -1,5 +1,5 @@
 {
-    "version": "20180903.000000",
+    "version": "20180905.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -62,7 +62,7 @@
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
         "homePage": "/light",
-        "listFiles": "/file-list/<simulation_type>/<file_type>",
+        "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
@@ -82,7 +82,8 @@
         "srUnit": "/ srunit",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
+        "userState": "/user-state"
     },
     "common": {
         "staticFiles": {
@@ -127,6 +128,7 @@
             },
             "local": {
                 "js": [
+                    "/user-state",
                     "sirepo-common.js",
                     "sirepo-components.js",
                     "sirepo-plotting.js"
@@ -154,7 +156,8 @@
                 "config": {
                   "controller": "SimulationsController as simulations",
                   "templateUrl": "/static/html/simulations.html"
-                }
+                },
+                "isDefault": true
             },
             "simulationsFolder": {
                 "route": "/simulations/:folderPath?",
@@ -167,8 +170,6 @@
                 "route": "/source/:simulationId"
             },
             "loggedOut": {
-                "isFinal": true,
-                "doDefer": true,
                 "route": "/logged-out",
                 "config": {
                   "controller": "LoggedOutController as loggedOut",
@@ -194,10 +195,11 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
-            "fallback": {
-                "isFinal": true,
-                "isRedirect": true,
-                "localRoute": "simulations"
+            "notAuthorized": {
+                "route": "/missing-cookies",
+                "config": {
+                  "templateUrl": "/static/html/not-authorized.html"
+                }
             }
         },
         "model": {
@@ -238,9 +240,32 @@
         }
     },
     "customErrors": {
-        "404": {"url": "not-found.html", "msg": "File Not Found"},
-        "422": {"url": "srw-magnet-file-error.html", "msg": "Invalid Magnet File"},
-        "500": {"url": "server-error.html", "msg": "Server Error"},
-        "502": {"url": "server-error.html", "msg": "Proxy Error"}
+        "401": {
+            "url": "not-authorized.html",
+            "msg": "Missing Cookies",
+            "route": "notAuthorized"
+        },
+        "403": {
+            "url": "forbidden.html",
+            "msg": "Forbidden",
+            "route": "forbidden"
+        },
+        "404": {
+            "url": "not-found.html",
+            "msg": "File Not Found",
+            "route": "notFound"
+        },
+        "422": {
+            "url": "srw-magnet-file-error.html",
+            "msg": "Invalid Magnet File"
+        },
+        "500": {
+            "url": "server-error.html",
+            "msg": "Server Error"
+        },
+        "502": {
+            "url": "server-error.html",
+            "msg": "Proxy Error"
+        }
     }
 }

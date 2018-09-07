@@ -55,8 +55,6 @@ angular.element(document).ready(function() {
     });
 });
 
-SIREPO.appLocalRoutes = {};
-
 SIREPO.appDefaultSimulationValues = {
     simulation: {
         folder: '/'
@@ -65,8 +63,6 @@ SIREPO.appDefaultSimulationValues = {
 };
 
 SIREPO.appHomeTab = 'source';
-
-SIREPO.IS_LOGGED_OUT = SIREPO.userState && SIREPO.userState.loginState == 'logged_out';
 
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
@@ -92,67 +88,34 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
 SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies']);
 
-SIREPO.app.value('localRoutes', SIREPO.appLocalRoutes);
+SIREPO.app.value('localRoutes', {});
 
 SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvider, $routeProvider) {
+    var localRoutes = localRoutesProvider.$get();
     $locationProvider.hashPrefix('');
     $compileProvider.debugInfoEnabled(false);
-    var commonRouteMap = SIREPO.APP_SCHEMA.commonLocalRoutes;
+    $compileProvider.commentDirectivesEnabled(false);
+    $compileProvider.cssClassDirectivesEnabled(false);
 
-    SIREPO.addRoute = function(routeName, routeMap, addDeferred) {
-        var map = routeMap || commonRouteMap;
-        var route = routeForName(routeName, routeMap);
-        if(! route) {
-            return;
+    function addRoute(routeName, isDefault) {
+        var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
+        localRoutes[routeName] = routeInfo.route;
+        var cfg = routeInfo.config;
+        $routeProvider.when(routeInfo.route, cfg);
+        cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
+        if (isDefault || routeInfo.isDefault) {
+            cfg.redirectTo = routeName;
+            $routeProvider.otherwise(cfg);
         }
-        SIREPO.appLocalRoutes[routeName] = route;
-
-        // deferred routes are created but not added to the route provider
-        // until explicitly added.  The only such route now is loggedOut
-        if(map[routeName].doDefer && ! addDeferred) {
-            return;
-        }
-        var rteCfg = routeConfigForName(routeName, map);
-        if(! rteCfg) {
-            return;
-        }
-        if(map[routeName].isFinal) {
-            $routeProvider.otherwise(rteCfg);
-            return;
-        }
-        $routeProvider.when(route, rteCfg);
-    };
-    SIREPO.addRoutes = function(routeMap) {
-        var map = routeMap || commonRouteMap;
-        for(var routeName in map) {
-            SIREPO.addRoute(routeName, map);
-        }
-    };
+    }
 
     if (SIREPO.IS_LOGGED_OUT) {
-        SIREPO.addRoute('loggedOut', commonRouteMap, true);
-        return;
-    }
-
-    SIREPO.addRoutes();
-
-    function routeForName(routeName, routeMap) {
-        return routeMap[routeName].route || routeMap[routeName].localRoute || SIREPO.appLocalRoutes[routeName];
-    }
-    function routeConfigForName(routeName, routeMap) {
-        if(routeMap[routeName].isRedirect) {
-            return {
-                redirectTo: SIREPO.appLocalRoutes[routeMap[routeName].localRoute]
-            };
+        addRoute('loggedOut', true);
+    } else {
+        for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
+            addRoute(routeName);
         }
-
-        var rteObj = routeMap[routeName].config;
-        if(rteObj && rteObj.templateUrl) {
-            rteObj.templateUrl += SIREPO.SOURCE_CACHE_KEY;
-        }
-        return rteObj;
     }
-
 });
 
 SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
@@ -1270,11 +1233,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
     function logError(data, status) {
-        if (status == 404) {
-            self.localRedirect('notFound');
-        }
-        else if (status == 403) {
-            self.localRedirect('forbidden');
+        var err = SIREPO.APP_SCHEMA.customErrors[status];
+        if (err && err.route) {
+            self.localRedirect(err.route);
         }
         else {
             errorService.alertText('Request failed: ' + data.error);
@@ -1402,6 +1363,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             function() {
                 srlog(path, ' load failed!');
                 delete self[name + ".loading"];
+                if (! self[name]) {
+                    // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
+                    self[name] = [];
+                }
             });
     };
 

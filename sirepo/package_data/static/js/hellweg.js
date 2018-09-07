@@ -5,13 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
-SIREPO.app.config(function() {
-    if (SIREPO.IS_LOGGED_OUT) {
-        return;
-    }
-    SIREPO.addRoutes(SIREPO.APP_SCHEMA.localRoutes);
-});
-
 SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
     var self = this;
     self.appState = appState;

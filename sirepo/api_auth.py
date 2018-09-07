@@ -26,7 +26,7 @@ def assert_api_call(func):
     a = api_perm.APIPerm
     if p == a.REQUIRE_USER:
         if not cookie.has_sentinel():
-            util.raise_forbidden(
+            util.raise_unauthorized(
                 'cookie does not have a sentinel: perm={} func={}',
                 p,
                 func.__name__,
@@ -54,6 +54,12 @@ def assert_api_def(func):
                 e,
             ),
         )
+
+
+def get_auth_user_state():
+    if login_module:
+        return login_module.set_default_state()
+    return None
 
 
 def register_login_module():
