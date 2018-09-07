@@ -1,4 +1,11 @@
 {
+    "dynamicFiles": {
+        "local": {
+            "js": [
+                "warppba.js"
+            ]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

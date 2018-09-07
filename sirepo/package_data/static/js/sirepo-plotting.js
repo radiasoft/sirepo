@@ -194,13 +194,16 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         return requestData;
     }
 
-    function linspace(start, stop, nsteps) {
+    function linearlySpacedArray(start, stop, nsteps) {
+        if (nsteps < 1) {
+            throw "linearlySpacedArray: steps " + nsteps + " < 1";
+        }
         var delta = (stop - start) / (nsteps - 1);
         var res = d3.range(nsteps).map(function(d) { return start + d * delta; });
         res[res.length - 1] = stop;
 
         if (res.length != nsteps) {
-            throw "invalid linspace steps: " + nsteps + " != " + res.length;
+            throw "linearlySpacedArray: steps " + nsteps + " != " + res.length;
         }
         return res;
     }
@@ -380,7 +383,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
             var colorMap = this.colorMapFromModel(modelName);
             return d3.scale.linear()
-                .domain(linspace(zMin, zMax, colorMap.length))
+                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
                 .range(colorMap)
                 .clamp(true);
         },
@@ -480,7 +483,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
         },
 
-        linspace: linspace,
+        linearlySpacedArray: linearlySpacedArray,
 
         min2d: function(data) {
             return d3.min(data, function(row) {
@@ -1788,7 +1791,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 $scope.dataCleared = false;
                 var xPoints = json.x_points
                     ? json.x_points
-                    : plotting.linspace(json.x_range[0], json.x_range[1], json.points.length);
+                    : plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
                 if (!(axes.x.domain && axes.x.domain[0] == xdom[0] && axes.x.domain[1] == xdom[1])) {
                     axes.x.domain = xdom;
@@ -2248,8 +2251,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     || ! appState.deepEquals(fullDomain, newFullDomain)) {
                     fullDomain = newFullDomain;
                     lineOuts = {};
-                    axes.x.values = plotting.linspace(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
-                    axes.y.values = plotting.linspace(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
+                    axes.x.values = plotting.linearlySpacedArray(fullDomain[0][0], fullDomain[0][1], json.x_range[2]);
+                    axes.y.values = plotting.linearlySpacedArray(fullDomain[1][0], fullDomain[1][1], json.y_range[2]);
                     axes.x.scale.domain(fullDomain[0]);
                     axes.x.indexScale.domain(fullDomain[0]);
                     axes.y.scale.domain(fullDomain[1]);
@@ -2483,7 +2486,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
                 $.each(axes, function(dim, axis) {
-                    axis.values = plotting.linspace(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
+                    axis.values = plotting.linearlySpacedArray(json[dim + '_range'][0], json[dim + '_range'][1], json[dim + '_range'][2]);
                     axis.parseLabelAndUnits(json[dim + '_label']);
                     select('.' + dim + '-axis-label').text(json[dim + '_label']);
                     axis.scale.domain(getRange(axis.values));
@@ -2731,7 +2734,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     json.y_label = plots[0].label;
                 }
                 axes.x.points = json.x_points
-                    || plotting.linspace(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
@@ -3428,17 +3431,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numInterPoints = 50;
 
                 axes.x.init();
-                axes.x.values = plotting.linspace(xmin, xmax, xpoints.length);
+                axes.x.values = plotting.linearlySpacedArray(xmin, xmax, xpoints.length);
                 axes.x.scale.domain([xmin, xmax]);
                 axes.x.parseLabelAndUnits(pointData.x_label);
 
                 axes.y.init();
-                axes.y.values = plotting.linspace(zmin, zmax, zpoints.length);
+                axes.y.values = plotting.linearlySpacedArray(zmin, zmax, zpoints.length);
                 axes.y.scale.domain([zmin, zmax]);
                 axes.y.parseLabelAndUnits(pointData.y_label);
 
                 axes.z.init();
-                axes.z.values = plotting.linspace(ymin, ymax, ypoints.length);
+                axes.z.values = plotting.linearlySpacedArray(ymin, ymax, ypoints.length);
                 axes.z.scale.domain([ymin, ymax]);
                 axes.z.parseLabelAndUnits(pointData.z_label);
 
@@ -3934,7 +3937,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // domain is the value of the data points
                 // range is the position on the screen
-                // TODO (mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
+                // TODO(mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
                 //axes.x.scale.range([0, $scope.vtkCanvasGeometry().size.width - 96]);
                 axes.x.scale.range([0, vpWidth]);
                 //axes.y.scale.range([$scope.vtkCanvasGeometry().size.height - 360, 0]);

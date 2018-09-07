@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "local": {
+            "js": ["jspec.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

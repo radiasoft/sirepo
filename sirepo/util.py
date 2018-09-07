@@ -18,10 +18,8 @@ def err(obj, format='', *args, **kwargs):
 def raise_bad_request(*args, **kwargs):
     _raise('BadRequest', *args, **kwargs)
 
-
 def raise_forbidden(*args, **kwargs):
     _raise('Forbidden', *args, **kwargs)
-
 
 def raise_not_found(*args, **kwargs):
     _raise('NotFound', *args, **kwargs)

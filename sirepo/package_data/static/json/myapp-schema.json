@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "local": {
+            "js": ["myapp.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

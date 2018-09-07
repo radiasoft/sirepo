@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "local": {
+            "js": ["rs4pi.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {
