@@ -170,6 +170,7 @@ def generate_rtdose_file(data, run_dir):
         ds.PixelRepresentation = 0
         ds.SamplesPerPixel = 1
         ds.PixelData = pixels.astype(np.uint32)
+        ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2'
 
         # for dicompyler
         ds.PhotometricInterpretation = 'MONOCHROME2'
@@ -564,7 +565,7 @@ def _histogram_from_pixels(pixels):
             hist[0] = v
     return {
         'histogram': hist.tolist(),
-        'extent': [edges[0], edges[-1], bins],
+        'extent': [edges[0].item(), edges[-1].item(), bins],
     }
 
 

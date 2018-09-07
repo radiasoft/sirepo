@@ -776,7 +776,7 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
         controller: function($scope) {
             $scope.beamlineService = beamlineService;
             $scope.getPriorityForItem = function(item, index) {
-                return beamlineService.addPriority(beamlineService.watchpointReportName(item.id), index + 2);
+                return beamlineService.addPriority(beamlineService.watchpointReportName(item.id), (index + 2) * 5);
             };
         },
     };
