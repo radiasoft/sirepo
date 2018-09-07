@@ -558,7 +558,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.viewInfo = function(name) {
-        return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.commonViews[name];
+        return SIREPO.APP_SCHEMA.view[name] || SIREPO.APP_SCHEMA.common.view[name];
     };
 
     self.watchModelFields = function($scope, modelFields, callback) {

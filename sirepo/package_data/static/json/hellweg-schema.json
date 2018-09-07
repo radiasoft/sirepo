@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "local": {
+            "js": ["hellweg.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

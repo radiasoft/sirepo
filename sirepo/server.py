@@ -767,6 +767,8 @@ def _parse_data_input(validate=False):
 def _render_root_page(page, values):
     values.source_cache_key = _source_cache_key()
     values.app_version = simulation_db.app_version()
+    values.static_js_files = simulation_db.static_modules()
+    values.static_css_files = simulation_db.static_css()
     return flask.render_template(
         'html/{}.html'.format(page),
         **values
