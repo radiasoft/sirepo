@@ -239,17 +239,14 @@ SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService,
     });
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
+SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs4piService) {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">RS4PI</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav" data-simulations-link-text="Studies"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -260,19 +257,18 @@ SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
               '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> Import DICOM</a></li>',
               '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
             '</ul>',
+
         ].join(''),
         controller: function($scope) {
             $scope.hasROIContours = function() {
                 return rs4piService.hasROIContours();
             };
             $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
                 return appState.isLoaded();
             };
             $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
+                appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();
+                panelState.showModalEditor('simFolder');
             };
             $scope.importDicomModal = function() {
                 $('#dicom-import').modal('show');
