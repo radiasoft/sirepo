@@ -31,8 +31,6 @@ def run(cfg_dir):
             })
             return
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        assert data['report'] == 'dogReport', \
-            'unknown report: {}'.format(data['report'])
         dog = data.models.dog
         cols = _csv_to_cols()
         x_points = cols['year']

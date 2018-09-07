@@ -47,9 +47,6 @@ _RUN_STATES = ('pending', 'running')
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
-#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
-_UWSGI_LOG_KEY_USER = 'sirepo_user'
-
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'test_in_request'
 
@@ -662,7 +659,7 @@ def init(db_dir=None, uwsgi=None):
         db_dir = cfg.db_dir
     app.sirepo_db_dir = db_dir
     simulation_db.init_by_server(app)
-    uri_router.init(app, simulation_db)
+    uri_router.init(app, uwsgi)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
     runner.init(app, uwsgi)
