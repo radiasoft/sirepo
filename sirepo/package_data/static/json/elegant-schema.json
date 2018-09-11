@@ -1,11 +1,11 @@
 {
     "dynamicFiles": {
-        "external": {
+        "externalLibs": {
             "js": [
                 "split-1.3.5.min.js"
             ]
         },
-        "local": {
+        "sirepoLibs": {
             "js": [
                 "elegant.js",
                 "sirepo-lattice.js"

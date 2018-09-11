@@ -26,7 +26,7 @@ angular.element(document).ready(function() {
 
     function loadDynamicModules() {
         return $.map(
-            SIREPO.APP_SCHEMA.dynamicModules || [],
+            (SIREPO.APP_SCHEMA.dynamicModules || []).concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []),
             function(src) {
                 return loadDynamicModule(src);
             });

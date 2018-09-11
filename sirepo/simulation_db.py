@@ -115,7 +115,7 @@ def app_version():
     """
     if pkconfig.channel_in('dev'):
         return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
-    return SCHEMA_COMMON['version']
+    return SCHEMA_COMMON.version
 
 
 def celery_queue(data):
@@ -198,30 +198,30 @@ def fixup_old_data(data, force=False):
         bool: True if data changed
     """
     try:
-        if not force and 'version' in data and data['version'] == SCHEMA_COMMON['version']:
+        if not force and 'version' in data and data.version == SCHEMA_COMMON.version:
             return data, False
         try:
-            data.fixup_old_version = data['version']
-        except KeyError:
+            data.fixup_old_version = data.version
+        except AttributeError:
             data.fixup_old_version = _OLDEST_VERSION
-        data.version = SCHEMA_COMMON['version']
+        data.version = SCHEMA_COMMON.version
         if 'simulationType' not in data:
-            if 'sourceIntensityReport' in data['models']:
-                data['simulationType'] = 'srw'
-            elif 'fieldAnimation' in data['models']:
-                data['simulationType'] = 'warppba'
-            elif 'bunchSource' in data['models']:
-                data['simulationType'] = 'elegant'
+            if 'sourceIntensityReport' in data.models:
+                data.simulationType = 'srw'
+            elif 'fieldAnimation' in data.models:
+                data.simulationType = 'warppba'
+            elif 'bunchSource' in data.models:
+                data.simulationType = 'elegant'
             else:
                 pkdlog('simulationType: not found; data={}', data)
                 raise AssertionError('must have simulationType')
-        elif data['simulationType'] == 'warp':
-            data['simulationType'] = 'warppba'
-        elif data['simulationType'] == 'fete':
-            data['simulationType'] = 'warpvnd'
-        if 'simulationSerial' not in data['models']['simulation']:
-            data['models']['simulation']['simulationSerial'] = 0
-        sirepo.template.import_module(data['simulationType']).fixup_old_data(data)
+        elif data.simulationType == 'warp':
+            data.simulationType = 'warppba'
+        elif data.simulationType == 'fete':
+            data.simulationType = 'warpvnd'
+        if 'simulationSerial' not in data.models.simulation:
+            data.models.simulation.simulationSerial = 0
+        sirepo.template.import_module(data.simulationType).fixup_old_data(data)
         pkcollections.unchecked_del(data.models, 'simulationStatus')
         pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
@@ -241,35 +241,17 @@ def get_schema(sim_type):
         schema,
         {'feature_config': feature_config.for_sim_type(sim_type)},
     )
-    schema['simulationType'] = sim_type
+    schema.simulationType = sim_type
     _SCHEMA_CACHE[sim_type] = schema
 
     #TODO(mvk): improve merging common and local schema
-    _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles, depth=-1, merge_style='merge')
+    _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _file_list_in_schema(schema.dynamicFiles, 'js')
 
     if 'appModes' not in schema:
         schema.appModes = pkcollections.Dict()
-    _merge_dicts(schema.common.localRoutes, schema.localRoutes, depth=2)
-    _merge_dicts(schema.common.appModes, schema.appModes)
-    _merge_dicts(schema.common.model, schema.model, depth=2)
-    _merge_dicts(schema.common.enum, schema.enum)
-    common_views = schema.common.view
-    app_views = schema.view
-
-    _merge_dicts(common_views, app_views)
-    for view_Name in common_views:
-        if 'title' not in app_views[view_Name] and 'title' in common_views[view_Name]:
-            app_views[view_Name].title = common_views[view_Name].title
-        if 'basic' not in app_views[view_Name] and 'basic' in common_views[view_Name]:
-            for basic_field in common_views[view_Name].basic:
-                if basic_field not in app_views[view_Name].basic:
-                    app_views[view_Name].basic[basic_field] = basic_field
-        if 'advanced' in common_views[view_Name]:
-            for advanced_field in common_views[view_Name].advanced:
-                # ignore arrays
-                if isinstance(advanced_field, basestring) and advanced_field not in app_views[view_Name].advanced:
-                    app_views[view_Name].advanced.append(advanced_field)
+    for item in ['localRoutes', 'appModes', 'model', 'enum', 'view']:
+        _merge_dicts(schema.common[item], schema[item])
     _validate_schema(schema)
     return schema
 
@@ -365,8 +347,8 @@ def job_id(data):
     """
     return '{}-{}-{}'.format(
         cookie.get_user(),
-        data['simulationId'],
-        data['report'],
+        data.simulationId,
+        data.report,
     )
 
 
@@ -983,7 +965,7 @@ def _file_list_in_schema(schema, file_type):
         type (str): type of the file (css, js, etc.)
 
     Returns:
-        [str]: combined list of local and external file paths
+        str: combined list of local and external file paths
     """
     paths = []
     for lf_prop in LOADED_FILE_PROPS:
@@ -1013,18 +995,17 @@ def _init():
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
     props = pkcollections.Dict()
-    props.source = 'external'
+    props.source = 'externalLibs'
     props.dir = 'ext'
     LOADED_FILE_PROPS.append(props)
     props = pkcollections.Dict()
-    props.source = 'local'
+    props.source = 'sirepoLibs'
     props.dir = ''
     LOADED_FILE_PROPS.append(props)
 
 
-def _merge_dicts(base, derived, depth=1, merge_style=None):
+def _merge_dicts(base, derived, depth=-1):
     """Copy the items in the base dictionary into the derived dictionary, to the specified depth
-    Items with the same name are not replaced
 
     Args:
         base (dict): source
@@ -1032,22 +1013,23 @@ def _merge_dicts(base, derived, depth=1, merge_style=None):
         depth (int): how deep to recurse:
             >= 0:  <depth> levels
             < 0:   all the way
-        merge_style (str): pass 'merge' to add elements of array in <base> to matching array in <derived>
+        merge_style (str): pass 'merge' to add elements of an array in <base> to the matching array in <derived>
+            Otherwise the derived array remains as it is
     """
     if depth == 0:
         return
     for key in base:
+        # Items with the same name are not replaced
         if key not in derived:
             derived[key] = base[key]
-        elif merge_style == 'merge':
+        else:
             try:
-                derived[key].extend(base[key])
+                derived[key].extend(x for x in base[key] if x not in derived[key])
             except AttributeError:
                 # The value was not an array
                 pass
-        d = depth - 1 if depth > 0 else depth
         try:
-            _merge_dicts(base[key], derived[key], d, merge_style)
+            _merge_dicts(base[key], derived[key], depth - 1 if depth > 0 else depth)
         except TypeError:
             # The value in question is not itself a dict, move on
             pass
@@ -1058,14 +1040,11 @@ def _pkg_relative_path_static(file_dir, file_name):
 
     Args:
         file_dir (str): sub-directory of package_data/static
-        file_name (str): name of the file.  If starts with '/', just return file_name
+        file_name (str): name of the file
 
     Returns:
         str: full relative path of the file
     """
-    pkdlog('getting static path for {}:{}', file_dir, file_name)
-    if file_name[0] == '/':
-        return file_name
     root = str(pkresource.filename(''))
     return str(static_file_path(file_dir, file_name))[len(root):]
 
@@ -1193,8 +1172,6 @@ def _validate_enum(val, sch_field_info, sch_enums):
         val: enum value to validate
         sch_field_info ([str]): field info array from schema
         sch_enums (pkcollections.Dict): enum section of the schema
-    Raises:
-        AssertionError if val is not listed
     """
     type = sch_field_info[1]
     if not type in sch_enums:
@@ -1202,6 +1179,9 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
         raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
 
+
+def _is_enum(sch_field_info, sch_enums):
+    return
 
 def _validate_name(data):
     """Validate and if necessary uniquify name
@@ -1267,29 +1247,24 @@ def _validate_name_uniquify(data, starts_with):
 def _validate_number(val, sch_field_info):
     """Ensure the value of a numeric field falls within the supplied limits (if any)
 
-    Note that currently the values in enum arrays at the indices below are sometimes
-    used for other purposes, so we return rather than fail for non-numeric values
-
     Args:
         val: numeric value to validate
         sch_field_info ([str]): field info array from schema
-    Raises:
-        AssertionError if val is out of schema-specified range
     """
     if len(sch_field_info) <= 4:
         return
-    min = sch_field_info[4]
     try:
         fv = float(val)
-        fmin = float(min)
+        fmin = float(sch_field_info[4])
+    # Currently the values in enum arrays at the indices below are sometimes
+    # used for other purposes, so we return rather than fail for non-numeric values
     except ValueError:
         return
     if fv < fmin:
         raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
     if len(sch_field_info) > 5:
-        max = sch_field_info[5]
         try:
-            fmax = float(max)
+            fmax = float(sch_field_info[5])
         except ValueError:
             return
         if fv > fmax:
@@ -1320,9 +1295,6 @@ def _validate_schema(schema):
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
     for src in schema.dynamicModules:
-        # ignore "absolute" source paths
-        if src[0] == '/':
-            continue
         pkresource.filename(src)
 
 

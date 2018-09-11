@@ -1,11 +1,11 @@
 {
     "dynamicFiles": {
-        "external": {
+        "externalLibs": {
             "js": [
                 "dom-to-image.min.js"
             ]
         },
-        "local": {
+        "sirepoLibs": {
             "js": [
                 "shadow.js",
                 "sirepo-beamline.js"

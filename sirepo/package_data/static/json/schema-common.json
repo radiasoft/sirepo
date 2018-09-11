@@ -87,7 +87,7 @@
     },
     "common": {
         "staticFiles": {
-            "external": {
+            "externalLibs": {
                 "js": [
                     "angular.min.js",
                     "jquery-2.2.4.min.js",
@@ -100,13 +100,13 @@
                     "cookieconsent.min.css"
                 ]
             },
-            "local": {
+            "sirepoLibs": {
                 "js": ["sirepo.js"],
                 "css": ["sirepo.css"]
             }
         },
         "dynamicFiles": {
-            "external": {
+            "externalLibs": {
                 "js": [
                     "angular-cookies.min.js",
                     "angular-route.min.js",
@@ -126,14 +126,16 @@
                     "ie10-viewport-bug-workaround.js"
                 ]
             },
-            "local": {
+            "sirepoLibs": {
                 "js": [
-                    "/user-state",
                     "sirepo-common.js",
                     "sirepo-components.js",
                     "sirepo-plotting.js"
                 ]
-            }
+            },
+            "libURLs": [
+                "/user-state"
+            ]
         },
         "appModes": {
            "default": {
