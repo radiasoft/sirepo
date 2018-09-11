@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["rs4pi.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

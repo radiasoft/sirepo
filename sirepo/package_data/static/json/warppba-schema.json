@@ -1,4 +1,11 @@
 {
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "warppba.js"
+            ]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {
