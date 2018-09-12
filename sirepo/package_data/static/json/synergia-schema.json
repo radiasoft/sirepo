@@ -1,7 +1,17 @@
 {
-    "dynamicModules": [
-        "/static/js/sirepo-lattice.js"
-    ],
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "synergia.js",
+                "sirepo-lattice.js"
+            ]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

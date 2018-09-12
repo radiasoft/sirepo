@@ -239,17 +239,14 @@ SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService,
     });
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
+SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs4piService) {
     return {
         restrict: 'A',
         scope: {
             nav: '=appHeader',
         },
         template: [
-            '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/radtrack.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href data-ng-click="nav.openSection(\'simulations\')">RS4PI</a></div>',
-            '</div>',
+            '<div data-app-header-brand="nav"></div>',
             '<div data-app-header-left="nav" data-simulations-link-text="Studies"></div>',
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
@@ -260,19 +257,18 @@ SIREPO.app.directive('appHeader', function(appState, panelState, rs4piService) {
               '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> Import DICOM</a></li>',
               '<li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-folder-close"></span> New Folder</a></li>',
             '</ul>',
+
         ].join(''),
         controller: function($scope) {
             $scope.hasROIContours = function() {
                 return rs4piService.hasROIContours();
             };
             $scope.isLoaded = function() {
-                if ($scope.nav.isActive('simulations')) {
-                    return false;
-                }
                 return appState.isLoaded();
             };
             $scope.showNewFolderModal = function() {
-                panelState.showModalEditor('simulationFolder');
+                appState.models.simFolder.parent = fileManager.defaultCreationFolderPath();
+                panelState.showModalEditor('simFolder');
             };
             $scope.importDicomModal = function() {
                 $('#dicom-import').modal('show');
@@ -634,7 +630,7 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
                 }
                 var dx = (extent[1] - extent[0]) / (extent[2] - 1);
                 xScale.domain([extent[0], extent[1]]);
-                bins = plotting.linspace(extent[0], extent[1], extent[2]).map(function(d) {
+                bins = plotting.linearlySpacedArray(extent[0], extent[1], extent[2]).map(function(d) {
                     return {
                         x: d,
                         dx: dx,
@@ -1371,7 +1367,7 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                     if (doseDomain && doseFeature) {
                         var colorMap = plotting.colorMapFromModel($scope.modelName);
                         var colorScale = d3.scale.linear()
-                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.6, colorMap.length))
+                            .domain(plotting.linearlySpacedArray(0, appState.models.dicomDose.max * 0.6, colorMap.length))
                             .range(colorMap)
                             .clamp(true);
                         doseFeature.setColorScale(colorScale, appState.models[$scope.modelName].doseTransparency);
@@ -1512,8 +1508,8 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                 }
                 var preserveZoom = xValues ? true : false;
                 dicomDomain = appState.clone(json.domain);
-                xValues = plotting.linspace(dicomDomain[0][0], dicomDomain[1][0], json.shape[1]);
-                yValues = plotting.linspace(dicomDomain[0][1], dicomDomain[1][1], json.shape[0]);
+                xValues = plotting.linearlySpacedArray(dicomDomain[0][0], dicomDomain[1][0], json.shape[1]);
+                yValues = plotting.linearlySpacedArray(dicomDomain[0][1], dicomDomain[1][1], json.shape[0]);
                 if (! preserveZoom) {
                     xAxisScale.domain(getRange(xValues));
                     yAxisScale.domain(getRange(yValues));
