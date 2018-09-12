@@ -1,6 +1,6 @@
 {
     "dynamicFiles": {
-        "local": {
+        "sirepoLibs": {
             "js": ["myapp.js"]
         }
     },

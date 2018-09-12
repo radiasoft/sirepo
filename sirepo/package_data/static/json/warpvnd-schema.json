@@ -1,11 +1,11 @@
 {
     "dynamicFiles": {
-        "external": {
+        "externalLibs": {
             "js": [
                 "vtk.min.js"
             ]
         },
-        "local": {
+        "sirepoLibs": {
             "js": [
                 "warpvnd.js"
             ]
