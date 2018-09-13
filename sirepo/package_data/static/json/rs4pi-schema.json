@@ -1,7 +1,9 @@
 {
-    "dynamicModules": [
-        "/static/js/ext/vtk.min.js"
-    ],
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["rs4pi.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["hellweg.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

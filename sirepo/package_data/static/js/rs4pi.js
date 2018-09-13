@@ -667,7 +667,7 @@ SIREPO.app.directive('dicomHistogram', function(appState, plotting, rs4piService
                 }
                 var dx = (extent[1] - extent[0]) / (extent[2] - 1);
                 xScale.domain([extent[0], extent[1]]);
-                bins = plotting.linspace(extent[0], extent[1], extent[2]).map(function(d) {
+                bins = plotting.linearlySpacedArray(extent[0], extent[1], extent[2]).map(function(d) {
                     return {
                         x: d,
                         dx: dx,
@@ -1404,7 +1404,7 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                     if (doseDomain && doseFeature) {
                         var colorMap = plotting.colorMapFromModel($scope.modelName);
                         var colorScale = d3.scale.linear()
-                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.8, colorMap.length))
+                            .domain(plotting.linearlySpacedArray(0, appState.models.dicomDose.max * 0.8, colorMap.length))
                             .range(colorMap)
                             .clamp(true);
                         doseFeature.setColorScale(colorScale, appState.models[$scope.modelName].doseTransparency);
@@ -1545,8 +1545,8 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                 }
                 var preserveZoom = xValues ? true : false;
                 dicomDomain = appState.clone(json.domain);
-                xValues = plotting.linspace(dicomDomain[0][0], dicomDomain[1][0], json.shape[1]);
-                yValues = plotting.linspace(dicomDomain[0][1], dicomDomain[1][1], json.shape[0]);
+                xValues = plotting.linearlySpacedArray(dicomDomain[0][0], dicomDomain[1][0], json.shape[1]);
+                yValues = plotting.linearlySpacedArray(dicomDomain[0][1], dicomDomain[1][1], json.shape[0]);
                 if (! preserveZoom) {
                     xAxisScale.domain(getRange(xValues));
                     yAxisScale.domain(getRange(yValues));

@@ -85,112 +85,161 @@
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
         "userState": "/user-state"
     },
-    "commonDynamicModules": [
-        "/static/js/ext/d3-3.5.9.min.js",
-        "/user-state"
-    ],
-    "commonLocalRoutes": {
-        "simulations": {
-            "route": "/simulations",
-            "config": {
-              "controller": "SimulationsController as simulations",
-              "templateUrl": "/static/html/simulations.html"
+    "common": {
+        "staticFiles": {
+            "externalLibs": {
+                "js": [
+                    "angular.min.js",
+                    "jquery-2.2.4.min.js",
+                    "cookieconsent.min.js"
+                ],
+                "css": [
+                    "bootstrap-3.3.7.min.css",
+                    "bootstrap-colxl.css",
+                    "bootstrap-toggle.min.css",
+                    "cookieconsent.min.css"
+                ]
             },
-            "isDefault": true
-        },
-        "simulationsFolder": {
-            "route": "/simulations/:folderPath?",
-            "config": {
-              "controller": "SimulationsController as simulations",
-              "templateUrl": "/static/html/simulations.html"
+            "sirepoLibs": {
+                "js": ["sirepo.js"],
+                "css": ["sirepo.css"]
             }
         },
-        "source": {
-            "route": "/source/:simulationId"
-        },
-        "loggedOut": {
-            "route": "/logged-out",
-            "config": {
-              "controller": "LoggedOutController as loggedOut",
-              "templateUrl": "/static/html/logged-out.html"
-            }
-        },
-        "forbidden": {
-            "route": "/forbidden",
-            "config": {
-              "templateUrl": "/static/html/forbidden.html"
-            }
-        },
-        "notFound": {
-            "route": "/not-found",
-            "config": {
-              "templateUrl": "/static/html/not-found.html"
-            }
-        },
-        "notFoundCopy": {
-            "route": "/copy-session/:simulationIds/:section",
-            "config": {
-              "controller": "NotFoundCopyController as notFoundCopy",
-              "templateUrl": "/static/html/copy-session.html"
-            }
-        },
-        "notAuthorized": {
-            "route": "/missing-cookies",
-            "config": {
-              "templateUrl": "/static/html/not-authorized.html"
-            }
-        }
-    },
-    "commonAppModes": {
-        "default": {
-            "localRoute": "source",
-            "includeMode": false
-        }
-    },
-    "commonViews": {
-        "simDoc": {
-            "model": "simulation",
-            "title": "Simulation Documentation",
-            "advanced": [
-                "documentationUrl"
+        "dynamicFiles": {
+            "externalLibs": {
+                "js": [
+                    "angular-cookies.min.js",
+                    "angular-route.min.js",
+                    "bootstrap-3.3.7.min.js",
+                    "bootstrap-toggle.min.js",
+                    "ngDraggable.js",
+                    "stacktrace-0.6.4.js",
+                    "colorbar.js",
+                    "rgbcolor.js",
+                    "canvg.js",
+                    "FileSaver.js",
+                    "Blob.js",
+                    "canvas-toBlob.js",
+                    "StackBlur.js",
+                    "d3-3.5.9.min.js",
+                    "fontdetect-0.3.js",
+                    "ie10-viewport-bug-workaround.js"
+                ]
+            },
+            "sirepoLibs": {
+                "js": [
+                    "sirepo-common.js",
+                    "sirepo-components.js",
+                    "sirepo-plotting.js"
+                ]
+            },
+            "libURLs": [
+                "/user-state"
             ]
         },
-        "simFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name",
-                "parent"
+        "appModes": {
+           "default": {
+                "localRoute": "source",
+                "includeMode": false
+            }
+        },
+        "enum": {
+            "ColorMap": [
+                ["grayscale", "grayscale"],
+                ["viridis", "viridis"],
+                ["afmhot", "afmhot"],
+                ["coolwarm", "coolwarm"],
+                ["jet", "jet"]
             ]
         },
-        "simulation": {
-            "title": "Simulation",
-            "advanced": [
-                "name",
-                "folder",
-                "notes"
-            ]
-        }
-    },
-    "commonModels": {
-        "simFolder": {
-            "name": ["Folder Name", "SafePath"],
-            "parent": ["Parent Folder", "UserFolder"]
+        "localRoutes": {
+            "simulations": {
+                "route": "/simulations",
+                "config": {
+                  "controller": "SimulationsController as simulations",
+                  "templateUrl": "/static/html/simulations.html"
+                },
+                "isDefault": true
+            },
+            "simulationsFolder": {
+                "route": "/simulations/:folderPath?",
+                "config": {
+                  "controller": "SimulationsController as simulations",
+                  "templateUrl": "/static/html/simulations.html"
+                }
+            },
+            "source": {
+                "route": "/source/:simulationId"
+            },
+            "loggedOut": {
+                "route": "/logged-out",
+                "config": {
+                  "controller": "LoggedOutController as loggedOut",
+                  "templateUrl": "/static/html/logged-out.html"
+                }
+            },
+            "forbidden": {
+                "route": "/forbidden",
+                "config": {
+                  "templateUrl": "/static/html/forbidden.html"
+                }
+            },
+            "notFound": {
+                "route": "/not-found",
+                "config": {
+                  "templateUrl": "/static/html/not-found.html"
+                }
+            },
+            "notFoundCopy": {
+                "route": "/copy-session/:simulationIds/:section",
+                "config": {
+                  "controller": "NotFoundCopyController as notFoundCopy",
+                  "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "notAuthorized": {
+                "route": "/missing-cookies",
+                "config": {
+                  "templateUrl": "/static/html/not-authorized.html"
+                }
+            }
         },
-        "simulation": {
-            "name": ["Name", "SimulationName"],
-            "folder": ["Folder", "UserFolder"],
-            "documentationUrl": ["Documentation URL", "OptionalString", ""],
-            "notes": ["Notes", "Text", ""]
+        "model": {
+            "simFolder": {
+                "name": ["Folder Name", "SafePath"],
+                "parent": ["Parent Folder", "UserFolder"]
+            },
+            "simulation": {
+                "name": ["Name", "SimulationName"],
+                "folder": ["Folder", "UserFolder"],
+                "documentationUrl": ["Documentation URL", "OptionalString", ""],
+                "notes": ["Notes", "Text", ""]
+            }
+        },
+        "view": {
+            "simDoc": {
+                "model": "simulation",
+                "title": "Simulation Documentation",
+                "advanced": [
+                    "documentationUrl"
+                ]
+            },
+            "simFolder": {
+                "title": "New Folder",
+                "advanced": [
+                    "name",
+                    "parent"
+                ]
+            },
+            "simulation": {
+                "title": "Simulation",
+                "advanced": [
+                    "name",
+                    "folder",
+                    "notes"
+                ]
+            }
         }
-    },
-    "commonEnums": {
-        "ColorMap": [
-            ["grayscale", "grayscale"],
-            ["viridis", "viridis"],
-            ["afmhot", "afmhot"],
-            ["coolwarm", "coolwarm"],
-            ["jet", "jet"]
-        ]
     },
     "customErrors": {
         "401": {

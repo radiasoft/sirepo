@@ -66,7 +66,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
     function gridRange(sizeField, countField) {
         var grid = appState.models.simulationGrid;
         var channel = grid[sizeField];
-        return plotting.linspace(-channel / 2, channel / 2, grid[countField] + 1);
+        return plotting.linearlySpacedArray(-channel / 2, channel / 2, grid[countField] + 1);
     }
 
     self.getXRange = function() {
@@ -79,7 +79,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting) {
 
     self.getZRange = function() {
         var grid = appState.models.simulationGrid;
-        return plotting.linspace(0, grid.plate_spacing, grid.num_z + 1);
+        return plotting.linearlySpacedArray(0, grid.plate_spacing, grid.num_z + 1);
     };
 
     self.is3D = function() {
@@ -955,9 +955,9 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
                 var grid = appState.models.simulationGrid;
                 var channel = toMicron(grid.channel_width);
-                axes.y.grid.tickValues(plotting.linspace(-channel / 2, channel / 2, grid.num_x + 1));
+                axes.y.grid.tickValues(plotting.linearlySpacedArray(-channel / 2, channel / 2, grid.num_x + 1));
                 var depth = toMicron(grid.channel_height);
-                axes.z.grid.tickValues(plotting.linspace(-depth / 2, depth / 2, grid.num_y + 1));
+                axes.z.grid.tickValues(plotting.linearlySpacedArray(-depth / 2, depth / 2, grid.num_y + 1));
                 resetZoom();
                 select('.plot-viewport').call(zoom);
                 select('.z-plot-viewport').call(zoom);
@@ -1453,7 +1453,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
 
                 var colorMap = plotting.colorMapFromModel($scope.modelName);
                 var colorScale = d3.scale.linear()
-                    .domain(plotting.linspace(json.v_min, json.v_max, colorMap.length))
+                    .domain(plotting.linearlySpacedArray(json.v_min, json.v_max, colorMap.length))
                     .range(colorMap);
                 colorbar = Colorbar()
                     .scale(colorScale)
@@ -1468,7 +1468,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
                     if (! lineInfo.density.length) {
                         lineInfo.density = [0];
                     }
-                    var lineSegments = plotting.linspace(p[0], p[1], lineInfo.density.length + 1);
+                    var lineSegments = plotting.linearlySpacedArray(p[0], p[1], lineInfo.density.length + 1);
                     var j;
                     for (j = 0; j < lineSegments.length - 1; j++) {
                         var v;

@@ -1,7 +1,16 @@
 {
-    "dynamicModules": [
-        "/static/js/ext/vtk.min.js"
-    ],
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "warpvnd.js"
+            ]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

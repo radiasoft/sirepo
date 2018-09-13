@@ -1,4 +1,9 @@
 {
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["myapp.js"]
+        }
+    },
     "localRoutes": {
         "source": {
             "config": {

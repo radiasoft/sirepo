@@ -7,11 +7,9 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico{{ source_cache_key }}">
     <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
-    <link href="/static/css/ext/bootstrap-3.3.7.min.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/ext/bootstrap-colxl.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/ext/bootstrap-toggle.min.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/ext/cookieconsent.min.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/sirepo.css{{ source_cache_key }}" rel="stylesheet">
+    {% for c in static_css_files %}
+      <link href="{{c}}{{ source_cache_key }}" rel="stylesheet"></script>
+    {% endfor %}
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ source_cache_key }}"></script>
@@ -73,36 +71,8 @@
     <div data-ng-view></div>
     <div data-app-footer="nav"></div>
     <div data-msie-font-disabled-detector=""></div>
-    <script src="/static/js/ext/msie/innersvg.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/fontdetect-0.3.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/angular.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/angular-route.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/angular-cookies.min.js{{ source_cache_key }}"></script>
-    <!-- jquery needs to be included after angularjs or draggable won't work on IOS -->
-    <script src="/static/js/ext/jquery-2.2.4.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/bootstrap-3.3.7.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/ngDraggable.js{{ source_cache_key }}"></script>
-    <!--<script src="/static/js/ext/angular-d3.js{{ source_cache_key }}"></script>-->
-    <!--<script src="/static/js/ext/angular-vtk.js{{ source_cache_key }}"></script>-->
-    <script src="/static/js/ext/colorbar.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/Blob.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/canvas-toBlob.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/FileSaver.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/rgbcolor.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/StackBlur.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/canvg.js{{ source_cache_key }}"></script>
-    <!--<script src="/static/js/ext/dom-to-image.min.js{{ source_cache_key }}"></script>-->
-    <script src="/static/js/ext/stacktrace-0.6.4.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/split-1.3.5.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/bootstrap-toggle.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/ext/cookieconsent.min.js{{ source_cache_key }}"></script>
-    <script src="/static/js/sirepo.js{{ source_cache_key }}"></script>
-    <script src="/static/js/sirepo-components.js{{ source_cache_key }}"></script>
-    <script src="/static/js/sirepo-plotting.js{{ source_cache_key }}"></script>
-    <!--<script src="/static/js/sirepo-beamline.js{{ source_cache_key }}"></script>-->
-    <!--<script src="/static/js/sirepo-lattice.js{{ source_cache_key }}"></script>-->
-    <script src="/static/js/{{ app_name }}.js{{ source_cache_key }}"></script>
-    <script src="/static/js/sirepo-common.js{{ source_cache_key }}"></script>
+    {% for m in static_js_files %}
+      <script src="{{m}}{{ source_cache_key }}"></script>
+    {% endfor %}
   </body>
 </html>
