@@ -1,4 +1,7 @@
 {
+    "dynamicModules": [
+        "/static/js/ext/vtk.min.js"
+    ],
     "localRoutes": {
         "source": {
             "config": {

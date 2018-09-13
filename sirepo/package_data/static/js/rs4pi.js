@@ -32,6 +32,8 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     self.isEditing = false;
     // select or draw
     self.editMode = 'select';
+    // for simulated dose calculations
+    self.showDosePanels = false;
 
     self.animationArgs = {
         dicomAnimation: ['dicomPlane', 'startTime'],
@@ -149,6 +151,7 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
 
     self.setActiveROI = function(roiNumber) {
         appState.models.dicomSeries.activeRoiNumber = roiNumber;
+        $rootScope.$broadcast('roiActivated');
     };
 
     self.setEditMode = function(mode) {
@@ -203,6 +206,10 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
             frameCache.setFrameCount(1);
         }
     }
+
+    self.showDosePanels = function() {
+        return rs4piService.showDosePanels;
+    };
 
     self.hasDoseFrames = function() {
         if (appState.isLoaded()) {
@@ -387,7 +394,7 @@ SIREPO.app.directive('roiSelectionList', function(appState, rs4piService) {
     };
 });
 
-SIREPO.app.directive('computeDoseForm', function(appState, panelState) {
+SIREPO.app.directive('computeDoseForm', function(appState, panelState, rs4piService, $timeout) {
     return {
         restrict: 'A',
         scope: {},
@@ -405,9 +412,39 @@ SIREPO.app.directive('computeDoseForm', function(appState, panelState) {
         controller: function($scope) {
             $scope.appState = appState;
             $scope.doseController = panelState.findParentAttribute($scope, 'dose');
+            var complete = 0;
+
+            function simulationDoseCalculation() {
+                if (complete < 100) {
+                    complete += 16;
+                    $timeout(simulationDoseCalculation, 1000);
+                }
+                else {
+                    rs4piService.showDosePanels = true;
+                    complete = 0;
+                    $scope.doseController.simState.isProcessing = function() {
+                        return false;
+                    };
+                }
+            }
+
+            function stateAsText() {
+                if (complete < 100) {
+                    return 'Computing Dose';
+                }
+                return 'Complete';
+            }
 
             $scope.updatePTV = function() {
-                $scope.doseController.simState.saveAndRunSimulation('doseCalculation');
+                //$scope.doseController.simState.saveAndRunSimulation('doseCalculation');
+                $scope.doseController.simState.stateAsText = stateAsText;
+                $scope.doseController.simState.isProcessing = function() {
+                    return true;
+                };
+                $scope.doseController.simState.getPercentComplete = function() {
+                    return complete;
+                };
+                $timeout(simulationDoseCalculation, 1000);
             };
         },
     };
@@ -1367,7 +1404,7 @@ SIREPO.app.directive('dicomPlot', function(activeSection, appState, frameCache, 
                     if (doseDomain && doseFeature) {
                         var colorMap = plotting.colorMapFromModel($scope.modelName);
                         var colorScale = d3.scale.linear()
-                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.6, colorMap.length))
+                            .domain(plotting.linspace(0, appState.models.dicomDose.max * 0.8, colorMap.length))
                             .range(colorMap)
                             .clamp(true);
                         doseFeature.setColorScale(colorScale, appState.models[$scope.modelName].doseTransparency);
@@ -1705,7 +1742,7 @@ SIREPO.app.directive('roiTable', function(appState, panelState, rs4piService) {
             }
 
             $scope.activate = function(roi) {
-                appState.models.dicomSeries.activeRoiNumber = roi.roiNumber;
+                rs4piService.setActiveROI(roi.roiNumber);
                 appState.saveChanges('dicomSeries');
             };
 
@@ -1753,7 +1790,7 @@ SIREPO.app.directive('roiTable', function(appState, panelState, rs4piService) {
                         rois[id] = editedContours[id];
                         rs4piService.updateROIPoints(editedContours);
                         loadROIPoints();
-                        appState.models.dicomSeries.activeRoiNumber = id;
+                        rs4piService.setActiveROI(id);
                         rs4piService.isEditing = true;
                         rs4piService.setEditMode('draw');
                     }
@@ -1763,5 +1800,144 @@ SIREPO.app.directive('roiTable', function(appState, panelState, rs4piService) {
 
             $scope.$on('roiPointsLoaded', loadROIPoints);
         },
+    };
+});
+
+SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div style="border: 1px solid #bce8f1; border-radius: 4px; margin: 20px 0;" class="sr-roi-3d">',
+              '<div class="vtk-canvas-holder"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+
+            var activeRoi = null;
+            var initialized = false;
+
+            // rendering
+            var renderWindow = null;
+            var renderer = null;
+            var cam = null;
+            var actor = null;
+
+            function init() {
+                if (initialized) {
+                    return;
+                }
+                initialized = true;
+                var rw = $($element).find('.sr-roi-3d .vtk-canvas-holder');
+                rw.on('dblclick', reset);
+                rw.height(rw.width() / 1.3);
+                var fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                    {
+                        background: [1, 1, 1, 1],
+                        container: rw[0],
+                    });
+                renderer = fsRenderer.getRenderer();
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+                cam = renderer.get().activeCamera;
+                var rwInteractor = renderWindow.getInteractor();
+                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
+                    interactor: rwInteractor,
+                    subscribedEvents: ['StartPinch']
+                });
+                zoomObserver.setInteractor(rwInteractor);
+            }
+
+            function showActiveRoi() {
+                if (actor) {
+                    renderer.removeActor(actor);
+                }
+                var roi = rs4piService.getActiveROIPoints();
+                if (! roi) {
+                    return;
+                }
+                var numPts = 0;
+                var numLines = 0;
+                var z, segment, points;
+                for (z in roi.contour) {
+                    for (segment = 0; segment < roi.contour[z].length; segment++) {
+                        points = roi.contour[z][segment];
+                        numPts += points.length / 2;
+                        numLines++;
+                    }
+                }
+                var lines = new window.Uint32Array(numPts + (numLines * 2));
+                points = new window.Float32Array(numPts * 3);
+                var pi = 0;
+                var pl = 0;
+
+                for (z in roi.contour) {
+                    for (segment = 0; segment < roi.contour[z].length; segment++) {
+                        var cPoints = roi.contour[z][segment];
+                        var zp = parseFloat(z);
+                        lines[pl] = cPoints.length / 2 + 1;
+                        pl++;
+                        var firstPoint = pi / 3;
+                        for (var i = 0; i < cPoints.length; i += 2) {
+                            points[pi] = cPoints[i];
+                            points[pi + 1] = cPoints[i + 1];
+                            points[pi + 2] = zp;
+                            lines[pl] = pi / 3;
+                            pl++;
+                            pi += 3;
+                        }
+                        lines[pl] = firstPoint;
+                        pl++;
+                    }
+                }
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(points, 3);
+                pd.getLines().setData(lines);
+
+                /*
+                var verts = new window.Uint32Array(numPts + 1);
+                pd.getVerts().setData(verts, 1);
+                verts[0] = numPts;
+                for (var i = 0; i < numPts; i++) {
+                    verts[i + 1] = i;
+                }
+                */
+
+                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.getProperty().setColor(0.3, 0.4, 0.9);
+                //actor.getProperty().setEdgeVisibility(true);
+                //actor.getProperty().setPointSize(2);
+                mapper.setInputData(pd);
+                actor.setMapper(mapper);
+
+                renderer.addActor(actor);
+                reset();
+            }
+
+            function reset() {
+                cam.setPosition(0, -1, 0.002);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 0, 1);
+                renderer.resetCamera();
+                cam.zoom(1.3);
+                renderWindow.render();
+            }
+
+            $scope.$on('$destroy', function() {
+                $($element).find('.sr-roi-3d .vtk-canvas-holder').off();
+            });
+
+            $scope.$on('roiPointsLoaded', function() {
+                activeRoi = appState.models.dicomSeries.activeRoiNumber;
+                init();
+                showActiveRoi();
+                $scope.$on('roiActivated', function() {
+                    if (activeRoi != appState.models.dicomSeries.activeRoiNumber) {
+                        activeRoi = appState.models.dicomSeries.activeRoiNumber;
+                        showActiveRoi();
+                    }
+                });
+            });
+        }
     };
 });
