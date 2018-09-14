@@ -990,7 +990,6 @@ def _compute_crystal_init(model):
         l = int(model['l'])
         millerIndices = [h, k, l]
         energy = model['energy']
-        grazingAngle = None
         if re.search('(X0h)', material_raw):
             crystal_parameters = crystal.get_crystal_parameters(material, energy, h, k, l)
             dc = crystal_parameters['d']
@@ -1004,9 +1003,6 @@ def _compute_crystal_init(model):
         else:
             dc = xr0 = xi0 = xrh = xih = None
 
-        if dc:
-            angles_data = crystal.calc_bragg_angle(d=dc, energy_eV=energy, n=1)
-            grazingAngle = angles_data['bragg_angle']
         model['dSpacing'] = dc
         model['psi0r'] = xr0
         model['psi0i'] = xi0
@@ -1014,7 +1010,6 @@ def _compute_crystal_init(model):
         model['psiHi'] = xih
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
-        model['grazingAngle'] = grazingAngle
     except Exception:
         pkdlog('{}: error: {}', material_raw, pkdexc())
         for key in parms_list:
@@ -1039,7 +1034,7 @@ def _compute_crystal_orientation(model):
             _tc=model['crystalThickness'],
             _ang_as=model['asymmetryAngle'],
         )
-        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=model['grazingAngle'])[0]
+        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['grazingAngle']))[0]
         tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 

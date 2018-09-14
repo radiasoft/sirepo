@@ -127,6 +127,12 @@
             ["Germanium (X0h)", "Germanium (X0h server)"],
             ["Diamond (X0h)", "Diamond (X0h server)"]
         ],
+        "DiffractionPlaneAngle": [
+            ["0", "0 (vertical, up)"],
+            ["1.57079632", "𝛑/2 (horizontal, left)"],
+            ["3.14159265", "𝛑 (vertical, down)"],
+            ["4.71238898", "3𝛑/2 (horizontal, right)"]
+        ],
         "DriftCalculationMethod": [
             ["auto", "Automatic"],
             ["manual", "Manual"]
@@ -375,7 +381,7 @@
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-            "grazingAngle": ["Diffraction plane angle [rad]", "Float", 1.5707963],
+            "grazingAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
             "rotationAngle": ["Rotation angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
