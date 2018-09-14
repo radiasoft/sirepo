@@ -12,13 +12,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         return lpoint;
     }
 
-    function testTansformInverse(xform, invXform, lpoint) {
-        var lpoint2 = invXform(xform(lpoint));
-        if(lpoint2[0] != lpoint[0] || lpoint2[1] != lpoint[1] || lpoint2[2] != lpoint[2]) {
-            throw 'transform(inverse) != identity:' + lpoint + '->' + lpoint2;
-        }
-    }
-
     // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
     // Returns the properties of the first set of corners that fit - order them by desired location.
     // Could be none fit, in which case no properties are defined
@@ -93,19 +86,22 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
             xform: transform || identityTransform,
 
-            // These functions take an optional transformation to go from "lab"
-            // coordinates to vtk screen coordinates and return the appropriate vtkActor
-            setPlane: function(planeSource, lo, lp1, lp2) {
-                var vo = this.xform(lo);
-                var vp1 = this.xform(lp1);
-                var vp2 = this.xform(lp2);
+            buildPlane: function(labOrigin, labP1, labP2) {
+                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                this.setPlane(src, labOrigin, labP1, labP2);
+                return src;
+            },
+            setPlane: function(planeSource, labOrigin, labP1, labP2) {
+                var vo = this.xform(labOrigin);
+                var vp1 = this.xform(labP1);
+                var vp2 = this.xform(labP2);
                 planeSource.setOrigin(vo[0], vo[1], vo[2]);
                 planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
                 planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
-            buildBox: function(lsize, lcenter) {
-                var vsize = this.xform(lsize);
-                var vcenter = this.xform(lcenter);
+            buildBox: function(labSize, labCenter) {
+                var vsize = this.xform(labSize);
+                var vcenter = this.xform(labCenter);
                 return vtk.Filters.Sources.vtkCubeSource.newInstance({
                     xLength: vsize[0],
                     yLength: vsize[1],
@@ -113,9 +109,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                     center: vcenter
                 });
             },
-            buildLine: function(lp1, lp2, colorArray) {
-                var vp1 = this.xform(lp1);
-                var vp2 = this.xform(lp2);
+            buildLine: function(labP1, labP2, colorArray) {
+                var vp1 = this.xform(labP1);
+                var vp2 = this.xform(labP2);
                 var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
                     point1: [vp1[0], vp1[1], vp1[2]],
                     point2: [vp2[0], vp2[1], vp2[2]],
@@ -130,7 +126,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 la.setMapper(lm);
                 return la;
             },
-            buildSphere: function(lcenter, radius, colorArray, transform) {
+            buildSphere: function(lcenter, radius, colorArray) {
                 var vcenter = this.xform(lcenter);
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                     center: vcenter,
@@ -230,35 +226,51 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return box.source.getCenter();
         }
 
+        // Convenience for looping
+        function wLength() {
+            return [
+                box.source.getXLength(),
+                box.source.getYLength(),
+                box.source.getZLength()
+            ];
+        }
+
         function wCorners() {
-            var c = wCenter();
+            var ctr = wCenter();
             var corners = [];
-            for(var zSide in [-0.5, 0.5]) {
-                for (var ySide in [-0.5, 0.5]) {
-                    for (var xSide in [-0.5, 0.5]) {
-                        corners.push([
-                            [
-                                c[0] + xSide * box.source.getXLength(),
-                                c[1] + ySide * box.source.getYLength(),
-                                c[2] + zSide * box.source.getZLength()
-                            ]
-                        ]);
+
+            var sides = [-0.5, 0.5];
+            var src = box.source;
+            var len = wLength();
+            for(var i in sides) {
+                for (var j in sides) {
+                    for (var k in sides) {
+                        var s = [sides[k], sides[j], sides[i]];
+                        var c = [];
+                        for(var l = 0; l < 3; ++l) {
+                            c.push(ctr[l] + s[l] * len[l]);
+                        }
+                        corners.push(c);
                     }
                 }
             }
+            srdbg('corners', corners);
             return corners;
-            /*
-            return [
-                [c[0] - 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //leftBottomOut 0 -> 4
-                [c[0] - 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //leftTopOut 1 -> 6
-                [c[0] + 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //rightTopOut 2 -> 7
-                [c[0] + 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //rightBottomOut 3 -> 5
-                [c[0] - 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //leftBottomIn 4 -> 0
-                [c[0] - 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //leftTopIn 5 -> 2
-                [c[0] + 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //rightTopIn 6 -> 3
-                [c[0] + 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()]   //rightBottomIn 7 -> 1
+
+/*
+            var cc = [
+                [ctr[0] - 0.5 * box.source.getXLength(), ctr[1] - 0.5 * box.source.getYLength(), ctr[2] + 0.5 * box.source.getZLength()],  //leftBottomOut 0 -> 4
+                [ctr[0] - 0.5 * box.source.getXLength(), ctr[1] + 0.5 * box.source.getYLength(), ctr[2] + 0.5 * box.source.getZLength()],  //leftTopOut 1 -> 6
+                [ctr[0] + 0.5 * box.source.getXLength(), ctr[1] + 0.5 * box.source.getYLength(), ctr[2] + 0.5 * box.source.getZLength()],  //rightTopOut 2 -> 7
+                [ctr[0] + 0.5 * box.source.getXLength(), ctr[1] - 0.5 * box.source.getYLength(), ctr[2] + 0.5 * box.source.getZLength()],  //rightBottomOut 3 -> 5
+                [ctr[0] - 0.5 * box.source.getXLength(), ctr[1] - 0.5 * box.source.getYLength(), ctr[2] - 0.5 * box.source.getZLength()],  //leftBottomIn 4 -> 0
+                [ctr[0] - 0.5 * box.source.getXLength(), ctr[1] + 0.5 * box.source.getYLength(), ctr[2] - 0.5 * box.source.getZLength()],  //leftTopIn 5 -> 2
+                [ctr[0] + 0.5 * box.source.getXLength(), ctr[1] + 0.5 * box.source.getYLength(), ctr[2] - 0.5 * box.source.getZLength()],  //rightTopIn 6 -> 3
+                [ctr[0] + 0.5 * box.source.getXLength(), ctr[1] - 0.5 * box.source.getYLength(), ctr[2] - 0.5 * box.source.getZLength()]   //rightBottomIn 7 -> 1
             ];
+            return cc;
             */
+
         }
         function vpCorners() {
             return wCorners().map(function (p) {
@@ -268,13 +280,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         function wCenterLines() {
             var c = wCenter();
             var cls = [];
+            var sides = [-0.5, 0.5];
+            var src = box.source;
+            var l = wLength();
             for(var dim = 0; dim < 3; ++dim) {
-                for(var side in [-0.5, 0.5]) {
+                for(var i in sides) {
                     cls.push(
                         [
-                            c[0] + (dim == 0 ? side : 0) * box.source.getXLength(),
-                            c[1] + (dim == 1 ? side : 0) * box.source.getYLength(),
-                            c[2] + (dim == 2 ? side : 0) * box.source.getZLength()
+                            c[0] + (dim == 0 ? sides[i] : 0) * l[0],
+                            c[1] + (dim == 1 ? sides[i] : 0) * l[1],
+                            c[2] + (dim == 2 ? sides[i] : 0) * l[2]
                         ]
                     );
                 }
@@ -314,6 +329,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         box.getCorners = function() {
             var cArr = vpCorners();
             var c = {};
+            /*
             c[box.corners.leftBottomOut] = cArr[0];
             c[box.corners.leftTopOut] = cArr[1];
             c[box.corners.rightTopOut] = cArr[2];
@@ -322,6 +338,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             c[box.corners.leftTopIn] = cArr[5];
             c[box.corners.rightTopIn] = cArr[6];
             c[box.corners.rightBottomIn] = cArr[7];
+            */
+
+            c[box.corners.leftBottomOut] = cArr[4];
+            c[box.corners.leftTopOut] = cArr[6];
+            c[box.corners.rightTopOut] = cArr[7];
+            c[box.corners.rightBottomOut] = cArr[5];
+            c[box.corners.leftBottomIn] = cArr[0];
+            c[box.corners.leftTopIn] = cArr[3];
+            c[box.corners.rightTopIn] = cArr[2];
+            c[box.corners.rightBottomIn] = cArr[1];
             return c;
             /*
             return {
@@ -637,6 +663,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
     self.localCoordFromWorld = function (coord, point) {
         // this is required to do conversions for different displays/devices
+        //srdbg('localCoordFromWorld point', point);
         var pixels = window.devicePixelRatio;
         coord.setCoordinateSystemToWorld();
         coord.setValue(point);
