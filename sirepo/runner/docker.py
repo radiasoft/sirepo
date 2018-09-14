@@ -25,7 +25,6 @@ import random
 import re
 import subprocess
 import threading
-import Queue
 import time
 
 #: max time expected between created and running
@@ -414,7 +413,7 @@ def _cmd_prefix(host, tls_d):
 
 #TODO(robnagler) probably should push this to pykern also in rsconf
 def _image():
-    res = runner.cfg.docker_image
+    res = cfg.image
     if ':' in res:
         return res
     return res + ':' + pkconfig.cfg.channel
@@ -620,7 +619,7 @@ def _parse_ps(hosts, cname_prefix):
 
 
 def _run_root(host, cmd):
-    """Run docker_image as root to see all mem and cpus.
+    """Run cfg.image as root to see all mem and cpus.
 
     This also validates the docker tls configuration at startup.
     """
@@ -635,3 +634,9 @@ def _run_root(host, cmd):
             _image(),
         ) + cmd,
     )
+
+
+cfg = pkconfig.init(
+    hosts=
+    image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+)

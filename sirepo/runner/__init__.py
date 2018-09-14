@@ -249,7 +249,6 @@ def _cfg_job_class(value):
 
 
 cfg = pkconfig.init(
-    docker_image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
     import_secs=(10, int, 'maximum runtime of backgroundImport'),
     # default is set in init(), because of server.cfg.job_gueue
     job_class=(
