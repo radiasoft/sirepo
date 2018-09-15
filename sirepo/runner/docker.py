@@ -30,13 +30,13 @@ import time
 #: max time expected between created and running
 _CREATED_TOO_LONG_SECS = runner.INIT_TOO_LONG_SECS
 
-#: prefix all container names. Full syntax: srd-par-uid-sid-repot
-_CNAME_PREFIX = 'srd'
+#: prefix all container names. Full format looks like: srd-p-uid-sid-repot
+_CNAME_PREFIX = 'srj'
 
 #: separator for container names
 _CNAME_SEP = '-'
 
-#: Must match cname generation in DockerJob.__init__
+#: parse cotnainer names. POSIT: matches _cname_join()
 _CNAME_RE = re.compile(_CNAME_SEP.join(('^' + _CNAME_PREFIX, r'([a-z]+)', '(.+)')))
 
 _RUN_PREFIX = (
@@ -49,17 +49,11 @@ _RUN_PREFIX = (
     '--ulimit=nofile={}'.format(runner.MAX_OPEN_FILES),
 )
 
-#: where docker tls files reside relative to sirepo_db_dir
-_TLS_SUBDIR = 'runner/docker_tls'
-
 #: how often does _SlotManager wake up to _poll_running_jobs
 _SLOT_MANAGER_POLL_SECS = 10
 
-#: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies
+#: Copy of sirepo.mpi.cfg.cores to avoid init inconsistencies; only used during init_class()
 _parallel_cores = None
-
-#: absolute path to _TLS_SUBDIR (init_class sentinel)
-_tls_d = None
 
 #: map of docker host names to their machine/run specs and status
 _hosts = None
@@ -72,6 +66,12 @@ _slot_managers = pkcollections.Dict()
 
 #: State management for parallel and sequential allocations on all hosts
 _slots = pkcollections.Dict()
+
+#: long running job kind
+_PARALLEL = 'parallel'
+
+#: short running job kind
+_SEQUENTIAL = 'sequential'
 
 #TODO(robnagler)
 #   simulation status writer with error/completed or just touch in docker.sh
@@ -89,9 +89,9 @@ class DockerJob(runner.JobBase):
         super(DockerJob, self).__init__(*args, **kwargs)
         self.__cid = None
         #POSIT: jid is valid docker name (word chars and dash)
-        self.__kind = 'parallel' if simulation_db.is_parallel(self.data) else 'sequential'
-        # Must match CNAME_RE
-        self.__cname = _CNAME_SEP.join((_CNAME_PREFIX, self.__kind[0:3], self.jid))
+        self.__kind = _PARALLEL if simulation_db.is_parallel(self.data) else _SEQUENTIAL
+        # Must match CNAME_RE and first letter must be distinct
+        self.__cname = _cname_join(self)
         self.__host = None
 
     def _is_processing(self):
@@ -215,19 +215,25 @@ class DockerJob(runner.JobBase):
 
 
 def init_class(app, uwsgi):
-    global _hosts, _tls_d, _parallel_cores
+    global cfg, _hosts, _parallel_cores
 
-    if _tls_d:
+    if _hosts:
         return
-    _tls_d = app.sirepo_db_dir.join(_TLS_SUBDIR)
-    assert _tls_d.check(dir=True), \
-        '{}: tls directory does not exist'.format(_tls_d)
+
+    cfg = pkconfig.init(
+        hosts=(None, _cfg_hosts, 'execution hosts'),
+        image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
+        tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
+    )
+    if not cfg.tls_dir:
+        # Only should happen in dev; assertion in _cfg_tls_dir for better msgs
+        cfg.tls_dir = app.sirepo_db_dir.join('docker_tls')
     _hosts = pkcollections.Dict()
     _parallel_cores = mpi.cfg.cores
     # Require at least three levels to the domain name
     # just to make the directory parsing easier.
-    for d in pkio.sorted_glob(_tls_d.join('*.*.*')):
-        h = d.basename
+    for h in cfg.hosts:
+        d = cfg.tls_dir.join(h)
         _hosts[h] = pkcollections.Dict(
             name=h,
             cmd_prefix=_cmd_prefix(h, d)
@@ -265,7 +271,7 @@ class _SlotManager(threading.Thread):
         self.__queued_jobs = []
         self.__running_slots = pkcollections.Dict()
         self.__available_slots = slots
-        self.__cname_prefix = _CNAME_SEP.join((_CNAME_PREFIX, self.__kind[0:3]))
+        self.__cname_prefix = _cname_join(self)
         random.shuffle(self.__available_slots)
         self.start()
 
@@ -379,10 +385,33 @@ class _SlotManager(threading.Thread):
 #            j.cid
 #            we know nothing at this point
 #            so only valid if cid is the same(?)
-#            pkdp('{}', dead)
 
 #TODO(robnagler) sanity check on _slots & _total available and running
         # docker ps -aq
+
+
+@pkconfig.parse_none
+def _cfg_hosts(value):
+    import socket
+
+    value = pkconfig.parse_tuple(value)
+    if value:
+        return value
+    assert pkconfig.channel_in('dev'), \
+        'required config'
+    return tuple(socket.gethostname())
+
+
+@pkconfig.parse_none
+def _cfg_tls_dir(value):
+    if not value:
+        assert pkconfig.channel_in('dev'), \
+            'required config'
+        return None
+    res = pkio.py_path(value)
+    assert res.check(dir=True), \
+        'directory does not exist; value={}'.format(value)
+    return res
 
 
 def _cmd(host, cmd):
@@ -400,15 +429,31 @@ def _cmd(host, cmd):
         return None
 
 def _cmd_prefix(host, tls_d):
-    return (
+    args = [
         'docker',
-        # docker TLS port is hardwired to default
+        # docker TLS port is hardwired
         '--host=tcp://{}:2376'.format(host),
-        '--tlscacert={}'.format(tls_d.join('ca.pem')),
-        '--tlscert={}'.format(tls_d.join('cert.pem')),
-        '--tlskey={}'.format(tls_d.join('key.pem')),
         '--tlsverify',
-    )
+    ]
+    # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
+    for x in 'cacert', 'cert', 'key':
+        f = tls_d.join(x + '.pem')
+        assert f.check(), \
+            'tls file does not exist for host={}: file={}'.format(host, f)
+        args.append('--tls{}={}'.format(x, f))
+    return tuple(args)
+
+
+
+def _cname_join(self):
+    """Create a cname or cname_prefix from self.__kind and optionally self.jid
+
+    POSIT: matches _CNAME_RE
+    """
+    a = [_CNAME_PREFIX, self.__kind[0]]
+    if hasattr(self, 'jid'):
+        a.append(self.jid)
+    return _CNAME_SEP.join(a)
 
 
 #TODO(robnagler) probably should push this to pykern also in rsconf
@@ -550,11 +595,11 @@ def _init_slots():
     _slots.parallel = []
     _slots.sequential = []
     for k, s in _slots.items():
-        c = _parallel_cores if k == 'parallel' else 1
+        c = _parallel_cores if k == _PARALLEL else 1
         for h in _hosts_ordered:
             ns = h.num_slots[k]
             g = 1
-            if k == 'parallel':
+            if k == _PARALLEL:
                 # Leave some ram for caching and OS
                 g = (h.gigabytes -  2) // ns
                 if g < 1:
@@ -634,9 +679,3 @@ def _run_root(host, cmd):
             _image(),
         ) + cmd,
     )
-
-
-cfg = pkconfig.init(
-    hosts=
-    image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
-)

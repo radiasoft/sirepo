@@ -18,9 +18,9 @@ _DEV_CODES = ('myapp', )
 #: All possible codes
 _ALL_CODES = _NON_DEV_CODES + _DEV_CODES
 
-
 #: Configuration
 cfg = None
+
 
 def for_sim_type(sim_type):
     """Get cfg for simulation type
@@ -37,23 +37,14 @@ def for_sim_type(sim_type):
 
 
 @pkconfig.parse_none
-def _cfg_api_modules(value):
-    if isinstance(value, (tuple, list)):
-        return tuple(value)
-    if not value:
-        return tuple()
-    return tuple(value.split(':'))
-
-
-@pkconfig.parse_none
 def _cfg_sim_types(value):
-    if not value:
+    res = pkconfig.parse_tuple(value)
+    if not res:
         return _codes()
-    user_specified_codes = tuple(value.split(':'))
-    for c in user_specified_codes:
+    for c in res:
         assert c in _codes(), \
-            '{}: invalid sim_type, must be one of/combination of: {}'.format(c, _codes())
-    return user_specified_codes
+            'invalid sim_type={}, expected one of={}'.format(c, _codes())
+    return res
 
 
 def _codes(want_all=pkconfig.channel_in('dev')):
@@ -61,7 +52,7 @@ def _codes(want_all=pkconfig.channel_in('dev')):
 
 
 cfg = pkconfig.init(
-    api_modules=(None, _cfg_api_modules, 'optional api modules, e.g. bluesky'),
+    api_modules=((), tuple, 'optional api modules, e.g. bluesky'),
     #TODO(robnagler) make sim_type config
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
