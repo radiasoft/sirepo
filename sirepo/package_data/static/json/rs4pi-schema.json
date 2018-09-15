@@ -1,5 +1,10 @@
 {
     "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.min.js"
+            ]
+        },
         "sirepoLibs": {
             "js": ["rs4pi.js"]
         }
