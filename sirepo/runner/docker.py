@@ -91,7 +91,7 @@ class DockerJob(runner.JobBase):
         #POSIT: jid is valid docker name (word chars and dash)
         self.__kind = _PARALLEL if simulation_db.is_parallel(self.data) else _SEQUENTIAL
         # Must match CNAME_RE and first letter must be distinct
-        self.__cname = _cname_join(self)
+        self.__cname = _cname_join(self.__kind, self.jid)
         self.__host = None
 
     def _is_processing(self):
@@ -225,9 +225,8 @@ def init_class(app, uwsgi):
         image=('radiasoft/sirepo', str, 'docker image to run all jobs'),
         tls_dir=(None, _cfg_tls_dir, 'directory containing host certs'),
     )
-    if not cfg.tls_dir:
-        # Only should happen in dev; assertion in _cfg_tls_dir for better msgs
-        cfg.tls_dir = app.sirepo_db_dir.join('docker_tls')
+    if not cfg.tls_dir or not cfg.hosts:
+        _init_dev_hosts(app)
     _hosts = pkcollections.Dict()
     _parallel_cores = mpi.cfg.cores
     # Require at least three levels to the domain name
@@ -271,7 +270,7 @@ class _SlotManager(threading.Thread):
         self.__queued_jobs = []
         self.__running_slots = pkcollections.Dict()
         self.__available_slots = slots
-        self.__cname_prefix = _cname_join(self)
+        self.__cname_prefix = _cname_join(self.__kind)
         random.shuffle(self.__available_slots)
         self.start()
 
@@ -399,7 +398,7 @@ def _cfg_hosts(value):
         return value
     assert pkconfig.channel_in('dev'), \
         'required config'
-    return tuple(socket.gethostname())
+    return None
 
 
 @pkconfig.parse_none
@@ -445,14 +444,14 @@ def _cmd_prefix(host, tls_d):
 
 
 
-def _cname_join(self):
-    """Create a cname or cname_prefix from self.__kind and optionally self.jid
+def _cname_join(kind, jid=None):
+    """Create a cname or cname_prefix from kind and optionally jid
 
     POSIT: matches _CNAME_RE
     """
-    a = [_CNAME_PREFIX, self.__kind[0]]
-    if hasattr(self, 'jid'):
-        a.append(self.jid)
+    a = [_CNAME_PREFIX, kind[0]]
+    if jid:
+        a.append(jid)
     return _CNAME_SEP.join(a)
 
 
@@ -462,6 +461,26 @@ def _image():
     if ':' in res:
         return res
     return res + ':' + pkconfig.cfg.channel
+
+
+def _init_dev_hosts(app):
+    assert not (cfg.tls_dir or cfg.hosts), \
+        'neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config'
+    # dev mode only; see _cfg_tls_dir and _cfg_hosts
+    cfg.tls_dir = app.sirepo_db_dir.join('docker_tls')
+    cfg.hosts = ('localhost.localdomain',)
+    d = cfg.tls_dir.join(cfg.hosts[0])
+    if d.check(dir=True):
+        return
+    pkdlog('initializing docker dev env; initial docker pull will take a few minutes...')
+    d.ensure(dir=True)
+    for f in 'key.pem', 'cert.pem':
+        o = subprocess.check_output(['sudo', 'cat', '/etc/docker/tls/' + f])
+        assert o.startswith('-----BEGIN'), \
+            'incorrect tls file={} content={}'.format(f, o)
+        d.join(f).write(o)
+    # we just reuse the same cert as the docker server since it's local host
+    d.join('cacert.pem').write(o)
 
 
 def _init_host(host):
