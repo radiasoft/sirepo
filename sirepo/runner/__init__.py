@@ -58,9 +58,9 @@ MAX_OPEN_FILES = 1024
 _job_class = None
 
 
-def init(app, uwsgi):
+def init(app, uwsgi, use_reloader):
     """Initialize module"""
-    if pkconfig.channel_in('dev') and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    if use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         # avoid first call to init() when using reloader
         return
     global _job_class

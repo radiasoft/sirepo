@@ -649,7 +649,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(db_dir=None, uwsgi=None):
+def init(db_dir=None, uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
 
@@ -662,7 +662,7 @@ def init(db_dir=None, uwsgi=None):
     uri_router.init(app, uwsgi)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
-    runner.init(app, uwsgi)
+    runner.init(app, uwsgi, use_reloader)
     return app
 
 
