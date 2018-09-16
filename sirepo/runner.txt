@@ -1,5 +1,26 @@
 client=$(hostname -f)
 server=$client
+serial=$(date +%s)
+
+mkdir -p $server
+cd $server
+mkdir -p server client
+openssl genrsa -out cakey.pem 2048
+openssl genrsa -out server/key.pem 2048
+openssl genrsa -out client/key.pem 2048
+
+openssl req -x509 -new -nodes -key cakey.pem -days 10000 -out ca.pem -subj /CN=$server
+
+openssl req -new -key server/key.pem -out server/cert.csr -subj /CN=$server
+
+openssl req -new -key client/key.pem -out client/cert.csr -subj /CN=$client
+
+openssl x509 -req -in client/cert.csr -CA ca.pem -CAkey cakey.pem -set_serial $serial -out client/cert.pem -days 10000 -extensions v3_req
+
+openssl x509 -req -in server/cert.csr -CA ca.pem -CAkey cakey.pem -set_serial $serial -out server/cert.pem -days 10000 -extensions v3_req
+
+client=$(hostname -f)
+server=$client
 mkdir -p $server
 cd $server
 mkdir -p server client
