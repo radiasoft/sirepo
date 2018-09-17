@@ -18,6 +18,12 @@ import subprocess
 import sys
 import time
 
+#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
+# See https://github.com/radiasoft/sirepo/issues/1323
+# We also remove SIREPO_ and PYKERN vars, because we shouldn't
+# need to pass any of that on, just like runner.docker, doesn't
+_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
+
 
 class BackgroundJob(runner.JobBase):
     """Run as subprocess"""
@@ -134,7 +140,7 @@ class BackgroundJob(runner.JobBase):
             sys.stderr.flush()
             try:
                 simulation_db.write_status('running', self.run_dir)
-                os.execvp(self.cmd[0], self.cmd)
+                os.execvpe(self.cmd[0], self.cmd, env=_safe_env())
             finally:
                 pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
@@ -144,6 +150,12 @@ class BackgroundJob(runner.JobBase):
             # log to the run log and hope somebody notices
             self._error_during_start(e, pkdexc())
             raise
+
+
+def _safe_env():
+    return dict(
+        [(k, v) for k, v in os.environ.items() if not _EXEC_ENV_REMOVE.search(k)],
+    )
 
 
 def init_class(app, uwsgi):
