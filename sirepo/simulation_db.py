@@ -1277,12 +1277,17 @@ def _validate_schema(schema):
     Validations performed:
         Values of default data (if any)
         Existence of dynamic modules
+        Enums keyed by string value
 
     Args:
         schema (pkcollections.Dict): app schema
     """
     sch_models = schema.model
     sch_enums = schema.enum
+    for name in sch_enums:
+        for values in sch_enums[name]:
+            if not isinstance(values[0], pkconfig.STRING_TYPES):
+                raise AssertionError(util.err(name, 'enum values must be keyed by a string value: {}', type(values[0])))
     for model_name in sch_models:
         sch_model = sch_models[model_name]
         for field_name in sch_model:
