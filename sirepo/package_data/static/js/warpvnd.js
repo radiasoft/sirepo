@@ -159,6 +159,21 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         self.editConductorType(type, model);
     };
 
+    self.copyConductor = function(model) {
+        var modelCopy = {
+            name: model.name + " Copy",
+            id: appState.maxId(appState.models.conductorTypes) + 1,
+            voltage: model.voltage,
+            xLength: model.xLength,
+            zLength: model.zLength,
+            yLength: model.yLength,
+            permittivity: model.permittivity,
+            isConductor: model.isConductor
+        };
+
+        self.editConductorType('box', modelCopy);
+    };
+
     self.deleteConductor = function() {
         var conductors = [];
         appState.models.conductors.forEach(function(m) {
@@ -350,7 +365,7 @@ SIREPO.app.directive('appHeader', function() {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
@@ -431,7 +446,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                 '<tr>',
                   '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
                   '<td></td><td data-ng-if="! warpvndService.is3D()"></td><th data-ng-if="warpvndService.is3D()">Center Y</th><th>Center Z</th><th>Center X</th>',
@@ -1506,7 +1521,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState) {
+SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService) {
     return {
         restrict: 'A',
         template: [
@@ -1526,6 +1541,9 @@ SIREPO.app.directive('conductors3d', function(appState) {
             var boxActors = [];
             var outlineSource = null;
             var pointRanges = {};
+
+            // geometry
+            var coordMapper = vtkPlotting.coordMapper();
 
             // colors - vtk uses a range of 0-1 for RGB components
             var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
@@ -1550,24 +1568,29 @@ SIREPO.app.directive('conductors3d', function(appState) {
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
                 cam = renderer.get().activeCamera;
-                var rwInteractor = renderWindow.getInteractor();
-                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
-                    interactor: rwInteractor,
-                    subscribedEvents: ['StartPinch']
-                });
-                zoomObserver.setInteractor(rwInteractor);
+                //var rwInteractor = renderWindow.getInteractor();
+                //var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
+                 //   interactor: rwInteractor,
+                 //   subscribedEvents: ['StartPinch']
+                //});
+                //zoomObserver.setInteractor(rwInteractor);
+
+                // TODO: can we reuse the mapper variable?
                 var startPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
                 var startPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
                 startPlaneActor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                startPlaneActor.getProperty().setOpacity(0.80);
                 startPlaneActor.getProperty().setLighting(false);
                 startPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
                 startPlaneMapper.setInputConnection(startPlaneSource.getOutputPort());
                 startPlaneActor.setMapper(startPlaneMapper);
                 renderer.addActor(startPlaneActor);
 
+
                 var endPlaneMapper = vtk.Rendering.Core.vtkMapper.newInstance();
                 var endPlaneActor = vtk.Rendering.Core.vtkActor.newInstance();
                 endPlaneActor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                endPlaneActor.getProperty().setOpacity(0.80);
                 endPlaneActor.getProperty().setLighting(false);
                 endPlaneSource = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
                 endPlaneMapper.setInputConnection(endPlaneSource.getOutputPort());
@@ -1589,30 +1612,49 @@ SIREPO.app.directive('conductors3d', function(appState) {
             }
 
             function load() {
-                removeActors(boxActors);
+                vtkPlotting.removeActors(boxActors);
 
                 var grid = appState.models.simulationGrid;
                 var ymax = grid.channel_height / 2.0 * 1e-6;
                 var ymin = -ymax;
-                var xmin = 0;
-                var xmax = grid.plate_spacing * 1e-6;
-                var zmax = grid.channel_width / 2.0 * 1e-6;
-                var zmin = -zmax;
+                var zmin = 0;
+                var zmax = grid.plate_spacing * 1e-6;
+                var xmax = grid.channel_width / 2.0 * 1e-6;
+                var xmin = -xmax;
 
-                var yzAspectRatio = grid.channel_width / grid.channel_height;
+                var yzAspectRatio =  grid.channel_height / grid.channel_width;
                 var pointScales = {
                     z: 1 / Math.abs((zmax - zmin)),
-                    x: 1 / Math.abs((xmax - xmin)) / X_Z_ASPECT_RATIO,
-                    y: 1 / Math.abs((ymax - ymin)) / yzAspectRatio,
+                    x: X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
+                    y: X_Z_ASPECT_RATIO * yzAspectRatio / Math.abs((ymax - ymin))
                 };
                 pointRanges = {
                     z: [pointScales.z * zmin, pointScales.z * zmax],
                     x: [pointScales.x * xmin, pointScales.x * xmax],
                     y: [pointScales.y * ymin, pointScales.y * ymax]
                 };
-                var zfactor = pointScales.z;
-                var xfactor = pointScales.x;
-                var yfactor = pointScales.y;
+                coordMapper = warpVTKService.warpCoordMapper([pointScales.x, pointScales.y, pointScales.z]);
+
+                coordMapper.setPlane(startPlaneSource,
+                    [xmin, ymin, zmin],
+                    [xmin, ymax, zmin],
+                    [xmax, ymin, zmin]
+                );
+                coordMapper.setPlane(endPlaneSource,
+                    [xmin, ymin, zmax],
+                    [xmin, ymax, zmax],
+                    [xmax, ymin, zmax]
+                );
+                var padding = 0.01;
+                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
+                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
+                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
+                outlineSource.setCenter([
+                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
+                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
+                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
+                ]);
+
 
                 var typeMap = {};
                 appState.models.conductorTypes.forEach(function(conductorType) {
@@ -1622,16 +1664,10 @@ SIREPO.app.directive('conductors3d', function(appState) {
                     // lengths and centers are in µm
                     var cFactor = 1e6;
                     var cModel = typeMap[conductor.conductorTypeId];
-                    var bs = vtk.Filters.Sources.vtkCubeSource.newInstance({
-                        xLength: xfactor * cModel.zLength / cFactor,
-                        yLength: zfactor * cModel.xLength / cFactor,
-                        zLength: zfactor * cModel.yLength / cFactor,
-                        center: [
-                            xfactor * conductor.zCenter / cFactor,
-                            zfactor * conductor.xCenter / cFactor,
-                            zfactor * conductor.yCenter / cFactor,
-                        ],
-                    });
+                    var bs = coordMapper.buildBox(
+                        [cModel.xLength / cFactor, cModel.yLength / cFactor, cModel.zLength / cFactor],
+                        [conductor.xCenter / cFactor, conductor.yCenter / cFactor, conductor.zCenter / cFactor]
+                    );
                     var bm = vtk.Rendering.Core.vtkMapper.newInstance();
                     bm.setInputConnection(bs.getOutputPort());
 
@@ -1650,24 +1686,6 @@ SIREPO.app.directive('conductors3d', function(appState) {
             }
 
             function refresh() {
-                startPlaneSource.setOrigin(pointRanges.x[0], pointRanges.z[0], pointRanges.y[0]);
-                startPlaneSource.setPoint1(pointRanges.x[0], pointRanges.z[0], pointRanges.y[1]);
-                startPlaneSource.setPoint2(pointRanges.x[0], pointRanges.z[1], pointRanges.y[0]);
-
-                endPlaneSource.setOrigin(pointRanges.x[1], pointRanges.z[0], pointRanges.y[0]);
-                endPlaneSource.setPoint1(pointRanges.x[1], pointRanges.z[0], pointRanges.y[1]);
-                endPlaneSource.setPoint2(pointRanges.x[1], pointRanges.z[1], pointRanges.y[0]);
-
-                var padding = 0.01;
-                outlineSource.setXLength(Math.abs(endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) + padding);
-                outlineSource.setYLength(Math.abs(endPlaneSource.getPoint2()[1] - endPlaneSource.getPoint1()[1]) + padding);
-                outlineSource.setZLength(Math.abs(endPlaneSource.getPoint2()[2] - endPlaneSource.getPoint1()[2]) + padding);
-                outlineSource.setCenter([
-                    (endPlaneSource.getOrigin()[0] - startPlaneSource.getOrigin()[0]) / 2.0,
-                    (endPlaneSource.getOrigin()[1] - startPlaneSource.getOrigin()[1]) / 2.0,
-                    (endPlaneSource.getOrigin()[2] - startPlaneSource.getOrigin()[2]) / 2.0
-                ]);
-
                 addActors(boxActors);
                 reset();
             }
@@ -1701,3 +1719,34 @@ SIREPO.app.directive('conductors3d', function(appState) {
         },
     };
 });
+
+
+SIREPO.app.service('warpVTKService', function(vtkPlotting) {
+
+    var svc = this;
+
+    this.warpCoordMapper = function(scale) {
+        return vtkPlotting.coordMapper(labToVTK(scale || [1.0, 1.0, 1.0]));
+    };
+
+    function labToVTK(scale) {
+        return function (lpoint) {
+            return [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
+        };
+    }
+    function l2v(scale) {
+        return function (lpoint) {
+            return [scale[2] * lpoint.coords()[2], scale[0] * lpoint.coords()[0], scale[1] * lpoint.coords()[1]];
+        };
+    }
+
+    // TODO (mvk): this inverse transform should really be calculated not supplied
+    function vtkToLab(scale) {
+        return function (vpoint) {
+            return [vpoint[1] / scale[0], vpoint[2] / scale[1], vpoint[0] / scale[2]];
+        };
+    }
+
+
+});
+
