@@ -54,7 +54,6 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
     }
 
     function realignConductors() {
-        console.log('realignConductors');
         var v = appState.models.simulationGrid.plate_spacing;
         // realign conductors in relation to the right border
         if (plateSpacing && plateSpacing != v) {

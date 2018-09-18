@@ -111,6 +111,7 @@ SIREPO.lattice = {
 SIREPO.app.factory('elegantService', function(appState, requestSender, rpnService, $rootScope) {
     var self = {};
     var filenameRequired = ['command_floor_coordinates', 'HISTOGRAM', 'SLICE', 'WATCH'];
+    var rootScopeListener = null;
 
     function bunchChanged() {
         // update bunched_beam fields
@@ -328,8 +329,11 @@ SIREPO.app.factory('elegantService', function(appState, requestSender, rpnServic
     };
 
     appState.whenModelsLoaded($rootScope, function() {
+        if (rootScopeListener) {
+            rootScopeListener();
+        }
         // keep source page items in sync with the associated control command
-        $rootScope.$on('modelChanged', function(e, name) {
+        rootScopeListener = $rootScope.$on('modelChanged', function(e, name) {
             if (name == 'bunchSource') {
                 bunchSourceChanged();
             }
