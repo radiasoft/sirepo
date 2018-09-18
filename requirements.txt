@@ -3,4 +3,3 @@
 pykern
 # needs to be here for Flask-OAuthlib, see https://github.com/radiasoft/sirepo/issues/1197
 flask
-cryptography
