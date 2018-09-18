@@ -4,9 +4,11 @@ top.lprntpara = false
 top.lpsplots = false
 
 top.verbosity = 0 # Reduce solver verbosity
-solverE.mgverbose = -1 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
 package("w3d")
 generate()
+solverE.mgmaxiters = 100
 
 #------
 
@@ -83,8 +85,6 @@ num_steps = {{ simulationGrid_num_steps }}
 output_steps = np.linspace(0,num_steps,num_steps/particleperiod + 1)[1:]
 step_count = 0
 time0 = time.time()
-#CATHODE_TEMP, CHANNEL_WIDTH, Z_PART_MIN, ptcl_per_step
-#step(num_steps, cathode_temp = CATHODE_TEMP, channel_width=CHANNEL_WIDTH, z_part_min=Z_PART_MIN, ptcl_per_step=ptcl_per_step)
 step(num_steps)
 time1 = time.time()
 time_per_step = (time1-time0)/num_steps

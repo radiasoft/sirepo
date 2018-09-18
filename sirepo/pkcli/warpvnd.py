@@ -21,7 +21,11 @@ def run(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
 
         if data['report'] == 'fieldReport':
-            values = potential[xl:xu, zl:zu]
+            if len(potential.shape) == 2:
+                values = potential[xl:xu, zl:zu]
+            else:
+                # 3d results
+                values = potential[xl:xu, int(NUM_Y / 2), zl:zu]
             res = _generate_field_report(data, values, {
                 'tof_expected': tof_expected,
                 'steps_expected': steps_expected,

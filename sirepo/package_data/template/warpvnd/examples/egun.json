@@ -8,7 +8,7 @@
             "cathode_work_function": 2,
             "currentMode": "3",
             "species": "Electron",
-            "x_radius": 0.055
+            "x_radius": 0.05
         },
         "conductorGridReport": {},
         "conductorTypes": [
