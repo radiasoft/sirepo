@@ -383,7 +383,10 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = grid['plate_spacing'] * 1e-6
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    cathode_area = grid['channel_width'] * 1e-6
+    if data.models.simulationGrid.simulation_mode == '3d':
+        cathode_area = grid['channel_width'] * 1e-6 * grid['channel_height'] * 1e-6
+    else:
+        cathode_area = grid['channel_width'] * 1e-6
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
     JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
@@ -585,6 +588,10 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
+    v['is3D'] = data.models.simulationGrid.simulation_mode == '3d'
+    if not v['is3D']:
+        v['simulationGrid_num_y'] = v['simulationGrid_num_x']
+        v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
     template_name = ''
     if 'report' not in data:
         template_name = 'visualization'

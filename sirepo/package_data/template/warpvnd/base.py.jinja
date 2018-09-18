@@ -27,18 +27,19 @@ diagDir = 'diags/xzsolver/hdf5/'
 #GLOBAL GEOMETRY PARAMETERS FOR USERS
 PLATE_SPACING = {{ simulationGrid_plate_spacing }}
 CHANNEL_WIDTH = {{ simulationGrid_channel_width }} #width of simulation box
+CHANNEL_HEIGHT = {{ simulationGrid_channel_height }}
 
 #Dimensions
 X_MAX = CHANNEL_WIDTH*0.5
 X_MIN = -1.*X_MAX
-Y_MAX = CHANNEL_WIDTH*0.5
+Y_MAX = CHANNEL_HEIGHT*0.5
 Y_MIN = -1.*Y_MAX
 Z_MIN = 0.
 Z_MAX = PLATE_SPACING
 
 #Grid parameters
 NUM_X = {{ simulationGrid_num_x }}
-NUM_Y = 64
+NUM_Y = {{ simulationGrid_num_y }}
 NUM_Z = {{ simulationGrid_num_z }}
 
 #z step size
@@ -47,10 +48,11 @@ dz =  (Z_MAX - Z_MIN)/NUM_Z
 #------
 
 #Specify solver geometry
+{% if is3D %}
+w3d.solvergeom = w3d.XYZgeom
+{% else %}
 w3d.solvergeom = w3d.XZgeom
-
-assert w3d.solvergeom == w3d.XZgeom, \
-    'Solver geometry required to be w3d.XZgeom'
+{% endif %}
 
 # Set boundary conditions
 # Longitudinal conditions overriden by conducting plates
@@ -65,11 +67,16 @@ top.pboundxy = periodic
 # Set grid boundaries
 w3d.xmmin = X_MIN
 w3d.xmmax = X_MAX
+if w3d.solvergeom == w3d.XYZgeom:
+    w3d.ymmin = Y_MIN
+    w3d.ymmax = Y_MAX
 w3d.zmmin = 0.
 w3d.zmmax = Z_MAX
 
 # Set grid counts
 w3d.nx = NUM_X
+if w3d.solvergeom == w3d.XYZgeom:
+    w3d.ny = NUM_Y
 w3d.nz = NUM_Z
 
 zmesh = np.linspace(0,Z_MAX,NUM_Z+1) #holds the z-axis grid points in an array
@@ -99,9 +106,9 @@ USER_INJECT = {{ beam_currentMode }}
 beam = Species(type={{ beam_species }}, name='beam')
 
 # --- Set basic beam parameters
-SOURCE_RADIUS_1 = {{ beam_x_radius }} #a0 parameter - X plane
-SOURCE_RADIUS_2 = 0.5*CHANNEL_WIDTH #b0 parameter - Y plane
-Z_PART_MIN = {{ simulationGrid_z_particle_min }}
+SOURCE_RADIUS_1 = 0.5*CHANNEL_WIDTH #a0 parameter - X plane
+SOURCE_RADIUS_2 = 0.5*CHANNEL_HEIGHT #b0 parameter - Y plane
+Z_PART_MIN = dz/8. #starting particle z value
 
 
 #Compute cathode area for geomtry-specific current calculations
@@ -120,13 +127,12 @@ w3d.l_inj_exact = False
 PTCL_PER_STEP = {{ simulationGrid_particles_per_step }}
 top.npinject = PTCL_PER_STEP
 
-# --- If using the XZ geometry, set so injection uses the same geometry
-top.linj_rectangle = (w3d.solvergeom == w3d.XZgeom)
+# Set the top.linj_rectangle flag so that injection uses the same geometry
+top.linj_rectangle = (w3d.solvergeom == w3d.XZgeom or w3d.solvergeom == w3d.XYZgeom)
 
 #Determine an appropriate time step based upon estimated final velocity
 vzfinal = sqrt(2.*abs(vacuum_level)*np.abs(beam.charge)/beam.mass)+beam_beta*constants.c
-dt = dz/vzfinal #5e-15
-top.dt = dt
+top.dt = dz/vzfinal
 
 if vzfinal*top.dt > dz:
     print("Time step dt = {:.3e}s does not constrain motion to a single cell".format(top.dt))
@@ -155,7 +161,27 @@ top.ssnpid = 1
 
 if USER_INJECT == 1:
     # Constant current density - beam transverse velocity fixed to zero, very small longitduinal velocity
+{% if is3D %}
+    #Set injection flag
+    top.inject = 1              # 1 means constant; 2 means space-charge limited injection;# 6 means user-specified
+    
+    top.npinject = PTCL_PER_STEP
+    
+    USER_CURRENT = {{ beam_beam_current }}
+    beam.ibeam = USER_CURRENT
+    beam.a0     = SOURCE_RADIUS_1
+    beam.b0     = SOURCE_RADIUS_2
+    
+    beam.ap0 = .0e0
+    beam.bp0 = .0e0
 
+    w3d.l_inj_exact = True
+    
+    # Specify thermal properties
+    beam.vthz = np.sqrt(4. * kb_J / beam.mass)
+    beam.vthperp = 0.0
+    top.lhalfmaxwellinject = 1  # inject z velocities as half Maxwellian
+{% else %}
     #Set injection flag
     top.inject = 6               # 1 means constant; 2 means space-charge limited injection;# 6 means user-specified
 
@@ -168,8 +194,36 @@ if USER_INJECT == 1:
     dz = (w3d.zmmax - w3d.zmmin) / w3d.nz
     myInjector = injectors.UserInjectors(beam, w3d, None, CATHODE_TEMP, CHANNEL_WIDTH, PTCL_PER_STEP, zmin_scale=dz/Z_PART_MIN)
     installuserinjection(myInjector.inject_constant)
+{% endif %}
 
 if USER_INJECT == 2:
+{% if is3D %}
+    CURRENT_MODIFIER = 0.5  # Factor to multiply CL current by when setting beam current
+    # Constant current density - beam transverse velocity fixed to zero, very small longitduinal velocity
+
+    # Set injection flag
+    top.inject = 1  # 1 means constant; 2 means space-charge limited injection;# 6 means user-specified
+    top.npinject = PTCL_PER_STEP
+
+    #Compute Child-Langmuir limit for this setup A/m^2
+    cl_limit = sources.cl_limit(CATHODE_PHI, ANODE_WF, GRID_BIAS, PLATE_SPACING)
+
+    #Compute actual current for emitter area
+    beam_current = cl_limit * cathode_area
+
+    beam.ibeam = beam_current * CURRENT_MODIFIER
+
+    beam.a0 = SOURCE_RADIUS_1
+    beam.b0 = SOURCE_RADIUS_1
+    beam.ap0 = .0e0
+    beam.bp0 = .0e0
+
+    w3d.l_inj_exact = True
+
+    # Initial velocity settings (5% of c)
+    vrms = np.sqrt(1 - 1 / (0.05 / 511e3 + 1) ** 2) * 3e8
+    top.vzinject = vrms
+{% else %}
     # space charge limited injection using Child-Langmuir computation of cold limit
 
     #Set injection flag
@@ -180,10 +234,37 @@ if USER_INJECT == 2:
     beam.a0     = SOURCE_RADIUS_1
     beam.b0     = SOURCE_RADIUS_2
     w3d.l_inj_exact = True
-
+{% endif %}
 
 elif USER_INJECT == 3:
+{% if is3D %}
+    # True Thermionic injection
+    top.inject = 1
 
+    # Set both beams to same npinject to keep weights the same
+    beam.npinject = PTCL_PER_STEP
+
+    w3d.l_inj_exact = True
+
+    # Specify thermal properties
+    beam.vthz = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
+    beam.vthperp = np.sqrt(CATHODE_TEMP * kb_J / beam.mass)
+    top.lhalfmaxwellinject = 1  # inject z velocities as half Maxwellian
+
+    beam_current = sources.j_rd(CATHODE_TEMP, CATHODE_PHI) * cathode_area  # steady state current in Amps
+    #print('beam current expected: {}, current density {}'.format(beam_current, beam_current / cathode_area))
+
+    #Compute Child-Langmuir limit for this setup A/m^2
+    cl_limit = sources.cl_limit(CATHODE_PHI, ANODE_WF, GRID_BIAS, PLATE_SPACING)
+    jcl = cl_limit*cathode_area
+
+    #print('child-langmuir  limit: {}, current density {}'.format(jcl, cl_limit))
+    beam.ibeam = beam_current
+    beam.a0 = SOURCE_RADIUS_1
+    beam.b0 = SOURCE_RADIUS_1
+    beam.ap0 = .0e0
+    beam.bp0 = .0e0
+{% else %}
     top.lambdarinject = 1.0
     top.inject = 4
     electric_field = {{ maxConductorVoltage }} / 4.495e-06
@@ -202,6 +283,7 @@ elif USER_INJECT == 3:
     beam.a0 = SOURCE_RADIUS_1
     beam.b0 = SOURCE_RADIUS_2
     beam.vthz = sqrt(CATHODE_TEMP * constants.k / beam.mass)
+{% endif -%}
 
 {% endif -%}
 
@@ -211,7 +293,10 @@ derivqty()
 
 # Set up fieldsolver
 f3d.mgtol = 1e-6 # Multigrid solver convergence tolerance, in volts. 1 uV is default in Warp.
-solverE = MultiGrid2D()
+if w3d.solvergeom == w3d.XYZgeom:
+    solverE = MultiGrid3D()
+else:
+    solverE = MultiGrid2D()
 registersolver(solverE)
 
 #------
@@ -219,7 +304,7 @@ registersolver(solverE)
 # --- Emitter settings
 extractor_voltage = vacuum_level
 # --- Anode Location
-zplate = Z_MAX#1e-6 # --- plate location
+zplate = Z_MAX # --- plate location
 
 # Create source conductors
 source = ZPlane(zcent=w3d.zmmin,zsign=-1.,voltage=0.)
