@@ -279,10 +279,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
 
     //TODO(pjm): use library for this
     self.numFormat = function(num, units) {
+        num = rpnService.getRpnValue(num);
         if (! angular.isDefined(num)) {
             return '';
         }
-        num = rpnService.getRpnValue(num);
         if (num < 1) {
             num *= 1000;
             units = 'm' + units;
@@ -898,7 +898,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         if ($scope.flatten) {
                             angle = 0;
                         }
-                        if (item.type.indexOf('SBEN') >= 0 && angle != 0) {
+                        if (item.type.indexOf('SBEN') >= 0 && angle != 0 && length != 0) {
                             // compute the chord length from the arclength
                             var d1 = 2 * length / angle;
                             length = d1 * Math.sin(length / d1);
