@@ -87,9 +87,19 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             m.setInputConnection(source.getOutputPort());
             var a = vtk.Rendering.Core.vtkActor.newInstance();
             a.setMapper(m);
+
             return {
                 actor: a,
-                source: source
+                source: source,
+                mapper: m,
+                setActor: function (actor) {
+                    actor.setMapper(this.m);
+                    this.actor = actor;
+                },
+                setSource: function (source) {
+                    this.mapper.setInputConnection(source.getOutputPort());
+                    this.source = source;
+                }
             };
         }
 
@@ -277,16 +287,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
             //srdbg('wCorners', corners);
             return corners;
-
-            //leftBottomOut 0 -> 4
-            //leftTopOut 1 -> 6
-            //rightTopOut 2 -> 7
-            //rightBottomOut 3 -> 5
-            //leftBottomIn 4 -> 0
-            //leftTopIn 5 -> 2
-            //rightTopIn 6 -> 3
-            //rightBottomIn 7 -> 1
-
         }
         function wcrn() {
             var ctr = wc();
@@ -326,19 +326,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         box.edgs = function () {
             var c = box.crns();
             //srdbg('edfes from', c);
-            /*
-            var pairs = [
-                //[[4, 0], [0, 1], [1, 5], [5, 4]],
-                //[[6, 2], [2, 3], [3, 7], [7, 6]],
-                //[[6, 4], [2, 0], [1, 3], [5, 7]]
-                [[0, 1], [5, 4], [2, 3], [7, 6]],
-                [[0, 2], [1, 3], [4, 6], [5, 7]],
-                [[0, 4], [1, 5], [2, 6], [3, 7]]
-            ];
-            */
-            //var e = [];
             var e = {};
-
            // for(var i in pairs ) {
             for(var dim in edgeCornerPairs ) {
                 var lines = [];
@@ -829,7 +817,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
 */
         return true;
-    };
+   };
 
     function axisGeometery(boundAxis, edgeProps) {
         var left = 0;  var top = 0;
@@ -951,19 +939,22 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
     }
 
-    self.addActors = function(renderer, arr) {
-        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
-            renderer.addActor(arr[aIndex]);
-        }
+    self.addActors = function(renderer, actorArr) {
+        actorArr.forEach(function(actor) {
+            renderer.addActor(actor);
+        });
     };
-    self.removeActors = function(renderer, arr) {
-        if(! arr ) {
+
+    self.removeActors = function(renderer, actorArr) {
+        if(! actorArr ) {
             return;
         }
-        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
-            renderer.removeActor(arr[aIndex]);
-        }
+        actorArr.forEach(function(actor) {
+            renderer.removeActor(actor);
+        });
+        actorArr.length = 0;
     };
+
     self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
         for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
             arr[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);

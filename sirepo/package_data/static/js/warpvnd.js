@@ -1549,12 +1549,6 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
             var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
 
-            function addActors(actorArr) {
-                actorArr.forEach(function(actor) {
-                    renderer.addActor(actor);
-                });
-            }
-
             function init() {
                 var rw = $($element).find('.sr-plot-particle-3d .vtk-canvas-holder');
                 rw.on('dblclick', reset);
@@ -1684,15 +1678,8 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             }
 
             function refresh() {
-                addActors(boxActors);
+                vtkPlotting.addActors(renderer, boxActors);
                 reset();
-            }
-
-            function removeActors(actorArr) {
-                actorArr.forEach(function(actor) {
-                    renderer.removeActor(actor);
-                });
-                actorArr.length = 0;
             }
 
             function reset() {
@@ -1723,6 +1710,17 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting) {
 
     var svc = this;
 
+    var startPlaneBundle;
+    var endPlaneBundle;
+    var conductorBundles = [];
+    var outlineBundle;
+    var orientationMarker;
+
+    // colors - vtk uses a range of 0-1 for RGB components
+    //TODO(mvk): set colors on the model, keeping these as defaults
+    var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
+    var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
+
     this.warpCoordMapper = function(scale) {
         return vtkPlotting.coordMapper(labToVTK(scale || [1.0, 1.0, 1.0]));
     };
@@ -1745,6 +1743,89 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting) {
         };
     }
 
+
+    this.initScene = function (coordMapper, renderer) {
+
+        // the emitter plane
+        startPlaneBundle = coordMapper.buildPlane();
+        startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+        startPlaneBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(startPlaneBundle.actor);
+
+        // the collector plane
+        endPlaneBundle = coordMapper.buildPlane();
+        endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+        endPlaneBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(endPlaneBundle.actor);
+
+        // a box around the elements, for visual clarity
+        outlineBundle = coordMapper.buildBox();
+        outlineBundle.actor.getProperty().setColor(1, 1, 1);
+        outlineBundle.actor.getProperty().setEdgeVisibility(true);
+        outlineBundle.actor.getProperty().setEdgeColor(0, 0, 0);
+        outlineBundle.actor.getProperty().setFrontfaceCulling(true);
+        outlineBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(outlineBundle.actor);
+
+        /*
+        orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+            actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+            interactor: renderWindow.getInteractor()
+        });
+        orientationMarker.setEnabled(true);
+        orientationMarker.setViewportCorner(
+            vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+        );
+        orientationMarker.setViewportSize(0.08);
+        orientationMarker.setMinPixelSize(100);
+        orientationMarker.setMaxPixelSize(300);
+        */
+   };
+
+    this.updateScene = function (coordMapper, axisInfo) {
+
+        coordMapper.setPlane(startPlaneBundle.source,
+            [axisInfo.x.min, axisInfo.y.min, axisInfo.z.min],
+            [axisInfo.x.min, axisInfo.y.max, axisInfo.z.min],
+            [axisInfo.x.max, axisInfo.y.min, axisInfo.z.min]
+        );
+        coordMapper.setPlane(endPlaneBundle.source,
+            [axisInfo.x.min, axisInfo.y.min, axisInfo.z.max],
+            [axisInfo.x.min, axisInfo.y.max, axisInfo.z.max],
+            [axisInfo.x.max, axisInfo.y.min, axisInfo.z.max]
+        );
+
+        var padding = 0.01;
+        var spsOrigin = startPlaneBundle.source.getOrigin();
+        var epsOrigin = endPlaneBundle.source.getOrigin();
+        var epsP1 = endPlaneBundle.source.getPoint1();
+        var epsP2 = endPlaneBundle.source.getPoint2();
+
+        var osXLen = Math.abs(epsOrigin[0] - spsOrigin[0]) + padding;
+        var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
+        var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
+        var osCtr = [];
+        for(var i = 0; i < 3; ++i) {
+            osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
+        }
+        outlineBundle.setLength([
+            Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
+            Math.abs(epsP2[1] - epsP1[1]) + padding,
+            Math.abs(epsP2[2] - epsP1[2]) + padding
+        ]);
+        outlineBundle.setCenter(osCtr);
+
+    };
+
+    this.getStartPlane = function () {
+        return startPlaneBundle;
+    };
+    this.getEndPlane = function () {
+        return endPlaneBundle;
+    };
+    this.getOutline = function () {
+        return outlineBundle;
+    };
 
 });
 

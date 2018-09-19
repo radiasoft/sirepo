@@ -3120,12 +3120,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var camViewUp = [0, 1, 0];
 
             // planes
-            var startPlaneActor = null;
-            var startPlaneMapper = null;
-            var startPlaneSource = null;
-            var endPlaneActor = null;
-            var endPlaneMapper = null;
-            var endPlaneSource = null;
             var gridPlaneSources = [];
             var gridPlaneActors = [];
 
@@ -3235,13 +3229,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 cam = renderer.get().activeCamera;
 
-                //var rwInteractor = renderWindow.getInteractor();
-                //var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
-                //    interactor: rwInteractor,
-                //    subscribedEvents: ['StartPinch']
-                //});
-                //zoomObserver.setInteractor(rwInteractor);
-
                 rw.addEventListener('dblclick', reset);
 
                 var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
@@ -3275,6 +3262,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     utilities.debounce(refresh, 100)();
                 };
 
+                //warpVTKService.initScene(coordMapper, renderer);
+
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
                 startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
@@ -3296,56 +3285,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 outlineBundle.actor.getProperty().setEdgeColor(0, 0, 0);
                 outlineBundle.actor.getProperty().setFrontfaceCulling(true);
                 outlineBundle.actor.getProperty().setLighting(false);
-
                 renderer.addActor(outlineBundle.actor);
 
                 vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
+                //vpOutline = vtkPlotting.vpBox(warpVTKService.getOutline().source, renderer);
                 //srdbg('outline edges', vpOutline.edgs());
                 //srdbg('outline extrena', vpOutline.extr());
 
                 // a little widget that mirrors the orientation (not the scale) of the scence
-                var oCubeActor = vtk.Rendering.Core.vtkAnnotatedCubeActor.newInstance();
                 var axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
-                oCubeActor.setDefaultStyle({
-                    text: '+Z',
-                    fontStyle: 'bold',
-                    fontFamily: 'Arial',
-                    fontColor: 'black',
-                    //fontSizeScale: function(res) { return res/2; },
-                    faceColor: 'rgba(192, 192, 192, 0.5)',  //'#eeeeee',
-                    faceRotation: 0,
-                    edgeThickness: 0.05,
-                    edgeColor: 'black',
-                    resolution: 400,
-                });
-                oCubeActor.setXMinusFaceProperty({
-                  text: '-Z',
-                  //faceColor: '#ffff00',
-                  //faceRotation: 90,
-                  //fontStyle: 'italic',
-                });
-                oCubeActor.setYPlusFaceProperty({
-                  text: '+X',
-                  //faceColor: '#00ff00',
-                  //fontSizeScale: function(res) { return res/4; },
-                });
-                oCubeActor.setYMinusFaceProperty({
-                  text: '-X',
-                  //faceColor: '#00ffff',
-                  //fontColor: 'white',
-                });
-                oCubeActor.setZPlusFaceProperty({
-                  text: '+Y',
-                  //edgeColor: 'yellow',
-                });
-                oCubeActor.setZMinusFaceProperty({
-                    text: '-Y',
-                    //faceRotation: 45,
-                    //edgeThickness: 0
-                });
-
                 orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-                    actor: axesActor, //oCubeActor,  // axesActor
+                    actor: axesActor,
                     interactor: renderWindow.getInteractor()
                 });
                 orientationMarker.setEnabled(true);
@@ -3410,7 +3360,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 ymin = pointData.z_range[0];
                 ymax = pointData.z_range[1];
 
-                // WHICH COORD SYSTEM?
                 var axisInfo = {
                     x: {
                         min: zmin,
@@ -3447,6 +3396,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     1.0 / Math.abs((zmax - zmin))
                 ]);
 
+                //warpVTKService.updateScene(coordMapper, axisInfo);
+
                 coordMapper.setPlane(startPlaneBundle.source,
                     [xmin, ymin, zmin],
                     [xmin, ymax, zmin],
@@ -3477,6 +3428,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     Math.abs(epsP2[2] - epsP1[2]) + padding
                 ]);
                 outlineBundle.setCenter(osCtr);
+
+
 
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
@@ -3524,6 +3477,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         vtkPlotting.coordMapper().setPlane(ps, gpOrigin, gpP1, gpP2);
                     }
                 }
+
 
                 var joinEvery =  getJoinEvery();
 
@@ -3826,6 +3780,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //TODO (mvk): move to an object that encapsulates all this (in progress)
 
 
+
+                //var osCenter = warpVTKService.getOutline().source.getCenter();
                 var osCenter = outlineSource.getCenter();
 
                 // center lines
