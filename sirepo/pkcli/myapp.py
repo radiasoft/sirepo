@@ -57,7 +57,7 @@ def _csv_to_cols():
         cols = [[] for _ in headers]
         for row in rows:
             for i, c in enumerate(row):
-                cols[i].append(c)
+                cols[i].append(float(c))
     return dict((k.lower(), cols[i]) for i, k in enumerate(headers))
 
 
