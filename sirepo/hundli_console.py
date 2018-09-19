@@ -13,6 +13,7 @@ import numpy
 import random
 import sys
 import yaml
+import os
 
 
 _MAX_AGE_BY_WEIGHT = [
@@ -25,20 +26,29 @@ _MAX_AGE_BY_WEIGHT = [
 
 def main():
     """Read the input yaml and write the output csv"""
+    # hack support for openmpi so we can run under mpi with only one output file
+    if os.environ.get('OMPI_COMM_WORLD_RANK', '0') != '0':
+        exit(0)
     if len(sys.argv) != 3:
-        sys.err.write('usage: hundli input.yml output.csv\n')
+        sys.stderr.write('usage: hundli input.yml output.csv\n')
         exit(1)
     input_yaml, output_csv = sys.argv[1:]
     with open(input_yaml, 'r') as f:
         params = yaml.load(f)
     max_age = _max_age(params['weight'])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()
-    heights = _points(params['height'], years)
-    weights = _points(params['weight'], years)
+    heights = _points_size(params['height'], years)
+    weights = _points_size(params['weight'], years)
+    activity = _points_activity(years)
     with open(output_csv, 'w') as f:
         out = csv.writer(f)
-        out.writerow(('Year', 'Height', 'Weight'))
-        out.writerows(zip(years, heights, weights))
+        out.writerow(('Year', 'Height', 'Weight', 'Activity'))
+        out.writerows(zip(years, heights, weights, activity))
+
+
+def _factor(v, max_value, exp):
+    return (random.random() * 0.5) * max_value / exp \
+        + max_value * (exp - 1.0) / exp * (1.0 - 1.0 / (1.0 + v ** 2))
 
 
 def _max_age(weight):
@@ -54,11 +64,19 @@ def _max_age(weight):
     return prev
 
 
-def _points(max_value, years):
+def _points_activity(years):
     """Random function"""
+    max_value = 11.0
     return map(
-        lambda v: (random.random() * 0.5) * max_value / 20.0 \
-        + max_value * 19.0 / 20.0 * (1.0 - 1.0 / (1.0 + v ** 2)),
+        lambda v: max_value - _factor(v, max_value, 5.0),
+        years,
+    )
+
+
+def _points_size(max_value, years):
+    """Randomized """
+    return map(
+        lambda v: _factor(v, max_value, 20.0),
         years,
     )
 
