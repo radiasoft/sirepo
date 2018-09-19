@@ -365,7 +365,7 @@ def api_importFile(simulation_type=None):
 
 @api_perm.allow_visitor
 def api_homePage():
-    return _render_root_page('sr-landing-page', pkcollections.Dict())
+    return _render_root_page('landing-page', pkcollections.Dict())
 light_landing_page = api_homePage
 
 

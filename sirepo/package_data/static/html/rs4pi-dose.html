@@ -27,10 +27,10 @@
           <div data-ng-hide="dose.simState.isProcessing()" data-compute-dose-form=""></div>
         </div>
       </div>
-      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing() && dose.showDosePanels()" data-report-panel="dicom" data-model-name="dicomAnimation4" data-panel-title="DICOM Dose" data-dicom-mode="dose"></div>
     </div>
     <div class="col-md-5 col-sm-6">
-      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing()" data-report-panel="parameter" data-model-name="dvhReport"></div>
+      <div data-ng-if="dose.hasDoseFrames() && ! dose.simState.isProcessing() && dose.showDosePanels()" data-report-panel="parameter" data-model-name="dvhReport"></div>
     </div>
   </div>
 </div>

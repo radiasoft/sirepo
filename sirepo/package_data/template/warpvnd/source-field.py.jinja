@@ -44,6 +44,8 @@ from scipy.interpolate import interp1d as scipy_interp1d
 #Grab Ez from the solver and average over the transverse (x) plane
 Ez = solverE.getez()
 flat_Ez = np.mean(Ez,0)
+if w3d.solvergeom == w3d.XYZgeom:
+    flat_Ez = np.mean(flat_Ez,0)
 
 #Generate an interpolating function for smooth particle integration
 Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')

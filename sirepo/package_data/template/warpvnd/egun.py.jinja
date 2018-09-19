@@ -61,12 +61,14 @@ for num in range(ITERATIONS):
 pids = np.unique(top.pgroup.pid)
 MAX_TRAJECTORIES = 100 #number of particle trajectories to plot
 #get the positions for a select number of particles to be plotted
-particles = [[[], []], [[], []]]
+particles = [[[], [], []], [[], [], []]]
 for ID in pids[:MAX_TRAJECTORIES]:
     xvals = getx()[selectparticles(ssn=int(ID))]
+    yvals = gety()[selectparticles(ssn=int(ID))]
     zvals = getz()[selectparticles(ssn=int(ID))]
     particles[0][0].append(xvals)
     particles[0][1].append(zvals)
+    particles[0][2].append(yvals)
 
 update_status_file(ITERATIONS + 1)
 np.save('{{ particleFile }}', particles)

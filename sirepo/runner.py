@@ -27,6 +27,7 @@ import aenum
 import errno
 import os
 import pwd
+import re
 import signal
 import subprocess
 import sys
@@ -64,6 +65,13 @@ _KILL_TIMEOUT_SECS = 3
 _DOCKER_CONTAINER_PREFIX = 'srjob-'
 
 _MAX_OPEN_FILES = 1024
+
+#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
+# See https://github.com/radiasoft/sirepo/issues/1323
+# We also remove SIREPO_ and PYKERN vars, because we shouldn't
+# need to pass any of that on, just like runner.docker, doesn't
+_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
+
 
 @pkconfig.parse_none
 def cfg_job_class(value):
@@ -258,6 +266,12 @@ class Background(Base):
                 # reaped by _sigchld_handler()
                 return
 
+    def _safe_env(self):
+        return dict(
+            [(k, v) for k, v in os.environ.items() if not _EXEC_ENV_REMOVE.search(k)],
+        )
+
+
     @classmethod
     def _sigchld_handler(cls, signum=None, frame=None):
         try:
@@ -325,9 +339,9 @@ class Background(Base):
             sys.stderr.flush()
             try:
                 simulation_db.write_status('running', self.run_dir)
-                os.execvp(self.cmd[0], self.cmd)
+                os.execvpe(self.cmd[0], self.cmd, env=self._safe_env())
             finally:
-                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
+                pkdlog('{}: execvpe error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             with open(str(self.run_dir.join(template_common.RUN_LOG)), 'a') as f:

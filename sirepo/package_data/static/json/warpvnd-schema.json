@@ -280,8 +280,8 @@
                 "channel_width",
                 "channel_height",
                 "num_x",
-                "num_z",
                 "num_y",
+                "num_z",
                 "z_particle_min"
             ]
         },
