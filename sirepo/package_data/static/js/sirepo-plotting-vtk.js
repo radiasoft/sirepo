@@ -951,19 +951,22 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
     }
 
-    self.addActors = function(renderer, actorArr) {
-        for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
-            renderer.addActor(actorArr[aIndex]);
+    self.addActors = function(renderer, arr) {
+        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
+            renderer.addActor(arr[aIndex]);
         }
     };
-    self.removeActors = function(renderer, actorArr) {
-        for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
-            renderer.removeActor(actorArr[aIndex]);
+    self.removeActors = function(renderer, arr) {
+        if(! arr ) {
+            return;
+        }
+        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
+            renderer.removeActor(arr[aIndex]);
         }
     };
-    self.showActors = function(renderWindow, actorArray, doShow, visibleOpacity, hiddenOpacity) {
-        for(var aIndex = 0; aIndex < actorArray.length; ++aIndex) {
-            actorArray[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
+        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
+            arr[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
         }
         renderWindow.render();
     };

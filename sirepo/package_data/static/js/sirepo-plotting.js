@@ -3277,7 +3277,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
-                //startPlaneBundle.actor.getProperty().setEdgeVisibility(true);
                 startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
                 startPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(startPlaneBundle.actor);
@@ -3290,16 +3289,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // a box around the elements, for visual clarity
                 outlineBundle = coordMapper.buildBox();
-                //outlineMapper = vtk.Rendering.Core.vtkMapper.newInstance();
-                //outlineActor = vtk.Rendering.Core.vtkActor.newInstance();
                 outlineSource =  outlineBundle.source;  // vtk.Filters.Sources.vtkCubeSource.newInstance();
-
-                //outlineActor.getProperty().setColor(1, 1, 1);
-                //outlineActor.getProperty().setEdgeVisibility(true);
-                //outlineActor.getProperty().setEdgeColor(0, 0, 0);
-                //outlineActor.getProperty().setRepresentationToWireframe();
-                //outlineActor.getProperty().setFrontfaceCulling(true);
-                //outlineActor.getProperty().setLighting(false);
 
                 outlineBundle.actor.getProperty().setColor(1, 1, 1);
                 outlineBundle.actor.getProperty().setEdgeVisibility(true);
@@ -3307,12 +3297,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 outlineBundle.actor.getProperty().setFrontfaceCulling(true);
                 outlineBundle.actor.getProperty().setLighting(false);
 
-                //outlineMapper.setInputConnection(outlineSource.getOutputPort());
-                //outlineActor.setMapper(outlineMapper);
-                //renderer.addActor(outlineActor);
                 renderer.addActor(outlineBundle.actor);
 
-                //vpOutline = vtkPlotting.vpBox(outlineSource, renderer);
                 vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
                 //srdbg('outline edges', vpOutline.edgs());
                 //srdbg('outline extrena', vpOutline.extr());

@@ -80,9 +80,6 @@ SIREPO.app.service('geometry', function() {
                 if(this.slope() === Infinity) {
                     return p.x === point1.x;
                 }
-                if(this.slope() === 0) {
-                    return p.y === point1.y;
-                }
                 return p.y === this.slope() * p.x + this.intercept();
             },
         };

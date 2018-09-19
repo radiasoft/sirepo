@@ -1664,21 +1664,19 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                     // lengths and centers are in µm
                     var cFactor = 1e6;
                     var cModel = typeMap[conductor.conductorTypeId];
-                    var bs = coordMapper.buildBox(
+                    var bb = coordMapper.buildBox(
                         [cModel.xLength / cFactor, cModel.yLength / cFactor, cModel.zLength / cFactor],
                         [conductor.xCenter / cFactor, conductor.yCenter / cFactor, conductor.zCenter / cFactor]
                     );
-                    var bm = vtk.Rendering.Core.vtkMapper.newInstance();
-                    bm.setInputConnection(bs.getOutputPort());
 
                     var cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
                     var cEdgeColor = [0, 0, 0];
-                    var ba = vtk.Rendering.Core.vtkActor.newInstance();
+                    var ba = bb.actor;
                     ba.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                     ba.getProperty().setEdgeVisibility(true);
                     ba.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
                     ba.getProperty().setLighting(false);
-                    ba.setMapper(bm);
+                    //ba.setMapper(bm);
                     boxActors.push(ba);
                 });
 
