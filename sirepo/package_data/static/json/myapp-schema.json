@@ -25,7 +25,7 @@
             "height": ["Height [cm]", "Float", null, "Distance from front paws to withers"],
             "weight": ["Weight [lbs]", "Float"]
         },
-        "dogReport": {}
+        "heightWeightReport": {}
     },
     "view": {
         "dog": {
@@ -42,8 +42,8 @@
                 "height"
             ]
         },
-        "dogReport": {
-            "title": "Dog Report",
+        "heightWeightReport": {
+            "title": "Physical Characteristics",
             "advanced": []
         },
         "simulation": {

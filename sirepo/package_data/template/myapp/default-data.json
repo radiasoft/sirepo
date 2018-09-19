@@ -6,7 +6,7 @@
             "height": 50,
             "weight": 60.5
         },
-        "dogReport": {},
+        "heightWeightReport": {},
         "simulation": {
             "folder": "/",
             "isExample": false,
