@@ -87,7 +87,8 @@
             "zLength": ["Length (Z) [µm]", "Float"],
             "yLength": ["Depth (Y) [µm]", "Float", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
-            "isConductor": ["Conductor", "Boolean", "1"]
+            "isConductor": ["Conductor", "Boolean", "1"],
+            "color": ["Color", "Color", "#6992ff"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -184,7 +185,8 @@
                 "xLength",
                 "yLength",
                 "isConductor",
-                "permittivity"
+                "permittivity",
+                "color"
             ]
         },
         "cathode": {

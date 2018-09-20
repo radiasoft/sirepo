@@ -604,6 +604,68 @@ SIREPO.app.directive('animationButtons', function() {
     };
 });
 
+SIREPO.app.directive('colorPicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            color: '=',
+            defaultColor: '<'
+        },
+        template: [
+            '<div>',
+                '<button class="dropdown-toggle sr-color-button" data-ng-style="bgColorStyle()" data-toggle="dropdown"></button>',
+                '<ul class="dropdown-menu">',
+                    '<div class="container col-sm-8">',
+                        '<div data-ng-repeat="r in range(rows) track by $index" class="row">',
+                            '<li data-ng-repeat="c in range(cols) track by $index" style="display: inline-block">',
+                                '<button data-ng-if="pcIndex(r, c) < pickerColors.length" class="sr-color-button" data-ng-class="{\'selected\': getColor(color).toUpperCase() == getPickerColor(r, c).toUpperCase()}" data-ng-style="bgColorStyle(getPickerColor(r, c))" data-ng-click="setColor(getPickerColor(r, c))"></button>',
+                            '</li>',
+                        '<div>',
+                    '<div>',
+                '</ul>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+
+            $scope.pickerColors = [
+                '#000000', '#222222', '#444444', '#666666', '#888888', '#aaaaaa', '#cccccc', '#ffffff',
+                '#0000ff', '#337777', '#3377bf', '#6992ff', '#33bb33', '#33ff33', '#00ff00', '#bbff77',
+                '#ffff00', '#fff44f', '#ffbb77', '#ffa500', '#ff0000', '#bb33ff', '#ff77ff', '#f3d4c8',
+            ];
+
+            $scope.cols = 8;
+            $scope.rows = Math.ceil($scope.pickerColors.length / $scope.cols);
+            $scope.range = function(n) {
+                var arr = [];
+                for(var i = 0; i < n; ++i) {
+                    arr.push(i);
+                }
+                return arr;
+            };
+            $scope.pcIndex = function (row, col) {
+                return $scope.cols * row + col;
+            };
+
+            $scope.getPickerColor = function (row, col) {
+                return $scope.pickerColors[$scope.pcIndex(row, col)];
+            };
+            $scope.getColor = function (color) {
+                return color || $scope.color || $scope.defaultColor;
+            };
+
+            $scope.bgColorStyle = function (c) {
+                return {
+                    'background-color': $scope.getColor(c)
+                };
+            };
+
+            $scope.setColor = function (color) {
+                $scope.color = color;
+            };
+        },
+    };
+});
+
 SIREPO.app.service('focusPointService', function(plotting) {
 
     this.formatFocusPointData = function(focusPoint) {

@@ -414,6 +414,16 @@
         vertical-align: middle;
         display: inline-block;
     }
+    .sr-color-button {
+        width: 24px;
+        height: 24px;
+        margin: 2px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    .sr-color-button.selected {
+        box-shadow: 0 0 5px blue;
+    }
 
     .sr-panel-heading {
       font-weight: 300;

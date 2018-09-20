@@ -14,6 +14,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
     '</div>',
+    '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
+      '<div data-color-picker="" data-color="model.color" data-default-color="\'#6992ff\'"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $rootScope) {
@@ -1087,6 +1090,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 return selector ? e.select(selector) : e;
             }
 
+            function shapeColor(hexColor, alpha) {
+                var comp = plotting.colorsFromHexString(hexColor);
+                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
+            }
+
             function shapeFromConductorTypeAndPoint(conductorType, p) {
                 var w = toMicron(conductorType.zLength);
                 var h = toMicron(conductorType.xLength);
@@ -1157,6 +1165,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             ? axes.y
                             : axes.z;
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
+                    })
+                    .attr('style', function(d) {
+                        return 'fill:'  + shapeColor(d.conductorType.color, 0.3) + '; ' +
+                            'stroke: ' + shapeColor(d.conductorType.color);
                     });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {
@@ -1535,6 +1547,9 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             '<div></div>',
         ].join(''),
         controller: function($scope, $element) {
+
+            $scope.defaultColor = '#6992ff';
+
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
             var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
             var fsRenderer = null;
@@ -1554,6 +1569,8 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                 });
                 appState.models.conductors.forEach(function(conductor) {
                     var cModel = typeMap[conductor.conductorTypeId];
+                    var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
+                    var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
                     // model (z, x, y) --> (x, y, z)
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -1567,7 +1584,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                             ],
                         }),
                         {
-                            color: cModel.voltage == 0 ? zeroVoltsColor : voltsColor,
+                            color: cModel.voltage == 0 ? zColor : vColor,
                             edgeVisibility: true,
                         });
                 });
@@ -1663,6 +1680,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             appState.whenModelsLoaded($scope, function() {
                 init();
                 $scope.$on('simulationGrid.changed', refresh);
+                $scope.$on('box.changed', refresh);
             });
         },
     };
