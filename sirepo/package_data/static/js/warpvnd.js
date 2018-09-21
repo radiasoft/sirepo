@@ -15,7 +15,7 @@ SIREPO.appFieldEditors = [
       '<div data-cell-selector=""></div>',
     '</div>',
     '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
-      '<div data-color-picker="" data-color="model.color" data-default-color="\'#6992ff\'"></div>',
+      '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
     '</div>',
 ].join('');
 
@@ -165,6 +165,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
 
     function updatePermittivity() {
         panelState.showField('box', 'permittivity', appState.models.box.isConductor == '0');
+        $scope.defaultColor = appState.models.box.isConductor == '0' ? '#f3d4c8' : '#6992ff';
     }
 
     function updateSimulationMode() {
@@ -194,7 +195,8 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
             zLength: model.zLength,
             yLength: model.yLength,
             permittivity: model.permittivity,
-            isConductor: model.isConductor
+            isConductor: model.isConductor,
+            color: model.color,
         };
 
         self.editConductorType('box', modelCopy);
@@ -1167,8 +1169,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
-                        return 'fill:'  + shapeColor(d.conductorType.color, 0.3) + '; ' +
-                            'stroke: ' + shapeColor(d.conductorType.color);
+                        if(d.conductorType.color) {
+                            return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
+                                'stroke: ' + shapeColor(d.conductorType.color);
+                        }
                     });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {

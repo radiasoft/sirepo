@@ -3680,7 +3680,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     for(var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
                         if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
                             cModel = appState.models.conductorTypes[ctIndex];
-                            cColor = cModel.voltage == 0 ? zeroVoltsColor : voltsColor;
+                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
+                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
+                            cColor = cModel.voltage == 0 ? zColor : vColor;
                             break;
                         }
                     }
