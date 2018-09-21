@@ -1169,7 +1169,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
-                        if(d.conductorType.color) {
+                        if(d.conductorType.color && doesShapeCrossGridLine(d)) {
                             return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
                                 'stroke: ' + shapeColor(d.conductorType.color);
                         }
