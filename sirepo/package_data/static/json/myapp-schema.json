@@ -19,7 +19,9 @@
         ]
     },
     "model": {
+        "activityReport": {},
         "dog": {
+            "activity": ["Effort [MJ]", "Float"],
             "breed": ["Breed", "String"],
             "gender": ["Gender", "Gender"],
             "height": ["Height [cm]", "Float", null, "Distance from front paws to withers"],
@@ -28,6 +30,10 @@
         "heightWeightReport": {}
     },
     "view": {
+        "activityReport": {
+            "title": "Guardian Intensity",
+            "advanced": []
+        },
         "dog": {
             "title": "Dog",
             "basic": [

@@ -37,6 +37,12 @@ def run(cfg_dir):
                 ('height', 'weight'),
                 data,
             )
+        elif data.report == 'activityReport':
+            res = _report(
+                'Guardian Effort Over Time',
+                ('activity',),
+                data,
+            )
         else:
             raise AssertionError('unknown report: {}'.format(data.report))
     simulation_db.write_result(res)

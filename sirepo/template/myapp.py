@@ -25,6 +25,8 @@ def fixup_old_data(data):
     if 'heightWeightReport' not in data.models:
         data.models.heightWeightReport = data.models.dogReport
         del data.models['dogReport']
+    if 'activityReport' not in data.models:
+        data.models.activityReport = pkcollections.Dict()
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -56,7 +58,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
-    assert data['report'] == 'heightWeightReport', \
+    assert data.report in ('heightWeightReport', 'activityReport'), \
         'unknown report: {}'.format(data['report'])
     v = copy.deepcopy(data['models'], pkcollections.Dict())
     v.input_name = INPUT_NAME
