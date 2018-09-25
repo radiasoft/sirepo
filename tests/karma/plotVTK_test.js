@@ -269,8 +269,6 @@ describe('geometry', function() {
 
        var tx34 = tx3.compose(tx4);
        var tx43 = tx4.compose(tx3);
-       console.log('m3', tx3.str(), ' x m4', tx4.str(), ' = m34', tx34.str());
-       console.log('m4', tx3.str(), ' x m3', tx4.str(), ' = m43', tx43.str());
        expect(tx34.equals(geometry.transform(m34))).toBeTruthy();
        expect(tx43.equals(geometry.transform(m43))).toBeTruthy();
 

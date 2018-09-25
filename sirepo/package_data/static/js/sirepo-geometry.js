@@ -11,7 +11,6 @@ SIREPO.app.service('geometry', function() {
 
     // Used for both 2d and 3d
     this.pointFromArr = function (arr) {
-        //srdbg('makig pt from', arr);
         return this.point(arr[0], arr[1], arr[2]);
     };
     this.point = function(x, y, z) {
@@ -229,7 +228,7 @@ SIREPO.app.service('geometry', function() {
             return v2;
         }
 
-        // multiplies in provided order ([M1] * [M2])
+        // multiplies in provided order ([M1] * [M2]), meaning M2 gets applied to vectors FIRST
         function matrixMult(m1, m2) {
             var m = [];
             for(var i in m1) {

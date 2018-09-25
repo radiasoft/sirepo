@@ -3124,7 +3124,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, warpVTKService, geometry) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
 
     return {
         restrict: 'A',
@@ -3445,7 +3445,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // absolute sizes of things - except that really small values (e.g. 10^-7) don't scale
                 // up properly.  We use these scaling factors to overcome that problem
 
+                // The model schema defines how axes are mapped...
                 var t1 = geometry.transform(appState.models.particle3d.coordMatrix);
+
+                // ...then scale the new axes
                 var t2 = geometry.transform(
                      [
                         [1.0 / Math.abs(zmax - zmin), 0, 0],
@@ -3453,23 +3456,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         [0, 0, yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs(ymax - ymin)]
                     ]
                 );
-                var warpXForm = t2.compose(t1);
-                //srdbg('built xform', warpXForm.str());
-                //coordMapper = vtkPlotting.coordMapper(warpXForm);
-
-                //coordMapper = warpVTKService.warpCoordMapper([
-                //    X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
-                //    yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs((ymax - ymin)),
-                //    1.0 / Math.abs((zmax - zmin))
-                //]);
-
-                coordMapper = vtkPlotting.coordMapper(function (p) {
-                    return [
-                        p[2] * 1.0 / Math.abs(zmax - zmin),
-                        p[0] * X_Z_ASPECT_RATIO / Math.abs(xmax - xmin),
-                        p[1] * yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs(ymax - ymin)
-                    ];
-                }, warpXForm);
+                coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
 
                 //warpVTKService.updateScene(coordMapper, axisInfo);
 
