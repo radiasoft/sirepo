@@ -157,5 +157,124 @@ describe('geometry', function() {
 
     }));
 
+   it('should fail [transform]: ', inject(function(geometry) {
+
+         var m2 = [];
+         var m3 = [
+             [0, 1],
+             [1]
+         ];
+         var m4 = [
+             [1, 1, 1, 1],
+             [2, 2, 2, 2],
+             [3, 3, 3, 3],
+             [4, 4, 4, 4]
+         ];
+
+        // empty matrix
+        expect(function () {
+            var tx = geometry.transform(m2);
+        }).toThrow();
+
+        // non-square matrix
+        expect(function () {
+            var tx = geometry.transform(m3);
+        }).toThrow();
+
+        // matrix too long
+        expect(function () {
+            var tx = geometry.transform(m4);
+        }).toThrow();
+
+   }));
+
+   it('should pass [transform]: ', inject(function(geometry) {
+
+       var m1 = null;
+       var m2 = [
+           [0, 0, 1],
+           [1, 0, 0],
+           [0, 1, 0]
+       ];
+       var m2i = [
+           [0, 1, 0],
+           [0, 0, 1],
+           [1, 0, 0]
+       ];
+
+       var p1 = [1, 0, 0];
+       var pt1 = geometry.pointFromArr(p1);
+       var p2 = [0, 1, 0];
+       var pt2 = geometry.pointFromArr(p2);
+       var p3 = [0, 0, 1];
+       var pt3 = geometry.pointFromArr(p3);
+
+
+       // identity
+       var tx1 = geometry.transform(m1);
+       var px1 = tx1.doTransform(p1);
+       expect(px1[0] === p1[0] && px1[1] === p1[1] && px1[2] === p1[2]).toBeTruthy();
+       expect(tx1.det()).toBe(1);
+
+       var ptx1 = tx1.doTX(pt1);
+       expect(pt1.equals(ptx1)).toBeTruthy();
+
+       // x -> y, y -> z, z -> x
+       var tx2 = geometry.transform(m2);
+       //console.log('tx2', tx2.str());
+       var px2 = tx2.doTransform(p1);
+       //console.log('p1', p1, 'px2', px2, 'p2', p2);
+       expect(px2[0] === p2[0] && px2[1] === p2[1] && px2[2] === p2[2]).toBeTruthy();
+
+       var ptx2 = tx2.doTX(pt1);
+       expect(pt2.equals(ptx2)).toBeTruthy();
+
+       var tx2i = geometry.transform(m2i);
+       //console.log('tx2 inv', tx2i.str());
+
+       // tranform composed with inverse == identity
+       var tx2_tx2i = tx2.compose(tx2i);
+       //console.log('tx2 comp tx2 inv', tx2_tx2i.str());
+       px1 = tx2_tx2i.doTransform(p1);
+       expect(px1[0] === p1[0] && px1[1] === p1[1] && px1[2] === p1[2]).toBeTruthy();
+
+       var mfib = [
+           [0, 1, 2],
+           [3, 5, 8],
+           [13, 21, 34]
+       ];
+       var txfib = geometry.transform(mfib);
+       expect(txfib.det()).toBe(-2);
+
+       var tx3 = geometry.transform([
+           [1, 1, 0],
+           [0, 1, 0],
+           [1, 0, 1]
+       ]);
+       var tx4 = geometry.transform([
+           [0, 1, 0],
+           [1, 0, 0],
+           [0, 1, 1]
+       ]);
+       var m34 = [
+           [1, 1, 0],
+           [1, 0, 0],
+           [0, 2, 1]
+       ];
+       var m43 = [
+           [0, 1, 0],
+           [1, 1, 0],
+           [1, 1, 1]
+       ];
+
+       var tx34 = tx3.compose(tx4);
+       var tx43 = tx4.compose(tx3);
+       console.log('m3', tx3.str(), ' x m4', tx4.str(), ' = m34', tx34.str());
+       console.log('m4', tx3.str(), ' x m3', tx4.str(), ' = m43', tx43.str());
+       expect(tx34.equals(geometry.transform(m34))).toBeTruthy();
+       expect(tx43.equals(geometry.transform(m43))).toBeTruthy();
+
+   }));
+
 });
 

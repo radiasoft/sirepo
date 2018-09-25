@@ -6,6 +6,8 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.service('geometry', function() {
 
     var svc = this;
+    var basis = ['x', 'y', 'z'];
+
 
     // Used for both 2d and 3d
     this.pointFromArr = function (arr) {
@@ -40,6 +42,9 @@ SIREPO.app.service('geometry', function() {
                 return this.dimension() == p2.dimension() &&
                     this.x === p2.x && this.y === p2.y && this.z === p2.z;
             },
+            str: function () {
+                return this.coords() + ' dimension ' + this.dimension();
+            }
         };
     };
 
@@ -172,6 +177,139 @@ SIREPO.app.service('geometry', function() {
         };
     };
 
+    this.transform = function (matrix) {
+
+        var identityMatrix = [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+        ];
+        var xform = {};
+
+
+        // simple 3d operations, no need to import a whole matrix library
+        function det(matrix) {
+            var d = 0;
+            var len = matrix.length;
+            for(var i in matrix) {
+                var t = 1;
+                var s = 1;
+                for(var j in matrix) {
+                    var k = (i + j) % len;
+                    var l = (i + len - j) % len;
+                    t *= matrix[j][k];
+                    s *= matrix[j][l];
+                }
+                d += (t - s);
+            }
+            return d;
+        }
+
+        function trans(matrix) {
+            var m = [];
+            for(var i in matrix) {
+                var r = [];
+                for(var j in matrix) {
+                    r.push(matrix[j][i]);
+                }
+                m.push(r);
+            }
+            return m;
+        }
+
+        function vectorMult(m1, v) {
+            var v2 = [];
+            m1.forEach(function (row) {
+                var c = 0;
+                for(var i in row) {
+                    c += row[i] * v[i];
+                }
+                v2.push(c);
+            });
+            return v2;
+        }
+
+        // multiplies in provided order ([M1] * [M2])
+        function matrixMult(m1, m2) {
+            var m = [];
+            for(var i in m1) {
+                var c = [];
+                for(var j in m2) {
+                    c.push(m2[j][i]);
+                }
+                m.push(vectorMult(m1, c));
+            }
+            return trans(m);
+        }
+
+        function errMsg(s) {
+            return matrix + ': ' + s;
+        }
+
+        xform.matrix = matrix || identityMatrix;
+
+        var l = xform.matrix.length;
+        if(l > 3 || l < 1) {
+            throw errMsg('Matrix has bad size (' + l + ')');
+        }
+        if(! xform.matrix.reduce(function (ok, row) {
+                return ok && row.length == l;
+            }, true)
+        ) {
+            throw errMsg('Matrix is not square');
+        }
+        if(det(xform.matrix) === 0) {
+            throw errMsg('Matrix is not invertable');
+        }
+
+        xform.det = function() {
+            return det(xform.matrix);
+        };
+
+        xform.doTransform = function (point) {
+            return vectorMult(xform.matrix, point);
+        };
+        xform.doTX = function (point) {
+            return svc.pointFromArr(
+                xform.doTransform(point.coords())
+            );
+        };
+        xform.compose = function (otherXForm) {
+            if(otherXForm.matrix.length !== l) {
+                throw errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length);
+            }
+            return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
+        };
+        xform.composeFromMatrix = function (m) {
+            return xform.compose(svc.transform(m));
+        };
+        xform.equals = function(otherXForm) {
+            for(var i in xform.matrix) {
+                for(var j in xform.matrix) {
+                    if(xform.matrix[i][j] != otherXForm.matrix[i][j])  {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        xform.str = function () {
+            var str = '[';
+            for(var i in xform.matrix) {
+                var rstr = '[';
+                for(var j in xform.matrix[i]) {
+                    rstr += xform.matrix[i][j];
+                    rstr += (j < xform.matrix[i].length - 1 ? ', ' : ']');
+                }
+                str += rstr;
+                str += (i < xform.matrix.length -1  ? ', ' : ']');
+            }
+            return str;
+        };
+
+        return xform;
+    };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(points, dim, doReverse) {
@@ -199,7 +337,7 @@ SIREPO.app.service('geometry', function() {
 
     this.parrstr = function(arr) {
         return arr.map(function (p) {
-            return p.coords() + ' dimension ' + p.dimension();
+            return p.str();
         });
     };
 

@@ -1074,7 +1074,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 }
                 return res.replace(/e\+0$/, '');
             });
-            self.unitSymbol = formatInfo.unit.symbol;
+            self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
             return formatInfo;
         }
 
@@ -3141,8 +3141,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.axesMargins = {
                 x: { width: 16.0, height: 0.0 },
                 y: { width: 0.0, height: 16.0 }
-                //x: { width: 24.0, height: 0.0 },
-                //y: { width: 0.0, height: 24.0 }
             };
 
             // little test boxes are useful for translating vtk space to screen space
@@ -3229,15 +3227,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var fieldYFactor = 1.0;
             var fieldColorScale = null;
             var indexMaps = [];
-            //var pts;
-
-            //var xfactor = 1;  var zfactor = 1;  var yfactor = 1;
 
             var minZSpacing = Number.MAX_VALUE;
 
-            // normFactor scales all data to a reasonable viewing size
-            //var normFactor = 1.0;
-            //var impactSphereSize = 0.0125 * normFactor * X_Z_ASPECT_RATIO;
             var impactSphereSize = 0.0125 * X_Z_ASPECT_RATIO;
             var zoomUnits = 0;
             var didPan = false;
@@ -3452,11 +3444,32 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // vtk makes things fit so it does not particularly care about the
                 // absolute sizes of things - except that really small values (e.g. 10^-7) don't scale
                 // up properly.  We use these scaling factors to overcome that problem
-                coordMapper = warpVTKService.warpCoordMapper([
-                    X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
-                    yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs((ymax - ymin)),
-                    1.0 / Math.abs((zmax - zmin))
-                ]);
+
+                var t1 = geometry.transform(appState.models.particle3d.coordMatrix);
+                var t2 = geometry.transform(
+                     [
+                        [1.0 / Math.abs(zmax - zmin), 0, 0],
+                        [0, X_Z_ASPECT_RATIO / Math.abs(xmax - xmin), 0],
+                        [0, 0, yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs(ymax - ymin)]
+                    ]
+                );
+                var warpXForm = t2.compose(t1);
+                //srdbg('built xform', warpXForm.str());
+                //coordMapper = vtkPlotting.coordMapper(warpXForm);
+
+                //coordMapper = warpVTKService.warpCoordMapper([
+                //    X_Z_ASPECT_RATIO / Math.abs((xmax - xmin)),
+                //    yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs((ymax - ymin)),
+                //    1.0 / Math.abs((zmax - zmin))
+                //]);
+
+                coordMapper = vtkPlotting.coordMapper(function (p) {
+                    return [
+                        p[2] * 1.0 / Math.abs(zmax - zmin),
+                        p[0] * X_Z_ASPECT_RATIO / Math.abs(xmax - xmin),
+                        p[1] * yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs(ymax - ymin)
+                    ];
+                }, warpXForm);
 
                 //warpVTKService.updateScene(coordMapper, axisInfo);
 

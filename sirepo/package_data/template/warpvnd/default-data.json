@@ -30,7 +30,8 @@
         },
         "particle3d": {
             "renderCount": "10",
-            "joinEvery": 1
+            "joinEvery": 1,
+            "coordMatrix": ["Coordinate Transform", "Matrix", [[0, 0, 1], [1, 0, 0], [0, 1, 0]]]
         },
         "simulation": {
             "folder": "/",

@@ -9,7 +9,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
     var self = {};
 
     function identityTransform(lpoint) {
-        return lpoint;
+        return lpoint;  //geometry.transform();  //lpoint;
     }
 
     // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
@@ -80,8 +80,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         }
     };
 
-    self.coordMapper = function(transform) {
+    self.coordMapper = function(transform, xf) {
 
+        // "Bundles" a source, mapper, and actor together
         function actorBundle(source) {
             var m = vtk.Rendering.Core.vtkMapper.newInstance();
             m.setInputConnection(source.getOutputPort());
@@ -106,6 +107,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         return {
 
             xform: transform || identityTransform,
+            xf: xf || geometry.transform(),
 
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
@@ -116,17 +118,35 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 var vo = labOrigin ? this.xform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform(labP1) : [0, 0, 1];
                 var vp2 = labP2 ? this.xform(labP2) : [1, 0, 0];
-                planeSource.setOrigin(vo[0], vo[1], vo[2]);
-                planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
+                //srdbg('xformed plane (old)', vo, vp1, vp2);
+
+                var vox = labOrigin ? this.xf.doTransform(labOrigin) : [0, 0, 0];
+                var vpx1 = labP1 ? this.xf.doTransform(labP1) : [0, 0, 1];
+                var vpx2 = labP2 ? this.xf.doTransform(labP2) : [1, 0, 0];
+                //srdbg('xformed plane', vox, vpx1, vpx2);
+
+                //planeSource.setOrigin(vo[0], vo[1], vo[2]);
+                //planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
+                //planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
+
+                planeSource.setOrigin(vox[0], vox[1], vox[2]);
+                planeSource.setPoint1(vpx1[0], vpx1[1], vpx1[2]);
+                planeSource.setPoint2(vpx2[0], vpx2[1], vpx2[2]);
             },
             buildBox: function(labSize, labCenter) {
                 var vsize = labSize ? this.xform(labSize) :  [1, 1, 1];
+                var vsz = labSize ? this.xf.doTransform(labSize) :  [1, 1, 1];
+                //srdbg('xformed size/ctr (old)', vsize, labCenter ? this.xform(labCenter) :  [0, 0, 0]);
+                //srdbg('xformed size/ctr (new)', vsz, labCenter ? this.xf.doTransform(labCenter) :  [0, 0, 0]);
                 var cs = vtk.Filters.Sources.vtkCubeSource.newInstance({
-                    xLength: vsize[0],
-                    yLength: vsize[1],
-                    zLength: vsize[2],
-                    center: labCenter ? this.xform(labCenter) :  [0, 0, 0]
+                    //xLength: vsize[0],
+                    //yLength: vsize[1],
+                    //zLength: vsize[2],
+                    xLength: vsz[0],
+                    yLength: vsz[1],
+                    zLength: vsz[2],
+                    //center: labCenter ? this.xform(labCenter) :  [0, 0, 0]
+                    center: labCenter ? this.xf.doTransform(labCenter) :  [0, 0, 0]
                 });
                 var ab = actorBundle(cs);
 
@@ -142,8 +162,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 return ab;
             },
             buildLine: function(labP1, labP2, colorArray) {
-                var vp1 = this.xform(labP1);
-                var vp2 = this.xform(labP2);
+                //var vp1 = this.xform(labP1);
+                //var vp2 = this.xform(labP2);
+                var vp1 = this.xf.doTransform(labP1);
+                var vp2 = this.xf.doTransform(labP2);
                 var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
                     point1: [vp1[0], vp1[1], vp1[2]],
                     point2: [vp2[0], vp2[1], vp2[2]],
@@ -156,7 +178,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             },
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
-                    center: lcenter ? this.xform(lcenter) : [0, 0, 0],
+                    //center: lcenter ? this.xform(lcenter) : [0, 0, 0],
+                    center: lcenter ? this.xf.doTransform(lcenter) : [0, 0, 0],
                     radius: radius || 1,
                     thetaResolution: 16,
                     phiResolution: 16

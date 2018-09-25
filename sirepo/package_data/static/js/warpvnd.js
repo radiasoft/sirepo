@@ -1691,7 +1691,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
 });
 
 
-SIREPO.app.service('warpVTKService', function(vtkPlotting) {
+SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
 
     var svc = this;
 
@@ -1708,17 +1708,27 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting) {
 
     this.warpCoordMapper = function(scale) {
         return vtkPlotting.coordMapper(labToVTK(scale || [1.0, 1.0, 1.0]));
+        //return vtkPlotting.coordMapper(l2v(scale || [1.0, 1.0, 1.0]));
     };
 
+    //TODO(mvk): use transform object
     function labToVTK(scale) {
         return function (lpoint) {
             return [scale[2] * lpoint[2], scale[0] * lpoint[0], scale[1] * lpoint[1]];
         };
     }
+    //TODO(mvk): move matrix to schema and get rid of all this
     function l2v(scale) {
-        return function (lpoint) {
-            return [scale[2] * lpoint.coords()[2], scale[0] * lpoint.coords()[0], scale[1] * lpoint.coords()[1]];
-        };
+        //return function (lpoint) {
+        //    return [scale[2] * lpoint.coords()[2], scale[0] * lpoint.coords()[0], scale[1] * lpoint.coords()[1]];
+        //};
+        return geometry.transform(
+            [
+                [0, 0, scale[2]],
+                [scale[0], 0, 0],
+                [0, scale[1], 0]
+            ]
+        );
     }
 
     // TODO (mvk): this inverse transform should really be calculated not supplied
