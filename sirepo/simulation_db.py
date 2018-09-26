@@ -1013,8 +1013,6 @@ def _merge_dicts(base, derived, depth=-1):
         depth (int): how deep to recurse:
             >= 0:  <depth> levels
             < 0:   all the way
-        merge_style (str): pass 'merge' to add elements of an array in <base> to the matching array in <derived>
-            Otherwise the derived array remains as it is
     """
     if depth == 0:
         return

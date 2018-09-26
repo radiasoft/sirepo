@@ -14,6 +14,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
     '</div>',
+    '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
+      '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $rootScope) {
@@ -162,6 +165,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
 
     function updatePermittivity() {
         panelState.showField('box', 'permittivity', appState.models.box.isConductor == '0');
+        $scope.defaultColor = appState.models.box.isConductor == '0' ? '#f3d4c8' : '#6992ff';
     }
 
     function updateSimulationMode() {
@@ -180,6 +184,22 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         };
         appState.setModelDefaults(model, type);
         self.editConductorType(type, model);
+    };
+
+    self.copyConductor = function(model) {
+        var modelCopy = {
+            name: model.name + " Copy",
+            id: appState.maxId(appState.models.conductorTypes) + 1,
+            voltage: model.voltage,
+            xLength: model.xLength,
+            zLength: model.zLength,
+            yLength: model.yLength,
+            permittivity: model.permittivity,
+            isConductor: model.isConductor,
+            color: model.color,
+        };
+
+        self.editConductorType('box', modelCopy);
     };
 
     self.deleteConductor = function() {
@@ -376,7 +396,7 @@ SIREPO.app.directive('appHeader', function() {
             '<div data-app-header-left="nav"></div>',
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
-		'<div data-ng-if="nav.isLoaded()" data-sim-sections="">',
+                '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
@@ -457,7 +477,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                 '<tr>',
                   '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge elegant-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
-                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ conductorType.voltage }}eV<div class="sr-button-bar-parent"><div class="sr-button-bar"><button data-ng-click="source.copyConductor(conductorType)" class="btn btn-info btn-xs sr-hover-button">Copy</button> <button data-ng-click="editConductorType(conductorType)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteConductorType(conductorType)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
                 '<tr class="warpvnd-conductor-th" data-ng-show="hasConductors(conductorType) && ! isCollapsed(conductorType)">',
                   '<td></td><td data-ng-if="! warpvndService.is3D()"></td><th data-ng-if="warpvndService.is3D()">Center Y</th><th>Center Z</th><th>Center X</th>',
@@ -1072,6 +1092,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 return selector ? e.select(selector) : e;
             }
 
+            function shapeColor(hexColor, alpha) {
+                var comp = plotting.colorsFromHexString(hexColor);
+                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
+            }
+
             function shapeFromConductorTypeAndPoint(conductorType, p) {
                 var w = toMicron(conductorType.zLength);
                 var h = toMicron(conductorType.xLength);
@@ -1142,6 +1167,12 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             ? axes.y
                             : axes.z;
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
+                    })
+                    .attr('style', function(d) {
+                        if(d.conductorType.color && doesShapeCrossGridLine(d)) {
+                            return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
+                                'stroke: ' + shapeColor(d.conductorType.color);
+                        }
                     });
                 var tooltip = selection.select('title');
                 if (tooltip.empty()) {
@@ -1513,13 +1544,16 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState) {
+SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService) {
     return {
         restrict: 'A',
         template: [
             '<div></div>',
         ].join(''),
         controller: function($scope, $element) {
+
+            $scope.defaultColor = '#6992ff';
+
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
             var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
             var fsRenderer = null;
@@ -1539,6 +1573,8 @@ SIREPO.app.directive('conductors3d', function(appState) {
                 });
                 appState.models.conductors.forEach(function(conductor) {
                     var cModel = typeMap[conductor.conductorTypeId];
+                    var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
+                    var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
                     // model (z, x, y) --> (x, y, z)
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -1552,7 +1588,7 @@ SIREPO.app.directive('conductors3d', function(appState) {
                             ],
                         }),
                         {
-                            color: cModel.voltage == 0 ? zeroVoltsColor : voltsColor,
+                            color: cModel.voltage == 0 ? zColor : vColor,
                             edgeVisibility: true,
                         });
                 });
@@ -1648,7 +1684,110 @@ SIREPO.app.directive('conductors3d', function(appState) {
             appState.whenModelsLoaded($scope, function() {
                 init();
                 $scope.$on('simulationGrid.changed', refresh);
+                $scope.$on('box.changed', refresh);
             });
         },
     };
 });
+
+
+SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
+
+    var svc = this;
+
+    var startPlaneBundle;
+    var endPlaneBundle;
+    var conductorBundles = [];
+    var outlineBundle;
+    var orientationMarker;
+
+    // colors - vtk uses a range of 0-1 for RGB components
+    //TODO(mvk): set colors on the model, keeping these as defaults
+    var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
+    var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
+
+    this.initScene = function (coordMapper, renderer) {
+
+        // the emitter plane
+        startPlaneBundle = coordMapper.buildPlane();
+        startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+        startPlaneBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(startPlaneBundle.actor);
+
+        // the collector plane
+        endPlaneBundle = coordMapper.buildPlane();
+        endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+        endPlaneBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(endPlaneBundle.actor);
+
+        // a box around the elements, for visual clarity
+        outlineBundle = coordMapper.buildBox();
+        outlineBundle.actor.getProperty().setColor(1, 1, 1);
+        outlineBundle.actor.getProperty().setEdgeVisibility(true);
+        outlineBundle.actor.getProperty().setEdgeColor(0, 0, 0);
+        outlineBundle.actor.getProperty().setFrontfaceCulling(true);
+        outlineBundle.actor.getProperty().setLighting(false);
+        renderer.addActor(outlineBundle.actor);
+
+        /*
+        orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+            actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+            interactor: renderWindow.getInteractor()
+        });
+        orientationMarker.setEnabled(true);
+        orientationMarker.setViewportCorner(
+            vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+        );
+        orientationMarker.setViewportSize(0.08);
+        orientationMarker.setMinPixelSize(100);
+        orientationMarker.setMaxPixelSize(300);
+        */
+   };
+
+    this.updateScene = function (coordMapper, axisInfo) {
+
+        coordMapper.setPlane(startPlaneBundle.source,
+            [axisInfo.x.min, axisInfo.y.min, axisInfo.z.min],
+            [axisInfo.x.min, axisInfo.y.max, axisInfo.z.min],
+            [axisInfo.x.max, axisInfo.y.min, axisInfo.z.min]
+        );
+        coordMapper.setPlane(endPlaneBundle.source,
+            [axisInfo.x.min, axisInfo.y.min, axisInfo.z.max],
+            [axisInfo.x.min, axisInfo.y.max, axisInfo.z.max],
+            [axisInfo.x.max, axisInfo.y.min, axisInfo.z.max]
+        );
+
+        var padding = 0.01;
+        var spsOrigin = startPlaneBundle.source.getOrigin();
+        var epsOrigin = endPlaneBundle.source.getOrigin();
+        var epsP1 = endPlaneBundle.source.getPoint1();
+        var epsP2 = endPlaneBundle.source.getPoint2();
+
+        var osXLen = Math.abs(epsOrigin[0] - spsOrigin[0]) + padding;
+        var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
+        var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
+        var osCtr = [];
+        for(var i = 0; i < 3; ++i) {
+            osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
+        }
+        outlineBundle.setLength([
+            Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
+            Math.abs(epsP2[1] - epsP1[1]) + padding,
+            Math.abs(epsP2[2] - epsP1[2]) + padding
+        ]);
+        outlineBundle.setCenter(osCtr);
+
+    };
+
+    this.getStartPlane = function () {
+        return startPlaneBundle;
+    };
+    this.getEndPlane = function () {
+        return endPlaneBundle;
+    };
+    this.getOutline = function () {
+        return outlineBundle;
+    };
+
+});
+

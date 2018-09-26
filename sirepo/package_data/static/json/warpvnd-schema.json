@@ -7,7 +7,9 @@
         },
         "sirepoLibs": {
             "js": [
-                "warpvnd.js"
+                "warpvnd.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
             ]
         }
     },
@@ -85,7 +87,8 @@
             "zLength": ["Length (Z) [µm]", "Float"],
             "yLength": ["Depth (Y) [µm]", "Float", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
-            "isConductor": ["Conductor", "Boolean", "1"]
+            "isConductor": ["Conductor", "Boolean", "1"],
+            "color": ["Color", "Color"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -182,7 +185,8 @@
                 "xLength",
                 "yLength",
                 "isConductor",
-                "permittivity"
+                "permittivity",
+                "color"
             ]
         },
         "cathode": {

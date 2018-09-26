@@ -43,6 +43,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/sirepo.js',
         'sirepo/package_data/static/js/sirepo-components.js',
         'sirepo/package_data/static/js/sirepo-plotting.js',
+        'sirepo/package_data/static/js/sirepo-geometry.js',
         'sirepo/package_data/static/js/srw.js',
         'sirepo/package_data/static/js/ext/d3-3.5.9.js',
         'tests/helpers/angular/*.js',

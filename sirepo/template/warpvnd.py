@@ -31,7 +31,7 @@ _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
