@@ -3124,6 +3124,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
+//TODO(mvk): This directive should move to sirepo-plotting-vtk
 SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
 
     return {
@@ -3445,10 +3446,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // absolute sizes of things - except that really small values (e.g. 10^-7) don't scale
                 // up properly.  We use these scaling factors to overcome that problem
 
-                // The model schema defines how axes are mapped...
-                var t1 = geometry.transform(appState.models.particle3d.coordMatrix);
+                // This defines how axes are mapped...
+                var t1 = geometry.transform(SIREPO.PLOT_3D_CONFIG.coordMatrix);
 
-                // ...then scale the new axes
+                // ...this scales the new axes
                 var t2 = geometry.transform(
                      [
                         [1.0 / Math.abs(zmax - zmin), 0, 0],
@@ -4736,6 +4737,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
     };
 });
 
+//TODO(mvk): all basic geometric stuff should move to geometry service
 SIREPO.app.service('plotUtilities', function() {
 
     var utils = this;
