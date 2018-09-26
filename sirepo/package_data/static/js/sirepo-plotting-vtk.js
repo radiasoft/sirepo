@@ -4,10 +4,6 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.PLOT_3D_CONFIG = {
-    'coordMatrix': [[1, 0, 1], [0, 1, 0], [0, 0, 1]]
-};
-
 SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, plotUtilities, geometry, $window) {
 
     var self = {};
