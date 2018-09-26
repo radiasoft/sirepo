@@ -3596,7 +3596,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestIndex = 0;
                 indexMaps = [];
-                for(var i = 0; i < zpoints.length; ++i) {
+                for(i = 0; i < zpoints.length; ++i) {
                     var zArr = zpoints[i];  var yArr = ypoints[i];  var xArr = xpoints[i];
                     var l = zArr.length;
 
@@ -4009,6 +4009,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
                 var edges = edgeProps.edges;
+                var tanPsi = 0;
                 if (edges) {
                     isXReversed = edges[0][0] > edges[1][0];
                     sceneXEnds = edgeProps.sceneEnds;
@@ -4019,7 +4020,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     xAxisRight = Math.min(sceneXEnds[1][0], clippedXEnds[1][0]);
                     xAxisBottom = xAxisRight == sceneXEnds[1][0] ? sceneXEnds[1][1] : clippedXEnds[1][1];
                     xAxisProjLen = plotUtilities.dist([xAxisLeft, xAxisTop], [xAxisRight, xAxisBottom]);
-                    var tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
+                    tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
                     xAxisAngle = 180 * Math.atan(tanPsi) / Math.PI;
                 }
                 else {
@@ -4036,7 +4037,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     xAxisBottom = xAxisRight == sceneXEnds[1][0] ? sceneXEnds[1][1] : clippedXEnds[1][1];
                     xAxisProjLen = plotUtilities.dist([xAxisLeft, xAxisTop], [xAxisRight, xAxisBottom]);
                     sceneXLen = plotUtilities.dist(sceneXEnds[0], sceneXEnds[1]);
-                    var tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
+                    tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
                     xAxisAngle = 180 * Math.atan(tanPsi) / Math.PI;
                 }
 
@@ -4154,6 +4155,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 edgeProps = propertiesOfEdges(vpYEdges, [leftmostCorners, rightmostCorners], vtkCanvasHolderBounds, 1, false);
                 edges = edgeProps.edges;
+                var tanPhi = 0;
+                var phi = 0;
                 if (edges) {
                     isYReversed = edges[0][1] < edges[1][1];
                     sceneYEnds = edgeProps.sceneEnds;
@@ -4167,8 +4170,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     // top moves below bottom ... ???
 
                     yAxisProjLen = plotUtilities.dist([yAxisLeft, yAxisTop], [yAxisRight, yAxisBottom]);
-                    var tanPhi = (sceneYEnds[0][1] - sceneYEnds[1][1]) / (sceneYEnds[0][0] - sceneYEnds[1][0]);
-                    var phi = 180 * Math.atan(tanPhi) / Math.PI - 90;
+                    tanPhi = (sceneYEnds[0][1] - sceneYEnds[1][1]) / (sceneYEnds[0][0] - sceneYEnds[1][0]);
+                    phi = 180 * Math.atan(tanPhi) / Math.PI - 90;
                     if (phi < -90) {
                         phi += 180;
                     }
@@ -4188,8 +4191,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     yAxisRight = yAxisBottom == sceneYEnds[1][1] ? sceneYEnds[1][0] : clippedYEnds[1][0];
                     yAxisProjLen = plotUtilities.dist([yAxisLeft, yAxisTop], [yAxisRight, yAxisBottom]);
                     sceneYLen = plotUtilities.dist(sceneYEnds[0], sceneYEnds[1]);
-                    var tanPhi = (sceneYEnds[0][1] - sceneYEnds[1][1]) / (sceneYEnds[0][0] - sceneYEnds[1][0]);
-                    var phi = 180 * Math.atan(tanPhi) / Math.PI - 90;
+                    tanPhi = (sceneYEnds[0][1] - sceneYEnds[1][1]) / (sceneYEnds[0][0] - sceneYEnds[1][0]);
+                    phi = 180 * Math.atan(tanPhi) / Math.PI - 90;
                     if (phi < -90) {
                         phi += 180;
                     }
@@ -4291,6 +4294,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 edgeProps = propertiesOfEdges(vpZEdges, [zLeft, zRight], vtkCanvasHolderBounds, 0, false);
                 edges = edgeProps.edges;
+                var tanTheta = 0;
                 if (edges) {
                     isZReversed = edges[0][0] > edges[1][0];
                     sceneZEnds = edgeProps.sceneEnds;
@@ -4301,7 +4305,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     zAxisRight = Math.min(sceneZEnds[1][0], clippedZEnds[1][0]);
                     zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
                     zAxisProjLen = plotUtilities.dist([zAxisLeft, zAxisTop], [zAxisRight, zAxisBottom]);
-                    var tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
+                    tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
                     zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
                 }
                 else {
@@ -4318,7 +4322,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
                     zAxisProjLen = plotUtilities.dist([zAxisLeft, zAxisTop], [zAxisRight, zAxisBottom]);
                     sceneZLen = plotUtilities.dist(sceneZEnds[0], sceneZEnds[1]);
-                    var tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
+                    tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
                     zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
                 }
 
@@ -4494,19 +4498,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var selector = {};
                 var selection = {};
                 selector.select = function(edgeArr, sorter) {
-                    for(var corners in cornerArr) {
+                    cornerArr.forEach(function (corners) {
                         selection.edge = plotUtilities.firstEdgeWithCorners(edgeArr, cornerArr[corners]);
                         selection.sceneEnds = sorter(selection.edge);
                         selection.sceneEndsInBounds = selection.sceneEnds.map(function (p) {
                             return plotUtilities.isPointWithinBounds(p, bounds);
-                        }),
+                        });
                         selection.sceneLen = plotUtilities.dist(selection.sceneEnds[0], selection.sceneEnds[1]);
                         selection.screenEnds = plotUtilities.boundsIntersections(bounds, selection.sceneEnds[0], selection.sceneEnds[1]);
                         selection.clippedEnds = sorter(plotUtilities.edgesInsideBounds(selection.screenEnds, bounds));
                         if(selection.clippedEnds && selection.clippedEnds.length == 2) {
                             return selection;
                         }
-                    }
+
+                    });
                 };
                 return selector;
             }
@@ -4515,19 +4520,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var selector = {};
                 var selection = {};
                 selector.select = function(edgeArr, sorter) {
-                    for(var corners in cornerArr) {
+                    cornerArr.forEach(function (corners) {
                         selection.edge = geometry.firstEdgeWithCorners(edgeArr, cornerArr[corners]);
                         selection.sceneEnds = sorter(selection.edge);
                         selection.sceneEndsInBounds = selection.sceneEnds.map(function (p) {
                             return p.isInRect(rect);
-                        }),
+                        });
                         selection.sceneLen = selection.sceneEnds[0].dist(selection.sceneEnds[1]);
                         selection.screenEnds = rect.boundaryIntersectons(selection.sceneEnds[0], selection.sceneEnds[1]);
                         selection.clippedEnds = sorter(rect.segmentsInside(selection.screenEnds));
                         if(selection.clippedEnds && selection.clippedEnds.length == 2) {
                             return selection;
                         }
-                    }
+
+                    });
                 };
                 return selector;
             }
