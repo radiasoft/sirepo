@@ -70,7 +70,6 @@ def _report(title, fields, data):
     cols = _csv_to_cols()
     x_points = cols['year']
     plots = [_plot(dog, f, cols) for f in fields]
-    pkdp(plots[0])
     return {
         'title': title,
         'x_range': [x_points[0], x_points[-1]],
