@@ -13,6 +13,7 @@ pykern.pksetup.setup(
     install_requires=[
         # some "concrete" dependencies in requirements.txt
         'Flask-OAuthlib',
+        'Flask-Mail',
         'Flask_SQLAlchemy',
         'SQLAlchemy',
         'aenum',
