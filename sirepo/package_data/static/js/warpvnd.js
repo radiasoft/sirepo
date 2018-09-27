@@ -3,6 +3,10 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.PLOT_3D_CONFIG = {
+    'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+};
+
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
