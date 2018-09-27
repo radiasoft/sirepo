@@ -30,7 +30,7 @@ def api_comsolRegister():
         subject='Sirepo / COMSOL Registration',
         sender=cfg.mail_support_email,
         recipients=[cfg.mail_recipient_email],
-        body='''
+        body=u'''
 Request for access to Sirepo / COMSOL.
 
 Name: {}
