@@ -4,40 +4,29 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, plotUtilities, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, plotUtilities, geometry, $window) {
 
     var self = {};
-
-    function identityTransform(lpoint) {
-        return lpoint;
-    }
-
-    function testTansformInverse(xform, invXform, lpoint) {
-        var lpoint2 = invXform(xform(lpoint));
-        if(lpoint2[0] != lpoint[0] || lpoint2[1] != lpoint[1] || lpoint2[2] != lpoint[2]) {
-            throw 'transform(inverse) != identity:' + lpoint + '->' + lpoint2;
-        }
-    }
 
     // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
     // Returns the properties of the first set of corners that fit - order them by desired location.
     // Could be none fit, in which case no properties are defined
-    function edgeIntersections(vpEdges, cornersArr, bounds, dim, reverse) {
+    function edgeIntersections(vpEdges, cornersArr, rect, dim, reverse) {
         var props = {};
         //srdbg('checking for edges that include corners', cornersArr);
         for(var corners in cornersArr) {
-            var edges = plotUtilities.edgesWithCorners(vpEdges, cornersArr[corners])[0];
+            var edges = geometry.edgesWithCorners(vpEdges, cornersArr[corners])[0];
             //srdbg('edges that include corners', cornersArr[corners], edges);
-            var sceneEnds = plotUtilities.sortInDimension(edges, dim);
+            var sceneEnds = geometry.sortInDimension(edges, dim);
             //srdbg('scene ends', sceneEnds);
-            var screenEnds = plotUtilities.boundsIntersections(bounds, sceneEnds[0], sceneEnds[1]);
+            var screenEnds = rect.boundaryIntersectons(sceneEnds[0], sceneEnds[1]);
             //srdbg('screen ends', screenEnds);
-            var sceneLen = plotUtilities.dist(sceneEnds[0], sceneEnds[1]);
-            var clippedEnds = plotUtilities.sortInDimension(
-                plotUtilities.edgesInsideBounds(screenEnds, bounds),
+            var sceneLen = sceneEnds[0].dist(sceneEnds[1]);
+            var clippedEnds = geometry.sortInDimension(
+                rect.segmentsInside(screenEnds),
                 dim, reverse);
             if(clippedEnds && clippedEnds.length == 2) {
-             var clippedLen = plotUtilities.dist(clippedEnds[0], clippedEnds[1]);
+             var clippedLen = clippedEnds[0].dist(clippedEnds[1]);
                 if(clippedLen / sceneLen > 0.5) {
                     props.edges = edges;
                     props.sceneEnds = sceneEnds;
@@ -89,64 +78,91 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
     self.coordMapper = function(transform) {
 
+        // "Bundles" a source, mapper, and actor together
+        function actorBundle(source) {
+            var m = vtk.Rendering.Core.vtkMapper.newInstance();
+            m.setInputConnection(source.getOutputPort());
+            var a = vtk.Rendering.Core.vtkActor.newInstance();
+            a.setMapper(m);
+
+            return {
+                actor: a,
+                source: source,
+                mapper: m,
+                setActor: function (actor) {
+                    actor.setMapper(this.m);
+                    this.actor = actor;
+                },
+                setSource: function (source) {
+                    this.mapper.setInputConnection(source.getOutputPort());
+                    this.source = source;
+                }
+            };
+        }
+
         return {
 
-            xform: transform || identityTransform,
+            xform: transform || geometry.transform(),
 
-            // These functions take an optional transformation to go from "lab"
-            // coordinates to vtk screen coordinates and return the appropriate vtkActor
-            setPlane: function(planeSource, lo, lp1, lp2) {
-                var vo = this.xform(lo);
-                var vp1 = this.xform(lp1);
-                var vp2 = this.xform(lp2);
+            buildPlane: function(labOrigin, labP1, labP2) {
+                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                this.setPlane(src, labOrigin, labP1, labP2);
+                return actorBundle(src);
+            },
+            setPlane: function(planeSource, labOrigin, labP1, labP2) {
+                var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
+                var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
+                var vp2 = labP2 ? this.xform.doTransform(labP2) : [1, 0, 0];
                 planeSource.setOrigin(vo[0], vo[1], vo[2]);
                 planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
                 planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
-            buildBox: function(lsize, lcenter) {
-                var vsize = this.xform(lsize);
-                var vcenter = this.xform(lcenter);
-                return vtk.Filters.Sources.vtkCubeSource.newInstance({
+            buildBox: function(labSize, labCenter) {
+                var vsize = labSize ? this.xform.doTransform(labSize) :  [1, 1, 1];
+                var cs = vtk.Filters.Sources.vtkCubeSource.newInstance({
                     xLength: vsize[0],
                     yLength: vsize[1],
                     zLength: vsize[2],
-                    center: vcenter
+                    center: labCenter ? this.xform.doTransform(labCenter) :  [0, 0, 0]
                 });
+                var ab = actorBundle(cs);
+
+                ab.setCenter = function (arr) {
+                    ab.source.setCenter(arr);
+                };
+                ab.setLength = function (arr) {
+                    ab.source.setXLength(arr[0]);
+                    ab.source.setYLength(arr[1]);
+                    ab.source.setZLength(arr[2]);
+                };
+
+                return ab;
             },
-            buildLine: function(lp1, lp2, colorArray) {
-                var vp1 = this.xform(lp1);
-                var vp2 = this.xform(lp2);
+            buildLine: function(labP1, labP2, colorArray) {
+                var vp1 = this.xform.doTransform(labP1);
+                var vp2 = this.xform.doTransform(labP2);
                 var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
                     point1: [vp1[0], vp1[1], vp1[2]],
                     point2: [vp2[0], vp2[1], vp2[2]],
                     resolution: 2
                 });
 
-                var lm = vtk.Rendering.Core.vtkMapper.newInstance();
-                lm.setInputConnection(ls.getOutputPort());
-
-                var la = vtk.Rendering.Core.vtkActor.newInstance();
-                la.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
-                la.setMapper(lm);
-                return la;
+                var ab = actorBundle(ls);
+                ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                return ab;
             },
-            buildSphere: function(lcenter, radius, colorArray, transform) {
-                var vcenter = this.xform(lcenter);
+            buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
-                    center: vcenter,
-                    radius: radius,
+                    center: lcenter ? this.xform.doTransform(lcenter) : [0, 0, 0],
+                    radius: radius || 1,
                     thetaResolution: 16,
                     phiResolution: 16
                 });
 
-                var pm = vtk.Rendering.Core.vtkMapper.newInstance();
-                pm.setInputConnection(ps.getOutputPort());
-
-                var pa = vtk.Rendering.Core.vtkActor.newInstance();
-                pa.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
-                pa.getProperty().setLighting(false);
-                pa.setMapper(pm);
-                return pa;
+                var ab = actorBundle(ps);
+                ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
+                ab.actor.getProperty().setLighting(false);
+                return ab;
             },
         };
     };
@@ -176,6 +192,13 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
         vpObj.getEdge = function(name) {
             return vpObj.getEdges()[name];
+        };
+        vpObj.edgesForDimension = function(dim) {
+            return {
+                x: [],
+                y: [],
+                z: []
+            };
         };
 
         // Attaches a plotAxis to any of the named edges (an edge being a pair of points) -- when updated the axis will
@@ -219,62 +242,133 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
     // Takes a vtk cube source and renderer and returns a box in viewport coordinates with a bunch of useful
     // geometric properties and methods
-    //
     self.vpBox = function(vtkCubeSource, renderer) {
 
         var box = self.vpObject(vtkCubeSource, renderer);
 
-        // It's easiest to keep world coordinates in arrays rather than objects, since
-        // we're mapping them a good deal and we will not refer to them directly
         function wCenter() {
             return box.source.getCenter();
         }
+        function wc() {
+            //srdbg('point from box ctr');
+            return geometry.pointFromArr(box.source.getCenter());
+        }
+
+        // Convenience for looping
+        function wLength() {
+            return [
+                box.source.getXLength(),
+                box.source.getYLength(),
+                box.source.getZLength()
+            ];
+        }
 
         function wCorners() {
-            var c = wCenter();
+            var ctr = wCenter();
             var corners = [];
-            for(var zSide in [-0.5, 0.5]) {
-                for (var ySide in [-0.5, 0.5]) {
-                    for (var xSide in [-0.5, 0.5]) {
-                        corners.push([
-                            [
-                                c[0] + xSide * box.source.getXLength(),
-                                c[1] + ySide * box.source.getYLength(),
-                                c[2] + zSide * box.source.getZLength()
-                            ]
-                        ]);
+
+            var sides = [-0.5, 0.5];
+            var src = box.source;
+            var len = wLength();
+            for(var i in sides) {
+                for (var j in sides) {
+                    for (var k in sides) {
+                        var s = [sides[k], sides[j], sides[i]];
+                        var c = [];
+                        for(var l = 0; l < 3; ++l) {
+                            c.push(ctr[l] + s[l] * len[l]);
+                        }
+                        corners.push(c);
+                    }
+                }
+            }
+            //srdbg('wCorners', corners);
+            return corners;
+        }
+        function wcrn() {
+            var ctr = wc();
+            //srdbg('center', ctr);
+            var corners = [];
+
+            var sides = [-0.5, 0.5];
+            var src = box.source;
+            var len = wLength();
+            for(var i in sides) {
+                for (var j in sides) {
+                    for (var k in sides) {
+                        var s = [sides[k], sides[j], sides[i]];
+                        //srdbg('sides', s);
+                        var c = [];
+                        for(var l = 0; l < 3; ++l) {
+                            //srdbg('ctr', ctr.coords()[l], 'side', s[l], 'len', len[l], 'val', ctr.coords()[l] + s[l] * len[l]);
+                            c.push(ctr.coords()[l] + s[l] * len[l]);
+                        }
+                        //srdbg('corber pt');
+                        corners.push(geometry.pointFromArr(c));
                     }
                 }
             }
             return corners;
-            /*
-            return [
-                [c[0] - 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //leftBottomOut 0 -> 4
-                [c[0] - 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //leftTopOut 1 -> 6
-                [c[0] + 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //rightTopOut 2 -> 7
-                [c[0] + 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] + 0.5 * box.source.getZLength()],  //rightBottomOut 3 -> 5
-                [c[0] - 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //leftBottomIn 4 -> 0
-                [c[0] - 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //leftTopIn 5 -> 2
-                [c[0] + 0.5 * box.source.getXLength(), c[1] + 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()],  //rightTopIn 6 -> 3
-                [c[0] + 0.5 * box.source.getXLength(), c[1] - 0.5 * box.source.getYLength(), c[2] - 0.5 * box.source.getZLength()]   //rightBottomIn 7 -> 1
-            ];
-            */
         }
+
+        box.crns = function() {
+            return wcrn();
+        };
+
+        var edgeCornerPairs = {
+            x: [[0, 1], [5, 4], [2, 3], [7, 6]],
+            y: [[0, 2], [1, 3], [4, 6], [5, 7]],
+            z: [[0, 4], [1, 5], [2, 6], [3, 7]]
+        };
+        box.edgs = function () {
+            var c = box.crns();
+            //srdbg('edfes from', c);
+            var e = {};
+           // for(var i in pairs ) {
+            for(var dim in edgeCornerPairs ) {
+                var lines = [];
+                //for(var j in  pairs[i]) {
+                for(var j in  edgeCornerPairs[dim]) {
+                    //var p = pairs[i][j];
+                    var p = edgeCornerPairs[dim][j];
+                    //var l = geometry.line(c[p[0]], c[p[1]]);
+                    var l = geometry.lineSegment(c[p[0]], c[p[1]]);
+                    //e.push(l);
+                    //srdbg('edge', plotUtilities.parrstr(l.points()));
+                    lines.push(l);
+                }
+                e[dim] = lines;
+            }
+            return e;
+        };
+        box.edgesForDimension = function (dim) {
+            return box.edgs()[dim];
+        };
+
         function vpCorners() {
             return wCorners().map(function (p) {
                 return self.localCoordFromWorld(box.wCoord, p);
             });
         }
+        function vpcrns() {
+            return wcrn().map(function (p) {
+                return self.lcfw(box.wCoord, p);
+            });
+        }
+
         function wCenterLines() {
             var c = wCenter();
             var cls = [];
+            var sides = [-0.5, 0.5];
+            var src = box.source;
+            var l = wLength();
             for(var dim = 0; dim < 3; ++dim) {
-                for(var side in [-0.5, 0.5]) {
+                for(var i in sides) {
                     cls.push(
                         [
-                            c[0] + (dim == 0 ? side : 0) * box.source.getXLength(),
-                            c[1] + (dim == 1 ? side : 0) * box.source.getYLength(),
-                            c[2] + (dim == 2 ? side : 0) * box.source.getZLength()
+                            c[0] + (dim == 0 ? sides[i] : 0) * l[0],
+                            c[1] + (dim == 1 ? sides[i] : 0) * l[1],
+                            c[2] + (dim == 2 ? sides[i] : 0) * l[2]
                         ]
                     );
                 }
@@ -314,6 +408,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         box.getCorners = function() {
             var cArr = vpCorners();
             var c = {};
+            /*
             c[box.corners.leftBottomOut] = cArr[0];
             c[box.corners.leftTopOut] = cArr[1];
             c[box.corners.rightTopOut] = cArr[2];
@@ -322,6 +417,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             c[box.corners.leftTopIn] = cArr[5];
             c[box.corners.rightTopIn] = cArr[6];
             c[box.corners.rightBottomIn] = cArr[7];
+            */
+
+            c[box.corners.leftBottomOut] = cArr[4];
+            c[box.corners.leftTopOut] = cArr[6];
+            c[box.corners.rightTopOut] = cArr[7];
+            c[box.corners.rightBottomOut] = cArr[5];
+            c[box.corners.leftBottomIn] = cArr[0];
+            c[box.corners.leftTopIn] = cArr[3];
+            c[box.corners.rightTopIn] = cArr[2];
+            c[box.corners.rightBottomIn] = cArr[1];
             return c;
             /*
             return {
@@ -336,6 +441,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             };
             */
         };
+
         box.extrema = {
                 lowestCorners: 'lowestCorners',
                 leftmostCorners: 'leftmostCorners',
@@ -364,6 +470,17 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 rightmostCorners: plotUtilities.extrema(corners, 0, true)
             };
 
+        };
+        box.extr = function() {
+            var ex = [];
+            var dims = ['x', 'y'];
+            var rev = [true, false];
+            for(var i in dims) {
+                for( var j in rev ) {
+                    ex.push(geometry.extrema(vpcrns(), dims[i], rev[j]));
+                }
+            }
+            return ex;
         };
 
         // A list of the keys used by getEdges(), for convenience in specifying edge names
@@ -432,6 +549,33 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return boundAxis.edges.map(function (name) {
                 return boundAxis.getEdge(name);
             });
+        };
+
+        return boundAxis;
+    };
+
+    // Attaches a plotAxis to any of the edges of the given viewport object -- when updated the axis will
+    // shift and rotate along that edge.  The direction indicates where for example
+    // a z-axis starts (h[orizontal] or v[ertical]) before it is rotated into position.  This is
+    // used for sorting and angle calculation
+    self.ba = function(d3axis, vpObj, dimension, orientation) {
+
+        var e = vpObj.edgesForDimension(dimension);
+        if(! e || e.length === 0) {
+            throw dimension + ': Object has no edges associated with that dimension';
+        }
+        var boundAxis = {};
+        boundAxis.axis = d3axis;
+        boundAxis.obj = vpObj;
+        boundAxis.edges = e;
+        boundAxis.dimension = dimension;
+        boundAxis.orientation = orientation;
+        boundAxis.minVal = d3axis.values[0];
+        boundAxis.maxVal = d3axis.values[d3axis.values.length - 1];
+
+        // invoke these to get "live" values of the edges
+        boundAxis.getEdges = function() {
+            return vpObj.edgesForDimension(dimension);
         };
 
         return boundAxis;
@@ -557,6 +701,121 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         return true;
     };
 
+   self.ua  = function(boundAxis, edgeSelector, edgeSorter) {
+
+        var projLen = 0;
+        var axisGeom = {};
+        var isReversed = false;
+        var sceneEnds = [geometry.point(0, 0), geometry.point(0, 0)];
+        var screenEnds = sceneEnds;
+        var clippedEnds = sceneEnds;
+        var sceneLen = 0;
+        var showAxisEnds = false;
+
+        // this needs to be done just-in-time so that the values of the points
+        // are current
+        var boundEdges = boundAxis.getEdges();
+
+        // If any of the bound edges now has the original left (top) point now right of (below)
+        // the original right (bottom) point, the image is reversed on the screen
+        if(boundAxis.orientation == self.orientations.horizontal) {
+            isReversed = boundEdges.x[0][0] >  boundEdges.x[0][1];
+        }
+        if(boundAxis.orientation == self.orientations.vertical) {
+            isReversed = boundEdges.y[0][1] < boundEdges.y[1][1];
+        }
+
+        var edgeProps = edgeSelector.select(boundEdges, edgeSorter);
+
+        if(! edgeProps) {
+            return false;
+        }
+
+        // all the edges that we want to bind to are offscreen, so we will show little markers in the
+        // middle to indicate the range of values without clutter
+            /*
+        else {
+            showAxisEnds = true;
+            //sceneEnds = plotUtilities.sortInDimension(vpLeftRight, 0);
+            screenEnds = plotUtilities.boundsIntersections(bounds, sceneEnds[0], sceneEnds[1]);
+            clippedEnds = plotUtilities.sortInDimension(
+                plotUtilities.edgesInsideBounds(screenEnds, bounds),
+                0, false);
+            axisGeom.left = Math.max(sceneEnds[0][0], clippedEnds[0][0]);
+            axisGeom.top = axisGeom.left == sceneEnds[0][0] ? sceneEnds[0][1] : clippedEnds[0][1];
+            axisGeom.right = Math.min(sceneEnds[1][0], clippedEnds[1][0]);
+            axisGeom.bottom = axisGeom.right == sceneEnds[1][0] ? sceneEnds[1][1] : clippedEnds[1][1];
+            projLen = plotUtilities.dist([axisGeom.left, axisGeom.top], [axisGeom.right, axisGeom.bottom]);
+            sceneLen = plotUtilities.dist(sceneEnds[0], sceneEnds[1]);
+            var tanPsi = (sceneEnds[0][1] - sceneEnds[1][1]) / (sceneEnds[0][0] - sceneEnds[1][0]);
+            axisGeom.angle = 180 * Math.atan(tanPsi) / Math.PI;
+        }
+        */
+
+            ///srdbg('selected', edgeProps);
+            axisGeom = axisGeometery(boundAxis, edgeProps);
+        //srdbg('axis', axisGeom);
+
+        // TODO(mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
+        var range = Math.min(axisGeom.length, plotUtilities.dist(edgeProps.sceneEnds[0], edgeProps.sceneEnds[1]));
+
+        // Change the domain if axis ends go offscreen
+
+        var newMin = boundAxis.minVal;
+        var newMax = boundAxis.maxVal;
+        var domainPct = 0.0;
+        var domainPart = 0.0;
+        /*
+        if(! plotUtilities.isPointWithinBounds(edgeProps.sceneEnds[0], bounds)) {
+            //srdbg('projected pct', domainPct);
+            domainPct = plotUtilities.dist(edgeProps.sceneEnds[0], edgeProps.clippedEnds[0]) / edgeProps.sceneLen;
+            domainPart = (boundAxis.maxVal - boundAxis.minVal) * domainPct;
+            if(isReversed) {
+                newMax = boundAxis.maxVal - domainPart;
+            }
+            else {
+                newMin = boundAxis.minVal + domainPart;
+            }
+        }
+        if(! plotUtilities.isPointWithinBounds(edgeProps.sceneEnds[1], bounds)) {
+            domainPct = plotUtilities.dist(edgeProps.sceneEnds[1], edgeProps.clippedEnds[1]) / edgeProps.sceneLen;
+            domainPart = (boundAxis.maxVal - boundAxis.minVal) * domainPct;
+            if(isReversed) {
+                newMin = boundAxis.minVal + domainPart;
+            }
+            else {
+               newMax = boundAxis.maxVal - domainPart;
+            }
+        }
+*/
+        /*
+        axis.scale.domain([newMin, newMax]).nice();
+        axis.scale.range([isXReversed ? xrange : 0, isXReversed ? 0 :xrange]);
+        // we use the axis for calculations but show no ticks if both ends are off-screen
+        if(showXAxisEnds) {
+            axis.svgAxis.ticks(0);
+            select('.x.axis').call(axis.svgAxis);
+        }
+        else {
+            axes.x.updateLabelAndTicks({
+                width: xrange,
+                height: 0
+            }, select);
+        }
+
+        // adjust axis position to account for tick labels
+        var xlabels = d3self.selectAll('.x.axis text');
+        var xxform = 'translate(' +
+            Math.min(xAxisLeft, xAxisRight) + ',' +
+            xAxisTop +') ' +
+            'rotate(' + xAxisAngle + ')';
+        //srdbg('show ends?', showXAxisEnds);
+        select('.x.axis').attr('transform', xxform);
+
+*/
+        return true;
+   };
+
     function axisGeometery(boundAxis, edgeProps) {
         var left = 0;  var top = 0;
         var right = 0;  var bottom = 0;
@@ -617,32 +876,108 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
     }
 
+    function ag(boundAxis, edgeProps) {
+        var left = 0;  var top = 0;
+        var right = 0;  var bottom = 0;
+        var length = 0;  var angle = 0;
+
+        var tanAngle = (edgeProps.sceneEnds[0][1] - edgeProps.sceneEnds[1][1]) / (edgeProps.sceneEnds[0][0] - edgeProps.sceneEnds[1][0]);
+        if(boundAxis.orientation == self.orientations.horizontal) {
+            if(edgeProps.sceneEnds[0][0] > edgeProps.clippedEnds[0][0]) {
+                left = edgeProps.sceneEnds[0][0];
+                top = edgeProps.sceneEnds[0][1];
+            }
+            else {
+                left = edgeProps.clippedEnds[0][0];
+                top = edgeProps.clippedEnds[0][1];
+            }
+            if(edgeProps.sceneEnds[1][0] < edgeProps.clippedEnds[1][0]) {
+                right = edgeProps.sceneEnds[1][0];
+                bottom = edgeProps.sceneEnds[1][1];
+            }
+            else {
+                right = edgeProps.clippedEnds[1][0];
+                bottom = edgeProps.clippedEnds[1][1];
+            }
+            angle = 180 * Math.atan(tanAngle) / Math.PI;
+        }
+        if(boundAxis.orientation == self.orientations.vertical) {
+            if(edgeProps.sceneEnds[0][1] > edgeProps.clippedEnds[0][1]) {
+                left = edgeProps.sceneEnds[0][0];
+                top = edgeProps.sceneEnds[0][1];
+            }
+            else {
+                left = edgeProps.clippedEnds[0][0];
+                top = edgeProps.clippedEnds[0][1];
+            }
+            if(edgeProps.sceneEnds[1][1] < edgeProps.clippedEnds[1][1]) {
+                right = edgeProps.sceneEnds[1][0];
+                bottom = edgeProps.sceneEnds[1][1];
+            }
+            else {
+                right = edgeProps.clippedEnds[1][0];
+                bottom = edgeProps.clippedEnds[1][1];
+            }
+            angle = 180 * Math.atan(tanAngle) / Math.PI - 90;
+            if(angle < -90 ) {
+                angle += 180;
+            }
+        }
+        length = plotUtilities.dist([left, top], [right, bottom]);
+
+        return {
+            left: left,
+            top: top,
+            right: right,
+            bottom: bottom,
+            length: length,
+            angle: angle,
+
+        };
+    }
 
     self.addActors = function(renderer, actorArr) {
-        for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
-            renderer.addActor(actorArr[aIndex]);
-        }
+        actorArr.forEach(function(actor) {
+            renderer.addActor(actor);
+        });
     };
+
     self.removeActors = function(renderer, actorArr) {
-        for(var aIndex = 0; aIndex < actorArr.length; ++aIndex) {
-            renderer.removeActor(actorArr[aIndex]);
+        if(! actorArr ) {
+            return;
         }
+        actorArr.forEach(function(actor) {
+            renderer.removeActor(actor);
+        });
+        actorArr.length = 0;
     };
-    self.showActors = function(renderWindow, actorArray, doShow, visibleOpacity, hiddenOpacity) {
-        for(var aIndex = 0; aIndex < actorArray.length; ++aIndex) {
-            actorArray[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+
+    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
+        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
+            arr[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
         }
         renderWindow.render();
     };
 
-    self.localCoordFromWorld = function (coord, point) {
+    self.localCoordFromWorld = function (vtkCoord, point) {
         // this is required to do conversions for different displays/devices
+        //srdbg('localCoordFromWorld point', point);
         var pixels = window.devicePixelRatio;
-        coord.setCoordinateSystemToWorld();
-        coord.setValue(point);
-        var lCoord = coord.getComputedLocalDisplayValue();
+        vtkCoord.setCoordinateSystemToWorld();
+        vtkCoord.setValue(point);
+        var lCoord = vtkCoord.getComputedLocalDisplayValue();
         return [lCoord[0] / pixels, lCoord[1] / pixels];
     };
+    self.lcfw = function (vtkCoord, point) {
+        //srdbg('localCoordFromWorld point', point);
+        // this is required to do conversions for different displays/devices
+        var pixels = window.devicePixelRatio;
+        vtkCoord.setCoordinateSystemToWorld();
+        vtkCoord.setValue(point.coords());
+        var lCoord = vtkCoord.getComputedLocalDisplayValue();
+        return geometry.point(lCoord[0] / pixels, lCoord[1] / pixels);
+    };
+
     self.worldCoordFromLocal = function (coord, point, view) {
         var pixels = window.devicePixelRatio;
         var newPoint = [pixels * point[0], pixels * point[1]];

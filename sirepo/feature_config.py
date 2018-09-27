@@ -61,5 +61,6 @@ cfg = pkconfig.init(
     ),
     warpvnd=dict(
         allow_3d_mode=(pkconfig.channel_in_internal_test(), bool, 'Include 3D features in the Warp VND UI'),
+        display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
     ),
 )

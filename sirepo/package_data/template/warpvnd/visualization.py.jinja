@@ -61,22 +61,31 @@ electron_tracker_0 = TraceParticle(js=electrons_tracked_t0.jslist[0],
                                    vy=np.zeros_like(eptclArray[:,0]),
                                    vz=eptclArray[:,5])
 
+
+def is_lost_particle(trace, electron, step):
+    return abs(
+        trace.getx(i=electron)[step] -
+        trace.getx(i=electron)[step + 1]) > (X_MAX - X_MIN) / 2. \
+        or abs(
+            trace.gety(i=electron)[step] -
+            trace.gety(i=electron)[step + 1]) > (Y_MAX - Y_MIN) / 2.
+
+
 def particle_trace(trace,ntrack):
-    kept_electronsx = []
-    kept_electronsz = []
-    lost_electronsx = []
-    lost_electronsz = []
+    kept = [[], [], []]
+    lost = [[], [], []]
     for electron in range(ntrack):
         for step in range(len(trace.getx(i=electron)) - 1):
-            if abs(trace.getx(i=electron)[step] -
-                   trace.getx(i=electron)[step + 1]) > (X_MAX - X_MIN) / 2.:
-                lost_electronsx.append(trace.getx(i=electron)[0:step])
-                lost_electronsz.append(trace.getz(i=electron)[0:step])
+            if is_lost_particle(trace, electron, step):
+                lost[0].append(trace.getx(i=electron)[0:step])
+                lost[1].append(trace.getz(i=electron)[0:step])
+                lost[2].append(trace.gety(i=electron)[0:step])
                 break
             if step == (len(trace.getx(i=electron)) - 2):
-                kept_electronsx.append(trace.getx(i=electron))
-                kept_electronsz.append(trace.getz(i=electron))
-    return [kept_electronsx,kept_electronsz], [lost_electronsx,lost_electronsz]
+                kept[0].append(trace.getx(i=electron))
+                kept[1].append(trace.getz(i=electron))
+                kept[2].append(trace.gety(i=electron))
+    return kept, lost
 
 #------
 

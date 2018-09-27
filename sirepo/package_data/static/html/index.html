@@ -7,25 +7,14 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico{{ source_cache_key }}">
     <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
-    {% for c in static_css_files %}
-      <link href="{{c}}{{ source_cache_key }}" rel="stylesheet"></script>
-    {% endfor %}
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-      <script src="/static/js/ext/msie/html5shiv-3.7.2.min.js{{ source_cache_key }}"></script>
-      <script src="/static/js/ext/msie/respond-1.4.2.min.js{{ source_cache_key }}"></script>
-    <![endif]-->
+{%- for c in static_css_files %}
+    <link href="{{c}}{{ source_cache_key }}" rel="stylesheet">
+{%- endfor %}
     <script>
       var SIREPO = {
         APP_NAME:  '{{ app_name }}',
         APP_VERSION: '{{ app_version }}',
         SOURCE_CACHE_KEY: '{{ source_cache_key }}',
-        {%- if oauth_login %}
-          userState: {
-            loginState: '{{ login_state }}',
-            userName: '{{ user_name }}',
-          },
-        {%- endif %}
       };
 
       SIREPO.setPageLoaderVisible = function() {
@@ -54,7 +43,7 @@
   </head>
   <body>
     <div class="sr-page-load">
-      <img class="sr-page-load-image" src="/static/img/radtrack_animated.gif" />
+      <img class="sr-page-load-image" src="/static/img/sirepo_animated.gif" />
         <div class="sr-page-load-text">Loading</div>
     </div>
     <script type="text/javascript">
@@ -71,8 +60,8 @@
     <div data-ng-view></div>
     <div data-app-footer="nav"></div>
     <div data-msie-font-disabled-detector=""></div>
-    {% for m in static_js_files %}
+{%- for m in static_js_files %}
       <script src="{{m}}{{ source_cache_key }}"></script>
-    {% endfor %}
+{%- endfor %}
   </body>
 </html>

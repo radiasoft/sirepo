@@ -1,5 +1,5 @@
 {
-    "version": "20180917.000000",
+    "version": "20180926.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -48,6 +48,8 @@
     },
     "route": {
         "blueskyAuth": "/bluesky-auth",
+        "comsol": "/comsol",
+        "comsolRegister": "/comsol-register",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",
@@ -130,7 +132,9 @@
                 "js": [
                     "sirepo-common.js",
                     "sirepo-components.js",
-                    "sirepo-plotting.js"
+                    "sirepo-plotting.js",
+                    "sirepo-plotting-vtk.js",
+                    "sirepo-geometry.js"
                 ]
             },
             "libURLs": [

@@ -1,6 +1,7 @@
 'use strict';
 
 var SRW_EXAMPLES;
+var LANDING_PAGE_SCHEMA;
 
 SIREPO.srlog = console.log.bind(console);
 SIREPO.srdbg = console.log.bind(console);
@@ -10,12 +11,27 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.IS_SRW_LANDING_PAGE = window.location.href.match(/\/light/);
 
+//TODO(mvk): refactor srw light properly (part of #1304)
 angular.element(document).ready(function() {
     $.ajax({
         url: '/static/json/srw-examples.json' + SIREPO.SOURCE_CACHE_KEY,
         success: function(result) {
             SRW_EXAMPLES = result;
-            angular.bootstrap(document, ['LandingPageApp']);
+            //angular.bootstrap(document, ['LandingPageApp']);
+            $.ajax({
+                url: '/static/json/landing-page-schema.json' + SIREPO.SOURCE_CACHE_KEY,
+                success: function(result) {
+                    LANDING_PAGE_SCHEMA = result;
+                    angular.bootstrap(document, ['LandingPageApp']);
+                },
+                error: function(xhr, status, err) {
+                    if (! LANDING_PAGE_SCHEMA) {
+                        srlog("schema load failed: ", err);
+                    }
+                },
+                method: 'GET',
+                dataType: 'json',
+            });
         },
         error: function(xhr, status, err) {
             if (! SRW_EXAMPLES) {
@@ -29,33 +45,18 @@ angular.element(document).ready(function() {
 
 var app = angular.module('LandingPageApp', ['ngRoute']);
 
-app.value('srwAppRoutes', {
-    'calculator': 'SR Calculator',
-    'light-sources': 'Light Source Facilities',
-    'wavefront': 'Wavefront Propagation',
-});
-app.value('appRoutes', {
-    'xray': {url: '/static/html/landing-page-x-ray.html', infoPanelTitle: 'X-Ray Optics', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'srw': {url: '/static/html/landing-page-srw.html', codeURL: '/srw', codeTitle: 'SRW', infoPanelTitle: 'SRW (Synchrotron Radiation Workshop)', modeMap:[{name: 'Demo', value: 'demo', text: 'Experiment with pre-built examples and existing beamlines', url: '/light', default: true}, {name: 'Expert', value:'full', text: 'Jump right in and build your own beamline from scratch', url:'/srw'}], mediaConfig: {title: 'SRW on Sirepo', url:'https://www.youtube.com/embed/MrebAjbxQVk'}},
-    'shadow': {url: '/static/html/landing-page-shadow.html', codeURL: '/shadow', codeTitle: 'Shadow 3', infoPanelTitle: 'Shadow3', mediaConfig: {title: 'Shadow3 on Sirepo', url:''}},
-    'accel': {url: '/static/html/landing-page-accelerators.html', infoPanelTitle: 'Particle Accelerators', mediaConfig: {title: 'Running Codes in Sirepo', url:''}},
-    'elegant': {url: '/static/html/landing-page-elegant.html', codeURL: '/elegant', codeTitle: 'elegant', infoPanelTitle: 'elegant', mediaConfig: {title: 'elegant on Sirepo', url:''}},
-    'warppba': {url: '/static/html/landing-page-warp.html', codeURL: '/warppba', codeTitle: 'Warp PBA', infoPanelTitle: 'Plasma-Based Accelerators', mediaConfig: {title: 'Warp PBA on Sirepo', url:''}},
-    'rslinac': {url: '/static/html/landing-page-rslinac.html', codeURL: '/hellweg', codeTitle: 'RsLinac', infoPanelTitle: 'RsLinac', mediaConfig: {title: 'RsLinac on Sirepo', url:''}},
-    'synergia': {url: '/static/html/landing-page-synergia.html', codeURL: '/synergia', codeTitle: 'Synergia', infoPanelTitle: 'Synergia', mediaConfig: {title: 'Synergia on Sirepo', url:''}},
-    'opal': {url: '/static/html/landing-page-opal.html', infoPanelTitle: 'OPAL', mediaConfig: {title: 'OPAL Sirepo', url:''}},
-    'warpvnd': {url: '/static/html/landing-page-vac-nano.html', codeURL: '/warpvnd', codeTitle: 'Warp VND', infoPanelTitle: 'Vacuum Nanoelectronic Devices', mediaConfig: {title: 'Warp VND on Sirepo', placeholder: '/static/img/WarpVND.png', url:'https://www.youtube.com/embed/9tihDyl0600'}},
-    'genesis': {url: '/static/html/landing-page-genesis.html', codeTitle: 'Genesis',  infoPanelTitle: 'Genesis', mediaConfig: {title: 'Genesis on Sirepo', url:''}},
-    'jupyter': {url: '/static/html/landing-page-jupyter.html', codeURL: '/#/jupyter', codeTitle: 'Jupyter Hub', infoPanelTitle: 'RadiaSoft JupyterHub Server', mediaConfig: {title: 'RadiaSoft JupyterHub Server', url:''}},
-    'jspec': {url: '/static/html/landing-page-jspec.html', codeURL: '/jspec', codeTitle: 'JSPEC', infoPanelTitle: 'Electron Cooling', mediaConfig: {title: 'JSPEC on Sirepo', url:''}},
-    'comsol': {url: '/static/html/landing-page-comsol.html', codeTitle: 'COMSOL Multiphysics', infoPanelTitle: 'Vacuum Chamber Design', mediaConfig: {title: 'COMSOL', placeholder: '/static/img/MultipactorMeshRotation1.gif', url:''}},
-});
+app.value('appRoutes', {});
+app.value('srwAppRoutes', {});
 
 app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, $routeProvider) {
     $locationProvider.hashPrefix('');
     // srw landing page
     if (SIREPO.IS_SRW_LANDING_PAGE) {
         var srwAppRoutes = srwAppRoutesProvider.$get();
+        Object.keys(LANDING_PAGE_SCHEMA.srwAppRoutes).forEach(function(key) {
+            srwAppRoutes[key] = LANDING_PAGE_SCHEMA.srwAppRoutes[key];
+        });
+
         $routeProvider.when('/home', {
             templateUrl: '/static/html/landing-page-home.html' + SIREPO.SOURCE_CACHE_KEY,
         });
@@ -81,6 +82,9 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
     // root landing page
     else {
         var appRoutes = appRoutesProvider.$get();
+        Object.keys(LANDING_PAGE_SCHEMA.appRoutes).forEach(function(key) {
+            appRoutes[key] = LANDING_PAGE_SCHEMA.appRoutes[key];
+        });
 
         $routeProvider.when('/about', {
             templateUrl: '/static/html/landing-page-about.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -96,13 +100,24 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
     }
 });
 
-app.controller('LandingPageController', function ($location, appRoutes, srwAppRoutes) {
+app.controller('LandingPageController', function (appRoutes, srwAppRoutes, $http, $location) {
     var self = this;
     self.srwExamples = SRW_EXAMPLES;
 
     function pageCategory() {
         return $location.path().substring(1);
     }
+
+    self.comsolRegister = function() {
+        $http.post('/comsol-register', {
+            name: self.comsolName,
+            email: self.comsolEmail,
+        }).then(function() {
+            self.comsolName = null;
+            self.comsolEmail = null;
+            $('#comsol-register-modal').modal('show');
+        });
+    };
 
     self.itemsForCategory = function() {
         for (var i = 0; i < self.srwExamples.length; i++) {
@@ -155,7 +170,10 @@ app.directive('lpCodesMenu', function(appRoutes) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.codeRoutes = Object.keys(appRoutes).map(function(k) { return appRoutes[k]; }).filter(function (route) {
+            $scope.codeRoutes = Object.keys(appRoutes)
+                .map(function(k) {
+                return appRoutes[k];
+            }).filter(function (route) {
                 return ! (! route.codeURL);
             }).sort(function (r1, r2) {
                 return r1.codeTitle.localeCompare(r2.codeTitle);

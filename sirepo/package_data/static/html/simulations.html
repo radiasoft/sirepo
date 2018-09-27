@@ -24,7 +24,7 @@
         <div class="sr-icon-view-toggle"><a href data-ng-click="simulations.toggleIconView()"><span class="glyphicon" data-ng-class="{'glyphicon-th-list': simulations.isIconView, 'glyphicon-th-large': ! simulations.isIconView }"></span> View as {{ simulations.isIconView ? 'List' : 'Icons' }}</a></div>
         <div class="clearfix"></div>
 
-        <div style="margin-left: 2em; margin-top: 1ex;" class="lead" data-ng-show="simulations.isWaitingForList"><img src="/static/img/radtrack_animated.gif" /> Building simulation list, please wait.</div>
+        <div style="margin-left: 2em; margin-top: 1ex;" class="lead" data-ng-show="simulations.isWaitingForList"><img src="/static/img/sirepo_animated.gif" /> Building simulation list, please wait.</div>
         <div data-ng-hide="simulations.isIconView" class="row"><div class="col-sm-offset-1 col-sm-10">
         <table class="table table-hover">
           <thead>
@@ -39,7 +39,7 @@
             </tr>
             <tr data-ng-show="simulations.isWaitingForSim">
               <td>
-                <img src="/static/img/radtrack_animated.gif" width="24px"/>
+                <img src="/static/img/sirepo_animated.gif" width="24px"/>
                 <a>Creating {{ simulations.newSimName }}...</a>
               </td>
             </tr>
@@ -76,7 +76,7 @@
           <div data-ng-show="simulations.isWaitingForSim" class="sr-icon-col">
             <div class="sr-thumbnail text-center dropdown">
               <a class="sr-item-icon">
-            <img src="/static/img/radtrack_animated.gif"/>
+            <img src="/static/img/sirepo_animated.gif"/>
                 </a>
               <a class="sr-item-text">Creating {{ simulations.newSimName }}...</a>
             </div>
