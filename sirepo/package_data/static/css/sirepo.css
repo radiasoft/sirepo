@@ -679,30 +679,6 @@
 
     .sr-plot-particle-3d {
     }
-    .vtk-info-overlay {
-        position: absolute;
-        background-color: transparent;
-        border-color: black;
-        border-style: solid;
-        border-width: 1.0px;
-    }
-    .vtk-info-overlay-move {
-        pointer-events: none;
-    }
-    .vtk-info-overlay-select {
-        pointer-events: all;
-    }
-
-    .vtk-info-overlay .x-axis-label, .y-axis-label, .z-axis-label {
-
-    }
-    .vtk-info-overlay .axis text {
-        font-size: 13px;
-    }
-    .vtk-info-overlay text.axis-end {
-        opacity: 0;
-        font-size: 13px;
-    }
 
     /* Full-screen styles */
     div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
@@ -1315,52 +1291,7 @@ p.hellweg-drop-zone {
   padding-bottom: 25px;
 }
 
-.warpvnd-plate {
-  stroke: rgb(228, 176, 95);
-  fill: rgba(255, 146, 105, 0.3);
-  cursor: pointer;
-}
-.warpvnd-plate-voltage {
-  fill: rgba(105, 146, 255, 0.3);
-  stroke: rgb(95, 176, 228);
-}
-.warpvnd-shape {
-  stroke: rgb(228, 176, 95);
-  fill: rgba(255, 146, 105, 0.3);
-  cursor: move;
-  stroke-width: 2;
-}
-.warpvnd-shape-voltage {
-  stroke: rgb(95, 176, 228);
-  fill: rgba(105, 146, 255, 0.3);
- }
-.warpvnd-shape-noncrossing {
-  stroke: rgb(255, 0, 0);
-  stroke-dasharray: 1,2;
-  fill: rgba(255, 0, 0, 0.0);
- }
-.warpvnd-shape:hover {
-  fill: lightgreen;
-  filter: drop-shadow(2px 2px 2px #999);
-}
-.warpvnd-shape-noncrossing:hover {
-  stroke: rgb(255, 0, 0);
-  fill: rgba(255, 0, 0, 0.0);
-}
-.warpvnd-shape-inactive {
-  opacity: 0.5;
-}
-.warpvnd-drag-shadow {
-  fill: black;
-  stroke-width: 0;
-  filter: drop-shadow(2px 2px 2px #999);
-}
-.warpvnd-drag-shadow:hover {
-  fill: black;
-}
-.table-hover > tbody > tr.warpvnd-conductor-th {
-  background-color: inherit;
-}
+
 .sr-drag-clone-hidden {
   opacity: 0;
 }

@@ -13,15 +13,31 @@ angular.element(document).ready(function() {
 
     function loadDynamicModule(src) {
         var d = $.Deferred();
-        var scriptTag = document.createElement('script');
-        scriptTag.type = 'text/javascript';
-        scriptTag.async = true;
-        scriptTag.onload = function() {
+        var tag;
+        var parent;
+        if(fileType(src) === '.css') {
+            tag = document.createElement('link');
+            tag.href = src + SIREPO.SOURCE_CACHE_KEY;
+            tag.rel = 'stylesheet';
+            parent = document.getElementsByTagName('head')[0];
+        }
+        else  {
+            tag = document.createElement('script');
+            tag.type = 'text/javascript';
+            tag.src = src + SIREPO.SOURCE_CACHE_KEY;
+            parent = document.getElementsByTagName('body')[0];
+            tag.async = true;
+        }
+        tag.onload = function () {
             d.resolve();
         };
-        scriptTag.src = src + SIREPO.SOURCE_CACHE_KEY;
-        document.getElementsByTagName('body')[0].appendChild(scriptTag);
+        parent.appendChild(tag);
         return d.promise();
+    }
+
+    function fileType(src) {
+        var m = src.match( /\.[^.]+$/);
+        return m ? m[0] : m;
     }
 
     function loadDynamicModules() {

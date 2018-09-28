@@ -247,6 +247,7 @@ def get_schema(sim_type):
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _file_list_in_schema(schema.dynamicFiles, 'js')
+    schema.dynamicModules.extend(_file_list_in_schema(schema.dynamicFiles, 'css'))
 
     if 'appModes' not in schema:
         schema.appModes = pkcollections.Dict()
@@ -968,7 +969,10 @@ def _file_list_in_schema(schema, file_type):
         str: combined list of local and external file paths
     """
     paths = []
+    pkdlog('checking schema {} for {}', schema, file_type)
     for lf_prop in LOADED_FILE_PROPS:
+        if file_type not in schema[lf_prop.source]:
+            continue
         paths.extend(
             map(lambda file_name:
                 _pkg_relative_path_static(file_type + '/' + lf_prop.dir, file_name),
