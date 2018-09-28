@@ -16,7 +16,10 @@ build_vars() {
 
 build_as_root() {
     umask 022
-    build_yum install nodejs
+    dnf config-manager \
+        --add-repo \
+        https://download.docker.com/linux/fedora/docker-ce.repo
+    build_yum install nodejs docker-ce
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }

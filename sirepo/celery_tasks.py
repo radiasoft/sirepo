@@ -13,7 +13,7 @@ from celery import Celery
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pksubprocess
-from pykern.pkdebug import pkdc, pkdexc, pkdp
+from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 from sirepo.template import template_common
 import py.path
 
@@ -91,6 +91,6 @@ def start_simulation(cmd, run_dir):
     with pkio.save_chdir(run_dir):
         pksubprocess.check_call_with_signals(
             cmd,
-            msg=pkdp,
+            msg=pkdlog,
             output=str(run_dir.join(template_common.RUN_LOG)),
         )

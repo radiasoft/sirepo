@@ -179,7 +179,6 @@ def _req(route_name, params, op, raw_response):
         return simulation_db.json_load(resp.data)
     except Exception as e:
         pkdlog('{}: uri={} resp={}', e, uri, resp)
-        pkdexc()
         raise
 
 

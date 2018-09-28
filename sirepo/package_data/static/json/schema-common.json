@@ -1,5 +1,5 @@
 {
-    "version": "20180925.000000",
+    "version": "20180926.000000",
     "appInfo": {
         "myapp": {
             "longName": "MyApp",
@@ -48,6 +48,8 @@
     },
     "route": {
         "blueskyAuth": "/bluesky-auth",
+        "comsol": "/comsol",
+        "comsolRegister": "/comsol-register",
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",
         "deleteFile": "/delete-file",

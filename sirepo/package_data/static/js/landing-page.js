@@ -100,13 +100,24 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
     }
 });
 
-app.controller('LandingPageController', function ($location, appRoutes, srwAppRoutes) {
+app.controller('LandingPageController', function (appRoutes, srwAppRoutes, $http, $location) {
     var self = this;
     self.srwExamples = SRW_EXAMPLES;
 
     function pageCategory() {
         return $location.path().substring(1);
     }
+
+    self.comsolRegister = function() {
+        $http.post('/comsol-register', {
+            name: self.comsolName,
+            email: self.comsolEmail,
+        }).then(function() {
+            self.comsolName = null;
+            self.comsolEmail = null;
+            $('#comsol-register-modal').modal('show');
+        });
+    };
 
     self.itemsForCategory = function() {
         for (var i = 0; i < self.srwExamples.length; i++) {

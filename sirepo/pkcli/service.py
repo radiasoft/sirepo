@@ -62,14 +62,15 @@ def http():
     from sirepo import server
 
     with pkio.save_chdir(_run_dir()):
-        app = server.init()
+        use_reloader = pkconfig.channel_in('dev')
+        app = server.init(use_reloader=use_reloader)
         # avoid WARNING: Do not use the development server in a production environment.
         app.env = 'development'
         app.run(
             host=cfg.ip,
             port=cfg.port,
             threaded=True,
-            use_reloader=pkconfig.channel_in('dev'),
+            use_reloader=use_reloader,
         )
 
 
