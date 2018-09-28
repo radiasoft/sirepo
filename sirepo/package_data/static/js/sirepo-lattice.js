@@ -261,6 +261,18 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         };
     };
 
+    self.hasBeamlines = function() {
+        if (appState.isLoaded()) {
+            for (var i = 0; i < appState.models.beamlines.length; i++) {
+                var beamline = appState.models.beamlines[i];
+                if (beamline.items.length > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
     self.newBeamline = function() {
         appState.models.beamline = self.getNextBeamline();
         panelState.showModalEditor('beamline');
@@ -851,6 +863,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             $scope.markerUnits = '';
             $scope.svgGroups = [];
 
+            function adjustPosition(pos, x, y) {
+                var radAngle = latticeService.degreesToRadians(pos.angle);
+                pos.x += rpnValue(x) * Math.cos(radAngle);
+                pos.y += rpnValue(x) * Math.sin(radAngle);
+                pos.x -= rpnValue(y) * Math.sin(radAngle);
+                pos.y += rpnValue(y) * Math.cos(radAngle);
+            }
+
             //TODO(pjm): this monster method needs to get broken into a separate service with karma tests
             function applyGroup(items, pos) {
                 var group = {
@@ -895,6 +915,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (picType == 'bend') {
                         var radius = length / 2;
                         var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
+                        if (SIREPO.lattice.reverseAngle) {
+                            angle = -angle;
+                        }
                         if ($scope.flatten) {
                             angle = 0;
                         }
@@ -953,6 +976,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         x += radius;
                         newAngle = latticeService.radiansToDegrees(angle);
                         pos.radius = radius;
+                        if (item.type == 'CHANGREF') {
+                            adjustPosition(pos, item.xce, -item.yce);
+                        }
                     }
                     else {
                         var groupItem = {
@@ -1001,11 +1027,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = 0.5;
                             groupItem.y = pos.y;
                             // adjust position by z and x offsets
-                            var radAngle = latticeService.degreesToRadians(pos.angle);
-                            pos.x += rpnValue(item.dz) * Math.cos(radAngle);
-                            pos.y += rpnValue(item.dz) * Math.sin(radAngle);
-                            pos.x -= rpnValue(item.dx) * Math.sin(radAngle);
-                            pos.y += rpnValue(item.dx) * Math.cos(radAngle);
+                            adjustPosition(pos, item.dz, item.dx);
                             newAngle = - latticeService.radiansToDegrees(Math.atan(Math.sqrt(Math.pow(rpnValue(item.dxp), 2))));
                         }
                         else if (picType == 'mirror') {
