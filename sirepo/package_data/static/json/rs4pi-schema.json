@@ -6,7 +6,10 @@
             ]
         },
         "sirepoLibs": {
-            "js": ["rs4pi.js"]
+            "js": ["rs4pi.js"],
+            "css": [
+                "vtk.css"
+            ]
         }
     },
     "localRoutes": {
