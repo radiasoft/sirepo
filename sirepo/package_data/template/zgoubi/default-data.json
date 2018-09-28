@@ -1,0 +1,12 @@
+{
+    "models": {
+        "beamlines": [],
+        "elements": [],
+        "simulation": {
+            "name": "example",
+            "visualizationBeamlineId": ""
+        }
+    },
+    "simulationType": "zgoubi",
+    "version": "20170720.000000"
+}
