@@ -17,7 +17,6 @@ angular.element(document).ready(function() {
         url: '/static/json/srw-examples.json' + SIREPO.SOURCE_CACHE_KEY,
         success: function(result) {
             SRW_EXAMPLES = result;
-            //angular.bootstrap(document, ['LandingPageApp']);
             $.ajax({
                 url: '/static/json/landing-page-schema.json' + SIREPO.SOURCE_CACHE_KEY,
                 success: function(result) {
