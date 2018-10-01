@@ -12,41 +12,36 @@ var srdbg = SIREPO.srdbg;
 angular.element(document).ready(function() {
 
     function loadDynamicModule(src) {
+        return src.endsWith('.css')
+            ? addTag(src, 'link', 'head', 'href', {'rel': 'stylesheet'})
+            : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
+    }
+
+    function addTag(src, name, parent, uri, attrs) {
         var d = $.Deferred();
-        var tag;
-        var parent;
-        if(fileType(src) === '.css') {
-            tag = document.createElement('link');
-            tag.href = src + SIREPO.SOURCE_CACHE_KEY;
-            tag.rel = 'stylesheet';
-            parent = document.getElementsByTagName('head')[0];
-        }
-        else  {
-            tag = document.createElement('script');
-            tag.type = 'text/javascript';
-            tag.src = src + SIREPO.SOURCE_CACHE_KEY;
-            parent = document.getElementsByTagName('body')[0];
-            tag.async = true;
-        }
-        tag.onload = function () {
+        var t = document.createElement(name);
+        t[uri] = src + SIREPO.SOURCE_CACHE_KEY;
+        Object.assign(t, attrs);
+        document.getElementsByTagName(parent)[0].appendChild(t);
+        t.onload = function () {
             d.resolve();
         };
-        parent.appendChild(tag);
         return d.promise();
     }
 
-    function fileType(src) {
-        var m = src.match( /\.[^.]+$/);
-        return m ? m[0] : m;
-    }
-
     function loadDynamicModules() {
+        var mods = [];
+        for(var type in SIREPO.APP_SCHEMA.dynamicModules) {
+            mods = mods.concat(SIREPO.APP_SCHEMA.dynamicModules[type] || []);
+        }
+        mods = mods.concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []);
         return $.map(
-            (SIREPO.APP_SCHEMA.dynamicModules || []).concat(SIREPO.APP_SCHEMA.dynamicFiles.libURLs || []),
+            mods,
             function(src) {
                 return loadDynamicModule(src);
             });
     }
+
 
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
