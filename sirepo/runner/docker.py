@@ -617,6 +617,8 @@ def _init_slots():
         c = _parallel_cores if k == _PARALLEL else 1
         for h in _hosts_ordered:
             ns = h.num_slots[k]
+            if ns <= 0:
+                return
             g = 1
             if k == _PARALLEL:
                 # Leave some ram for caching and OS
