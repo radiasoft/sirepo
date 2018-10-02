@@ -197,6 +197,9 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
         ].join(''),
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
+            if (! viewInfo) {
+                throw 'unknown viewName: ' + $scope.viewName;
+            }
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.panelState = panelState;
             $scope.panelTitle = viewInfo.title;
