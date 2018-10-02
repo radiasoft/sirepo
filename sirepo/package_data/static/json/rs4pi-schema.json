@@ -8,6 +8,7 @@
         "sirepoLibs": {
             "js": ["rs4pi.js"],
             "css": [
+                "rs4pi.css",
                 "vtk.css"
             ]
         }

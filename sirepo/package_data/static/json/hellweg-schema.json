@@ -1,7 +1,12 @@
 {
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["hellweg.js"]
+            "js": [
+                "hellweg.js"
+            ],
+            "css": [
+                "hellweg.css"
+            ]
         }
     },
     "localRoutes": {
