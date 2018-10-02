@@ -496,7 +496,7 @@ def _init_host_num_slots(h):
     j = h.cores // _parallel_cores
     assert j > 0, \
         '{}: host cannot run parallel jobs, min cores required={} and cores={}'.format(
-            host,
+            h.name,
             _parallel_cores,
             h.cores,
         )
