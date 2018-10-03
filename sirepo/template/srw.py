@@ -1204,6 +1204,22 @@ def _extract_trajectory_report(model, data):
     }
 
 
+def _find_closest_angle(angle, allowed_angles):
+    """Find closest string value from the input list to
+       the specified angle (in radians)."""
+
+    def wrap(ang):
+        """Convert an angle to constraint it between -pi and pi.
+           See https://stackoverflow.com/a/29237626/4143531 for details.
+        """
+        return np.arctan2(np.sin(ang), np.cos(ang))
+
+    angles_array = np.array([float(x) for x in allowed_angles])
+    threshold = np.min(np.diff(angles_array))
+    idx = np.where(np.abs(wrap(angle) - angles_array) < threshold / 2.0)[0][0]
+    return allowed_angles[idx]
+
+
 def _fixup_beamline(data):
     for item in data['models']['beamline']:
         if item['type'] == 'ellipsoidMirror':
@@ -1233,6 +1249,12 @@ def _fixup_beamline(data):
                     item[field] = key_value_pairs[field]
             if not item['focalDistance']:
                 item = _compute_crl_focus(item)
+
+        if item['type'] == 'crystal':
+            if isinstance(item['grazingAngle'], (int, float)):
+                allowed_angles = [x[0] for x in _SCHEMA['enum']['DiffractionPlaneAngle']]
+                item['grazingAngle'] = _find_closest_angle(item['grazingAngle'], allowed_angles)
+
         if item['type'] == 'sample':
             if 'horizontalCenterCoordinate' not in item:
                 item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
