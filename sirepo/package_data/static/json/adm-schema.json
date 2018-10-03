@@ -1,0 +1,28 @@
+{
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["adm.js"]
+        }
+    },
+    "localRoutes": {
+        "simulations": {
+            "config": {
+                "redirectTo": "/data-list"
+            },
+            "isDefault": false
+        },
+        "source": {
+            "config": {
+                "redirectTo": "/data-list"
+            }
+        },
+        "dataList": {
+            "route": "/data-list",
+            "config": {
+                "controller": "AdmController as adm",
+                "templateUrl": "/static/html/adm.html"
+            },
+            "isDefault": true
+        }
+    }
+}
