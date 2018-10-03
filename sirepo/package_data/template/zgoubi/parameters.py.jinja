@@ -18,7 +18,7 @@ line.add(ob)
 line.add(core.ELECTRON())
 {{ beamlineElements -}}
 line.add(core.FAISCNL(FNAME='zgoubi.fai'))
-line.add(core.REBELOTE(K=99, NPASS={{ simulationSettings_npass }}))
+line.add(core.REBELOTE(K=99, NPASS={{ simulationSettings_npass - 1 }}))
 line.add(core.END())
 
 with open('zgoubi.dat', 'w') as f:

@@ -82,7 +82,7 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "npass": ["Number of Runs", "Integer", 10]
+            "npass": ["Number of Runs", "Integer", 10, "", 1]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "beta_x"],
