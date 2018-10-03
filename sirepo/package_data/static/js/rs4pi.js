@@ -103,6 +103,13 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
         return res;
     };
 
+    self.hasDoseFrames = function() {
+        if (appState.isLoaded()) {
+            return appState.models.dicomDose.frameCount > 0;
+        }
+        return false;
+    };
+
     self.hasROIContours = function() {
         for (var roiNumber in roiPoints) {
             var roi = roiPoints[roiNumber];
@@ -258,7 +265,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',
-              '<li data-ng-show="hasROIContours()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
+              '<li data-ng-show="rs4piService.hasDoseFrames()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> Import DICOM</a></li>',
@@ -267,9 +274,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
 
         ].join(''),
         controller: function($scope) {
-            $scope.hasROIContours = function() {
-                return rs4piService.hasROIContours();
-            };
+            $scope.rs4piService = rs4piService;
             $scope.isLoaded = function() {
                 return appState.isLoaded();
             };
@@ -280,6 +285,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
             $scope.importDicomModal = function() {
                 $('#dicom-import').modal('show');
             };
+
         },
     };
 });
