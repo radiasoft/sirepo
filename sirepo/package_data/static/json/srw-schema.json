@@ -128,10 +128,10 @@
             ["Diamond (X0h)", "Diamond (X0h server)"]
         ],
         "DiffractionPlaneAngle": [
+            ["-1.57079632", "-𝛑/2 (horizontal, right)"],
             ["0", "0 (vertical, up)"],
             ["1.57079632", "𝛑/2 (horizontal, left)"],
-            ["3.14159265", "𝛑 (vertical, down)"],
-            ["4.71238898", "3𝛑/2 (horizontal, right)"]
+            ["3.14159265", "𝛑 (vertical, down)"]
         ],
         "DriftCalculationMethod": [
             ["auto", "Automatic"],
