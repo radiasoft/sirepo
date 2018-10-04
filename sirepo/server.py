@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo.template import adm
 from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import feature_config
@@ -564,6 +565,15 @@ def api_listSimulations():
             key=lambda row: row['name'],
         )
     )
+
+@api_perm.require_user
+def api_getServerData(id = None):
+    d = adm.get_server_data(id)
+    if d == None or len(d) == 0:
+        return http_reply.gen_json({
+            'error': 'Data error',
+        })
+    return http_reply.gen_json(d)
 
 
 # visitor rather than user because error pages are rendered by the application
