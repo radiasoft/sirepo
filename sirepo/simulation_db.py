@@ -251,6 +251,8 @@ def get_schema(sim_type):
     if 'appModes' not in schema:
         schema.appModes = pkcollections.Dict()
     for item in ['localRoutes', 'appModes', 'model', 'enum', 'view']:
+        if item not in schema:
+            schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
     _validate_schema(schema)
     return schema

@@ -1,7 +1,11 @@
 {
-    "version": "20180926.000000",
+    "version": "20181004.000000",
     "appInfo": {
-        "myapp": {
+       "adm": {
+           "longName": "Sirepo Admin",
+           "shortName": "Sirepo Admin"
+       },
+       "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
         },

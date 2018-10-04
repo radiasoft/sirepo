@@ -567,12 +567,12 @@ def api_listSimulations():
     )
 
 @api_perm.require_user
-def api_getServerData(id = None):
+def api_getServerData():
+    input = _parse_data_input(False)
+    id = input.id if 'id' in input else None
     d = adm.get_server_data(id)
     if d == None or len(d) == 0:
-        return http_reply.gen_json({
-            'error': 'Data error',
-        })
+        return _simulation_error('Data error')
     return http_reply.gen_json(d)
 
 

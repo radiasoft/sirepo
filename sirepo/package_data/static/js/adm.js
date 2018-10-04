@@ -36,8 +36,9 @@ SIREPO.app.directive('serverDataList', function(requestSender) {
                 '</tr>',
                 '<tr data-ng-repeat="row in data" data-ng-if="$index > 0">',
                     '<td data-ng-repeat="col in row">',
-                        '<a data-ng-if="$index == 0" href="" data-ng-click="getServerData(col)">{{ col }}</a>',
-                        '<span data-ng-if="$index > 0">{{ col }}</span>',
+                        //'<a data-ng-if="$index == 0" href="" data-ng-click="getServerData(col)">{{ col }}</a>',
+                        //'<span data-ng-if="$index > 0">{{ col }}</span>',
+                        '<span>{{ col }}</span>',
                     '</td>',
                 '</tr>',
                 '</table>',
@@ -47,7 +48,6 @@ SIREPO.app.directive('serverDataList', function(requestSender) {
         controller: function($scope) {
 
             $scope.getServerData = function (id) {
-                srdbg('getting data for id', id);
                 requestSender.sendRequest(
                     'getServerData',
                     dataLoaded,

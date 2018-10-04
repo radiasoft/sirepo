@@ -22,7 +22,8 @@ def get_server_data(id):
     data = [
         ['jobId', 'jobStart', 'jobState', 'jobReport'],
         ['123', '2018-10-03T16:09:09+00:05', 'running', 'foo & bar'],
-        ['456', '2018-10-01T16:21:09+00:05', 'complete', 'TITLE 456']
+        ['456', '2018-10-01T16:21:09+00:05', 'complete', 'TITLE 456'],
+        ['789', 'error1', 'error2', 'ERROR'],
     ];
     if id == None:
         return data
