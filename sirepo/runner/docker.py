@@ -270,13 +270,20 @@ class _SlotManager(threading.Thread):
         self.__queued_jobs = []
         self.__running_slots = pkcollections.Dict()
         self.__available_slots = slots
+        assert slots, \
+            '{}: no available slots'.format(self.__kind)
         self.__cname_prefix = _cname_join(self.__kind)
         random.shuffle(self.__available_slots)
         self.start()
 
     def run(self):
         """Start jobs if slots available else check for available"""
-        pkdlog('{}: {}', self.name, self.__kind)
+        pkdlog(
+            '{}: {} available={}',
+            self.name,
+            self.__kind,
+            len(self.__available_slots),
+        )
         while True:
             self.__event.wait(_SLOT_MANAGER_POLL_SECS)
             got_one = False
@@ -284,7 +291,12 @@ class _SlotManager(threading.Thread):
                 with self.__lock:
                     self.__event.clear()
                     if not (self.__queued_jobs and self.__available_slots):
-                        # nothing to do or nothing we can do
+                        if self.__queued_jobs:
+                            pkdlog(
+                                'waiting: queue={} available={}',
+                                [x.jid for x in self.__queued_jobs],
+                                [str(x) for x in self.__available_slots],
+                            )
                         break
                     j = self.__queued_jobs.pop(0)
                     s = self.__available_slots.pop(0)
@@ -343,6 +355,11 @@ class _SlotManager(threading.Thread):
     def _enqueue_job(self, job):
         """Add to queue and ping me"""
         with self.__lock:
+            pkdlog(
+                'queue: jid={} queue_before={}',
+                job.jid,
+                [x.jid for x in self.__queued_jobs],
+            )
             self.__queued_jobs.append(job)
             self.__event.set()
 
@@ -416,7 +433,7 @@ def _cfg_tls_dir(value):
 def _cmd(host, cmd):
     c = _hosts[host].cmd_prefix + cmd
     try:
-        pkdc('Running: {}', c)
+        pkdc('Running: {}', ' '.join(c))
         return subprocess.check_output(
             c,
             stdin=open(os.devnull),
@@ -558,16 +575,19 @@ def _init_hosts_slots_balance():
         for h in _hosts.values():
             mp += h.num_slots.parallel
             ms += h.num_slots.sequential
-        r = float(ms) / (float(mp) + float(ms))
         if mp + ms == 1:
-            # Edge case where ratio calculation can't work (probably dev)
+            # Edge case where ratio calculation can't work (only dev)
             h = _hosts.values()[0]
             h.num_slots.sequential = 1
             h.num_slots.parallel = 1
             return False
+        # Must be at least one parallel slot
+        if mp <= 1:
+            return False
 #TODO(robnagler) needs to be more complex, because could have many more
 # parallel nodes than sequential, which doesn't need to be so large. This
 # is a good guess for reasonable configurations.
+        r = float(ms) / (float(mp) + float(ms))
         return r < 0.4
 
     ho = sorted(_hosts.values(), key=lambda h: h.name)
@@ -587,6 +607,13 @@ def _init_hosts_slots_balance():
                 'should never get here: {}'.format(pkdpretty(hosts)),
             )
     _hosts_ordered = ho
+    for h in ho:
+        pkdlog(
+            '{}: parallel={} sequential={}',
+            h.name,
+            h.num_slots.parallel,
+            h.num_slots.sequential,
+            )
 
 
 def _init_parse_jobs():
@@ -618,7 +645,7 @@ def _init_slots():
         for h in _hosts_ordered:
             ns = h.num_slots[k]
             if ns <= 0:
-                return
+                continue
             g = 1
             if k == _PARALLEL:
                 # Leave some ram for caching and OS
