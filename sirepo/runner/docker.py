@@ -23,6 +23,7 @@ from sirepo.template import template_common
 import os
 import random
 import re
+import socket
 import subprocess
 import threading
 import time
@@ -408,8 +409,6 @@ class _SlotManager(threading.Thread):
 
 @pkconfig.parse_none
 def _cfg_hosts(value):
-    import socket
-
     value = pkconfig.parse_tuple(value)
     if value:
         return value
@@ -518,10 +517,9 @@ def _init_host_num_slots(h):
             h.cores,
         )
     h.num_slots.parallel = j
-    # Might be 0 see _init_hosts_slots_balance
     h.num_slots.sequential = h.cores - j * _parallel_cores
     pkdc(
-        '{} {} {} {gigabytes}gb {cores}c',
+        '{} {} {} {}gb {}c',
         h.name,
         h.num_slots.parallel,
         h.num_slots.sequential,
@@ -532,6 +530,9 @@ def _init_host_num_slots(h):
 
 def _init_host_spec(h):
     """Extract mem, cpus, and cores from /proc"""
+    h.remote_ip = socket.gethostbyname(h.name)
+    h.local_ip = _local_ip(h.remote_ip)
+    # NOTE: this will pull the container the first time
     out = _run_root(h.name, ('cat', '/proc/cpuinfo', '/proc/meminfo'))
     pats = pkcollections.Dict()
     matches = pkcollections.Dict()
@@ -568,6 +569,23 @@ def _init_hosts_slots_balance():
     """Balance sequential and parallel slot counts"""
     global _hosts_ordered
 
+    def _host_cmp(a, b):
+        """This (local) host will get (first) sequential slots.
+
+        Sequential slots are "faster" and don't go over NFS (usually)
+        so the interactive jobs will be more responsive (hopefully).
+
+        We don't assign sequential slots randomly, but in fixed order.
+        This helps reproduce bugs, because you know the first host
+        is the sequential host. Slots are then randomized
+        for execution.
+        """
+        if a.remote_ip == a.local_ip:
+            return -1
+        if b.remote_ip == b.local_ip:
+            return +1
+        return cmp(a.name, b.name)
+
     def _ratio_not_ok():
         """Minimum sequential job slots should be 40% of total"""
         mp = 0
@@ -590,9 +608,9 @@ def _init_hosts_slots_balance():
         r = float(ms) / (float(mp) + float(ms))
         return r < 0.4
 
-    ho = sorted(_hosts.values(), key=lambda h: h.name)
+    _hosts_ordered = sorted(_hosts.values(), cmp=_host_cmp)
     while _ratio_not_ok():
-        for h in ho:
+        for h in _hosts_ordered:
             # Balancing consists of making the first host have
             # all the sequential jobs, then the next host. This
             # is a guess at the best way to distribute sequential
@@ -606,14 +624,13 @@ def _init_hosts_slots_balance():
             raise AssertionError(
                 'should never get here: {}'.format(pkdpretty(hosts)),
             )
-    _hosts_ordered = ho
-    for h in ho:
+    for h in _hosts_ordered:
         pkdlog(
             '{}: parallel={} sequential={}',
             h.name,
             h.num_slots.parallel,
             h.num_slots.sequential,
-            )
+        )
 
 
 def _init_parse_jobs():
@@ -667,6 +684,21 @@ def _init_slot_managers():
     """Create SlotManager objects, which starts threads"""
     for k, s in _slots.items():
         _slot_managers[k] = _SlotManager(k, s)
+
+
+def _local_ip(remote_ip):
+    """Determine local IPv4 for talking to hosts
+
+    Assumes all hosts on the same network. If this host
+    is talking to hosts on two different networks, sort
+    order will not put this host last in _host_cmp().
+
+    Args:
+        some_ip (str): any ip address
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((remote_ip, 80))
+    return s.getsockname()[0]
 
 
 def _parse_ps(hosts, cname_prefix):
