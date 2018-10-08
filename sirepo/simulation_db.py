@@ -40,8 +40,11 @@ SCHEMA_COMMON = None
 #: Simulation file name is globally unique to avoid collisions with simulation output
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
+#: The root of the pkresource tree (package_data)
+RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
+
 #: Where server files and static files are found
-STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
 #: Verify ID
 _IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
@@ -1040,8 +1043,7 @@ def _pkg_relative_path_static(file_dir, file_name):
     Returns:
         str: full relative path of the file
     """
-    root = str(pkresource.filename(''))
-    return str(static_file_path(file_dir, file_name))[len(root):]
+    return '/' + RESOURCE_FOLDER.bestrelpath(static_file_path(file_dir, file_name))
 
 
 def _random_id(parent_dir, simulation_type=None):
@@ -1295,7 +1297,9 @@ def _validate_schema(schema):
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
     for src in schema.dynamicModules:
-        pkresource.filename(src)
+        # These are absolute URLs which are not files so need to
+        # check existence without leading /.
+        pkresource.filename(src[1:])
 
 
 _init()
