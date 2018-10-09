@@ -156,6 +156,8 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             res += 'line.add(core.{}("{}", label2="{}"))\n'.format(el.type, el.name, '.plt' if int(el.plt) else '')
         elif el['type'] == 'QUADRUPO':
             res += 'line.add(core.{}("{}", XL={}, R_0={}, B_0={}, XPAS={}, KPOS={}))\n'.format(el.type, el.name, _cm(el.l), _cm(el.r_0), el.b_0, _cm(el.xpas), el.kpos)
+        elif el['type'] == 'BEND':
+            res += 'line.add(core.{}("{}", XL={}, B1={}, KPOS=3, ALE={}))\n'.format(el.type, el.name, _cm(el.l), el.b1, _degrees(el.angle))
     return res
 
 

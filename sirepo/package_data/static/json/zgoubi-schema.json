@@ -28,6 +28,9 @@
         }
     },
     "enum": {
+        "AutorefFormat": [
+            ["4", "Equivalent to CHANGREF"]
+        ],
         "Boolean": [
             ["0", "No"],
             ["1", "Yes"]
@@ -35,6 +38,9 @@
         "ElementAlignment": [
             ["1", "Element Aligned"],
             ["2", "Element Misaligned"]
+        ],
+        "ObjetFormat": [
+            ["5.1", "Generate 11 particles with beam ellipse"]
         ],
         "PhaseSpaceCoordinate": [
             ["Do1", "dp/p₀"],
@@ -91,23 +97,86 @@
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
+        "AUTOREF": {
+            "name": ["Name", "ValidatedString"],
+            "i": ["Autoref Format", "AutorefFormat", "4", "I"],
+            "xce": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "yce": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ale": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
+        "BEND": {
+            "name": ["Name", "ValidatedString"],
+            "xl": ["Length [m]", "Float", 0.0, "XL"],
+            "sk": ["Skew Angle [rad]", "Float", 0.0, "SK"],
+            "b1": ["Field [kG]", "Float", 0.0, "BL"],
+            "x_e": ["Entrance Face Integration Zone Extent [m]", "Float", 0.0],
+            "lam_e": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
+            "w_e": ["Entrance Wedge Angle [rad]", "Float", 0.0],
+            "c_0": ["Entrance Frindge Field Coefficients $C_0$", "Float", 0.0],
+            "c_1": ["Entrance Frindge Field Coefficients $C_1$", "Float", 0.0],
+            "c_2": ["Entrance Frindge Field Coefficients $C_2$", "Float", 0.0],
+            "c_3": ["Entrance Frindge Field Coefficients $C_3$", "Float", 0.0],
+            "c_4": ["Entrance Frindge Field Coefficients $C_4$", "Float", 0.0],
+            "c_5": ["Entrance Frindge Field Coefficients $C_5$", "Float", 0.0],
+            "x_s": ["Exit Face Integration Zone Extent [m]", "Float", 0.0],
+            "lam_s": ["Exit Fringe Field Extent [m]", "Float", 0.0],
+            "w_s": ["Exit Wedge Angle [rad]", "Float", 0.0],
+            "cs_0": ["Exit Frindge Field Coefficients $C_0$", "Float", 0.0],
+            "cs_1": ["Exit Frindge Field Coefficients $C_1$", "Float", 0.0],
+            "cs_2": ["Exit Frindge Field Coefficients $C_2$", "Float", 0.0],
+            "cs_3": ["Exit Frindge Field Coefficients $C_3$", "Float", 0.0],
+            "cs_4": ["Exit Frindge Field Coefficients $C_4$", "Float", 0.0],
+            "cs_5": ["Exit Frindge Field Coefficients $C_5$", "Float", 0.0],
+            "xpas": ["Integration Step [m]", "Float", 0.0, "XPAS"],
+            "kpos": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "xce": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "yce": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ale": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
         "CHANGREF": {
             "name": ["Name", "ValidatedString"],
-            "xce": ["Longitudinal Shift [m]", "Float", 0.0],
-            "yce": ["Transverse Shift [m]", "Float", 0.0],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0]
+            "xce": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "yce": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ale": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
-            "l": ["Length [m]", "Float", 0.0]
+            "xl": ["Length [m]", "Float", 0.0, "XL"]
         },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
             "plt": ["Save Particle Data", "Boolean", "1"]
         },
+        "OBJET": {
+            "name": ["Name", "ValidatedString"],
+            "BORO": ["Reference Rigidity [kG/m]", "Float", 0.0, "BORO"],
+            "KOBJ": ["Object Format", "ObjetFormat", "5.1", "KOBJ"],
+            "dY": ["Sampling size in Y [m]", "Float", 0.0, "dY"],
+            "dT": ["Sampling size in T [rad]", "Float", 0.0, "dT"],
+            "dZ": ["Sampling size in Z [m]", "Float", 0.0, "dZ"],
+            "dP": ["Sampling size in P [rad]", "Float", 0.0, "dP"],
+            "dS": ["Sampling size in S [m]", "Float", 0.0, "dS"],
+            "dD": ["Sampling size in D", "Float", 0.0, "dD"],
+            "YR": ["Reference trajectory Y [m]", "Float", 0.0, "YR"],
+            "TR": ["Reference trajectory T [rad]", "Float", 0.0, "TR"],
+            "ZR": ["Reference trajectory Z [m]", "Float", 0.0, "ZR"],
+            "PR": ["Reference trajectory P [rad]", "Float", 0.0, "PR"],
+            "SR": ["Reference trajectory S [m]", "Float", 0.0, "SR"],
+            "DR": ["Reference trajectory D", "Float", 0.0, "DR"],
+            "alpha_y": ["Horizontal Alpha", "Float", 0.0, "$\\alpha_\\gamma$"],
+            "beta_y": ["Horizontal Beta [m]", "Float", 0.0, "$\\beta_\\gamma$"],
+            "alpha_z": ["Vertical Alpha", "Float", 0.0, "$\\alpha_Z$"],
+            "beta_z": ["Vertical Beta [m]", "Float", 0.0, "$\\beta_Z$"],
+            "alpha_s": ["Longitudinal Alpha", "Float", 0.0, "$\\alpha_S$"],
+            "beta_s": ["Longitudinal Beta [m]", "Float", 0.0, "$\\beta_S$"],
+            "D_y": ["Horizontal Dispersion [m]", "Float", "$D_Y$"],
+            "Dprime_y": ["Horizontal Dispersion Derivative [rad]", "Float", 0.0, "$D1_Y$"],
+            "D_z": ["Vertical Dispersion [m]", "Float", 0.0, "$D_Z$"],
+            "Dprime_z": ["Vertical Dispersion Derivative [rad]", "Float", 0.0, "$D1_Z$"]
+        },
         "QUADRUPO": {
             "name": ["Name", "ValidatedString"],
-            "l": ["Length [m]", "Float"],
+            "xl": ["Length [m]", "Float"],
             "r_0": ["Radius at Pole Tip [m]", "Float", 0.0],
             "b_0": ["Field at Pole Tip [kG]", "Float", 0.0],
             "xpas": ["Integration Step [m]", "Float", 0.0],
@@ -155,6 +224,60 @@
                 "notes"
             ]
         },
+        "AUTOREF": {
+            "title": "AUTOREF",
+            "description": "Transport beam into a new reference frame",
+            "advanced": [
+                "name",
+                "i",
+                "xce",
+                "yce",
+                "ale"
+            ]
+        },
+        "BEND": {
+            "title": "BEND",
+            "description": "Bending magnet, Cartesian frame",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "xl",
+                    "sk",
+                    "b1",
+                    "xpas",
+                    "kpos",
+                    "xce",
+                    "yce",
+                    "ale"
+                ]],
+                ["Fringe Fields", [
+                    [
+                        ["Entrance", [
+                            "x_e",
+                            "lam_e",
+                            "w_e",
+                            "c_0",
+                            "c_1",
+                            "c_2",
+                            "c_3",
+                            "c_4",
+                            "c_5"
+                        ]],
+                        ["Exit", [
+                            "x_s",
+                            "lam_s",
+                            "w_s",
+                            "cs_0",
+                            "cs_1",
+                            "cs_2",
+                            "cs_3",
+                            "cs_4",
+                            "cs_5"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "CHANGREF": {
             "title": "CHANGREF",
             "description": "Transformation to a new reference frame",
@@ -162,7 +285,7 @@
                 "name",
                 "xce",
                 "yce",
-                "angle"
+                "ale"
             ]
         },
         "DRIFT": {
@@ -170,7 +293,7 @@
             "description": "Field free drift space",
             "advanced": [
                 "name",
-                "l"
+                "xl"
             ]
         },
         "MARKER": {
@@ -186,7 +309,7 @@
             "description": "Quadrupole magnet",
             "advanced": [
                 "name",
-                "l",
+                "xl",
                 "r_0",
                 "b_0",
                 "xpas",

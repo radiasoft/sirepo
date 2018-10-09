@@ -17,7 +17,7 @@ SIREPO.lattice = {
     },
     elementPic: {
         aperture: [],
-        bend: ['CHANGREF'],
+        bend: ['CHANGREF', 'BEND'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPO'],
         rf: [],
@@ -74,7 +74,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
     self.advancedNames = [];
 
-    self.basicNames = ['CHANGREF', 'DRIFT', 'MARKER', 'QUADRUPO'];
+    self.basicNames = ['BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'QUADRUPO'];
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;

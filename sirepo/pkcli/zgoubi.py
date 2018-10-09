@@ -15,6 +15,7 @@ import subprocess
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
 _EXE_PATH = '/home/vagrant/src/zgoubi-6.0.2/zgoubi/zgoubi'
+#_EXE_PATH = '/home/vagrant/bin/zgoubi'
 
 def run_background(cfg_dir):
     res = {}
