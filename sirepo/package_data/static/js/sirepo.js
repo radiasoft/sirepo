@@ -622,35 +622,39 @@ SIREPO.app.factory('appDataService', function() {
     return self;
 });
 
-SIREPO.app.factory('notificationService', function(cookieUtils, $cookies, $sce) {
+SIREPO.app.factory('notificationService', function(cookieService, $cookies, $sce) {
 
     var oneDay = 24*60*60*1000;
-    var recurrentNotificationTimeout = 1 * oneDay;
-    var nonrecurrentNotificationTimeout = 5*365 * oneDay;
-    var firstVisitCookie = 'net.sirepo.first_visit';
-    var fvc = '1st_vis';
+    var recurrentNotificationTimeout = 1;  // * oneDay;
+    var nonrecurrentNotificationTimeout = 5*365; // * oneDay;
     var self = {};
 
     self.notifications = {};
 
-    var now = new Date();
-    var t = 5*365;
-    cookieUtils.addCookie(fvc, 'a', t);
-    if(! $cookies.get(firstVisitCookie)) {
-        $cookies.put(firstVisitCookie, now.getTime(), {expires: new Date(now.getTime() + nonrecurrentNotificationTimeout)});
+    //if(! $cookies.get(firstVisitCookie)) {
+    //    $cookies.put(firstVisitCookie, now.getTime(), {expires: new Date(now.getTime() + nonrecurrentNotificationTimeout)});
+    //}
+
+    function cookie(notification) {
+        srdbg('c for n', SIREPO.APP_SCHEMA.cookies[notification.cookie]);
+        return cookieService.get(SIREPO.APP_SCHEMA.cookies[notification.cookie].name);
     }
 
     self.addNotification = function(notification) {
         if(! notification.name || ! notification.content) {
             return;
         }
+        //srdbg('adding n', notification);
+        /*
         if(notification.recurs && ! notification.timeout) {
             notification.timeout = recurrentNotificationTimeout;
         }
         if(! notification.recurs && ! notification.timeout) {
             notification.timeout = nonrecurrentNotificationTimeout;
         }
+        */
         self.notifications[notification.name] = notification;
+        //cookieService.addCookie(cookie(notification));
     };
 
     self.getNotification = function(name) {
@@ -660,23 +664,37 @@ SIREPO.app.factory('notificationService', function(cookieUtils, $cookies, $sce) 
     self.removeNotification = function(notification) {
         $cookies.remove(notification.name);
         delete self.notifications[notification.name];
+        cookieService.remove(cookie(notification));
     };
 
     self.shouldPresent = function(name) {
         var now = new Date();
         var notification = self.notifications[name];
-        if(! notification) {
-            return false;
-        }
-        if(! notification.active) {
+        if(! notification || ! notification.active) {
             return false;
         }
 
-        var c = $cookies.get(name);
-        var v = parseInt($cookies.get(firstVisitCookie));
-        if(! c || c === undefined) {
-            return now.getTime() > v + (notification.delay || 0);
+        var ck = cookie(notification);
+        //srdbg('schema cookie', notification.cookie, ck);
+
+        var cc = cookieService.cleanExpiredCookie(ck);
+        //var cc = cookieService.get(name);
+        var vc = cookieService.get(SIREPO.APP_SCHEMA.cookies.firstVisit.name);
+        var vv = vc.t;
+        if(! cc) {
+            var s = now.getTime() > (vv + (notification.delay || 0)) * oneDay;
+            //srdbg('no cookie, time, delay, display?', name, vv, notification.delay, s);
+            return s;
         }
+        else {
+            //srdbg('cookie exists, do not display', name);
+        }
+
+        //var c = $cookies.get(name);
+        //var v = parseInt($cookies.get(firstVisitCookie));
+        //if(! c || c === undefined) {
+        //    return now.getTime() > v + (notification.delay || 0);
+        //}
 
         return false;
     };
@@ -690,9 +708,9 @@ SIREPO.app.factory('notificationService', function(cookieUtils, $cookies, $sce) 
 
     self.sleepNotification = function(notification) {
         var now = new Date();
-        var t = notification.timeout / oneDay;
+        var ck = cookie(notification);
         $cookies.put(notification.name, now.getTime(), {expires: new Date(now.getTime() + notification.timeout)});
-        cookieUtils.addCookie(notification.name, 'i', t);
+        cookieService.addCookie(ck, 'i');
         //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
         notification.active = false;
     };
@@ -2439,14 +2457,13 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieUtils, $cookies, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {
     var self = this;
     var simListViewCookie = 'net.sirepo.sim_list_view';
     var slvc = "list_view";
     var cookiePrefTimeout = 5*365*24*60*60*1000;
 
     var getStartedNotifyCookie = 'net.sirepo.get_started_notify';
-    var gsc = 'get_strt';
     var getStartedNotifyContent = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
@@ -2454,13 +2471,17 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
     ].join('');
 
+    var n = SIREPO.APP_SCHEMA.notifications.getStarted;
+    n.content = getStartedNotifyContent;
+    notificationService.addNotification(n);
+   /*
     notificationService.addNotification({
         name: getStartedNotifyCookie,
         content: getStartedNotifyContent,
         active: true,
         recurs: false,
     });
-
+*/
     self.importText = SIREPO.appImportText;
     self.fileTree = fileManager.getFileTree();
     var SORT_DESCENDING = '-';
@@ -2722,7 +2743,7 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
         $cookies.put(simListViewCookie, self.isIconView, {expires: new Date((new Date()).getTime() + cookiePrefTimeout)});
-        cookieUtils.addCookie(slvc, self.isIconView, 5*365);
+        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.listView, self.isIconView);
     };
 
     self.toggleFolder = function(item) {
@@ -2744,8 +2765,7 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         }
     };
 
-    cookieUtils.expireCookies();
-    cookieUtils.fixupCookies();
+    cookieService.fixup();
     initCookiePrefs();
     clearModels();
     $scope.$on('simulation.changed', function() {
@@ -2830,73 +2850,92 @@ SIREPO.app.filter('simulationName', function() {
 });
 
 
-SIREPO.app.service('cookieUtils', function($cookies) {
+SIREPO.app.factory('cookieService', function($cookies) {
 
-    var self = this;
+    var svc = {};
+
+    var oneDay = 24*60*60*1000;
 
     var cdelim = '|';
     var nDelim = ':';
     var pDelim = ';';
     var kvDelim = '=';
 
-    var oneDay = 24*60*60*1000;
     var fiveYears = 5*365 * oneDay;
 
     var cookieMap = {
-        'net.sirepo.first_visit': ['1st_visit', 'a', 5*365],
-        'net.sirepo.get_started_notify': ['strt', 'a', 5*365],
-        'net.sirepo.sim_list_view': ['lst_vw', false, 1]
+        'net.sirepo.first_visit': [SIREPO.APP_SCHEMA.cookies.firstVisit, 'a'],
+        'net.sirepo.get_started_notify': [SIREPO.APP_SCHEMA.cookies.firstVisit, 'a'],
+        'net.sirepo.sim_list_view': [SIREPO.APP_SCHEMA.cookies.listView, false]
     };
 
     // to reduce the string size, and because that's as accurate as we need,
     // timeout is in days
-    this.addCookie = function (name, value, timeoutDays) {
+    svc.add = function (name, value, timeoutDays) {
         var allDelim = cdelim + nDelim + pDelim + kvDelim;
         var delimRE = new RegExp('[' + allDelim + ']+');
         if(delimRE.test(name) || delimRE.test(value) ) {
-            throw name + ': Cookie name cannot contain delimiters ' + allDelim;
+            throw name + ': Cookie name/value cannot contain delimiters ' + allDelim;
         }
-        var cobj = this.readSRCookie();
+        var cobj = readSRCookie();
         if(! cobj[name]) {
             cobj[name] = {};
         }
-        cobj[name].t = Math.floor((new Date().getTime() / oneDay)) + timeoutDays;
+        cobj[name].t = Math.floor((new Date().getTime() / oneDay)) + (timeoutDays || 5*365);
         cobj[name].v = value;
-        this.writeSRCookie(cobj);
+        writeSRCookie(cobj);
     };
 
-    this.expireCookie = function (name) {
-        var c = this.getCookie(name);
-        if(c && c.t && parseInt(c.t) * oneDay < new Date().getTime()) {
-            this.removeCookie(name);
-            return true;
+    svc.addCookie = function (cookie, value) {
+        srdbg('adding c', cookie, 'with val', value);
+        this.add(cookie.name, value, cookie.timeout);
+    };
+
+    svc.cleanExpiredCookie = function (cookie) {
+        if(! cookie) {
+            return null;
         }
-        return false;
+        return cleanExpired(cookie.name);
     };
 
-    this.expireCookies = function () {
-        var res = false;
-        for(var name in this.readSRCookie()) {
-            res = res || this.expireCookie(name);
-        }
-        return res;
-    };
-
-    this.fixupCookies = function () {
+    svc.fixup = function () {
         for(var cname in cookieMap) {
             var c = $cookies.getObject(cname);
             if(c) {
-                srdbg('got old cookie', cname, c);
-                //this.addCookie(cookieMap[cname][0], cookieMap[cname][1], cookieMap[cname][2]);
+                srdbg('got old cookie', cname, c, 'new', cookieMap[cname]);
+                //this.add(cookieMap[cname][0], cookieMap[cname][1], cookieMap[cname][2]);
+                //$cookies.remove(cname);
             }
         }
     };
 
-    this.getCookie = function (name) {
-        return this.readSRCookie()[name];
+    svc.get = function (name) {
+        srdbg('getting c named', name);
+        return readSRCookie()[name];
     };
 
-    this.packCookie = function (cobj) {
+    svc.getCookie = function (cookie) {
+        return this.get(cookie.name);
+    };
+
+    svc.remove = function (name) {
+        var cobj = readSRCookie();
+        if(cobj && cobj[name]) {
+            delete cobj[name];
+            writeSRCookie(cobj);
+        }
+    };
+
+    function cleanExpired(name) {
+        var cobj = svc.get(name);
+        if(cobj && cobj.t && parseInt(cobj.t) * oneDay < new Date().getTime()) {
+            svc.remove(name);
+            return null;
+        }
+        return cobj;
+    }
+
+    function pack(cobj) {
         var cstr = '';
         for(var name in cobj) {
             cstr = cstr + name + nDelim;
@@ -2905,11 +2944,11 @@ SIREPO.app.service('cookieUtils', function($cookies) {
             }
             cstr = cstr + cdelim;
         }
-        srdbg('packed cookie', cobj, '->', cstr);
+        //srdbg('packed cookie', cobj, '->', cstr);
         return cstr;
-    };
+    }
 
-    this.parseCookie = function (cstr) {
+    function parse(cstr) {
         var cobj = {};
         var cookies = (cstr || '').split(cdelim);
         cookies.forEach(function (c) {
@@ -2924,31 +2963,26 @@ SIREPO.app.service('cookieUtils', function($cookies) {
                 });
             }
         });
-        //srdbg('parsed cookie', cstr, '->', cobj);
+        srdbg('parsed cookie', cstr, '->', cobj);
         return cobj;
-    };
+    }
 
-    this.readSRCookie = function () {
-        return this.parseCookie($cookies.get(SIREPO.APP_SCHEMA.constants.clientCookie));
-    };
+    function readSRCookie() {
+        return parse($cookies.get(SIREPO.APP_SCHEMA.constants.clientCookie));
+    }
 
-    this.removeCookie = function (name) {
-        var cobj = this.readSRCookie();
-        if(cobj && cobj[name]) {
-            srdbg('removing', name);
-            delete cobj[name];
-            this.writeSRCookie(cobj);
-        }
-    };
-
-    this.writeSRCookie = function (cobj) {
+    function writeSRCookie(cobj) {
         //srdbg('writing', cobj);
 
         $cookies.put(SIREPO.APP_SCHEMA.constants.clientCookie,
-            this.packCookie(cobj),
+            pack(cobj),
             {expires: new Date(new Date().getTime() + fiveYears)}
-            );
+        );
+    }
 
-    };
+    if(! svc.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
+        svc.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit, 'a');
+    }
 
+    return svc;
 });

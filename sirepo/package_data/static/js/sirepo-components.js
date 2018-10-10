@@ -560,7 +560,12 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
                 notificationService.dismissNotification($scope.loginNotification);
             };
 
+            var n = SIREPO.APP_SCHEMA.notifications.login;
+            n.content = loginNotifyContent;
+            n.active = $scope.notifyActive && $scope.isLoggedOut();
+
             $scope.notificationService = notificationService;
+            /*
             $scope.sr_login_notify_cookie = loginNotifyCookie;
             $scope.loginNotification = {
                 name: loginNotifyCookie,
@@ -571,6 +576,11 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
                 delay: loginNotifyTimeout,
             };
             notificationService.addNotification($scope.loginNotification);
+            */
+
+            $scope.sr_login_notify_cookie = n.name;
+            $scope.loginNotification = n;
+            notificationService.addNotification(n);
         },
     };
 });

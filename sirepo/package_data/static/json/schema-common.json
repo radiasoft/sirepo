@@ -1,5 +1,5 @@
 {
-    "version": "20181004.000000",
+    "version": "20181010.000000",
     "appInfo": {
        "adm": {
            "longName": "Sirepo Admin",
@@ -100,6 +100,21 @@
         },
         "constants": {
             "clientCookie": "sirepo_cookie_js"
+        },
+        "cookies": {
+            "firstVisit": {
+                "name": "1st_vis"
+            },
+            "getStarted": {
+                "name": "strt"
+            },
+            "listView": {
+                "name": "lv"
+            },
+            "login": {
+                "name": "login",
+                "timeout": 1
+            }
         },
         "dynamicFiles": {
             "externalLibs": {
@@ -206,6 +221,24 @@
                 "folder": ["Folder", "UserFolder"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
+            }
+        },
+        "notifications": {
+            "getStarted": {
+                "name": "net.sirepo.get_started_notify",
+                "cookie": "getStarted",
+                "content": "",
+                "active": true,
+                "recurs": false
+            },
+            "login": {
+                "name": "net.sirepo.login_notify_timeout",
+                "timeout": 1,
+                "cookie": "login",
+                "content": "",
+                "active": false,
+                "recurs": true,
+                "delay": -1
             }
         },
         "staticFiles": {

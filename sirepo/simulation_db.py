@@ -248,7 +248,7 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    for item in ['appModes', 'constants', 'enum', 'localRoutes', 'model', 'view']:
+    for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
         if item not in schema:
             pkdp('key {}', item)
             schema[item] = pkcollections.Dict()
@@ -1268,6 +1268,7 @@ def _validate_schema(schema):
     """
     sch_models = schema.model
     sch_enums = schema.enum
+    sch_ntfy = schema.notifications
     for name in sch_enums:
         for values in sch_enums[name]:
             if not isinstance(values[0], pkconfig.STRING_TYPES):
@@ -1283,6 +1284,9 @@ def _validate_schema(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
+    for c in sch_ntfy:
+        if 'cookie' not in sch_ntfy[c] or sch_ntfy[c].cookie not in schema.cookies:
+            raise AssertionError(util.err(sch_ntfy, 'notification must reference a cookie in the schema'))
     for type in schema.dynamicModules:
         for src in schema.dynamicModules[type]:
             pkresource.filename(src[1:])
