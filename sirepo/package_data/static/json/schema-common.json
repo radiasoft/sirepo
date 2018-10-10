@@ -92,24 +92,14 @@
         "userState": "/user-state"
     },
     "common": {
-        "staticFiles": {
-            "externalLibs": {
-                "js": [
-                    "angular.min.js",
-                    "jquery-2.2.4.min.js",
-                    "cookieconsent.min.js"
-                ],
-                "css": [
-                    "bootstrap-3.3.7.min.css",
-                    "bootstrap-colxl.css",
-                    "bootstrap-toggle.min.css",
-                    "cookieconsent.min.css"
-                ]
-            },
-            "sirepoLibs": {
-                "js": ["sirepo.js"],
-                "css": ["sirepo.css"]
+        "appModes": {
+           "default": {
+                "localRoute": "source",
+                "includeMode": false
             }
+        },
+        "constants": {
+            "clientCookie": "sirepo_cookie_js"
         },
         "dynamicFiles": {
             "externalLibs": {
@@ -144,12 +134,6 @@
             "libURLs": [
                 "/user-state"
             ]
-        },
-        "appModes": {
-           "default": {
-                "localRoute": "source",
-                "includeMode": false
-            }
         },
         "enum": {
             "ColorMap": [
@@ -222,6 +206,25 @@
                 "folder": ["Folder", "UserFolder"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
+            }
+        },
+        "staticFiles": {
+            "externalLibs": {
+                "js": [
+                    "angular.min.js",
+                    "jquery-2.2.4.min.js",
+                    "cookieconsent.min.js"
+                ],
+                "css": [
+                    "bootstrap-3.3.7.min.css",
+                    "bootstrap-colxl.css",
+                    "bootstrap-toggle.min.css",
+                    "cookieconsent.min.css"
+                ]
+            },
+            "sirepoLibs": {
+                "js": ["sirepo.js"],
+                "css": ["sirepo.css"]
             }
         },
         "view": {
