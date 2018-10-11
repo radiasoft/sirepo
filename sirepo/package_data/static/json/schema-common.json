@@ -99,20 +99,26 @@
             }
         },
         "constants": {
-            "clientCookie": "sirepo_cookie_js"
+            "clientCookie": "sirepo_cookie_js",
+            "oneDayMillis": 86400000
         },
         "cookies": {
             "firstVisit": {
-                "name": "1st_vis"
+                "name": "1st_vis",
+                "value": "a"
             },
             "getStarted": {
-                "name": "strt"
+                "name": "strt",
+                "value": "a"
             },
             "listView": {
-                "name": "lv"
+                "name": "lv",
+                "value": false,
+                "valType": "b"
             },
             "login": {
                 "name": "login",
+                "value": "a",
                 "timeout": 1
             }
         },
@@ -225,20 +231,17 @@
         },
         "notifications": {
             "getStarted": {
-                "name": "net.sirepo.get_started_notify",
+                "name": "getStarted",
                 "cookie": "getStarted",
                 "content": "",
-                "active": true,
-                "recurs": false
+                "active": true
             },
             "login": {
-                "name": "net.sirepo.login_notify_timeout",
-                "timeout": 1,
+                "name": "login",
                 "cookie": "login",
                 "content": "",
                 "active": false,
-                "recurs": true,
-                "delay": -1
+                "delay": 1
             }
         },
         "staticFiles": {

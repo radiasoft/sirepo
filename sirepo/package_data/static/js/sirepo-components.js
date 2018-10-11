@@ -510,8 +510,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
 
 SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
 
-    var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
-    var loginNotifyTimeout = 1*24*60*60*1000;
     var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
 
     return {
@@ -527,7 +525,7 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
                   '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
                 '</ul>',
               '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(loginNotification.name)}">',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(\'login\')}">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
@@ -565,19 +563,6 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
             n.active = $scope.notifyActive && $scope.isLoggedOut();
 
             $scope.notificationService = notificationService;
-            /*
-            $scope.sr_login_notify_cookie = loginNotifyCookie;
-            $scope.loginNotification = {
-                name: loginNotifyCookie,
-                timeout: loginNotifyTimeout,
-                content: loginNotifyContent,
-                active: $scope.notifyActive && $scope.isLoggedOut(),
-                recurs: true,
-                delay: loginNotifyTimeout,
-            };
-            notificationService.addNotification($scope.loginNotification);
-            */
-
             $scope.sr_login_notify_cookie = n.name;
             $scope.loginNotification = n;
             notificationService.addNotification(n);
