@@ -7,4 +7,8 @@ u"""sirepo package
 from __future__ import absolute_import, division, print_function
 import pkg_resources
 
-__version__ = pkg_resources.get_distribution('sirepo').version
+try:
+    # We only have a version once the package is installed.
+    __version__ = pkg_resources.get_distribution('pykern').version
+except pkg_resources.DistributionNotFound:
+    pass
