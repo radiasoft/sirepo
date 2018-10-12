@@ -634,10 +634,6 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         }
         //srdbg('adding n', notification);
         self.notifications[notification.name] = notification;
-        var cd = cookieDef(notification);
-        if(! cookieService.getCookie(cd)) {
-            cookieService.addCookie(cd);
-        }
     };
 
     self.getNotification = function(name) {
@@ -657,18 +653,19 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         }
 
         var cd = cookieDef(notification);
-        //srdbg('schema cookie', notification.cookie, cd);
+
 
         var cc = cookieService.cleanExpiredCookie(cd);
+        //srdbg('shouldPresent: schema cookie def', notification.cookie, cd, cc);
         var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
         var vc = cookieService.getCookie(vcd);
         var vv = vc.t;
         if(! cc) {
-            var nowDays = Math.floor(now.getTime() / SIREPO.APP_SCHEMA.constants.oneDayMillis);
             var t0 = cookieService.timeoutOrDefault(vcd);
             var lstVisitDays = vv - t0;
-            var s = nowDays > lstVisitDays + (notification.delay || 0);
-            srdbg(name, 'no cookie: now, 1st visit, 1st to, delay, display?', nowDays, lstVisitDays, t0, (notification.delay || 0), s);
+            // we need millisecond comparison here
+            var s = now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
+            //srdbg(name, 'no cookie: now, 1st visit, 1st to, delay, display?', nowDays, lstVisitDays, t0, (notification.delay || 0), s);
             return s;
         }
 
