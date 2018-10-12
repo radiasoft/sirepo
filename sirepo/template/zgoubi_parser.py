@@ -5,6 +5,7 @@ u"""zgoubi input file parser.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template.line_parser import LineParser
 import re
@@ -12,19 +13,12 @@ import re
 _COMMAND_INDEX_POS = 115
 
 
-def parse_file(zgoubi_text):
-    parser = LineParser()
+def parse_file(zgoubi_text, max_id=0):
+    parser = LineParser(max_id)
     lines = zgoubi_text.replace('\r', '').split('\n')
-    models = {
-        'beamlines': [
-            {
-                'name': 'BL1',
-                'id': parser.next_id(),
-                'items': [],
-            },
-        ],
+    models = pkcollections.Dict({
         'elements': [],
-    }
+    })
     # skip first documentation line
     lines.pop(0)
     parser.increment_line_number()
@@ -60,9 +54,8 @@ def _add_command(command_id, command, models):
         return
     el = globals()[method](command)
     if el:
-        el['id'] = command_id
+        el['_id'] = command_id
         models['elements'].append(el)
-        models['beamlines'][0]['items'].append(el['id'])
 
 
 def _parse_command(command, command_def):
@@ -73,7 +66,7 @@ def _parse_command(command, command_def):
 
 
 def _parse_command_header(command):
-    return _parse_command_line({}, command[0], 'type *label1 *label2')
+    return _parse_command_line(pkcollections.Dict({}), command[0], 'type *name *label2')
 
 
 def _parse_command_line(element, line, line_def):
@@ -110,10 +103,17 @@ def _zgoubi_autoref(command):
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
-        # new format
-        res = _parse_command_header(command)
-        res['order'] = ' '.join(command[1])
-        return res
+        # # new format
+        # res = _parse_command_header(command)
+        # res['order'] = ' '.join(command[1])
+        # return res
+        #TODO(pjm): convert to old format for now
+        if command[1][0] == 'XS':
+            command[1] = [command[1][1], '0', '0']
+        elif command[1][0] == 'ZR':
+            command[1] = ['0', '0', command[1][1]]
+        else:
+            assert False, 'unknown changref: {}'.format(command[1][0])
     return _parse_command(command, [
         'XCE YCE ALE',
     ])
@@ -124,7 +124,8 @@ def _zgoubi_drift(command):
     ])
 
 def _zgoubi_faisceau(command):
-    return _parse_command_header(command)
+    #return _parse_command_header(command)
+    return None
 
 def _zgoubi_marker(command):
     return _parse_command_header(command)
@@ -152,18 +153,17 @@ def _zgoubi_objet(command):
         'KOBJ',
         'dY dT dZ dP dS dD',
         'YR TR ZR PR SR DR',
-        'alpha_y beta_y alpha_z beta_z alpha_s beta_s D_y Dprime_y D_z Dprime_z',
+        'alpha_Y beta_Y alpha_Z beta_Z alpha_S beta_S D_Y Dprime_Y D_Z Dprime_Z',
     ])
 
 def _zgoubi_optics(command):
-    return _parse_command(command, [
-        'IOPT',
-    ])
+    #TODO(pjm): implement optics
+    return None
 
 def _zgoubi_particul(command):
     if re.search(r'^[\-\.0-9]+', command[1][0]):
         return _parse_command(command, [
-            'M Q G tau X',
+            'M Q G TAU',
         ])
     return _parse_command(command, [
         'particle_type',

@@ -3,6 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
+SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
@@ -17,13 +18,13 @@ SIREPO.lattice = {
     },
     elementPic: {
         aperture: [],
-        bend: ['CHANGREF', 'BEND'],
+        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'MULTIPOL'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPO'],
+        magnet: ['QUADRUPO', ],
         rf: [],
         solenoid: [],
         watch: ['MARKER'],
-        zeroLength: [],
+        zeroLength: ['YMY'],
     },
 };
 
@@ -74,7 +75,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
     self.advancedNames = [];
 
-    self.basicNames = ['BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'QUADRUPO'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'YMY'];
 
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;

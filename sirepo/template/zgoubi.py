@@ -46,6 +46,8 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    for el in data['models']['elements']:
+        template_common.update_model_defaults(el, el['type'], _SCHEMA)
 
 
 def get_animation_name(data):
@@ -149,15 +151,15 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             continue
         el = element_map[item_id]
         if el['type'] == 'CHANGREF':
-            res += 'line.add(core.{}(ALE={}, XCE={}, YCE={}))\n'.format(el.type, _degrees(el.angle), _cm(el.xce), _cm(el.yce))
+            res += 'line.add(core.{}(ALE={}, XCE={}, YCE={}))\n'.format(el.type, _degrees(el.ALE), _cm(el.XCE), _cm(el.YCE))
         elif el['type'] == 'DRIFT':
-            res += 'line.add(core.{}("{}", XL={}))\n'.format(el.type, el.name, _cm(el.l))
+            res += 'line.add(core.{}("{}", XL={}))\n'.format(el.type, el.name, _cm(el.XL))
         elif el['type'] == 'MARKER':
             res += 'line.add(core.{}("{}", label2="{}"))\n'.format(el.type, el.name, '.plt' if int(el.plt) else '')
         elif el['type'] == 'QUADRUPO':
-            res += 'line.add(core.{}("{}", XL={}, R_0={}, B_0={}, XPAS={}, KPOS={}))\n'.format(el.type, el.name, _cm(el.l), _cm(el.r_0), el.b_0, _cm(el.xpas), el.kpos)
+            res += 'line.add(core.{}("{}", XL={}, R_0={}, B_0={}, XPAS={}, KPOS={}))\n'.format(el.type, el.name, _cm(el.XL), _cm(el.R_0), el.B_0, _cm(float(el.XPAS)), el.KPOS)
         elif el['type'] == 'BEND':
-            res += 'line.add(core.{}("{}", XL={}, B1={}, KPOS=3, ALE={}))\n'.format(el.type, el.name, _cm(el.l), el.b1, _degrees(el.angle))
+            res += 'line.add(core.{}("{}", XL={}, B1={}, KPOS=3, ALE={}))\n'.format(el.type, el.name, _cm(el.XL), el.B1, _degrees(el.ALE))
     return res
 
 

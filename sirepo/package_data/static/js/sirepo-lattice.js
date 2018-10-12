@@ -888,14 +888,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var picType = getPicType(item.type);
-                    var length = rpnValue(item.l || item.xl || item.xmax || 0);
+                    var length = rpnValue(item.l || item.XL || item.xmax || 0);
                     if (picType == 'zeroLength') {
                         length = 0;
                     }
                     var travelLength = length;
                     if (item.type.indexOf('RBEN') >= 0 && length > 0) {
                         // rben actual distance is the arclength
-                        var bendAngle = rpnValue(item.angle || item.ale || 0);
+                        var bendAngle = rpnValue(item.angle || item.ALE || 0);
                         if (bendAngle != 0) {
                             travelLength = bendAngle * length / (2 * Math.sin(bendAngle / 2));
                             if ($scope.flatten) {
@@ -914,7 +914,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var radius = length / 2;
-                        var angle = rpnValue(item.angle || item.ale || item.kick || item.hkick || 0);
+                        var angle = rpnValue(item.angle || item.ALE || item.kick || item.hkick || 0);
                         if (SIREPO.lattice.reverseAngle) {
                             angle = -angle;
                         }
@@ -977,7 +977,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         newAngle = latticeService.radiansToDegrees(angle);
                         pos.radius = radius;
                         if (item.type == 'CHANGREF') {
-                            adjustPosition(pos, item.xce, -item.yce);
+                            adjustPosition(pos, item.XCE, -item.YCE);
                         }
                     }
                     else {
@@ -1807,7 +1807,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             };
 
             $scope.elementBend = function(element, defaultValue) {
-                var angle = element.angle || element.ale;
+                var angle = element.angle || element.ALE;
                 if (angular.isDefined(angle)) {
                     return latticeService.angleFormat(angle);
                 }
@@ -1826,7 +1826,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 var fields = Object.keys(element).sort();
                 for (var i = 0; i < fields.length; i++) {
                     var f = fields[i];
-                    if (f == 'name' || f == 'l' || f == 'xl' || f == 'angle' || f == 'ale' || f.indexOf('$') >= 0) {
+                    if (f == 'name' || f == 'l' || f == 'XL' || f == 'angle' || f == 'ALE' || f.indexOf('$') >= 0) {
                         continue;
                     }
                     if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
@@ -1843,7 +1843,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             };
 
             $scope.elementLength = function(element) {
-                return latticeService.numFormat(element.l || element.xl, 'm');
+                return latticeService.numFormat(element.l || element.XL, 'm');
             };
 
             $scope.isExpanded = function(category) {

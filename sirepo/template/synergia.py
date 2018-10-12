@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.template import template_common, elegant_lattice_importer
+from sirepo.template import template_common, elegant_common, elegant_lattice_importer
 import glob
 import h5py
 import math
@@ -144,6 +144,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
+    elegant_common.sort_elements_and_beamlines(data)
     data['models']['simulation']['name'] = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
@@ -714,8 +715,6 @@ def _import_elegant_file(text):
     if 'activeBeamlineId' in elegant_sim:
         data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
         data['models']['simulation']['visualizationBeamlineId'] = elegant_sim['activeBeamlineId']
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: el['type'])
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
     return data
 
 
@@ -760,7 +759,6 @@ def _import_elements(lattice, data):
                 if attr not in _IGNORE_ATTRIBUTES:
                     pkdlog('unknown attr: {}: {}'.format(model_name, attr))
         data['models']['elements'].append(m)
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 
 
 def _import_mad_file(reader, beamline_names):

@@ -4,6 +4,7 @@
         "elements": [],
         "simulation": {
             "name": "example",
+            "folder": "/",
             "visualizationBeamlineId": ""
         }
     },
