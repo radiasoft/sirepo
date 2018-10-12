@@ -2732,7 +2732,7 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     cookieService.fixup();
-    self.isIconView = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
+    self.isIconView = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView) || true;
     //cookieService.unfix();
     clearModels();
     $scope.$on('simulation.changed', function() {
@@ -2892,12 +2892,15 @@ SIREPO.app.factory('cookieService', function($cookies) {
 
     svc.getCookieValue = function (cookieDef) {
         var cobj = this.getCookie(cookieDef);
+        if(! cobj) {
+            return null;
+        }
         var val = cobj.v;
         if(cookieDef.valType === 'b') {
-            return val === 'true';
+            return val.toLowerCase() === 'true';
         }
         if(cookieDef.valType === 'n') {
-            return val === 'true';
+            parseFloat(val);
         }
         return val;
     };
