@@ -146,6 +146,13 @@
                 "title": "Running Codes in Sirepo",
                 "url":""
             }
+        },
+        "zgoubi": {
+            "infoPanelTitle": "ZGOUBI",
+            "mediaConfig": {
+                "title": "Zgoubi Sirepo",
+                "url":""
+            }
         }
     },
     "srwAppRoutes": {
