@@ -114,7 +114,7 @@ def app_version():
         str: chronological version
     """
     if pkconfig.channel_in('dev'):
-        return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
+        return _timestamp()
     return SCHEMA_COMMON.version
 
 
@@ -982,8 +982,11 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 def _init():
     global SCHEMA_COMMON, cfg
-    with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
+    fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
+    with open(str(fn)) as f:
         SCHEMA_COMMON = json_load(f)
+    # In development, you can touch schema-common to get a new version
+    SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') else sirepo.__version__
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
@@ -1115,6 +1118,14 @@ def _sid_from_path(path):
     if not _ID_RE.search(sid):
         raise RuntimeError('{}: invalid simulation id'.format(sid))
     return sid
+
+
+def _timestamp(time=None):
+    if not time:
+        time = datetime.datetime.utcnow()
+    elif not isinstance(time, datetime.datetime):
+        time = datetime.datetime.fromtimestamp(time)
+    return time.strftime('%Y%m%d.%H%M%S')
 
 
 def _user_dir():
