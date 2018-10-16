@@ -942,6 +942,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
     };
 
     self.addActor = function(renderer, actor) {
+        if(! actor) {
+            return;
+        }
         renderer.addActor(actor);
     };
 

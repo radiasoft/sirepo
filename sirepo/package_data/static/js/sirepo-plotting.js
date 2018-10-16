@@ -3164,6 +3164,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
                 z: layoutService.plotAxis($scope.margin, 'z', 'bottom', refresh, utilities)
             };
+            var axisGrids = {
+                x: {
+                    y: [],
+                    z: []
+                },
+                y: {
+                    z: [],
+                    x: []
+                },
+                z: {
+                    x: [],
+                    y: []
+                }
+            };
             var boundAxes = {};
 
             // rendering
@@ -3186,10 +3200,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var conductorActors = [];
 
             // lines
-            var lineActors = [];
-            var reflectedLineActors = [];
-            var lineActor;
+            var absorbedLineActor;
+            var absorbedLineBundle;
             var reflectedLineActor;
+            var reflectedLineBundle;
+            var gridActor;
+            var gridlines = {x:0, y:0, z:0};
 
             // spheres
             var impactSphereActors = [];
@@ -3319,14 +3335,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
                 startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
-                startPlaneBundle.actor.getProperty().setOpacity(0.5);
+                //startPlaneBundle.actor.getProperty().setOpacity(0.5);
                 startPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(startPlaneBundle.actor);
 
                 // the collector plane
                 endPlaneBundle = coordMapper.buildPlane();
                 endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
-                endPlaneBundle.actor.getProperty().setOpacity(0.5);
+                //endPlaneBundle.actor.getProperty().setOpacity(0.5);
                 endPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(endPlaneBundle.actor);
 
@@ -3381,22 +3397,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     gridPlaneSources.push(dps);
                     gridPlaneActors.push(dpa);
                 }
+
+                absorbedLineActor = vtk.Rendering.Core.vtkActor.newInstance();
+                reflectedLineActor = vtk.Rendering.Core.vtkActor.newInstance();
+                gridActor = vtk.Rendering.Core.vtkActor.newInstance();
             };
 
             $scope.load = function() {
                 $scope.dataCleared = false;
 
-                //vtkPlotting.removeActors(renderer, lineActors);
-                //vtkPlotting.removeActors(renderer, reflectedLineActors);
-                vtkPlotting.removeActor(renderer, lineActor);
-                vtkPlotting.removeActor(renderer, reflectedLineActor);
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
 
-                lineActors = [];
-                reflectedLineActors = [];
-                lineActor = null;
-                reflectedLineActor = null;
                 impactSphereActors = [];
                 fieldSphereActors = [];
                 conductorActors = [];
@@ -3440,6 +3452,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         orientation: vtkPlotting.orientations.horizontal,
                     },
                 };
+
+                axisGrids.x = {y:[ymin, ymin], z:[zmin, zmax]};
+                axisGrids.y = {z:[zmax, zmax], x:[xmin, xmax]};
+                axisGrids.z = {x:[xmin, xmax], y:[ymin, ymin]};
 
                 var grid = appState.models.simulationGrid;
                 var yzAspectRatio =  grid.channel_height / grid.channel_width;
@@ -3493,8 +3509,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     Math.abs(epsP2[2] - epsP1[2]) + padding
                 ]);
                 outlineBundle.setCenter(osCtr);
-
-
 
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
@@ -3668,15 +3682,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var hm_zmax = plotting.max2d(heatmap);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
-                lineActor = buildLineActorFromPoints(xpoints, ypoints, zpoints, null, true);
+                setActorLinesFromPoints(absorbedLineActor, xpoints, ypoints, zpoints, null, true);
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
-                    reflectedLineActor =
-                        buildLineActorFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
+                    setActorLinesFromPoints(reflectedLineActor, pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
-                var shave = 0.001;
+                var shave = 0.01;
                 for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
                     var conductor = appState.models.conductors[cIndex];
 
@@ -3718,7 +3731,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
 
-            function buildLineActorFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
+            function setActorLinesFromPoints(actor, xpoints, ypoints, zpoints, color, includeImpact) {
+                if(! actor) {
+                    return;
+                }
+
                 var x = 0.0;
                 var y = 0.0;
                 var z = 0.0;
@@ -3745,7 +3762,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
-                    if(l - 1 > j - 1) {
+                    if(l > j) {
                         k = j - 1;
                         z = zpoints[i][k];
                         x = xpoints[i][k];
@@ -3768,24 +3785,27 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var l32 = window.Uint32Array.from(dataLines);
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
-                var carr = vtk.Common.Core.vtkDataArray.newInstance({
-                    numberOfComponents: 3,
-                    values: dataColors,
-                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                });
-
-                // lines live in "cells"
-                pd.getCellData().setScalars(carr);
                 pd.getLines().setData(l32);
-                var m = vtk.Rendering.Core.vtkMapper.newInstance();
-                var a = vtk.Rendering.Core.vtkActor.newInstance();
+
+                var m = actor.getMapper() || vtk.Rendering.Core.vtkMapper.newInstance();
                 m.setInputData(pd);
 
                 // makes sure the colors get set by the scalars, not the actor
-                m.setScalarVisibility(true);
-                a.setMapper(m);
-                //lineActors.push(a);
-                return a;
+                m.setScalarVisibility(! color);
+                if(color) {
+                    actor.getProperty().setColor(color[0], color[1], color[2]);
+                }
+                else {
+                    var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                        numberOfComponents: 3,
+                        values: dataColors,
+                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                    });
+
+                    // lines live in "cells"
+                    pd.getCellData().setScalars(carr);
+                }
+                actor.setMapper(m);
 
                 function pushLineData(p1, p2, c) {
                     // we always have two points per line
@@ -3875,12 +3895,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     .attr('height', vtkCanvasSize.height);
 
                 // Note that vtk does not re-add actors to the renderer if they already exist
-                vtkPlotting.addActor(renderer, lineActor);
+                vtkPlotting.addActor(renderer, absorbedLineActor);
                 vtkPlotting.addActor(renderer, reflectedLineActor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
+                //vtkPlotting.addActor(renderer, gridActor);
 
-                vtkPlotting.showActor(renderWindow, lineActor, $scope.showAbsorbed);
+                vtkPlotting.showActor(renderWindow, absorbedLineActor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineActor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
@@ -4663,6 +4684,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             // on the axes
             function refreshGridPlanes() {
 
+                //srdbg('refresh grid');
                 var numX = Math.max($($element).find('.x.axis .tick').length - 1, 1);
                 var numY = Math.max($($element).find('.y.axis .tick').length - 1, 1);
                 var numZ = Math.max($($element).find('.z.axis .tick').length - 1, 1);
@@ -4690,10 +4712,47 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             default:
                                 break;
                         }
-                        ps.setXResolution(xres);
-                        ps.setYResolution(yres);
+                        //ps.setXResolution(xres);
+                        //ps.setYResolution(yres);
+                        ps.setXResolution(1);
+                        ps.setYResolution(1);
                     }
                 }
+
+                var newGridLines = {
+                    x: numX-1, y: numY-1, z: numZ-1
+                };
+                for(var dim in axes) {
+                    var ticks = axes[dim].svgAxis.scale().ticks();
+                    //srdbg(dim, axisGrids[dim]);
+                    var numLines = gridlines[dim];
+                    // no updates unless tick count changed
+                    if(numLines != newGridLines[dim]) {
+                        //srdbg('updating ticks', dim, gridlines[dim], '->', newGridLines[dim]);
+
+                        var pts = {
+                            x: [], y: [], z: []
+                        };
+                        ticks.forEach(function (t) {
+                            for(var dim2 in axes) {
+                                var g = axisGrids[dim][dim2];
+                                if(g) {
+                                    pts[dim2].push(g[0]);
+                                    pts[dim2].push(g[1]);
+                                }
+                                else {
+                                    pts[dim2].push(t);
+                                    pts[dim2].push(t);
+                                }
+                            }
+                        });
+                        //srdbg(dim, pts);
+                        setActorLinesFromPoints(gridActor, pts.x, pts.y, pts.z, [0, 0, 0]);
+                        vtkPlotting.addActor(renderer, gridActor);
+                        gridlines[dim] = newGridLines[dim];
+                    }
+                }
+
             }
 
             function reset() {
@@ -4733,7 +4792,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
-                vtkPlotting.showActor(renderWindow, lineActor, $scope.showAbsorbed);
+                vtkPlotting.showActor(renderWindow, absorbedLineActor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
