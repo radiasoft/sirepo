@@ -3158,11 +3158,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.showImpact = true;
             $scope.showConductors = true;
 
-            // to speed renders, only draw lines between every <joinEvery> data points
-            function getJoinEvery() {
-                return appState.models.particle3d.joinEvery || 5;
-            }
-
             // these are in screen/vtk coords, not lab coords
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
@@ -3542,9 +3537,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
 
-
-                var joinEvery =  getJoinEvery();
-
                 // evenly spaced points to be linearly interpolated between the data, for
                 // purposes of coloring lines with the field colors
                 var numInterPoints = 50;
@@ -3594,36 +3586,43 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     [vpOutline.edges.leftBottom, vpOutline.edges.rightBottom, vpOutline.edges.leftTop, vpOutline.edges.rightTop]
                 );
 
+
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestIndex = 0;
                 indexMaps = [];
+
+                // lineraly interpolate the data
                 for(i = 0; i < zpoints.length; ++i) {
-                    var zArr = zpoints[i];  var yArr = ypoints[i];  var xArr = xpoints[i];
+                    var zArr = zpoints[i];
+                    var yArr = ypoints[i];
+                    var xArr = xpoints[i];
                     var l = zArr.length;
 
                     var newIndexMap = {0:0};
                     var lastNearestIndex = 0;
-                    nearestIndex = joinEvery;
+                    nearestIndex = 1;
                     var newZ = zArr[0];
                     var finalZ = zArr[zArr.length-1];
                     var j = 1;
-                    while (newZ <= finalZ) {  // ASSUMES MONOTONICALLY INCREASING
+
+                    // ASSUMES MONOTONICALLY INCREASING Z
+                    while (newZ <= finalZ) {
                         newZ = zArr[0] + j * minZSpacing;
-                        nearestIndex = joinEvery;  // start at the beginning
-                        lastNearestIndex = joinEvery;
+                        nearestIndex = 1;  // start at the beginning
+                        lastNearestIndex = 1;
                         var checkZ = zArr[nearestIndex];
                         while (nearestIndex < zArr.length && checkZ < newZ) {
                             if(! newIndexMap[nearestIndex]) {
                                 // ensures we don't skip any indices, mapping them to the nearest previously mapped value
-                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery) || 0;
+                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, 1) || 0;
                             }
-                            nearestIndex += joinEvery;
+                            ++nearestIndex;
                             checkZ = zArr[nearestIndex];
                         }
                         if(nearestIndex != lastNearestIndex) {
                             lastNearestIndex = nearestIndex;
                         }
-                        var lowIndex = Math.max(0, nearestIndex - joinEvery);
+                        var lowIndex = Math.max(0, nearestIndex - 1);
                         var highIndex = Math.min(zArr.length-1, nearestIndex);
                         var z = zArr[lowIndex];
                         var nextZ = zArr[highIndex];
@@ -3645,10 +3644,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                         newIndexMap[highIndex] = j;
                         ++j;
-                    }  // END WHILE
-                    newIndexMap[zArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery);
+                    }
+                    newIndexMap[zArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, 1);
                     indexMaps.push(newIndexMap);
-                }  // end loop over partcles
+                }
 
                 // distribute the heat map evenly over the interpolated points
                 heatmap = appState.clone(fieldData.z_matrix).reverse();
@@ -3663,10 +3662,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var hm_zmax = plotting.max2d(heatmap);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
-                //buildLineActorsFromPoints(xpoints, ypoints, zpoints, particleTrackColor, true);
                 buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
                 if (pointData.lost_x) {
-                    //srdbg('lost', pointData.lost_x.length);
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     buildLineActorsFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
                 }
@@ -3715,9 +3712,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
 
             function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
-                var joinEvery = getJoinEvery();
-                var x = 0.0;  var y = 0.0;  var z = 0.0;
-                var nextX = 0.0;  var nextY = 0.0;  var nextZ = 0.0;
+                var x = 0.0;
+                var y = 0.0;
+                var z = 0.0;
+                var nextX = 0.0;
+                var nextY = 0.0;
+                var nextZ = 0.0;
                 var k = 0;
 
                 var dataPoints = [];
@@ -3725,21 +3725,21 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var dataColors = [];
                 for (var i = 0; i < zpoints.length; ++i) {
                     var l = zpoints[i].length;
-                    for (var j = 0; j < l; j += joinEvery) {
+                    for (var j = 0; j < l; ++j) {
                         z = zpoints[i][j];
                         x = xpoints[i][j];
                         y = ypoints[i][j];
                         ++numPoints;
-                        if (j < l - joinEvery) {
-                            k = j + joinEvery;
+                        if (j < l - 1) {
+                            k = j + 1;
                             nextZ = zpoints[i][k];
                             nextX = xpoints[i][k];
                             nextY = ypoints[i][k];
                             pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
-                    if(l - 1 > j - joinEvery) {
-                        k = j - joinEvery;
+                    if(l - 1 > j - 1) {
+                        k = j - 1;
                         z = zpoints[i][k];
                         x = xpoints[i][k];
                         y = ypoints[i][k];
@@ -3747,7 +3747,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         nextX = xpoints[i][l - 1];
                         nextY = ypoints[i][l - 1];
                         ++numPoints;
-                        pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery]));
+                        pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - 1]));
                     }
                     if(includeImpact) {
                         k = xpoints[i].length - 1;
@@ -3773,7 +3773,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var m = vtk.Rendering.Core.vtkMapper.newInstance();
                 var a = vtk.Rendering.Core.vtkActor.newInstance();
                 m.setInputData(pd);
-                m.setScalarVisibility(true);  // makes sure the colors get set by the scalars, not the actor
+
+                // makes sure the colors get set by the scalars, not the actor
+                m.setScalarVisibility(true);
                 a.setMapper(m);
                 lineActors.push(a);
 
@@ -3787,13 +3789,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         });
                     });
 
-                    c.map(function (comp) {
-                        return Math.floor(255*comp);
-                    })
-                        .forEach(function (comp) {
-                        dataColors.push(comp);
+                    // scalar colors are unsigned chars, not floats like for every other part of vtk
+                    c.forEach(function (comp) {
+                        dataColors.push(Math.floor(255*comp));
                     });
-
                 }
             }
             function indexValPriorTo(map, startIndex, spacing) {
@@ -4785,7 +4784,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
     };
 });
 
-//TODO(mvk): all basic geometric stuff should move to geometry service
+//TODO(mvk) (in progress): all basic geometric stuff should move to geometry service
 SIREPO.app.service('plotUtilities', function() {
 
     var utils = this;
