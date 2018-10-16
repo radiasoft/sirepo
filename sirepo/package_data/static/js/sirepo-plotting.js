@@ -3322,12 +3322,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
                 startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                startPlaneBundle.actor.getProperty().setOpacity(0.5);
                 startPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(startPlaneBundle.actor);
 
                 // the collector plane
                 endPlaneBundle = coordMapper.buildPlane();
                 endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                endPlaneBundle.actor.getProperty().setOpacity(0.5);
                 endPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(endPlaneBundle.actor);
 
@@ -3410,7 +3412,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 zmin = pointData.x_range[0];
                 zmax = pointData.x_range[1];
 
-                // these are randomly generated in python for now
                 var ypoints = pointData.z_points;
                 ymin = pointData.z_range[0];
                 ymax = pointData.z_range[1];
@@ -3660,10 +3661,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var hm_zmin = Math.max(0, plotting.min2d(heatmap));
                 var hm_zmax = plotting.max2d(heatmap);
-                fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'fieldAnimation');
+                fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
+                //buildLineActorsFromPoints(xpoints, ypoints, zpoints, particleTrackColor, true);
                 buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
                 if (pointData.lost_x) {
+                    //srdbg('lost', pointData.lost_x.length);
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     buildLineActorsFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
                 }
@@ -3710,11 +3713,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 refresh();
             };
 
+
             function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
                 var joinEvery = getJoinEvery();
                 var x = 0.0;  var y = 0.0;  var z = 0.0;
                 var nextX = 0.0;  var nextY = 0.0;  var nextZ = 0.0;
                 var k = 0;
+
+                var dataPoints = [];
+                var dataLines = [];
+                var dataColors = [];
                 for (var i = 0; i < zpoints.length; ++i) {
                     var l = zpoints[i].length;
                     for (var j = 0; j < l; j += joinEvery) {
@@ -3727,11 +3735,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             nextZ = zpoints[i][k];
                             nextX = xpoints[i][k];
                             nextY = ypoints[i][k];
-                            lineActors.push(coordMapper.buildLine(
-                                [x, y, z],
-                                [nextX, nextY, nextZ],
-                                color || colorAtIndex(indexMaps[i][j])
-                            ).actor);
+                            pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
                     if(l - 1 > j - joinEvery) {
@@ -3743,7 +3747,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         nextX = xpoints[i][l - 1];
                         nextY = ypoints[i][l - 1];
                         ++numPoints;
-                        lineActors.push(coordMapper.buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery])).actor);
+                        pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery]));
                     }
                     if(includeImpact) {
                         k = xpoints[i].length - 1;
@@ -3752,6 +3756,44 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var lastY = ypoints[i][k];
                         impactSphereActors.push(coordMapper.buildSphere([lastX, lastY, lastZ], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
                     }
+                }
+                var p32 = window.Float32Array.from(dataPoints);
+                var l32 = window.Uint32Array.from(dataLines);
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(p32, 3);
+                var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: 3,
+                    values: dataColors,
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                });
+
+                // lines live in "cells"
+                pd.getCellData().setScalars(carr);
+                pd.getLines().setData(l32);
+                var m = vtk.Rendering.Core.vtkMapper.newInstance();
+                var a = vtk.Rendering.Core.vtkActor.newInstance();
+                m.setInputData(pd);
+                m.setScalarVisibility(true);  // makes sure the colors get set by the scalars, not the actor
+                a.setMapper(m);
+                lineActors.push(a);
+
+                function pushLineData(p1, p2, c) {
+                    // we always have two points per line
+                    dataLines.push(2);
+                    dataLines.push(dataPoints.length / 3, 1 + dataPoints.length / 3);
+                    [p1, p2].forEach(function (p) {
+                        coordMapper.xform.doTransform(p).forEach(function (a) {
+                            dataPoints.push(a);
+                        });
+                    });
+
+                    c.map(function (comp) {
+                        return Math.floor(255*comp);
+                    })
+                        .forEach(function (comp) {
+                        dataColors.push(comp);
+                    });
+
                 }
             }
             function indexValPriorTo(map, startIndex, spacing) {
@@ -4684,20 +4726,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
-                vtkPlotting.showActors(lineActors, $scope.showAbsorbed);
-                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
                 $scope.showImpact = ! $scope.showImpact;
-                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleReflected = function() {
                 $scope.showReflected = ! $scope.showReflected;
-                vtkPlotting.showActors(reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActors(renderWindow, reflectedLineActors, $scope.showReflected);
             };
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
-                vtkPlotting.showActors(conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
             };
 
 

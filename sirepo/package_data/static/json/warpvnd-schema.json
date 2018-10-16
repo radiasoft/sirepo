@@ -135,7 +135,8 @@
         },
         "particle3d": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
-            "joinEvery": ["Join Every N Points", "Integer", 5, "Reduce render times by drawing lines between fewer data points (min 5, max 100)", 5, 100]
+            "joinEvery": ["Join Every N Points", "Integer", 5, "Reduce render times by drawing lines between fewer data points (min 5, max 100)", 5, 100],
+            "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
@@ -269,7 +270,8 @@
             "title": "Particle Trace 3D",
             "advanced": [
                 "renderCount",
-                "joinEvery"
+                "joinEvery",
+                "colorMap"
             ]
         },
         "simulationGrid": {
