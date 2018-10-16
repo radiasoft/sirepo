@@ -3188,6 +3188,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             // lines
             var lineActors = [];
             var reflectedLineActors = [];
+            var lineActor;
+            var reflectedLineActor;
 
             // spheres
             var impactSphereActors = [];
@@ -3384,13 +3386,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.load = function() {
                 $scope.dataCleared = false;
 
-                vtkPlotting.removeActors(renderer, lineActors);
-                vtkPlotting.removeActors(renderer, reflectedLineActors);
+                //vtkPlotting.removeActors(renderer, lineActors);
+                //vtkPlotting.removeActors(renderer, reflectedLineActors);
+                vtkPlotting.removeActor(renderer, lineActor);
+                vtkPlotting.removeActor(renderer, reflectedLineActor);
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
 
                 lineActors = [];
                 reflectedLineActors = [];
+                lineActor = null;
+                reflectedLineActor = null;
                 impactSphereActors = [];
                 fieldSphereActors = [];
                 conductorActors = [];
@@ -3662,10 +3668,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var hm_zmax = plotting.max2d(heatmap);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
-                buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
+                lineActor = buildLineActorFromPoints(xpoints, ypoints, zpoints, null, true);
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
-                    buildLineActorsFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
+                    reflectedLineActor =
+                        buildLineActorFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
@@ -3711,7 +3718,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
 
-            function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
+            function buildLineActorFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
                 var x = 0.0;
                 var y = 0.0;
                 var z = 0.0;
@@ -3777,7 +3784,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // makes sure the colors get set by the scalars, not the actor
                 m.setScalarVisibility(true);
                 a.setMapper(m);
-                lineActors.push(a);
+                //lineActors.push(a);
+                return a;
 
                 function pushLineData(p1, p2, c) {
                     // we always have two points per line
@@ -3867,14 +3875,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     .attr('height', vtkCanvasSize.height);
 
                 // Note that vtk does not re-add actors to the renderer if they already exist
-                vtkPlotting.addActors(renderer, lineActors);
-                vtkPlotting.addActors(renderer, reflectedLineActors);
+                vtkPlotting.addActor(renderer, lineActor);
+                vtkPlotting.addActor(renderer, reflectedLineActor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
 
-                vtkPlotting.showActors(renderWindow, lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActor(renderWindow, lineActor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
-                vtkPlotting.showActors(renderWindow, reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActor(renderWindow, reflectedLineActor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
 
                 // reset camera will negate zoom and pan but *not* rotation
@@ -4725,7 +4733,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
-                vtkPlotting.showActors(renderWindow, lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActor(renderWindow, lineActor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
@@ -4734,7 +4742,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
             $scope.toggleReflected = function() {
                 $scope.showReflected = ! $scope.showReflected;
-                vtkPlotting.showActors(renderWindow, reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActor(renderWindow, reflectedLineActor, $scope.showReflected);
             };
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;

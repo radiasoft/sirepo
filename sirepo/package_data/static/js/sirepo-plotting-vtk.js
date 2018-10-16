@@ -932,14 +932,17 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             bottom: bottom,
             length: length,
             angle: angle,
-
         };
     }
 
     self.addActors = function(renderer, actorArr) {
         actorArr.forEach(function(actor) {
-            renderer.addActor(actor);
+            self.addActor(renderer, actor);
         });
+    };
+
+    self.addActor = function(renderer, actor) {
+        renderer.addActor(actor);
     };
 
     self.removeActors = function(renderer, actorArr) {
@@ -947,16 +950,30 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return;
         }
         actorArr.forEach(function(actor) {
-            renderer.removeActor(actor);
+            self.removeActor(renderer, actor);
         });
         actorArr.length = 0;
     };
 
-    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
-        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
-            arr[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+    self.removeActor = function(renderer, actor) {
+        if(! actor ) {
+            return;
         }
+        renderer.removeActor(actor);
+    };
+
+    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
+        arr.forEach(function (a) {
+            self.showActor(renderWindow, a, doShow, visibleOpacity, hiddenOpacity, true);
+        });
         renderWindow.render();
+    };
+
+    self.showActor = function(renderWindow, a, doShow, visibleOpacity, hiddenOpacity, waitToRender) {
+        a.getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+        if(! waitToRender) {
+            renderWindow.render();
+        }
     };
 
     self.localCoordFromWorld = function (vtkCoord, point) {
