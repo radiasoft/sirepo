@@ -67,9 +67,6 @@ _ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
-#: Properties of files loaded by html or javascript (see _init)
-LOADED_FILE_PROPS = []
-
 #: lib relative to sim_dir
 _REL_LIB_DIR = '../' + _LIB_DIR
 
@@ -249,11 +246,11 @@ def get_schema(sim_type):
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
-    schema.dynamicModules = _file_list_in_schema(schema.dynamicFiles, 'js')
+    schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    if 'appModes' not in schema:
-        schema.appModes = pkcollections.Dict()
     for item in ['localRoutes', 'appModes', 'model', 'enum', 'view']:
+        if item not in schema:
+            schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
     _validate_schema(schema)
     return schema
@@ -788,12 +785,8 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
-def static_css():
-    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'css')
-
-
-def static_modules():
-    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'js')
+def static_libs():
+    return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
 def static_file_path(file_dir, file_name):
@@ -956,24 +949,25 @@ def _create_example_and_lib_files(simulation_type):
             f.copy(d)
 
 
-def _file_list_in_schema(schema, file_type):
+def _files_in_schema(schema):
     """Relative paths of local and external files of the given load and file type listed in the schema
     The order matters for javascript files
 
     Args:
         schema (pkcollections.Dict): schema (or portion thereof) to inspect
-        type (str): type of the file (css, js, etc.)
 
     Returns:
-        str: combined list of local and external file paths
+        str: combined list of local and external file paths, mapped by type
     """
-    paths = []
-    for lf_prop in LOADED_FILE_PROPS:
-        paths.extend(
-            map(lambda file_name:
-                _pkg_relative_path_static(file_type + '/' + lf_prop.dir, file_name),
-                schema[lf_prop.source][file_type])
-        )
+    paths = pkcollections.Dict()
+    for source, path in (('externalLibs', 'ext'), ('sirepoLibs', '')):
+        for file_type in schema[source]:
+            if file_type not in paths:
+                paths[file_type] = []
+            paths[file_type].extend(map(lambda file_name:
+                    _pkg_relative_path_static(file_type + '/' + path, file_name),
+                    schema[source][file_type]))
+
     return paths
 
 
@@ -997,14 +991,6 @@ def _init():
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
-    props = pkcollections.Dict()
-    props.source = 'externalLibs'
-    props.dir = 'ext'
-    LOADED_FILE_PROPS.append(props)
-    props = pkcollections.Dict()
-    props.source = 'sirepoLibs'
-    props.dir = ''
-    LOADED_FILE_PROPS.append(props)
 
 
 def _merge_dicts(base, derived, depth=-1):
@@ -1307,10 +1293,9 @@ def _validate_schema(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
-    for src in schema.dynamicModules:
-        # These are absolute URLs which are not files so need to
-        # check existence without leading /.
-        pkresource.filename(src[1:])
+    for type in schema.dynamicModules:
+        for src in schema.dynamicModules[type]:
+            pkresource.filename(src[1:])
 
 
 _init()

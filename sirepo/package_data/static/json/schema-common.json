@@ -1,6 +1,10 @@
 {
     "appInfo": {
-        "myapp": {
+       "adm": {
+           "longName": "Sirepo Admin",
+           "shortName": "Sirepo Admin"
+       },
+       "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
         },
