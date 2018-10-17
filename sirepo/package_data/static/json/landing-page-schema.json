@@ -1,10 +1,86 @@
 {
     "appRoutes": {
-        "xray": {
-            "url": "/static/html/landing-page-x-ray.html",
-            "infoPanelTitle": "X-Ray Optics",
+        "accel": {
+            "url": "/static/html/landing-page-accelerators.html",
+            "infoPanelTitle": "Particle Accelerators",
             "mediaConfig": {
                 "title": "Running Codes in Sirepo",
+                "url":""
+            }
+        },
+        "comsol": {
+            "url": "/static/html/landing-page-comsol-register.html",
+            "codeTitle": "COMSOL Multiphysics",
+            "infoPanelTitle": "Register for a RadiaSoft COMSOL Link",
+            "mediaConfig": {
+                "title": "COMSOL",
+                "placeholder": "/static/img/MultipactorMeshRotation1.gif",
+                "url":"https://www.youtube.com/embed/sF7ERsj0vqE"
+            }
+        },
+        "elegant": {
+            "url": "/static/html/landing-page-elegant.html",
+            "codeURL": "/elegant", "codeTitle": "elegant",
+            "infoPanelTitle": "elegant",
+            "mediaConfig": {
+                "title": "elegant on Sirepo",
+                "url":""
+            }
+        },
+        "genesis": {
+            "url": "/static/html/landing-page-genesis.html",
+            "codeTitle": "Genesis",
+            "infoPanelTitle": "Genesis",
+            "mediaConfig": {
+                "title": "Genesis on Sirepo",
+                "url":""
+            }
+        },
+        "jspec": {
+            "url": "/static/html/landing-page-jspec.html",
+            "codeURL": "/jspec",
+            "codeTitle": "JSPEC",
+            "infoPanelTitle": "Electron Cooling",
+            "mediaConfig": {
+                "title": "JSPEC on Sirepo",
+                "url":""
+            }
+        },
+        "jupyter": {
+            "url": "/static/html/landing-page-jupyter.html",
+            "codeURL": "/#/jupyter",
+            "codeTitle": "Jupyter Hub",
+            "infoPanelTitle": "RadiaSoft JupyterHub Server",
+            "mediaConfig": {
+                "title": "RadiaSoft JupyterHub Server",
+                "url":""
+            }
+        },
+        "opal": {
+            "url": "/static/html/landing-page-opal.html",
+            "infoPanelTitle": "OPAL",
+            "mediaConfig": {
+                "title": "OPAL Sirepo",
+                "url":""
+            }
+        },
+        "rslinac": {
+            "url": "/static/html/landing-page-rslinac.html",
+            "codeURL": "/hellweg",
+            "codeTitle": "RsLinac",
+            "infoPanelTitle": "RsLinac",
+            "mediaConfig": {
+                "title": "RsLinac on Sirepo",
+                "url":""
+            }
+        },
+        "shadow": {
+            "url": "/static/html/landing-page-shadow.html",
+            "codeURL": "/shadow",
+            "codeTitle": "Shadow 3",
+            "infoPanelTitle": "Shadow3",
+            "mediaConfig": {
+                "title": "Shadow3 on Sirepo",
                 "url":""
             }
         },
@@ -32,53 +108,6 @@
                 "url":"https://www.youtube.com/embed/MrebAjbxQVk"
             }
         },
-        "shadow": {
-            "url": "/static/html/landing-page-shadow.html",
-            "codeURL": "/shadow",
-            "codeTitle": "Shadow 3",
-            "infoPanelTitle": "Shadow3",
-            "mediaConfig": {
-                "title": "Shadow3 on Sirepo",
-                "url":""
-            }
-        },
-        "accel": {
-            "url": "/static/html/landing-page-accelerators.html",
-            "infoPanelTitle": "Particle Accelerators",
-            "mediaConfig": {
-                "title": "Running Codes in Sirepo",
-                "url":""
-            }
-        },
-        "elegant": {
-            "url": "/static/html/landing-page-elegant.html",
-            "codeURL": "/elegant", "codeTitle": "elegant",
-            "infoPanelTitle": "elegant",
-            "mediaConfig": {
-                "title": "elegant on Sirepo",
-                "url":""
-            }
-        },
-        "warppba": {
-            "url": "/static/html/landing-page-warp.html",
-            "codeURL": "/warppba",
-            "codeTitle": "Warp PBA",
-            "infoPanelTitle": "Plasma-Based Accelerators",
-            "mediaConfig": {
-                "title": "Warp PBA on Sirepo",
-                "url":""
-            }
-        },
-        "rslinac": {
-            "url": "/static/html/landing-page-rslinac.html",
-            "codeURL": "/hellweg",
-            "codeTitle": "RsLinac",
-            "infoPanelTitle": "RsLinac",
-            "mediaConfig": {
-                "title": "RsLinac on Sirepo",
-                "url":""
-            }
-        },
         "synergia": {
             "url": "/static/html/landing-page-synergia.html",
             "codeURL": "/synergia",
@@ -89,11 +118,13 @@
                 "url":""
             }
         },
-        "opal": {
-            "url": "/static/html/landing-page-opal.html",
-            "infoPanelTitle": "OPAL",
+        "warppba": {
+            "url": "/static/html/landing-page-warp.html",
+            "codeURL": "/warppba",
+            "codeTitle": "Warp PBA",
+            "infoPanelTitle": "Plasma-Based Accelerators",
             "mediaConfig": {
-                "title": "OPAL Sirepo",
+                "title": "Warp PBA on Sirepo",
                 "url":""
             }
         },
@@ -108,42 +139,18 @@
                 "url":"https://www.youtube.com/embed/9tihDyl0600"
             }
         },
-        "genesis": {
-            "url": "/static/html/landing-page-genesis.html",
-            "codeTitle": "Genesis",
-            "infoPanelTitle": "Genesis",
+        "xray": {
+            "url": "/static/html/landing-page-x-ray.html",
+            "infoPanelTitle": "X-Ray Optics",
             "mediaConfig": {
-                "title": "Genesis on Sirepo",
+                "title": "Running Codes in Sirepo",
                 "url":""
             }
         },
-        "jupyter": {
-            "url": "/static/html/landing-page-jupyter.html",
-            "codeURL": "/#/jupyter",
-            "codeTitle": "Jupyter Hub",
-            "infoPanelTitle": "RadiaSoft JupyterHub Server",
+        "zgoubi": {
+            "infoPanelTitle": "ZGOUBI",
             "mediaConfig": {
-                "title": "RadiaSoft JupyterHub Server",
-                "url":""
-            }
-        },
-        "jspec": {
-            "url": "/static/html/landing-page-jspec.html",
-            "codeURL": "/jspec",
-            "codeTitle": "JSPEC",
-            "infoPanelTitle": "Electron Cooling",
-            "mediaConfig": {
-                "title": "JSPEC on Sirepo",
-                "url":""
-            }
-        },
-        "comsol": {
-            "url": "/static/html/landing-page-comsol-register.html",
-            "codeTitle": "COMSOL Multiphysics",
-            "infoPanelTitle": "Register for a RadiaSoft COMSOL Link",
-            "mediaConfig": {
-                "title": "COMSOL",
-                "placeholder": "/static/img/MultipactorMeshRotation1.gif",
+                "title": "Zgoubi Sirepo",
                 "url":""
             }
         }
@@ -154,4 +161,3 @@
         "wavefront": "Wavefront Propagation"
     }
 }
-

@@ -1814,18 +1814,13 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
         restrict: 'A',
         template: [
             '<div style="border: 1px solid #bce8f1; border-radius: 4px; margin: 20px 0;" class="sr-roi-3d">',
-              '<div class="vtk-canvas-holder"></div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
 
             var activeRoi = null;
             var initialized = false;
-
-            // rendering
-            var renderWindow = null;
-            var renderer = null;
-            var cam = null;
+            var fsRenderer = null;
             var actor = null;
 
             function init() {
@@ -1833,29 +1828,20 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                     return;
                 }
                 initialized = true;
-                var rw = $($element).find('.sr-roi-3d .vtk-canvas-holder');
+                var rw = $($element);
                 rw.on('dblclick', reset);
                 rw.height(rw.width() / 1.3);
-                var fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
                         container: rw[0],
                     });
-                renderer = fsRenderer.getRenderer();
-                renderer.getLights()[0].setLightTypeToSceneLight();
-                renderWindow = fsRenderer.getRenderWindow();
-                cam = renderer.get().activeCamera;
-                var rwInteractor = renderWindow.getInteractor();
-                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
-                    interactor: rwInteractor,
-                    subscribedEvents: ['StartPinch']
-                });
-                zoomObserver.setInteractor(rwInteractor);
+                fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
             }
 
             function showActiveRoi() {
                 if (actor) {
-                    renderer.removeActor(actor);
+                    fsRenderer.getRenderer().removeActor(actor);
                 }
                 var roi = rs4piService.getActiveROIPoints();
                 if (! roi) {
@@ -1915,22 +1901,25 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                 //actor.getProperty().setPointSize(2);
                 mapper.setInputData(pd);
                 actor.setMapper(mapper);
-
-                renderer.addActor(actor);
+                fsRenderer.getRenderer().addActor(actor);
                 reset();
             }
 
             function reset() {
+                var renderer = fsRenderer.getRenderer();
+                var cam = renderer.get().activeCamera;
                 cam.setPosition(0, -1, 0.002);
                 cam.setFocalPoint(0, 0, 0);
                 cam.setViewUp(0, 0, 1);
                 renderer.resetCamera();
                 cam.zoom(1.3);
-                renderWindow.render();
+                fsRenderer.getRenderWindow().render();
             }
 
             $scope.$on('$destroy', function() {
-                $($element).find('.sr-roi-3d .vtk-canvas-holder').off();
+                $($element).off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
             });
 
             $scope.$on('roiPointsLoaded', function() {

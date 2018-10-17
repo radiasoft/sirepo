@@ -1,0 +1,46 @@
+.warpvnd-plate {
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
+  cursor: pointer;
+}
+.warpvnd-plate-voltage {
+  fill: rgba(105, 146, 255, 0.3);
+  stroke: rgb(95, 176, 228);
+}
+.warpvnd-shape {
+  stroke: rgb(228, 176, 95);
+  fill: rgba(255, 146, 105, 0.3);
+  cursor: move;
+  stroke-width: 2;
+}
+.warpvnd-shape-voltage {
+  stroke: rgb(95, 176, 228);
+  fill: rgba(105, 146, 255, 0.3);
+ }
+.warpvnd-shape-noncrossing {
+  stroke: rgb(255, 0, 0);
+  stroke-dasharray: 1,2;
+  fill: rgba(255, 0, 0, 0.0);
+ }
+.warpvnd-shape:hover {
+  fill: lightgreen;
+  filter: drop-shadow(2px 2px 2px #999);
+}
+.warpvnd-shape-noncrossing:hover {
+  stroke: rgb(255, 0, 0);
+  fill: rgba(255, 0, 0, 0.0);
+}
+.warpvnd-shape-inactive {
+  opacity: 0.5;
+}
+.warpvnd-drag-shadow {
+  fill: black;
+  stroke-width: 0;
+  filter: drop-shadow(2px 2px 2px #999);
+}
+.warpvnd-drag-shadow:hover {
+  fill: black;
+}
+.table-hover > tbody > tr.warpvnd-conductor-th {
+  background-color: inherit;
+}
