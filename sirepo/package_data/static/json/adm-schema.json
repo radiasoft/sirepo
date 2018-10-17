@@ -7,13 +7,22 @@
     "localRoutes": {
         "simulations": {
             "config": {
-                "redirectTo": "/data-list"
+                "controller": null,
+                "templateURL": null,
+                "redirectTo": "/not-found"
             },
             "isDefault": false
         },
+        "simulationsFolder": {
+            "config": {
+                "controller": null,
+                "templateURL": null,
+                "redirectTo": "/not-found"
+            }
+        },
         "source": {
             "config": {
-                "redirectTo": "/data-list"
+                "redirectTo": "/not-found"
             }
         },
         "dataList": {

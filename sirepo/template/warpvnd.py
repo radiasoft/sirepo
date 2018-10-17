@@ -120,9 +120,9 @@ def generate_field_comparison_report(data, run_dir):
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
         values = values[:, 0, :]
-    radius = data['models']['simulationGrid']['channel_width'] / 2. * 1e-6
+    radius = _meters(data['models']['simulationGrid']['channel_width'] / 2.)
     x_range = [-radius, radius]
-    z_range = [0, data['models']['simulationGrid']['plate_spacing'] * 1e-6]
+    z_range = [0, _meters(data['models']['simulationGrid']['plate_spacing'])]
     plots, y_range = _create_plots(dimension, data, values, z_range if dimension == 'x' else x_range)
     plot_range = x_range if dimension == 'x' else z_range
     return {
@@ -371,7 +371,7 @@ def _cull_particle_point(curr, next, prev):
 
 def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
+    plate_spacing = _meters(grid['plate_spacing'])
     dz = plate_spacing / grid['num_z']
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     report_data = readparticles(data_file.filename)
@@ -384,13 +384,13 @@ def _extract_current(data, data_file):
 
 def _extract_current_results(data, curr, data_time):
     grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
+    plate_spacing = _meters(grid['plate_spacing'])
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
     if data.models.simulationGrid.simulation_mode == '3d':
-        cathode_area = grid['channel_width'] * 1e-6 * grid['channel_height'] * 1e-6
+        cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
-        cathode_area = grid['channel_width'] * 1e-6
+        cathode_area = _meters(grid['channel_width'])
     RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
     JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
@@ -426,9 +426,9 @@ def _extract_egun_current(data, data_file, frame_index):
 
 def _extract_field(field, data, data_file):
     grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
+    plate_spacing = _meters(grid['plate_spacing'])
     beam = data['models']['beam']
-    radius = grid['channel_width'] / 2. * 1e-6
+    radius = _meters(grid['channel_width'] / 2.)
     selector = field
     if not field == 'phi':
         selector = 'E/{}'.format(field)
@@ -457,10 +457,11 @@ def _extract_impact_density(run_dir, data):
     plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
     if 'error' in plot_info:
         return plot_info
+    #TODO(pjm): consolidate these parameters into one routine used by all reports
     grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
+    plate_spacing = _meters(grid['plate_spacing'])
     beam = data['models']['beam']
-    radius = grid['channel_width'] / 2. * 1e-6
+    radius = _meters(grid['channel_width'] / 2.)
 
     dx = plot_info['dx']
     dz = plot_info['dz']
@@ -500,11 +501,11 @@ def _extract_particle(run_dir, data, limit):
     kept_electrons = v[0]
     lost_electrons = v[1]
     grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
+    plate_spacing = _meters(grid['plate_spacing'])
     beam = data['models']['beam']
-    radius = grid['channel_width'] / 2. * 1e-6
+    radius = _meters(grid['channel_width'] / 2.)
     half_height = grid['channel_height'] if 'channel_height' in grid else 5.
-    half_height = half_height / 2. * 1e-6
+    half_height = _meters(half_height / 2.)
     x_points = []
     y_points = []
     z_points = []
@@ -567,8 +568,8 @@ def _generate_lattice(data):
         permittivity = ''
         if ct.isConductor == '0':
             permittivity = ', permittivity={}'.format(float(ct.permittivity))
-        res += "\n" + '    Box({}, 1., {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
-            float(ct.xLength) * 1e-6, float(ct.zLength) * 1e-6, ct.voltage, float(c.xCenter) * 1e-6, float(c.zCenter) * 1e-6, permittivity)
+        res += "\n" + '    Box({}, {}, {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
+            _meters(ct.xLength), _meters(ct.yLength), _meters(ct.zLength), ct.voltage, _meters(c.xCenter), _meters(c.zCenter), permittivity)
     res += '''
 ]
 for c in conductors:
@@ -627,6 +628,11 @@ def _max_conductor_voltage(data):
         if conductor_type.voltage > max_voltage:
             max_voltage = conductor_type.voltage
     return max_voltage
+
+
+def _meters(v):
+    # convert microns to meters
+    return float(v) * 1e-6
 
 
 def _particle_line_has_slope(curr, next, prev, i1, i2):
