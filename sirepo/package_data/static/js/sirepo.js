@@ -689,7 +689,7 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
         notification.active = false;
     };
-    
+
     function cookieDef(notification) {
         return SIREPO.APP_SCHEMA.cookies[notification.cookie];
     }
@@ -2852,13 +2852,6 @@ SIREPO.app.factory('cookieService', function($cookies) {
         }
     };
 
-    // replace the old cookies for testing
-    svc.unfix = function () {
-        for(var cname in cookieMap) {
-            $cookies.put(cname, 'TEST');
-        }
-    };
-
     svc.getCookie = function (cookieDef) {
         return get(cookieDef.name);
     };
@@ -2882,12 +2875,19 @@ SIREPO.app.factory('cookieService', function($cookies) {
         return val;
     };
 
+    svc.removeCookie = function (cookieDef) {
+        remove(cookieDef.name);
+    };
+
     svc.timeoutOrDefault = function (cookieDef) {
         return cookieDef.timeout || fiveYearsDays;
     };
 
-    svc.removeCookie = function (cookieDef) {
-        remove(cookieDef.name);
+    // replace the old cookies for testing
+    svc.unfix = function () {
+        for(var cname in cookieMap) {
+            $cookies.put(cname, 'TEST');
+        }
     };
 
     // to reduce the string size, and because that's usually as accurate as we need,
