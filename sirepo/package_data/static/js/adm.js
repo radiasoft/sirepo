@@ -25,7 +25,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('serverDataList', function() {
+SIREPO.app.directive('serverDataList', function(requestSender) {
     return {
         restrict: 'A',
         template: [
@@ -34,19 +34,33 @@ SIREPO.app.directive('serverDataList', function() {
                 '<tr>',
                     '<th data-ng-repeat="col in data[0]">{{ col }}</th>',
                 '</tr>',
-                '<tr data-ng-repeat="row in data track by $index" data-ng-if="$index > 0">',
-                    '<td data-ng-repeat="col in row">{{ col }}</td>',
+                '<tr data-ng-repeat="row in data" data-ng-if="$index > 0">',
+                    '<td data-ng-repeat="col in row">',
+                        //'<a data-ng-if="$index == 0" href="" data-ng-click="getServerData(col)">{{ col }}</a>',
+                        //'<span data-ng-if="$index > 0">{{ col }}</span>',
+                        '<span>{{ col }}</span>',
+                    '</td>',
                 '</tr>',
                 '</table>',
+                '<button class="btn btn-default" data-ng-click="getServerData()">Refresh</button>',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope) {
 
-            $scope.data = [
-                ['jobId', 'jobStart', 'jobState', 'jobReport'],
-                ['123', '2018-10-03T16:09:09+00:05', 'running', 'TITLE 123'],
-                ['456', '2018-10-01T16:21:09+00:05', 'complete', 'TITLE 456']
-            ];
+            $scope.getServerData = function (id) {
+                requestSender.sendRequest(
+                    'getServerData',
+                    dataLoaded,
+                    {
+                        id: id,
+                    });
+            };
+            $scope.getServerData();
+
+
+            function dataLoaded(data, status) {
+                $scope.data = data;
+            }
         },
     };
 });

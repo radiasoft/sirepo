@@ -2910,7 +2910,7 @@ SIREPO.app.factory('cookieService', function($cookies) {
     function cleanExpired(name) {
         var cobj = get(name);
         if(cobj && cobj.t && parseInt(cobj.t) < new Date().getTime() / oneDayMillis) {
-            svc.remove(name);
+            remove(name);
             return null;
         }
         return cobj;
