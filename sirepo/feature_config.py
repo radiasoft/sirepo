@@ -13,7 +13,7 @@ import copy
 #: Codes on test and prod
 _NON_DEV_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
 
-_DEV_CODES = ('myapp', 'zgoubi')
+_DEV_CODES = ('myapp', 'adm', 'zgoubi')
 
 #: All possible codes
 _ALL_CODES = _NON_DEV_CODES + _DEV_CODES

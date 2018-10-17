@@ -4,6 +4,7 @@ uwsgi:
   socket: {{ ip }}:{{ port }}
   master: true
   processes: {{ processes }}
+  enable-threads: true
   threads: {{ threads }}
   wsgi-file: {{ uwsgi_py }}
   callable: app

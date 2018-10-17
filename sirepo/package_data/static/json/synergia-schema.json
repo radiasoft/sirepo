@@ -9,6 +9,9 @@
             "js": [
                 "synergia.js",
                 "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css"
             ]
         }
     },

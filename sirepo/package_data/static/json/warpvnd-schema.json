@@ -10,6 +10,10 @@
                 "warpvnd.js",
                 "sirepo-geometry.js",
                 "sirepo-plotting-vtk.js"
+            ],
+            "css": [
+                "warpvnd.css",
+                "vtk.css"
             ]
         }
     },

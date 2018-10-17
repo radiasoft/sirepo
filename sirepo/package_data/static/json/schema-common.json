@@ -1,7 +1,10 @@
 {
-    "version": "20180927.000000",
     "appInfo": {
-        "myapp": {
+       "adm": {
+           "longName": "Sirepo Admin",
+           "shortName": "Sirepo Admin"
+       },
+       "myapp": {
             "longName": "MyApp",
             "shortName": "MyApp"
         },
@@ -65,6 +68,7 @@
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
+        "getServerData": "/get-server-data/?<id>",
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
         "homePage": "/light",

@@ -103,6 +103,7 @@ app.config(function(appRoutesProvider, srwAppRoutesProvider, $locationProvider, 
 app.controller('LandingPageController', function (appRoutes, srwAppRoutes, $http, $location) {
     var self = this;
     self.srwExamples = SRW_EXAMPLES;
+    self.location = $location;
 
     function pageCategory() {
         return $location.path().substring(1);

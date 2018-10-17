@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from sirepo.template import adm
 from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import feature_config
@@ -565,6 +566,15 @@ def api_listSimulations():
         )
     )
 
+@api_perm.require_user
+def api_getServerData():
+    input = _parse_data_input(False)
+    id = input.id if 'id' in input else None
+    d = adm.get_server_data(id)
+    if d == None or len(d) == 0:
+        return _simulation_error('Data error')
+    return http_reply.gen_json(d)
+
 
 # visitor rather than user because error pages are rendered by the application
 @api_perm.allow_visitor
@@ -767,8 +777,7 @@ def _parse_data_input(validate=False):
 def _render_root_page(page, values):
     values.source_cache_key = _source_cache_key()
     values.app_version = simulation_db.app_version()
-    values.static_js_files = simulation_db.static_modules()
-    values.static_css_files = simulation_db.static_css()
+    values.static_files = simulation_db.static_libs()
     return flask.render_template(
         'html/{}.html'.format(page),
         **values

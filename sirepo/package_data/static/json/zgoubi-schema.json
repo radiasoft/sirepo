@@ -9,6 +9,9 @@
             "js": [
                 "zgoubi.js",
                 "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css"
             ]
         }
     },
