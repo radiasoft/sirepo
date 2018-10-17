@@ -635,6 +635,25 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         self.notifications[notification.name] = notification;
     };
 
+    self.dismiss = function(name) {
+        if(name) {
+            self.dismissNotification(self.getNotification(name));
+        }
+    };
+
+    self.dismissNotification = function(notification) {
+        if(notification) {
+            self.sleepNotification(notification);
+        }
+    };
+
+    self.getContent = function(name) {
+        if(! name || ! self.getNotification(name)) {
+            return '';
+        }
+        return $sce.trustAsHtml(self.getNotification(name).content);
+    };
+
     self.getNotification = function(name) {
         return self.notifications[name];
     };
@@ -665,31 +684,12 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         return false;
     };
 
-    self.getContent = function(name) {
-        if(! name || ! self.getNotification(name)) {
-            return '';
-        }
-        return $sce.trustAsHtml(self.getNotification(name).content);
-    };
-
     self.sleepNotification = function(notification) {
         cookieService.addCookie(cookieDef(notification), 'i');
         //TODO(pjm): this prevents Firefox from showing the notification right after it is dismissed
         notification.active = false;
     };
-
-    self.dismiss = function(name) {
-        if(name) {
-            self.dismissNotification(self.getNotification(name));
-        }
-    };
-
-    self.dismissNotification = function(notification) {
-        if(notification) {
-            self.sleepNotification(notification);
-        }
-    };
-
+    
     function cookieDef(notification) {
         return SIREPO.APP_SCHEMA.cookies[notification.cookie];
     }
