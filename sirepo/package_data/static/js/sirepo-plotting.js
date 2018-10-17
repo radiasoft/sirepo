@@ -3159,24 +3159,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.showConductors = true;
 
             // these are in screen/vtk coords, not lab coords
+            //TODO(mvk): should refer only to lab coords outside of plotting-vtk (?)
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
                 z: layoutService.plotAxis($scope.margin, 'z', 'bottom', refresh, utilities)
-            };
-            var axisGrids = {
-                x: {
-                    y: [],
-                    z: []
-                },
-                y: {
-                    z: [],
-                    x: []
-                },
-                z: {
-                    x: [],
-                    y: []
-                }
             };
             var boundAxes = {};
 
@@ -3204,8 +3191,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var absorbedLineBundle;
             var reflectedLineActor;
             var reflectedLineBundle;
-            var gridActor;
-            var gridlines = {x:0, y:0, z:0};
 
             // spheres
             var impactSphereActors = [];
@@ -3400,7 +3385,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 absorbedLineActor = vtk.Rendering.Core.vtkActor.newInstance();
                 reflectedLineActor = vtk.Rendering.Core.vtkActor.newInstance();
-                gridActor = vtk.Rendering.Core.vtkActor.newInstance();
             };
 
             $scope.load = function() {
@@ -3452,10 +3436,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         orientation: vtkPlotting.orientations.horizontal,
                     },
                 };
-
-                axisGrids.x = {y:[ymin, ymin], z:[zmin, zmax]};
-                axisGrids.y = {z:[zmax, zmax], x:[xmin, xmax]};
-                axisGrids.z = {x:[xmin, xmax], y:[ymin, ymin]};
 
                 var grid = appState.models.simulationGrid;
                 var yzAspectRatio =  grid.channel_height / grid.channel_width;
@@ -3730,7 +3710,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 refresh();
             };
 
-
             function setActorLinesFromPoints(actor, xpoints, ypoints, zpoints, color, includeImpact) {
                 if(! actor) {
                     return;
@@ -3759,6 +3738,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             nextZ = zpoints[i][k];
                             nextX = xpoints[i][k];
                             nextY = ypoints[i][k];
+                            //srdbg('addinf pts', [x,y,z], [nextX, nextY, nextZ]);
                             pushLineData([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
@@ -3790,12 +3770,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var m = actor.getMapper() || vtk.Rendering.Core.vtkMapper.newInstance();
                 m.setInputData(pd);
 
-                // makes sure the colors get set by the scalars, not the actor
-                m.setScalarVisibility(! color);
                 if(color) {
+                    m.setScalarVisibility(false);
                     actor.getProperty().setColor(color[0], color[1], color[2]);
                 }
                 else {
+                    m.setScalarVisibility(true);
                     var carr = vtk.Common.Core.vtkDataArray.newInstance({
                         numberOfComponents: 3,
                         values: dataColors,
@@ -3899,7 +3879,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.addActor(renderer, reflectedLineActor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
-                //vtkPlotting.addActor(renderer, gridActor);
 
                 vtkPlotting.showActor(renderWindow, absorbedLineActor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
@@ -4712,47 +4691,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             default:
                                 break;
                         }
-                        //ps.setXResolution(xres);
-                        //ps.setYResolution(yres);
-                        ps.setXResolution(1);
-                        ps.setYResolution(1);
+                        ps.setXResolution(xres);
+                        ps.setYResolution(yres);
                     }
                 }
-
-                var newGridLines = {
-                    x: numX-1, y: numY-1, z: numZ-1
-                };
-                for(var dim in axes) {
-                    var ticks = axes[dim].svgAxis.scale().ticks();
-                    //srdbg(dim, axisGrids[dim]);
-                    var numLines = gridlines[dim];
-                    // no updates unless tick count changed
-                    if(numLines != newGridLines[dim]) {
-                        //srdbg('updating ticks', dim, gridlines[dim], '->', newGridLines[dim]);
-
-                        var pts = {
-                            x: [], y: [], z: []
-                        };
-                        ticks.forEach(function (t) {
-                            for(var dim2 in axes) {
-                                var g = axisGrids[dim][dim2];
-                                if(g) {
-                                    pts[dim2].push(g[0]);
-                                    pts[dim2].push(g[1]);
-                                }
-                                else {
-                                    pts[dim2].push(t);
-                                    pts[dim2].push(t);
-                                }
-                            }
-                        });
-                        //srdbg(dim, pts);
-                        setActorLinesFromPoints(gridActor, pts.x, pts.y, pts.z, [0, 0, 0]);
-                        vtkPlotting.addActor(renderer, gridActor);
-                        gridlines[dim] = newGridLines[dim];
-                    }
-                }
-
             }
 
             function reset() {
