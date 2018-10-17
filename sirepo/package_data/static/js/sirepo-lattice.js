@@ -888,14 +888,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var picType = getPicType(item.type);
-                    var length = rpnValue(item.l || item.XL || item.xmax || 0);
+                    var length = rpnValue(item.l || item.xmax || 0);
                     if (picType == 'zeroLength') {
                         length = 0;
                     }
                     var travelLength = length;
                     if (item.type.indexOf('RBEN') >= 0 && length > 0) {
                         // rben actual distance is the arclength
-                        var bendAngle = rpnValue(item.angle || item.ALE || 0);
+                        var bendAngle = rpnValue(item.angle || 0);
                         if (bendAngle != 0) {
                             travelLength = bendAngle * length / (2 * Math.sin(bendAngle / 2));
                             if ($scope.flatten) {
@@ -914,8 +914,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
                         var radius = length / 2;
-                        var angle = rpnValue(item.angle || item.ALE || item.kick || item.hkick || 0);
+                        var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
                         if (SIREPO.lattice.reverseAngle) {
+                            angle = -angle;
+                        }
+                        if (pos.inReverseBend) {
                             angle = -angle;
                         }
                         if ($scope.flatten) {
@@ -1075,6 +1078,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.picType = 'zeroLength';
                             groupItem.height = 0.5;
                             groupItem.y = pos.y;
+                            //TODO(pjm): special zgoubi type, shift Y/Z axis 180
+                            if (item.type == 'YMY') {
+                                pos.inReverseBend = ! pos.inReverseBend;
+                            }
                         }
                         else if (picType == 'rf') {
                             groupItem.height = 0.3;
@@ -1180,6 +1187,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     bounds: [0, 0, 0, 0],
                     count: 0,
                     length: 0,
+                    inReverseBend: false,
                 };
                 var explodedItems = explodeItems(beamlineItems);
                 var group = [];
@@ -1222,7 +1230,41 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     var id = items[i];
                     var item = latticeService.elementForId(id);
                     if (item.type) {
-                        res.push(item);
+                        //TODO(pjm): zgoubi CHANGREF is a series of transformations, need to put into zgoubi.js
+                        if (item.type == 'CHANGREF' && item.format == 'new') {
+                            var values = item.order.split(' ');
+                            item = appState.clone(item);
+                            item.XCE = 0;
+                            item.YCE = 0;
+                            item.angle = 0;
+                            for (var j = 0; j < values.length; j += 2) {
+                                var k = values[j];
+                                var v = parseFloat(values[j + 1]);
+                                if (v != 0) {
+                                    if (k == 'ZR') {
+                                        item.angle = v;
+                                        res.push(item);
+                                        item = appState.clone(item);
+                                        item.XCE = 0;
+                                        item.YCE = 0;
+                                        item.angle = 0;
+                                    }
+                                    //TODO(pjm): need to combine multiple YS and XS values?
+                                    else if (k == 'YS') {
+                                        item.YCE = v;
+                                    }
+                                    else if (k == 'XS') {
+                                        item.XCE = v;
+                                    }
+                                }
+                            }
+                            if (item.XCE || item.YCE || item.angle) {
+                                res.push(item);
+                            }
+                        }
+                        else {
+                            res.push(item);
+                        }
                     }
                     else {
                         explodeItems(item.items, res, id < 0);
@@ -1807,7 +1849,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             };
 
             $scope.elementBend = function(element, defaultValue) {
-                var angle = element.angle || element.ALE;
+                var angle = element.angle;
                 if (angular.isDefined(angle)) {
                     return latticeService.angleFormat(angle);
                 }
@@ -1826,7 +1868,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 var fields = Object.keys(element).sort();
                 for (var i = 0; i < fields.length; i++) {
                     var f = fields[i];
-                    if (f == 'name' || f == 'l' || f == 'XL' || f == 'angle' || f == 'ALE' || f.indexOf('$') >= 0) {
+                    if (f == 'name' || f == 'l' || f == 'angle' || f.indexOf('$') >= 0) {
                         continue;
                     }
                     if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
@@ -1843,7 +1885,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             };
 
             $scope.elementLength = function(element) {
-                return latticeService.numFormat(element.l || element.XL, 'm');
+                return latticeService.numFormat(element.l, 'm');
             };
 
             $scope.isExpanded = function(category) {

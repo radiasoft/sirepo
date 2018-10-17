@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""zgoubi input file parser.
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -10,7 +10,7 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template.line_parser import LineParser
 import re
 
-_COMMAND_INDEX_POS = 115
+_COMMAND_INDEX_POS = 110
 
 
 def parse_file(zgoubi_text, max_id=0):
@@ -27,6 +27,7 @@ def parse_file(zgoubi_text, max_id=0):
         parser.increment_line_number()
         line = re.sub(r'\!.*$', '', line)
         line = re.sub(r'^\s+', '', line)
+        line = re.sub(r'\s+$', '', line)
         if not line:
             continue
         keyword = _parse_keyword(line)
@@ -88,7 +89,7 @@ def _parse_keyword(line):
 
 def _strip_command_index(line):
     # strip the command index if present
-    if len(line) > _COMMAND_INDEX_POS:
+    if len(line) >= _COMMAND_INDEX_POS:
         line = re.sub(r'\s+\d+\s*$', '', line)
     return line
 
@@ -98,33 +99,40 @@ def _zgoubi_autoref(command):
     assert i == '4', '{}: only AUTOREF 4 is supported for now'.format(i)
     return _parse_command(command, [
         'I',
-        'XCE YCE ALE',
+        'XCE YCE angle',
+    ])
+
+def _zgoubi_cavite(command):
+    i = command[1][0]
+    assert i == '10', '{}: only CAVITE 10 is supported for now'.format(i)
+    return _parse_command(command, [
+        'I',
+        'l f_RF',
+        'V phi_s IOP',
     ])
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
-        # # new format
-        # res = _parse_command_header(command)
-        # res['order'] = ' '.join(command[1])
-        # return res
-        #TODO(pjm): convert to old format for now
-        if command[1][0] == 'XS':
-            command[1] = [command[1][1], '0', '0']
-        elif command[1][0] == 'ZR':
-            command[1] = ['0', '0', command[1][1]]
-        else:
-            assert False, 'unknown changref: {}'.format(command[1][0])
-    return _parse_command(command, [
-        'XCE YCE ALE',
+        res = _parse_command_header(command)
+        res['format'] = 'new'
+        res['order'] = ' '.join(command[1])
+        res['XCE'] = 0
+        res['YCE'] = 0
+        res['angle'] = 0
+        return res
+    res = _parse_command(command, [
+        'XCE YCE angle',
     ])
+    res['format'] = 'old'
+    res['order'] = ''
+    return res
 
 def _zgoubi_drift(command):
     return _parse_command(command, [
-        'XL',
+        'l',
     ])
 
 def _zgoubi_faisceau(command):
-    #return _parse_command_header(command)
     return None
 
 def _zgoubi_marker(command):
@@ -133,14 +141,14 @@ def _zgoubi_marker(command):
 def _zgoubi_multipol(command):
     res = _parse_command(command, [
         'IL',
-        'XL R_0 B_1 B_2 B_3 B_4 B_5 B_6 B_7 B_8 B_9 B_10',
+        'l R_0 B_1 B_2 B_3 B_4 B_5 B_6 B_7 B_8 B_9 B_10',
         'X_E LAM_E E_2 E_3 E_4 E_5 E_6 E_7 E_8 E_9 E_10',
         'NCE C_0 C_1 C_2 C_3 C_4 C_5',
         'X_S LAM_S S_2 S_3 S_4 S_5 S_6 S_7 S_8 S_9 S_10',
         'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5',
         'R_1 R_2 R_3 R_4 R_5 R_6 R_7 R_8 R_9 R_10',
         'XPAS',
-        'KPOS XCE YCE ALE',
+        'KPOS XCE YCE angle',
     ])
     assert res['KPOS'] in ('1', '2', '3'), '{}: MULTIPOL KPOS not yet supported'.format(res['KPOS'])
     return res
@@ -157,7 +165,6 @@ def _zgoubi_objet(command):
     ])
 
 def _zgoubi_optics(command):
-    #TODO(pjm): implement optics
     return None
 
 def _zgoubi_particul(command):
