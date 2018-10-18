@@ -65,3 +65,10 @@ div.sr-lattice-icon-disabled span {
 .sr-lattice-editor-panel {
   overflow: auto;
 }
+
+.sr-editor-item-hover:hover .sr-lattice-close-icon {
+      visibility: visible;
+}
+.sr-editor-item-hover .sr-lattice-close-icon:hover {
+    color: #000;
+}
