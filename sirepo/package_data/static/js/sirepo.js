@@ -670,15 +670,13 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
             return false;
         }
 
-        var cd = cookieDef(notification);
-        var c = cookieService.cleanExpiredCookie(cd);
-        var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
-        var vc = cookieService.getCookie(vcd);
-        if(! c) {
+        if (! cookieService.cleanExpiredCookie(cookieDef(notification))) {
+            cookieService.checkFirstVisit();
+            var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
+            var vc = cookieService.getCookie(vcd);
             var lstVisitDays = vc.t - cookieService.timeoutOrDefault(vcd);
             // we need millisecond comparison here
-            var s = now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
-            return s;
+            return now.getTime() > (lstVisitDays + (notification.delay || 0)) * SIREPO.APP_SCHEMA.constants.oneDayMillis;
         }
 
         return false;
@@ -2835,6 +2833,12 @@ SIREPO.app.factory('cookieService', function($cookies) {
         add(cookieDef.name, value || cookieDef.value, this.timeoutOrDefault(cookieDef));
     };
 
+    svc.checkFirstVisit = function () {
+        if(! this.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
+            this.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
+        }
+    };
+
     svc.cleanExpiredCookie = function (cookieDef) {
         if(! cookieDef) {
             return null;
@@ -2967,10 +2971,6 @@ SIREPO.app.factory('cookieService', function($cookies) {
             pack(cobj),
             {expires: new Date(new Date().getTime() + fiveYearsMillis)}
         );
-    }
-
-    if(! svc.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
-        svc.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
     }
 
     return svc;
