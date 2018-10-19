@@ -78,6 +78,9 @@ SIREPO.app.service('geometry', function() {
                 );
             },
             equals: function (l2) {
+                if(this.slope() === Infinity && l2.slope() === Infinity) {
+                    return this.points()[0].x === l2.points()[0].x;
+                }
                 return this.slope() === l2.slope() && this.intercept() === l2.intercept();
             },
             containsPoint: function (p) {
@@ -93,6 +96,19 @@ SIREPO.app.service('geometry', function() {
     // 2d only
     this.lineSegment = function(point1, point2) {
         return {
+            containsPoint: function (p) {
+                var ext = this.extents();
+                return this.line().containsPoint(p) &&
+                    (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
+                    (p.y >= ext[1][0] && p.y <= ext[1][1]);
+            },
+            extents: function() {
+                var pts = this.points();
+                return [
+                    [Math.min(pts[0].x, pts[1].x), Math.max(pts[0].x, pts[1].x)],
+                    [Math.min(pts[0].y, pts[1].y), Math.max(pts[0].y, pts[1].y)]
+                ];
+            },
             points: function () {
                 return [point1, point2];
             },
@@ -105,16 +121,16 @@ SIREPO.app.service('geometry', function() {
             intercept: function() {
                 return this.line().intercept();
             },
-            intersection: function (l2) {
-                var p = this.line().intersection(l2);
-                return this.line().containsPoint(p) ? p : null;
+            intersection: function (ls2) {
+                var p = this.line().intersection(ls2.line());
+                return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
             },
             length: function () {
                 return point1.dist(point2);
             },
-            equals: function (l2) {
+            equals: function (ls2) {
                 var ps1 = this.points();
-                var ps2 = l2.points();
+                var ps2 = ls2.points();
                 return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
                     (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
             },
@@ -124,8 +140,36 @@ SIREPO.app.service('geometry', function() {
     // 2d only
     this.rect = function(diagPoint1, diagPoint2) {
         return {
-            points: function () {
-                return [diagPoint1, diagPoint2];
+            area: function () {
+                return Math.abs(diagPoint2.x - diagPoint1.x) * Math.abs(diagPoint2.y - diagPoint1.y);
+            },
+            boundaryIntersectons: function (point1, point2) {
+                var l1 = svc.line(point1, point2);
+                return this.sides().map(function (l2) {
+                    return l1.intersection(l2);
+                });
+            },
+            center: function () {
+                svc.point(
+                    diagPoint1.x + (diagPoint2.x - diagPoint1.x) / 2,
+                    diagPoint1.y + (diagPoint2.y - diagPoint1.y) / 2
+                );
+            },
+            containsLineSegment: function (l) {
+                return this.containsPoint(l.points()[0]) && this.containsPoint(l.points()[1]);
+            },
+            containsPoint: function (p) {
+                var c = this.corners();
+                return p.x >= c[0].x && p.x <= c[2].x && p.y >= c[0].y && p.y <= c[2].y;
+            },
+            containsRect: function (r) {
+                var crn = r.corners();
+                for(var i in crn) {
+                    if(! this.containsPoint(crn[i])) {
+                        return false;
+                    }
+                }
+                return true;
             },
             // corners are sorted to go clockwise from (minx, miny) assuming standard axes directions
             corners: function() {
@@ -146,19 +190,22 @@ SIREPO.app.service('geometry', function() {
                 c[3] = swap;
                 return c;
             },
-            boundaries: function() {
-                var b = [];
-                var c = this.corners();
-                for(var i = 0; i < 4; ++i) {
-                    b.push(svc.lineSegment(c[i], c[(i + 1) % 4]));
+            intersectsRect: function (r) {
+                var rs = r.sides();
+                var ts = this.sides();
+                for(var i in rs) {
+                    var rside = rs[i];
+                    for(var j in ts) {
+                        var tside = ts[j];
+                        if(rside.intersection(tside)) {
+                            return true;
+                        }
+                    }
                 }
-                return b;
+                return false;
             },
-            boundaryIntersectons: function (point1, point2) {
-                var l1 = svc.line(point1, point2);
-                return this.boundaries().map(function (l2) {
-                    return l1.intersection(l2);
-                });
+            points: function () {
+                return [diagPoint1, diagPoint2];
             },
             segmentsInside: function(lines) {
                 var r = this;
@@ -166,13 +213,14 @@ SIREPO.app.service('geometry', function() {
                     return r.containsLineSegment(l);
                 });
             },
-            containsLineSegment: function (l) {
-                return this.containsPoint(l.points()[0]) && this.containsPoint(l.points()[1]);
-            },
-            containsPoint: function (p) {
-                var c = this.corners();
-                return p.x >= c[0].x && p.x <= c[2].x && p.y >= c[0].y && p.y <= c[2].y;
-            },
+            sides: function () {
+                var s = [];
+                var crn = this.corners();
+                for(var i = 0; i < 4; ++i) {
+                    s.push(svc.lineSegment(crn[i], crn[(i + 1) % 4]));
+                }
+                return s;
+            }
         };
     };
 

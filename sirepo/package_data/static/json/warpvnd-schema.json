@@ -1,4 +1,10 @@
 {
+    "constants": {
+        "nonZeroVoltsColor": "#6992ff",
+        "zeroVoltsColor": "#f3d4c8",
+        "particleTrackColor": "#4682b4",
+        "reflectedParticleTrackColor": "#d04836"
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
