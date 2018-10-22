@@ -9,6 +9,8 @@ import pkg_resources
 
 try:
     # We only have a version once the package is installed.
-    __version__ = pkg_resources.get_distribution('pykern').version
+    #TODO(pjm): this needs to get fixed
+    #__version__ = pkg_resources.get_distribution('pykern').version
+    __version__ = '20181022.000000'
 except pkg_resources.DistributionNotFound:
     pass
