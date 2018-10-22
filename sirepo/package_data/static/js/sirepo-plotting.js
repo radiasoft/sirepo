@@ -3199,8 +3199,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var interactor;
 
             // planes
-            var gridPlaneSources = [];
-            var gridPlaneActors = [];
+            var gridPlaneBundles = [];
 
             var startPlaneBundle = null;
             var endPlaneBundle = null;
@@ -3294,7 +3293,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 d3self = d3.selectAll($element);
 
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
-                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({ background: [1, 1, 1, 1], container: rw });
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1, 1],
+                    container: rw,
+                    listenWindowResize: false,
+                });
                 renderer = fsRenderer.getRenderer();
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
@@ -3391,24 +3394,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // 6 grid planes indexed by dimension then side
                 for(var d = 0; d < 3; ++d) {
-                    var dps = [];
-                    var dpa = [];
+                    var dpb = [];
                     for(var s = 0; s < 1; ++s) {
-                        var pm = vtk.Rendering.Core.vtkMapper.newInstance();
-                        var pa  = vtk.Rendering.Core.vtkActor.newInstance();
-                        //pa.getProperty().setColor(0.7, 0.7, 0.7);
-                        pa.getProperty().setColor(0, 0, 0);
-                        pa.getProperty().setLighting(false);
-                        pa.getProperty().setRepresentationToWireframe();
-                        var ps = vtk.Filters.Sources.vtkPlaneSource.newInstance();
-                        dps.push(ps);
-                        pm.setInputConnection(ps.getOutputPort());
-                        pa.setMapper(pm);
-                        renderer.addActor(pa);
-                        dpa.push(pa);
+                        var pb = coordMapper.buildPlane();
+                        pb.actor.getProperty().setColor(0, 0, 0);
+                        pb.actor.getProperty().setLighting(false);
+                        pb.actor.getProperty().setRepresentationToWireframe();
+                        renderer.addActor(pb.actor);
+                        dpb.push(pb);
                     }
-                    gridPlaneSources.push(dps);
-                    gridPlaneActors.push(dpa);
+                    gridPlaneBundles.push(dpb);
                 }
 
                 absorbedLineBundle = coordMapper.buildActorBundle();
@@ -3497,12 +3492,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 //warpVTKService.updateScene(coordMapper, axisInfo);
 
-                coordMapper.setPlane(startPlaneBundle.source,
+                coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
                     [xmin, ymax, zmin],
                     [xmax, ymin, zmin]
                 );
-                coordMapper.setPlane(endPlaneBundle.source,
+                coordMapper.setPlane(endPlaneBundle,
                     [xmin, ymin, zmax],
                     [xmin, ymax, zmax],
                     [xmax, ymin, zmax]
@@ -3518,9 +3513,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
                 var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
                 var osCtr = [];
-                for(var i = 0; i < 3; ++i) {
-                    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
-                }
+                epsOrigin.forEach(function (o, i) {
+                    osCtr.push((o - spsOrigin[i]) / 2.0);
+                });
+
+                //for(var i = 0; i < 3; ++i) {
+                //    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
+                //}
+
                 outlineBundle.setLength([
                     Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
                     Math.abs(epsP2[1] - epsP1[1]) + padding,
@@ -3530,7 +3530,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        var ps = gridPlaneSources[d][s];
+                        //var ps = gridPlaneSources[d][s];
+                        var pb = gridPlaneBundles[d][s];
                         var gpOrigin = s == 0 ?
                             [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
                             [osCtr[0] + osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] + osZLen/2.0];
@@ -3571,7 +3572,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                                 break;
                         }
                         // all coords are within vtk, so use the default (identity) coordMapper
-                        vtkPlotting.coordMapper().setPlane(ps, gpOrigin, gpP1, gpP2);
+                        vtkPlotting.coordMapper().setPlane(pb, gpOrigin, gpP1, gpP2);
                     }
                 }
 
@@ -3630,7 +3631,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 indexMaps = [];
 
                 // linearly interpolate the data
-                for(i = 0; i < lcoords.length; ++i) {
+                for(var i = 0; i < lcoords.length; ++i) {
                     var ptsArr = lcoords[i];
 
                     var newIndexMap = {0:0};
@@ -4427,7 +4428,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     sceneRect.containsRect(screenRect)
                 );
                 var a = sceneRect.area() / sceneArea;
-                malSized = a < 0.1 || a > 5.0;
+                malSized = a < 0.1 || a > 7.5;
                 $scope.canInteract = ! offscreen && ! malSized;
                 if($scope.canInteract) {
                     lastCamPos = cam.getPosition();
@@ -4732,7 +4733,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numZ = Math.max($($element).find('.z.axis .tick').length - 1, 1);
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        var ps = gridPlaneSources[d][s];
+                        var ps = gridPlaneBundles[d][s].source;
                         var xres = 2;
                         var yres = 2;
                         switch (2*d + s) {

@@ -144,8 +144,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 return ab;
             },
             buildPlane: function(labOrigin, labP1, labP2) {
-                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
-                this.setPlane(src, labOrigin, labP1, labP2);
+                //var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
+                if(labOrigin && labP1 && labP2) {
+                    this.setPlane(src, labOrigin, labP1, labP2);
+                }
                 return actorBundle(src);
             },
             buildSphere: function(lcenter, radius, colorArray) {
@@ -161,13 +164,13 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
-            setPlane: function(planeSource, labOrigin, labP1, labP2) {
+            setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
                 var vp2 = labP2 ? this.xform.doTransform(labP2) : [1, 0, 0];
-                planeSource.setOrigin(vo[0], vo[1], vo[2]);
-                planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
+                planeBundle.source.setOrigin(vo[0], vo[1], vo[2]);
+                planeBundle.source.setPoint1(vp1[0], vp1[1], vp1[2]);
+                planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
         };
     };
