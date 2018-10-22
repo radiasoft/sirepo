@@ -253,15 +253,7 @@ SIREPO.app.service('geometry', function() {
         }
 
         function trans(matrix) {
-            var m = [];
-            for(var i in matrix) {
-                var r = [];
-                for(var j in matrix) {
-                    r.push(matrix[j][i]);
-                }
-                m.push(r);
-            }
-            return m;
+            return svc.transpose(matrix);
         }
 
         function vectorMult(m1, v) {
@@ -356,6 +348,30 @@ SIREPO.app.service('geometry', function() {
         };
 
         return xform;
+    };
+
+    this.transpose = function (matrix) {
+        var m = [];
+        var l = matrix.length;
+        if(! l ) {
+            return m;
+        }
+        // convert 1 x l into l x 1
+        var ll = matrix[0].length;
+        if(ll == 0) {
+            matrix.forEach(function (entry) {
+                m.push([entry]);
+            });
+            return m;
+        }
+        for(var j = 0; j < ll; ++j) {
+            var r = [];
+            for(var i = 0; i < l; ++i) {
+                r.push(matrix[i][j]);
+            }
+            m.push(r);
+        }
+        return m;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
