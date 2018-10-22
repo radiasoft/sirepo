@@ -490,7 +490,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
               '<div style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
                 '<div data-ng-repeat="item in beamlineItems" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
-                  '<div style="display: inline-block;" class="elegant-hover">',
+                  '<div style="display: inline-block;" class="sr-editor-item-hover">',
                     '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item), \'sr-lattice-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
                     ' <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>',
                   '</div>',
