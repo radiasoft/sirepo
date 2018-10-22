@@ -11,9 +11,6 @@ from sirepo import util
 import flask
 
 
-#: _json_response_ok cache
-_JSON_RESPONSE_OK = None
-
 # Default response
 _RESPONSE_OK = {'state': 'ok'}
 
@@ -52,8 +49,5 @@ def gen_json_ok(*args, **kwargs):
         res = args[0]
         res.update(_RESPONSE_OK)
         return gen_json(res)
-
-    global _JSON_RESPONSE_OK
-    if not _JSON_RESPONSE_OK:
-        _JSON_RESPONSE_OK = gen_json(_RESPONSE_OK)
-    return _JSON_RESPONSE_OK
+    # do not cache this, see #1390
+    return gen_json(_RESPONSE_OK)
