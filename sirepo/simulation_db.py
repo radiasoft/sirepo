@@ -248,7 +248,7 @@ def get_schema(sim_type):
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
     schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    for item in ['localRoutes', 'appModes', 'model', 'enum', 'view']:
+    for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
         if item not in schema:
             schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
@@ -1177,25 +1177,29 @@ def _validate_enum(val, sch_field_info, sch_enums):
 def _is_enum(sch_field_info, sch_enums):
     return
 
-def _validate_name(data):
-    """Validate and if necessary uniquify name
+
+def _validate_cookie_def(c_def):
+    """Validate the cookie definitions in the schema
+
+    Validations performed:
+        cannot contain delimiters we use on the client side
+        values must match the valType if provided
+        timeout must be numeric if provided
 
     Args:
-        data (dict): what to validate
+        data (pkcollections.Dict): cookie definition object from the schema
     """
-    starts_with = pkcollections.Dict()
-    s = data.models.simulation
-    n = s.name
-    for d in iterate_simulation_datafiles(
-        data.simulationType,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': s.folder},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
-            starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with:
-        _validate_name_uniquify(data, starts_with)
+    c_delims = '|:;='
+    c_delim_re = re.compile('[{}]'.format(c_delims))
+    if c_delim_re.search(str(c_def.name) + str(c_def.value)):
+        raise AssertionError(util.err(c_def, 'cookie name/value cannot include delimiters {}', c_delims))
+    if 'valType' in c_def:
+        if c_def.valType == 'b':
+            pkconfig.parse_bool(c_def.value)
+        if c_def.valType == 'n':
+            float(c_def.value)
+    if 'timeout' in c_def:
+        float(c_def.timeout)
 
 
 def _validate_fields(data):
@@ -1204,6 +1208,8 @@ def _validate_fields(data):
     Validations performed:
         enums (see _validate_enum)
         numeric values (see _validate_number)
+        notifications
+        cookie definitions (see _validate_cookie_def)
 
     Args:
         data (pkcollections.Dict): model data
@@ -1225,6 +1231,27 @@ def _validate_fields(data):
             sch_field_info = sch_model[field_name]
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
+
+def _validate_name(data):
+    """Validate and if necessary uniquify name
+
+    Args:
+        data (dict): what to validate
+    """
+    starts_with = pkcollections.Dict()
+    s = data.models.simulation
+    n = s.name
+    for d in iterate_simulation_datafiles(
+        data.simulationType,
+        lambda res, _, d: res.append(d),
+        {'simulation.folder': s.folder},
+    ):
+        n2 = d.models.simulation.name
+        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
+            starts_with[n2] = d.models.simulation.simulationId
+    if n in starts_with:
+        _validate_name_uniquify(data, starts_with)
+
 
 
 def _validate_name_uniquify(data, starts_with):
@@ -1278,6 +1305,8 @@ def _validate_schema(schema):
     """
     sch_models = schema.model
     sch_enums = schema.enum
+    sch_ntfy = schema.notifications
+    sch_cookies = schema.cookies
     for name in sch_enums:
         for values in sch_enums[name]:
             if not isinstance(values[0], pkconfig.STRING_TYPES):
@@ -1293,6 +1322,11 @@ def _validate_schema(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
+    for n in sch_ntfy:
+        if 'cookie' not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
+            raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
+    for sc in sch_cookies:
+        _validate_cookie_def(sch_cookies[sc])
     for type in schema.dynamicModules:
         for src in schema.dynamicModules[type]:
             pkresource.filename(src[1:])

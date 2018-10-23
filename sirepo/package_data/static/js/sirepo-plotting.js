@@ -3697,8 +3697,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
                 }
 
+                function scaleWithShave(a) {
+                    var shave = 0.01;
+                    return (1.0 - shave) * a / cFactor;
+                }
+
+                function scaleConductor(a) {
+                    return a / cFactor;
+                }
+
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
-                var shave = 0.01;
                 for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
                     var conductor = appState.models.conductors[cIndex];
 
@@ -3723,12 +3731,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         }
                     }
                     if(cModel) {
-                        var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(function (a) {
-                            return (1.0 - shave) * a / cFactor;
-                        });
-                        var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(function (a) {
-                            return a / cFactor;
-                        });
+                        var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(scaleWithShave);
+                        var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(scaleConductor);
 
                         var bb = coordMapper.buildBox(bl, bc);
                         conductorBundles.push(bb);
