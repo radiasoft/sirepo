@@ -92,23 +92,34 @@
         "userState": "/user-state"
     },
     "common": {
-        "staticFiles": {
-            "externalLibs": {
-                "js": [
-                    "angular.min.js",
-                    "jquery-2.2.4.min.js",
-                    "cookieconsent.min.js"
-                ],
-                "css": [
-                    "bootstrap-3.3.7.min.css",
-                    "bootstrap-colxl.css",
-                    "bootstrap-toggle.min.css",
-                    "cookieconsent.min.css"
-                ]
+        "appModes": {
+           "default": {
+                "localRoute": "source",
+                "includeMode": false
+            }
+        },
+        "constants": {
+            "clientCookie": "sirepo_cookie_js",
+            "oneDayMillis": 86400000
+        },
+        "cookies": {
+            "firstVisit": {
+                "name": "1st_vis",
+                "value": "a"
             },
-            "sirepoLibs": {
-                "js": ["sirepo.js"],
-                "css": ["sirepo.css"]
+            "getStarted": {
+                "name": "strt",
+                "value": "a"
+            },
+            "listView": {
+                "name": "lv",
+                "value": false,
+                "valType": "b"
+            },
+            "login": {
+                "name": "login",
+                "value": "a",
+                "timeout": 1
             }
         },
         "dynamicFiles": {
@@ -144,12 +155,6 @@
             "libURLs": [
                 "/user-state"
             ]
-        },
-        "appModes": {
-           "default": {
-                "localRoute": "source",
-                "includeMode": false
-            }
         },
         "enum": {
             "ColorMap": [
@@ -222,6 +227,40 @@
                 "folder": ["Folder", "UserFolder"],
                 "documentationUrl": ["Documentation URL", "OptionalString", ""],
                 "notes": ["Notes", "Text", ""]
+            }
+        },
+        "notifications": {
+            "getStarted": {
+                "name": "getStarted",
+                "cookie": "getStarted",
+                "content": "",
+                "active": true
+            },
+            "login": {
+                "name": "login",
+                "cookie": "login",
+                "content": "",
+                "active": false,
+                "delay": 1
+            }
+        },
+        "staticFiles": {
+            "externalLibs": {
+                "js": [
+                    "angular.min.js",
+                    "jquery-2.2.4.min.js",
+                    "cookieconsent.min.js"
+                ],
+                "css": [
+                    "bootstrap-3.3.7.min.css",
+                    "bootstrap-colxl.css",
+                    "bootstrap-toggle.min.css",
+                    "cookieconsent.min.css"
+                ]
+            },
+            "sirepoLibs": {
+                "js": ["sirepo.js"],
+                "css": ["sirepo.css"]
             }
         },
         "view": {
