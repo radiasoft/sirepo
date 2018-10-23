@@ -93,8 +93,8 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if data['models']['particle3d']['joinEvery'] < 5:
-        data['models']['particle3d']['joinEvery'] = 5
+    if 'joinEvery' in data['models']['particle3d']:
+        del data['models']['particle3d']['joinEvery']
     for c in data['models']['conductorTypes']:
         if 'isConductor' not in c:
             c['isConductor'] = '1' if c['voltage'] > 0 else '0'
