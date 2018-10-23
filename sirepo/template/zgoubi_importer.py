@@ -14,10 +14,10 @@ import re
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'YMY.label2', 'MULTIPOL.label2']
-_DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
-_MRAD_FIELDS = ['AUTOREF.ALE']
-#TODO(pjm): check schema for [m] fields to get this list (but not beta)
+_IGNORE_FIELDS = ['BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS']
+_DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.angle']
+_MRAD_FIELDS = ['AUTOREF.angle']
+#TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
 _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR']
 
 
@@ -31,17 +31,26 @@ def import_file(text):
             'items': beamline,
         },
     ]
-    models = zgoubi_parser.parse_file(text, 1)
-    for el in models['elements']:
+    current_id = 2
+    title, elements = zgoubi_parser.parse_file(text, 1)
+    data['models']['simulation']['name'] = title if title else 'zgoubi'
+    ids_and_elements = [[], []]
+    for el in elements:
         _validate_model(el)
         if 'name' in el:
-            data['models']['elements'].append(el)
-            beamline.append(el['_id'])
+            if el not in ids_and_elements[1]:
+                current_id += 1
+                ids_and_elements[0].append(current_id)
+                ids_and_elements[1].append(el)
+            beamline.append(ids_and_elements[0][ids_and_elements[1].index(el)])
         else:
             if el['type'] in data['models']:
                 pkdlog('replacing existing {} model', el['type'])
-            del el['_id']
             data['models'][el['type']] = el
+    for idx in range(len(ids_and_elements[0])):
+        el = ids_and_elements[1][idx]
+        el['_id'] = ids_and_elements[0][idx]
+        data['models']['elements'].append(el)
     elegant_common.sort_elements_and_beamlines(data)
     return data
 
@@ -91,6 +100,8 @@ def _validate_model(model):
         if 'name' not in model:
             model['name'] = '{}{}'.format(model['type'][0], 1)
     for f in model:
+        if f == 'label2':
+            continue
         if '{}.{}'.format(model['type'], f) in _IGNORE_FIELDS:
             continue
         _validate_field(model, f, model_info)

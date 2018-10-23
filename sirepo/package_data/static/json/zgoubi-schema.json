@@ -18,6 +18,13 @@
     "localRoutes": {
         "source": {
             "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/zgoubi-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
                 "controller": "LatticeController as lattice",
                 "templateUrl": "/static/html/zgoubi-lattice.html"
             }
@@ -62,6 +69,7 @@
             ["3", "Adjust Entrance and Exit Frame"]
         ],
         "ObjetFormat": [
+            ["5", "Generate 11 particles"],
             ["5.1", "Generate 11 particles with beam ellipse"]
         ],
         "OpticsParameter": [
@@ -121,13 +129,6 @@
             ["POSITRON", "Positron"]
         ],
         "PhaseSpaceCoordinate": [
-            ["Do1", "dp/p₀"],
-            ["Yo", "Y₀"],
-            ["To", "Y'₀"],
-            ["Zo", "Z₀"],
-            ["Po", "Z'₀"],
-            ["So", "s₀"],
-            ["to", "t₀"],
             ["D1", "dp/p"],
             ["Y", "Y"],
             ["T", "Y'"],
@@ -137,16 +138,16 @@
             ["time", "t"]
         ],
         "TwissParameter": [
-            ["beta_x", "Horizontal beta"],
-            ["alpha_x", "Horizontal alpha"],
-            ["d_x", "Horizontal dispersion"],
-            ["dprime_x", "Horizontal dispersion derivative"],
-            ["psi_x", "Horizontal PSI"],
-            ["beta_y", "Vertical beta"],
-            ["alpha_y", "Vertical alpha"],
-            ["d_y", "Vertical dispersion"],
-            ["dprime_y", "Vertical dispersion derivative"],
-            ["psi_y", "Vertical PSI"],
+            ["btx", "Horizontal beta [m]"],
+            ["alfx", "Horizontal alpha"],
+            ["Dx", "Horizontal dispersion [m]"],
+            ["Dxp", "Horizontal dispersion derivative"],
+            ["phix2pi", "Horizontal PSI"],
+            ["bty", "Vertical beta [m]"],
+            ["alfy", "Vertical alpha"],
+            ["Dy", "Vertical dispersion [m]"],
+            ["Dyp", "Vertical dispersion derivative"],
+            ["phiy2pi", "Vertical PSI"],
             ["none", "None"]
         ]
     },
@@ -154,14 +155,27 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
+        "beamParameters": {
+            "particleType": ["Particle Type", "ParticleType", "PROTON"],
+            "rigidity": ["Reference Rigidity", "Float", 1000.0, "Bρ"]
+        },
+        "beamlineReport": {
+        },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
-            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "T"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
-        "opticsAnimation": {
+        "bunchAnimation2": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "P"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "opticsReport": {
             "y1": ["Y1 Value", "OpticsParameter", "xm"],
             "y2": ["Y2 Value", "OpticsOptionalParameter", "ym"],
             "y3": ["Y3 Value", "OpticsOptionalParameter", "none"],
@@ -173,12 +187,13 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
+            "particleCount": ["Number of Particles", "Integer", 1000, "IMAX"],
             "npass": ["Number of Runs", "Integer", 10, "", 1]
         },
         "twissReport": {
-            "y1": ["Y1 Value", "TwissParameter", "beta_x"],
-            "y2": ["Y2 Value", "TwissParameter", "beta_y"],
-            "y3": ["Y3 Value", "TwissParameter", "d_x"],
+            "y1": ["Y1 Value", "TwissParameter", "btx"],
+            "y2": ["Y2 Value", "TwissParameter", "bty"],
+            "y3": ["Y3 Value", "TwissParameter", "Dx"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
@@ -347,7 +362,6 @@
             "B_0": ["Field at Pole Tip [kG]", "Float", 0.0, "B_0"],
             "X_E": ["Entrance Integration Zone [m]", "Float", 0.0],
             "LAM_E": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
-            "W_E": ["Entrance Wedge Angle [rad]", "Float", 0.0],
             "C_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
             "C_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
             "C_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -356,7 +370,6 @@
             "C_5": ["Entrance Fringe Field Coefficients $C_5$", "Float", 0.0],
             "X_S": ["Exit Integration Zone [m]", "Float", 0.0],
             "LAM_S": ["Exit Fringe Field Extent [m]", "Float", 0.0],
-            "W_S": ["Exit Wedge Angle [rad]", "Float", 0.0],
             "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
             "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
             "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
@@ -380,6 +393,18 @@
                 "name"
             ]
         },
+        "beamParameters": {
+            "title": "Beam Parameters",
+            "basic": [
+                "particleType",
+                "rigidity"
+            ],
+            "advanced": []
+        },
+        "beamlineReport": {
+            "title": "Lattice",
+            "advanced": []
+        },
         "bunchAnimation": {
             "title": "Beam Phase Space",
             "advanced": [
@@ -396,7 +421,23 @@
                 "notes"
             ]
         },
-        "opticsAnimation": {
+        "bunchAnimation2": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "opticsReport": {
             "title": "Optics",
             "advanced": [
                 "y1",
@@ -410,9 +451,13 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
+                "simulationSettings.particleCount",
                 "simulationSettings.npass"
             ],
-            "advanced": []
+            "advanced": [
+                "simulationSettings.particleCount",
+                "simulationSettings.npass"
+            ]
         },
         "twissReport": {
             "title": "Twiss Parameters",

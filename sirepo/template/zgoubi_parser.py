@@ -16,11 +16,9 @@ _COMMAND_INDEX_POS = 110
 def parse_file(zgoubi_text, max_id=0):
     parser = LineParser(max_id)
     lines = zgoubi_text.replace('\r', '').split('\n')
-    models = pkcollections.Dict({
-        'elements': [],
-    })
+    elements = []
     # skip first documentation line
-    lines.pop(0)
+    title = lines.pop(0)
     parser.increment_line_number()
     current_command = None
     for line in lines:
@@ -33,7 +31,7 @@ def parse_file(zgoubi_text, max_id=0):
         keyword = _parse_keyword(line)
         if keyword:
             if current_command:
-                _add_command(parser.next_id(), current_command, models)
+                _add_command(parser, current_command, elements)
             if keyword == 'END':
                 current_command = None
                 break
@@ -44,10 +42,10 @@ def parse_file(zgoubi_text, max_id=0):
             line = line.lstrip()
             current_command.append(line.split())
     assert current_command is None, 'missing END element'
-    return models
+    return title, elements
 
 
-def _add_command(command_id, command, models):
+def _add_command(parser, command, elements):
     command_type = command[0][0]
     method = '_zgoubi_{}'.format(command_type).lower()
     if method not in globals():
@@ -55,8 +53,7 @@ def _add_command(command_id, command, models):
         return
     el = globals()[method](command)
     if el:
-        el['_id'] = command_id
-        models['elements'].append(el)
+        elements.append(el)
 
 
 def _parse_command(command, command_def):
@@ -101,6 +98,20 @@ def _zgoubi_autoref(command):
         'I',
         'XCE YCE angle',
     ])
+
+def _zgoubi_bend(command):
+    res = _parse_command(command, [
+        'IL',
+        'l Sk B1',
+        'X_E LAM_E W_E',
+        'NCE C_0 C_1 C_2 C_3 C_4 C_5',
+        'X_S LAM_S W_S',
+        'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5',
+        'XPAS',
+        'KPOS XCE YCE angle',
+    ])
+    assert res['KPOS'] in ('1', '2', '3'), '{}: BEND KPOS not yet supported'.format(res['KPOS'])
+    return res
 
 def _zgoubi_cavite(command):
     i = command[1][0]
@@ -155,14 +166,16 @@ def _zgoubi_multipol(command):
 
 def _zgoubi_objet(command):
     kobj = command[2][0]
-    assert kobj == '5.1', '{}: only OBJET 5.1 is supported for now'.format(kobj)
-    return _parse_command(command, [
+    assert kobj == '5' or kobj == '5.1', '{}: only OBJET 5 and 5.1 is supported for now'.format(kobj)
+    command_def = [
         'BORO',
         'KOBJ',
         'dY dT dZ dP dS dD',
         'YR TR ZR PR SR DR',
-        'alpha_Y beta_Y alpha_Z beta_Z alpha_S beta_S D_Y Dprime_Y D_Z Dprime_Z',
-    ])
+    ]
+    if kobj == '5.1':
+        command_def.append('alpha_Y beta_Y alpha_Z beta_Z alpha_S beta_S D_Y Dprime_Y D_Z Dprime_Z')
+    return _parse_command(command, command_def)
 
 def _zgoubi_optics(command):
     return None

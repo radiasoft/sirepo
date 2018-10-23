@@ -1,0 +1,34 @@
+# {{simulation_name}}
+
+from zgoubi import core, utils
+
+line = core.Line('line')
+
+{#TODO(pjm): beam parameters need to be fitted to the selected beamline #}
+line.add(core.FAKE_ELEM("""
+'OBJET'
+{{ beamParameters_rigidity }}
+5
+   1.000000E-03   1.000000E-02   1.000000E-03   1.000000E-02   0.01  1.000000E-04
+  -7.21875212E-10   7.30997703E-10   0.00000000E+00   0.00000000E+00   0.00  1.00000000E+00
+"""))
+
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+{{ beamParameters_particleType }}
+"""))
+
+line.add(core.FAKE_ELEM("""
+'OPTICS'
+1 all PRINT
+"""))
+
+# need an initial 0 length drift so optics output starts at s=0
+line.add(core.DRIFT("START", XL=0))
+
+{{ beamlineElements -}}
+
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

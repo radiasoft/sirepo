@@ -14,6 +14,7 @@ SIREPO.appFieldEditors = [
 SIREPO.lattice = {
     reverseAngle: true,
     elementColor: {
+        CHANGREF: 'orange',
         QUADRUPO: 'red',
     },
     elementPic: {
@@ -52,7 +53,8 @@ SIREPO.app.directive('appHeader', function(latticeService) {
             '<div data-app-header-right="nav">',
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Lattice</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
@@ -98,7 +100,11 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     });
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('SourceController', function() {
+    var self = this;
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
@@ -106,9 +112,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
-            appState.models.bunchAnimation.startTime = data.startTime;
-            appState.saveQuietly('bunchAnimation');
-            appState.saveQuietly('opticsAnimation');
+            ['bunchAnimation', 'bunchAnimation2'].forEach(function(m) {
+                appState.models[m].startTime = data.startTime;
+                appState.saveQuietly(m);
+            });
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -123,6 +130,13 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
-        opticsAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
+        bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
+    });
+
+    appState.whenModelsLoaded($scope, function() {
+        //TODO(pjm): need to work this into sirepo-lattice.js
+        $scope.$on('simulation.changed', function(e, name) {
+            $rootScope.$broadcast('activeBeamlineChanged');
+        });
     });
 });
