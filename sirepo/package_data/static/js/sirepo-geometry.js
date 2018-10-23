@@ -6,8 +6,8 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.service('geometry', function() {
 
     var svc = this;
-    var basis = ['x', 'y', 'z'];
 
+    this.basis = ['x', 'y', 'z'];
 
     // Used for both 2d and 3d
     this.pointFromArr = function (arr) {

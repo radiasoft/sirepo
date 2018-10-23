@@ -3206,14 +3206,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             // conductors (boxes)
             var conductorBundles = [];
-            var conductorActors = [];
+            function conductorActors() {
+                return vtkPlotting.getActors(conductorBundles);
+            }
 
             // lines
             var absorbedLineBundle;
             var reflectedLineBundle;
 
             // spheres
-            var impactSphereActors = [];
+            var impactSphereBundles = [];
+            function impactSphereActors() {
+                return vtkPlotting.getActors(impactSphereBundles);
+            }
 
             // outline
             var outlineSource = null;
@@ -3365,13 +3370,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // a box around the elements, for visual clarity
                 outlineBundle = coordMapper.buildBox();
-                outlineSource =  outlineBundle.source;  // vtk.Filters.Sources.vtkCubeSource.newInstance();
-
-                outlineBundle.actor.getProperty().setColor(1, 1, 1);
-                outlineBundle.actor.getProperty().setEdgeVisibility(true);
-                outlineBundle.actor.getProperty().setEdgeColor(0, 0, 0);
-                outlineBundle.actor.getProperty().setFrontfaceCulling(true);
-                outlineBundle.actor.getProperty().setLighting(false);
+                outlineSource =  outlineBundle.source;
+                var op = outlineBundle.actor.getProperty();
+                op.setColor(1, 1, 1);
+                op.setEdgeVisibility(true);
+                op.setEdgeColor(0, 0, 0);
+                op.setFrontfaceCulling(true);
+                op.setLighting(false);
                 renderer.addActor(outlineBundle.actor);
 
                 vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
@@ -3397,27 +3402,27 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var dpb = [];
                     for(var s = 0; s < 1; ++s) {
                         var pb = coordMapper.buildPlane();
-                        pb.actor.getProperty().setColor(0, 0, 0);
-                        pb.actor.getProperty().setLighting(false);
-                        pb.actor.getProperty().setRepresentationToWireframe();
+                        var pbp = pb.actor.getProperty();
+                        pbp.setColor(0, 0, 0);
+                        pbp.setLighting(false);
+                        pbp.setRepresentationToWireframe();
                         renderer.addActor(pb.actor);
                         dpb.push(pb);
                     }
                     gridPlaneBundles.push(dpb);
                 }
 
-                absorbedLineBundle = coordMapper.buildActorBundle();
-                reflectedLineBundle = coordMapper.buildActorBundle();
+                absorbedLineBundle = vtkPlotting.buildActorBundle();
+                reflectedLineBundle = vtkPlotting.buildActorBundle();
             };
 
             $scope.load = function() {
                 $scope.dataCleared = false;
 
-                vtkPlotting.removeActors(renderer, impactSphereActors);
-                vtkPlotting.removeActors(renderer, conductorActors);
+                vtkPlotting.removeActors(renderer, impactSphereActors());
+                vtkPlotting.removeActors(renderer, conductorActors());
 
-                impactSphereActors = [];
-                conductorActors = [];
+                impactSphereBundles = [];
                 conductorBundles = [];
 
                 if(!pointData) {
@@ -3517,9 +3522,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     osCtr.push((o - spsOrigin[i]) / 2.0);
                 });
 
-                //for(var i = 0; i < 3; ++i) {
-                //    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
-                //}
 
                 outlineBundle.setLength([
                     Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
@@ -3530,7 +3532,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        //var ps = gridPlaneSources[d][s];
                         var pb = gridPlaneBundles[d][s];
                         var gpOrigin = s == 0 ?
                             [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
@@ -3702,15 +3703,21 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var conductor = appState.models.conductors[cIndex];
 
                     // lengths and centers are in µm
-                    var cFactor = 1000000.0;
+                    var cFactor = 1e6;
                     var cModel = null;
                     var cColor = [0, 0, 0];
                     var cEdgeColor = [0, 0, 0];
                     for(var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
                         if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
                             cModel = appState.models.conductorTypes[ctIndex];
-                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
-                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
+                            var vColor = vtk.Common.Core.vtkMath.hex2float(
+                                cModel.color ||
+                                SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor
+                            );
+                            var zColor = vtk.Common.Core.vtkMath.hex2float(
+                                cModel.color ||
+                                SIREPO.APP_SCHEMA.constants.zeroVoltsColor
+                            );
                             cColor = cModel.voltage == 0 ? zColor : vColor;
                             break;
                         }
@@ -3725,12 +3732,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                         var bb = coordMapper.buildBox(bl, bc);
                         conductorBundles.push(bb);
-                        bb.actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
-                        bb.actor.getProperty().setEdgeVisibility(true);
-                        bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
-                        bb.actor.getProperty().setLighting(false);
-                        bb.actor.getProperty().setOpacity(0.80);
-                        conductorActors.push(bb.actor);
+                        var bp = bb.actor.getProperty();
+                        bp.setColor(cColor[0], cColor[1], cColor[2]);
+                        bp.setEdgeVisibility(true);
+                        bp.setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                        bp.setLighting(false);
+                        bp.setOpacity(0.80);
+                        conductorBundles.push(bb);
                     }
                 }
 
@@ -3738,6 +3746,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             function setLinesFromPoints(bundle, points, color, includeImpact) {
+
                 if(! bundle) {
                     return;
                 }
@@ -3752,17 +3761,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         ++numPoints;
                         if (j < l - 1) {
                             k = j + 1;
-                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(indexMaps[i][j]));
+                            pushLineData(points[i][j], points[i][k], color || fieldColorAtIndex(indexMaps[i][j]));
                         }
                     }
                     if(l > j) {
                         k = j - 1;
                         ++numPoints;
-                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(indexMaps[i][k]));
+                        pushLineData(points[i][k], points[i][l - 1], color || fieldColorAtIndex(indexMaps[i][k]));
                     }
                     if(includeImpact) {
                         k = points[i].length - 1;
-                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
+                        impactSphereBundles.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || fieldColorAtIndex(indexMaps[i][k])));
                     }
                 }
                 var p32 = window.Float32Array.from(dataPoints);
@@ -3813,7 +3822,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 return prevVal;
             }
-            function colorAtIndex(index) {
+            function fieldColorAtIndex(index) {
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
@@ -3878,13 +3887,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // Note that vtk does not re-add actors to the renderer if they already exist
                 vtkPlotting.addActor(renderer, absorbedLineBundle.actor);
                 vtkPlotting.addActor(renderer, reflectedLineBundle.actor);
-                vtkPlotting.addActors(renderer, conductorActors);
-                vtkPlotting.addActors(renderer, impactSphereActors);
+                vtkPlotting.addActors(renderer, conductorActors());
+                vtkPlotting.addActors(renderer, impactSphereActors());
 
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
-                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, impactSphereActors(), $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
-                vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, conductorActors(), $scope.showConductors, 0.80);
 
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
@@ -3893,10 +3902,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 renderWindow.render();
 
                 //TODO (mvk): move to an object that encapsulates all this (in progress)
-
-
-
-                //var osCenter = warpVTKService.getOutline().source.getCenter();
                 var osCenter = outlineSource.getCenter();
 
                 // center lines
@@ -4805,11 +4810,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
-                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, impactSphereActors(), $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
                 $scope.showImpact = ! $scope.showImpact;
-                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, impactSphereActors(), $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleReflected = function() {
                 $scope.showReflected = ! $scope.showReflected;
@@ -4817,7 +4822,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
-                vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, conductorActors(), $scope.showConductors, 0.80);
             };
 
 
