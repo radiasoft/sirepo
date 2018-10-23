@@ -3699,7 +3699,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 function scaleWithShave(a) {
                     var shave = 0.01;
-                    return (1.0 - shave) * a / cFactor;
+                    return scaleConductor((1.0 - shave) * a);
                 }
 
                 function scaleConductor(a) {
