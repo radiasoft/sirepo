@@ -81,7 +81,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         // "Bundles" a source, mapper, and actor together
         function actorBundle(source) {
             var m = vtk.Rendering.Core.vtkMapper.newInstance();
-            m.setInputConnection(source.getOutputPort());
+            if(source) {
+                m.setInputConnection(source.getOutputPort());
+            }
             var a = vtk.Rendering.Core.vtkActor.newInstance();
             a.setMapper(m);
 
@@ -104,18 +106,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
             xform: transform || geometry.transform(),
 
-            buildPlane: function(labOrigin, labP1, labP2) {
-                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
-                this.setPlane(src, labOrigin, labP1, labP2);
-                return actorBundle(src);
-            },
-            setPlane: function(planeSource, labOrigin, labP1, labP2) {
-                var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
-                var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
-                var vp2 = labP2 ? this.xform.doTransform(labP2) : [1, 0, 0];
-                planeSource.setOrigin(vo[0], vo[1], vo[2]);
-                planeSource.setPoint1(vp1[0], vp1[1], vp1[2]);
-                planeSource.setPoint2(vp2[0], vp2[1], vp2[2]);
+            buildActorBundle: function(source) {
+                return actorBundle(source);
             },
             buildBox: function(labSize, labCenter) {
                 var vsize = labSize ? this.xform.doTransform(labSize) :  [1, 1, 1];
@@ -151,6 +143,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 return ab;
             },
+            buildPlane: function(labOrigin, labP1, labP2) {
+                //var src = vtk.Filters.Sources.vtkPlaneSource.newInstance({ xResolution: 8, yResolution: 8 });
+                var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
+                if(labOrigin && labP1 && labP2) {
+                    this.setPlane(src, labOrigin, labP1, labP2);
+                }
+                return actorBundle(src);
+            },
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
                     center: lcenter ? this.xform.doTransform(lcenter) : [0, 0, 0],
@@ -163,6 +163,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 ab.actor.getProperty().setLighting(false);
                 return ab;
+            },
+            setPlane: function(planeBundle, labOrigin, labP1, labP2) {
+                var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
+                var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
+                var vp2 = labP2 ? this.xform.doTransform(labP2) : [1, 0, 0];
+                planeBundle.source.setOrigin(vo[0], vo[1], vo[2]);
+                planeBundle.source.setPoint1(vp1[0], vp1[1], vp1[2]);
+                planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
         };
     };
@@ -932,14 +940,20 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             bottom: bottom,
             length: length,
             angle: angle,
-
         };
     }
 
     self.addActors = function(renderer, actorArr) {
         actorArr.forEach(function(actor) {
-            renderer.addActor(actor);
+            self.addActor(renderer, actor);
         });
+    };
+
+    self.addActor = function(renderer, actor) {
+        if(! actor) {
+            return;
+        }
+        renderer.addActor(actor);
     };
 
     self.removeActors = function(renderer, actorArr) {
@@ -947,16 +961,30 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return;
         }
         actorArr.forEach(function(actor) {
-            renderer.removeActor(actor);
+            self.removeActor(renderer, actor);
         });
         actorArr.length = 0;
     };
 
-    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
-        for(var aIndex = 0; aIndex < arr.length; ++aIndex) {
-            arr[aIndex].getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+    self.removeActor = function(renderer, actor) {
+        if(! actor ) {
+            return;
         }
+        renderer.removeActor(actor);
+    };
+
+    self.showActors = function(renderWindow, arr, doShow, visibleOpacity, hiddenOpacity) {
+        arr.forEach(function (a) {
+            self.showActor(renderWindow, a, doShow, visibleOpacity, hiddenOpacity, true);
+        });
         renderWindow.render();
+    };
+
+    self.showActor = function(renderWindow, a, doShow, visibleOpacity, hiddenOpacity, waitToRender) {
+        a.getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
+        if(! waitToRender) {
+            renderWindow.render();
+        }
     };
 
     self.localCoordFromWorld = function (vtkCoord, point) {

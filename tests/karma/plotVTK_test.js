@@ -130,7 +130,9 @@ describe('geometry', function() {
         var p4 = geometry.point(1, 1);
 
         var r1 = geometry.rect(p1, p2);
-        var b1 = r1.boundaries();
+        var b1 = r1.sides();
+
+        var r2 = geometry.rect(p3, p4);
 
         expect(r1.containsPoint(p3)).toBeTruthy();
         expect(r1.containsPoint(p4)).toBeFalsy();
@@ -155,6 +157,27 @@ describe('geometry', function() {
         expect(lIn.length).toBe(1);
         expect(lIn[0].equals(l1)).toBeTruthy();
 
+        expect(r1.intersectsRect(r2)).toBeTruthy();
+        expect(r2.intersectsRect(r1)).toBeTruthy();
+
+        var r3 = geometry.rect(
+            geometry.point(16, 16),
+            geometry.point(726, 726)
+        );
+        var r4 = geometry.rect(
+            geometry.point(-42, 189),
+            geometry.point(599, 558)
+        );
+        expect(r3.intersectsRect(r4)).toBeTruthy();
+        expect(r4.intersectsRect(r3)).toBeTruthy();
+
+        var r5 = geometry.rect(
+            geometry.point(-0.25, -0.25),
+            geometry.point(0.25, 0.25)
+        );
+
+        // r5 is entirely within r1
+        expect(r1.intersectsRect(r5)).toBeFalsy();
     }));
 
    it('should fail [transform]: ', inject(function(geometry) {
