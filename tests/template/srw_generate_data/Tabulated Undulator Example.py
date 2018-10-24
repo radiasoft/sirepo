@@ -11,22 +11,35 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # Aperture: aperture 33.1798m
-    el.append(srwlib.SRWLOptA("r", "a", 0.00025, 0.00025, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(11.8202))
-    # Watchpoint: watch 45.0m
-
     pp = []
-    # Aperture
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['Aperture', 'Aperture_Watchpoint', 'Watchpoint']
+    for el_name in names:
+        if el_name == 'Aperture':
+            # Aperture: aperture 33.1798m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_Aperture_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_Aperture_Dx,
+                _Dy=v.op_Aperture_Dy,
+                _x=v.op_Aperture_x,
+                _y=v.op_Aperture_y,
+            ))
+            pp.append(v.op_Aperture_pp)
+        elif el_name == 'Aperture_Watchpoint':
+            # Aperture_Watchpoint: drift 33.1798m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Aperture_Watchpoint_L,
+            ))
+            pp.append(v.op_Aperture_Watchpoint_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 45.0m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -197,12 +210,45 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # Aperture: aperture
+    ['op_Aperture_shape', 's', 'r', 'shape'],
+    ['op_Aperture_Dx', 'f', 0.00025, 'horizontalSize'],
+    ['op_Aperture_Dy', 'f', 0.00025, 'verticalSize'],
+    ['op_Aperture_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_Aperture_y', 'f', 0.0, 'verticalOffset'],
+
+    # Aperture_Watchpoint: drift
+    ['op_Aperture_Watchpoint_L', 'f', 11.8202, 'length'],
+
+#---Propagation parameters
+    ['op_Aperture_pp', 'f',            [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture'],
+    ['op_Aperture_Watchpoint_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture_Watchpoint'],
+    ['op_fin_pp', 'f',                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 def setup_magnetic_measurement_files(filename, v):

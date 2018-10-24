@@ -11,98 +11,226 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # MOAT 1: crystal 31.94m
-    opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-2.33400050166e-06, _psi0i=8.59790386417e-09, _psi_hr=-1.22944507993e-06, _psi_hi=6.00282990962e-09, _psi_hbr=-1.22944507993e-06, _psi_hbi=6.00282990962e-09, _tc=0.01, _ang_as=0.0)
-    # Set crystal orientation:
-    opCr.set_orient(-0.0966554453406, 0.990567587399, -0.0971266167475, -0.00943241252825, 0.0966675192333)
-    el.append(opCr)
-    ifnCryst1 = "Si_heat204.dat"
-    if ifnCryst1:
-        assert os.path.isfile(ifnCryst1), "Missing input file Si_heat204.dat, required by MOAT 1 beamline element"
-        hProfDataCryst1 = srwlib.srwl_uti_read_data_cols(ifnCryst1, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataCryst1, _dim="y", _ang=0.0972679033965, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(0.05))
-    # MOAT 2: crystal 31.99m
-    opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-2.33400050166e-06, _psi0i=8.59790386417e-09, _psi_hr=-1.22944507993e-06, _psi_hi=6.00282990962e-09, _psi_hbr=-1.22944507993e-06, _psi_hbi=6.00282990962e-09, _tc=0.01, _ang_as=0.0)
-    # Set crystal orientation:
-    opCr.set_orient(0.0966554453406, 0.990567587399, -0.0971266167475, 0.00943241252825, 0.0966675192333)
-    el.append(opCr)
-
-    el.append(srwlib.SRWLOptD(2.89244))
-    # HFM: sphericalMirror 34.88244m
-    el.append(srwlib.SRWLOptMirSph(_r=7100.0, _size_tang=0.5, _size_sag=0.04, _nvx=0.999995065202, _nvy=0.0, _nvz=-0.00314158748629, _tvx=0.00314158748629, _tvy=0.0, _x=0.0, _y=0.0))
-    ifnSphMirror2 = "HFM_Rh7.6km.dat"
-    if ifnSphMirror2:
-        assert os.path.isfile(ifnSphMirror2), "Missing input file HFM_Rh7.6km.dat, required by HFM beamline element"
-        hProfDataSphMirror2 = srwlib.srwl_uti_read_data_cols(ifnSphMirror2, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror2, _dim="x", _ang=0.003141592654, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(3.42))
-    # VFM: sphericalMirror 38.30244m
-    el.append(srwlib.SRWLOptMirSph(_r=6100.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158748629, _tvx=0.0, _tvy=0.00314158748629, _x=0.0, _y=0.0))
-    ifnSphMirror3 = "VFM_Rh5.4km.dat"
-    if ifnSphMirror3:
-        assert os.path.isfile(ifnSphMirror3), "Missing input file VFM_Rh5.4km.dat, required by VFM beamline element"
-        hProfDataSphMirror3 = srwlib.srwl_uti_read_data_cols(ifnSphMirror3, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror3, _dim="y", _ang=0.003141592654, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(0.69756))
-    # VDM: sphericalMirror 39.0m
-    el.append(srwlib.SRWLOptMirSph(_r=300000.0, _size_tang=0.4, _size_sag=0.04, _nvx=0.0, _nvy=0.999995065202, _nvz=-0.00314158743229, _tvx=0.0, _tvy=0.00314158743229, _x=0.0, _y=0.0))
-    ifnSphMirror4 = "VDM.dat"
-    if ifnSphMirror4:
-        assert os.path.isfile(ifnSphMirror4), "Missing input file VDM.dat, required by VDM beamline element"
-        hProfDataSphMirror4 = srwlib.srwl_uti_read_data_cols(ifnSphMirror4, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataSphMirror4, _dim="y", _ang=0.0031415926, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(8.00244))
-    # SSA: aperture 47.00244m
-    el.append(srwlib.SRWLOptA("r", "a", 0.0004, 0.0004, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(3.89756))
-    # ES1: watch 50.9m
-
-    el.append(srwlib.SRWLOptD(6.435))
-    # CRL: crl 57.335m
-    el.append(srwlib.srwl_opt_setup_CRL(3, 8.211821e-07, 0.028541, 1, 0.001, 0.001, 5e-05, 23, 3.24e-05, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(1.665))
-    # ES2: watch 59.0m
-
     pp = []
-    # MOAT 1
-    pp.append([0, 0, 1.0, 0, 0, 3.0, 1.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnCryst1:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # MOAT 2
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # HFM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnSphMirror2:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # VFM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnSphMirror3:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # VDM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnSphMirror4:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # SSA
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 0.5, 5.0, 0.5, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # ES1
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # CRL
-    pp.append([0, 0, 1.0, 2, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # ES2
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 0, 0.4, 3.0, 0.4, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['MOAT_1', 'MOAT_1_MOAT_2', 'MOAT_2', 'MOAT_2_HFM', 'HFM', 'HFM_VFM', 'VFM', 'VFM_VDM', 'VDM', 'VDM_SSA', 'SSA', 'SSA_ES1', 'ES1', 'ES1_CRL', 'CRL', 'CRL_ES2', 'ES2']
+    for el_name in names:
+        if el_name == 'MOAT_1':
+            # MOAT_1: crystal 31.94m
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp=v.op_MOAT_1_d_sp,
+                _psi0r=v.op_MOAT_1_psi0r,
+                _psi0i=v.op_MOAT_1_psi0i,
+                _psi_hr=v.op_MOAT_1_psiHr,
+                _psi_hi=v.op_MOAT_1_psiHi,
+                _psi_hbr=v.op_MOAT_1_psiHBr,
+                _psi_hbi=v.op_MOAT_1_psiHBi,
+                _tc=v.op_MOAT_1_tc,
+                _ang_as=v.op_MOAT_1_ang_as,
+            )
+            crystal.set_orient(
+                _nvx=v.op_MOAT_1_nvx,
+                _nvy=v.op_MOAT_1_nvy,
+                _nvz=v.op_MOAT_1_nvz,
+                _tvx=v.op_MOAT_1_tvx,
+                _tvy=v.op_MOAT_1_tvy,
+            )
+            el.append(crystal)
+            pp.append(v.op_MOAT_1_pp)
+            mirror_file = v.op_MOAT_1_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by MOAT_1 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_MOAT_1_dim,
+                _ang=v.op_MOAT_1_ang,
+                _amp_coef=v.op_MOAT_1_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'MOAT_1_MOAT_2':
+            # MOAT_1_MOAT_2: drift 31.94m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_MOAT_1_MOAT_2_L,
+            ))
+            pp.append(v.op_MOAT_1_MOAT_2_pp)
+        elif el_name == 'MOAT_2':
+            # MOAT_2: crystal 31.99m
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp=v.op_MOAT_2_d_sp,
+                _psi0r=v.op_MOAT_2_psi0r,
+                _psi0i=v.op_MOAT_2_psi0i,
+                _psi_hr=v.op_MOAT_2_psiHr,
+                _psi_hi=v.op_MOAT_2_psiHi,
+                _psi_hbr=v.op_MOAT_2_psiHBr,
+                _psi_hbi=v.op_MOAT_2_psiHBi,
+                _tc=v.op_MOAT_2_tc,
+                _ang_as=v.op_MOAT_2_ang_as,
+            )
+            crystal.set_orient(
+                _nvx=v.op_MOAT_2_nvx,
+                _nvy=v.op_MOAT_2_nvy,
+                _nvz=v.op_MOAT_2_nvz,
+                _tvx=v.op_MOAT_2_tvx,
+                _tvy=v.op_MOAT_2_tvy,
+            )
+            el.append(crystal)
+            pp.append(v.op_MOAT_2_pp)
+            
+        elif el_name == 'MOAT_2_HFM':
+            # MOAT_2_HFM: drift 31.99m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_MOAT_2_HFM_L,
+            ))
+            pp.append(v.op_MOAT_2_HFM_pp)
+        elif el_name == 'HFM':
+            # HFM: sphericalMirror 34.88244m
+            el.append(srwlib.SRWLOptMirSph(
+                _r=v.op_HFM_r,
+                _size_tang=v.op_HFM_size_tang,
+                _size_sag=v.op_HFM_size_sag,
+                _nvx=v.op_HFM_nvx,
+                _nvy=v.op_HFM_nvy,
+                _nvz=v.op_HFM_nvz,
+                _tvx=v.op_HFM_tvx,
+                _tvy=v.op_HFM_tvy,
+                _x=v.op_HFM_x,
+                _y=v.op_HFM_y,
+            ))
+            pp.append(v.op_HFM_pp)
+            mirror_file = v.op_HFM_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by HFM beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_HFM_dim,
+                _ang=v.op_HFM_ang,
+                _amp_coef=v.op_HFM_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'HFM_VFM':
+            # HFM_VFM: drift 34.88244m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_HFM_VFM_L,
+            ))
+            pp.append(v.op_HFM_VFM_pp)
+        elif el_name == 'VFM':
+            # VFM: sphericalMirror 38.30244m
+            el.append(srwlib.SRWLOptMirSph(
+                _r=v.op_VFM_r,
+                _size_tang=v.op_VFM_size_tang,
+                _size_sag=v.op_VFM_size_sag,
+                _nvx=v.op_VFM_nvx,
+                _nvy=v.op_VFM_nvy,
+                _nvz=v.op_VFM_nvz,
+                _tvx=v.op_VFM_tvx,
+                _tvy=v.op_VFM_tvy,
+                _x=v.op_VFM_x,
+                _y=v.op_VFM_y,
+            ))
+            pp.append(v.op_VFM_pp)
+            mirror_file = v.op_VFM_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by VFM beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_VFM_dim,
+                _ang=v.op_VFM_ang,
+                _amp_coef=v.op_VFM_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'VFM_VDM':
+            # VFM_VDM: drift 38.30244m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_VFM_VDM_L,
+            ))
+            pp.append(v.op_VFM_VDM_pp)
+        elif el_name == 'VDM':
+            # VDM: sphericalMirror 39.0m
+            el.append(srwlib.SRWLOptMirSph(
+                _r=v.op_VDM_r,
+                _size_tang=v.op_VDM_size_tang,
+                _size_sag=v.op_VDM_size_sag,
+                _nvx=v.op_VDM_nvx,
+                _nvy=v.op_VDM_nvy,
+                _nvz=v.op_VDM_nvz,
+                _tvx=v.op_VDM_tvx,
+                _tvy=v.op_VDM_tvy,
+                _x=v.op_VDM_x,
+                _y=v.op_VDM_y,
+            ))
+            pp.append(v.op_VDM_pp)
+            mirror_file = v.op_VDM_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by VDM beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_VDM_dim,
+                _ang=v.op_VDM_ang,
+                _amp_coef=v.op_VDM_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'VDM_SSA':
+            # VDM_SSA: drift 39.0m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_VDM_SSA_L,
+            ))
+            pp.append(v.op_VDM_SSA_pp)
+        elif el_name == 'SSA':
+            # SSA: aperture 47.00244m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_SSA_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_SSA_Dx,
+                _Dy=v.op_SSA_Dy,
+                _x=v.op_SSA_x,
+                _y=v.op_SSA_y,
+            ))
+            pp.append(v.op_SSA_pp)
+        elif el_name == 'SSA_ES1':
+            # SSA_ES1: drift 47.00244m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_SSA_ES1_L,
+            ))
+            pp.append(v.op_SSA_ES1_pp)
+        elif el_name == 'ES1':
+            # ES1: watch 50.9m
+            pass
+        elif el_name == 'ES1_CRL':
+            # ES1_CRL: drift 50.9m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_ES1_CRL_L,
+            ))
+            pp.append(v.op_ES1_CRL_pp)
+        elif el_name == 'CRL':
+            # CRL: crl 57.335m
+            el.append(srwlib.srwl_opt_setup_CRL(
+                _foc_plane=v.op_CRL_foc_plane,
+                _delta=v.op_CRL_delta,
+                _atten_len=v.op_CRL_atten_len,
+                _shape=v.op_CRL_shape,
+                _apert_h=v.op_CRL_apert_h,
+                _apert_v=v.op_CRL_apert_v,
+                _r_min=v.op_CRL_r_min,
+                _n=v.op_CRL_n,
+                _wall_thick=v.op_CRL_wall_thick,
+                _xc=v.op_CRL_x,
+                _yc=v.op_CRL_y,
+            ))
+            pp.append(v.op_CRL_pp)
+        elif el_name == 'CRL_ES2':
+            # CRL_ES2: drift 57.335m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_CRL_ES2_L,
+            ))
+            pp.append(v.op_CRL_ES2_pp)
+        elif el_name == 'ES2':
+            # ES2: watch 59.0m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -273,12 +401,180 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # MOAT_1: crystal
+    ['op_MOAT_1_hfn', 's', 'Si_heat204.dat', 'heightProfileFile'],
+    ['op_MOAT_1_dim', 's', 'y', 'orientation'],
+    ['op_MOAT_1_d_sp', 'f', 3.13557135638, 'dSpacing'],
+    ['op_MOAT_1_psi0r', 'f', -2.33400050166e-06, 'psi0r'],
+    ['op_MOAT_1_psi0i', 'f', 8.59790386417e-09, 'psi0i'],
+    ['op_MOAT_1_psiHr', 'f', -1.22944507993e-06, 'psiHr'],
+    ['op_MOAT_1_psiHi', 'f', 6.00282990962e-09, 'psiHi'],
+    ['op_MOAT_1_psiHBr', 'f', -1.22944507993e-06, 'psiHBr'],
+    ['op_MOAT_1_psiHBi', 'f', 6.00282990962e-09, 'psiHBi'],
+    ['op_MOAT_1_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_MOAT_1_ang_as', 'f', 0.0, 'asymmetryAngle'],
+    ['op_MOAT_1_nvx', 'f', -0.0966554453406, 'nvx'],
+    ['op_MOAT_1_nvy', 'f', 0.990567587399, 'nvy'],
+    ['op_MOAT_1_nvz', 'f', -0.0971266167475, 'nvz'],
+    ['op_MOAT_1_tvx', 'f', -0.00943241252825, 'tvx'],
+    ['op_MOAT_1_tvy', 'f', 0.0966675192333, 'tvy'],
+    ['op_MOAT_1_ang', 'f', 0.0972679033965, 'grazingAngle'],
+    ['op_MOAT_1_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # MOAT_1_MOAT_2: drift
+    ['op_MOAT_1_MOAT_2_L', 'f', 0.05, 'length'],
+
+    # MOAT_2: crystal
+    ['op_MOAT_2_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_MOAT_2_dim', 's', 'x', 'orientation'],
+    ['op_MOAT_2_d_sp', 'f', 3.13557135638, 'dSpacing'],
+    ['op_MOAT_2_psi0r', 'f', -2.33400050166e-06, 'psi0r'],
+    ['op_MOAT_2_psi0i', 'f', 8.59790386417e-09, 'psi0i'],
+    ['op_MOAT_2_psiHr', 'f', -1.22944507993e-06, 'psiHr'],
+    ['op_MOAT_2_psiHi', 'f', 6.00282990962e-09, 'psiHi'],
+    ['op_MOAT_2_psiHBr', 'f', -1.22944507993e-06, 'psiHBr'],
+    ['op_MOAT_2_psiHBi', 'f', 6.00282990962e-09, 'psiHBi'],
+    ['op_MOAT_2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_MOAT_2_ang_as', 'f', 0.0, 'asymmetryAngle'],
+    ['op_MOAT_2_nvx', 'f', 0.0966554453406, 'nvx'],
+    ['op_MOAT_2_nvy', 'f', 0.990567587399, 'nvy'],
+    ['op_MOAT_2_nvz', 'f', -0.0971266167475, 'nvz'],
+    ['op_MOAT_2_tvx', 'f', 0.00943241252825, 'tvx'],
+    ['op_MOAT_2_tvy', 'f', 0.0966675192333, 'tvy'],
+    ['op_MOAT_2_ang', 'f', -0.0972679033965, 'grazingAngle'],
+    ['op_MOAT_2_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # MOAT_2_HFM: drift
+    ['op_MOAT_2_HFM_L', 'f', 2.89244, 'length'],
+
+    # HFM: sphericalMirror
+    ['op_HFM_hfn', 's', 'HFM_Rh7.6km.dat', 'heightProfileFile'],
+    ['op_HFM_dim', 's', 'x', 'orientation'],
+    ['op_HFM_r', 'f', 7100.0, 'radius'],
+    ['op_HFM_size_tang', 'f', 0.5, 'tangentialSize'],
+    ['op_HFM_size_sag', 'f', 0.04, 'sagittalSize'],
+    ['op_HFM_ang', 'f', 0.003141592654, 'grazingAngle'],
+    ['op_HFM_nvx', 'f', 0.999995065202, 'normalVectorX'],
+    ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_HFM_nvz', 'f', -0.00314158748629, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', 0.00314158748629, 'tangentialVectorX'],
+    ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # HFM_VFM: drift
+    ['op_HFM_VFM_L', 'f', 3.42, 'length'],
+
+    # VFM: sphericalMirror
+    ['op_VFM_hfn', 's', 'VFM_Rh5.4km.dat', 'heightProfileFile'],
+    ['op_VFM_dim', 's', 'y', 'orientation'],
+    ['op_VFM_r', 'f', 6100.0, 'radius'],
+    ['op_VFM_size_tang', 'f', 0.4, 'tangentialSize'],
+    ['op_VFM_size_sag', 'f', 0.04, 'sagittalSize'],
+    ['op_VFM_ang', 'f', 0.003141592654, 'grazingAngle'],
+    ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
+    ['op_VFM_nvy', 'f', 0.999995065202, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.00314158748629, 'normalVectorZ'],
+    ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
+    ['op_VFM_tvy', 'f', 0.00314158748629, 'tangentialVectorY'],
+    ['op_VFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # VFM_VDM: drift
+    ['op_VFM_VDM_L', 'f', 0.69756, 'length'],
+
+    # VDM: sphericalMirror
+    ['op_VDM_hfn', 's', 'VDM.dat', 'heightProfileFile'],
+    ['op_VDM_dim', 's', 'y', 'orientation'],
+    ['op_VDM_r', 'f', 300000.0, 'radius'],
+    ['op_VDM_size_tang', 'f', 0.4, 'tangentialSize'],
+    ['op_VDM_size_sag', 'f', 0.04, 'sagittalSize'],
+    ['op_VDM_ang', 'f', 0.0031415926, 'grazingAngle'],
+    ['op_VDM_nvx', 'f', 0.0, 'normalVectorX'],
+    ['op_VDM_nvy', 'f', 0.999995065202, 'normalVectorY'],
+    ['op_VDM_nvz', 'f', -0.00314158743229, 'normalVectorZ'],
+    ['op_VDM_tvx', 'f', 0.0, 'tangentialVectorX'],
+    ['op_VDM_tvy', 'f', 0.00314158743229, 'tangentialVectorY'],
+    ['op_VDM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_VDM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_VDM_y', 'f', 0.0, 'verticalOffset'],
+
+    # VDM_SSA: drift
+    ['op_VDM_SSA_L', 'f', 8.00244, 'length'],
+
+    # SSA: aperture
+    ['op_SSA_shape', 's', 'r', 'shape'],
+    ['op_SSA_Dx', 'f', 0.0004, 'horizontalSize'],
+    ['op_SSA_Dy', 'f', 0.0004, 'verticalSize'],
+    ['op_SSA_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_SSA_y', 'f', 0.0, 'verticalOffset'],
+
+    # SSA_ES1: drift
+    ['op_SSA_ES1_L', 'f', 3.89756, 'length'],
+
+    # ES1_CRL: drift
+    ['op_ES1_CRL_L', 'f', 6.435, 'length'],
+
+    # CRL: crl
+    ['op_CRL_foc_plane', 'f', 3, 'focalPlane'],
+    ['op_CRL_delta', 'f', 8.211821e-07, 'refractiveIndex'],
+    ['op_CRL_atten_len', 'f', 0.028541, 'attenuationLength'],
+    ['op_CRL_shape', 'f', 1, 'shape'],
+    ['op_CRL_apert_h', 'f', 0.001, 'horizontalApertureSize'],
+    ['op_CRL_apert_v', 'f', 0.001, 'verticalApertureSize'],
+    ['op_CRL_r_min', 'f', 5e-05, 'tipRadius'],
+    ['op_CRL_wall_thick', 'f', 3.24e-05, 'tipWallThickness'],
+    ['op_CRL_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_CRL_y', 'f', 0.0, 'verticalOffset'],
+    ['op_CRL_n', 'i', 23, 'numberOfLenses'],
+
+    # CRL_ES2: drift
+    ['op_CRL_ES2_L', 'f', 1.665, 'length'],
+
+#---Propagation parameters
+    ['op_MOAT_1_pp', 'f',        [0, 0, 1.0, 0, 0, 3.0, 1.0, 3.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'MOAT_1'],
+    ['op_MOAT_1_MOAT_2_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'MOAT_1_MOAT_2'],
+    ['op_MOAT_2_pp', 'f',        [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'MOAT_2'],
+    ['op_MOAT_2_HFM_pp', 'f',    [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'MOAT_2_HFM'],
+    ['op_HFM_pp', 'f',           [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM'],
+    ['op_HFM_VFM_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM_VFM'],
+    ['op_VFM_pp', 'f',           [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM'],
+    ['op_VFM_VDM_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM_VDM'],
+    ['op_VDM_pp', 'f',           [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VDM'],
+    ['op_VDM_SSA_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VDM_SSA'],
+    ['op_SSA_pp', 'f',           [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'SSA'],
+    ['op_SSA_ES1_pp', 'f',       [0, 0, 1.0, 1, 0, 0.5, 5.0, 0.5, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'SSA_ES1'],
+    ['op_ES1_CRL_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'ES1_CRL'],
+    ['op_CRL_pp', 'f',           [0, 0, 1.0, 2, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
+    ['op_CRL_ES2_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_ES2'],
+    ['op_fin_pp', 'f',           [0, 0, 1.0, 0, 0, 0.4, 3.0, 0.4, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 

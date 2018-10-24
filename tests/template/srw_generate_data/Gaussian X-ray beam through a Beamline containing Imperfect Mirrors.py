@@ -11,64 +11,129 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # ApM1: aperture 270.0m
-    el.append(srwlib.SRWLOptA("r", "a", 0.01, 0.0009, 0.0, 0.0))
-    # M1: mirror 270.0m
-    ifnMirror1 = "mirror2_1d.dat"
-    if ifnMirror1:
-        assert os.path.isfile(ifnMirror1), "Missing input file mirror2_1d.dat, required by M1 beamline element"
-        hProfDataMirror1 = srwlib.srwl_uti_read_data_cols(ifnMirror1, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataMirror1, _dim="y", _ang=0.0018, _amp_coef=1.0, _size_x=0.0, _size_y=0.0))
-    el.append(srwlib.SRWLOptD(658.3))
-    # Watchpoint: watch 928.3m
-
-    # ApKB: aperture 928.3m
-    el.append(srwlib.SRWLOptA("r", "a", 0.0018, 0.0018, 0.0, 0.0))
-    # VFM: ellipsoidMirror 928.3m
-    el.append(srwlib.SRWLOptMirEl(_p=928.3, _q=1.7, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.0, _nvy=0.999993520007, _nvz=-0.00359999222401, _tvx=0.0, _tvy=-0.00359999222401, _x=0.0, _y=0.0))
-    ifnElMirror2 = "mirror2_1d.dat"
-    if ifnElMirror2:
-        assert os.path.isfile(ifnElMirror2), "Missing input file mirror2_1d.dat, required by VFM beamline element"
-        hProfDataElMirror2 = srwlib.srwl_uti_read_data_cols(ifnElMirror2, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataElMirror2, _dim="y", _ang=0.0036, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(0.6))
-    # HFM: ellipsoidMirror 928.9m
-    el.append(srwlib.SRWLOptMirEl(_p=928.9, _q=1.1, _ang_graz=0.0036, _size_tang=0.5, _size_sag=0.01, _nvx=0.999993520007, _nvy=0.0, _nvz=-0.00359999222401, _tvx=-0.00359999222401, _tvy=0.0, _x=0.0, _y=0.0))
-    ifnElMirror3 = "mirror2_1d.dat"
-    if ifnElMirror3:
-        assert os.path.isfile(ifnElMirror3), "Missing input file mirror2_1d.dat, required by HFM beamline element"
-        hProfDataElMirror3 = srwlib.srwl_uti_read_data_cols(ifnElMirror3, "\t", 0, 1)
-        el.append(srwlib.srwl_opt_setup_surf_height_1d(hProfDataElMirror3, _dim="x", _ang=0.0036, _amp_coef=1.0))
-    el.append(srwlib.SRWLOptD(1.1))
-    # Sample: watch 930.0m
-
     pp = []
-    # ApM1
-    pp.append([0, 0, 1.0, 1, 0, 2.0, 5.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # M1
-    if ifnMirror1:
-        pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # ApKB
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # VFM
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnElMirror2:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # HFM
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    if ifnElMirror3:
-        pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Sample
-    # final post-propagation
-    pp.append([0, 0, 1.0, 1, 0, 0.06, 3.0, 0.1, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['ApM1', 'M1', 'M1_Watchpoint', 'Watchpoint', 'ApKB', 'VFM', 'VFM_HFM', 'HFM', 'HFM_Sample', 'Sample']
+    for el_name in names:
+        if el_name == 'ApM1':
+            # ApM1: aperture 270.0m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_ApM1_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_ApM1_Dx,
+                _Dy=v.op_ApM1_Dy,
+                _x=v.op_ApM1_x,
+                _y=v.op_ApM1_y,
+            ))
+            pp.append(v.op_ApM1_pp)
+        elif el_name == 'M1':
+            # M1: mirror 270.0m
+            mirror_file = v.op_M1_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by M1 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_M1_dim,
+                _ang=v.op_M1_ang,
+                _amp_coef=v.op_M1_amp_coef,
+                _size_x=v.op_M1_size_x,
+                _size_y=v.op_M1_size_y,
+            ))
+            pp.append(v.op_M1_pp)
+        elif el_name == 'M1_Watchpoint':
+            # M1_Watchpoint: drift 270.0m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_M1_Watchpoint_L,
+            ))
+            pp.append(v.op_M1_Watchpoint_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 928.3m
+            pass
+        elif el_name == 'ApKB':
+            # ApKB: aperture 928.3m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_ApKB_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_ApKB_Dx,
+                _Dy=v.op_ApKB_Dy,
+                _x=v.op_ApKB_x,
+                _y=v.op_ApKB_y,
+            ))
+            pp.append(v.op_ApKB_pp)
+        elif el_name == 'VFM':
+            # VFM: ellipsoidMirror 928.3m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_VFM_p,
+                _q=v.op_VFM_q,
+                _ang_graz=v.op_VFM_ang,
+                _size_tang=v.op_VFM_size_tang,
+                _size_sag=v.op_VFM_size_sag,
+                _nvx=v.op_VFM_nvx,
+                _nvy=v.op_VFM_nvy,
+                _nvz=v.op_VFM_nvz,
+                _tvx=v.op_VFM_tvx,
+                _tvy=v.op_VFM_tvy,
+                _x=v.op_VFM_x,
+                _y=v.op_VFM_y,
+            ))
+            pp.append(v.op_VFM_pp)
+            mirror_file = v.op_VFM_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by VFM beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_VFM_dim,
+                _ang=v.op_VFM_ang,
+                _amp_coef=v.op_VFM_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'VFM_HFM':
+            # VFM_HFM: drift 928.3m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_VFM_HFM_L,
+            ))
+            pp.append(v.op_VFM_HFM_pp)
+        elif el_name == 'HFM':
+            # HFM: ellipsoidMirror 928.9m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_HFM_p,
+                _q=v.op_HFM_q,
+                _ang_graz=v.op_HFM_ang,
+                _size_tang=v.op_HFM_size_tang,
+                _size_sag=v.op_HFM_size_sag,
+                _nvx=v.op_HFM_nvx,
+                _nvy=v.op_HFM_nvy,
+                _nvz=v.op_HFM_nvz,
+                _tvx=v.op_HFM_tvx,
+                _tvy=v.op_HFM_tvy,
+                _x=v.op_HFM_x,
+                _y=v.op_HFM_y,
+            ))
+            pp.append(v.op_HFM_pp)
+            mirror_file = v.op_HFM_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by HFM beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_HFM_dim,
+                _ang=v.op_HFM_ang,
+                _amp_coef=v.op_HFM_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'HFM_Sample':
+            # HFM_Sample: drift 928.9m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_HFM_Sample_L,
+            ))
+            pp.append(v.op_HFM_Sample_pp)
+        elif el_name == 'Sample':
+            # Sample: watch 930.0m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -206,12 +271,106 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 'g', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # ApM1: aperture
+    ['op_ApM1_shape', 's', 'r', 'shape'],
+    ['op_ApM1_Dx', 'f', 0.01, 'horizontalSize'],
+    ['op_ApM1_Dy', 'f', 0.0009, 'verticalSize'],
+    ['op_ApM1_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_ApM1_y', 'f', 0.0, 'verticalOffset'],
+
+    # M1: mirror
+    ['op_M1_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_M1_dim', 's', 'y', 'orientation'],
+    ['op_M1_ang', 'f', 0.0018, 'grazingAngle'],
+    ['op_M1_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_M1_size_x', 'f', 0.0, 'horizontalTransverseSize'],
+    ['op_M1_size_y', 'f', 0.0, 'verticalTransverseSize'],
+
+    # M1_Watchpoint: drift
+    ['op_M1_Watchpoint_L', 'f', 658.3, 'length'],
+
+    # ApKB: aperture
+    ['op_ApKB_shape', 's', 'r', 'shape'],
+    ['op_ApKB_Dx', 'f', 0.0018, 'horizontalSize'],
+    ['op_ApKB_Dy', 'f', 0.0018, 'verticalSize'],
+    ['op_ApKB_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_ApKB_y', 'f', 0.0, 'verticalOffset'],
+
+    # VFM: ellipsoidMirror
+    ['op_VFM_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_VFM_dim', 's', 'y', 'orientation'],
+    ['op_VFM_p', 'f', 928.3, 'firstFocusLength'],
+    ['op_VFM_q', 'f', 1.7, 'focalLength'],
+    ['op_VFM_ang', 'f', 0.0036, 'grazingAngle'],
+    ['op_VFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_VFM_size_tang', 'f', 0.5, 'tangentialSize'],
+    ['op_VFM_size_sag', 'f', 0.01, 'sagittalSize'],
+    ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
+    ['op_VFM_nvy', 'f', 0.999993520007, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.00359999222401, 'normalVectorZ'],
+    ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
+    ['op_VFM_tvy', 'f', -0.00359999222401, 'tangentialVectorY'],
+    ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # VFM_HFM: drift
+    ['op_VFM_HFM_L', 'f', 0.6, 'length'],
+
+    # HFM: ellipsoidMirror
+    ['op_HFM_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_HFM_dim', 's', 'x', 'orientation'],
+    ['op_HFM_p', 'f', 928.9, 'firstFocusLength'],
+    ['op_HFM_q', 'f', 1.1, 'focalLength'],
+    ['op_HFM_ang', 'f', 0.0036, 'grazingAngle'],
+    ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_HFM_size_tang', 'f', 0.5, 'tangentialSize'],
+    ['op_HFM_size_sag', 'f', 0.01, 'sagittalSize'],
+    ['op_HFM_nvx', 'f', 0.999993520007, 'normalVectorX'],
+    ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_HFM_nvz', 'f', -0.00359999222401, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', -0.00359999222401, 'tangentialVectorX'],
+    ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # HFM_Sample: drift
+    ['op_HFM_Sample_L', 'f', 1.1, 'length'],
+
+#---Propagation parameters
+    ['op_ApM1_pp', 'f',          [0, 0, 1.0, 1, 0, 2.0, 5.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'ApM1'],
+    ['op_M1_pp', 'f',            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'M1'],
+    ['op_M1_Watchpoint_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'M1_Watchpoint'],
+    ['op_ApKB_pp', 'f',          [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'ApKB'],
+    ['op_VFM_pp', 'f',           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM'],
+    ['op_VFM_HFM_pp', 'f',       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM_HFM'],
+    ['op_HFM_pp', 'f',           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM'],
+    ['op_HFM_Sample_pp', 'f',    [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM_Sample'],
+    ['op_fin_pp', 'f',           [0, 0, 1.0, 1, 0, 0.06, 3.0, 0.1, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 
