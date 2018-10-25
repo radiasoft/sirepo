@@ -12,7 +12,7 @@ var srdbg = SIREPO.srdbg;
 angular.element(document).ready(function() {
 
     function loadDynamicModule(src) {
-        return src.endsWith('.css')
+        return src.match(/\.css$/)
             ? addTag(src, 'link', 'head', 'href', {'rel': 'stylesheet'})
             : addTag(src, 'script', 'body', 'src', {'type': 'text/javascript', 'async': true});
     }
@@ -21,7 +21,7 @@ angular.element(document).ready(function() {
         var d = $.Deferred();
         var t = document.createElement(name);
         t[uri] = src + SIREPO.SOURCE_CACHE_KEY;
-        Object.assign(t, attrs);
+        $.extend(t, attrs);
         document.getElementsByTagName(parent)[0].appendChild(t);
         t.onload = function () {
             d.resolve();
