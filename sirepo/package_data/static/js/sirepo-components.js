@@ -2312,19 +2312,35 @@ SIREPO.app.service('plotToPNG', function($http) {
     }
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        // embed sirepo.css style within SVG for first download, css file is cached by browser
-        $http.get('/static/css/sirepo.css' + SIREPO.SOURCE_CACHE_KEY)
-            .then(function(response) {
-                if (svg.firstChild.nodeName != 'STYLE') {
-                    var css = document.createElement('style');
-                    css.type = 'text/css';
-                    // work-around bug fix #857, canvg.js doesn't handle non-standard css
-                    response.data = response.data.replace('input::-ms-clear', 'ms-clear');
-                    css.appendChild(document.createTextNode(response.data));
-                    svg.insertBefore(css, svg.firstChild);
-                }
-                downloadPlot(svg, height, plot3dCanvas, fileName);
-            });
+        // embed all css styles into SVG node before rendering
+        if (svg.firstChild.nodeName == 'STYLE') {
+            downloadPlot(svg, height, plot3dCanvas, fileName);
+            return;
+        }
+        var promises = [];
+        ['sirepo.css'].concat(SIREPO.APP_SCHEMA.dynamicFiles.sirepoLibs.css || []).forEach(function(cssFile) {
+            promises.push($http.get('/static/css/' + cssFile + SIREPO.SOURCE_CACHE_KEY));
+        });
+        var cssText = '';
+        function cssResponse(response) {
+            promises.shift();
+            //console.log('resp:', response.data);
+            cssText += response.data;
+            if (promises.length) {
+                promises[0].then(cssResponse);
+                return;
+            }
+            if (svg.firstChild.nodeName != 'STYLE') {
+                var css = document.createElement('style');
+                css.type = 'text/css';
+                // work-around bug fix #857, canvg.js doesn't handle non-standard css
+                cssText = cssText.replace('input::-ms-clear', 'ms-clear');
+                css.appendChild(document.createTextNode(cssText));
+                svg.insertBefore(css, svg.firstChild);
+            }
+            downloadPlot(svg, height, plot3dCanvas, fileName);
+        }
+        promises[0].then(cssResponse);
     };
 });
 

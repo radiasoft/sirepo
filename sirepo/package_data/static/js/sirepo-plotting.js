@@ -2141,7 +2141,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 if (! fullDomain) {
                     return;
                 }
-                if (layoutService.plotAxis.allowUpdates) {
+                if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
                     if (! heatmap || isNaN(width)){
                         return;
