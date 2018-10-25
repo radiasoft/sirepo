@@ -132,12 +132,10 @@
                     "ngDraggable.js",
                     "stacktrace-0.6.4.js",
                     "colorbar.js",
-                    "rgbcolor.js",
-                    "canvg.js",
+                    "canvg-and-dependencies.js",
                     "FileSaver.js",
                     "Blob.js",
                     "canvas-toBlob.js",
-                    "StackBlur.js",
                     "d3-3.5.9.min.js",
                     "fontdetect-0.3.js",
                     "ie10-viewport-bug-workaround.js"
