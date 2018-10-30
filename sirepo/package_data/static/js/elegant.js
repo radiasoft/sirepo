@@ -627,7 +627,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             panelState.setError(info.modelKey, null);
             var outputFile = {
                 info: info,
-                reportType: reportTypeForColumns(info.plottableColumns),
+                reportType: info.isHistogram ? 'heatmap' : 'parameterWithLattice',
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
@@ -705,19 +705,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
         frameCache.setAnimationArgs(animationArgs);
-    }
-
-    //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
-    function reportTypeForColumns(columns) {
-        if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return 'parameterWithLattice';
-        }
-        if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
-            || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
-            || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
-            return 'heatmap';
-        }
-        return 'parameterWithLattice';
     }
 
     function yFileUpdate(modelKey) {

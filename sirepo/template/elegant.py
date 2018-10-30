@@ -66,6 +66,8 @@ _INFIX_TO_RPN = {
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
+_OUTPUT_INFO_VERSION = '1'
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -128,7 +130,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
-    if _report_type_for_column(x_col['column_names']) == 'parameter':
+    if not _is_histogram_file(xFilename, x_col['column_names']):
         # parameter plot
         plots = []
         filename = {
@@ -805,6 +807,7 @@ def _file_info(filename, run_dir, id, output_index):
             'parameterDefinitions': _parameter_definitions(parameters),
             'plottableColumns': plottable_columns,
             'lastUpdateTime': int(os.path.getmtime(str(file_path))),
+            'isHistogram': _is_histogram_file(filename, column_names),
         }
     finally:
         try:
@@ -954,6 +957,19 @@ def _is_error_text(text):
     return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given|^MPI_ERR', text, re.IGNORECASE)
 
 
+def _is_histogram_file(filename, columns):
+    filename = os.path.basename(filename)
+    if re.search(r'^closed_orbit.output', filename):
+        return False
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return False
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return True
+    return False
+
+
 def _is_ignore_error_text(text):
     return re.search(r'^warn.* does not have a parameter', text, re.IGNORECASE)
 
@@ -1084,7 +1100,9 @@ def _output_info(run_dir):
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
     if os.path.isfile(str(info_file)):
-        return simulation_db.read_json(info_file)
+        res = simulation_db.read_json(info_file)
+        if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+            return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
@@ -1095,6 +1113,8 @@ def _output_info(run_dir):
         if info:
             info['modelKey'] = 'elementAnimation{}'.format(info['id'])
             res.append(info)
+    if len(res):
+        res[0]['_version'] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
     return res
 
@@ -1165,17 +1185,6 @@ def _plot_title(xfield, yfield, page_index, page_count):
     if page_count > 1:
         title += ', Plot {} of {}'.format(page_index + 1, page_count)
     return title
-
-
-#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
-def _report_type_for_column(columns):
-    if 'xFrequency' in columns and 'yFrequency' in columns:
-        return 'parameter'
-    if ('x' in columns and 'xp' in columns) \
-       or ('y' in columns and 'yp' in columns) \
-       or ('t' in columns and 'p' in columns):
-        return 'heatmap'
-    return 'parameter'
 
 
 def _safe_sdds_value(v):
