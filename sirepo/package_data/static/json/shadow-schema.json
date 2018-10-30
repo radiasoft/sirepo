@@ -9,6 +9,9 @@
             "js": [
                 "shadow.js",
                 "sirepo-beamline.js"
+            ],
+            "css": [
+                 "srw.css"
             ]
         }
     },

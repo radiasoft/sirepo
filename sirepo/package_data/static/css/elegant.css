@@ -1,0 +1,34 @@
+.elegant-download-button {
+  background-color: white;
+}
+.elegant-cmd-table table tr td.drag-enter {
+  background-color: #d9edf7;
+}
+.elegant-cmd-table table tr td.drag-enter div.elegant-cmd-icon-holder {
+  transition: padding 0.5s ease 0s;
+  padding-top: 2em;
+}
+.elegant-cmd-table table tr td.drag-enter div.dragging {
+  padding-top: 0;
+}
+.elegant-parameter-table-row {
+  margin-bottom: 0;
+  padding: 0;
+}
+.elegant-parameter-table-value {
+  /* matching control-label */
+  padding-top: 6px;
+  /* normal spacing */
+  padding-left: 1.7em;
+}
+.elegant-error-box {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 180px;
+}
+.elegant-list-value {
+    display: inline-block;
+    width: 10em;
+    margin-right: 1em;
+    margin-bottom: 4px;
+}

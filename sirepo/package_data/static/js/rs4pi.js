@@ -103,6 +103,13 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
         return res;
     };
 
+    self.hasDoseFrames = function() {
+        if (appState.isLoaded()) {
+            return appState.models.dicomDose.frameCount > 0;
+        }
+        return false;
+    };
+
     self.hasROIContours = function() {
         for (var roiNumber in roiPoints) {
             var roi = roiPoints[roiNumber];
@@ -258,7 +265,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
             '<ul class="nav navbar-nav navbar-right" data-login-menu=""></ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="isLoaded()">',
               '<li data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-equalizer"></span> Structure</a></li>',
-              '<li data-ng-show="hasROIContours()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
+              '<li data-ng-show="rs4piService.hasDoseFrames()" data-ng-class="{active: nav.isActive(\'dose\')}"><a href data-ng-click="nav.openSection(\'dose\')"><span class="glyphicon glyphicon-dashboard"></span> Dose</a></li>',
             '</ul>',
             '<ul class="nav navbar-nav navbar-right" data-ng-show="nav.isActive(\'simulations\')">',
               '<li><a href data-ng-click="importDicomModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span> Import DICOM</a></li>',
@@ -267,9 +274,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
 
         ].join(''),
         controller: function($scope) {
-            $scope.hasROIContours = function() {
-                return rs4piService.hasROIContours();
-            };
+            $scope.rs4piService = rs4piService;
             $scope.isLoaded = function() {
                 return appState.isLoaded();
             };
@@ -280,6 +285,7 @@ SIREPO.app.directive('appHeader', function(appState, fileManager, panelState, rs
             $scope.importDicomModal = function() {
                 $('#dicom-import').modal('show');
             };
+
         },
     };
 });
@@ -1808,18 +1814,13 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
         restrict: 'A',
         template: [
             '<div style="border: 1px solid #bce8f1; border-radius: 4px; margin: 20px 0;" class="sr-roi-3d">',
-              '<div class="vtk-canvas-holder"></div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
 
             var activeRoi = null;
             var initialized = false;
-
-            // rendering
-            var renderWindow = null;
-            var renderer = null;
-            var cam = null;
+            var fsRenderer = null;
             var actor = null;
 
             function init() {
@@ -1827,29 +1828,20 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                     return;
                 }
                 initialized = true;
-                var rw = $($element).find('.sr-roi-3d .vtk-canvas-holder');
+                var rw = $($element);
                 rw.on('dblclick', reset);
                 rw.height(rw.width() / 1.3);
-                var fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
                         container: rw[0],
                     });
-                renderer = fsRenderer.getRenderer();
-                renderer.getLights()[0].setLightTypeToSceneLight();
-                renderWindow = fsRenderer.getRenderWindow();
-                cam = renderer.get().activeCamera;
-                var rwInteractor = renderWindow.getInteractor();
-                var zoomObserver = vtk.Rendering.Core.vtkInteractorObserver.newInstance({
-                    interactor: rwInteractor,
-                    subscribedEvents: ['StartPinch']
-                });
-                zoomObserver.setInteractor(rwInteractor);
+                fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
             }
 
             function showActiveRoi() {
                 if (actor) {
-                    renderer.removeActor(actor);
+                    fsRenderer.getRenderer().removeActor(actor);
                 }
                 var roi = rs4piService.getActiveROIPoints();
                 if (! roi) {
@@ -1909,22 +1901,25 @@ SIREPO.app.directive('roi3d', function(appState, panelState, rs4piService) {
                 //actor.getProperty().setPointSize(2);
                 mapper.setInputData(pd);
                 actor.setMapper(mapper);
-
-                renderer.addActor(actor);
+                fsRenderer.getRenderer().addActor(actor);
                 reset();
             }
 
             function reset() {
+                var renderer = fsRenderer.getRenderer();
+                var cam = renderer.get().activeCamera;
                 cam.setPosition(0, -1, 0.002);
                 cam.setFocalPoint(0, 0, 0);
                 cam.setViewUp(0, 0, 1);
                 renderer.resetCamera();
                 cam.zoom(1.3);
-                renderWindow.render();
+                fsRenderer.getRenderWindow().render();
             }
 
             $scope.$on('$destroy', function() {
-                $($element).find('.sr-roi-3d .vtk-canvas-holder').off();
+                $($element).off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
             });
 
             $scope.$on('roiPointsLoaded', function() {

@@ -1,0 +1,74 @@
+.sr-lattice-item {
+  user-select: none;
+  cursor: move;
+  border: solid 2px #777;
+}
+
+.sr-lattice-item:hover, .sr-lattice-item.drag-over {
+  border-color: black;
+}
+
+.sr-lattice-item-holder.drag-enter .sr-lattice-item {
+  opacity: 0.7;
+  transition: margin 0.5s ease 0s;
+}
+
+.sr-lattice-item-holder.drag-enter .sr-move-left {
+  margin-left: -4em;
+  margin-right: 4em;
+}
+
+.sr-lattice-item-holder.drag-enter .sr-move-right {
+  margin-left: 4em;
+  margin-right: -4em;
+}
+
+.sr-lattice-item-holder .sr-lattice-item.drag-over {
+  opacity: 1.0;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.sr-lattice-item-holder {
+  text-align: center;
+  padding: 5px 0;
+  display: inline-block;
+  border: solid 5px white;
+  border-radius: 10px;
+}
+
+.sr-lattice-item-holder.drag-enter {
+  border: solid 5px lightgray;
+}
+
+.sr-lattice-close-icon {
+  font-size: 16px;
+  cursor: pointer;
+  color: #aaa;
+  visibility: hidden;
+}
+
+.sr-lattice-icon {
+  background-color: #222;
+  border-color: #222;
+}
+
+.sr-lattice-icon-disabled {
+  background-color: #aaa;
+  border-color: #aaa;
+}
+
+div.sr-lattice-icon-disabled span {
+    cursor: not-allowed;
+}
+
+.sr-lattice-editor-panel {
+  overflow: auto;
+}
+
+.sr-editor-item-hover:hover .sr-lattice-close-icon {
+      visibility: visible;
+}
+.sr-editor-item-hover .sr-lattice-close-icon:hover {
+    color: #000;
+}

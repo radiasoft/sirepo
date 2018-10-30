@@ -7,7 +7,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <link rel="icon" href="/static/img/favicon.ico{{ source_cache_key }}">
     <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
-{%- for c in static_css_files %}
+{%- for c in static_files.css %}
     <link href="{{c}}{{ source_cache_key }}" rel="stylesheet">
 {%- endfor %}
     <script>
@@ -54,13 +54,13 @@
         <div data-app-header="nav"></div>
       </div>
     </nav>
-    <div class="col-sm-4 col-sm-push-8 sr-notify-text" data-sr-notify="" data-notification-name="'net.sirepo.login_notify_timeout'" data-notification-class="'alert-success'"></div>
+    <div class="col-sm-4 col-sm-push-8 sr-notify-text" data-sr-notify="" data-notification-name="'login'" data-notification-class="'alert-success'"></div>
     <div class="col-sm-12" data-sr-alert=""></div>
     <div class="clearfix"></div>
     <div data-ng-view></div>
     <div data-app-footer="nav"></div>
     <div data-msie-font-disabled-detector=""></div>
-{%- for m in static_js_files %}
+{%- for m in static_files.js %}
       <script src="{{m}}{{ source_cache_key }}"></script>
 {%- endfor %}
   </body>

@@ -1,0 +1,302 @@
+.srw-toolbar-button {
+    background-color: #fff;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px 3px;
+    margin: 2px;
+}
+
+.srw-toolbar-button.dragging {
+  opacity: 0.8;
+  /* required for chrome and safari to show element on top */
+  position: relative;
+}
+
+.srw-toolbar-button, .srw-beamline-element {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.srw-beamline {
+  border-radius: 6px;
+  padding: 10px;
+  background-color: #eee;
+  min-height: 220px;
+  margin-bottom: 20px;
+}
+
+.srw-beamline-container {
+  padding-top: 25px;
+  overflow: auto;
+  white-space: nowrap;
+}
+
+.srw-beamline-container-png {
+  overflow: visible;
+}
+
+.srw-beamline-container-png .caret {
+  display: none;
+}
+
+.srw-beamline-element {
+  display: inline-block;
+  background-color: #fff;
+  position: relative;
+  padding-bottom: 5px;
+  padding-top: 10px;
+  border: 1px solid #fff;
+  margin-bottom: 5px;
+  vertical-align: top;
+}
+
+.srw-beamline-image {
+  min-width: 80px;
+  cursor: move;
+}
+
+.srw-beamline-element-label {
+  padding-top: 5px;
+  cursor: pointer;
+}
+
+.srw-beamline-badge {
+  position: absolute;
+  top: -24px;
+  left: -5px;
+  right: -5px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.srw-beamline-close-icon {
+  font-size: 20px;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  cursor: default;
+  color: #aaa;
+}
+
+.srw-beamline-close-icon {
+  visibility: hidden;
+}
+
+.srw-hover:hover {
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.srw-beamline-item-active {
+  border-radius: 5px;
+  border: 1px solid #4897da;
+}
+
+.srw-beamline-invalid {
+  border-radius: 5px;
+  border: 1.5px dashed #ff0000;
+  fill: rgba(255, 0, 0, 1.0);
+}
+
+.srw-hover:hover .srw-beamline-close-icon {
+  visibility: visible;
+}
+
+.srw-hover .srw-beamline-close-icon:hover {
+  color: black;
+}
+
+.srw-beamline-disable-icon {
+  font-size: 20px;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  cursor: default;
+  color: #aaa;
+}
+
+.srw-beamline-report-icon {
+  font-size: 18px;
+  position: absolute;
+  top: 1px;
+  left: 32px;
+  cursor: pointer;
+  color: #aaa;
+  visibility: hidden;
+}
+
+.srw-beamline-report-icon-active {
+   color: #4897da;
+   visibility: visible;
+}
+
+.srw-hover:hover .srw-beamline-report-icon {
+  visibility: visible;
+}
+
+.srw-disabled-item {
+  background-color: gray;
+}
+
+.table > tbody > tr.srw-disabled-item {
+  background-color: gray;
+}
+
+.table > tbody > tr.srw-disabled-item input,
+.table > tbody > tr.srw-disabled-item select {
+  background-color: gray;
+  opacity: 0.5;
+}
+
+.srw-disabled-item .srw-beamline-item-icon {
+  opacity: 0.5;
+}
+
+.srw-beamline-disable-icon {
+  visibility: hidden;
+}
+
+.srw-hover:hover .srw-beamline-disable-icon {
+  visibility: visible;
+}
+
+.srw-hover .srw-beamline-disable-icon:hover {
+  color: black;
+}
+
+.srw-drop-between-zone {
+  display: inline-block;
+  width: 20px;
+  height: 107px;
+  margin: 0;
+  background-color: #fff;
+  vertical-align: top;
+  transition: width 0.5s ease 0s;
+}
+
+.srw-drop-between-zone.drag-enter {
+  opacity: 1;
+  background: blue;
+  width: 40px !important;
+  transition: width 0.5s ease 0s;
+}
+
+input.srw-small-float {
+  text-align: right;
+  width: 100%;
+}
+th.srw-tiny-heading {
+  font-size: 12px;
+  font-weight: normal;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+/* toolbar icons */
+rect.srw-obstacle {
+  stroke: #000;
+  fill: #699;
+}
+
+rect.srw-mirror, path.srw-mirror, polygon.srw-mirror, rect.srw-crystal {
+  stroke: #000;
+  fill: #bdd7ee;
+}
+
+path.srw-fiber, ellipse.srw-fiber {
+  stroke: #000;
+  stroke-width: 1;
+  fill: #c4c7ce;
+}
+
+ellipse.srw-fiber-right {
+  stroke: #000;
+  stroke-width: 1;
+  fill: #9498a1;
+}
+
+ellipse.srw-curvature {
+  stroke: blue;
+  stroke-width: 2;
+  stroke-dasharray: 1px, 5px;
+  stroke-linecap: round;
+  fill: none;
+}
+
+path.srw-lens {
+  stroke: #000;
+  fill: #ddee00;
+}
+
+rect.srw-crl {
+  fill: #333;
+}
+
+path.srw-watch {
+  stroke: #000;
+  fill: #fff;
+}
+
+circle.srw-watch {
+  stroke: #a52a2a;
+  fill: #a52a2a;
+}
+
+circle.srw-pupil {
+  stroke: #000;
+  fill: #000;
+}
+
+circle.srw-mask {
+  stroke: #fff;
+  fill: #fff;
+}
+
+circle.srw-sample-white {
+  stroke: #fff;
+  fill: #fff;
+}
+
+circle.srw-sample-black {
+  stroke: #000;
+  fill: #000;
+}
+
+path.srw-no-fill {
+  stroke: #000;
+  fill: none;
+}
+
+path.srw-dash-stroke {
+  stroke: #999;
+  stroke-dasharray: 1,1;
+  fill: none;
+}
+
+svg.srw-beamline-item-icon {
+  width: 50px;
+  height: 60px;
+}
+
+.srw-toolbar-button svg.srw-beamline-item-icon {
+  width: 30px;
+  height: 35px;
+}
+
+.srw-propagation-button {
+  position: absolute;
+  right: 21px;
+}
+
+.srw-wavefront-button {
+  position: absolute;
+  left: 21px;
+}
+
+a:focus, a.srw-tab:focus {
+  outline: none;
+}

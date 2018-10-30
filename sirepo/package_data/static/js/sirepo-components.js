@@ -510,8 +510,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
 
 SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
 
-    var loginNotifyCookie = 'net.sirepo.login_notify_timeout';
-    var loginNotifyTimeout = 1*24*60*60*1000;
     var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
 
     return {
@@ -527,7 +525,7 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
                   '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
                 '</ul>',
               '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(loginNotification.name)}">',
+              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(\'login\')}">',
                 '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
                 '<ul class="dropdown-menu">',
                   '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
@@ -560,17 +558,14 @@ SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
                 notificationService.dismissNotification($scope.loginNotification);
             };
 
+            var n = SIREPO.APP_SCHEMA.notifications.login;
+            n.content = loginNotifyContent;
+            n.active = $scope.notifyActive && $scope.isLoggedOut();
+
             $scope.notificationService = notificationService;
-            $scope.sr_login_notify_cookie = loginNotifyCookie;
-            $scope.loginNotification = {
-                name: loginNotifyCookie,
-                timeout: loginNotifyTimeout,
-                content: loginNotifyContent,
-                active: $scope.notifyActive && $scope.isLoggedOut(),
-                recurs: true,
-                delay: loginNotifyTimeout,
-            };
-            notificationService.addNotification($scope.loginNotification);
+            $scope.sr_login_notify_cookie = n.name;
+            $scope.loginNotification = n;
+            notificationService.addNotification(n);
         },
     };
 });
@@ -2317,19 +2312,35 @@ SIREPO.app.service('plotToPNG', function($http) {
     }
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
-        // embed sirepo.css style within SVG for first download, css file is cached by browser
-        $http.get('/static/css/sirepo.css' + SIREPO.SOURCE_CACHE_KEY)
-            .then(function(response) {
-                if (svg.firstChild.nodeName != 'STYLE') {
-                    var css = document.createElement('style');
-                    css.type = 'text/css';
-                    // work-around bug fix #857, canvg.js doesn't handle non-standard css
-                    response.data = response.data.replace('input::-ms-clear', 'ms-clear');
-                    css.appendChild(document.createTextNode(response.data));
-                    svg.insertBefore(css, svg.firstChild);
-                }
-                downloadPlot(svg, height, plot3dCanvas, fileName);
-            });
+        // embed all css styles into SVG node before rendering
+        if (svg.firstChild.nodeName == 'STYLE') {
+            downloadPlot(svg, height, plot3dCanvas, fileName);
+            return;
+        }
+        var promises = [];
+        ['sirepo.css'].concat(SIREPO.APP_SCHEMA.dynamicFiles.sirepoLibs.css || []).forEach(function(cssFile) {
+            promises.push($http.get('/static/css/' + cssFile + SIREPO.SOURCE_CACHE_KEY));
+        });
+        var cssText = '';
+        function cssResponse(response) {
+            promises.shift();
+            //console.log('resp:', response.data);
+            cssText += response.data;
+            if (promises.length) {
+                promises[0].then(cssResponse);
+                return;
+            }
+            if (svg.firstChild.nodeName != 'STYLE') {
+                var css = document.createElement('style');
+                css.type = 'text/css';
+                // work-around bug fix #857, canvg.js doesn't handle non-standard css
+                cssText = cssText.replace('input::-ms-clear', 'ms-clear');
+                css.appendChild(document.createTextNode(cssText));
+                svg.insertBefore(css, svg.firstChild);
+            }
+            downloadPlot(svg, height, plot3dCanvas, fileName);
+        }
+        promises[0].then(cssResponse);
     };
 });
 

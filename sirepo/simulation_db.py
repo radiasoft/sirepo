@@ -40,8 +40,11 @@ SCHEMA_COMMON = None
 #: Simulation file name is globally unique to avoid collisions with simulation output
 SIMULATION_DATA_FILE = 'sirepo-data' + JSON_SUFFIX
 
+#: The root of the pkresource tree (package_data)
+RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
+
 #: Where server files and static files are found
-STATIC_FOLDER = py.path.local(pkresource.filename('static'))
+STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
 #: Verify ID
 _IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
@@ -63,9 +66,6 @@ _ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
-
-#: Properties of files loaded by html or javascript (see _init)
-LOADED_FILE_PROPS = []
 
 #: lib relative to sim_dir
 _REL_LIB_DIR = '../' + _LIB_DIR
@@ -114,7 +114,7 @@ def app_version():
         str: chronological version
     """
     if pkconfig.channel_in('dev'):
-        return datetime.datetime.utcnow().strftime('%Y%m%d.%H%M%S')
+        return _timestamp()
     return SCHEMA_COMMON.version
 
 
@@ -246,11 +246,11 @@ def get_schema(sim_type):
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
-    schema.dynamicModules = _file_list_in_schema(schema.dynamicFiles, 'js')
+    schema.dynamicModules = _files_in_schema(schema.dynamicFiles)
 
-    if 'appModes' not in schema:
-        schema.appModes = pkcollections.Dict()
-    for item in ['localRoutes', 'appModes', 'model', 'enum', 'view']:
+    for item in ['appModes', 'constants', 'cookies', 'enum', 'notifications', 'localRoutes', 'model', 'view']:
+        if item not in schema:
+            schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
     _validate_schema(schema)
     return schema
@@ -785,12 +785,8 @@ def simulation_run_dir(data, remove_dir=False):
     return d
 
 
-def static_css():
-    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'css')
-
-
-def static_modules():
-    return _file_list_in_schema(SCHEMA_COMMON.common.staticFiles, 'js')
+def static_libs():
+    return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 
 
 def static_file_path(file_dir, file_name):
@@ -953,24 +949,25 @@ def _create_example_and_lib_files(simulation_type):
             f.copy(d)
 
 
-def _file_list_in_schema(schema, file_type):
+def _files_in_schema(schema):
     """Relative paths of local and external files of the given load and file type listed in the schema
     The order matters for javascript files
 
     Args:
         schema (pkcollections.Dict): schema (or portion thereof) to inspect
-        type (str): type of the file (css, js, etc.)
 
     Returns:
-        str: combined list of local and external file paths
+        str: combined list of local and external file paths, mapped by type
     """
-    paths = []
-    for lf_prop in LOADED_FILE_PROPS:
-        paths.extend(
-            map(lambda file_name:
-                _pkg_relative_path_static(file_type + '/' + lf_prop.dir, file_name),
-                schema[lf_prop.source][file_type])
-        )
+    paths = pkcollections.Dict()
+    for source, path in (('externalLibs', 'ext'), ('sirepoLibs', '')):
+        for file_type in schema[source]:
+            if file_type not in paths:
+                paths[file_type] = []
+            paths[file_type].extend(map(lambda file_name:
+                    _pkg_relative_path_static(file_type + '/' + path, file_name),
+                    schema[source][file_type]))
+
     return paths
 
 
@@ -985,20 +982,15 @@ def _find_user_simulation_copy(simulation_type, sid):
 
 def _init():
     global SCHEMA_COMMON, cfg
-    with open(str(STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX)))) as f:
+    fn = STATIC_FOLDER.join('json/schema-common{}'.format(JSON_SUFFIX))
+    with open(str(fn)) as f:
         SCHEMA_COMMON = json_load(f)
+    # In development, you can touch schema-common to get a new version
+    SCHEMA_COMMON.version = _timestamp(fn.mtime()) if pkconfig.channel_in('dev') else sirepo.__version__
     cfg = pkconfig.init(
         nfs_tries=(10, int, 'How many times to poll in hack_nfs_write_status'),
         nfs_sleep=(0.5, float, 'Seconds sleep per hack_nfs_write_status poll'),
     )
-    props = pkcollections.Dict()
-    props.source = 'externalLibs'
-    props.dir = 'ext'
-    LOADED_FILE_PROPS.append(props)
-    props = pkcollections.Dict()
-    props.source = 'sirepoLibs'
-    props.dir = ''
-    LOADED_FILE_PROPS.append(props)
 
 
 def _merge_dicts(base, derived, depth=-1):
@@ -1040,8 +1032,7 @@ def _pkg_relative_path_static(file_dir, file_name):
     Returns:
         str: full relative path of the file
     """
-    root = str(pkresource.filename(''))
-    return str(static_file_path(file_dir, file_name))[len(root):]
+    return '/' + RESOURCE_FOLDER.bestrelpath(static_file_path(file_dir, file_name))
 
 
 def _random_id(parent_dir, simulation_type=None):
@@ -1129,6 +1120,14 @@ def _sid_from_path(path):
     return sid
 
 
+def _timestamp(time=None):
+    if not time:
+        time = datetime.datetime.utcnow()
+    elif not isinstance(time, datetime.datetime):
+        time = datetime.datetime.fromtimestamp(time)
+    return time.strftime('%Y%m%d.%H%M%S')
+
+
 def _user_dir():
     """User for the session
 
@@ -1178,25 +1177,29 @@ def _validate_enum(val, sch_field_info, sch_enums):
 def _is_enum(sch_field_info, sch_enums):
     return
 
-def _validate_name(data):
-    """Validate and if necessary uniquify name
+
+def _validate_cookie_def(c_def):
+    """Validate the cookie definitions in the schema
+
+    Validations performed:
+        cannot contain delimiters we use on the client side
+        values must match the valType if provided
+        timeout must be numeric if provided
 
     Args:
-        data (dict): what to validate
+        data (pkcollections.Dict): cookie definition object from the schema
     """
-    starts_with = pkcollections.Dict()
-    s = data.models.simulation
-    n = s.name
-    for d in iterate_simulation_datafiles(
-        data.simulationType,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': s.folder},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
-            starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with:
-        _validate_name_uniquify(data, starts_with)
+    c_delims = '|:;='
+    c_delim_re = re.compile('[{}]'.format(c_delims))
+    if c_delim_re.search(str(c_def.name) + str(c_def.value)):
+        raise AssertionError(util.err(c_def, 'cookie name/value cannot include delimiters {}', c_delims))
+    if 'valType' in c_def:
+        if c_def.valType == 'b':
+            pkconfig.parse_bool(c_def.value)
+        if c_def.valType == 'n':
+            float(c_def.value)
+    if 'timeout' in c_def:
+        float(c_def.timeout)
 
 
 def _validate_fields(data):
@@ -1205,6 +1208,8 @@ def _validate_fields(data):
     Validations performed:
         enums (see _validate_enum)
         numeric values (see _validate_number)
+        notifications
+        cookie definitions (see _validate_cookie_def)
 
     Args:
         data (pkcollections.Dict): model data
@@ -1226,6 +1231,27 @@ def _validate_fields(data):
             sch_field_info = sch_model[field_name]
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
+
+def _validate_name(data):
+    """Validate and if necessary uniquify name
+
+    Args:
+        data (dict): what to validate
+    """
+    starts_with = pkcollections.Dict()
+    s = data.models.simulation
+    n = s.name
+    for d in iterate_simulation_datafiles(
+        data.simulationType,
+        lambda res, _, d: res.append(d),
+        {'simulation.folder': s.folder},
+    ):
+        n2 = d.models.simulation.name
+        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
+            starts_with[n2] = d.models.simulation.simulationId
+    if n in starts_with:
+        _validate_name_uniquify(data, starts_with)
+
 
 
 def _validate_name_uniquify(data, starts_with):
@@ -1279,6 +1305,8 @@ def _validate_schema(schema):
     """
     sch_models = schema.model
     sch_enums = schema.enum
+    sch_ntfy = schema.notifications
+    sch_cookies = schema.cookies
     for name in sch_enums:
         for values in sch_enums[name]:
             if not isinstance(values[0], pkconfig.STRING_TYPES):
@@ -1294,8 +1322,14 @@ def _validate_schema(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
-    for src in schema.dynamicModules:
-        pkresource.filename(src)
+    for n in sch_ntfy:
+        if 'cookie' not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
+            raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
+    for sc in sch_cookies:
+        _validate_cookie_def(sch_cookies[sc])
+    for type in schema.dynamicModules:
+        for src in schema.dynamicModules[type]:
+            pkresource.filename(src[1:])
 
 
 _init()

@@ -80,7 +80,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # pixels3d.dat, rs4pi-roi-data.json, dicom/*.json
-    for filename in (_PIXEL_FILE, _ROI_FILE_NAME, _DOSE_FILE):
+    for filename in (_PIXEL_FILE, _ROI_FILE_NAME, _DOSE_FILE, RTDOSE_EXPORT_FILENAME):
         f = py.path.local(source_path).join(filename)
         if f.exists():
             f.copy(py.path.local(target_path).join(filename))

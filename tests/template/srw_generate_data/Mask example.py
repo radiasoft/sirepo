@@ -11,39 +11,97 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # VFM: ellipsoidMirror 50.0m
-    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.4, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.0, _nvy=0.999995500003, _nvz=-0.0029999955, _tvx=0.0, _tvy=-0.0029999955, _x=0.0, _y=0.0))
-
-    el.append(srwlib.SRWLOptD(0.2))
-    # HFM: ellipsoidMirror 50.2m
-    el.append(srwlib.SRWLOptMirEl(_p=50.0, _q=0.2, _ang_graz=0.003, _size_tang=0.2, _size_sag=0.01, _nvx=0.999995500003, _nvy=0.0, _nvz=-0.0029999955, _tvx=-0.0029999955, _tvy=0.0, _x=0.0, _y=0.0))
-
-    el.append(srwlib.SRWLOptD(0.2))
-    # Watchpoint: watch 50.4m
-
-    el.append(srwlib.SRWLOptD(0.2))
-    # Mask: mask 50.6m
-    el.append(srwlib.srwl_opt_setup_mask(_delta=1.0, _atten_len=1.0, _thick=1.0, _grid_sh=0, _grid_dx=5e-06, _grid_dy=5e-06, _pitch_x=2e-05, _pitch_y=2e-05, _grid_nx=21, _grid_ny=21, _mask_Nx=1024, _mask_Ny=1024, _grid_angle=0.436332312999, _hx=7.32e-07, _hy=7.32e-07, _mask_x0=0.0, _mask_y0=0.0))
-    # Watchpoint: watch 50.6m
-
     pp = []
-    # VFM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # HFM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Mask
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['VFM', 'VFM_HFM', 'HFM', 'HFM_Watchpoint', 'Watchpoint', 'Watchpoint_Mask', 'Mask', 'Watchpoint2']
+    for el_name in names:
+        if el_name == 'VFM':
+            # VFM: ellipsoidMirror 50.0m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_VFM_p,
+                _q=v.op_VFM_q,
+                _ang_graz=v.op_VFM_ang,
+                _size_tang=v.op_VFM_size_tang,
+                _size_sag=v.op_VFM_size_sag,
+                _nvx=v.op_VFM_nvx,
+                _nvy=v.op_VFM_nvy,
+                _nvz=v.op_VFM_nvz,
+                _tvx=v.op_VFM_tvx,
+                _tvy=v.op_VFM_tvy,
+                _x=v.op_VFM_x,
+                _y=v.op_VFM_y,
+            ))
+            pp.append(v.op_VFM_pp)
+            
+        elif el_name == 'VFM_HFM':
+            # VFM_HFM: drift 50.0m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_VFM_HFM_L,
+            ))
+            pp.append(v.op_VFM_HFM_pp)
+        elif el_name == 'HFM':
+            # HFM: ellipsoidMirror 50.2m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_HFM_p,
+                _q=v.op_HFM_q,
+                _ang_graz=v.op_HFM_ang,
+                _size_tang=v.op_HFM_size_tang,
+                _size_sag=v.op_HFM_size_sag,
+                _nvx=v.op_HFM_nvx,
+                _nvy=v.op_HFM_nvy,
+                _nvz=v.op_HFM_nvz,
+                _tvx=v.op_HFM_tvx,
+                _tvy=v.op_HFM_tvy,
+                _x=v.op_HFM_x,
+                _y=v.op_HFM_y,
+            ))
+            pp.append(v.op_HFM_pp)
+            
+        elif el_name == 'HFM_Watchpoint':
+            # HFM_Watchpoint: drift 50.2m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_HFM_Watchpoint_L,
+            ))
+            pp.append(v.op_HFM_Watchpoint_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 50.4m
+            pass
+        elif el_name == 'Watchpoint_Mask':
+            # Watchpoint_Mask: drift 50.4m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Watchpoint_Mask_L,
+            ))
+            pp.append(v.op_Watchpoint_Mask_pp)
+        elif el_name == 'Mask':
+            # Mask: mask 50.6m
+            el.append(srwlib.srwl_opt_setup_mask(
+                _delta=v.op_Mask_delta,
+                _atten_len=v.op_Mask_atten_len,
+                _thick=v.op_Mask_thick,
+                _grid_sh=v.op_Mask_grid_sh,
+                _grid_dx=v.op_Mask_grid_dx,
+                _grid_dy=v.op_Mask_grid_dy,
+                _pitch_x=v.op_Mask_pitch_x,
+                _pitch_y=v.op_Mask_pitch_y,
+                _grid_nx=v.op_Mask_grid_nx,
+                _grid_ny=v.op_Mask_grid_ny,
+                _mask_Nx=v.op_Mask_mask_Nx,
+                _mask_Ny=v.op_Mask_mask_Ny,
+                _grid_angle=v.op_Mask_gridTiltAngle,
+                _hx=v.op_Mask_hx,
+                _hy=v.op_Mask_hy,
+                _mask_x0=v.op_Mask_mask_x0,
+                _mask_y0=v.op_Mask_mask_y0,
+            ))
+            pp.append(v.op_Mask_pp)
+        elif el_name == 'Watchpoint2':
+            # Watchpoint2: watch 50.6m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -181,12 +239,101 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 'g', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # VFM: ellipsoidMirror
+    ['op_VFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_VFM_dim', 's', 'x', 'orientation'],
+    ['op_VFM_p', 'f', 50.0, 'firstFocusLength'],
+    ['op_VFM_q', 'f', 0.4, 'focalLength'],
+    ['op_VFM_ang', 'f', 0.003, 'grazingAngle'],
+    ['op_VFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_VFM_size_tang', 'f', 0.2, 'tangentialSize'],
+    ['op_VFM_size_sag', 'f', 0.01, 'sagittalSize'],
+    ['op_VFM_nvx', 'f', 0.0, 'normalVectorX'],
+    ['op_VFM_nvy', 'f', 0.999995500003, 'normalVectorY'],
+    ['op_VFM_nvz', 'f', -0.0029999955, 'normalVectorZ'],
+    ['op_VFM_tvx', 'f', 0.0, 'tangentialVectorX'],
+    ['op_VFM_tvy', 'f', -0.0029999955, 'tangentialVectorY'],
+    ['op_VFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_VFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # VFM_HFM: drift
+    ['op_VFM_HFM_L', 'f', 0.2, 'length'],
+
+    # HFM: ellipsoidMirror
+    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_dim', 's', 'x', 'orientation'],
+    ['op_HFM_p', 'f', 50.0, 'firstFocusLength'],
+    ['op_HFM_q', 'f', 0.2, 'focalLength'],
+    ['op_HFM_ang', 'f', 0.003, 'grazingAngle'],
+    ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_HFM_size_tang', 'f', 0.2, 'tangentialSize'],
+    ['op_HFM_size_sag', 'f', 0.01, 'sagittalSize'],
+    ['op_HFM_nvx', 'f', 0.999995500003, 'normalVectorX'],
+    ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_HFM_nvz', 'f', -0.0029999955, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', -0.0029999955, 'tangentialVectorX'],
+    ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # HFM_Watchpoint: drift
+    ['op_HFM_Watchpoint_L', 'f', 0.2, 'length'],
+
+    # Watchpoint_Mask: drift
+    ['op_Watchpoint_Mask_L', 'f', 0.2, 'length'],
+
+    # Mask: mask
+    ['op_Mask_delta', 'f', 1.0, 'refractiveIndex'],
+    ['op_Mask_atten_len', 'f', 1.0, 'attenuationLength'],
+    ['op_Mask_thick', 'f', 1.0, 'maskThickness'],
+    ['op_Mask_grid_sh', 'f', 0, 'gridShape'],
+    ['op_Mask_grid_dx', 'f', 5e-06, 'horizontalGridDimension'],
+    ['op_Mask_grid_dy', 'f', 5e-06, 'verticalGridDimension'],
+    ['op_Mask_pitch_x', 'f', 2e-05, 'horizontalGridPitch'],
+    ['op_Mask_pitch_y', 'f', 2e-05, 'verticalGridPitch'],
+    ['op_Mask_gridTiltAngle', 'f', 0.436332312999, 'gridTiltAngle'],
+    ['op_Mask_hx', 'f', 7.32e-07, 'horizontalSamplingInterval'],
+    ['op_Mask_hy', 'f', 7.32e-07, 'verticalSamplingInterval'],
+    ['op_Mask_mask_x0', 'f', 0.0, 'horizontalMaskCoordinate'],
+    ['op_Mask_mask_y0', 'f', 0.0, 'verticalMaskCoordinate'],
+    ['op_Mask_mask_Nx', 'i', 1024, 'horizontalPixelsNumber'],
+    ['op_Mask_mask_Ny', 'i', 1024, 'verticalPixelsNumber'],
+    ['op_Mask_grid_nx', 'i', 21, 'horizontalGridsNumber'],
+    ['op_Mask_grid_ny', 'i', 21, 'verticalGridsNumber'],
+
+#---Propagation parameters
+    ['op_VFM_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM'],
+    ['op_VFM_HFM_pp', 'f',         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'VFM_HFM'],
+    ['op_HFM_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM'],
+    ['op_HFM_Watchpoint_pp', 'f',  [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM_Watchpoint'],
+    ['op_Watchpoint_Mask_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Watchpoint_Mask'],
+    ['op_Mask_pp', 'f',            [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Mask'],
+    ['op_fin_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 

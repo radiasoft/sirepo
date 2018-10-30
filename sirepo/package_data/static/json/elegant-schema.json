@@ -9,8 +9,12 @@
             "js": [
                 "elegant.js",
                 "sirepo-lattice.js"
+            ],
+             "css": [
+                 "elegant.css",
+                 "lattice.css"
             ]
-        }
+       }
     },
     "localRoutes": {
         "source": {

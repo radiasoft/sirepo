@@ -11,31 +11,63 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # CRL: crl 36.0m
-    el.append(srwlib.srwl_opt_setup_CRL(2, 4.716943e-06, 0.006257, 1, 0.001, 0.001, 0.0005, 3, 8e-05, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(34.1915))
-    # Watchpoint: watch 70.1915m
-
-    # Fiber: fiber 70.1915m
-    el.append(srwlib.srwl_opt_setup_cyl_fiber(_foc_plane=2, _delta_ext=6.228746e-06, _delta_core=4.129923e-05, _atten_len_ext=0.002412, _atten_len_core=3.63751e-06, _diam_ext=0.0001, _diam_core=1e-05, _xc=0.0, _yc=0.0))
-    el.append(srwlib.SRWLOptD(0.6585))
-    # Watchpoint: watch 70.85m
-
     pp = []
-    # CRL
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # Fiber
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 0, 0.7, 2.0, 0.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['CRL', 'CRL_Watchpoint', 'Watchpoint', 'Fiber', 'Fiber_Watchpoint2', 'Watchpoint2']
+    for el_name in names:
+        if el_name == 'CRL':
+            # CRL: crl 36.0m
+            el.append(srwlib.srwl_opt_setup_CRL(
+                _foc_plane=v.op_CRL_foc_plane,
+                _delta=v.op_CRL_delta,
+                _atten_len=v.op_CRL_atten_len,
+                _shape=v.op_CRL_shape,
+                _apert_h=v.op_CRL_apert_h,
+                _apert_v=v.op_CRL_apert_v,
+                _r_min=v.op_CRL_r_min,
+                _n=v.op_CRL_n,
+                _wall_thick=v.op_CRL_wall_thick,
+                _xc=v.op_CRL_x,
+                _yc=v.op_CRL_y,
+            ))
+            pp.append(v.op_CRL_pp)
+        elif el_name == 'CRL_Watchpoint':
+            # CRL_Watchpoint: drift 36.0m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_CRL_Watchpoint_L,
+            ))
+            pp.append(v.op_CRL_Watchpoint_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 70.1915m
+            pass
+        elif el_name == 'Fiber':
+            # Fiber: fiber 70.1915m
+            el.append(srwlib.srwl_opt_setup_cyl_fiber(
+                _foc_plane=v.op_Fiber_foc_plane,
+                _delta_ext=v.op_Fiber_delta_ext,
+                _delta_core=v.op_Fiber_delta_core,
+                _atten_len_ext=v.op_Fiber_atten_len_ext,
+                _atten_len_core=v.op_Fiber_atten_len_core,
+                _diam_ext=v.op_Fiber_externalDiameter,
+                _diam_core=v.op_Fiber_diam_core,
+                _xc=v.op_Fiber_xc,
+                _yc=v.op_Fiber_yc,
+            ))
+            pp.append(v.op_Fiber_pp)
+        elif el_name == 'Fiber_Watchpoint2':
+            # Fiber_Watchpoint2: drift 70.1915m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Fiber_Watchpoint2_L,
+            ))
+            pp.append(v.op_Fiber_Watchpoint2_pp)
+        elif el_name == 'Watchpoint2':
+            # Watchpoint2: watch 70.85m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -206,12 +238,67 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # CRL: crl
+    ['op_CRL_foc_plane', 'f', 2, 'focalPlane'],
+    ['op_CRL_delta', 'f', 4.716943e-06, 'refractiveIndex'],
+    ['op_CRL_atten_len', 'f', 0.006257, 'attenuationLength'],
+    ['op_CRL_shape', 'f', 1, 'shape'],
+    ['op_CRL_apert_h', 'f', 0.001, 'horizontalApertureSize'],
+    ['op_CRL_apert_v', 'f', 0.001, 'verticalApertureSize'],
+    ['op_CRL_r_min', 'f', 0.0005, 'tipRadius'],
+    ['op_CRL_wall_thick', 'f', 8e-05, 'tipWallThickness'],
+    ['op_CRL_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_CRL_y', 'f', 0.0, 'verticalOffset'],
+    ['op_CRL_n', 'i', 3, 'numberOfLenses'],
+
+    # CRL_Watchpoint: drift
+    ['op_CRL_Watchpoint_L', 'f', 34.1915, 'length'],
+
+    # Fiber: fiber
+    ['op_Fiber_foc_plane', 'f', 2, 'focalPlane'],
+    ['op_Fiber_delta_ext', 'f', 6.228746e-06, 'externalRefractiveIndex'],
+    ['op_Fiber_delta_core', 'f', 4.129923e-05, 'coreRefractiveIndex'],
+    ['op_Fiber_atten_len_ext', 'f', 0.002412, 'externalAttenuationLength'],
+    ['op_Fiber_atten_len_core', 'f', 3.63751e-06, 'coreAttenuationLength'],
+    ['op_Fiber_externalDiameter', 'f', 0.0001, 'externalDiameter'],
+    ['op_Fiber_diam_core', 'f', 1e-05, 'coreDiameter'],
+    ['op_Fiber_xc', 'f', 0.0, 'horizontalCenterPosition'],
+    ['op_Fiber_yc', 'f', 0.0, 'verticalCenterPosition'],
+
+    # Fiber_Watchpoint2: drift
+    ['op_Fiber_Watchpoint2_L', 'f', 0.6585, 'length'],
+
+#---Propagation parameters
+    ['op_CRL_pp', 'f',               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
+    ['op_CRL_Watchpoint_pp', 'f',    [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_Watchpoint'],
+    ['op_Fiber_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber'],
+    ['op_Fiber_Watchpoint2_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber_Watchpoint2'],
+    ['op_fin_pp', 'f',               [0, 0, 1.0, 0, 0, 0.7, 2.0, 0.2, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 

@@ -1,0 +1,270 @@
+{%- macro field(item, name) %}
+v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
+{%- endmacro %}
+{%- macro height_profile(item) -%}
+{%- if item.heightProfileDimension -%}
+            mirror_file = {{ field(item, 'heightProfileFile') }}
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by {{ item.name }} beamline element'.format(mirror_file)
+{% if item.heightProfileDimension == 1 %}
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+{% else %}
+            el.append(srwlib.srwl_opt_setup_surf_height_2d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
+{% endif %}
+                _dim={{ field(item, 'orientation') }},
+                _ang={{ field(item, 'grazingAngle') }},
+                _amp_coef={{ field(item, 'heightAmplification') }},
+{% if 'horizontalTransverseSize' in item %}
+                _size_x={{ field(item, 'horizontalTransverseSize') }},
+                _size_y={{ field(item, 'verticalTransverseSize') }},
+{% endif %}
+            ))
+{%- if item.type != 'mirror' %}
+
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+    el = []
+    pp = []
+    names = {{ names }}
+    for el_name in names:
+{% for item in items %}
+{% if loop.index == 1 %}
+        if el_name == '{{ item.name }}':
+{% else %}
+        elif el_name == '{{ item.name }}':
+{% endif %}
+            # {{ item.name }}: {{ item.type }} {{ item.position }}m
+{% if item.type == 'aperture' %}
+            el.append(srwlib.SRWLOptA(
+                _shape={{ field(item, 'shape') }},
+                _ap_or_ob='a',
+                _Dx={{ field(item, 'horizontalSize') }},
+                _Dy={{ field(item, 'verticalSize') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'crl' %}
+            el.append(srwlib.srwl_opt_setup_CRL(
+                _foc_plane={{ field(item, 'focalPlane') }},
+                _delta={{ field(item, 'refractiveIndex') }},
+                _atten_len={{ field(item, 'attenuationLength') }},
+                _shape={{ field(item, 'shape') }},
+                _apert_h={{ field(item, 'horizontalApertureSize') }},
+                _apert_v={{ field(item, 'verticalApertureSize') }},
+                _r_min={{ field(item, 'tipRadius') }},
+                _n={{ field(item, 'numberOfLenses') }},
+                _wall_thick={{ field(item, 'tipWallThickness') }},
+                _xc={{ field(item, 'horizontalOffset') }},
+                _yc={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'crystal' %}
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp={{ field(item, 'dSpacing') }},
+                _psi0r={{ field(item, 'psi0r') }},
+                _psi0i={{ field(item, 'psi0i') }},
+                _psi_hr={{ field(item, 'psiHr') }},
+                _psi_hi={{ field(item, 'psiHi') }},
+                _psi_hbr={{ field(item, 'psiHBr') }},
+                _psi_hbi={{ field(item, 'psiHBi') }},
+                _tc={{ field(item, 'crystalThickness') }},
+                _ang_as={{ field(item, 'asymmetryAngle') }},
+            )
+            crystal.set_orient(
+                _nvx={{ field(item, 'nvx') }},
+                _nvy={{ field(item, 'nvy') }},
+                _nvz={{ field(item, 'nvz') }},
+                _tvx={{ field(item, 'tvx') }},
+                _tvy={{ field(item, 'tvy') }},
+            )
+            el.append(crystal)
+            pp.append(v.op_{{ item.name }}_pp)
+            {{ height_profile(item) }}
+{% elif item.type == 'drift' %}
+            el.append(srwlib.SRWLOptD(
+                _L={{ field(item, 'length') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'ellipsoidMirror' %}
+            el.append(srwlib.SRWLOptMirEl(
+                _p={{ field(item, 'firstFocusLength') }},
+                _q={{ field(item, 'focalLength') }},
+                _ang_graz={{ field(item, 'grazingAngle') }},
+                _size_tang={{ field(item, 'tangentialSize') }},
+                _size_sag={{ field(item, 'sagittalSize') }},
+                _nvx={{ field(item, 'normalVectorX') }},
+                _nvy={{ field(item, 'normalVectorY') }},
+                _nvz={{ field(item, 'normalVectorZ') }},
+                _tvx={{ field(item, 'tangentialVectorX') }},
+                _tvy={{ field(item, 'tangentialVectorY') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+            {{ height_profile(item) }}
+{% elif item.type == 'fiber' %}
+            el.append(srwlib.srwl_opt_setup_cyl_fiber(
+                _foc_plane={{ field(item, 'focalPlane') }},
+                _delta_ext={{ field(item, 'externalRefractiveIndex') }},
+                _delta_core={{ field(item, 'coreRefractiveIndex') }},
+                _atten_len_ext={{ field(item, 'externalAttenuationLength') }},
+                _atten_len_core={{ field(item, 'coreAttenuationLength') }},
+                _diam_ext={{ field(item, 'externalDiameter') }},
+                _diam_core={{ field(item, 'coreDiameter') }},
+                _xc={{ field(item, 'horizontalCenterPosition') }},
+                _yc={{ field(item, 'verticalCenterPosition') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'grating' %}
+            mirror = srwlib.SRWLOptMirPl(
+                _size_tang={{ field(item, 'tangentialSize') }},
+                _size_sag={{ field(item, 'sagittalSize') }},
+                _nvx={{ field(item, 'normalVectorX') }},
+                _nvy={{ field(item, 'normalVectorY') }},
+                _nvz={{ field(item, 'normalVectorZ') }},
+                _tvx={{ field(item, 'tangentialVectorX') }},
+                _tvy={{ field(item, 'tangentialVectorY') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            )
+            el.append(srwlib.SRWLOptG(
+                _mirSub=mirror,
+                _m={{ field(item, 'diffractionOrder') }},
+                _grDen={{ field(item, 'grooveDensity0') }},
+                _grDen1={{ field(item, 'grooveDensity1') }},
+                _grDen2={{ field(item, 'grooveDensity2') }},
+                _grDen3={{ field(item, 'grooveDensity3') }},
+                _grDen4={{ field(item, 'grooveDensity4') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'lens' %}
+            el.append(srwlib.SRWLOptL(
+                _Fx={{ field(item, 'horizontalFocalLength') }},
+                _Fy={{ field(item, 'verticalFocalLength') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'mask' %}
+            el.append(srwlib.srwl_opt_setup_mask(
+                _delta={{ field(item, 'refractiveIndex') }},
+                _atten_len={{ field(item, 'attenuationLength') }},
+                _thick={{ field(item, 'maskThickness') }},
+                _grid_sh={{ field(item, 'gridShape') }},
+                _grid_dx={{ field(item, 'horizontalGridDimension') }},
+                _grid_dy={{ field(item, 'verticalGridDimension') }},
+                _pitch_x={{ field(item, 'horizontalGridPitch') }},
+                _pitch_y={{ field(item, 'verticalGridPitch') }},
+                _grid_nx={{ field(item, 'horizontalGridsNumber') }},
+                _grid_ny={{ field(item, 'verticalGridsNumber') }},
+                _mask_Nx={{ field(item, 'horizontalPixelsNumber') }},
+                _mask_Ny={{ field(item, 'verticalPixelsNumber') }},
+                _grid_angle={{ field(item, 'gridTiltAngle') }},
+                _hx={{ field(item, 'horizontalSamplingInterval') }},
+                _hy={{ field(item, 'verticalSamplingInterval') }},
+                _mask_x0={{ field(item, 'horizontalMaskCoordinate') }},
+                _mask_y0={{ field(item, 'verticalMaskCoordinate') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'mirror' %}
+            {{ height_profile(item) }}
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'obstacle' %}
+            el.append(srwlib.SRWLOptA(
+                _shape={{ field(item, 'shape') }},
+                _ap_or_ob='o',
+                _Dx={{ field(item, 'horizontalSize') }},
+                _Dy={{ field(item, 'verticalSize') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'sample' %}
+            el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+                file_path={{ field(item, 'imageFile') }},
+                resolution={{ field(item, 'resolution') }},
+                thickness={{ field(item, 'thickness') }},
+                delta={{ field(item, 'refractiveIndex') }},
+                atten_len={{ field(item, 'attenuationLength') }},
+                xc={{ field(item, 'horizontalCenterCoordinate') }},
+                yc={{ field(item, 'verticalCenterCoordinate') }},
+                area=None if not {{ field(item, 'cropArea') }} else (
+                    {{ field(item, 'areaXStart') }},
+                    {{ field(item, 'areaXEnd') }},
+                    {{ field(item, 'areaYStart') }},
+                    {{ field(item, 'areaYEnd') }},
+                ),
+                rotate_angle={{ field(item, 'rotateAngle') }},
+                rotate_reshape=bool(int({{ field(item, 'rotateReshape') }})),
+                cutoff_background_noise={{ field(item, 'cutoffBackgroundNoise') }},
+                background_color={{ field(item, 'backgroundColor') }},
+                tile=None if not {{ field(item, 'tileImage') }} else (
+                    {{ field(item, 'tileRows') }},
+                    {{ field(item, 'tileColumns') }},
+                ),
+                shift_x={{ field(item, 'shiftX') }},
+                shift_y={{ field(item, 'shiftY') }},
+                invert=bool(int({{ field(item, 'invert') }})),
+                is_save_images=True,
+                prefix='{{ item.name }}_sample',
+                output_image_format={{ field(item, 'outputImageFormat') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% elif item.type == 'sphericalMirror' %}
+            el.append(srwlib.SRWLOptMirSph(
+                _r={{ field(item, 'radius') }},
+                _size_tang={{ field(item, 'tangentialSize') }},
+                _size_sag={{ field(item, 'sagittalSize') }},
+                _nvx={{ field(item, 'normalVectorX') }},
+                _nvy={{ field(item, 'normalVectorY') }},
+                _nvz={{ field(item, 'normalVectorZ') }},
+                _tvx={{ field(item, 'tangentialVectorX') }},
+                _tvy={{ field(item, 'tangentialVectorY') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+            {{ height_profile(item) }}
+{% elif item.type == 'toroidalMirror' %}
+            el.append(srwlib.SRWLOptMirTor(
+                _rt={{ field(item, 'tangentialRadius') }},
+                _rs={{ field(item, 'sagittalRadius') }},
+                _size_tang={{ field(item, 'tangentialSize') }},
+                _size_sag={{ field(item, 'sagittalSize') }},
+                _x={{ field(item, 'horizontalPosition') }},
+                _y={{ field(item, 'verticalPosition') }},
+                _ap_shape='{{ field(item, 'apertureShape') }}',
+                _nvx={{ field(item, 'normalVectorX') }},
+                _nvy={{ field(item, 'normalVectorY') }},
+                _nvz={{ field(item, 'normalVectorZ') }},
+                _tvx={{ field(item, 'tangentialVectorX') }},
+                _tvy={{ field(item, 'tangentialVectorY') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+            {{ height_profile(item) }}
+{% elif item.type == 'watch' %}
+            pass
+{% elif item.type == 'zonePlate' %}
+            el.append(srwlib.SRWLOptZP(
+                _nZones={{ field(item, 'numberOfZones') }},
+                _rn={{ field(item, 'outerRadius') }},
+                _thick={{ field(item, 'thickness') }},
+                _delta1={{ field(item, 'mainRefractiveIndex') }},
+                _atLen1={{ field(item, 'mainAttenuationLength') }},
+                _delta2={{ field(item, 'complementaryRefractiveIndex') }},
+                _atLen2={{ field(item, 'complementaryAttenuationLength') }},
+                _x={{ field(item, 'horizontalOffset') }},
+                _y={{ field(item, 'verticalOffset') }},
+            ))
+            pp.append(v.op_{{ item.name }}_pp)
+{% endif %}
+{% endfor %}
+{% if wantPostPropagation %}
+    pp.append(v.op_fin_pp)
+{% endif %}
+    return srwlib.SRWLOptC(el, pp)

@@ -19,7 +19,6 @@ import srwl_uti_smp
 def set_optics(v=None):
 {{beamlineOptics}}
 
-
 varParam = srwl_bl.srwl_uti_ext_options([
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
@@ -209,10 +208,6 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', {{multiElectronAnimation_integrationMethod}}, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', '{{multiElectronAnimationFilename}}', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-    {% if beamlineOpticsParameters %}
-    # Beamline optics:{{beamlineOpticsParameters}}
-    {% endif %}
-
     #to add options
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
 
@@ -226,6 +221,27 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['mp_len', 'f', {{multipole_length}}, 'effective length [m]'],
     ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
 {% endif %}
+
+    {% if beamlineOpticsParameters %}
+#---Beamline optics:{{beamlineOpticsParameters}}
+    {% endif %}
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 {% if setupMagneticMeasurementFiles %}

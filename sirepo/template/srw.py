@@ -81,72 +81,6 @@ _FILE_TYPE_EXTENSIONS = {
     'undulatorTable': ['zip'],
 }
 
-# beamline element [template, fields, height profile name, height profile overwrite propagation]
-_ITEM_DEF = {
-    'aperture': [
-        'srwlib.SRWLOptA("{}", "a", {}, {}, {}, {})',
-        ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-    ],
-    'crl': [
-        'srwlib.srwl_opt_setup_CRL({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})',
-        ['focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'numberOfLenses', 'tipWallThickness', 'horizontalOffset', 'verticalOffset'],
-    ],
-    'crystal': [
-        'srwlib.SRWLOptCryst(_d_sp={}, _psi0r={}, _psi0i={}, _psi_hr={}, _psi_hi={}, _psi_hbr={}, _psi_hbi={}, _tc={}, _ang_as={})',
-        ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle'],
-        'Cryst',
-        True,
-    ],
-    'ellipsoidMirror': [
-        'srwlib.SRWLOptMirEl(_p={}, _q={}, _ang_graz={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={})',
-        ['firstFocusLength', 'focalLength', 'grazingAngle', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset'],
-        'ElMirror',
-        True,
-    ],
-    'fiber': [
-        'srwlib.srwl_opt_setup_cyl_fiber(_foc_plane={}, _delta_ext={}, _delta_core={}, _atten_len_ext={}, _atten_len_core={}, _diam_ext={}, _diam_core={}, _xc={}, _yc={})',
-        ['focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition'],
-    ],
-    'grating': [
-        'srwlib.SRWLOptG(_mirSub=srwlib.SRWLOptMirPl(_size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={}), _m={}, _grDen={}, _grDen1={}, _grDen2={}, _grDen3={}, _grDen4={})',
-        ['tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4'],
-    ],
-    'lens': [
-        'srwlib.SRWLOptL({}, {}, {}, {})',
-        ['horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset'],
-    ],
-    'mask': [
-        'srwlib.srwl_opt_setup_mask(_delta={}, _atten_len={}, _thick={}, _grid_sh={}, _grid_dx={}, _grid_dy={}, _pitch_x={}, _pitch_y={}, _grid_nx={}, _grid_ny={}, _mask_Nx={}, _mask_Ny={}, _grid_angle={}, _hx={}, _hy={}, _mask_x0={}, _mask_y0={})',
-        ['refractiveIndex', 'attenuationLength', 'maskThickness', 'gridShape', 'horizontalGridDimension', 'verticalGridDimension', 'horizontalGridPitch', 'verticalGridPitch', 'horizontalGridsNumber', 'verticalGridsNumber', 'horizontalPixelsNumber', 'verticalPixelsNumber', 'gridTiltAngle', 'horizontalSamplingInterval', 'verticalSamplingInterval', 'horizontalMaskCoordinate', 'verticalMaskCoordinate'],
-    ],
-    'mirror': [
-        '',
-        '',
-        'Mirror',
-        False,
-    ],
-    'obstacle': [
-        'srwlib.SRWLOptA("{}", "o", {}, {}, {}, {})',
-        ['shape', 'horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset'],
-    ],
-    'sphericalMirror': [
-        'srwlib.SRWLOptMirSph(_r={}, _size_tang={}, _size_sag={}, _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={}, _x={}, _y={})',
-        ['radius', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset'],
-        'SphMirror',
-        True,
-    ],
-    'toroidalMirror': [
-        'srwlib.SRWLOptMirTor(_rt={}, _rs={}, _size_tang={}, _size_sag={}, _x={}, _y={}, _ap_shape="{}", _nvx={}, _nvy={}, _nvz={}, _tvx={}, _tvy={})',
-        ['tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY'],
-        'TorMirror',
-        True,
-    ],
-    'zonePlate': [
-        'srwlib.SRWLOptZP(_nZones={}, _rn={}, _thick={}, _delta1={}, _atLen1={}, _delta2={}, _atLen2={}, _x={}, _y={})',
-        ['numberOfZones', 'outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset'],
-    ],
-}
-
 _LOG_DIR = '__srwl_logs__'
 
 #: Where server files and static files are found
@@ -377,22 +311,6 @@ def extract_report_data(filename, model_data):
     return info
 
 
-def find_height_profile_dimension(dat_file):
-    """Find the dimension of the provided height profile .dat file.
-    1D files have 2 columns, 2D - 8 columns.
-
-    Args:
-        dat_file (str): full path to height profile .dat file.
-
-    Returns:
-        dimension (int): found dimension.
-    """
-    with open(dat_file, 'r') as f:
-        header = f.readline().strip().split()
-        dimension = 1 if len(header) == 2 else 2
-    return dimension
-
-
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
     for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
@@ -574,15 +492,6 @@ def get_filename_for_model(model):
     if template_common.is_watchpoint(model):
         model = _WATCHPOINT_REPORT_NAME
     return _DATA_FILE_FOR_MODEL[model]['filename']
-
-
-def get_mirror_profile_name_list():
-    mirror_names = []
-    for k in _ITEM_DEF:
-        item_def = _ITEM_DEF[k]
-        if len(item_def) > 2:
-            mirror_names.append(item_def[2])
-    return mirror_names
 
 
 def get_predefined_beams():
@@ -874,6 +783,63 @@ def validate_file(file_type, path):
     return None
 
 
+def validate_magnet_data_file(zf):
+    """Validate a zip file containing tabulated magentic data
+
+    Performs the following checks:
+
+        - Only .txt and .dat files are allowed
+        - Zip file must contain one and only one .txt file to use as an index
+        - The index file must list the data files with the name in the 4th column
+        - Zip file must contain only the index file and the data files it lists
+
+    Args:
+        zf (zipfile.ZipFile): the zip file to examine
+    Returns:
+        True if all conditions are met, False otherwise
+        A string for debugging purposes
+    """
+    import collections
+
+    def index_file_name(zf):
+        # Apparently pkio.has_file_extension will return true for any extension if fed a directory path ('some_dir/')
+        text_files = [f for f in zf.namelist() if not f.endswith('/') and pkio.has_file_extension(f, 'txt')]
+        if len(text_files) != 1:
+            return None
+        return text_files[0]
+
+    # Check against whitelist
+    for f in zf.namelist():
+        # allow directories
+        if f.endswith('/'):
+            continue
+        if not template_common.file_extension_ok(f, white_list=['txt', 'dat']):
+            return False, 'File {} has forbidden type'.format(f)
+
+    file_name_column = 3
+
+    # Assure unique index exists
+    if index_file_name(zf) is None:
+        return False, 'Zip file has no unique index'
+
+    # Validate correct number of columns (plus other format validations if needed)
+    index_file = zf.open(index_file_name(zf))
+    lines = index_file.readlines()
+    file_names_in_index = []
+    for line in lines:
+        cols = line.split()
+        if len(cols) <= file_name_column:
+            return False, 'Index file {} has bad format'.format(index_file_name())
+        file_names_in_index.append(cols[file_name_column].decode())
+
+    # Compare index and zip contents
+    # Does not include the index itself, nor any directories
+    # also extract the filename since the index does not include path info
+    file_names_in_zip = map(lambda path: os.path.basename(path),  [f for f in zf.namelist() if not f.endswith('/') and f != index_file_name(zf)])
+    files_match = collections.Counter(file_names_in_index) == collections.Counter(file_names_in_zip)
+    return files_match, '' if files_match else 'Files in index {} do not match files in zip {}'.format(file_names_in_index, file_names_in_zip)
+
+
 def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 
@@ -891,23 +857,6 @@ def write_parameters(data, run_dir, is_parallel):
 def _add_report_filenames(v):
     for k in _DATA_FILE_FOR_MODEL:
         v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
-
-
-def _beamline_element(template, item, fields, propagation, shift='', is_crystal=False):
-    el = template.format(*map(lambda x: item[x], fields))
-    pp = _propagation_params(propagation[str(item['id'])][0], shift)
-    # special case for crystal elements
-    if is_crystal:
-        el = '''    opCr = {}
-    # Set crystal orientation:
-    opCr.set_orient({}, {}, {}, {}, {})
-    el.append(opCr)'''.format(
-        el,
-        item['nvx'], item['nvy'], item['nvz'], item['tvx'], item['tvy']
-    )
-    else:
-        el = '{}    el.append({})'.format(shift, el)
-    return el, pp
 
 
 def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
@@ -1286,79 +1235,140 @@ def _fixup_electron_beam(data):
 
 def _generate_beamline_optics(report, models, last_id):
     if not _is_beamline_report(report):
-        return '    pass'
-    res = {
-        'el': '    el = []\n',
-        'pp': '    pp = []\n',
-        'propagation': models['propagation'],
-        'height_profile_counter': 1,
-        'sample_counter': 1,
-    }
+        return '    pass', ''
+    if not last_id:
+        last_id = models.beamline[-1].id
+    names = []
+    items = []
     prev = None
-    has_item = False
-    last_element = False
-    want_final_propagation = True
+    propagation = models.propagation
+    max_name_size = 0
 
-    for item in models['beamline']:
-        is_disabled = 'isDisabled' in item and item['isDisabled']
-        if last_element:
-            if is_disabled:
-                continue
-            # active element is past the selected watchpoint, don't include postPropagation
-            want_final_propagation = False
-            break
+    for item in models.beamline:
+        is_disabled = 'isDisabled' in item and item.isDisabled
+        name = _safe_beamline_item_name(item.title, names)
+        max_name_size = max(max_name_size, len(name))
+
         if prev:
-            has_item = True
-            size = item['position'] - prev['position']
+            size = item.position - prev.position
             if size != 0:
-                res['el'] += '    el.append(srwlib.SRWLOptD({}))\n'.format(size)
-                res['pp'] += _propagation_params(res['propagation'][str(prev['id'])][1])
-        if is_disabled:
-            pass
-        else:
-            res['el'] += '    # {}: {} {}m\n'.format(item['title'], item['type'], item['position'])
-            res['pp'] += '    # {}\n'.format(item['title'])
-            if item['type'] == 'sample':
-                _generate_sample(res, item)
-            elif item['type'] == 'watch':
-                if not has_item:
-                    res['el'] += '    el.append(srwlib.SRWLOptD({}))'.format(1.0e-16)
-                    res['pp'] += _propagation_params(res['propagation'][str(item['id'])][0])
-                if last_id and int(last_id) == int(item['id']):
-                    last_element = True
-            else:
-                _generate_item(res, item)
+                # add a drift
+                drift_name = _safe_beamline_item_name('{}_{}'.format(prev.name, name), names)
+                max_name_size = max(max_name_size, len(drift_name))
+                names.append(drift_name)
+                items.append(pkcollections.Dict({
+                    'name': drift_name,
+                    'type': 'drift',
+                    'position': prev.position,
+                    'propagation': prev.drift_propagation,
+                    'length': size,
+                }))
+        pp = propagation[str(item.id)]
+        item.propagation = pp[0]
+        item.drift_propagation = pp[1]
+        item.name = name
+        if not is_disabled:
+            if item.type == 'watch' and not len(items):
+                # first item is a watch, insert a 0 length drift in front
+                items.append(pkcollections.Dict({
+                    'name': 'zero_drift',
+                    'type': 'drift',
+                    'position': item.position,
+                    'propagation': item.propagation,
+                    'length': 0,
+                }))
+                names.append(items[-1].name)
+            if 'heightProfileFile' in item:
+                item.heightProfileDimension = _height_profile_dimension(item)
+            items.append(item)
+            names.append(name)
+        if int(last_id) == int(item.id):
+            break
         prev = item
-        res['el'] += '\n'
-
-    # final propagation parameters
-    if want_final_propagation:
-        res['pp'] += '    # final post-propagation\n'
-        res['pp'] += _propagation_params(models['postPropagation'])
-
-    return res['el'] + res['pp'] + '    return srwlib.SRWLOptC(el, pp)'
-
-
-def _generate_item(res, item):
-    item_def = _ITEM_DEF[item['type']]
-    if item_def[0]:
-        el, pp = _beamline_element(item_def[0], item, item_def[1], res['propagation'], is_crystal=item['type'] == 'crystal')
-        res['el'] += el
-        res['pp'] += pp
-
-    if len(item_def) > 3:
-        el, pp = _height_profile_element(
-            item,
-            res['propagation'],
-            '{}{}'.format(item_def[2], res['height_profile_counter']),
-            item_def[3],
-        )
-        if item_def[0]:
-            res['el'] += '\n'
-        if pp:
-            res['height_profile_counter'] += 1
-        res['el'] += el
-        res['pp'] += pp
+    args = {
+        'items': items,
+        'names': names,
+        'postPropagation': models.postPropagation,
+        'wantPostPropagation': int(last_id) == int(models.beamline[-1].id),
+        'maxNameSize': max_name_size,
+        'nameMap': {
+            'apertureShape': 'ap_shape',
+            'asymmetryAngle': 'ang_as',
+            'attenuationLength': 'atten_len',
+            'complementaryAttenuationLength': 'atLen2',
+            'complementaryRefractiveIndex': 'delta2',
+            'coreAttenuationLength': 'atten_len_core',
+            'coreDiameter': 'diam_core',
+            'coreRefractiveIndex': 'delta_core',
+            'crystalThickness': 'tc',
+            'dSpacing': 'd_sp',
+            'diffractionOrder': 'm',
+            'externalAttenuationLength': 'atten_len_ext',
+            'externalRefractiveIndex': 'delta_ext',
+            'firstFocusLength': 'p',
+            'focalLength': 'q',
+            'focalPlane': 'foc_plane',
+            'grazingAngle': 'ang',
+            'gridShape': 'grid_sh',
+            'grooveDensity0': 'grDen',
+            'grooveDensity1': 'grDen1',
+            'grooveDensity2': 'grDen2',
+            'grooveDensity3': 'grDen3',
+            'grooveDensity4': 'grDen4',
+            'heightAmplification': 'amp_coef',
+            'heightProfileFile': 'hfn',
+            'horizontalApertureSize': 'apert_h',
+            'horizontalCenterPosition': 'xc',
+            'horizontalFocalLength': 'Fx',
+            'horizontalGridDimension': 'grid_dx',
+            'horizontalGridPitch': 'pitch_x',
+            'horizontalGridsNumber': 'grid_nx',
+            'horizontalMaskCoordinate': 'mask_x0',
+            'horizontalOffset': 'x',
+            'horizontalPixelsNumber': 'mask_Nx',
+            'horizontalSamplingInterval': 'hx',
+            'horizontalSize': 'Dx',
+            'horizontalTransverseSize': 'size_x',
+            'imageFile': 'file_path',
+            'length': 'L',
+            'mainAttenuationLength': 'atLen1',
+            'mainRefractiveIndex': 'delta1',
+            'maskThickness': 'thick',
+            'normalVectorX': 'nvx',
+            'normalVectorY': 'nvy',
+            'normalVectorZ': 'nvz',
+            'numberOfLenses': 'n',
+            'numberOfZones': 'nZones',
+            'orientation': 'dim',
+            'outerRadius': 'rn',
+            'radius': 'r',
+            'refractiveIndex': 'delta',
+            'sagittalRadius': 'rs',
+            'sagittalSize': 'size_sag',
+            'tangentialRadius': 'rt',
+            'tangentialSize': 'size_tang',
+            'tangentialVectorX': 'tvx',
+            'tangentialVectorY': 'tvy',
+            'thickness': 'thick',
+            'tipRadius': 'r_min',
+            'tipWallThickness': 'wall_thick',
+            'verticalApertureSize': 'apert_v',
+            'verticalCenterPosition': 'yc',
+            'verticalFocalLength': 'Fy',
+            'verticalGridDimension': 'grid_dy',
+            'verticalGridPitch': 'pitch_y',
+            'verticalGridsNumber': 'grid_ny',
+            'verticalMaskCoordinate': 'mask_y0',
+            'verticalOffset': 'y',
+            'verticalPixelsNumber': 'mask_Ny',
+            'verticalSamplingInterval': 'hy',
+            'verticalSize': 'Dy',
+            'verticalTransverseSize': 'size_y',
+        },
+    }
+    optics = template_common.render_jinja(SIM_TYPE, args, 'beamline_optics.py')
+    prop = template_common.render_jinja(SIM_TYPE, args, 'beamline_parameters.py')
+    return optics, prop
 
 
 def _generate_parameters_file(data, plot_reports=False, run_dir=None):
@@ -1417,7 +1427,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     if report == 'backgroundImport':
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
 
-    v['beamlineOptics'] = _generate_beamline_optics(report, data['models'], last_id)
+    v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 
     # und_g and und_ph API units are mm rather than m
     v['tabulatedUndulator_gap'] *= 1000
@@ -1441,14 +1451,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
-    # Beamline optics defined through the parameters list:
-    v['beamlineOpticsParameters'] = ''
-    sample_counter = 1
-    for el in data['models']['beamline']:
-        if el['type'] == 'sample':
-            v['beamlineOpticsParameters'] += '''\n    ['op_sample{0}', 's', '{1}', 'input file of the sample #{0}'],'''.format(sample_counter, el['imageFile'])
-            sample_counter += 1
-
     if run_dir and _uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
@@ -1463,103 +1465,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + '/' + mmz.index_dir
         v.magneticMeasurementsIndexFile = mmz.index_file
     return template_common.render_jinja(SIM_TYPE, v)
-
-
-def validate_magnet_data_file(zf):
-    """Validate a zip file containing tabulated magentic data
-
-    Performs the following checks:
-
-        - Only .txt and .dat files are allowed
-        - Zip file must contain one and only one .txt file to use as an index
-        - The index file must list the data files with the name in the 4th column
-        - Zip file must contain only the index file and the data files it lists
-
-    Args:
-        zf (zipfile.ZipFile): the zip file to examine
-    Returns:
-        True if all conditions are met, False otherwise
-        A string for debugging purposes
-    """
-    import collections
-
-    def index_file_name(zf):
-        # Apparently pkio.has_file_extension will return true for any extension if fed a directory path ('some_dir/')
-        text_files = [f for f in zf.namelist() if not f.endswith('/') and pkio.has_file_extension(f, 'txt')]
-        if len(text_files) != 1:
-            return None
-        return text_files[0]
-
-    # Check against whitelist
-    for f in zf.namelist():
-        # allow directories
-        if f.endswith('/'):
-            continue
-        if not template_common.file_extension_ok(f, white_list=['txt', 'dat']):
-            return False, 'File {} has forbidden type'.format(f)
-
-    file_name_column = 3
-
-    # Assure unique index exists
-    if index_file_name(zf) is None:
-        return False, 'Zip file has no unique index'
-
-    # Validate correct number of columns (plus other format validations if needed)
-    index_file = zf.open(index_file_name(zf))
-    lines = index_file.readlines()
-    file_names_in_index = []
-    for line in lines:
-        cols = line.split()
-        if len(cols) <= file_name_column:
-            return False, 'Index file {} has bad format'.format(index_file_name())
-        file_names_in_index.append(cols[file_name_column].decode())
-
-    # Compare index and zip contents
-    # Does not include the index itself, nor any directories
-    # also extract the filename since the index does not include path info
-    file_names_in_zip = map(lambda path: os.path.basename(path),  [f for f in zf.namelist() if not f.endswith('/') and f != index_file_name(zf)])
-    files_match = collections.Counter(file_names_in_index) == collections.Counter(file_names_in_zip)
-    return files_match, '' if files_match else 'Files in index {} do not match files in zip {}'.format(file_names_in_index, file_names_in_zip)
-
-
-def _generate_sample(res, item):
-    file_name = 'op_sample{}'.format(res['sample_counter'])
-    area = '{}'.format(None if not bool(int(item['cropArea'])) else (item['areaXStart'], item['areaXEnd'], item['areaYStart'], item['areaYEnd']))
-    tile = '{}'.format(None if not bool(int(item['tileImage'])) else (item['tileRows'], item['tileColumns']))
-    rotate_reshape = '{}'.format(bool(int(item['rotateReshape'])))
-    invert = '{}'.format(bool(int(item['invert'])))
-    res['sample_counter'] += 1
-    el, pp = _beamline_element(
-        """srwl_uti_smp.srwl_opt_setup_transm_from_file(
-                    file_path=v.""" + file_name + """,
-                    resolution={},
-                    thickness={},
-                    delta={},
-                    atten_len={},
-                    xc={}, yc={},
-                    area=""" + area + """,
-                    rotate_angle={}, rotate_reshape=""" + rotate_reshape + """,
-                    cutoff_background_noise={},
-                    background_color={},
-                    tile=""" + tile + """,
-                    shift_x={}, shift_y={},
-                    invert=""" + invert + """,
-                    is_save_images=True,
-                    prefix='""" + file_name + """',
-                    output_image_format='{}',
-                    )""",
-        item,
-        ['resolution', 'thickness', 'refractiveIndex', 'attenuationLength',
-         'horizontalCenterCoordinate', 'verticalCenterCoordinate',
-         'rotateAngle',
-         'cutoffBackgroundNoise',
-         'backgroundColor',
-         'shiftX', 'shiftY',
-         'outputImageFormat',
-        ],
-        res['propagation'])
-    res['el'] += el
-    res['pp'] += pp
 
 
 def _generate_srw_main(data, plot_reports):
@@ -1615,36 +1520,17 @@ def _get_first_element_position(data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
-def _height_profile_element(item, propagation, height_profile_el_name, overwrite_propagation):
-    shift = '    '
-    if overwrite_propagation:
-        if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
-            propagation[str(item['id'])][0] = [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0]
-        else:
-            return '', ''
-
-    dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
-    dimension = find_height_profile_dimension(dat_file)
-
-    ifn = 'ifn{}'.format(height_profile_el_name)
-    hProfData = 'hProfData{}'.format(height_profile_el_name)
-
-    res = '{shift}{ifn} = "{item}"\n'.format(shift=shift, ifn=ifn, item=item['heightProfileFile'])
-    res += '{shift}if {ifn}:\n'.format(shift=shift, ifn=ifn)
-    res += '{shift}{shift}assert os.path.isfile({ifn}), "Missing input file {filename}, required by {name} beamline element"\n'.format(shift=shift, ifn=ifn, filename=item['heightProfileFile'], name=item['title'])
-    add_args = ', 0, 1' if dimension == 1 else ''
-    res += '{shift}{shift}{hProfData} = srwlib.srwl_uti_read_data_cols({ifn}, "\\t"{args})\n'.format(shift=shift, hProfData=hProfData, ifn=ifn, args=add_args)
-    fields = ['orientation', 'grazingAngle', 'heightAmplification']
-    surf_height_func = 'srwlib.srwl_opt_setup_surf_height_{}d'.format(dimension)
-    if 'horizontalTransverseSize' in item:
-        template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={}, _size_x={}, _size_y={})'
-        fields.extend(('horizontalTransverseSize', 'verticalTransverseSize'))
-    else:
-        template = surf_height_func + '(' + hProfData + ', _dim="{}", _ang={}, _amp_coef={})'
-    el, pp = _beamline_element(template, item, fields, propagation, shift=shift)
-    res += el
-    pp = '{shift}if {ifn}:\n{pp}'.format(shift=shift, ifn=ifn, pp=pp)
-    return res, pp
+def _height_profile_dimension(item):
+    """Find the dimension of the provided height profile .dat file.
+    1D files have 2 columns, 2D - 8 columns.
+    """
+    dimension = 0
+    if item['heightProfileFile'] and item['heightProfileFile'] != 'None':
+        dat_file = str(simulation_db.simulation_lib_dir(SIM_TYPE).join(item['heightProfileFile']))
+        with open(dat_file, 'r') as f:
+            header = f.readline().strip().split()
+            dimension = 1 if len(header) == 2 else 2
+    return dimension
 
 
 def _init():
@@ -1863,10 +1749,6 @@ def _process_undulator_definition(model):
         return model
 
 
-def _propagation_params(prop, shift=''):
-    return '{}    pp.append([{}])\n'.format(shift, ', '.join([str(x) for x in prop]))
-
-
 def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
@@ -1923,6 +1805,23 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     })
 
 
+def _safe_beamline_item_name(name, names):
+    name = re.sub(r'\W+', '_', name)
+    name = re.sub(r'_+', '_', name)
+    name = re.sub(r'^_|_$', '', name)
+    name = re.sub(r'^_+', '', name)
+    name = re.sub(r'_+$', '', name)
+    name = re.sub(r'^op_', '', name)
+    if not name or name == 'fin':
+        name = 'element'
+    idx = 2
+    current = name
+    while current in names:
+        current = '{}{}'.format(name, idx)
+        idx += 1
+    return current
+
+
 def _save_user_model_list(model_name, beam_list):
     pkdc('saving {} list', model_name)
     filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
@@ -1947,6 +1846,7 @@ def _unique_name(items, field, template):
             index += 1
         else:
             return id
+
 
 def _uses_tabulated_zipfile(data):
     return _is_tabulated_undulator_with_magnetic_file(data['models']['simulation']['sourceType'], data['models']['tabulatedUndulator']['undulatorType'])
