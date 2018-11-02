@@ -1,0 +1,68 @@
+{%- macro pad(name) %}
+{{ ' ' * (maxNameSize - name|length + 1) }}
+{%- endmacro %}
+{%- macro fields(item, type, names) %}
+{% for name in names %}
+{% if type == 's' %}
+    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', '{{ item[name] }}', '{{ name }}'],
+{% else %}
+    ['op_{{ item.name }}_{{ nameMap.get(name, name) }}', '{{ type }}', {{ item[name] }}, '{{ name }}'],
+{% endif %}
+{% endfor %}
+{%- endmacro %}
+
+{% for item in items %}
+{% if item.type != 'watch' %}
+    # {{ item.name }}: {{ item.type }}
+{% endif %}
+{%- if item.type == 'aperture' %}
+    {{- fields(item, 's', ('shape', )) }}
+    {{- fields(item, 'f', ('horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset')) }}
+{% elif item.type == 'crl' %}
+    {{- fields(item, 'f', ('focalPlane', 'refractiveIndex', 'attenuationLength', 'shape', 'horizontalApertureSize', 'verticalApertureSize', 'tipRadius', 'tipWallThickness', 'horizontalOffset', 'verticalOffset')) }}
+    {{- fields(item, 'i', ('numberOfLenses',)) }}
+{% elif item.type == 'crystal' %}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'crystalThickness', 'asymmetryAngle', 'nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle', 'heightAmplification')) }}
+{% elif item.type == 'drift' %}
+    {{- fields(item, 'f', ('length',)) }}
+{% elif item.type == 'ellipsoidMirror' %}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('firstFocusLength', 'focalLength', 'grazingAngle', 'heightAmplification', 'tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset')) }}
+{% elif item.type == 'fiber' %}
+    {{- fields(item, 'f', ('focalPlane', 'externalRefractiveIndex', 'coreRefractiveIndex', 'externalAttenuationLength', 'coreAttenuationLength', 'externalDiameter', 'coreDiameter', 'horizontalCenterPosition', 'verticalCenterPosition')) }}
+{% elif item.type == 'grating' %}
+    {{- fields(item, 'f', ('tangentialSize', 'sagittalSize', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'horizontalOffset', 'verticalOffset', 'diffractionOrder', 'grooveDensity0', 'grooveDensity1', 'grooveDensity2', 'grooveDensity3', 'grooveDensity4')) }}
+{% elif item.type == 'lens' %}
+    {{- fields(item, 'f', ('horizontalFocalLength', 'verticalFocalLength', 'horizontalOffset', 'verticalOffset')) }}
+{% elif item.type == 'mask' %}
+    {{- fields(item, 'f', ('refractiveIndex', 'attenuationLength', 'maskThickness', 'gridShape', 'horizontalGridDimension', 'verticalGridDimension', 'horizontalGridPitch', 'verticalGridPitch', 'gridTiltAngle', 'horizontalSamplingInterval', 'verticalSamplingInterval', 'horizontalMaskCoordinate', 'verticalMaskCoordinate')) }}
+    {{- fields(item, 'i', ('horizontalPixelsNumber', 'verticalPixelsNumber', 'horizontalGridsNumber', 'verticalGridsNumber')) }}
+{% elif item.type == 'mirror' %}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('grazingAngle', 'heightAmplification', 'horizontalTransverseSize', 'verticalTransverseSize')) }}
+{% elif item.type == 'obstacle' %}
+    {{- fields(item, 's', ('shape', )) }}
+    {{- fields(item, 'f', ('horizontalSize', 'verticalSize', 'horizontalOffset', 'verticalOffset')) }}
+{% elif item.type == 'sample' %}
+    {{- fields(item, 's', ('imageFile', 'outputImageFormat')) }}
+    {{- fields(item, 'f', ('position', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength', 'horizontalCenterCoordinate', 'verticalCenterCoordinate', 'rotateAngle', 'cutoffBackgroundNoise')) }}
+    {{- fields(item, 'i', ('cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateReshape', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'shiftX', 'shiftY', 'invert')) }}
+{% elif item.type == 'sphericalMirror' %}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('radius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification', 'horizontalOffset', 'verticalOffset')) }}
+{% elif item.type == 'toroidalMirror' %}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
+    {{- fields(item, 'f', ('tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY')) }}
+{% elif item.type == 'zonePlate' %}
+    {{- fields(item, 'f', ('outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset')) }}
+    {{- fields(item, 'i', ('numberOfZones', )) }}
+{% endif %}
+{% endfor %}
+#---Propagation parameters
+{% for item in items %}
+{% if item.type != 'watch' %}
+    ['op_{{ item.name }}_pp', 'f',{{ pad(item.name) }}{{ item.propagation }}, '{{ item.name }}'],
+{% endif %}
+{% endfor %}
+    ['op_fin_pp', 'f',{{ pad('fin') }}{{ postPropagation }}, 'final post-propagation (resize) parameters'],

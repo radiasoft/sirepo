@@ -49,7 +49,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('SynergiaSourceController', function (appState, panelState, requestSender, $scope) {
+SIREPO.app.controller('SynergiaSourceController', function (appState, latticeService, panelState, requestSender, $scope) {
     var self = this;
 
     function calculateBunchParameters() {
@@ -111,7 +111,7 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
         appState.watchModelFields($scope, ['bunch.mass', 'bunch.energy', 'bunch.momentum', 'bunch.gamma'], calculateBunchParameters);
     });
 
-    $scope.$on('bunchReport.summaryData', function(e, info) {
+    $scope.$on('bunchReport1.summaryData', function(e, info) {
         if (appState.isLoaded() && info.bunchTwiss) {
             appState.models.bunchTwiss = info.bunchTwiss;
             appState.saveChanges('bunchTwiss');
@@ -119,6 +119,7 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, panelState
         }
     });
 
+    latticeService.initSourceController(self);
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {

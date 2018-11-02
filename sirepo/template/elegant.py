@@ -25,8 +25,6 @@ import sdds
 import stat
 import werkzeug
 
-BUNCH_OUTPUT_FILE = 'elegant.bun'
-
 #: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
 
@@ -66,14 +64,14 @@ _INFIX_TO_RPN = {
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
+_OUTPUT_INFO_VERSION = '1'
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
     'x-y': 'Cross-section',
     't-p': 'Longitudinal',
 }
-
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SDDS_INDEX = 0
 
@@ -128,7 +126,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
-    if _report_type_for_column(x_col['column_names']) == 'parameter':
+    if not _is_histogram_file(xFilename, x_col['column_names']):
         # parameter plot
         plots = []
         filename = {
@@ -138,7 +136,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
             'y3': xFilename,
         }
         for f in ('y1', 'y2', 'y3'):
-            if data[f] == 'none' or data[f] == ' ':
+            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
                 continue
             yfield = data[f]
             y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
@@ -373,7 +371,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    return _sdds(BUNCH_OUTPUT_FILE)
+    return _sdds(_report_output_filename('bunchReport'))
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
@@ -422,7 +420,7 @@ def models_related_to_report(data):
     r = data['report']
     res = []
     if r == 'twissReport' or 'bunchReport' in r:
-        res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + ['bunch', 'bunchSource', 'bunchFile']
+        res = ['bunch', 'bunchSource', 'bunchFile']
         for f in template_common.lib_files(data):
             if f.exists():
                 res.append(f.mtime())
@@ -487,6 +485,16 @@ def prepare_for_client(data):
     return data
 
 
+def prepare_output_file(report_info, data):
+    if data['report'] == 'twissReport' or 'bunchReport' in data['report']:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        if fn.exists():
+            fn.remove()
+            output_file = report_info.run_dir.join(_report_output_filename(data['report']))
+            if output_file.exists():
+                save_report_data(data, report_info.run_dir)
+
+
 def python_source_for_model(data, model):
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
@@ -511,6 +519,23 @@ def resource_files():
         list: py.path.local objects
     """
     return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
+
+
+def save_report_data(data, run_dir):
+    report = data['models'][data['report']]
+    if data['report'] == 'twissReport':
+        report['x'] = 's'
+        report['y'] = report['y1']
+    simulation_db.write_result(
+        extract_report_data(str(run_dir.join(_report_output_filename(data['report']))), report, 0),
+        run_dir=run_dir,
+    )
+
+
+def simulation_dir_name(report_name):
+    if 'bunchReport' in report_name:
+        return 'bunchReport'
+    return report_name
 
 
 def validate_delete_file(data, filename, file_type):
@@ -805,6 +830,7 @@ def _file_info(filename, run_dir, id, output_index):
             'parameterDefinitions': _parameter_definitions(parameters),
             'plottableColumns': plottable_columns,
             'lastUpdateTime': int(os.path.getmtime(str(file_path))),
+            'isHistogram': _is_histogram_file(filename, column_names),
         }
     finally:
         try:
@@ -862,7 +888,7 @@ def _generate_bunch_simulation(data, v):
         if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
             v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
-    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
+    v['bunchOutputFile'] = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
@@ -952,6 +978,19 @@ def _infix_to_postfix(expr):
 
 def _is_error_text(text):
     return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given|^MPI_ERR', text, re.IGNORECASE)
+
+
+def _is_histogram_file(filename, columns):
+    filename = os.path.basename(filename)
+    if re.search(r'^closed_orbit.output', filename):
+        return False
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return False
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return True
+    return False
 
 
 def _is_ignore_error_text(text):
@@ -1084,7 +1123,9 @@ def _output_info(run_dir):
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
     if os.path.isfile(str(info_file)):
-        return simulation_db.read_json(info_file)
+        res = simulation_db.read_json(info_file)
+        if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+            return res
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
@@ -1095,6 +1136,8 @@ def _output_info(run_dir):
         if info:
             info['modelKey'] = 'elementAnimation{}'.format(info['id'])
             res.append(info)
+    if len(res):
+        res[0]['_version'] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
     return res
 
@@ -1167,15 +1210,10 @@ def _plot_title(xfield, yfield, page_index, page_count):
     return title
 
 
-#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
-def _report_type_for_column(columns):
-    if 'xFrequency' in columns and 'yFrequency' in columns:
-        return 'parameter'
-    if ('x' in columns and 'xp' in columns) \
-       or ('y' in columns and 'yp' in columns) \
-       or ('t' in columns and 'p' in columns):
-        return 'heatmap'
-    return 'parameter'
+def _report_output_filename(report):
+    if report == 'twissReport':
+        return 'twiss_output.filename.sdds'
+    return 'elegant.bun'
 
 
 def _safe_sdds_value(v):

@@ -668,30 +668,24 @@ SIREPO.app.directive('colorPicker', function() {
 
 SIREPO.app.service('focusPointService', function(plotting) {
 
-    this.formatFocusPointData = function(focusPoint) {
-        var xText, yText, fwhmText = '';
-        if (! isNaN(focusPoint.data.fwhm)) {
-            fwhmText = 'FWHM = ' + d3.format('.6s')(focusPoint.data.fwhm) + focusPoint.config.axis.units;
-        }
-        if(! isNaN(focusPoint.data.x) && ! isNaN(focusPoint.data.y)) {
-            xText = 'X = ' + plotting.formatValue(focusPoint.data.x);
-            yText = 'Y = ' + plotting.formatValue(focusPoint.data.y);
-        }
+    var svc = this;
+
+    this.formatFocusPointData = function(focusPoint, xLabel, yLabel) {
         return {
-            xText: xText,
-            yText: yText,
-            fwhmText: fwhmText
+            xText: svc.formatDatum((xLabel || 'X'), focusPoint.data.x, focusPoint.config.xAxis.units),
+            yText: svc.formatDatum((yLabel || 'Y'), focusPoint.data.y, focusPoint.config.yAxis.units),
+            fwhmText: svc.formatFWHM(focusPoint.data.fwhm, focusPoint.config.xAxis.units)
         };
     };
     this.dataCoordsToMouseCoords = function(focusPoint) {
         var mouseX, mouseY;
         if (focusPoint.config.invertAxis) {
-            mouseX = focusPoint.config.yAxisScale(focusPoint.data.y);
-            mouseY = focusPoint.config.xAxisScale(focusPoint.data.x);
+            mouseX = focusPoint.config.yAxis.scale(focusPoint.data.y);
+            mouseY = focusPoint.config.xAxis.scale(focusPoint.data.x);
         }
         else {
-            mouseX = focusPoint.config.xAxisScale(focusPoint.data.x);
-            mouseY = focusPoint.config.yAxisScale(focusPoint.data.y);
+            mouseX = focusPoint.config.xAxis.scale(focusPoint.data.x);
+            mouseY = focusPoint.config.yAxis.scale(focusPoint.data.y);
         }
         return {
             x: mouseX,
@@ -705,17 +699,17 @@ SIREPO.app.service('focusPointService', function(plotting) {
         if (! focusPoint.config.points || Math.abs(focusPoint.data.lastClickX - d3.event[focusPoint.config.invertAxis ? 'clientY' : 'clientX']) > 10) {
             return false;
         }
-        var x = focusPoint.config.xAxisScale.invert(mouseX);
+        var x = focusPoint.config.xAxis.scale.invert(mouseX);
         strategy = strategy || 'maximum';
         var spread = strategy == 'maximum' ? 10 : 100;
-        var xMin = focusPoint.config.xAxisScale.invert(mouseX - spread);
-        var xMax = focusPoint.config.xAxisScale.invert(mouseX + spread);
+        var xMin = focusPoint.config.xAxis.scale.invert(mouseX - spread);
+        var xMax = focusPoint.config.xAxis.scale.invert(mouseX + spread);
         if (xMin > xMax) {
             var swap = xMin;
             xMin = xMax;
             xMax = swap;
         }
-        var domain = focusPoint.config.xAxisScale.domain();
+        var domain = focusPoint.config.xAxis.scale.domain();
         if (xMin < domain[0]) {
             xMin = domain[0];
         }
@@ -754,13 +748,21 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return false;
     };
 
+    this.formatDatum = function(label, val, units) {
+        return val || val === 0 ? label + ' = ' + plotting.formatValue(val) + (units || '') : '';
+    };
+
+    this.formatFWHM = function(fwhm, units) {
+        return fwhm ? 'FWHM = ' + d3.format('.6s')(fwhm) + (units || '') : '';
+    };
+
     this.updateFocusData = function(focusPoint) {
         if (! focusPoint.data.isActive) {
             return false;
         }
 
         var p = focusPoint.config.points[focusPoint.data.focusIndex];
-        var domain = focusPoint.config.xAxisScale.domain();
+        var domain = focusPoint.config.xAxis.scale.domain();
         if (!p || p[0] < domain[0] || p[0] > domain[1]) {
             return false;
         }
@@ -770,6 +772,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
         focusPoint.data.fwhm = fwhmFromLocalVals(focusPoint);
         return true;
     };
+
 
     function fwhmFromLocalVals(focusPoint) {
 
@@ -851,7 +854,8 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return NaN;
     }
 
-    this.setupFocusPoint = function(xAxisScale, yAxisScale, invertAxis, axis, name) {
+    //this.setupFocusPoint = function(xAxisScale, yAxisScale, invertAxis, axis, name) {
+    this.setupFocusPoint = function(xAxis, yAxis, invertAxis, name) {
 
         function init() {
             return {
@@ -887,9 +891,8 @@ SIREPO.app.service('focusPointService', function(plotting) {
                     name: name,
                     color: 'steelblue',
                     invertAxis: invertAxis,
-                    xAxisScale: xAxisScale,
-                    yAxisScale: yAxisScale,
-                    axis: axis,
+                    xAxis: xAxis,
+                    yAxis: yAxis,
                 },
                 data: {
                     focusIndex: -1,
@@ -933,18 +936,18 @@ SIREPO.app.service('focusPointService', function(plotting) {
             },
             doScreenChanges: function () {
             },
-
+            formatFocusPointData: function(focusPoint) {
+                return svc.formatFocusPointData(focusPoint);
+            }
         };
     };
 
     this.invokeDelegatesForFocusPoint = function(delegates, fp, delegateFn, params) {
-        for (var dIndex = 0; dIndex < delegates.length; ++dIndex) {
-            var fpd = delegates[dIndex];
-            if(fpd.focusPoints.indexOf(fp) < 0) {
-                continue;
+        delegates.forEach(function (fpd) {
+            if(fpd.focusPoints.indexOf(fp) >= 0) {
+                fpd[delegateFn].apply(null, params);
             }
-            fpd[delegateFn].apply(null, params);
-        }
+        });
     };
 
     this.loadFocusPoint = function(focusPoint, axisPoints, preservePoint, plotInfoDelegates) {
@@ -1364,10 +1367,10 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 $('body').append(inputField);
 
                 var fmtText = '';
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                $scope.focusPoints.forEach(function (fp, fpIndex) {
                     var fpt = focusPointService.formatFocusPointData($scope.focusPoints[fpIndex]);
                     fmtText = fmtText + fpt.xText + ', ' + fpt.yText + ', ' + fpt.fwhmText + '\n';
-                }
+                });
                 inputField.val(fmtText).select();
                 try {
                     document.execCommand('copy');
@@ -1489,17 +1492,17 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
             '<g class="popup-group">',
                 '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
                     '<g>',
-                        '<rect class="report-window" rx="4px" ry="4px" data-ng-attr-width="{{ popupWindowSize().width }}" data-ng-attr-height="{{ popupWindowSize().height }}" x="0" y="0"></rect>',
+                        '<rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>',
                         '<g ng-drag-handle="">',
-                            '<rect class="report-window-title-bar" data-ng-attr-width="{{ popupTitleSize().width }}" data-ng-attr-height="{{ popupTitleSize().height }}" x="1" y="1"></rect>',
-                            '<text class="report-window-close close" data-ng-attr-x="{{ popupWindowSize().width }}" y="0" dy="1em" dx="-1em">&#215;</text>',
+                            '<rect class="report-window-title-bar" x="1" y="1"></rect>',
+                            '<text class="report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
                         '</g>',
                     '</g>',
                     '<g class="text-group" data-ng-repeat="fp in focusPoints">',
                         // the space value is needed for PNG download on MSIE 11
-                        '<text data-ng-attr-id="x-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"> </text>',
-                        '<text data-ng-attr-id="y-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"> </text>',
-                        '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" data-ng-attr-y="{{ popupTitleSize().height }}" dx="0.5em"> </text>',
+                        '<text data-ng-attr-id="x-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                        '<text data-ng-attr-id="y-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                        '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
                     '</g>',
                 '</g>',
             '</g>',
@@ -1548,18 +1551,24 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                     height: parseInt(d3self.attr('height'))
                 };
             };
-            $scope.popupWindowSize = function() {
+
+            function popupWindowSize() {
+                var tg = d3self.selectAll('.text-group');
+                var w = 0;
+                tg.each(function () {
+                    w = Math.max(w, this.getBBox().width);
+                });
                 return {
-                    width: 175,
+                    width: Math.max(175, w + 2 * 8),
                     height: 24 + 56 * $scope.focusPoints.length
                 };
-            };
-            $scope.popupTitleSize = function () {
+            }
+            function popupTitleSize() {
                  return {
-                    width: $scope.popupWindowSize().width - 2,
+                    width: popupWindowSize().width - 2,
                     height: 24
                 };
-            };
+            }
             $scope.textPosition = function(groupIndex, elementPosition) {
                 if(groupIndex == 0) {
                      return elementPosition;
@@ -1622,8 +1631,8 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 if(! geometry) {
                     return true;
                 }
-                refreshText();
                 d3self.style('display', 'block');
+                refreshText();
                 if (didDragToNewPositon && ! isReposition) {
                     return true;
                 }
@@ -1650,23 +1659,39 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
             function refreshText() {
                 // format data
 
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    var fp = $scope.focusPoints[fpIndex];
+                $scope.focusPoints.forEach(function (fp, fpIndex) {
                     var color = fp.config.color;
-                    var fmtText = focusPointService.formatFocusPointData(fp);
+                    var fmtText = $scope.plotInfoDelegate.formatFocusPointData(fp);
                     d3self.select('.popup-group #x-text-' + fpIndex)
                         .text(fmtText.xText)
                         .style('fill', color)
+                        .attr('y', popupTitleSize().height)
                         .attr('dy', $scope.textPosition(fpIndex, 1) + 'em');
                     d3self.select('.popup-group #y-text-' + fpIndex)
                         .text(fmtText.yText)
                         .style('fill', color)
+                        .attr('y', popupTitleSize().height)
                         .attr('dy', $scope.textPosition(fpIndex, 2) + 'em');
                     d3self.select('.popup-group #fwhm-text-' + fpIndex)
                         .text(fmtText.fwhmText)
                         .style('fill', color)
+                        .attr('y', popupTitleSize().height)
                         .attr('dy', $scope.textPosition(fpIndex, 3) + 'em');
-                }
+                });
+                refreshWindow();
+            }
+            function refreshWindow() {
+                var size = popupWindowSize();
+                //srdbg('pw', size);
+                d3self.select('.report-window')
+                    .attr('width', size.width)
+                    .attr('height', size.height);
+                var tSize = popupTitleSize();
+                d3self.select('.report-window-title-bar')
+                    .attr('width', tSize.width)
+                    .attr('height', tSize.height);
+                d3self.select('.report-window-close')
+                    .attr('x', size.width);
             }
             // move in response to arrow keys - but if user dragged the window we assume they don't
             // want it to track the focus point
@@ -1856,7 +1881,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                     .y(function (d) {
                         return axes.y.scale(d[1]);
                     });
-                var focusPoint = focusPointService.setupFocusPoint(axes.x.scale, axes.y.scale, false, axes.x);
+                var focusPoint = focusPointService.setupFocusPoint(axes.x, axes.y, false);
                 $scope.focusPoints.push(focusPoint);
                 $scope.popupDelegate.focusPoints.push(focusPoint);
                 $scope.focusCircleDelegate.focusPoints.push(focusPoint);
@@ -2141,7 +2166,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 if (! fullDomain) {
                     return;
                 }
-                if (layoutService.plotAxis.allowUpdates) {
+                if (layoutService.plotAxis.allowUpdates && ! $scope.isPlaying) {
                     var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right - $scope.pad;
                     if (! heatmap || isNaN(width)){
                         return;
@@ -2306,9 +2331,9 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     .y(function(d) { return axes.y.scale(d[0]);})
                     .x(function(d) { return axes.rightX.scale(d[1]);});
 
-                $scope.focusPointX = focusPointService.setupFocusPoint(axes.x.scale, axes.bottomY.scale, false, axes.x);
+                $scope.focusPointX = focusPointService.setupFocusPoint(axes.x, axes.bottomY, false);
                 $scope.focusCircleDelegateBottom.focusPoints.push($scope.focusPointX);
-                $scope.focusPointY = focusPointService.setupFocusPoint(axes.y.scale, axes.rightX.scale, true, axes.y);
+                $scope.focusPointY = focusPointService.setupFocusPoint(axes.y, axes.rightX, true);
                 $scope.focusCircleDelegateRight.focusPoints.push($scope.focusPointY);
 
                 select('.focus-text-close')
@@ -2612,12 +2637,21 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             $scope.popupDelegate = focusPointService.setupInfoDelegate(
                 null,
                 function() {
-                    for(var fcIndex = 0; fcIndex < $scope.focusCircleDelegates.length; ++fcIndex) {
-                        $scope.focusCircleDelegates[fcIndex].hideFocusPointInfo();
-                    }
+                    $scope.focusCircleDelegates.forEach(function (del) {
+                        del.hideFocusPointInfo();
+                    });
                 },
                 $scope.modelName + '-popup-delegate'
             );
+
+            var plotLabels = [];
+            $scope.popupDelegate.formatFocusPointData = function (fp) {
+                var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
+                if(yLabel) {
+                    fp.config.yAxis.parseLabelAndUnits(yLabel);
+                }
+                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, fp.config.yAxis.label);
+            };
             $scope.plotInfoDelegates = [$scope.popupDelegate];
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
@@ -2758,36 +2792,38 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             };
 
             function createLegend(plots) {
+                plotLabels.length = 0;
                 var legend = select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
                 if (plots.length == 1) {
                     return;
                 }
+                var itemWidth;
                 for (var i = 0; i < plots.length; i++) {
                     var plot = plots[i];
+                    plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    // no option to toggle plot if only 1
+                    if(plots.length > 1) {
+                        item.append('foreignObject')
+                            .attr('class', 'plot-visibility')
+                            .attr('y', -3 + i * 20)
+                            .html('<input type="checkbox" checked="true"></input>')
+                            .on('click', getVToggleFn(i));
+                    }
+                    itemWidth = item.node().getBBox().width;
                     item.append('circle')
                         .attr('r', 5)
-                        .attr('cx', 8)
+                        .attr('cx', 24 + itemWidth)
                         .attr('cy', 10 + i * 20)
                         .style('stroke', plot.color)
                         .style('fill', plot.color);
+                    itemWidth = item.node().getBBox().width;
                     item.append('text')
                         .attr('class', 'focus-text')
-                        .attr('x', 16)
+                        .attr('x', 8 + itemWidth)
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
-
-                    // no option to toggle plot if only 1
-                    if(plots.length > 1) {
-                        var itemWidth = item.node().getBBox().width;
-                        item.append('text')
-                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
-                            .attr('x', itemWidth + 12)
-                            .attr('y', 16 + i * 20)
-                            .text(vIconText(true))
-                            .on('click', getVToggleFn(i));
-                    }
                 }
             }
 
@@ -2812,6 +2848,11 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 axes.x.points = json.x_points
                     || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
+                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
+                if ($scope.onRefresh) {
+                    // beamline overlay always starts at position 0
+                    xdom[0] = 0;
+                }
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
                 if (json.y_range[0] == json.y_range[1]) {
@@ -2840,7 +2881,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     // until load() is invoked.  Also broadcast them so the overlay can set them up
                     var name = $scope.modelName + '-fp-' + i;
                     if(! $scope.focusPoints[i]) {
-                        $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x.scale, axes.y.scale, false, axes.x, name);
+                        $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x, axes.y, false, name);
                         var fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-' + i);
                         fcd.focusPoints.push($scope.focusPoints[i]);
                         $scope.popupDelegate.focusPoints.push($scope.focusPoints[i]);
@@ -2909,15 +2950,11 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             }
             function setPlotVisible(pIndex, isVisible) {
                 plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                vIcon(pIndex).text(vIconText(isVisible));
+                vIcon(pIndex).property('checked', isVisible);
 
                 // let the delegates do something if needed
                 $scope.popupDelegate.setInfoVisible(pIndex, isVisible);
                 $scope.focusCircleDelegates[pIndex].setInfoVisible(isVisible);
-            }
-            function vIconText(isVisible) {
-                // e105 == open eye, e106 == closed eye
-                return isVisible ? '\ue105' : '\ue106';
             }
         },
         link: function link(scope, element) {
@@ -3125,7 +3162,7 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
 //TODO(mvk): This directive should move to sirepo-plotting-vtk
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry, $timeout) {
 
     return {
         restrict: 'A',
@@ -3136,7 +3173,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
         controller: function($scope, $element) {
 
             var d3self;
-            var X_Z_ASPECT_RATIO = 4.0 / 7.0;
+            var xzAspectRatio = 4.0 / 7.0;
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
             $scope.width = $scope.height = 0;
             $scope.axesMargins = {
@@ -3147,8 +3184,23 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             // little test boxes are useful for translating vtk space to screen space
             $scope.testBoxes = [];
 
+            // The side of the plot facing the user
             $scope.side = 'y';
-            $scope.xdir = 1;  $scope.ydir = 1;  $scope.zdir = 1;
+            $scope.xdir = 1;
+            $scope.ydir = 1;
+            $scope.zdir = 1;
+
+            $scope.canInteract = true;
+            $scope.interactionStyle = function () {
+                if(! $scope.canInteract) {
+                    return {
+                        'cursor': 'not-allowed'
+                    };
+                }
+                return {
+                    'cursor': 'pointer'
+                };
+            };
 
             $scope.dataCleared = true;
 
@@ -3158,12 +3210,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.showImpact = true;
             $scope.showConductors = true;
 
-            // to speed renders, only draw lines between every <joinEvery> data points
-            function getJoinEvery() {
-                return appState.models.particle3d.joinEvery || 5;
-            }
-
             // these are in screen/vtk coords, not lab coords
+            //TODO(mvk): should refer only to lab coords outside of plotting-vtk (?)
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
@@ -3179,33 +3227,37 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var cam = null;
             var camPos = [0, 0, 1];
             var camViewUp = [0, 1, 0];
+            var camFP = [0, 0, 0];
+            var camZoom = 1.3;
+            var lastCamPos = camPos;
+            var lastCamViewUp = camViewUp;
+            var lastCamFP = camFP;
+            var lastCamZoom = camZoom;
+            var interactor;
 
             // planes
-            var gridPlaneSources = [];
-            var gridPlaneActors = [];
+            var gridPlaneBundles = [];
 
             var startPlaneBundle = null;
             var endPlaneBundle = null;
 
             // conductors (boxes)
+            var conductorBundles = [];
             var conductorActors = [];
 
             // lines
-            var lineActors = [];
-            var reflectedLineActors = [];
+            var absorbedLineBundle;
+            var reflectedLineBundle;
 
             // spheres
             var impactSphereActors = [];
-            var fieldSphereActors = [];
 
             // outline
             var outlineSource = null;
-            var outlineMapper = null;
             var outlineBundle = null;
-            var outlineActor = null;
             var vpOutline = null;
 
-            // orientation cube
+            // orientation cube/axis
             var orientationMarker = null;
 
             // geometry
@@ -3219,9 +3271,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var ymin = 0.0;  var ymax = 1.0;
             var zmin = 0.0;  var zmax = 1.0;
 
-            // these are randomly generated in python for now
-            var ypoints = pointData.z_points;
-
             var heatmap = [];
             var fieldXFactor = 1.0;
             var fieldZFactor = 1.0;
@@ -3231,17 +3280,21 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             var minZSpacing = Number.MAX_VALUE;
 
-            var impactSphereSize = 0.0125 * X_Z_ASPECT_RATIO;
+            var impactSphereSize = 0.0125 * xzAspectRatio;
             var zoomUnits = 0;
             var didPan = false;
-            var minZoomUnits = -256;
-            var maxZoomUnits = 256;
+            var sceneRect;
+            var sceneArea;
+            var screenRect;
+            var malSized = false;
+            var offscreen = false;
+            var picker = vtk.Rendering.Core.vtkPicker.newInstance();
 
             // colors - vtk uses a range of 0-1 for RGB components
-            var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
-            var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
-            var particleTrackColor = [70.0/255.0, 130.0/255.0, 180.0/255.0];
-            var reflectedParticleTrackColor = [224.0/255.0, 72.0/255.0, 54.0/255.0];
+            var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
+            var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+            var particleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.particleTrackColor);
+            var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
@@ -3273,13 +3326,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             $scope.init = function() {
+
                 d3self = d3.selectAll($element);
 
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
-                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({ background: [1, 1, 1, 1], container: rw });
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1, 1],
+                    container: rw,
+                    listenWindowResize: false,
+                });
                 renderer = fsRenderer.getRenderer();
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
+                interactor = renderWindow.getInteractor();
                 mainView = renderWindow.getViews()[0];
 
                 cam = renderer.get().activeCamera;
@@ -3292,19 +3351,26 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 worldCoord.setCoordinateSystemToWorld();
 
                 var isDragging = false;
+                var isPointerUp = true;
                 rw.onpointerdown = function(evt) {
-                    isDragging = true;
+                    isDragging = false;
+                    isPointerUp = false;
                 };
                 rw.onpointermove = function(evt) {
-                    if(! isDragging) {
+                    if(isPointerUp) {
                         return;
                     }
+                    isDragging = true;
                     didPan = didPan || evt.shiftKey;
                     $scope.side = null;
                     utilities.debounce(refresh, 100)();
                 };
                 rw.onpointerup = function(evt) {
+                    if(! isDragging) {
+                        // use picker to display info on objects
+                    }
                     isDragging = false;
+                    isPointerUp = true;
                     refresh();
                 };
                 rw.onwheel = function (evt) {
@@ -3312,8 +3378,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     // If zoom needs to be halted or limited, it can be done here.  For now track the "zoom units"
                     // for managing refreshing and resetting
-                    zoomUnits += evt.deltaY;
-
+                    if(! malSized) {
+                        zoomUnits += evt.deltaY;
+                    }
                     utilities.debounce(refresh, 100)();
                 };
 
@@ -3322,12 +3389,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
                 startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
+                //startPlaneBundle.actor.getProperty().setOpacity(0.5);
                 startPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(startPlaneBundle.actor);
 
                 // the collector plane
                 endPlaneBundle = coordMapper.buildPlane();
                 endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
+                //endPlaneBundle.actor.getProperty().setOpacity(0.5);
                 endPlaneBundle.actor.getProperty().setLighting(false);
                 renderer.addActor(endPlaneBundle.actor);
 
@@ -3343,7 +3412,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 renderer.addActor(outlineBundle.actor);
 
                 vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
-                //vpOutline = vtkPlotting.vpBox(warpVTKService.getOutline().source, renderer);
                 //srdbg('outline edges', vpOutline.edgs());
                 //srdbg('outline extrena', vpOutline.extr());
 
@@ -3363,40 +3431,31 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // 6 grid planes indexed by dimension then side
                 for(var d = 0; d < 3; ++d) {
-                    var dps = [];
-                    var dpa = [];
+                    var dpb = [];
                     for(var s = 0; s < 1; ++s) {
-                        var pm = vtk.Rendering.Core.vtkMapper.newInstance();
-                        var pa  = vtk.Rendering.Core.vtkActor.newInstance();
-                        //pa.getProperty().setColor(0.7, 0.7, 0.7);
-                        pa.getProperty().setColor(0, 0, 0);
-                        pa.getProperty().setLighting(false);
-                        pa.getProperty().setRepresentationToWireframe();
-                        var ps = vtk.Filters.Sources.vtkPlaneSource.newInstance();
-                        dps.push(ps);
-                        pm.setInputConnection(ps.getOutputPort());
-                        pa.setMapper(pm);
-                        renderer.addActor(pa);
-                        dpa.push(pa);
+                        var pb = coordMapper.buildPlane();
+                        pb.actor.getProperty().setColor(0, 0, 0);
+                        pb.actor.getProperty().setLighting(false);
+                        pb.actor.getProperty().setRepresentationToWireframe();
+                        renderer.addActor(pb.actor);
+                        dpb.push(pb);
                     }
-                    gridPlaneSources.push(dps);
-                    gridPlaneActors.push(dpa);
+                    gridPlaneBundles.push(dpb);
                 }
+
+                absorbedLineBundle = coordMapper.buildActorBundle();
+                reflectedLineBundle = coordMapper.buildActorBundle();
             };
 
             $scope.load = function() {
                 $scope.dataCleared = false;
 
-                vtkPlotting.removeActors(renderer, lineActors);
-                vtkPlotting.removeActors(renderer, reflectedLineActors);
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
 
-                lineActors = [];
-                reflectedLineActors = [];
                 impactSphereActors = [];
-                fieldSphereActors = [];
                 conductorActors = [];
+                conductorBundles = [];
 
                 if(!pointData) {
                     return;
@@ -3410,10 +3469,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 zmin = pointData.x_range[0];
                 zmax = pointData.x_range[1];
 
-                // these are randomly generated in python for now
                 var ypoints = pointData.z_points;
                 ymin = pointData.z_range[0];
                 ymax = pointData.z_range[1];
+
+                // matrices might be helpful
+                var lcoords = [];
+                var lostCoords = [];
+                zpoints.forEach(function (z, i) {
+                    lcoords.push(geometry.transpose([xpoints[i], ypoints[i], zpoints[i]]));
+                });
+                pointData.lost_z.forEach(function (z, i) {
+                    lostCoords.push(geometry.transpose([pointData.lost_y[i], pointData.lost_z[i], pointData.lost_x[i]]));
+                });
 
                 var axisInfo = {
                     x: {
@@ -3453,20 +3521,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var t2 = geometry.transform(
                      [
                         [1.0 / Math.abs(zmax - zmin), 0, 0],
-                        [0, X_Z_ASPECT_RATIO / Math.abs(xmax - xmin), 0],
-                        [0, 0, yzAspectRatio * X_Z_ASPECT_RATIO / Math.abs(ymax - ymin)]
+                        [0, xzAspectRatio / Math.abs(xmax - xmin), 0],
+                        [0, 0, yzAspectRatio * xzAspectRatio / Math.abs(ymax - ymin)]
                     ]
                 );
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
 
                 //warpVTKService.updateScene(coordMapper, axisInfo);
 
-                coordMapper.setPlane(startPlaneBundle.source,
+                coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
                     [xmin, ymax, zmin],
                     [xmax, ymin, zmin]
                 );
-                coordMapper.setPlane(endPlaneBundle.source,
+                coordMapper.setPlane(endPlaneBundle,
                     [xmin, ymin, zmax],
                     [xmin, ymax, zmax],
                     [xmax, ymin, zmax]
@@ -3482,9 +3550,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
                 var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
                 var osCtr = [];
-                for(var i = 0; i < 3; ++i) {
-                    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
-                }
+                epsOrigin.forEach(function (o, i) {
+                    osCtr.push((o - spsOrigin[i]) / 2.0);
+                });
+
+                //for(var i = 0; i < 3; ++i) {
+                //    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
+                //}
+
                 outlineBundle.setLength([
                     Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
                     Math.abs(epsP2[1] - epsP1[1]) + padding,
@@ -3492,11 +3565,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 ]);
                 outlineBundle.setCenter(osCtr);
 
-
-
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        var ps = gridPlaneSources[d][s];
+                        //var ps = gridPlaneSources[d][s];
+                        var pb = gridPlaneBundles[d][s];
                         var gpOrigin = s == 0 ?
                             [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
                             [osCtr[0] + osXLen/2.0, osCtr[1] + osYLen/2.0, osCtr[2] + osZLen/2.0];
@@ -3537,18 +3609,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                                 break;
                         }
                         // all coords are within vtk, so use the default (identity) coordMapper
-                        vtkPlotting.coordMapper().setPlane(ps, gpOrigin, gpP1, gpP2);
+                        vtkPlotting.coordMapper().setPlane(pb, gpOrigin, gpP1, gpP2);
                     }
                 }
-
-
-                var joinEvery =  getJoinEvery();
 
                 // evenly spaced points to be linearly interpolated between the data, for
                 // purposes of coloring lines with the field colors
                 var numInterPoints = 50;
 
-              for(var dim in axes) {
+                for(var dim in axes) {
                     var info = axisInfo[dim];
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
@@ -3593,61 +3662,57 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     [vpOutline.edges.leftBottom, vpOutline.edges.rightBottom, vpOutline.edges.leftTop, vpOutline.edges.rightTop]
                 );
 
+
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestIndex = 0;
                 indexMaps = [];
-                for(i = 0; i < zpoints.length; ++i) {
-                    var zArr = zpoints[i];  var yArr = ypoints[i];  var xArr = xpoints[i];
-                    var l = zArr.length;
+
+                // linearly interpolate the data
+                for(var i = 0; i < lcoords.length; ++i) {
+                    var ptsArr = lcoords[i];
 
                     var newIndexMap = {0:0};
                     var lastNearestIndex = 0;
-                    nearestIndex = joinEvery;
-                    var newZ = zArr[0];
-                    var finalZ = zArr[zArr.length-1];
+                    nearestIndex = 1;
+                    var newZ = ptsArr[0][2];
+                    var finalZ = ptsArr[ptsArr.length-1][2];
                     var j = 1;
-                    while (newZ <= finalZ) {  // ASSUMES MONOTONICALLY INCREASING
-                        newZ = zArr[0] + j * minZSpacing;
-                        nearestIndex = joinEvery;  // start at the beginning
-                        lastNearestIndex = joinEvery;
-                        var checkZ = zArr[nearestIndex];
-                        while (nearestIndex < zArr.length && checkZ < newZ) {
+
+                    // ASSUMES MONOTONICALLY INCREASING Z
+                    while (newZ <= finalZ) {
+                        newZ = ptsArr[0][2] + j * minZSpacing;
+                        nearestIndex = 1;  // start at the beginning
+                        lastNearestIndex = 1;
+                        var checkZ = ptsArr[nearestIndex][2];
+                        while (nearestIndex < ptsArr.length && checkZ < newZ) {
                             if(! newIndexMap[nearestIndex]) {
                                 // ensures we don't skip any indices, mapping them to the nearest previously mapped value
-                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery) || 0;
+                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, 1) || 0;
                             }
-                            nearestIndex += joinEvery;
-                            checkZ = zArr[nearestIndex];
+                            ++nearestIndex;
+                            checkZ = (ptsArr[nearestIndex] || [])[2];
                         }
                         if(nearestIndex != lastNearestIndex) {
                             lastNearestIndex = nearestIndex;
                         }
-                        var lowIndex = Math.max(0, nearestIndex - joinEvery);
-                        var highIndex = Math.min(zArr.length-1, nearestIndex);
-                        var z = zArr[lowIndex];
-                        var nextZ = zArr[highIndex];
-                        var y = yArr[lowIndex];
-                        var nextY = yArr[highIndex];
-                        var x = xArr[lowIndex];
-                        var nextX = xArr[highIndex];
 
-                        // linear interpolation
-                        var dx = nextX - x;
-                        var dy = nextY - y;
-                        var dz = nextZ - z;
-                        var newX = dz ? x + (newZ - z) * dx / dz : x;
-                        var newY = dz ? y + (newZ - z) * dy / dz : y;
+                        var lo = Math.max(0, nearestIndex - 1);
+                        var hi = Math.min(ptsArr.length-1, nearestIndex);
+                        var p = ptsArr[lo];
+                        var nextP = ptsArr[hi];
+                        var dzz = nextP[2] - p[2];
+                        var newP = [0, 0, newZ];
+                        for(var ci = 0; ci < 2; ++ci) {
+                            newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
+                        }
+                        ptsArr.splice(lo + 1, 0, newP);
 
-                        zArr.splice(lowIndex+1, 0, newZ);
-                        yArr.splice(lowIndex+1, 0, newY);
-                        xArr.splice(lowIndex+1, 0, newX);
-
-                        newIndexMap[highIndex] = j;
+                        newIndexMap[hi] = j;
                         ++j;
-                    }  // END WHILE
-                    newIndexMap[zArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, joinEvery);
+                    }
+                    newIndexMap[ptsArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, 1);
                     indexMaps.push(newIndexMap);
-                }  // end loop over partcles
+                }
 
                 // distribute the heat map evenly over the interpolated points
                 heatmap = appState.clone(fieldData.z_matrix).reverse();
@@ -3660,16 +3725,24 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var hm_zmin = Math.max(0, plotting.min2d(heatmap));
                 var hm_zmax = plotting.max2d(heatmap);
-                fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'fieldAnimation');
+                fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
-                buildLineActorsFromPoints(xpoints, ypoints, zpoints, null, true);
+                setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
-                    buildLineActorsFromPoints(pointData.lost_y, pointData.lost_z, pointData.lost_x, reflectedParticleTrackColor, false);
+                    setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
+                }
+
+                function scaleWithShave(a) {
+                    var shave = 0.01;
+                    return (1.0 - shave) * a / cFactor;
+                }
+
+                function scaleConductor(a) {
+                    return a / cFactor;
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
-                var shave = 0.001;
                 for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
                     var conductor = appState.models.conductors[cIndex];
 
@@ -3688,70 +3761,88 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         }
                     }
                     if(cModel) {
-                        var zl = (1.0 - shave) * cModel.zLength / cFactor;
-                        var xl = (1.0 - shave) * cModel.xLength / cFactor;
-                        var yl = (1.0 - shave) * cModel.yLength / cFactor;
+                        var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(scaleWithShave);
+                        var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(scaleConductor);
 
-                        var zc = conductor.zCenter / cFactor;
-                        var xc = conductor.xCenter / cFactor;
-                        var yc = conductor.yCenter / cFactor;
-
-                        //var ba = coordMapper.buildBox([xl, yl, zl], [xc, yc, zc]);
-                        var ba = coordMapper.buildBox([xl, yl, zl], [xc, yc, zc]).actor;
-                        ba.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
-                        ba.getProperty().setEdgeVisibility(true);
-                        ba.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
-                        ba.getProperty().setLighting(false);
-                        ba.getProperty().setOpacity(0.80);
-                        conductorActors.push(ba);
+                        var bb = coordMapper.buildBox(bl, bc);
+                        conductorBundles.push(bb);
+                        bb.actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                        bb.actor.getProperty().setEdgeVisibility(true);
+                        bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                        bb.actor.getProperty().setLighting(false);
+                        bb.actor.getProperty().setOpacity(0.80);
+                        conductorActors.push(bb.actor);
                     }
                 }
 
                 refresh();
             };
 
-            function buildLineActorsFromPoints(xpoints, ypoints, zpoints, color, includeImpact) {
-                var joinEvery = getJoinEvery();
-                var x = 0.0;  var y = 0.0;  var z = 0.0;
-                var nextX = 0.0;  var nextY = 0.0;  var nextZ = 0.0;
+            function setLinesFromPoints(bundle, points, color, includeImpact) {
+                if(! bundle) {
+                    return;
+                }
+
                 var k = 0;
-                for (var i = 0; i < zpoints.length; ++i) {
-                    var l = zpoints[i].length;
-                    for (var j = 0; j < l; j += joinEvery) {
-                        z = zpoints[i][j];
-                        x = xpoints[i][j];
-                        y = ypoints[i][j];
+                var dataPoints = [];
+                var dataLines = [];
+                var dataColors = [];
+                for (var i = 0; i < points.length; ++i) {
+                    var l = points[i].length;
+                    for (var j = 0; j < l; ++j) {
                         ++numPoints;
-                        if (j < l - joinEvery) {
-                            k = j + joinEvery;
-                            nextZ = zpoints[i][k];
-                            nextX = xpoints[i][k];
-                            nextY = ypoints[i][k];
-                            lineActors.push(coordMapper.buildLine(
-                                [x, y, z],
-                                [nextX, nextY, nextZ],
-                                color || colorAtIndex(indexMaps[i][j])
-                            ).actor);
+                        if (j < l - 1) {
+                            k = j + 1;
+                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
-                    if(l - 1 > j - joinEvery) {
-                        k = j - joinEvery;
-                        z = zpoints[i][k];
-                        x = xpoints[i][k];
-                        y = ypoints[i][k];
-                        nextZ = zpoints[i][l - 1];
-                        nextX = xpoints[i][l - 1];
-                        nextY = ypoints[i][l - 1];
+                    if(l > j) {
+                        k = j - 1;
                         ++numPoints;
-                        lineActors.push(coordMapper.buildLine([x, y, z], [nextX, nextY, nextZ], color || colorAtIndex(indexMaps[i][j - joinEvery])).actor);
+                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(indexMaps[i][k]));
                     }
                     if(includeImpact) {
-                        k = xpoints[i].length - 1;
-                        var lastZ = zpoints[i][k];
-                        var lastX = xpoints[i][k];
-                        var lastY = ypoints[i][k];
-                        impactSphereActors.push(coordMapper.buildSphere([lastX, lastY, lastZ], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
+                        k = points[i].length - 1;
+                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
                     }
+                }
+                var p32 = window.Float32Array.from(dataPoints);
+                var l32 = window.Uint32Array.from(dataLines);
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(p32, 3);
+                pd.getLines().setData(l32);
+                bundle.mapper.setInputData(pd);
+
+                if(color) {
+                    bundle.mapper.setScalarVisibility(false);
+                    bundle.actor.getProperty().setColor(color[0], color[1], color[2]);
+                }
+                else {
+                    bundle.mapper.setScalarVisibility(true);
+                    var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                        numberOfComponents: 3,
+                        values: dataColors,
+                        dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                    });
+
+                    // lines live in "cells"
+                    pd.getCellData().setScalars(carr);
+                }
+
+                function pushLineData(p1, p2, c) {
+                    // we always have two points per line
+                    dataLines.push(2);
+                    dataLines.push(dataPoints.length / 3, 1 + dataPoints.length / 3);
+                    [p1, p2].forEach(function (p) {
+                        coordMapper.xform.doTransform(p).forEach(function (a) {
+                            dataPoints.push(a);
+                        });
+                    });
+
+                    // scalar colors are unsigned chars, not floats like for every other part of vtk
+                    c.forEach(function (comp) {
+                        dataColors.push(Math.floor(255*comp));
+                    });
                 }
             }
             function indexValPriorTo(map, startIndex, spacing) {
@@ -3783,8 +3874,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             function refresh() {
                 var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
-                $scope.width = plotting.constrainFullscreenSize($scope, width, X_Z_ASPECT_RATIO);
-                $scope.height = X_Z_ASPECT_RATIO * $scope.width;
+                $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
+                $scope.height = xzAspectRatio * $scope.width;
 
                 var vtkCanvasHolderSize = {
                     width: $('.vtk-canvas-holder').width(),
@@ -3796,7 +3887,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     right: vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
                     bottom: vtkCanvasHolderSize.height - $scope.axesMargins.y.height
                 };
-                var vchb = geometry.rect(
+                screenRect = geometry.rect(
                     geometry.point(
                         $scope.axesMargins.x.width,
                         $scope.axesMargins.y.height
@@ -3826,18 +3917,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     .attr('height', vtkCanvasSize.height);
 
                 // Note that vtk does not re-add actors to the renderer if they already exist
-                vtkPlotting.addActors(renderer, lineActors);
-                vtkPlotting.addActors(renderer, reflectedLineActors);
+                vtkPlotting.addActor(renderer, absorbedLineBundle.actor);
+                vtkPlotting.addActor(renderer, reflectedLineBundle.actor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
 
-                vtkPlotting.showActors(renderWindow, lineActors, $scope.showAbsorbed);
+                vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
-                vtkPlotting.showActors(renderWindow, reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
 
                 // reset camera will negate zoom and pan but *not* rotation
-                if (zoomUnits == 0 && !didPan) {
+                if (zoomUnits == 0 && ! didPan) {
                     renderer.resetCamera();
                 }
                 renderWindow.render();
@@ -4031,10 +4122,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     clippedXEnds = plotUtilities.sortInDimension(
                         plotUtilities.edgesInsideBounds(screenXEnds, vtkCanvasHolderBounds),
                         0, false);
-                    xAxisLeft = Math.max(sceneXEnds[0][0], clippedXEnds[0][0]);
-                    xAxisTop = xAxisLeft == sceneXEnds[0][0] ? sceneXEnds[0][1] : clippedXEnds[0][1];
-                    xAxisRight = Math.min(sceneXEnds[1][0], clippedXEnds[1][0]);
-                    xAxisBottom = xAxisRight == sceneXEnds[1][0] ? sceneXEnds[1][1] : clippedXEnds[1][1];
+                    if(clippedXEnds) {
+                        xAxisLeft = Math.max(sceneXEnds[0][0], clippedXEnds[0][0]);
+                        xAxisTop = xAxisLeft == sceneXEnds[0][0] ? sceneXEnds[0][1] : clippedXEnds[0][1];
+                        xAxisRight = Math.min(sceneXEnds[1][0], clippedXEnds[1][0]);
+                        xAxisBottom = xAxisRight == sceneXEnds[1][0] ? sceneXEnds[1][1] : clippedXEnds[1][1];
+                    }
+                    else {
+                        xAxisLeft = sceneXEnds[0][0];
+                        xAxisTop = sceneXEnds[0][1];
+                        xAxisRight = sceneXEnds[1][0];
+                        xAxisBottom = sceneXEnds[1][1];
+                    }
                     xAxisProjLen = plotUtilities.dist([xAxisLeft, xAxisTop], [xAxisRight, xAxisBottom]);
                     sceneXLen = plotUtilities.dist(sceneXEnds[0], sceneXEnds[1]);
                     tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
@@ -4049,7 +4148,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var domainPct = 0.0;
                 var domainPart = 0.0;
                 if (!plotUtilities.isPointWithinBounds(sceneXEnds[0], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneXEnds[0], clippedXEnds[0]) / sceneXLen;
+                    domainPct = clippedXEnds ? plotUtilities.dist(sceneXEnds[0], clippedXEnds[0]) / sceneXLen : 0;
                     domainPart = (zmax - zmin) * domainPct;
                     if (isXReversed) {
                         newMax = zmax - domainPart;
@@ -4059,7 +4158,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
                 if (!plotUtilities.isPointWithinBounds(sceneXEnds[1], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneXEnds[1], clippedXEnds[1]) / sceneXLen;
+                    domainPct = clippedXEnds ? plotUtilities.dist(sceneXEnds[1], clippedXEnds[1]) / sceneXLen : 0;
                     domainPart = (zmax - zmin) * domainPct;
                     if (isXReversed) {
                         newMin = zmin + domainPart;
@@ -4083,7 +4182,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }, select);
                 }
 
-                // TODO (mvK): adjust axis position to account for tick labels
+                //TODO(mvk): adjust axis position to account for tick labels
                 var xlabels = d3self.selectAll('.x.axis text');
                 //if(xlabels[0].length > 0) {
                 //    var lowestCornerY = lowestCorners[0][1];
@@ -4185,10 +4284,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     clippedYEnds = plotUtilities.sortInDimension(
                         plotUtilities.edgesInsideBounds(screenYEnds, vtkCanvasHolderBounds),
                         1, false);
-                    yAxisTop = Math.max(sceneYEnds[0][1], clippedYEnds[0][1]);
-                    yAxisLeft = yAxisTop == sceneYEnds[0][1] ? sceneYEnds[0][0] : clippedYEnds[0][0];
-                    yAxisBottom = Math.min(sceneYEnds[1][1], clippedYEnds[1][1]);
-                    yAxisRight = yAxisBottom == sceneYEnds[1][1] ? sceneYEnds[1][0] : clippedYEnds[1][0];
+                    if(clippedYEnds) {
+                        yAxisTop = Math.max(sceneYEnds[0][1], clippedYEnds[0][1]);
+                        yAxisLeft = yAxisTop == sceneYEnds[0][1] ? sceneYEnds[0][0] : clippedYEnds[0][0];
+                        yAxisBottom = Math.min(sceneYEnds[1][1], clippedYEnds[1][1]);
+                        yAxisRight = yAxisBottom == sceneYEnds[1][1] ? sceneYEnds[1][0] : clippedYEnds[1][0];
+                    }
+                    else {
+                        yAxisTop = sceneYEnds[0][1];
+                        yAxisLeft = sceneYEnds[0][0];
+                        yAxisBottom = sceneYEnds[1][1];
+                        yAxisRight = sceneYEnds[1][0];
+                    }
                     yAxisProjLen = plotUtilities.dist([yAxisLeft, yAxisTop], [yAxisRight, yAxisBottom]);
                     sceneYLen = plotUtilities.dist(sceneYEnds[0], sceneYEnds[1]);
                     tanPhi = (sceneYEnds[0][1] - sceneYEnds[1][1]) / (sceneYEnds[0][0] - sceneYEnds[1][0]);
@@ -4206,7 +4313,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 domainPct = 0.0;
                 domainPart = 0.0;
                 if (!plotUtilities.isPointWithinBounds(sceneYEnds[0], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneYEnds[0], clippedYEnds[0]) / sceneYLen;
+                    domainPct = clippedYEnds ? plotUtilities.dist(sceneYEnds[0], clippedYEnds[0]) / sceneYLen : 0;
                     domainPart = (xmax - xmin) * domainPct;
                     if (isYReversed) {
                         newMin = xmin + domainPart;
@@ -4216,7 +4323,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
                 if (!plotUtilities.isPointWithinBounds(sceneYEnds[1], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneYEnds[1], clippedYEnds[1]) / sceneYLen;
+                    domainPct = clippedYEnds ? plotUtilities.dist(sceneYEnds[1], clippedYEnds[1]) / sceneYLen : 0;
                     domainPart = (xmax - xmin) * domainPct;
                     if (isYReversed) {
                         newMax = xmax - domainPart;
@@ -4316,15 +4423,63 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     clippedZEnds = plotUtilities.sortInDimension(
                         plotUtilities.edgesInsideBounds(screenZEnds, vtkCanvasHolderBounds),
                         0, false);
-                    zAxisLeft = Math.max(sceneZEnds[0][0], clippedZEnds[0][0]);
-                    zAxisTop = zAxisLeft == sceneZEnds[0][0] ? sceneZEnds[0][1] : clippedZEnds[0][1];
-                    zAxisRight = Math.min(sceneZEnds[1][0], clippedZEnds[1][0]);
-                    zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
+                    if(clippedZEnds) {
+                        zAxisLeft = Math.max(sceneZEnds[0][0], clippedZEnds[0][0]);
+                        zAxisTop = zAxisLeft == sceneZEnds[0][0] ? sceneZEnds[0][1] : clippedZEnds[0][1];
+                        zAxisRight = Math.min(sceneZEnds[1][0], clippedZEnds[1][0]);
+                        zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
+                    }
+                    else {
+                        zAxisLeft = sceneZEnds[0][0];
+                        zAxisTop = sceneZEnds[0][1];
+                        zAxisRight = sceneZEnds[1][0];
+                        zAxisBottom = sceneZEnds[1][1];
+                    }
                     zAxisProjLen = plotUtilities.dist([zAxisLeft, zAxisTop], [zAxisRight, zAxisBottom]);
                     sceneZLen = plotUtilities.dist(sceneZEnds[0], sceneZEnds[1]);
                     tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
                     zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
                 }
+
+                function pickdim(arr, dim) {
+                    return arr.map(function (d) {
+                        return d[dim];
+                    });
+                }
+                var xbs = [];  var ybs = [];
+                [sceneXEnds, sceneYEnds, sceneZEnds].forEach(function (ends) {
+                    xbs = xbs.concat(pickdim(ends, 0));
+                    ybs = ybs.concat(pickdim(ends, 1));
+                });
+
+                // bounding rectangle of the scene
+                sceneRect = geometry.rect(
+                    geometry.point(Math.min.apply(null, xbs), Math.min.apply(null, ybs)),
+                    geometry.point(Math.max.apply(null, xbs), Math.max.apply(null, ybs))
+                );
+
+                // initial area of scene
+                if(! sceneArea) {
+                    sceneArea = sceneRect.area();
+                }
+
+                offscreen = ! (
+                    sceneRect.intersectsRect(screenRect) ||
+                    screenRect.containsRect(sceneRect) ||
+                    sceneRect.containsRect(screenRect)
+                );
+                var a = sceneRect.area() / sceneArea;
+                malSized = a < 0.1 || a > 7.5;
+                $scope.canInteract = ! offscreen && ! malSized;
+                if($scope.canInteract) {
+                    lastCamPos = cam.getPosition();
+                    lastCamViewUp = cam.getViewUp();
+                    lastCamFP = cam.getFocalPoint();
+                }
+                else {
+                    setCam(lastCamPos, lastCamFP ,lastCamViewUp);
+                }
+
 
                 // domain is the value of the data points
                 // range is the position on the screen
@@ -4338,7 +4493,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 domainPct = 0.0;
                 domainPart = 0.0;
                 if (!plotUtilities.isPointWithinBounds(sceneZEnds[0], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneZEnds[0], clippedZEnds[0]) / sceneZLen;
+                    domainPct = clippedZEnds ? plotUtilities.dist(sceneZEnds[0], clippedZEnds[0]) / sceneZLen : 0;
                     domainPart = (ymax - ymin) * domainPct;
                     if (isZReversed) {
                         newMax = ymax - domainPart;
@@ -4348,7 +4503,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
                 if (!plotUtilities.isPointWithinBounds(sceneZEnds[1], vtkCanvasHolderBounds)) {
-                    domainPct = plotUtilities.dist(sceneZEnds[1], clippedZEnds[1]) / sceneZLen;
+                    domainPct = clippedZEnds ? plotUtilities.dist(sceneZEnds[1], clippedZEnds[1]) / sceneZLen : 0;
                     domainPart = (ymax - ymin) * domainPct;
                     if (isZReversed) {
                         newMin = ymin + domainPart;
@@ -4619,7 +4774,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numZ = Math.max($($element).find('.z.axis .tick').length - 1, 1);
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        var ps = gridPlaneSources[d][s];
+                        var ps = gridPlaneBundles[d][s].source;
                         var xres = 2;
                         var yres = 2;
                         switch (2*d + s) {
@@ -4655,15 +4810,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 resetCam();
             }
             function resetCam() {
-                cam.setPosition(camPos[0], camPos[1], camPos[2]);
-                cam.setFocalPoint(0, 0, 0);
-                cam.setViewUp(camViewUp[0], camViewUp[1], camViewUp[2]);
+                setCam(camPos, [0,0,0], camViewUp);
                 cam.zoom(1.3);
                 renderer.resetCamera();
                 zoomUnits = 0;
                 didPan = false;
                 orientationMarker.updateMarkerOrientation();
                 refresh();
+            }
+            function setCam(pos, fp, vu) {
+                cam.setPosition(pos[0], pos[1], pos[2]);
+                cam.setFocalPoint(fp[0], fp[1], fp[2]);
+                cam.setViewUp(vu[0], vu[1], vu[2]);
             }
 
             function resetZoom() {
@@ -4676,6 +4834,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 rw.removeEventListener('dblclick', reset);
+                $($element).off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
             };
 
             $scope.resize = function() {
@@ -4684,20 +4845,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.toggleAbsorbed = function() {
                 $scope.showAbsorbed = ! $scope.showAbsorbed;
-                vtkPlotting.showActors(lineActors, $scope.showAbsorbed);
-                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
+                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleImpact = function() {
                 $scope.showImpact = ! $scope.showImpact;
-                vtkPlotting.showActors(impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
+                vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
             };
             $scope.toggleReflected = function() {
                 $scope.showReflected = ! $scope.showReflected;
-                vtkPlotting.showActors(reflectedLineActors, $scope.showReflected);
+                vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
             };
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
-                vtkPlotting.showActors(conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
             };
 
 
@@ -4727,6 +4888,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.mode = 'move';
             $scope.selectMode = function(mode) {
                 $scope.mode = mode;
+                // turn off interactor?
             };
 
             function select(selector) {
@@ -4743,7 +4905,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
     };
 });
 
-//TODO(mvk): all basic geometric stuff should move to geometry service
+//TODO(mvk) (in progress): all basic geometric stuff should move to geometry service
 SIREPO.app.service('plotUtilities', function() {
 
     var utils = this;

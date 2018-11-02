@@ -16,33 +16,45 @@ import srwl_uti_smp
 
 def set_optics(v=None):
     el = []
-    # Sample: sample 20.0m
-    el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
-                    file_path=v.op_sample1,
-                    resolution=2.480469e-09,
-                    thickness=1e-05,
-                    delta=3.738856e-05,
-                    atten_len=3.38902e-06,
-                    xc=0.0, yc=0.0,
-                    area=(0, 1280, 0, 834),
-                    rotate_angle=0.0, rotate_reshape=False,
-                    cutoff_background_noise=0.5,
-                    background_color=0,
-                    tile=None,
-                    shift_x=0, shift_y=0,
-                    invert=False,
-                    is_save_images=True,
-                    prefix='op_sample1',
-                    output_image_format='tif',
-                    ))
-    # Watchpoint: watch 20.0m
-
     pp = []
-    # Sample
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 100.0, 1.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Watchpoint
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 0, 0.005, 20.0, 0.005, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['Sample', 'Watchpoint']
+    for el_name in names:
+        if el_name == 'Sample':
+            # Sample: sample 20.0m
+            el.append(srwl_uti_smp.srwl_opt_setup_transm_from_file(
+                file_path=v.op_Sample_file_path,
+                resolution=v.op_Sample_resolution,
+                thickness=v.op_Sample_thick,
+                delta=v.op_Sample_delta,
+                atten_len=v.op_Sample_atten_len,
+                xc=v.op_Sample_horizontalCenterCoordinate,
+                yc=v.op_Sample_verticalCenterCoordinate,
+                area=None if not v.op_Sample_cropArea else (
+                    v.op_Sample_areaXStart,
+                    v.op_Sample_areaXEnd,
+                    v.op_Sample_areaYStart,
+                    v.op_Sample_areaYEnd,
+                ),
+                rotate_angle=v.op_Sample_rotateAngle,
+                rotate_reshape=bool(int(v.op_Sample_rotateReshape)),
+                cutoff_background_noise=v.op_Sample_cutoffBackgroundNoise,
+                background_color=v.op_Sample_backgroundColor,
+                tile=None if not v.op_Sample_tileImage else (
+                    v.op_Sample_tileRows,
+                    v.op_Sample_tileColumns,
+                ),
+                shift_x=v.op_Sample_shiftX,
+                shift_y=v.op_Sample_shiftY,
+                invert=bool(int(v.op_Sample_invert)),
+                is_save_images=True,
+                prefix='Sample_sample',
+                output_image_format=v.op_Sample_outputImageFormat,
+            ))
+            pp.append(v.op_Sample_pp)
+        elif el_name == 'Watchpoint':
+            # Watchpoint: watch 20.0m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -213,14 +225,60 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-    # Beamline optics:
-    ['op_sample1', 's', 'sample.tif', 'input file of the sample #1'],
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 'u', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # Sample: sample
+    ['op_Sample_file_path', 's', 'sample.tif', 'imageFile'],
+    ['op_Sample_outputImageFormat', 's', 'tif', 'outputImageFormat'],
+    ['op_Sample_position', 'f', 20.0, 'position'],
+    ['op_Sample_resolution', 'f', 2.480469e-09, 'resolution'],
+    ['op_Sample_thick', 'f', 1e-05, 'thickness'],
+    ['op_Sample_delta', 'f', 3.738856e-05, 'refractiveIndex'],
+    ['op_Sample_atten_len', 'f', 3.38902e-06, 'attenuationLength'],
+    ['op_Sample_horizontalCenterCoordinate', 'f', 0.0, 'horizontalCenterCoordinate'],
+    ['op_Sample_verticalCenterCoordinate', 'f', 0.0, 'verticalCenterCoordinate'],
+    ['op_Sample_rotateAngle', 'f', 0.0, 'rotateAngle'],
+    ['op_Sample_cutoffBackgroundNoise', 'f', 0.5, 'cutoffBackgroundNoise'],
+    ['op_Sample_cropArea', 'i', 1, 'cropArea'],
+    ['op_Sample_areaXStart', 'i', 0, 'areaXStart'],
+    ['op_Sample_areaXEnd', 'i', 1280, 'areaXEnd'],
+    ['op_Sample_areaYStart', 'i', 0, 'areaYStart'],
+    ['op_Sample_areaYEnd', 'i', 834, 'areaYEnd'],
+    ['op_Sample_rotateReshape', 'i', 0, 'rotateReshape'],
+    ['op_Sample_backgroundColor', 'i', 0, 'backgroundColor'],
+    ['op_Sample_tileImage', 'i', 0, 'tileImage'],
+    ['op_Sample_tileRows', 'i', 1, 'tileRows'],
+    ['op_Sample_tileColumns', 'i', 1, 'tileColumns'],
+    ['op_Sample_shiftX', 'i', 0, 'shiftX'],
+    ['op_Sample_shiftY', 'i', 0, 'shiftY'],
+    ['op_Sample_invert', 'i', 0, 'invert'],
+
+#---Propagation parameters
+    ['op_Sample_pp', 'f',     [0, 0, 1.0, 0, 0, 1.0, 100.0, 1.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Sample'],
+    ['op_fin_pp', 'f',        [0, 0, 1.0, 0, 0, 0.005, 20.0, 0.005, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 

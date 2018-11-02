@@ -47,19 +47,15 @@ build_as_run_user() {
     npm install jshint >& /dev/null || true
     bash test.sh
     cd ..
-
+    build_run_user_home_chmod_public
 }
 
 sirepo_boot_init() {
     mkdir -p "$(dirname "$sirepo_boot")"
     build_replace_vars radia-run.sh "$sirepo_boot"
     chmod +x "$sirepo_boot"
-    build_curl https://github.com/krallin/tini/releases/download/v0.9.0/tini > "$sirepo_tini_file"
+    build_curl https://github.com/krallin/tini/releases/download/v0.18.0/tini > "$sirepo_tini_file"
     chmod +x "$sirepo_tini_file"
-
-    # legacy init
-    install -m 555 radia-run-sirepo.sh ~/bin/radia-run-sirepo
-
 }
 
 sirepo_fix_srw() {

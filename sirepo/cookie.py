@@ -36,6 +36,8 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 #: uwsgi object for logging
 _uwsgi = None
 
+#: Convert older cookies?
+_try_beaker_compat = True
 
 def clear_user():
     set_log_user(None)
@@ -184,6 +186,8 @@ class _State(dict):
         return base64.urlsafe_b64encode(self._crypto().encrypt(text))
 
     def _from_cookie_header(self, header):
+        global _try_beaker_compat
+
         s = None
         err = None
         try:
@@ -202,15 +206,21 @@ class _State(dict):
             err = e
             pkdc(pkdexc())
             # wait for decoding errors until after beaker attempt
-        if not self.get(_COOKIE_SENTINEL):
-            import sirepo.beaker_compat
-            res = sirepo.beaker_compat.update_session_from_cookie_header(header)
-            if not res is None:
-                self.clear()
-                self.set_sentinel()
-                self.update(res)
-                err = None
-                set_log_user(self.get(_COOKIE_USER))
+        if not self.get(_COOKIE_SENTINEL) and _try_beaker_compat:
+            try:
+                import sirepo.beaker_compat
+
+                res = sirepo.beaker_compat.update_session_from_cookie_header(header)
+                if not res is None:
+                    self.clear()
+                    self.set_sentinel()
+                    self.update(res)
+                    err = None
+                    set_log_user(self.get(_COOKIE_USER))
+            except AssertionError:
+                pkdlog('Unconfiguring beaker_compat: {}', pkdexc())
+                _try_beaker_compat = False
+
         if err:
             pkdlog('Cookie decoding failed: {} value={}', err, s)
 

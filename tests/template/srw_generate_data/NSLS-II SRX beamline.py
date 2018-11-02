@@ -11,87 +11,220 @@ except:
 import srwl_bl
 import srwlib
 import srwlpy
+import srwl_uti_smp
 
 
 def set_optics(v=None):
     el = []
-    # S0: aperture 33.1798m
-    el.append(srwlib.SRWLOptA("r", "a", 0.002, 0.001, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(1.081))
-    # HFM: sphericalMirror 34.2608m
-    el.append(srwlib.SRWLOptMirSph(_r=8871.45, _size_tang=0.95, _size_sag=0.005, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
-
-    el.append(srwlib.SRWLOptD(1.407))
-    # S1: aperture 35.6678m
-    el.append(srwlib.SRWLOptA("r", "a", 0.0024, 0.0015, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(0.781))
-    # DCM: C1: crystal 36.4488m
-    opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-1.53227839905e-05, _psi0i=3.59410775406e-07, _psi_hr=-8.10706354484e-06, _psi_hi=2.50931132347e-07, _psi_hbr=-8.10706354484e-06, _psi_hbi=2.50931132347e-07, _tc=0.01, _ang_as=0.0)
-    # Set crystal orientation:
-    opCr.set_orient(-0.968973817886, 2.59635532439e-08, -0.247163387763, -0.247163387763, 6.62271741473e-09)
-    el.append(opCr)
-
-    # DCM: C2: crystal 36.4488m
-    opCr = srwlib.SRWLOptCryst(_d_sp=3.13557135638, _psi0r=-1.53227839905e-05, _psi0i=3.59410775406e-07, _psi_hr=-8.10706354484e-06, _psi_hi=2.50931132347e-07, _psi_hbr=-8.10706354484e-06, _psi_hbi=2.50931132347e-07, _tc=0.01, _ang_as=0.0)
-    # Set crystal orientation:
-    opCr.set_orient(0.968973817886, 0.0, -0.247163387763, 0.247163387763, 0.0)
-    el.append(opCr)
-
-    el.append(srwlib.SRWLOptD(2.2416))
-    # At BPM1: watch 38.6904m
-
-    el.append(srwlib.SRWLOptD(11.9668))
-    # Before SSA: watch 50.6572m
-
-    # SSA: aperture 50.6572m
-    el.append(srwlib.SRWLOptA("r", "a", 5e-05, 0.003, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(11.8308))
-    # AKB: aperture 62.488m
-    el.append(srwlib.SRWLOptA("r", "a", 0.003, 0.000875, 0.0, 0.0))
-    el.append(srwlib.SRWLOptD(0.175))
-    # KBV: ellipsoidMirror 62.663m
-    el.append(srwlib.SRWLOptMirEl(_p=63.913, _q=0.637, _ang_graz=0.0025, _size_tang=0.35, _size_sag=0.003, _nvx=0.0, _nvy=0.999996875002, _nvz=-0.00249999739583, _tvx=0.0, _tvy=-0.00249999739583, _x=0.0, _y=0.0))
-
-    el.append(srwlib.SRWLOptD(0.337))
-    # KBH: ellipsoidMirror 63.0m
-    el.append(srwlib.SRWLOptMirEl(_p=12.3428, _q=0.3, _ang_graz=0.0025, _size_tang=0.3, _size_sag=0.003, _nvx=0.999996875002, _nvy=0.0, _nvz=-0.00249999739583, _tvx=-0.00249999739583, _tvy=0.0, _x=0.0, _y=0.0))
-
-    el.append(srwlib.SRWLOptD(0.3))
-    # At Sample: watch 63.3m
-
     pp = []
-    # S0
-    pp.append([0, 0, 1.0, 0, 0, 1.1, 7.0, 1.3, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # HFM
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # S1
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # DCM: C1
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # DCM: C2
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # At BPM1
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # Before SSA
-    # SSA
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # AKB
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # KBV
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # KBH
-    pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    pp.append([0, 0, 1.0, 4, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # At Sample
-    # final post-propagation
-    pp.append([0, 0, 1.0, 0, 1, 0.5, 1.0, 0.2, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    names = ['S0', 'S0_HFM', 'HFM', 'HFM_S1', 'S1', 'S1_DCM_C1', 'DCM_C1', 'DCM_C2', 'DCM_C2_At_BPM1', 'At_BPM1', 'At_BPM1_Before_SSA', 'Before_SSA', 'SSA', 'SSA_AKB', 'AKB', 'AKB_KBV', 'KBV', 'KBV_KBH', 'KBH', 'KBH_At_Sample', 'At_Sample']
+    for el_name in names:
+        if el_name == 'S0':
+            # S0: aperture 33.1798m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_S0_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_S0_Dx,
+                _Dy=v.op_S0_Dy,
+                _x=v.op_S0_x,
+                _y=v.op_S0_y,
+            ))
+            pp.append(v.op_S0_pp)
+        elif el_name == 'S0_HFM':
+            # S0_HFM: drift 33.1798m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_S0_HFM_L,
+            ))
+            pp.append(v.op_S0_HFM_pp)
+        elif el_name == 'HFM':
+            # HFM: sphericalMirror 34.2608m
+            el.append(srwlib.SRWLOptMirSph(
+                _r=v.op_HFM_r,
+                _size_tang=v.op_HFM_size_tang,
+                _size_sag=v.op_HFM_size_sag,
+                _nvx=v.op_HFM_nvx,
+                _nvy=v.op_HFM_nvy,
+                _nvz=v.op_HFM_nvz,
+                _tvx=v.op_HFM_tvx,
+                _tvy=v.op_HFM_tvy,
+                _x=v.op_HFM_x,
+                _y=v.op_HFM_y,
+            ))
+            pp.append(v.op_HFM_pp)
+            
+        elif el_name == 'HFM_S1':
+            # HFM_S1: drift 34.2608m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_HFM_S1_L,
+            ))
+            pp.append(v.op_HFM_S1_pp)
+        elif el_name == 'S1':
+            # S1: aperture 35.6678m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_S1_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_S1_Dx,
+                _Dy=v.op_S1_Dy,
+                _x=v.op_S1_x,
+                _y=v.op_S1_y,
+            ))
+            pp.append(v.op_S1_pp)
+        elif el_name == 'S1_DCM_C1':
+            # S1_DCM_C1: drift 35.6678m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_S1_DCM_C1_L,
+            ))
+            pp.append(v.op_S1_DCM_C1_pp)
+        elif el_name == 'DCM_C1':
+            # DCM_C1: crystal 36.4488m
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp=v.op_DCM_C1_d_sp,
+                _psi0r=v.op_DCM_C1_psi0r,
+                _psi0i=v.op_DCM_C1_psi0i,
+                _psi_hr=v.op_DCM_C1_psiHr,
+                _psi_hi=v.op_DCM_C1_psiHi,
+                _psi_hbr=v.op_DCM_C1_psiHBr,
+                _psi_hbi=v.op_DCM_C1_psiHBi,
+                _tc=v.op_DCM_C1_tc,
+                _ang_as=v.op_DCM_C1_ang_as,
+            )
+            crystal.set_orient(
+                _nvx=v.op_DCM_C1_nvx,
+                _nvy=v.op_DCM_C1_nvy,
+                _nvz=v.op_DCM_C1_nvz,
+                _tvx=v.op_DCM_C1_tvx,
+                _tvy=v.op_DCM_C1_tvy,
+            )
+            el.append(crystal)
+            pp.append(v.op_DCM_C1_pp)
+            
+        elif el_name == 'DCM_C2':
+            # DCM_C2: crystal 36.4488m
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp=v.op_DCM_C2_d_sp,
+                _psi0r=v.op_DCM_C2_psi0r,
+                _psi0i=v.op_DCM_C2_psi0i,
+                _psi_hr=v.op_DCM_C2_psiHr,
+                _psi_hi=v.op_DCM_C2_psiHi,
+                _psi_hbr=v.op_DCM_C2_psiHBr,
+                _psi_hbi=v.op_DCM_C2_psiHBi,
+                _tc=v.op_DCM_C2_tc,
+                _ang_as=v.op_DCM_C2_ang_as,
+            )
+            crystal.set_orient(
+                _nvx=v.op_DCM_C2_nvx,
+                _nvy=v.op_DCM_C2_nvy,
+                _nvz=v.op_DCM_C2_nvz,
+                _tvx=v.op_DCM_C2_tvx,
+                _tvy=v.op_DCM_C2_tvy,
+            )
+            el.append(crystal)
+            pp.append(v.op_DCM_C2_pp)
+            
+        elif el_name == 'DCM_C2_At_BPM1':
+            # DCM_C2_At_BPM1: drift 36.4488m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_DCM_C2_At_BPM1_L,
+            ))
+            pp.append(v.op_DCM_C2_At_BPM1_pp)
+        elif el_name == 'At_BPM1':
+            # At_BPM1: watch 38.6904m
+            pass
+        elif el_name == 'At_BPM1_Before_SSA':
+            # At_BPM1_Before_SSA: drift 38.6904m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_At_BPM1_Before_SSA_L,
+            ))
+            pp.append(v.op_At_BPM1_Before_SSA_pp)
+        elif el_name == 'Before_SSA':
+            # Before_SSA: watch 50.6572m
+            pass
+        elif el_name == 'SSA':
+            # SSA: aperture 50.6572m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_SSA_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_SSA_Dx,
+                _Dy=v.op_SSA_Dy,
+                _x=v.op_SSA_x,
+                _y=v.op_SSA_y,
+            ))
+            pp.append(v.op_SSA_pp)
+        elif el_name == 'SSA_AKB':
+            # SSA_AKB: drift 50.6572m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_SSA_AKB_L,
+            ))
+            pp.append(v.op_SSA_AKB_pp)
+        elif el_name == 'AKB':
+            # AKB: aperture 62.488m
+            el.append(srwlib.SRWLOptA(
+                _shape=v.op_AKB_shape,
+                _ap_or_ob='a',
+                _Dx=v.op_AKB_Dx,
+                _Dy=v.op_AKB_Dy,
+                _x=v.op_AKB_x,
+                _y=v.op_AKB_y,
+            ))
+            pp.append(v.op_AKB_pp)
+        elif el_name == 'AKB_KBV':
+            # AKB_KBV: drift 62.488m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_AKB_KBV_L,
+            ))
+            pp.append(v.op_AKB_KBV_pp)
+        elif el_name == 'KBV':
+            # KBV: ellipsoidMirror 62.663m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_KBV_p,
+                _q=v.op_KBV_q,
+                _ang_graz=v.op_KBV_ang,
+                _size_tang=v.op_KBV_size_tang,
+                _size_sag=v.op_KBV_size_sag,
+                _nvx=v.op_KBV_nvx,
+                _nvy=v.op_KBV_nvy,
+                _nvz=v.op_KBV_nvz,
+                _tvx=v.op_KBV_tvx,
+                _tvy=v.op_KBV_tvy,
+                _x=v.op_KBV_x,
+                _y=v.op_KBV_y,
+            ))
+            pp.append(v.op_KBV_pp)
+            
+        elif el_name == 'KBV_KBH':
+            # KBV_KBH: drift 62.663m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_KBV_KBH_L,
+            ))
+            pp.append(v.op_KBV_KBH_pp)
+        elif el_name == 'KBH':
+            # KBH: ellipsoidMirror 63.0m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_KBH_p,
+                _q=v.op_KBH_q,
+                _ang_graz=v.op_KBH_ang,
+                _size_tang=v.op_KBH_size_tang,
+                _size_sag=v.op_KBH_size_sag,
+                _nvx=v.op_KBH_nvx,
+                _nvy=v.op_KBH_nvy,
+                _nvz=v.op_KBH_nvz,
+                _tvx=v.op_KBH_tvx,
+                _tvy=v.op_KBH_tvy,
+                _x=v.op_KBH_x,
+                _y=v.op_KBH_y,
+            ))
+            pp.append(v.op_KBH_pp)
+            
+        elif el_name == 'KBH_At_Sample':
+            # KBH_At_Sample: drift 63.0m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_KBH_At_Sample_L,
+            ))
+            pp.append(v.op_KBH_At_Sample_pp)
+        elif el_name == 'At_Sample':
+            # At_Sample: watch 63.3m
+            pass
+    pp.append(v.op_fin_pp)
     return srwlib.SRWLOptC(el, pp)
 
 
@@ -262,12 +395,196 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', 0, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', 'res_int_pr_me.dat', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-
     #to add options
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
     ['source_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+
+#---Beamline optics:
+    # S0: aperture
+    ['op_S0_shape', 's', 'r', 'shape'],
+    ['op_S0_Dx', 'f', 0.002, 'horizontalSize'],
+    ['op_S0_Dy', 'f', 0.001, 'verticalSize'],
+    ['op_S0_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_S0_y', 'f', 0.0, 'verticalOffset'],
+
+    # S0_HFM: drift
+    ['op_S0_HFM_L', 'f', 1.081, 'length'],
+
+    # HFM: sphericalMirror
+    ['op_HFM_hfn', 's', 'None', 'heightProfileFile'],
+    ['op_HFM_dim', 's', 'x', 'orientation'],
+    ['op_HFM_r', 'f', 8871.45, 'radius'],
+    ['op_HFM_size_tang', 'f', 0.95, 'tangentialSize'],
+    ['op_HFM_size_sag', 'f', 0.005, 'sagittalSize'],
+    ['op_HFM_ang', 'f', 0.0025, 'grazingAngle'],
+    ['op_HFM_nvx', 'f', 0.999996875002, 'normalVectorX'],
+    ['op_HFM_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_HFM_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
+    ['op_HFM_tvx', 'f', 0.00249999739583, 'tangentialVectorX'],
+    ['op_HFM_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_HFM_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_HFM_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_HFM_y', 'f', 0.0, 'verticalOffset'],
+
+    # HFM_S1: drift
+    ['op_HFM_S1_L', 'f', 1.407, 'length'],
+
+    # S1: aperture
+    ['op_S1_shape', 's', 'r', 'shape'],
+    ['op_S1_Dx', 'f', 0.0024, 'horizontalSize'],
+    ['op_S1_Dy', 'f', 0.0015, 'verticalSize'],
+    ['op_S1_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_S1_y', 'f', 0.0, 'verticalOffset'],
+
+    # S1_DCM_C1: drift
+    ['op_S1_DCM_C1_L', 'f', 0.781, 'length'],
+
+    # DCM_C1: crystal
+    ['op_DCM_C1_hfn', 's', '', 'heightProfileFile'],
+    ['op_DCM_C1_dim', 's', 'x', 'orientation'],
+    ['op_DCM_C1_d_sp', 'f', 3.13557135638, 'dSpacing'],
+    ['op_DCM_C1_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
+    ['op_DCM_C1_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
+    ['op_DCM_C1_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
+    ['op_DCM_C1_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
+    ['op_DCM_C1_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
+    ['op_DCM_C1_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C1_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_DCM_C1_ang_as', 'f', 0.0, 'asymmetryAngle'],
+    ['op_DCM_C1_nvx', 'f', -0.968973817886, 'nvx'],
+    ['op_DCM_C1_nvy', 'f', 2.59635532439e-08, 'nvy'],
+    ['op_DCM_C1_nvz', 'f', -0.247163387763, 'nvz'],
+    ['op_DCM_C1_tvx', 'f', -0.247163387763, 'tvx'],
+    ['op_DCM_C1_tvy', 'f', 6.62271741473e-09, 'tvy'],
+    ['op_DCM_C1_ang', 'f', 1.5707963, 'grazingAngle'],
+    ['op_DCM_C1_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # DCM_C2: crystal
+    ['op_DCM_C2_hfn', 's', '', 'heightProfileFile'],
+    ['op_DCM_C2_dim', 's', 'x', 'orientation'],
+    ['op_DCM_C2_d_sp', 'f', 3.13557135638, 'dSpacing'],
+    ['op_DCM_C2_psi0r', 'f', -1.53227839905e-05, 'psi0r'],
+    ['op_DCM_C2_psi0i', 'f', 3.59410775406e-07, 'psi0i'],
+    ['op_DCM_C2_psiHr', 'f', -8.10706354484e-06, 'psiHr'],
+    ['op_DCM_C2_psiHi', 'f', 2.50931132347e-07, 'psiHi'],
+    ['op_DCM_C2_psiHBr', 'f', -8.10706354484e-06, 'psiHBr'],
+    ['op_DCM_C2_psiHBi', 'f', 2.50931132347e-07, 'psiHBi'],
+    ['op_DCM_C2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_DCM_C2_ang_as', 'f', 0.0, 'asymmetryAngle'],
+    ['op_DCM_C2_nvx', 'f', 0.968973817886, 'nvx'],
+    ['op_DCM_C2_nvy', 'f', 0.0, 'nvy'],
+    ['op_DCM_C2_nvz', 'f', -0.247163387763, 'nvz'],
+    ['op_DCM_C2_tvx', 'f', 0.247163387763, 'tvx'],
+    ['op_DCM_C2_tvy', 'f', 0.0, 'tvy'],
+    ['op_DCM_C2_ang', 'f', -1.5707963, 'grazingAngle'],
+    ['op_DCM_C2_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # DCM_C2_At_BPM1: drift
+    ['op_DCM_C2_At_BPM1_L', 'f', 2.2416, 'length'],
+
+    # At_BPM1_Before_SSA: drift
+    ['op_At_BPM1_Before_SSA_L', 'f', 11.9668, 'length'],
+
+    # SSA: aperture
+    ['op_SSA_shape', 's', 'r', 'shape'],
+    ['op_SSA_Dx', 'f', 5e-05, 'horizontalSize'],
+    ['op_SSA_Dy', 'f', 0.003, 'verticalSize'],
+    ['op_SSA_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_SSA_y', 'f', 0.0, 'verticalOffset'],
+
+    # SSA_AKB: drift
+    ['op_SSA_AKB_L', 'f', 11.8308, 'length'],
+
+    # AKB: aperture
+    ['op_AKB_shape', 's', 'r', 'shape'],
+    ['op_AKB_Dx', 'f', 0.003, 'horizontalSize'],
+    ['op_AKB_Dy', 'f', 0.000875, 'verticalSize'],
+    ['op_AKB_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_AKB_y', 'f', 0.0, 'verticalOffset'],
+
+    # AKB_KBV: drift
+    ['op_AKB_KBV_L', 'f', 0.175, 'length'],
+
+    # KBV: ellipsoidMirror
+    ['op_KBV_hfn', 's', '', 'heightProfileFile'],
+    ['op_KBV_dim', 's', 'x', 'orientation'],
+    ['op_KBV_p', 'f', 63.913, 'firstFocusLength'],
+    ['op_KBV_q', 'f', 0.637, 'focalLength'],
+    ['op_KBV_ang', 'f', 0.0025, 'grazingAngle'],
+    ['op_KBV_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_KBV_size_tang', 'f', 0.35, 'tangentialSize'],
+    ['op_KBV_size_sag', 'f', 0.003, 'sagittalSize'],
+    ['op_KBV_nvx', 'f', 0.0, 'normalVectorX'],
+    ['op_KBV_nvy', 'f', 0.999996875002, 'normalVectorY'],
+    ['op_KBV_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
+    ['op_KBV_tvx', 'f', 0.0, 'tangentialVectorX'],
+    ['op_KBV_tvy', 'f', -0.00249999739583, 'tangentialVectorY'],
+    ['op_KBV_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_KBV_y', 'f', 0.0, 'verticalOffset'],
+
+    # KBV_KBH: drift
+    ['op_KBV_KBH_L', 'f', 0.337, 'length'],
+
+    # KBH: ellipsoidMirror
+    ['op_KBH_hfn', 's', '', 'heightProfileFile'],
+    ['op_KBH_dim', 's', 'x', 'orientation'],
+    ['op_KBH_p', 'f', 12.3428, 'firstFocusLength'],
+    ['op_KBH_q', 'f', 0.3, 'focalLength'],
+    ['op_KBH_ang', 'f', 0.0025, 'grazingAngle'],
+    ['op_KBH_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_KBH_size_tang', 'f', 0.3, 'tangentialSize'],
+    ['op_KBH_size_sag', 'f', 0.003, 'sagittalSize'],
+    ['op_KBH_nvx', 'f', 0.999996875002, 'normalVectorX'],
+    ['op_KBH_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_KBH_nvz', 'f', -0.00249999739583, 'normalVectorZ'],
+    ['op_KBH_tvx', 'f', -0.00249999739583, 'tangentialVectorX'],
+    ['op_KBH_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_KBH_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_KBH_y', 'f', 0.0, 'verticalOffset'],
+
+    # KBH_At_Sample: drift
+    ['op_KBH_At_Sample_L', 'f', 0.3, 'length'],
+
+#---Propagation parameters
+    ['op_S0_pp', 'f',                 [0, 0, 1.0, 0, 0, 1.1, 7.0, 1.3, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S0'],
+    ['op_S0_HFM_pp', 'f',             [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S0_HFM'],
+    ['op_HFM_pp', 'f',                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM'],
+    ['op_HFM_S1_pp', 'f',             [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'HFM_S1'],
+    ['op_S1_pp', 'f',                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S1'],
+    ['op_S1_DCM_C1_pp', 'f',          [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'S1_DCM_C1'],
+    ['op_DCM_C1_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'DCM_C1'],
+    ['op_DCM_C2_pp', 'f',             [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'DCM_C2'],
+    ['op_DCM_C2_At_BPM1_pp', 'f',     [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'DCM_C2_At_BPM1'],
+    ['op_At_BPM1_Before_SSA_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'At_BPM1_Before_SSA'],
+    ['op_SSA_pp', 'f',                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'SSA'],
+    ['op_SSA_AKB_pp', 'f',            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'SSA_AKB'],
+    ['op_AKB_pp', 'f',                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'AKB'],
+    ['op_AKB_KBV_pp', 'f',            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'AKB_KBV'],
+    ['op_KBV_pp', 'f',                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'KBV'],
+    ['op_KBV_KBH_pp', 'f',            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'KBV_KBH'],
+    ['op_KBH_pp', 'f',                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'KBH'],
+    ['op_KBH_At_Sample_pp', 'f',      [0, 0, 1.0, 4, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'KBH_At_Sample'],
+    ['op_fin_pp', 'f',                [0, 0, 1.0, 0, 1, 0.5, 1.0, 0.2, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 def setup_magnetic_measurement_files(filename, v):

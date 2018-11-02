@@ -407,21 +407,8 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, la
     };
 });
 
-SIREPO.app.controller('ElegantSourceController', function(appState, panelState, $scope) {
+SIREPO.app.controller('ElegantSourceController', function(appState, latticeService, panelState, $scope) {
     var self = this;
-    //TODO(pjm): share with template/elegant.py _PLOT_TITLE
-    var plotTitle = {
-        'x-xp': 'Horizontal',
-        'y-yp': 'Vertical',
-        'x-y': 'Cross-section',
-        't-p': 'Longitudinal',
-    };
-    self.bunchReports = [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-    ];
 
     function validateSaving() {
         if (! appState.isLoaded()) {
@@ -477,15 +464,6 @@ SIREPO.app.controller('ElegantSourceController', function(appState, panelState, 
         validateGreaterOrEqualToZero(bunch, 'beta_z');
     }
 
-    self.bunchReportHeading = function(item) {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        var bunch = appState.models['bunchReport' + item.id];
-        var key = bunch.x + '-' + bunch.y;
-        return 'Bunch Report - ' + (plotTitle[key] || (bunch.x + ' / ' + bunch.y));
-    };
-
     self.handleModalShown = function() {
         updateHalton();
         updateLongitudinalFields();
@@ -498,28 +476,14 @@ SIREPO.app.controller('ElegantSourceController', function(appState, panelState, 
         return appState.models.bunchSource.inputSource == name;
     };
 
-    var modelAccessByItemId = {};
-
-    self.modelAccess = function(itemId) {
-        if (modelAccessByItemId[itemId]) {
-            return modelAccessByItemId[itemId];
-        }
-        var modelKey = 'bunchReport' + itemId;
-        modelAccessByItemId[itemId] = {
-            modelKey: modelKey,
-            getData: function() {
-                return appState.models[modelKey];
-            },
-        };
-        return modelAccessByItemId[itemId];
-    };
-
     appState.whenModelsLoaded($scope, function() {
         $scope.$on('bunch.changed', validateSaving);
         appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
         appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
         appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
     });
+
+    latticeService.initSourceController(self);
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService) {
@@ -627,7 +591,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             panelState.setError(info.modelKey, null);
             var outputFile = {
                 info: info,
-                reportType: reportTypeForColumns(info.plottableColumns),
+                reportType: info.isHistogram ? 'heatmap' : 'parameterWithLattice',
                 modelName: 'elementAnimation',
                 filename: info.filename,
                 modelAccess: {
@@ -707,19 +671,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         frameCache.setAnimationArgs(animationArgs);
     }
 
-    //TODO(pjm): keep in sync with template/elegant.py _report_type_for_column()
-    function reportTypeForColumns(columns) {
-        if (columns.indexOf('xFrequency') >= 0 && columns.indexOf('yFrequency') >= 0) {
-            return 'parameterWithLattice';
-        }
-        if ((columns.indexOf('x') >=0 && columns.indexOf('xp') >= 0)
-            || (columns.indexOf('y') >= 0 && columns.indexOf('yp') >= 0)
-            || (columns.indexOf('t') >= 0 && columns.indexOf('p') >= 0)) {
-            return 'heatmap';
-        }
-        return 'parameterWithLattice';
-    }
-
     function yFileUpdate(modelKey) {
         var m = appState.models[modelKey];
         if (! m.y1 && m.y) {
@@ -734,14 +685,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             m[field + 'Id'] = info.id;
             var cols = m.valueList[f] = appState.clone(info.plottableColumns);
             if (f != 'y1') {
-                cols.unshift(' ');
+                cols.push('None');
             }
             if (!m[f] || cols.indexOf(m[f]) < 0) {
                 if (f == 'y1') {
                     m[f] = defaultYColumn(cols, m.x);
                 }
                 else {
-                    m[f] = ' ';
+                    m[f] = 'None';
                 }
             }
         });

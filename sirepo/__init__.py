@@ -9,6 +9,6 @@ import pkg_resources
 
 try:
     # We only have a version once the package is installed.
-    __version__ = pkg_resources.get_distribution('pykern').version
+    __version__ = pkg_resources.get_distribution('sirepo').version
 except pkg_resources.DistributionNotFound:
     pass
