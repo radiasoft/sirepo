@@ -25,8 +25,6 @@ import sdds
 import stat
 import werkzeug
 
-BUNCH_OUTPUT_FILE = 'elegant.bun'
-
 #: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
 
@@ -74,8 +72,6 @@ _PLOT_TITLE = {
     'x-y': 'Cross-section',
     't-p': 'Longitudinal',
 }
-
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
 
 _SDDS_INDEX = 0
 
@@ -140,7 +136,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
             'y3': xFilename,
         }
         for f in ('y1', 'y2', 'y3'):
-            if data[f] == 'none' or data[f] == ' ':
+            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
                 continue
             yfield = data[f]
             y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
@@ -375,7 +371,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    return _sdds(BUNCH_OUTPUT_FILE)
+    return _sdds(_report_output_filename('bunchReport'))
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
@@ -424,7 +420,7 @@ def models_related_to_report(data):
     r = data['report']
     res = []
     if r == 'twissReport' or 'bunchReport' in r:
-        res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + ['bunch', 'bunchSource', 'bunchFile']
+        res = ['bunch', 'bunchSource', 'bunchFile']
         for f in template_common.lib_files(data):
             if f.exists():
                 res.append(f.mtime())
@@ -489,6 +485,16 @@ def prepare_for_client(data):
     return data
 
 
+def prepare_output_file(report_info, data):
+    if data['report'] == 'twissReport' or 'bunchReport' in data['report']:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        if fn.exists():
+            fn.remove()
+            output_file = report_info.run_dir.join(_report_output_filename(data['report']))
+            if output_file.exists():
+                save_report_data(data, report_info.run_dir)
+
+
 def python_source_for_model(data, model):
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
@@ -513,6 +519,23 @@ def resource_files():
         list: py.path.local objects
     """
     return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
+
+
+def save_report_data(data, run_dir):
+    report = data['models'][data['report']]
+    if data['report'] == 'twissReport':
+        report['x'] = 's'
+        report['y'] = report['y1']
+    simulation_db.write_result(
+        extract_report_data(str(run_dir.join(_report_output_filename(data['report']))), report, 0),
+        run_dir=run_dir,
+    )
+
+
+def simulation_dir_name(report_name):
+    if 'bunchReport' in report_name:
+        return 'bunchReport'
+    return report_name
 
 
 def validate_delete_file(data, filename, file_type):
@@ -865,7 +888,7 @@ def _generate_bunch_simulation(data, v):
         if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
             v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
-    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
+    v['bunchOutputFile'] = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
@@ -1185,6 +1208,12 @@ def _plot_title(xfield, yfield, page_index, page_count):
     if page_count > 1:
         title += ', Plot {} of {}'.format(page_index + 1, page_count)
     return title
+
+
+def _report_output_filename(report):
+    if report == 'twissReport':
+        return 'twiss_output.filename.sdds'
+    return 'elegant.bun'
 
 
 def _safe_sdds_value(v):

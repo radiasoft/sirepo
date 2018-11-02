@@ -6,18 +6,14 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkresource
 from pykern import pksubprocess
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import template_common
-from sirepo.template.elegant import extract_report_data, parse_elegant_log, BUNCH_OUTPUT_FILE, ELEGANT_LOG_FILE
-import copy
-import os
+from sirepo.template.elegant import save_report_data, parse_elegant_log, ELEGANT_LOG_FILE
 import py.path
-import re
 
 
 def run(cfg_dir):
@@ -38,11 +34,7 @@ def run(cfg_dir):
             simulation_db.write_result({
                 'error': err[0],
             })
-        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        if data['report'] == 'twissReport':
-            _extract_twiss_report(data)
-        else:
-            _extract_bunch_report(data)
+        save_report_data(simulation_db.read_json(template_common.INPUT_BASE_NAME), py.path.local(cfg_dir))
 
 
 def run_background(cfg_dir):
@@ -74,24 +66,3 @@ def _run_elegant(bunch_report=False, with_mpi=False):
     except Exception as e:
         # ignore elegant failures - errors will be parsed from the log
         pass
-
-
-def _extract_bunch_report(data):
-    info = extract_report_data(
-        BUNCH_OUTPUT_FILE,
-        data['models'][data['report']],
-        0,
-    )
-    simulation_db.write_result(info)
-
-
-def _extract_twiss_report(data):
-    report = data['models'][data['report']]
-    report['x'] = 's'
-    report['y'] = report['y1']
-    info = extract_report_data(
-        'twiss_output.filename.sdds',
-        report,
-        0,
-    )
-    simulation_db.write_result(info)
