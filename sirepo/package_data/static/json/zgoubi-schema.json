@@ -68,6 +68,14 @@
             ["2", "Element Misaligned"],
             ["3", "Adjust Entrance and Exit Frame"]
         ],
+        "FramesPerSecond": [
+            ["1", "1"],
+            ["2", "2"],
+            ["5", "5"],
+            ["10", "10"],
+            ["15", "15"],
+            ["20", "20"]
+        ],
         "ObjetFormat": [
             ["5", "Generate 11 particles"],
             ["5.1", "Generate 11 particles with beam ellipse"]
@@ -137,6 +145,11 @@
             ["S", "s"],
             ["time", "t"]
         ],
+        "ProbabilityDensity": [
+            ["1", "Uniform"],
+            ["2", "Gaussian"],
+            ["3", "Parabolic"]
+        ],
         "TwissParameter": [
             ["btx", "Horizontal beta [m]"],
             ["alfx", "Horizontal alpha"],
@@ -161,10 +174,45 @@
         },
         "beamlineReport": {
         },
+        "bunch": {
+            "particleCount": ["Number of Particles", "Integer", 1000],
+            "KY": ["Probability Density X", "ProbabilityDensity", "2"],
+            "KT": ["Probability Density X'", "ProbabilityDensity", "2"],
+            "KZ": ["Probability Density Y", "ProbabilityDensity", "2"],
+            "KP": ["Probability Density Y'", "ProbabilityDensity", "2"],
+            "KX": ["Probability Density Z", "ProbabilityDensity", "2"],
+            "KD": ["Probability Density Z''", "ProbabilityDensity", "2"],
+            "Y0": ["Mean Value X [m]", "Float", 0.0],
+            "T0": ["Mean Value X' [rad]", "Float", 0.0],
+            "Z0": ["Mean Value Y [m]", "Float", 0.0],
+            "P0": ["Mean Value Y' [rad]", "Float", 0.0],
+            "X0": ["Mean Value Z [m]", "Float", 0.0],
+            "D0": ["Mean Value D0", "Float", 0.0],
+            "alpha_Y": ["Horizontal alpha", "Float", 0.0],
+            "beta_Y": ["Horizontal beta [m]", "Float", 1.0],
+            "emit_Y": ["Horizontal emittance", "Float", 1e-6],
+            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 0],
+            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0],
+            "DY": ["Horizontal Dispersion [m]", "Float", 0],
+            "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
+            "alpha_Z": ["Vertical alpha", "Float", 0.0],
+            "beta_Z": ["Vertical beta [m]", "Float", 1.0],
+            "emit_Z": ["Vertical emittance", "Float", 1e-6],
+            "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 0],
+            "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0],
+            "DZ": ["Vertical Dispersion [m]", "Float", 0],
+            "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0],
+            "alpha_X": ["Longitudinal alpha", "Float", 0],
+            "beta_X": ["Longitudinal beta [m]", "Float", 0],
+            "emit_X": ["Longitudinal emittance", "Float", 1e-6],
+            "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 0],
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
+        },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "T"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -172,6 +220,7 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "P"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -417,6 +466,7 @@
                     ]]
                 ],
                 "histogramBins",
+                "framesPerSecond",
                 "colorMap",
                 "notes"
             ]
@@ -433,6 +483,7 @@
                     ]]
                 ],
                 "histogramBins",
+                "framesPerSecond",
                 "colorMap",
                 "notes"
             ]

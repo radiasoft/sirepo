@@ -17,8 +17,7 @@ import re
 
 SIM_TYPE = 'zgoubi'
 
-#TODO(pjm): change to True when reports are ready for caching
-WANT_BROWSER_FRAME_CACHE = False
+WANT_BROWSER_FRAME_CACHE = True
 
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
 

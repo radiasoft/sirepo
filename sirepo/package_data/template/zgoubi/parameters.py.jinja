@@ -3,17 +3,18 @@
 from zgoubi import core, utils
 
 line = core.Line('line')
+{# TODO(pjm): allow matching to twiss parameters #}
 {# TODO(pjm): allow selecting the beam params #}
 line.add(core.FAKE_ELEM("""
 'MCOBJET'
 {{ beamParameters_rigidity }},
 3
-1000
+{{ simulationSettings_particleCount }}
 2 2 2 2 2 2
 0 0 0 0 0 1
-1 10 4.6e-8 3
-1 10 4.6e-8 3
-1 10 2e-14 3
+8.3333504E-001 6.0693320E+000 4.6e-8 3
+-9.4425989E-001 6.6338782E+000 4.6e-8 3
+0 1 2e-14 3
 123456 234567 345678
 """))
 line.add(core.FAKE_ELEM("""
