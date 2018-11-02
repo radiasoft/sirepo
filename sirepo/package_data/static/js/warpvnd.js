@@ -579,6 +579,16 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
             $scope.is3dPreview = false;
+
+            $scope.zMargin = function () {
+                var xl = select('.x-axis-label');
+                var xaxis = select('.x.axis');
+                if(xl.empty() || xaxis.empty()) {
+                    return 0;
+                }
+                return xl.attr('height') + xaxis.node().getBBox().height + 16;
+            };
+
             var dragCarat, dragShape, dragStart, yRange, zoom;
             var planeLine = 0.0;
             var plateSize = 0;
@@ -960,6 +970,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 throw 'invalid dim: ' + dim;
             }
 
+            function zPanelHeight() {
+                return warpvndService.is3D() ? $scope.zHeight + $scope.zMargin() : 0;
+            }
+
             function refresh() {
                 if (! axes.x.domain) {
                     return;
@@ -974,7 +988,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     $scope.height = ASPECT_RATIO * $scope.width;
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom + zPanelHeight());
                     select('.z-plot')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                         .attr('height', $scope.zHeight + $scope.margin.bottom);
