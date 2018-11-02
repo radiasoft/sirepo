@@ -2805,10 +2805,11 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     // no option to toggle plot if only 1
                     if(plots.length > 1) {
-                        item.append('foreignObject')
-                            .attr('class', 'plot-visibility')
-                            .attr('y', -3 + i * 20)
-                            .html('<input type="checkbox" checked="true"></input>')
+                        item.append('text')
+                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
+                            .attr('x', 8)
+                            .attr('y', 17 + i * 20)
+                            .text(vIconText(true))
                             .on('click', getVToggleFn(i));
                     }
                     itemWidth = item.node().getBBox().width;
@@ -2821,7 +2822,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     itemWidth = item.node().getBBox().width;
                     item.append('text')
                         .attr('class', 'focus-text')
-                        .attr('x', 8 + itemWidth)
+                        .attr('x', 12 + itemWidth)
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
                 }
@@ -2950,11 +2951,15 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
             }
             function setPlotVisible(pIndex, isVisible) {
                 plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                vIcon(pIndex).property('checked', isVisible);
+                vIcon(pIndex).text(vIconText(isVisible));
 
                 // let the delegates do something if needed
                 $scope.popupDelegate.setInfoVisible(pIndex, isVisible);
                 $scope.focusCircleDelegates[pIndex].setInfoVisible(isVisible);
+            }
+            function vIconText(isVisible) {
+                // e067 == checked box, e157 == empty box
+                return isVisible ? '\ue067' : '\ue157';
             }
         },
         link: function link(scope, element) {
