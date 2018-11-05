@@ -78,6 +78,8 @@ def api_copyNonSessionSimulation():
         sim_type,
         src.join(simulation_db.SIMULATION_DATA_FILE),
     )
+    if 'report' in data:
+        del data['report']
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
     res = _save_new_and_reply(data)

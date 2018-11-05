@@ -88,6 +88,8 @@ def _create_zip(sim_type, sim_id, want_python):
     with pkio.save_chdir(simulation_db.tmp_dir()):
         res = py.path.local(sim_id + '.zip')
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
+        if 'report' in data:
+            del data['report']
         files = template_common.lib_files(data)
         files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
         if want_python:
