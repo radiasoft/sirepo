@@ -1,0 +1,7 @@
+
+line.add(core.DRIFT("D1", XL=0))
+line.add(core.FAISCNL(FNAME='{{ outputFile }}'))
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

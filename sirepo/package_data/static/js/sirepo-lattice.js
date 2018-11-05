@@ -277,8 +277,11 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         //TODO(pjm): share with template/elegant.py _PLOT_TITLE
         var plotTitle = {
             'x-xp': 'Horizontal',
+            'Y-T': 'Horizontal',
             'y-yp': 'Vertical',
+            'Z-P': 'Vertical',
             'x-y': 'Cross-section',
+            'Y-Z': 'Cross-section',
             't-p': 'Longitudinal',
             'z-zp': 'Longitudinal',
         };

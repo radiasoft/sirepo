@@ -137,18 +137,23 @@
             ["POSITRON", "Positron"]
         ],
         "PhaseSpaceCoordinate": [
-            ["D1", "dp/p"],
             ["Y", "Y"],
             ["T", "Y'"],
             ["Z", "Z"],
             ["P", "Z'"],
             ["S", "s"],
-            ["time", "t"]
+            ["time", "t"],
+            ["D1", "dp/p"]
         ],
         "ProbabilityDensity": [
             ["1", "Uniform"],
             ["2", "Gaussian"],
             ["3", "Parabolic"]
+        ],
+        "ProbabilityDensityD": [
+            ["1", "Uniform"],
+            ["2", "Exponential"],
+            ["3", "Kinematic"]
         ],
         "TwissParameter": [
             ["btx", "Horizontal beta [m]"],
@@ -168,43 +173,41 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
-        "beamParameters": {
-            "particleType": ["Particle Type", "ParticleType", "PROTON"],
-            "rigidity": ["Reference Rigidity", "Float", 1000.0, "Bρ"]
-        },
         "beamlineReport": {
         },
         "bunch": {
-            "particleCount": ["Number of Particles", "Integer", 1000],
-            "KY": ["Probability Density X", "ProbabilityDensity", "2"],
-            "KT": ["Probability Density X'", "ProbabilityDensity", "2"],
-            "KZ": ["Probability Density Y", "ProbabilityDensity", "2"],
-            "KP": ["Probability Density Y'", "ProbabilityDensity", "2"],
-            "KX": ["Probability Density Z", "ProbabilityDensity", "2"],
-            "KD": ["Probability Density Z''", "ProbabilityDensity", "2"],
-            "Y0": ["Mean Value X [m]", "Float", 0.0],
-            "T0": ["Mean Value X' [rad]", "Float", 0.0],
-            "Z0": ["Mean Value Y [m]", "Float", 0.0],
-            "P0": ["Mean Value Y' [rad]", "Float", 0.0],
-            "X0": ["Mean Value Z [m]", "Float", 0.0],
-            "D0": ["Mean Value D0", "Float", 0.0],
-            "alpha_Y": ["Horizontal alpha", "Float", 0.0],
-            "beta_Y": ["Horizontal beta [m]", "Float", 1.0],
-            "emit_Y": ["Horizontal emittance", "Float", 1e-6],
-            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 0],
-            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0],
+            "particleType": ["Particle Type", "ParticleType", "PROTON"],
+            "rigidity": ["Reference Rigidity", "Float", 1000.0, "Bρ"],
+            "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
+            "KY": ["Probability Y", "ProbabilityDensity", "2"],
+            "KT": ["Probability Y'", "ProbabilityDensity", "2"],
+            "KZ": ["Probability Z", "ProbabilityDensity", "2"],
+            "KP": ["Probability Z'", "ProbabilityDensity", "2"],
+            "KX": ["Probability X", "ProbabilityDensity", "2"],
+            "KD": ["Probability D", "ProbabilityDensityD", "2"],
+            "Y0": ["Mean Y [m]", "Float", 0.0],
+            "T0": ["Mean Y' [rad]", "Float", 0.0],
+            "Z0": ["Mean Z [m]", "Float", 0.0],
+            "P0": ["Mean Z' [rad]", "Float", 0.0],
+            "X0": ["Mean X [m]", "Float", 0.0],
+            "D0": ["Mean D0 (B𝜌/BORO)", "Float", 1.0],
+            "alpha_Y": ["Horizontal Alpha", "Float", 0.0],
+            "beta_Y": ["Horizontal Beta [m]", "Float", 1.0],
+            "emit_Y": ["Horizontal Emittance", "Float", 1e-6],
+            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 0, "RMS cutoff"],
+            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If cutoff 1 is negative, fill ring from |N| to N"],
             "DY": ["Horizontal Dispersion [m]", "Float", 0],
             "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
-            "alpha_Z": ["Vertical alpha", "Float", 0.0],
-            "beta_Z": ["Vertical beta [m]", "Float", 1.0],
-            "emit_Z": ["Vertical emittance", "Float", 1e-6],
+            "alpha_Z": ["Vertical Alpha", "Float", 0.0],
+            "beta_Z": ["Vertical Beta [m]", "Float", 1.0],
+            "emit_Z": ["Vertical Emittance", "Float", 1e-6],
             "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 0],
             "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0],
             "DZ": ["Vertical Dispersion [m]", "Float", 0],
             "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0],
-            "alpha_X": ["Longitudinal alpha", "Float", 0],
-            "beta_X": ["Longitudinal beta [m]", "Float", 0],
-            "emit_X": ["Longitudinal emittance", "Float", 1e-6],
+            "alpha_X": ["Longitudinal Alpha", "Float", 0],
+            "beta_X": ["Longitudinal Beta [m]", "Float", 0],
+            "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 0],
             "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
         },
@@ -224,6 +227,13 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
         "opticsReport": {
             "y1": ["Y1 Value", "OpticsParameter", "xm"],
             "y2": ["Y2 Value", "OpticsOptionalParameter", "ym"],
@@ -236,7 +246,6 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "particleCount": ["Number of Particles", "Integer", 1000, "IMAX"],
             "npass": ["Number of Runs", "Integer", 10, "", 1]
         },
         "twissReport": {
@@ -442,11 +451,69 @@
                 "name"
             ]
         },
-        "beamParameters": {
-            "title": "Beam Parameters",
+        "bunch": {
+            "title": "Bunch",
             "basic": [
-                "particleType",
-                "rigidity"
+                ["Particle", [
+                    "particleType",
+                    "rigidity",
+                    "particleCount"
+                ]],
+                ["Distribution", [
+                    [
+                        ["Probability Density", [
+                            "KY",
+                            "KT",
+                            "KZ",
+                            "KP",
+                            "KX",
+                            "KD"
+                        ]],
+                        ["Mean Value", [
+                            "Y0",
+                            "T0",
+                            "Z0",
+                            "P0",
+                            "X0",
+                            "D0"
+                        ]]
+                    ]
+                ]],
+                ["Phase Space", [
+                    [
+                        ["Horizontal", [
+                            "alpha_Y",
+                            "beta_Y",
+                            "emit_Y",
+                            "n_cutoff_Y",
+                            "n_cutoff2_Y"
+                        ]],
+                        ["Vertical", [
+                            "alpha_Z",
+                            "beta_Z",
+                            "emit_Z",
+                            "n_cutoff_Z",
+                            "n_cutoff2_Z"
+                        ]],
+                        ["Longitudinal", [
+                            "alpha_X",
+                            "beta_X",
+                            "emit_X",
+                            "n_cutoff_X",
+                            "n_cutoff2_X"
+                        ]]
+                    ],
+                    [
+                        ["Horizontal", [
+                            "DY",
+                            "DT"
+                        ]],
+                        ["Vertical", [
+                            "DZ",
+                            "DP"
+                        ]]
+                    ]
+                ]]
             ],
             "advanced": []
         },
@@ -488,6 +555,22 @@
                 "notes"
             ]
         },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
         "opticsReport": {
             "title": "Optics",
             "advanced": [
@@ -502,13 +585,9 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
-                "simulationSettings.particleCount",
                 "simulationSettings.npass"
             ],
-            "advanced": [
-                "simulationSettings.particleCount",
-                "simulationSettings.npass"
-            ]
+            "advanced": []
         },
         "twissReport": {
             "title": "Twiss Parameters",

@@ -101,8 +101,9 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     });
 });
 
-SIREPO.app.controller('SourceController', function() {
+SIREPO.app.controller('SourceController', function(latticeService) {
     var self = this;
+    latticeService.initSourceController(self);
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
@@ -112,6 +113,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.errorMessage = '';
 
     function handleStatus(data) {
+        self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
             ['bunchAnimation', 'bunchAnimation2'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;

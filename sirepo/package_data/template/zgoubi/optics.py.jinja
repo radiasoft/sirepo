@@ -7,7 +7,7 @@ line = core.Line('line')
 {#TODO(pjm): beam parameters need to be fitted to the selected beamline #}
 line.add(core.FAKE_ELEM("""
 'OBJET'
-{{ beamParameters_rigidity }}
+{{ bunch_rigidity }}
 5
    1.000000E-03   1.000000E-02   1.000000E-03   1.000000E-02   0.01  1.000000E-04
   -7.21875212E-10   7.30997703E-10   0.00000000E+00   0.00000000E+00   0.00  1.00000000E+00
@@ -15,7 +15,7 @@ line.add(core.FAKE_ELEM("""
 
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
-{{ beamParameters_particleType }}
+{{ bunch_particleType }}
 """))
 
 line.add(core.FAKE_ELEM("""

@@ -1,28 +1,10 @@
-# {{simulation_name}}
 
-from zgoubi import core, utils
-
-line = core.Line('line')
-{# TODO(pjm): allow matching to twiss parameters #}
-{# TODO(pjm): allow selecting the beam params #}
-line.add(core.FAKE_ELEM("""
-'MCOBJET'
-{{ beamParameters_rigidity }},
-3
-{{ simulationSettings_particleCount }}
-2 2 2 2 2 2
-0 0 0 0 0 1
-8.3333504E-001 6.0693320E+000 4.6e-8 3
--9.4425989E-001 6.6338782E+000 4.6e-8 3
-0 1 2e-14 3
-123456 234567 345678
-"""))
-line.add(core.FAKE_ELEM("""
-'PARTICUL'
-{{ beamParameters_particleType }}
-"""))
 {{ beamlineElements -}}
-line.add(core.FAISCNL(FNAME='{{ outputFile }}'))
+line.add(core.FAKE_ELEM("""
+'FAISTORE'
+zgoubi.fai
+1
+"""))
 line.add(core.REBELOTE(K=99, NPASS={{ simulationSettings_npass - 1 }}))
 line.add(core.END())
 
