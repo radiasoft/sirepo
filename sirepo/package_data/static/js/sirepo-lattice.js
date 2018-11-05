@@ -914,6 +914,22 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var newAngle = 0;
                 var maxHeight = 0;
 
+                function subScalingForType(type) {
+                    var unitScale = {x: 1, y: 1};
+                    if(type !== 'watch') {
+                        return function () {
+                            return unitScale;
+                        };
+                    }
+                    return function () {
+                        var xsMax = 50;
+                        return {
+                            x: ($scope.xScale > xsMax ? xsMax / $scope.xScale  : 1),
+                            y: 1
+                        };
+                    };
+                }
+
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
                     var picType = getPicType(item.type);
@@ -1016,6 +1032,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             x: pos.radius + pos.x + x,
                             height: 0,
                             width: length,
+                            subScaling: subScalingForType(picType),
                         };
                         if (picType == 'watch') {
                             groupItem.height = 1;
