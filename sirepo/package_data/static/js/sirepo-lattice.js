@@ -273,6 +273,35 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return false;
     };
 
+    self.initSourceController = function(controller) {
+        //TODO(pjm): share with template/elegant.py _PLOT_TITLE
+        var plotTitle = {
+            'x-xp': 'Horizontal',
+            'y-yp': 'Vertical',
+            'x-y': 'Cross-section',
+            't-p': 'Longitudinal',
+            'z-zp': 'Longitudinal',
+        };
+        controller.bunchReports = [1, 2, 3, 4].map(function(id) {
+            var modelKey = 'bunchReport' + id;
+            return {
+                id: id,
+                modelKey: modelKey,
+                getData: function() {
+                    return appState.models[modelKey];
+                },
+            };
+        });
+        controller.bunchReportHeading = function(item) {
+            if (! appState.isLoaded()) {
+                return;
+            }
+            var bunch = appState.models['bunchReport' + item.id];
+            var key = bunch.x + '-' + bunch.y;
+            return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
+        };
+    };
+
     self.newBeamline = function() {
         appState.models.beamline = self.getNextBeamline();
         panelState.showModalEditor('beamline');

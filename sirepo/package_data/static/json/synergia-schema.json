@@ -185,19 +185,19 @@
         ],
         "PhaseSpaceCoordinate6": [
             ["x", "x"],
-            ["xp", "xp"],
+            ["xp", "x'"],
             ["y", "y"],
-            ["yp", "yp"],
+            ["yp", "y'"],
             ["z", "z"],
-            ["zp", "zp"]
+            ["zp", "z'"]
         ],
         "PhaseSpaceCoordinate8": [
             ["x", "x"],
-            ["xp", "xp"],
+            ["xp", "x'"],
             ["y", "y"],
-            ["yp", "yp"],
+            ["yp", "y'"],
             ["z", "z"],
-            ["zp", "zp"],
+            ["zp", "z'"],
             ["cdt", "cdt"],
             ["dpop", "dp/p"]
         ],
