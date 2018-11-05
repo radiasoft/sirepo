@@ -76,10 +76,6 @@
             ["15", "15"],
             ["20", "20"]
         ],
-        "ObjetFormat": [
-            ["5", "Generate 11 particles"],
-            ["5.1", "Generate 11 particles with beam ellipse"]
-        ],
         "OpticsParameter": [
             ["alfx", "Horizontal alpha"],
             ["btx", "Horizontal beta [m]"],
@@ -379,39 +375,6 @@
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
-        },
-        "OBJET": {
-            "BORO": ["Reference Rigidity [kG/m]", "Float", 0.0, "BORO"],
-            "KOBJ": ["Object Format", "ObjetFormat", "5.1", "KOBJ"],
-            "dY": ["Sampling size in Y [m]", "Float", 0.0, "dY"],
-            "dT": ["Sampling size in T [rad]", "Float", 0.0, "dT"],
-            "dZ": ["Sampling size in Z [m]", "Float", 0.0, "dZ"],
-            "dP": ["Sampling size in P [rad]", "Float", 0.0, "dP"],
-            "dS": ["Sampling size in S [m]", "Float", 0.0, "dS"],
-            "dD": ["Sampling size in D", "Float", 0.0, "dD"],
-            "YR": ["Reference trajectory Y [m]", "Float", 0.0, "YR"],
-            "TR": ["Reference trajectory T [rad]", "Float", 0.0, "TR"],
-            "ZR": ["Reference trajectory Z [m]", "Float", 0.0, "ZR"],
-            "PR": ["Reference trajectory P [rad]", "Float", 0.0, "PR"],
-            "SR": ["Reference trajectory S [m]", "Float", 0.0, "SR"],
-            "DR": ["Reference trajectory D", "Float", 0.0, "DR"],
-            "alpha_Y": ["Horizontal Alpha", "Float", 0.0, "$\\alpha_Y$"],
-            "beta_Y": ["Horizontal Beta [m]", "Float", 0.0, "$\\beta_Y$"],
-            "alpha_Z": ["Vertical Alpha", "Float", 0.0, "$\\alpha_Z$"],
-            "beta_Z": ["Vertical Beta [m]", "Float", 0.0, "$\\beta_Z$"],
-            "alpha_S": ["Longitudinal Alpha", "Float", 0.0, "$\\alpha_S$"],
-            "beta_S": ["Longitudinal Beta [m]", "Float", 0.0, "$\\beta_S$"],
-            "D_Y": ["Horizontal Dispersion [m]", "Float", "$D_Y$"],
-            "Dprime_Y": ["Horizontal Dispersion Derivative [rad]", "Float", 0.0, "$D1_Y$"],
-            "D_Z": ["Vertical Dispersion [m]", "Float", 0.0, "$D_Z$"],
-            "Dprime_Z": ["Vertical Dispersion Derivative [rad]", "Float", 0.0, "$D1_Z$"]
-        },
-        "PARTICUL": {
-            "M": ["Mass [MeV/c^2]", "Float", 0.0, "M"],
-            "Q": ["Charge [C]", "Float", 0.0, "Q"],
-            "G": ["Gyromagnetic Factor", "Float", 0.0, "G"],
-            "TAU": ["COM Life-time [s]", "Float", 0.0, "$\\tau\\$"],
-            "particle_type": ["Particle Type", "ParticleType", "ELECTRON", "Type"]
         },
         "QUADRUPO": {
             "name": ["Name", "ValidatedString"],
