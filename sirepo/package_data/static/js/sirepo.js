@@ -1148,11 +1148,12 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         });
     };
 
+    //TODO(pjm): should be renamed, showColumnEditor()
     self.showRow = function(model, field, isShown) {
         //TODO(pjm): remove jquery and use attributes on the fieldEditor directive
-        showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
+        showValue($(fieldClass(model, field)).closest('.sr-column-editor').parent(), isShown);
         self.waitForUI(function() {  //MR: fix for https://github.com/radiasoft/sirepo/issues/730
-            showValue($(fieldClass(model, field)).closest('.row').parent(), isShown);
+            showValue($(fieldClass(model, field)).closest('.sr-column-editor').parent(), isShown);
         });
     };
 

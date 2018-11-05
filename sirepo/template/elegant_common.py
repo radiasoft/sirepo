@@ -18,6 +18,13 @@ SIM_TYPE = 'elegant'
 RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 
+def sort_elements_and_beamlines(data):
+    models = data['models']
+    data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
+    data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
+    data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
+
+
 def subprocess_env():
     """Adds RPN_DEFNS to os.environ
 

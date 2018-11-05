@@ -1,0 +1,38 @@
+# {{simulation_name}}
+
+from zgoubi import core, utils
+
+line = core.Line('line')
+
+line.add(core.OBJET5(
+    BORO={{ bunch_rigidity }},
+    PY=0.001, PT=0.01, PZ= 0.001, PP=0.01, PX=0.001, PD=0.0001,
+    DR=1,
+))
+
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+{{ bunch_particleType }}
+"""))
+
+{{ beamlineElements -}}
+
+line.add(core.FAKE_ELEM("""
+'FIT2'
+2 save
+1 30 0 [-1.,1.] ! vary Y-ref
+1 31 0 [-100.,100.] ! vary T-ref
+2 1e-16 9999
+3.1 1 2 #End 0. 1. 0 ! particle 1: Y initial = Y final
+3.1 1 3 #End 0. 1. 0 ! particle 1: T initial = T final
+"""))
+
+line.add(core.FAKE_ELEM("""
+'TWISS'
+2 1. 1.
+"""))
+
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

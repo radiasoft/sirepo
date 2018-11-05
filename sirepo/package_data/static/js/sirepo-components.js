@@ -742,32 +742,31 @@ SIREPO.app.directive('columnEditor', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div data-ng-if="! oneLabelLayout" class="row">',
+            '<div data-ng-if="! oneLabelLayout" class="row sr-column-editor">',
               '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
                 '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[$parent.$index][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
+              '</div>',
+              '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
+                '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
+                  '<div data-model-field="columnFields[$index][1][$parent.$index]" data-label-size="6" data-field-size="6" data-custom-label="columnLabels[$index][$parent.$index][0]" data-model-name="modelName" data-model-data="modelData"></div>',
                 '</div>',
               '</div>',
             '</div>',
-            '<div data-ng-if="oneLabelLayout" class="row">',
-              '<div class="col-sm-8">',
-                '<div class="row">',
-                  '<div class="col-sm-5 col-sm-offset-7">',
-                    '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[0][0] }}</div>',
+            '<div data-ng-if="oneLabelLayout" class="sr-column-editor">',
+              '<div class="col-sm-{{ ::labelSize }}"></div>',
+              '<div class="col-sm-3" data-ng-repeat="col in columnFields">',
+                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
+              '</div>',
+              '<div data-ng-repeat="f in columnFields[0][1]">',
+                '<div class="form-group form-group-sm">',
+                  '<div class="col-sm-{{ ::labelSize }} control-label">',
+                    '<div data-label-with-tooltip="" data-label="{{ columnLabels[0][$index][0] }}" data-tooltip="{{ columnLabels[0][$index][1] }}"></div>',
                   '</div>',
-                '</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[0][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
-                '</div>',
-              '</div>',
-              '<div class="col-sm-3">',
-                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[1][0] }}</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[1][1]">',
-                  '<div data-model-field="f" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
+                  '<div class="col-sm-3" data-ng-repeat="col in columnFields"><div class="row">',
+                    '<div data-model-field="columnFields[$index][1][$parent.$index]" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
+                  '</div></div>',
                 '</div>',
               '</div>',
-            '</div>',
             '<div>&nbsp;</div>',
         ].join(''),
         controller: function($scope) {
@@ -796,12 +795,12 @@ SIREPO.app.directive('columnEditor', function(appState) {
                 var label = info[0];
                 heading = heading.replace(/ .*/, '');
                 label = label.replace(heading, '');
-                return label;
+                return [label, info[3]];
             }
 
             function isOneLabelLayout() {
                 for (var i = 0; i < $scope.columnLabels[0].length; i++) {
-                    if ($scope.columnLabels[0][i] != $scope.columnLabels[1][i]) {
+                    if ($scope.columnLabels[0][i][0] != $scope.columnLabels[1][i][0]) {
                         return false;
                     }
                 }
@@ -809,6 +808,7 @@ SIREPO.app.directive('columnEditor', function(appState) {
             }
 
             $scope.columnLabels = createLabels();
+            $scope.labelSize = $scope.columnFields.length == 3 ? 3 : 5;
             $scope.oneLabelLayout = isOneLabelLayout();
             $scope.columnHeadingClass = function() {
                 return 'model-' + $scope.modelName + '-column-heading';
