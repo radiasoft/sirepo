@@ -1759,7 +1759,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     if lenAr2d > totLen:
         ar2d = np.array(ar2d[0:totLen])
     elif lenAr2d < totLen:
-        auxAr = np.array([0] * lenAr2d, dtype='float64')
+        auxAr = np.array([0] * lenAr2d, dtype=numpy.dtype(type(ar2d[0])))
         for i in range(lenAr2d):
             auxAr[i] = ar2d[i]
         ar2d = np.array(auxAr)
