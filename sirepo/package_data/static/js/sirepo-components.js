@@ -407,7 +407,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-color-map-menu="" class="dropdown"></div>',
               '</div>',
               '<div data-ng-switch-when="Text" data-ng-class="fieldClass">',
-                '<div data-collapsable-notes=""></div>',
+                '<div data-collapsable-notes="" data-model="model" data-field="field" ></div>',
               '</div>',
               '<div data-ng-switch-when="UserFolder" data-ng-class="fieldClass">',
                 '<div data-user-folder-list="" data-model="model" data-field="field"></div>',
@@ -1250,28 +1250,42 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     };
 });
 
-SIREPO.app.directive('collapsableNotes', function(appState) {
+SIREPO.app.directive('collapsableNotes', function() {
 
     return {
         restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
         template: [
             '<div>',
             '<a href data-ng-click="toggleNotes()" style="text-decoration: none;">',
             '<span class="glyphicon" data-ng-class="{\'glyphicon-chevron-down\': ! showNotes, \'glyphicon-chevron-up\': showNotes}" style="font-size:16px;"></span>',
-            ' <span data-ng-show="! showNotes && model[field]">...</span>',
-            ' <span data-ng-show="! showNotes && ! model[field]" style="font-style: italic; font-size: small">click to enter notes</span>',
+            ' <span data-ng-show="! openNotes() && hasNotes()">...</span>',
+            ' <span data-ng-show="! openNotes() && ! hasNotes()" style="font-style: italic; font-size: small">click to enter notes</span>',
             '</a>',
 
-            '<textarea data-ng-show="showNotes" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
+            '<textarea data-ng-show="openNotes()" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
             '</div>',
         ].join(''),
         controller: function($scope) {
 
+            var hasOpened = false;
             $scope.showNotes = false;
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-
+            $scope.hasNotes = function () {
+                return ! ! $scope.model &&
+                    ! ! $scope.model[$scope.field] &&
+                    ! ! $scope.model[$scope.field].length;
+            };
+            $scope.openNotes = function () {
+                if(! hasOpened) {
+                    $scope.showNotes = $scope.hasNotes();
+                }
+                return $scope.showNotes;
+            };
             $scope.toggleNotes = function () {
+                hasOpened = true;
                 $scope.showNotes = ! $scope.showNotes;
             };
 
@@ -1527,7 +1541,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
             '<div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">',
               '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>',
               '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
-            '</div>',
+              '<button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
 
@@ -1540,6 +1554,12 @@ SIREPO.app.directive('reportPanel', function(appState) {
             }
             $scope.reportTitle = function() {
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
+            };
+            $scope.notes = function () {
+                if(appState.models[$scope.modelKey]) {
+                    return appState.models[$scope.modelKey].notes;
+                }
+                return null;
             };
         },
     };
