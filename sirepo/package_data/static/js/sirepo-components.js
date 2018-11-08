@@ -742,46 +742,79 @@ SIREPO.app.directive('columnEditor', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div data-ng-if="! oneLabelLayout" class="row sr-column-editor">',
-              '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
-                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
-              '</div>',
-              '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
-                '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
-                  '<div data-model-field="columnFields[$index][1][$parent.$index]" data-label-size="6" data-field-size="6" data-custom-label="columnLabels[$index][$parent.$index][0]" data-model-name="modelName" data-model-data="modelData"></div>',
+            '<div class="sr-column-editor">',
+              '<div class="row">',
+                '<div class="col-sm-{{ ::head.size || 3 }}" data-ng-repeat="head in ::headings">',
+                  '<div class="lead text-center">{{ ::head.text }}</div>',
                 '</div>',
               '</div>',
-            '</div>',
-            '<div data-ng-if="oneLabelLayout" class="sr-column-editor">',
-              '<div class="col-sm-{{ ::labelSize }}"></div>',
-              '<div class="col-sm-3" data-ng-repeat="col in columnFields">',
-                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
-              '</div>',
-              '<div data-ng-repeat="f in columnFields[0][1]">',
-                '<div class="form-group form-group-sm">',
-                  '<div class="col-sm-{{ ::labelSize }} control-label">',
-                    '<div data-label-with-tooltip="" data-label="{{ columnLabels[0][$index][0] }}" data-tooltip="{{ columnLabels[0][$index][1] }}"></div>',
+              '<div class="form-group form-group-sm" data-ng-repeat="row in ::rows">',
+                '<div data-ng-repeat="col in ::row">',
+                  '<div data-ng-if="::! col.field" class="col-sm-{{ ::col.size || 3 }} control-label">',
+                    '<div data-label-with-tooltip="" data-label="{{ ::col.label }}" data-tooltip="{{ ::col.tooltip }}"></div>',
                   '</div>',
-                  '<div class="col-sm-3" data-ng-repeat="col in columnFields"><div class="row">',
-                    '<div data-model-field="columnFields[$index][1][$parent.$index]" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
+                  '<div data-ng-if="::col.field" class="col-sm-{{ ::col.size || 3 }}"><div class="row">',
+                    '<div data-model-field="::col.field" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
                   '</div></div>',
                 '</div>',
               '</div>',
-            '<div>&nbsp;</div>',
+              '<div>&nbsp;</div>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
 
-            function createLabels() {
-                var res = [];
+            function initLayout() {
+                var headings = [];
+                var rows = [];
                 for (var i = 0; i < $scope.columnFields.length; i++) {
                     var heading = $scope.columnFields[i][0];
-                    res[i] = [];
+                    headings.push({
+                        text: heading,
+                    });
                     for (var j = 0; j < $scope.columnFields[i][1].length; j++) {
+                        if (! rows[j]) {
+                            rows[j] = [{
+                                label: '',
+                            }];
+                        }
                         var col = $scope.columnFields[i][1][j];
-                        res[i][j] = getLabel(heading, col);
+                        rows[j][i * 2] = getLabel(heading, col);
+                        rows[j][i * 2 + 1] = {
+                            field: col,
+                        };
                     }
                 }
-                return res;
+                if (isOneLabelLayout(rows)) {
+                    if (rows[0].length == 4) {
+                        // one label, two fields
+                        headings.unshift({
+                            text: '',
+                            size: 5,
+                        });
+                        rows.forEach(function(row) {
+                            row[0].size = 5;
+                            row.splice(2, 1);
+                        });
+                    }
+                    else {
+                        // one label, three fields
+                        headings.unshift({
+                            text: '',
+                        });
+                        rows.forEach(function(row) {
+                            row.splice(4, 1);
+                            row.splice(2, 1);
+                        });
+                    }
+                }
+                else {
+                    // two labels, two fields
+                    headings.forEach(function(h) {
+                        h.size = 6;
+                    });
+                }
+                $scope.headings = headings;
+                $scope.rows = rows;
             }
 
             function getLabel(heading, f) {
@@ -792,27 +825,23 @@ SIREPO.app.directive('columnEditor', function(appState) {
                     f = modelField[1];
                 }
                 var info = appState.modelInfo(m)[f];
-                var label = info[0];
-                heading = heading.replace(/ .*/, '');
-                label = label.replace(heading, '');
-                return [label, info[3]];
+                return {
+                    label: info[0].replace(heading.replace(/ .*/, ''), ''),
+                    tooltip: info[3],
+                };
             }
 
-            function isOneLabelLayout() {
-                for (var i = 0; i < $scope.columnLabels[0].length; i++) {
-                    if ($scope.columnLabels[0][i][0] != $scope.columnLabels[1][i][0]) {
+            function isOneLabelLayout(rows) {
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    if (row[1] && row[2] && (row[0].label != row[2].label)) {
                         return false;
                     }
                 }
                 return true;
             }
 
-            $scope.columnLabels = createLabels();
-            $scope.labelSize = $scope.columnFields.length == 3 ? 3 : 5;
-            $scope.oneLabelLayout = isOneLabelLayout();
-            $scope.columnHeadingClass = function() {
-                return 'model-' + $scope.modelName + '-column-heading';
-            };
+            initLayout();
         },
     };
 });
