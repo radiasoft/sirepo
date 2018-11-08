@@ -18,6 +18,8 @@ import re
 
 SIM_TYPE = 'zgoubi'
 
+BUNCH_SUMMARY_FILE = 'bunch.json'
+
 WANT_BROWSER_FRAME_CACHE = True
 
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
@@ -35,22 +37,21 @@ _INITIAL_PHASE_MAP = {
 
 _MODEL_UNITS = None
 
-#TODO(pjm): don't rely on column index
 _PHASE_SPACE_FIELD_INFO = {
-    'Do1': [1, u'dp/p₀', 1],
-    'Yo': [2, u'Y₀ [m]', 0.01],
-    'To': [3, u'Y\'₀ [rad]', 0.001],
-    'Zo': [4, u'Z₀ [m]', 0.01],
-    'Po': [5, u'Z\'₀ [rad]', 0.001],
-    'So': [6, u's₀ [m]', 0.01],
-    'to': [7, u't₀', 1],
-    'D1': [8, 'dp/p', 1],
-    'Y': [9, 'Y [m]', 0.01],
-    'T': [10, 'Y\' [rad]', 0.001],
-    'Z': [11, 'Z [m]', 0.01],
-    'P': [12, 'Z\' [rad]', 0.001],
-    'S': [13, 's [m]', 0.01],
-    'time': [14, 't', 1],
+    'Do1': [u'dp/p₀', 1],
+    'Yo': [u'Y₀ [m]', 0.01],
+    'To': [u'Y\'₀ [rad]', 0.001],
+    'Zo': [u'Z₀ [m]', 0.01],
+    'Po': [u'Z\'₀ [rad]', 0.001],
+    'So': [u's₀ [m]', 0.01],
+    'to': [u't₀', 1],
+    'D1': ['dp/p', 1],
+    'Y': ['Y [m]', 0.01],
+    'T': ['Y\' [rad]', 0.001],
+    'Z': ['Z [m]', 0.01],
+    'P': ['Z\' [rad]', 0.001],
+    'S': ['s [m]', 0.01],
+    'time': ['t', 1],
 }
 
 _PYZGOUBI_FIELD_MAP = {
@@ -61,6 +62,7 @@ _PYZGOUBI_FIELD_MAP = {
 
 _REPORT_INFO = {
     'twissReport': ['zgoubi.TWISS.out', 'TwissParameter', 'sums'],
+    'twissReport2': ['zgoubi.TWISS.out', 'TwissParameter', 'sums'],
     'opticsReport': ['zgoubi.OPTICS.out', 'OpticsParameter', 'cumulsm'],
 }
 
@@ -94,6 +96,12 @@ def column_data(col, col_names, rows):
     return res
 
 
+def extract_first_twiss_row(run_dir):
+    filename = _REPORT_INFO['twissReport'][0]
+    col_names, rows = read_data_file(py.path.local(run_dir).join(filename))
+    return col_names, rows[0]
+
+
 def fixup_old_data(data):
     #TODO(pjm): remove all fixups when merged with master
     for m in [
@@ -103,6 +111,7 @@ def fixup_old_data(data):
             'simulationSettings',
             'opticsReport',
             'twissReport',
+            'twissReport2',
     ]:
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
@@ -146,16 +155,17 @@ def models_related_to_report(data):
     r = data['report']
     if r == get_animation_name(data):
         return []
+    res = ['bunch']
     if 'bunchReport' in r:
-        return ['bunch']
-    res = [
-        'bunch',
+        if data.models.bunch.match_twiss_parameters == '1':
+            res.append('simulation.visualizationBeamlineId')
+    res += [
         'beamlines',
         'elements',
     ]
-    if 'twissReport' in r:
+    if r == 'twissReport':
         res.append('simulation.activeBeamlineId')
-    if 'opticsReport' in r:
+    if r == 'twissReport2' or 'opticsReport' in r:
         res.append('simulation.visualizationBeamlineId')
     return res
 
@@ -235,6 +245,11 @@ def save_report_data(data, run_dir):
         report = data['models'][report_name]
         col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
         res = _extract_bunch_data(report, col_names, rows, '')
+        summary_file = py.path.local(run_dir).join(BUNCH_SUMMARY_FILE)
+        if summary_file.exists():
+            res['summaryData'] = {
+                'bunch': simulation_db.read_json(summary_file)
+            }
     else:
         raise RuntimeError('unknown report: {}'.format(report_name))
     simulation_db.write_result(
@@ -249,9 +264,9 @@ def simulation_dir_name(report_name):
     return report_name
 
 
-def write_parameters(data, run_dir, is_parallel):
+def write_parameters(data, run_dir, is_parallel, python_file=template_common.PARAMETERS_PYTHON_FILE):
     pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        run_dir.join(python_file),
         _generate_parameters_file(data),
     )
 
@@ -290,14 +305,14 @@ def _extract_bunch_animation(run_dir, data, model_data):
 def _extract_bunch_data(report, col_names, rows, title):
     x_info = _PHASE_SPACE_FIELD_INFO[report['x']]
     y_info = _PHASE_SPACE_FIELD_INFO[report['y']]
-    x = np.array(column_data(report['x'], col_names, rows)) * x_info[2]
-    y = np.array(column_data(report['y'], col_names, rows)) * y_info[2]
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report.histogramBins))#, range=[[-0.4, 0.3], [-0.2, 0.1]])
+    x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
+    y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
+    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report.histogramBins))
     return {
         'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
         'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'x_label': x_info[1],
-        'y_label': y_info[1],
+        'x_label': x_info[0],
+        'y_label': y_info[0],
         'title': title,
         'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
@@ -331,7 +346,7 @@ def _generate_beamline_elements(report, data):
     element_map = {}
     for el in data.models.elements:
         element_map[el._id] = el
-    if 'twissReport' in report:
+    if report == 'twissReport':
         beamline_id = sim['activeBeamlineId']
     else:
         if 'visualizationBeamlineId' not in sim or not sim['visualizationBeamlineId']:

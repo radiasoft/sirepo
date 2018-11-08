@@ -13,20 +13,48 @@ import py.path
 import sirepo.template.zgoubi as template
 import subprocess
 
+_EXE_PATH = 'zgoubi'
 
-#TODO(pjm): change to 'zgoubi' when available in container
-_EXE_PATH = '/home/vagrant/bin/zgoubi'
-
+_TWISS_TO_BUNCH_FIELD = {
+    'btx': 'beta_Y',
+    'alfx': 'alpha_Y',
+    'Dx': 'DY',
+    'Dxp': 'DT',
+    'bty': 'beta_Z',
+    'alfy': 'alpha_Z',
+    'Dy': 'DZ',
+    'Dyp': 'DP',
+}
 
 def run(cfg_dir):
+    data = _bunch_match_twiss(cfg_dir)
     _run_zgoubi(cfg_dir)
-    template.save_report_data(simulation_db.read_json(template_common.INPUT_BASE_NAME), py.path.local(cfg_dir))
+    template.save_report_data(data, py.path.local(cfg_dir))
+
+
+def _bunch_match_twiss(cfg_dir):
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    bunch = data.models.bunch
+    if bunch.match_twiss_parameters == '1' and ('bunchReport' in data.report or data.report == 'animation'):
+        report = data['report']
+        data['report'] = 'twissReport2'
+        template.write_parameters(data, py.path.local(cfg_dir), False, 'twiss.py')
+        _run_zgoubi(cfg_dir, python_file='twiss.py')
+        col_names, row = template.extract_first_twiss_row(cfg_dir)
+        for f in _TWISS_TO_BUNCH_FIELD.keys():
+            bunch[_TWISS_TO_BUNCH_FIELD[f]] = template.column_data(f, col_names, [row])[0]
+        simulation_db.write_json(py.path.local(cfg_dir).join(template.BUNCH_SUMMARY_FILE), bunch)
+        data['report'] = report
+        # rewrite the original report with original parameters
+        template.write_parameters(data, py.path.local(cfg_dir), False)
+    return data
 
 
 def run_background(cfg_dir):
     res = {}
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     try:
+        _bunch_match_twiss(cfg_dir)
         _run_zgoubi(cfg_dir)
     except Exception as e:
         res = {
@@ -35,7 +63,7 @@ def run_background(cfg_dir):
     simulation_db.write_result(res)
 
 
-def _run_zgoubi(cfg_dir):
+def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):
     with pkio.save_chdir(cfg_dir):
-        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        exec(pkio.read_text(python_file), locals(), locals())
         subprocess.call([_EXE_PATH])
