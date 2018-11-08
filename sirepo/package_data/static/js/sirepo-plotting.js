@@ -1186,7 +1186,9 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                         formattedBase += unit.symbol + self.units;
                     }
                 }
-                select('.' + dimension + '-base').text(formattedBase);
+                if (! self.noBaseFormat) {
+                    select('.' + dimension + '-base').text(formattedBase);
+                }
             }
             select((cssPrefix || '') + '.' + dimension + '.axis').call(self.svgAxis);
         };
@@ -1997,6 +1999,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 bottomY: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
                 rightX: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
             };
+            axes.rightX.noBaseFormat = true;
+            axes.bottomY.noBaseFormat = true;
 
             var cursorShape = {
                 '11': 'mouse-move-ew',

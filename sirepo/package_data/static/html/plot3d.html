@@ -35,6 +35,7 @@
             <g class="x axis bottom" ng-attr-transform="translate(0, {{ bottomPanelHeight - pad - margin.bottom }})"></g>
             <g class="x axis grid" ng-attr-transform="translate(0, {{ bottomPanelHeight - pad - margin.bottom }})"></g>
             <text class="x-axis-label" ng-attr-x="{{ canvasSize / 2 }}" ng-attr-y="{{ bottomPanelHeight }}"></text>
+            <text class="x-base" text-anchor="end" ng-attr-x="{{ canvasSize + rightPanelWidth - pad }}" ng-attr-y="{{ bottomPanelHeight }}"></text>
             <g class="y axis bottom"></g>
           </g>
           <defs>
@@ -60,6 +61,7 @@
             <g class="y axis right" ng-attr-transform="translate({{ rightPanelWidth - pad - margin.right }}, 0)"></g>
             <g class="x axis right" ng-attr-transform="translate(0, {{ canvasSize }})"></g>
             <text class="y-axis-label" ng-attr-x="{{ - canvasSize / 2 }}" ng-attr-y="{{ rightPanelWidth - 15 }}" transform="rotate(270)"></text>
+            <text class="y-base" text-anchor="end" ng-attr-x="{{ rightPanelWidth - 2 * pad }}" ng-attr-y="-14"></text>
           </g>
           <text class="z-axis-label" ng-attr-x="{{ canvasSize + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize + margin.top + 10 }}"></text>
           <rect class="mouse-rect-xy mouse-zoom" ng-attr-width="{{ canvasSize }}" ng-attr-height="{{ canvasSize }}" style="pointer-events: all; fill: none;"></rect>
