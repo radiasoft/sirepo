@@ -101,6 +101,7 @@
             ["r", "r"]
         ],
         "OpticsOptionalParameter": [
+            ["none", "None"],
             ["alfx", "Horizontal alpha"],
             ["btx", "Horizontal beta [m]"],
             ["alfy", "Vertical alpha"],
@@ -122,8 +123,7 @@
             ["K1L", "K1*L"],
             ["K2L", "K2*L"],
             ["C", "|C|"],
-            ["r", "r"],
-            ["none", "None"]
+            ["r", "r"]
         ],
         "ParticleType": [
             ["ELECTRON", "Electron"],
@@ -187,22 +187,23 @@
             "P0": ["Mean Z' [rad]", "Float", 0.0],
             "X0": ["Mean X [m]", "Float", 0.0],
             "D0": ["Mean D0 (B𝜌/BORO)", "Float", 1.0],
+            "match_twiss_parameters": ["Match Twiss Parameters", "Boolean", "1", "Use twiss parameters computed from the selected beamline"],
             "alpha_Y": ["Horizontal Alpha", "Float", 0.0],
-            "beta_Y": ["Horizontal Beta [m]", "Float", 1.0],
+            "beta_Y": ["Horizontal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Y": ["Horizontal Emittance", "Float", 1e-6],
             "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 0, "RMS cutoff"],
             "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If cutoff 1 is negative, fill ring from |N| to N"],
             "DY": ["Horizontal Dispersion [m]", "Float", 0],
             "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
             "alpha_Z": ["Vertical Alpha", "Float", 0.0],
-            "beta_Z": ["Vertical Beta [m]", "Float", 1.0],
+            "beta_Z": ["Vertical Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Z": ["Vertical Emittance", "Float", 1e-6],
             "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 0],
             "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0],
             "DZ": ["Vertical Dispersion [m]", "Float", 0],
             "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0],
             "alpha_X": ["Longitudinal Alpha", "Float", 0],
-            "beta_X": ["Longitudinal Beta [m]", "Float", 0],
+            "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 0],
             "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
@@ -245,6 +246,13 @@
             "npass": ["Number of Runs", "Integer", 10, "", 1]
         },
         "twissReport": {
+            "y1": ["Y1 Value", "TwissParameter", "btx"],
+            "y2": ["Y2 Value", "TwissParameter", "bty"],
+            "y3": ["Y3 Value", "TwissParameter", "Dx"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "twissReport2": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
             "y2": ["Y2 Value", "TwissParameter", "bty"],
             "y3": ["Y3 Value", "TwissParameter", "Dx"],
@@ -443,6 +451,8 @@
                     ]
                 ]],
                 ["Phase Space", [
+                    "match_twiss_parameters",
+                    "simulation.visualizationBeamlineId",
                     [
                         ["Horizontal", [
                             "alpha_Y",
@@ -553,6 +563,16 @@
             "advanced": []
         },
         "twissReport": {
+            "title": "Twiss Parameters",
+            "advanced": [
+                "y1",
+                "y2",
+                "y3",
+                "includeLattice",
+                "notes"
+            ]
+        },
+        "twissReport2": {
             "title": "Twiss Parameters",
             "advanced": [
                 "y1",
@@ -769,7 +789,6 @@
                         ["Entrance", [
                             "X_E",
                             "LAM_E",
-                            "W_E",
                             "C_0",
                             "C_1",
                             "C_2",
@@ -780,7 +799,6 @@
                         ["Exit", [
                             "X_S",
                             "LAM_S",
-                            "W_S",
                             "CS_0",
                             "CS_1",
                             "CS_2",

@@ -1,6 +1,6 @@
 % 3 sto x
 % 1 x + sto y
-% 1 y + sto z
+% -1 y + sto z
 % z 3 * sto a
 % a y * sto b
 % x y z + + sto c

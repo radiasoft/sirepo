@@ -685,7 +685,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             m[field + 'Id'] = info.id;
             var cols = m.valueList[f] = appState.clone(info.plottableColumns);
             if (f != 'y1') {
-                cols.push('None');
+                cols.unshift('None');
             }
             if (!m[f] || cols.indexOf(m[f]) < 0) {
                 if (f == 'y1') {

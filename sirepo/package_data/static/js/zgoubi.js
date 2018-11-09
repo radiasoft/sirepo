@@ -101,8 +101,40 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     });
 });
 
-SIREPO.app.controller('SourceController', function(latticeService) {
+SIREPO.app.controller('SourceController', function(appState, latticeService, panelState, $scope) {
     var self = this;
+    var TWISS_FIELDS = ['alpha_Y', 'beta_Y', 'alpha_Z', 'beta_Z', 'DY', 'DT', 'DZ', 'DP'];
+
+    function processBunchTwiss() {
+        var bunch = appState.models.bunch;
+        panelState.showField('simulation', 'visualizationBeamlineId', bunch.match_twiss_parameters == '1');
+        TWISS_FIELDS.forEach(function(f) {
+            panelState.enableField('bunch', f, bunch.match_twiss_parameters == '0');
+        });
+    }
+
+    self.handleModalShown = function(name) {
+        if (name == 'bunch') {
+            processBunchTwiss();
+        }
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['bunch.match_twiss_parameters'], processBunchTwiss);
+    });
+
+    $scope.$on('bunchReport1.summaryData', function(e, info) {
+        if (appState.isLoaded() && info.bunch) {
+            var bunch = appState.models.bunch;
+            if (bunch.match_twiss_parameters == '1') {
+                TWISS_FIELDS.forEach(function(f) {
+                    bunch[f] = info.bunch[f];
+                });
+                appState.saveQuietly('bunch');
+            }
+        }
+    });
+
     latticeService.initSourceController(self);
 });
 
