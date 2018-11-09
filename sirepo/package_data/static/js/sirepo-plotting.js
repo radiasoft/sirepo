@@ -3171,12 +3171,13 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
 //TODO(mvk): This directive should move to sirepo-plotting-vtk
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry, $timeout) {
+SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, plotUtilities, geometry, plotToPNG, $timeout) {
 
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
+            reportId: '<',
         },
         templateUrl: '/static/html/particle3d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
@@ -3305,6 +3306,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var particleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.particleTrackColor);
             var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
 
+            // this canvas is the one created by vtk
+            var canvas3d;
+
+            // we keep this one updated with a copy of the vtk canvas
+            var snapshotCanvas;
+            var snapshotCtx;
+
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             $scope.requestData = function() {
@@ -3380,7 +3388,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                     isDragging = false;
                     isPointerUp = true;
-                    refresh();
+                    refresh(true);
                 };
                 rw.onwheel = function (evt) {
                     var camPos = cam.getPosition();
@@ -3390,7 +3398,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     if(! malSized) {
                         zoomUnits += evt.deltaY;
                     }
-                    utilities.debounce(refresh, 100)();
+                    utilities.debounce(
+                        function() {
+                            refresh(true);
+                        },
+                        100)();
                 };
 
                 //warpVTKService.initScene(coordMapper, renderer);
@@ -3454,6 +3466,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 absorbedLineBundle = coordMapper.buildActorBundle();
                 reflectedLineBundle = coordMapper.buildActorBundle();
+
+                canvas3d = $($element).find('canvas')[0];
+
+                // this canvas is used to store snapshots of the 3d canvas
+                snapshotCanvas = document.createElement('canvas');
+                snapshotCtx = snapshotCanvas.getContext('2d');
+                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
             };
 
             $scope.load = function() {
@@ -3784,7 +3803,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
 
-                refresh();
+                refresh(true);
             };
 
             function setLinesFromPoints(bundle, points, color, includeImpact) {
@@ -3881,7 +3900,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 };
             };
 
-            function refresh() {
+            function refresh(doCacheCanvas) {
                 var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
                 $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
                 $scope.height = xzAspectRatio * $scope.width;
@@ -3943,8 +3962,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 renderWindow.render();
 
                 //TODO (mvk): move to an object that encapsulates all this (in progress)
-
-
 
                 //var osCenter = warpVTKService.getOutline().source.getCenter();
                 var osCenter = outlineSource.getCenter();
@@ -4654,6 +4671,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     ];
 
                 }
+
+                if(doCacheCanvas) {
+                    cacheCanvas();
+                }
             }
 
             // Selects the first edge (if any) that has corners in common with those
@@ -4825,12 +4846,24 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 zoomUnits = 0;
                 didPan = false;
                 orientationMarker.updateMarkerOrientation();
-                refresh();
+                refresh(true);
             }
             function setCam(pos, fp, vu) {
                 cam.setPosition(pos[0], pos[1], pos[2]);
                 cam.setFocalPoint(fp[0], fp[1], fp[2]);
                 cam.setViewUp(vu[0], vu[1], vu[2]);
+            }
+            function cacheCanvas() {
+                if(! snapshotCtx) {
+                    return;
+                }
+                var w = parseInt(canvas3d.getAttribute('width'));
+                var h = parseInt(canvas3d.getAttribute('height'));
+                snapshotCanvas.width = w;
+                snapshotCanvas.height = h;
+                // this call makes sure the buffer is fresh (it appears)
+                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
             function resetZoom() {
@@ -4846,10 +4879,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 $($element).off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
+                plotToPNG.removeCanvas($scope.reportId);
             };
 
             $scope.resize = function() {
-                refresh();
+                refresh(false);
             };
 
             $scope.toggleAbsorbed = function() {

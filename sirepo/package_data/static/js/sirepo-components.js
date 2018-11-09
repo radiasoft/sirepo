@@ -1398,6 +1398,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             panelHeading: '@',
             modelKey: '=',
             isReport: '@',
+            reportId: '<',
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
@@ -1450,14 +1451,19 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return '';
             };
             $scope.downloadImage = function(height) {
-                var svg = $scope.panel.find('svg')[0];
-                if (! svg) {
+                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
+                if(plotToPNG.hasCanvas($scope.reportId)) {
+                    plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
                     return;
                 }
-                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
                 var plot3dCanvas = $scope.panel.find('canvas')[0];
+                var svg = $scope.panel.find('svg')[0];
+                if (! svg || $(svg).is(':hidden')) {
+                    return;
+                }
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
+
             $scope.hasData = function() {
                 if (! $scope.panel.find('svg')[0]) {
                     return;
@@ -1535,7 +1541,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
@@ -1568,7 +1574,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
         },
         template: [
             '<div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>',
               '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
               '<button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
@@ -2330,6 +2336,8 @@ SIREPO.app.directive('simStatusPanel', function() {
 
 SIREPO.app.service('plotToPNG', function($http) {
 
+    var canvases = {};
+
     function downloadPlot(svg, height, plot3dCanvas, fileName) {
         var canvas = document.createElement('canvas');
         var context = canvas.getContext("2d");
@@ -2359,6 +2367,55 @@ SIREPO.app.service('plotToPNG', function($http) {
         value = value.replace(/px/, '');
         return parseInt(value);
     }
+
+    // Stores canvases for updates and later use.  We use the existing reportID
+    // as the key
+    this.addCanvas = function(canvas, reportId) {
+        if (!reportId) {
+            return;
+        }
+        canvases[reportId] = canvas;
+    };
+
+    this.getCanvas = function(reportId) {
+        return canvases[reportId];
+    };
+
+    this.getCopy = function (reportId, size) {
+        var canvas = this.getCanvas(reportId);
+        if(! canvas ) {
+            return null;
+        }
+
+        var s = [
+            parseInt(canvas.getAttribute('width')),
+            parseInt(canvas.getAttribute('height'))
+        ];
+        size.forEach(function (dim, i) {
+            var nextI = (i + 1) % 2;
+            var next = size[nextI];
+            if(! dim) {
+                if(next) {
+                    s[i] *= (next / s[nextI]);
+                    s[nextI] = next;
+                }
+            }
+        });
+        var cnvCopy = document.createElement('canvas');
+        var cnvCtx = cnvCopy.getContext('2d');
+        cnvCopy.width = s[0];
+        cnvCopy.height = s[1];
+        cnvCtx.drawImage(canvas, 0, 0, s[0], s[1]);
+        return cnvCopy;
+    };
+
+    this.hasCanvas = function(reportId) {
+        return ! ! canvases[reportId];
+    };
+
+    this.removeCanvas = function(reportId) {
+        delete canvases[reportId];
+    };
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed all css styles into SVG node before rendering
@@ -2391,6 +2448,14 @@ SIREPO.app.service('plotToPNG', function($http) {
         }
         promises[0].then(cssResponse);
     };
+
+    this.downloadCanvas = function(reportId, width, height, fileName)  {
+        var cnv = this.getCopy(reportId, [width || 0, height || 0]);
+        cnv.toBlob(function(blob) {
+            saveAs(blob, fileName);
+        });
+    };
+
 });
 
 SIREPO.app.service('fileUpload', function($http) {
