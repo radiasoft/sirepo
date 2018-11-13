@@ -7,6 +7,18 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     var self = {};
     self.activeBeamlineId = null;
 
+    //TODO(pjm): share with template/elegant.py _PLOT_TITLE
+    var plotTitle = {
+        'x-xp': 'Horizontal',
+        'Y-T': 'Horizontal',
+        'y-yp': 'Vertical',
+        'Z-P': 'Vertical',
+        'x-y': 'Cross-section',
+        'Y-Z': 'Cross-section',
+        't-p': 'Longitudinal',
+        'z-zp': 'Longitudinal',
+    };
+
     function elementNameInvalidMsg(newName) {
         return newName == '' ? '' : newName + ' already exists';
     }
@@ -145,6 +157,15 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return angle * length / (2 * Math.sin(angle / 2));
     };
 
+    self.bunchReportHeading = function(modelKey) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        var bunch = appState.models[modelKey];
+        var key = bunch.x + '-' + bunch.y;
+        return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
+    };
+
     self.createElement = function(type) {
         $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = self.getNextElement(type);
@@ -278,17 +299,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.initSourceController = function(controller) {
-        //TODO(pjm): share with template/elegant.py _PLOT_TITLE
-        var plotTitle = {
-            'x-xp': 'Horizontal',
-            'Y-T': 'Horizontal',
-            'y-yp': 'Vertical',
-            'Z-P': 'Vertical',
-            'x-y': 'Cross-section',
-            'Y-Z': 'Cross-section',
-            't-p': 'Longitudinal',
-            'z-zp': 'Longitudinal',
-        };
         controller.bunchReports = [1, 2, 3, 4].map(function(id) {
             var modelKey = 'bunchReport' + id;
             return {
@@ -300,12 +310,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
             };
         });
         controller.bunchReportHeading = function(item) {
-            if (! appState.isLoaded()) {
-                return;
-            }
-            var bunch = appState.models['bunchReport' + item.id];
-            var key = bunch.x + '-' + bunch.y;
-            return (plotTitle[key] || (bunch.x + ' / ' + bunch.y)) + ' Phase Space';
+            return self.bunchReportHeading('bunchReport' + item.id);
         };
     };
 
