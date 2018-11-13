@@ -141,6 +141,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         return degrees.toFixed(1);
     };
 
+    self.arcLength = function(angle, length) {
+        return angle * length / (2 * Math.sin(angle / 2));
+    };
+
     self.createElement = function(type) {
         $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = self.getNextElement(type);
@@ -924,17 +928,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     if (picType == 'zeroLength') {
                         length = 0;
                     }
-                    var travelLength = length;
+                    var travelLength = item.travelLength || length;
                     if (item.type.indexOf('RBEN') >= 0 && length > 0) {
                         // rben actual distance is the arclength
                         var bendAngle = rpnValue(item.angle || 0);
                         if (bendAngle != 0) {
-                            travelLength = bendAngle * length / (2 * Math.sin(bendAngle / 2));
-                            if ($scope.flatten) {
-                                length = travelLength;
-                            }
+                            travelLength = latticeService.arcLength(bendAngle, length);
                         }
-
+                    }
+                    if ($scope.flatten) {
+                        length = travelLength;
                     }
                     var elRadius = rpnValue(item.rx || item.x_max || 0);
                     pos.length += travelLength;
@@ -945,33 +948,26 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     }
                     //TODO(pjm): need to refactor picType processing
                     if (picType == 'bend') {
-                        var radius = length / 2;
                         var angle = rpnValue(item.angle || item.kick || item.hkick || 0);
-                        if (SIREPO.lattice.reverseAngle) {
-                            angle = -angle;
-                        }
                         if (pos.inReverseBend) {
                             angle = -angle;
                         }
                         if ($scope.flatten) {
                             angle = 0;
                         }
+                        var radius = length / 2;
                         if (item.type.indexOf('SBEN') >= 0 && angle != 0 && length != 0) {
                             // compute the chord length from the arclength
                             var d1 = 2 * length / angle;
                             length = d1 * Math.sin(length / d1);
                         }
-                        if (angle != 0 && (item.type.indexOf('RBEN') >= 0 || item.type.indexOf('SBEN') >= 0)) {
+                        if (angle != 0 && length != 0) {
                             // compute bend radius
                             radius = length * Math.sin(angle / 2) / Math.sin(Math.PI - angle);
                         }
+                        var height = length > 0 ? 0.75 : 1;
                         maxHeight = Math.max(maxHeight, length);
-                        var height = 0.75;
                         var enter = [pos.radius + pos.x + x, pos.y];
-                        if (length === 0) {
-                            length = 0.1;
-                            enter[0] -= 0.05;
-                        }
                         var enterEdge = rpnValue(item.e1 || 0);
                         var exitEdge = rpnValue(item.e2 || 0);
                         if (item.type.indexOf('RBEN') >= 0) {
@@ -1005,7 +1001,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         group.items.push({
                             picType: picType,
                             element: item,
-                            color: getPicColor(item.type, 'blue'),
+                            color: getPicColor(item, 'blue'),
                             points: points,
                         });
                         x += radius;
@@ -1026,16 +1022,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         if (picType == 'watch') {
                             groupItem.height = 1;
                             groupItem.y = pos.y;
-                            groupItem.color = getPicColor(item.type, 'lightgreen');
+                            groupItem.color = getPicColor(item, 'lightgreen');
                         }
                         else if (picType == 'drift') {
-                            groupItem.color = getPicColor(item.type, 'lightgrey');
+                            groupItem.color = getPicColor(item, 'lightgrey');
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
                         else if (picType == 'aperture') {
                             groupItem.color = 'lightgrey';
-                            groupItem.apertureColor = getPicColor(item.type, 'black');
+                            groupItem.apertureColor = getPicColor(item, 'black');
                             groupItem.height = 0.1;
                             groupItem.y = pos.y - groupItem.height / 2;
                             if (groupItem.width === 0) {
@@ -1057,7 +1053,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             length = 0;
                         }
                         else if (picType == 'malign') {
-                            groupItem.color = getPicColor(item.type, 'black');
+                            groupItem.color = getPicColor(item, 'black');
                             groupItem.picType = 'zeroLength';
                             groupItem.height = 0.5;
                             groupItem.y = pos.y;
@@ -1074,7 +1070,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             else {
                                 groupItem.angle = 0;
                             }
-                            groupItem.color = getPicColor(item.type, 'black');
+                            groupItem.color = getPicColor(item, 'black');
                             groupItem.height = elRadius || 0.2;
                             groupItem.width = groupItem.height / 10;
                             groupItem.y = pos.y - groupItem.height / 2;
@@ -1083,12 +1079,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         else if (picType == 'magnet') {
                             groupItem.height = 0.5;
                             groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item.type, 'red');
+                            groupItem.color = getPicColor(item, 'red');
                         }
                         else if (picType == 'undulator') {
                             groupItem.height = 0.25;
                             groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item.type, 'gray');
+                            groupItem.color = getPicColor(item, 'gray');
                             var periods = Math.round(rpnValue(item.periods || item.poles || 0));
                             if (periods <= 0) {
                                 periods = Math.round(5 * length);
@@ -1106,7 +1102,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             }
                         }
                         else if (picType == 'zeroLength' || (picType == 'rf' && length < 0.005)) {
-                            groupItem.color = getPicColor(item.type, 'black');
+                            groupItem.color = getPicColor(item, 'black');
                             groupItem.picType = 'zeroLength';
                             groupItem.height = 0.5;
                             groupItem.y = pos.y;
@@ -1124,21 +1120,21 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             for (var k = 0; k < ovalCount; k++) {
                                 groupItem.ovals.push(groupItem.x + k * groupItem.ovalWidth + groupItem.ovalWidth / 2);
                             }
-                            groupItem.color = getPicColor(item.type, 'gold');
+                            groupItem.color = getPicColor(item, 'gold');
                         }
                         else if (picType == 'recirc') {
                             groupItem.radius = 0.3;
                             groupItem.y = pos.y;
                             groupItem.leftEdge = groupItem.x - groupItem.radius;
                             groupItem.rightEdge = groupItem.x + groupItem.radius;
-                            groupItem.color = getPicColor(item.type, 'lightgreen');
+                            groupItem.color = getPicColor(item, 'lightgreen');
                         }
                         else if (picType == 'lens') {
                             groupItem.height = 0.2;
                             groupItem.width = 0.02;
                             groupItem.x -= 0.01;
                             groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item.type, 'lightblue');
+                            groupItem.color = getPicColor(item, 'lightblue');
                         }
                         else if (picType == 'solenoid') {
                             if (length === 0) {
@@ -1147,10 +1143,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             }
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item.type, 'lightblue');
+                            groupItem.color = getPicColor(item, 'lightblue');
                         }
                         else {
-                            groupItem.color = getPicColor(item.type, 'green');
+                            groupItem.color = getPicColor(item, 'green');
                             groupItem.height = 0.2;
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
@@ -1243,10 +1239,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if (group.length) {
                     applyGroup(group, pos);
                 }
-                svgBounds = pos.bounds;
                 if (explodedItems.length && isAngleItem(getPicType(explodedItems[explodedItems.length - 1].type))) {
                     applyGroup([], pos);
                 }
+                svgBounds = pos.bounds;
                 return pos;
             }
 
@@ -1305,8 +1301,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 return res;
             }
 
-            function getPicColor(type, defaultColor) {
-                return SIREPO.lattice.elementColor[type] || defaultColor;
+            function getPicColor(item, defaultColor) {
+                return item.color || SIREPO.lattice.elementColor[item.type] || defaultColor;
             }
 
             function getPicType(type) {
