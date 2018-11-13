@@ -1348,7 +1348,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 beamlineItems = appState.clone(beamline.items);
                 $scope.svgGroups = [];
                 var pos = computePositions();
-                if (beamlineValue(beamline, 'distance', Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2)))
+                if (! $scope.flatten && beamlineValue(beamline, 'distance', Math.sqrt(Math.pow(pos.x, 2) + Math.pow(pos.y, 2)))
                     + beamlineValue(beamline, 'length', pos.length)
                     + beamlineValue(beamline, 'angle', latticeService.degreesToRadians(pos.angle))
                     + beamlineValue(beamline, 'count', pos.count)) {
