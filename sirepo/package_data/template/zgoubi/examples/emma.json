@@ -157,7 +157,7 @@
                 "YCE": -0.034048,
                 "_id": 5,
                 "format": "old",
-                "name": "C1",
+                "name": "C2",
                 "order": "",
                 "type": "CHANGREF"
             },
@@ -167,7 +167,7 @@
                 "YCE": 0.034048,
                 "_id": 7,
                 "format": "old",
-                "name": "C1",
+                "name": "C3",
                 "order": "",
                 "type": "CHANGREF"
             },
@@ -177,7 +177,7 @@
                 "YCE": -0.007514,
                 "_id": 9,
                 "format": "old",
-                "name": "C1",
+                "name": "C4",
                 "order": "",
                 "type": "CHANGREF"
             },
@@ -187,7 +187,7 @@
                 "YCE": 0.007514,
                 "_id": 11,
                 "format": "old",
-                "name": "C1",
+                "name": "C5",
                 "order": "",
                 "type": "CHANGREF"
             },

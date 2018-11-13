@@ -204,7 +204,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
     var self = this;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
@@ -220,6 +220,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
+
+    self.bunchReportHeading = function(name) {
+        return latticeService.bunchReportHeading(name);
+    };
 
     self.notRunningMessage = function() {
         return 'Simulation ' + self.simState.stateAsText();

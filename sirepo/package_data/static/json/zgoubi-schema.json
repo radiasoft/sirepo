@@ -158,13 +158,25 @@
             ["alfx", "Horizontal alpha"],
             ["Dx", "Horizontal dispersion [m]"],
             ["Dxp", "Horizontal dispersion derivative"],
-            ["phix2pi", "Horizontal PSI"],
+            ["phix2pi", "Horizontal phase advance"],
             ["bty", "Vertical beta [m]"],
             ["alfy", "Vertical alpha"],
             ["Dy", "Vertical dispersion [m]"],
             ["Dyp", "Vertical dispersion derivative"],
-            ["phiy2pi", "Vertical PSI"],
-            ["none", "None"]
+            ["phiy2pi", "Vertical phase advance"]
+        ],
+        "TwissOptionalParameter": [
+            ["none", "None"],
+            ["btx", "Horizontal beta [m]"],
+            ["alfx", "Horizontal alpha"],
+            ["Dx", "Horizontal dispersion [m]"],
+            ["Dxp", "Horizontal dispersion derivative"],
+            ["phix2pi", "Horizontal phase advance"],
+            ["bty", "Vertical beta [m]"],
+            ["alfy", "Vertical alpha"],
+            ["Dy", "Vertical dispersion [m]"],
+            ["Dyp", "Vertical dispersion derivative"],
+            ["phiy2pi", "Vertical phase advance"]
         ]
     },
     "model": {
@@ -255,15 +267,15 @@
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
-            "y2": ["Y2 Value", "TwissParameter", "bty"],
-            "y3": ["Y3 Value", "TwissParameter", "Dx"],
+            "y2": ["Y2 Value", "TwissOptionalParameter", "bty"],
+            "y3": ["Y3 Value", "TwissOptionalParameter", "Dx"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "twissReport2": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
-            "y2": ["Y2 Value", "TwissParameter", "bty"],
-            "y3": ["Y3 Value", "TwissParameter", "Dx"],
+            "y2": ["Y2 Value", "TwissOptionalParameter", "bty"],
+            "y3": ["Y3 Value", "TwissOptionalParameter", "Dx"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },

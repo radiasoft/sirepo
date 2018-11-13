@@ -22,10 +22,10 @@
     </div>
     <div class="clearfix"></div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="3d" data-model-name="bunchAnimation"></div>
+      <div data-report-panel="3d" data-model-name="bunchAnimation" data-panel-title="{{ visualization.bunchReportHeading('bunchAnimation') }}"></div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="3d" data-model-name="bunchAnimation2"></div>
+      <div data-report-panel="3d" data-model-name="bunchAnimation2" data-panel-title="{{ visualization.bunchReportHeading('bunchAnimation2') }}"></div>
     </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
