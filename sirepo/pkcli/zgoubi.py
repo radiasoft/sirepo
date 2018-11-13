@@ -42,7 +42,10 @@ def _bunch_match_twiss(cfg_dir):
         _run_zgoubi(cfg_dir, python_file='twiss.py')
         col_names, row = template.extract_first_twiss_row(cfg_dir)
         for f in _TWISS_TO_BUNCH_FIELD.keys():
-            bunch[_TWISS_TO_BUNCH_FIELD[f]] = template.column_data(f, col_names, [row])[0]
+            v = template.column_data(f, col_names, [row])[0]
+            bunch[_TWISS_TO_BUNCH_FIELD[f]] = v
+            if f == 'btx' or f == 'bty':
+                assert v > 0, 'invalid twiss parameter: {} <= 0'.format(f)
         simulation_db.write_json(py.path.local(cfg_dir).join(template.BUNCH_SUMMARY_FILE), bunch)
         data['report'] = report
         # rewrite the original report with original parameters

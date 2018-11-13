@@ -96,7 +96,7 @@ def _zgoubi_autoref(command):
     assert i == '4', '{}: only AUTOREF 4 is supported for now'.format(i)
     return _parse_command(command, [
         'I',
-        'XCE YCE angle',
+        'XCE YCE ALE',
     ])
 
 def _zgoubi_bend(command):
@@ -108,19 +108,32 @@ def _zgoubi_bend(command):
         'X_S LAM_S W_S',
         'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5',
         'XPAS',
-        'KPOS XCE YCE angle',
+        'KPOS XCE YCE ALE',
     ])
     assert res['KPOS'] in ('1', '2', '3'), '{}: BEND KPOS not yet supported'.format(res['KPOS'])
     return res
 
 def _zgoubi_cavite(command):
     i = command[1][0]
-    assert i == '10', '{}: only CAVITE 10 is supported for now'.format(i)
-    return _parse_command(command, [
-        'I',
-        'l f_RF',
-        'V phi_s IOP',
-    ])
+    if i == '1':
+        return _parse_command(command, [
+            'IOPT',
+            'L h',
+            'V',
+        ])
+    if i == '2':
+        return _parse_command(command, [
+            'IOPT',
+            'L h',
+            'V sig_s',
+        ])
+    elif i == '10':
+        return _parse_command(command, [
+            'IOPT',
+            'l f_RF',
+            'V phi_s IOP',
+        ])
+    assert False, 'unsupported CAVITE: {}'.format(i)
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
@@ -129,10 +142,10 @@ def _zgoubi_changref(command):
         res['order'] = ' '.join(command[1])
         res['XCE'] = 0
         res['YCE'] = 0
-        res['angle'] = 0
+        res['ALE'] = 0
         return res
     res = _parse_command(command, [
-        'XCE YCE angle',
+        'XCE YCE ALE',
     ])
     res['format'] = 'old'
     res['order'] = ''
@@ -142,9 +155,6 @@ def _zgoubi_drift(command):
     return _parse_command(command, [
         'l',
     ])
-
-def _zgoubi_faisceau(command):
-    return None
 
 def _zgoubi_marker(command):
     return _parse_command_header(command)
@@ -159,13 +169,14 @@ def _zgoubi_multipol(command):
         'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5',
         'R_1 R_2 R_3 R_4 R_5 R_6 R_7 R_8 R_9 R_10',
         'XPAS',
-        'KPOS XCE YCE angle',
+        'KPOS XCE YCE ALE',
     ])
     assert res['KPOS'] in ('1', '2', '3'), '{}: MULTIPOL KPOS not yet supported'.format(res['KPOS'])
     return res
 
 def _zgoubi_objet(command):
     kobj = command[2][0]
+    return None
     assert kobj == '5' or kobj == '5.1', '{}: only OBJET 5 and 5.1 is supported for now'.format(kobj)
     command_def = [
         'BORO',
@@ -177,10 +188,8 @@ def _zgoubi_objet(command):
         command_def.append('alpha_Y beta_Y alpha_Z beta_Z alpha_S beta_S D_Y Dprime_Y D_Z Dprime_Z')
     return _parse_command(command, command_def)
 
-def _zgoubi_optics(command):
-    return None
-
 def _zgoubi_particul(command):
+    return None
     if re.search(r'^[\-\.0-9]+', command[1][0]):
         return _parse_command(command, [
             'M Q G TAU',
@@ -189,9 +198,20 @@ def _zgoubi_particul(command):
         'particle_type',
     ])
 
-def _zgoubi_scaling(command):
-    #TODO(pjm): implement scaling
-    return None
+def _zgoubi_quadrupo(command):
+    return _parse_command(command, [
+        'IL',
+        'l R_0 B_0',
+        'X_E LAM_E',
+        'NCE C_0 C_1 C_2 C_3 C_4 C_5',
+        'X_S LAM_S',
+        'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5',
+        'XPAS',
+        'KPOS XCE YCE ALE',
+    ])
+
+def _zgoubi_sextupol(command):
+    return _zgoubi_quadrupo(command)
 
 def _zgoubi_ymy(command):
     return _parse_command_header(command)

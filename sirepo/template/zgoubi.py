@@ -56,7 +56,6 @@ _PHASE_SPACE_FIELD_INFO = {
 
 _PYZGOUBI_FIELD_MAP = {
     'l': 'XL',
-    'angle': 'ALE',
     'plt': 'label2',
 }
 
@@ -103,11 +102,11 @@ def extract_first_twiss_row(run_dir):
 
 
 def fixup_old_data(data):
-    #TODO(pjm): remove all fixups when merged with master
     for m in [
             'bunch',
             'bunchAnimation',
             'bunchAnimation2',
+            'particle',
             'simulationSettings',
             'opticsReport',
             'twissReport',
@@ -116,25 +115,6 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'beamParameters' in data.models:
-        data.models.bunch['particleType'] = data.models.beamParameters.particleType
-        data.models.bunch.rigidity = data.models.beamParameters.rigidity
-        del data.models['beamParameters']
-    for el in data.models.elements:
-        template_common.update_model_defaults(el, el['type'], _SCHEMA)
-    if 'bunchReport1' not in data['models']:
-        for i in range(4):
-            m = 'bunchReport{}'.format(i + 1)
-            model = data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], 'bunchReport', _SCHEMA)
-            if i == 0:
-                model['y'] = 'T'
-            elif i == 1:
-                model['x'] = 'Z'
-                model['y'] = 'P'
-            elif i == 3:
-                model['x'] = 'S'
-                model['y'] = 'time'
 
 
 def get_animation_name(data):
@@ -155,7 +135,7 @@ def models_related_to_report(data):
     r = data['report']
     if r == get_animation_name(data):
         return []
-    res = ['bunch']
+    res = ['particle', 'bunch']
     if 'bunchReport' in r:
         if data.models.bunch.match_twiss_parameters == '1':
             res.append('simulation.visualizationBeamlineId')
@@ -328,9 +308,11 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
         el = element_map[item_id]
         if el['type'] == 'AUTOREF':
             res += 'line.add(core.FAKE_ELEM(""" \'AUTOREF\'\n{}\n{} {} {}\n"""))\n'.format(
-                el.I, _element_value(el, 'XCE'), _element_value(el, 'YCE'), _element_value(el, 'angle'))
+                el.I, _element_value(el, 'XCE'), _element_value(el, 'YCE'), _element_value(el, 'ALE'))
         elif el['type'] == 'YMY':
             res += 'line.add(core.FAKE_ELEM(""" \'YMY\'\n"""))\n'
+        elif el['type'] == 'SEXTUPOL':
+            res += _generate_element(el, 'QUADRUPO')
         else:
             assert el['type'] in _MODEL_UNITS, 'Unsupported element: {}'.format(el['type'])
             res += _generate_element(el)
@@ -355,10 +337,13 @@ def _generate_beamline_elements(report, data):
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
 
-def _generate_element(el):
+def _generate_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
-    for f in _SCHEMA.model[el.type]:
+    for f in _SCHEMA.model[schema_type or el.type]:
         if f == 'name' or f == 'order' or f == 'format':
+            continue
+        #TODO(pjm): need ignore list
+        if el.type == 'CAVITE' and (f == 'l' or f == 'IOP' or f == 'f_RF'):
             continue
         res += ', {}={}'.format(_PYZGOUBI_FIELD_MAP.get(f, f), _element_value(el, f))
     res += '))\n'
@@ -366,18 +351,26 @@ def _generate_element(el):
 
 
 def _generate_parameters_file(data):
-    v = template_common.flatten_data(data['models'], {})
-    report = data['report'] if 'report' in data else ''
+    v = template_common.flatten_data(data.models, {})
+    report = data.report if 'report' in data else ''
+    v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
+    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report:
-        return template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
+        return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
     if 'opticsReport' in report:
-        return template_common.render_jinja(SIM_TYPE, v, 'optics.py')
+        return res + template_common.render_jinja(SIM_TYPE, v, 'optics.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE
-    res = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
         return res + template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
     return res + template_common.render_jinja(SIM_TYPE, v)
+
+
+def _generate_particle(particle):
+    if particle.particleType == 'Other':
+        return '{} {} {} {} 0'.format(particle.M, particle.Q, particle.G, particle.Tau)
+    return particle.particleType
 
 
 def _init_model_units():
@@ -399,21 +392,28 @@ def _init_model_units():
         if re.search(r'^#', v):
             v = re.sub(r'^#', '', v)
             return '[{}]'.format(','.join(v.split('|')))
-        return float(v)
+        return str(_cm(float(v)))
 
     return {
         'AUTOREF': {
             'XCE': _cm,
             'YCE': _cm,
-            'angle': _mrad,
+            'ALE': _mrad,
         },
         'BEND': {
             'l': _cm,
+            'X_E': _cm,
+            'LAM_E': _cm,
+            'X_S': _cm,
+            'LAM_S': _cm,
+            'XPAS': _xpas,
             'XCE': _cm,
             'YCE': _cm,
         },
+        'CAVITE': {
+        },
         'CHANGREF': {
-            'angle': _degrees,
+            'ALE': _degrees,
             'XCE': _cm,
             'YCE': _cm,
         },
@@ -440,11 +440,24 @@ def _init_model_units():
             'X_E': _cm,
             'LAM_E': _cm,
             'X_S': _cm,
+            'XPAS': _xpas,
+            'LAM_S': _cm,
+            'XCE': _cm,
+            'YCE': _cm,
+        },
+        'SEXTUPOL': {
+            'l': _cm,
+            'R_0': _cm,
+            'X_E': _cm,
+            'LAM_E': _cm,
+            'X_S': _cm,
+            'XPAS': _xpas,
             'LAM_S': _cm,
             'XCE': _cm,
             'YCE': _cm,
         },
     }
+
 
 def _parse_zgoubi_log(run_dir):
     path = run_dir.join(_ZGOUBI_LOG_FILE)
@@ -469,7 +482,6 @@ def _parse_zgoubi_log(run_dir):
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
     return res
-
 
 
 _MODEL_UNITS = _init_model_units()

@@ -14,9 +14,9 @@ import re
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS']
-_DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.angle']
-_MRAD_FIELDS = ['AUTOREF.angle']
+_IGNORE_FIELDS = ['BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
+_DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
+_MRAD_FIELDS = ['AUTOREF.ALE']
 #TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
 _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR']
 

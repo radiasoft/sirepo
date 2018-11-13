@@ -373,7 +373,7 @@
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Nominal Position [m]", "Float"],
-            "material": ["", "CrystalMaterial", "Unknown"],
+            "material": ["Material", "CrystalMaterial", "Unknown"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],

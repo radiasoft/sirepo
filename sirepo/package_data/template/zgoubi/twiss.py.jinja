@@ -1,8 +1,4 @@
-# {{simulation_name}}
 
-from zgoubi import core, utils
-
-line = core.Line('line')
 line.add(core.OBJET5(
     BORO={{ bunch_rigidity }},
     PY=0.001, PT=0.01, PZ= 0.001, PP=0.01, PX=0.001, PD=0.0001,
@@ -10,7 +6,7 @@ line.add(core.OBJET5(
 ))
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
-{{ bunch_particleType }}
+{{ particleDef }}
 """))
 
 line.add(core.FAKE_ELEM("""
