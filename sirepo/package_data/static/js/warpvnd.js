@@ -8,7 +8,7 @@ SIREPO.PLOT_3D_CONFIG = {
 };
 
 SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ].join('');
 SIREPO.appFieldEditors = [
@@ -566,6 +566,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
         restrict: 'A',
         scope: {
             modelName: '@',
+            reportId: '<',
         },
         templateUrl: '/static/html/conductor-grid.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
@@ -1562,9 +1563,12 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService) {
+SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService, utilities, plotToPNG) {
     return {
         restrict: 'A',
+        scope: {
+            reportId: '<',
+        },
         template: [
             '<div></div>',
         ].join(''),
@@ -1575,6 +1579,13 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
             var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
             var fsRenderer = null;
+
+            // this canvas is the one created by vtk
+            var canvas3d;
+
+            // we keep this one updated with a copy of the vtk canvas
+            var snapshotCanvas;
+            var snapshotCtx;
 
             function addConductors() {
                 var grid = appState.models.simulationGrid;
@@ -1652,6 +1663,19 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                         listenWindowResize: false,
                     });
                 fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
+
+                rw.on('pointerup', cacheCanvas);
+                rw.on('wheel', function () {
+                    utilities.debounce(cacheCanvas, 100)();
+                });
+
+                canvas3d = $($element).find('canvas')[0];
+
+                // this canvas is used to store snapshots of the 3d canvas
+                snapshotCanvas = document.createElement('canvas');
+                snapshotCtx = snapshotCanvas.getContext('2d');
+                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+
                 refresh();
             }
 
@@ -1691,12 +1715,26 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                 renderer.resetCamera();
                 cam.zoom(1.3);
                 fsRenderer.getRenderWindow().render();
+                cacheCanvas();
+            }
+            function cacheCanvas() {
+                if(! snapshotCtx) {
+                    return;
+                }
+                var w = parseInt(canvas3d.getAttribute('width'));
+                var h = parseInt(canvas3d.getAttribute('height'));
+                snapshotCanvas.width = w;
+                snapshotCanvas.height = h;
+                // this call makes sure the buffer is fresh (it appears)
+                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
             }
 
             $scope.$on('$destroy', function() {
                 $element.off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
+                plotToPNG.removeCanvas($scope.reportId);
             });
 
             appState.whenModelsLoaded($scope, function() {

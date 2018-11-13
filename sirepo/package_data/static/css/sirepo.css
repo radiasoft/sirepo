@@ -521,8 +521,8 @@
 
     /* Full-screen styles */
     div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
-        width: 75vw;
-        height: 100%;
+        width: 75vw !important;
+        height: 100% !important;
     }
     /* Firefox does its own thing */
     div:not([data-report-panel='3d']):-moz-full-screen > .panel {
@@ -548,33 +548,33 @@
     /* empty class to signify non-empty transclude - used to change layouts for some fullscreen reports */
     .has-transclude {
     }
-    div[data-report-panel="3d"] > .panel:-webkit-full-screen, div[data-report-panel="heatmap"] > .panel:-webkit-full-screen {
-        width: 60vw;
-        height: 100%;
+    div[data-report-panel='3d'] > .panel:-webkit-full-screen, div[data-report-panel='heatmap'] > .panel:-webkit-full-screen {
+        width: 60vw !important;
+        height: 100% !important;
     }
-    div[data-report-panel="3d"] > .panel:-webkit-full-screen .has-transclude {
+    div[data-report-panel='3d'] > .panel:-webkit-full-screen .has-transclude {
         display: flex;
     }
-    div[data-report-panel="3d"]:-moz-full-screen > .panel, div[data-report-panel="heatmap"]:-moz-full-screen > .panel {
+    div[data-report-panel='3d']:-moz-full-screen > .panel, div[data-report-panel='heatmap']:-moz-full-screen > .panel {
         width: 60vw;
         height: 100%;
         margin: auto;
     }
-    div[data-report-panel="3d"]:-moz-full-screen > .panel .has-transclude {
+    div[data-report-panel='3d']:-moz-full-screen > .panel .has-transclude {
         display: flex;
     }
-    div[data-report-panel="3d"] > .panel:-ms-fullscreen, div[data-report-panel="heatmap"] > .panel:-ms-fullscreen  {
+    div[data-report-panel='3d'] > .panel:-ms-fullscreen, div[data-report-panel='heatmap'] > .panel:-ms-fullscreen  {
         height: 60vh;
         height: 100%;
     }
-    div[data-report-panel="3d"] > .panel:-ms-fullscreen .has-transclude  {
+    div[data-report-panel='3d'] > .panel:-ms-fullscreen .has-transclude  {
         display: flex;
     }
-    div[data-report-panel="3d"] > .panel:fullscreen, div[data-report-panel="heatmap"] > .panel:fullscreen  {
+    div[data-report-panel='3d'] > .panel:fullscreen, div[data-report-panel='heatmap'] > .panel:fullscreen  {
         height: 60vh;
         height: 100%;
     }
-    div[data-report-panel="3d"] > .panel:fullscreen .has-transclude {
+    div[data-report-panel='3d'] > .panel:fullscreen .has-transclude {
         display: flex;
     }
 
@@ -675,7 +675,6 @@ input.ng-invalid.ng-dirty {
 }
 
 .sr-help-icon {
-  margin-right: 15px;
   color: #337ab7;
   opacity: 1;
   margin-right: 10px;
@@ -683,6 +682,11 @@ input.ng-invalid.ng-dirty {
 .sr-help-icon:hover {
   color: #286090;
   opacity: 1;
+}
+.sr-help-icon.notes {
+  position: absolute;
+  bottom: 1em;
+  right: 0.5em;
 }
 
 .sr-button-bar-parent {
