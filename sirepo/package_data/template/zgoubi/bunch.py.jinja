@@ -1,14 +1,9 @@
-# {{simulation_name}}
 
-from zgoubi import core, utils
-
-line = core.Line('line')
 line.add(core.FAKE_ELEM("""
 'OPTIONS'
 1 1
 WRITE OFF
 """))
-{# TODO(pjm): allow matching to twiss parameters #}
 line.add(core.FAKE_ELEM("""
 'MCOBJET'
 {{ bunch_rigidity }},
@@ -23,5 +18,5 @@ line.add(core.FAKE_ELEM("""
 """))
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
-{{ bunch_particleType }}
+{{ particleDef }}
 """))

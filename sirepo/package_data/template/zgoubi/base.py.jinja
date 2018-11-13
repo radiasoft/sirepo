@@ -1,0 +1,11 @@
+# {{simulation_name}}
+
+from zgoubi import core, utils
+import re
+
+def sext(*args, **kwargs):
+    return core.FAKE_ELEM(re.sub('QUADRUPO', 'SEXTUPOL', core.QUADRUPO(*args, **kwargs).output()))
+
+core.SEXTUPOL = sext
+
+line = core.Line('line')

@@ -1,8 +1,3 @@
-# {{simulation_name}}
-
-from zgoubi import core, utils
-
-line = core.Line('line')
 
 {#TODO(pjm): beam parameters need to be fitted to the selected beamline #}
 line.add(core.FAKE_ELEM("""
@@ -16,7 +11,7 @@ line.add(core.FAKE_ELEM("""
 
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
-{{ bunch_particleType }}
+{{ particleDef }}
 """))
 
 line.add(core.FAKE_ELEM("""

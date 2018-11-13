@@ -13,16 +13,16 @@ SIREPO.appFieldEditors = [
 ].join('');
 
 SIREPO.lattice = {
-    reverseAngle: true,
     elementColor: {
         CHANGREF: 'orange',
-        QUADRUPO: 'red',
+        QUADRUPO: 'tomato',
+        SEXTUPOL: 'lightgreen',
     },
     elementPic: {
         aperture: [],
         bend: ['AUTOREF', 'BEND', 'CHANGREF', 'MULTIPOL'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPO', ],
+        magnet: ['QUADRUPO', 'SEXTUPOL'],
         rf: ['CAVITE'],
         solenoid: [],
         watch: ['MARKER'],
@@ -55,7 +55,7 @@ SIREPO.app.directive('appHeader', function(latticeService) {
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>',
+                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
@@ -76,7 +76,10 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'YMY'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SEXTUPOL', 'YMY'];
+
+    function computeBendAngle(bend) {
+    }
 
     function processChangrefFormat() {
         var model = appState.models.CHANGREF;
@@ -84,6 +87,46 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
             panelState.showField('CHANGREF', f, model.format == 'old');
         });
         panelState.showField('CHANGREF', 'order', model.format == 'new');
+    }
+
+    function updateElementAttributes(item) {
+        if (item.type == 'BEND') {
+            item.angle = 0;
+            delete item.travelLength;
+            item.e1 = item.W_E;
+            item.e2 = item.W_S;
+            var computedAngle = 2 * Math.asin((item.B1 * item.l * 100)/(2 * appState.models.bunch.rigidity));
+            item.travelLength = latticeService.arcLength(computedAngle, item.l);
+
+            if (item.KPOS == '2') {
+                // misaligned
+                //TODO(pjm): support misalignment YCE, ALE
+            }
+            else if (item.KPOS == '3') {
+                if (item.ALE) {
+                    item.angle = - item.ALE * 2;
+                }
+                else {
+                    // angle computed from field, length and magnetic rigidity
+                    item.angle = computedAngle;
+                }
+            }
+        }
+        else if (item.type == 'CHANGREF') {
+            item.angle = 0;
+            if (item.format == 'old') {
+                item.angle = - item.ALE;
+            }
+        }
+        else if (item.type == 'MULTIPOL') {
+            item.color = '';
+            if (item.B_2) {
+                item.color = SIREPO.lattice.elementColor.QUADRUPO;
+            }
+            else if (item.B_3) {
+                item.color = SIREPO.lattice.elementColor.SEXTUPOL;
+            }
+        }
     }
 
     self.handleModalShown = function(name) {
@@ -98,6 +141,19 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
 
     appState.whenModelsLoaded($scope, function() {
         appState.watchModelFields($scope, ['CHANGREF.format'], processChangrefFormat);
+
+        if (! appState.models.simulation.isInitialized) {
+            appState.models.elements.map(updateElementAttributes);
+            appState.models.simulation.isInitialized = true;
+            appState.saveChanges(['elements', 'simulation']);
+        }
+
+        $scope.$on('modelChanged', function(e, name) {
+            var m = appState.models[name];
+            if (m.type) {
+                updateElementAttributes(m);
+            }
+        });
     });
 });
 
@@ -113,14 +169,24 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         });
     }
 
+    function processParticleType() {
+        var particle = appState.models.particle;
+        ['M', 'Q', 'G', 'Tau'].forEach(function(f) {
+            panelState.showField('particle', f, particle.particleType == 'Other');
+        });
+    }
+
     self.handleModalShown = function(name) {
         if (name == 'bunch') {
             processBunchTwiss();
+            processParticleType();
         }
     };
 
     appState.whenModelsLoaded($scope, function() {
         appState.watchModelFields($scope, ['bunch.match_twiss_parameters'], processBunchTwiss);
+        appState.watchModelFields($scope, ['particle.particleType'], processParticleType);
+        processParticleType();
     });
 
     $scope.$on('bunchReport1.summaryData', function(e, info) {

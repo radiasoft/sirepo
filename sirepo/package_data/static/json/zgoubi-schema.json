@@ -46,7 +46,9 @@
             ["1", "Yes"]
         ],
         "CaviteFormat": [
-            ["10", "Chambers matrix method"]
+            ["1", "Synchrotron RF cavity"],
+            ["2", "Synchrotron RF cavity with no SCALING"],
+            ["10", "Fixed frequency RF"]
         ],
         "CaviteMatrixOption": [
             ["-2", "-2"],
@@ -130,7 +132,7 @@
             ["MUON+", "Positive Muon"],
             ["MUON-", "Negative Muon"],
             ["PROTON", "Proton"],
-            ["POSITRON", "Positron"]
+            ["Other", "Other"]
         ],
         "PhaseSpaceCoordinate": [
             ["Y", "Y"],
@@ -171,8 +173,14 @@
         },
         "beamlineReport": {
         },
+        "particle": {
+            "particleType": ["Particle Type", "ParticleType", "ELECTRON"],
+            "M": ["Mass [MeV/c²]", "Float", 938.27203],
+            "Q": ["Charge [C]", "Float", 1.602176487e-19],
+            "G": ["Gyromagnetic Factor", "Float", 1.79284735],
+            "Tau": ["COM Life-time [s]", "Float", 1e99]
+        },
         "bunch": {
-            "particleType": ["Particle Type", "ParticleType", "PROTON"],
             "rigidity": ["Reference Rigidity", "Float", 1000.0, "Bρ"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
             "KY": ["Probability Y", "ProbabilityDensity", "2"],
@@ -187,25 +195,25 @@
             "P0": ["Mean Z' [rad]", "Float", 0.0],
             "X0": ["Mean X [m]", "Float", 0.0],
             "D0": ["Mean D0 (B𝜌/BORO)", "Float", 1.0],
-            "match_twiss_parameters": ["Match Twiss Parameters", "Boolean", "1", "Use twiss parameters computed from the selected beamline"],
+            "match_twiss_parameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
             "alpha_Y": ["Horizontal Alpha", "Float", 0.0],
             "beta_Y": ["Horizontal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Y": ["Horizontal Emittance", "Float", 1e-6],
-            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 0, "RMS cutoff"],
+            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 3, "RMS cutoff"],
             "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If cutoff 1 is negative, fill ring from |N| to N"],
             "DY": ["Horizontal Dispersion [m]", "Float", 0],
             "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
             "alpha_Z": ["Vertical Alpha", "Float", 0.0],
             "beta_Z": ["Vertical Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Z": ["Vertical Emittance", "Float", 1e-6],
-            "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 0],
+            "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 3],
             "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0],
             "DZ": ["Vertical Dispersion [m]", "Float", 0],
             "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0],
             "alpha_X": ["Longitudinal Alpha", "Float", 0],
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
-            "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 0],
+            "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
             "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
         },
         "bunchAnimation": {
@@ -264,7 +272,7 @@
             "I": ["Autoref Format", "AutorefFormat", "4", "I"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "BEND": {
             "name": ["Name", "ValidatedString"],
@@ -289,28 +297,30 @@
             "CS_3": ["Exit Fringe Field Coefficients $C_3$", "Float", 0.0],
             "CS_4": ["Exit Fringe Field Coefficients $C_4$", "Float", 0.0],
             "CS_5": ["Exit Fringe Field Coefficients $C_5$", "Float", 0.0],
-            "XPAS": ["Integration Step [m]", "String", 0.0, "XPAS"],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
             "KPOS": ["Alignment", "ElementAlignmentBend", "1", "KPOS"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "CAVITE": {
             "name": ["Name", "ValidatedString"],
-            "I": ["Cavite Format", "CaviteFormat", "10", "I"],
-            "l": ["Length [m]", "Float", 0.0, "L"],
+            "IOPT": ["Cavite Format", "CaviteFormat", "10", "IOPT"],
+            "L": ["Reference Closed Orbit Length [m]", "Float", 0.0, "L"],
+            "h": ["Harmonic Number", "Float", 0, "h"],
             "f_RF": ["RF Frequency [Hz]", "Float", 0.0, "$f_RF$"],
             "V": ["RF Peak Voltage [V]", "Float", 0.0, "V"],
-            "phi_s": ["Synchronous Phase [rad]", "Float", 0.0, "$\\Phi$"],
+            "sig_s": ["Synchronous Phase [rad]", "Float", 0.0, "$\\Phi$"],
+            "l": ["Length [m]", "Float", 0.0, "L"],
             "IOP": ["Matrix Options", "CaviteMatrixOption", "0", "IOP"]
         },
         "CHANGREF": {
             "name": ["Name", "ValidatedString"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
             "format": ["CHANGREF Style", "ChangrefStyle", "old"],
-            "order": ["Transformations", "String", "", "XS 'val', YS 'val', ZS 'val', XR 'val', YR 'val', ZR 'val' in arbitrary order"]
+            "order": ["Transformations", "OptionalString", "", "XS 'val', YS 'val', ZS 'val', XR 'val', YR 'val', ZR 'val' in arbitrary order"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
@@ -378,11 +388,11 @@
             "R_8": ["16 Pole", "Float", 0.0],
             "R_9": ["18 Pole", "Float", 0.0],
             "R_10": ["20 Pole", "Float", 0.0],
-            "XPAS": ["Integration Step [m]", "String", 0.0, "XPAS"],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
             "KPOS": ["Alignment", "ElementAlignmentBend", "1", "KPOS"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "QUADRUPO": {
             "name": ["Name", "ValidatedString"],
@@ -405,11 +415,38 @@
             "CS_3": ["Exit Fringe Field Coefficients $C_3$", "Float", 0.0],
             "CS_4": ["Exit Fringe Field Coefficients $C_4$", "Float", 0.0],
             "CS_5": ["Exit Fringe Field Coefficients $C_5$", "Float", 0.0],
-            "XPAS": ["Integration Step [m]", "String", 0.0, "XPAS"],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
             "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "angle": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
+        "SEXTUPOL": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["Length [m]", "Float", 0.0, "XL"],
+            "R_0": ["Radius at Pole Tip [m]", "Float", 0.0, "R_0"],
+            "B_0": ["Field at Pole Tip [kG]", "Float", 0.0, "B_0"],
+            "X_E": ["Entrance Integration Zone [m]", "Float", 0.0],
+            "LAM_E": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
+            "C_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "C_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "C_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "C_3": ["Entrance Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "C_4": ["Entrance Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "C_5": ["Entrance Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "X_S": ["Exit Integration Zone [m]", "Float", 0.0],
+            "LAM_S": ["Exit Fringe Field Extent [m]", "Float", 0.0],
+            "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CS_3": ["Exit Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CS_4": ["Exit Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CS_5": ["Exit Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "YMY": {
             "name": ["Name", "ValidatedString"]
@@ -426,7 +463,11 @@
             "title": "Bunch",
             "basic": [
                 ["Particle", [
-                    "particleType",
+                    "particle.particleType",
+                    "particle.M",
+                    "particle.Q",
+                    "particle.G",
+                    "particle.Tau",
                     "rigidity",
                     "particleCount"
                 ]],
@@ -590,7 +631,7 @@
                 "I",
                 "XCE",
                 "YCE",
-                "angle"
+                "ALE"
             ]
         },
         "BEND": {
@@ -606,7 +647,7 @@
                     "KPOS",
                     "XCE",
                     "YCE",
-                    "angle"
+                    "ALE"
                 ]],
                 ["Fringe Fields", [
                     [
@@ -641,10 +682,13 @@
             "description": "Accelerating cavity",
             "advanced": [
                 "name",
-                "l",
+                "IOPT",
+                "L",
+                "h",
                 "f_RF",
                 "V",
-                "phi_s",
+                "sig_s",
+                "l",
                 "IOP"
             ]
         },
@@ -656,7 +700,7 @@
                 "format",
                 "XCE",
                 "YCE",
-                "angle",
+                "ALE",
                 "order"
             ]
         },
@@ -684,10 +728,11 @@
                     "name",
                     "l",
                     "R_0",
+                    "XPAS",
                     "KPOS",
                     "XCE",
                     "YCE",
-                    "angle"
+                    "ALE"
                 ]],
                 ["Components", [
                     [
@@ -782,7 +827,48 @@
                     "KPOS",
                     "XCE",
                     "YCE",
-                    "angle"
+                    "ALE"
+                ]],
+                ["Fringe Fields", [
+                    [
+                        ["Entrance", [
+                            "X_E",
+                            "LAM_E",
+                            "C_0",
+                            "C_1",
+                            "C_2",
+                            "C_3",
+                            "C_4",
+                            "C_5"
+                        ]],
+                        ["Exit", [
+                            "X_S",
+                            "LAM_S",
+                            "CS_0",
+                            "CS_1",
+                            "CS_2",
+                            "CS_3",
+                            "CS_4",
+                            "CS_5"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "SEXTUPOL": {
+            "title": "SEXTUPOL",
+            "description": "Sextupole magnet",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "R_0",
+                    "B_0",
+                    "XPAS",
+                    "KPOS",
+                    "XCE",
+                    "YCE",
+                    "ALE"
                 ]],
                 ["Fringe Fields", [
                     [
