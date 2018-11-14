@@ -1911,7 +1911,6 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 axes.y.domain = [ymin, d3.max(json.points)];
                 axes.y.scale.domain(axes.y.domain).nice();
                 var p = d3.zip(xPoints, json.points);
-                //srdbg('plot2d adding convergence points', points);
                 plotting.addConvergencePoints(select, '.plot-viewport', points, p);
 
                 for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
@@ -2629,6 +2628,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
+
             var ASPECT_RATIO = 4.0 / 7;
             $scope.focusStrategy = 'closest';
             $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
@@ -2648,7 +2648,6 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 $scope.modelName + '-popup-delegate'
             );
 
-            var plotLabels = [];
             $scope.popupDelegate.formatFocusPointData = function (fp) {
                 var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
                 if(yLabel) {
@@ -2660,11 +2659,215 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
-            var graphLine, zoom;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
+            var graphLine, zoom;
+            var includeForDomain = [];
+            var plotLabels = [];
+
+            $scope.clearData = function() {
+                $scope.dataCleared = true;
+                axes.x.domain = null;
+            };
+
+            $scope.destroy = function() {
+                zoom.on('zoom', null);
+                $($scope.element).find('.overlay').off();
+                $($scope.element).find('.sr-plot-legend-item text').off();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.getXAxis = function() {
+                return axes.x;
+            };
+
+            $scope.init = function() {
+                select('svg').attr('height', plotting.initialHeight($scope));
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
+                graphLine = d3.svg.line()
+                    .x(function(d, i) {
+                        return axes.x.scale(axes.x.points[i]);
+                    })
+                    .y(function(d) {
+                        return axes.y.scale(d);
+                    });
+                resetZoom();
+            };
+
+            $scope.load = function(json) {
+                includeForDomain.length = 0;
+                $scope.dataCleared = false;
+                // data may contain 2 plots (y1, y2) or multiple plots (plots)
+                var plots = json.plots || [
+                    {
+                        points: json.points[0],
+                        label: json.y1_title,
+                        color: '#1f77b4',
+                    },
+                    {
+                        points: json.points[1],
+                        label: json.y2_title,
+                        color: '#ff7f0e',
+                    },
+                ];
+                if (plots.length == 1 && ! json.y_label) {
+                    json.y_label = plots[0].label;
+                }
+                axes.x.points = json.x_points
+                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                var xdom = [json.x_range[0], json.x_range[1]];
+                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
+                if ($scope.onRefresh) {
+                    // beamline overlay always starts at position 0
+                    xdom[0] = 0;
+                }
+                axes.x.domain = xdom;
+                axes.x.scale.domain(xdom);
+                if (json.y_range[0] == json.y_range[1]) {
+                    // y has no range, expand it so axis can be computed
+                    json.y_range[0] -= (json.y_range[0] || 1);
+                    json.y_range[1] += (json.y_range[1] || 1);
+                }
+                axes.y.domain = [json.y_range[0], json.y_range[1]];
+                axes.y.scale.domain(axes.y.domain).nice();
+                $.each(axes, function(dim, axis) {
+                    axis.parseLabelAndUnits(json[dim + '_label']);
+                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                });
+                select('.main-title').text(json.title);
+                select('.sub-title').text(json.subtitle);
+                var viewport = select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                createLegend(plots);
+                plots.forEach(function (plot, i) {
+                    viewport.append('path')
+                        .attr('class', 'line line-color')
+                        .style('stroke', plot.color)
+                        .datum(plot.points);
+                    // must create extra focus points here since we don't know how many to make
+                    // until load() is invoked.  Also broadcast them so the overlay can set them up
+                    var name = $scope.modelName + '-fp-' + i;
+                    if(! $scope.focusPoints[i]) {
+                        $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x, axes.y, false, name);
+                        var fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-' + i);
+                        fcd.focusPoints.push($scope.focusPoints[i]);
+                        $scope.popupDelegate.focusPoints.push($scope.focusPoints[i]);
+                        $scope.focusCircleDelegates.push(fcd);
+                        $scope.plotInfoDelegates.push(fcd);
+                        $scope.$broadcast('delegate.added', fcd);
+                    }
+
+                    // make sure everything is visible when reloading
+                    includeDomain(i, true);
+                    setPlotVisible(i, true);
+                });
+                axes.y.plots = plots;
+                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                    if (fpIndex < plots.length) {
+                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope.plotInfoDelegates);
+                    }
+                    else {
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope.plotInfoDelegates);
+                    }
+                }
+                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
+                $scope.margin.top = json.title
+                    ? 50
+                    : $scope.onRefresh
+                        ? 65
+                        : 20;
+                $scope.margin.bottom = 50 + 20 * plots.length;
+                $scope.resize();
+            };
+
+            $scope.resize = function() {
+                if (select().empty()) {
+                    return;
+                }
+                refresh();
+            };
+
+            function build2dPointsForPlot(plotIndex) {
+                var pts = [];
+                for(var ptIndex = 0; ptIndex < axes.x.points.length; ++ptIndex) {
+                    pts.push([
+                        axes.x.points[ptIndex],
+                        axes.y.plots[plotIndex].points[ptIndex]
+                    ]);
+                }
+                return pts;
+            }
+
+            function createLegend(plots) {
+                plotLabels.length = 0;
+                var legend = select('.sr-plot-legend');
+                legend.selectAll('.sr-plot-legend-item').remove();
+                if (plots.length == 1) {
+                    return;
+                }
+                var itemWidth;
+                for (var i = 0; i < plots.length; i++) {
+                    var plot = plots[i];
+                    plotLabels.push(plot.label);
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    // no option to toggle plot if only 1
+                    if(plots.length > 1) {
+                        item.append('text')
+                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
+                            .attr('x', 8)
+                            .attr('y', 17 + i * 20)
+                            .text(vIconText(true))
+                            .on('click', getVToggleFn(i));
+                    }
+                    itemWidth = item.node().getBBox().width;
+                    item.append('circle')
+                        .attr('r', 5)
+                        .attr('cx', 24 + itemWidth)
+                        .attr('cy', 10 + i * 20)
+                        .style('stroke', plot.color)
+                        .style('fill', plot.color);
+                    itemWidth = item.node().getBBox().width;
+                    item.append('text')
+                        .attr('class', 'focus-text')
+                        .attr('x', 12 + itemWidth)
+                        .attr('y', 16 + i * 20)
+                        .text(plot.label);
+                }
+            }
+
+            function getVToggleFn(i) {
+                return function () {
+                    return togglePlot(i);
+                };
+            }
+
+            function includeDomain(pIndex, doInclude) {
+                var domainIndex = includeForDomain.indexOf(pIndex);
+                if(! doInclude) {
+                    if(domainIndex >= 0) {
+                        includeForDomain.splice(domainIndex, 1);
+                    }
+                }
+                else {
+                    if(domainIndex < 0) {
+                        includeForDomain.push(pIndex);
+                    }
+                }
+            }
+
+            function isPlotVisible(pIndex) {
+                return parseFloat(plotPath(pIndex).style('opacity')) < 1;
+            }
+
+            function plotPath(pIndex) {
+                return d3.select(selectAll('.plot-viewport path')[0][pIndex]);
+            }
 
             function recalculateYDomain() {
                 var ydom;
@@ -2676,7 +2879,8 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     if (x > xdom[1] || x < xdom[0]) {
                         continue;
                     }
-                    for (var j = 0; j < plots.length; j++) {
+                    for(var d in includeForDomain) {
+                        var j = includeForDomain[d];
                         var y = plots[j].points[i];
                         if (ydom) {
                             if (y < ydom[0]) {
@@ -2724,7 +2928,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    axes.y.scale.domain(axes.y.domain).nice();
+                    axes.y.scale.domain(visibleDomain()).nice();
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
@@ -2758,212 +2962,62 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
             }
+
             function selectAll(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.selectAll(selector) : e;
             }
 
-            $scope.clearData = function() {
-                $scope.dataCleared = true;
-                axes.x.domain = null;
-            };
-
-            $scope.destroy = function() {
-                zoom.on('zoom', null);
-                $($scope.element).find('.overlay').off();
-                $($scope.element).find('.sr-plot-legend-item text').off();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
-            };
-
-            $scope.getXAxis = function() {
-                return axes.x;
-            };
-
-            $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                $.each(axes, function(dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
-                });
-                graphLine = d3.svg.line()
-                    .x(function(d, i) {
-                        return axes.x.scale(axes.x.points[i]);
-                    })
-                    .y(function(d) {
-                        return axes.y.scale(d);
-                    });
-                resetZoom();
-            };
-
-            function createLegend(plots) {
-                plotLabels.length = 0;
-                var legend = select('.sr-plot-legend');
-                legend.selectAll('.sr-plot-legend-item').remove();
-                if (plots.length == 1) {
-                    return;
-                }
-                var itemWidth;
-                for (var i = 0; i < plots.length; i++) {
-                    var plot = plots[i];
-                    plotLabels.push(plot.label);
-                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
-                    // no option to toggle plot if only 1
-                    if(plots.length > 1) {
-                        item.append('text')
-                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
-                            .attr('x', 8)
-                            .attr('y', 17 + i * 20)
-                            .text(vIconText(true))
-                            .on('click', getVToggleFn(i));
-                    }
-                    itemWidth = item.node().getBBox().width;
-                    item.append('circle')
-                        .attr('r', 5)
-                        .attr('cx', 24 + itemWidth)
-                        .attr('cy', 10 + i * 20)
-                        .style('stroke', plot.color)
-                        .style('fill', plot.color);
-                    itemWidth = item.node().getBBox().width;
-                    item.append('text')
-                        .attr('class', 'focus-text')
-                        .attr('x', 12 + itemWidth)
-                        .attr('y', 16 + i * 20)
-                        .text(plot.label);
-                }
-            }
-
-            $scope.load = function(json) {
-                $scope.dataCleared = false;
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                var plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
-                if (plots.length == 1 && ! json.y_label) {
-                    json.y_label = plots[0].label;
-                }
-                axes.x.points = json.x_points
-                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
-                var xdom = [json.x_range[0], json.x_range[1]];
-                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
-                if ($scope.onRefresh) {
-                    // beamline overlay always starts at position 0
-                    xdom[0] = 0;
-                }
-                axes.x.domain = xdom;
-                axes.x.scale.domain(xdom);
-                if (json.y_range[0] == json.y_range[1]) {
-                    // y has no range, expand it so axis can be computed
-                    json.y_range[0] -= (json.y_range[0] || 1);
-                    json.y_range[1] += (json.y_range[1] || 1);
-                }
-                axes.y.domain = [json.y_range[0], json.y_range[1]];
-                axes.y.scale.domain(axes.y.domain).nice();
-                $.each(axes, function(dim, axis) {
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
-                });
-                select('.main-title').text(json.title);
-                select('.sub-title').text(json.subtitle);
-                var viewport = select('.plot-viewport');
-                viewport.selectAll('.line').remove();
-                createLegend(plots);
-                for (var i = 0; i < plots.length; i++) {
-                    var plot = plots[i];
-                    viewport.append('path')
-                        .attr('class', 'line line-color')
-                        .style('stroke', plot.color)
-                        .datum(plot.points);
-                    // must create extra focus points here since we don't know how many to make
-                    // until load() is invoked.  Also broadcast them so the overlay can set them up
-                    var name = $scope.modelName + '-fp-' + i;
-                    if(! $scope.focusPoints[i]) {
-                        $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x, axes.y, false, name);
-                        var fcd = focusPointService.setupInfoDelegate(null, null, $scope.modelName + '-circle-delegate-' + i);
-                        fcd.focusPoints.push($scope.focusPoints[i]);
-                        $scope.popupDelegate.focusPoints.push($scope.focusPoints[i]);
-                        $scope.focusCircleDelegates.push(fcd);
-                        $scope.plotInfoDelegates.push(fcd);
-                        $scope.$broadcast('delegate.added', fcd);
-                    }
-
-                    // make sure everything is visible when reloading
-                    setPlotVisible(i, true);
-                }
-                axes.y.plots = plots;
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    if (fpIndex < plots.length) {
-                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope.plotInfoDelegates);
-                    }
-                    else {
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope.plotInfoDelegates);
-                    }
-                }
-                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
-                $scope.margin.top = json.title
-                    ? 50
-                    : $scope.onRefresh
-                        ? 65
-                        : 20;
-                $scope.margin.bottom = 50 + 20 * plots.length;
-                $scope.resize();
-            };
-
-            function build2dPointsForPlot(plotIndex) {
-                var pts = [];
-                for(var ptIndex = 0; ptIndex < axes.x.points.length; ++ptIndex) {
-                    pts.push([
-                        axes.x.points[ptIndex],
-                        axes.y.plots[plotIndex].points[ptIndex]
-                    ]);
-                }
-                return pts;
-            }
-
-            $scope.resize = function() {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
-            };
-
-            function getVToggleFn(i) {
-                return function () {
-                    return togglePlot(i);
-                };
-            }
-            function plotPath(pIndex) {
-                return d3.select(selectAll('.plot-viewport path')[0][pIndex]);
-            }
-            function vIcon(pIndex) {
-                return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
-            }
-            function togglePlot(pIndex) {
-                setPlotVisible(pIndex, isPlotVisible(pIndex));
-            }
-            function isPlotVisible(pIndex) {
-                return parseFloat(plotPath(pIndex).style('opacity')) < 1;
-            }
             function setPlotVisible(pIndex, isVisible) {
+                // disable last toggle - meaningless to show no plots
+                if(includeForDomain.length == 1 && includeForDomain[0] == pIndex) {
+                    return;
+                }
                 plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
                 vIcon(pIndex).text(vIconText(isVisible));
 
+                if(axes.y.plots && axes.y.plots[pIndex]) {
+                    includeDomain(pIndex, isVisible);
+                    if(includeForDomain.length == 1) {
+                        vIcon(includeForDomain[0]).style('fill', '#aaaaaa');
+                    }
+                    else {
+                        selectAll('.sr-plot-legend .plot-visibility').style('fill', null);
+                    }
+                    recalculateYDomain();
+                    refresh();
+                }
                 // let the delegates do something if needed
                 $scope.popupDelegate.setInfoVisible(pIndex, isVisible);
                 $scope.focusCircleDelegates[pIndex].setInfoVisible(isVisible);
             }
+
+            function togglePlot(pIndex) {
+                setPlotVisible(pIndex, isPlotVisible(pIndex));
+            }
+
+            function vIcon(pIndex) {
+                return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
+            }
+
             function vIconText(isVisible) {
                 // e067 == checked box, e157 == empty box
                 return isVisible ? '\ue067' : '\ue157';
+            }
+
+            // get the broadest domain from the visible plots
+            function visibleDomain() {
+                var ydomMin = Math.min.apply(null,
+                    includeForDomain.map(function (index) {
+                        return Math.min.apply(null, axes.y.plots[index].points);
+                    })
+                );
+                var ydomMax = Math.max.apply(null,
+                    includeForDomain.map(function (index) {
+                        return Math.max.apply(null, axes.y.plots[index].points);
+                    })
+                );
+                return [ydomMin, ydomMax];
             }
         },
         link: function link(scope, element) {
