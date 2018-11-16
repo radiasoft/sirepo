@@ -587,7 +587,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if(xl.empty() || xaxis.empty()) {
                     return 0;
                 }
-                return xl.attr('height') + xaxis.node().getBBox().height + 16;
+                try {
+                    // firefox throws on getBBox() if the node is not visible
+                    return xl.attr('height') + xaxis.node().getBBox().height + 16;
+                }
+                catch (e) {
+                    return 0;
+                }
             };
 
             var dragCarat, dragShape, dragStart, yRange, zoom;
