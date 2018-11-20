@@ -2629,6 +2629,13 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return parseFloat(fsString.substring(0, fsString.indexOf('px')));
     };
 
+    this.wordSplits = function(str) {
+        var wds = str.split(/(\s+)/);
+        return wds.map(function (value, index) {
+            return wds.slice(0, index).join('') + value;
+        });
+    };
+
     // fullscreen utilities
     this.getFullScreenElement = function() {
         return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
