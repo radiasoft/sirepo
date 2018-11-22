@@ -1,0 +1,9 @@
+{
+    "models": {
+        "simulation": {
+            "folder": "/",
+            "name": "example"
+        }
+    },
+    "simulationType": "flashcap"
+}
