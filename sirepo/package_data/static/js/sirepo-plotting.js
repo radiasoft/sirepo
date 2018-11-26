@@ -218,7 +218,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         return yValues;
     }
 
-    return {
+    var self = {
         COLOR_MAP: COLOR_MAP,
 
         addConvergencePoints: function(select, parentClass, pointsList, points) {
@@ -345,6 +345,21 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
+        colorScaleForPlot: function(plotRange, modelName) {
+            var m = appState.models[modelName];
+            var zMin = plotRange.min;
+            var zMax = plotRange.max;
+            if (m.colorRangeType == 'fixed') {
+                zMin = m.colorMin;
+                zMax = m.colorMax;
+            }
+            var colorMap = this.colorMapFromModel(modelName);
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
+        },
+
         colorsFromHexString: function(color, range) {
             if(! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
                 throw color + ': Invalid color string';
@@ -352,6 +367,28 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return color.match((/[0-9a-f]{2}/ig)).map(function (h) {
                 return parseInt(h, 16) / (range || 1.0);
             });
+        },
+
+        // returns an array of substrings of str that fit in the given width. The provided d3Text selection
+        // must be part of the document so its size can be calculated
+        fitSplit: function (str, d3Text, width) {
+            if (!str || str.length === 0) {
+                return [];
+            }
+            var splits = utilities.wordSplits(str).reverse();
+            var split;
+            for (var i = 0; i < splits.length; ++i) {
+                var s = splits[i];
+                var w = d3Text.text(s).node().getBBox().width;
+                if (w <= width) {
+                    split = s;
+                    break;
+                }
+            }
+            if (!split) {
+                return [];
+            }
+            return $.merge([split], self.fitSplit(str.substring(split.length), d3Text, width));
         },
 
         formatValue: function (v, formatter, ordinateFormatter) {
@@ -380,21 +417,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
             cacheCanvas.getContext('2d').putImageData(img, 0, 0);
             return colorScale;
-        },
-
-        colorScaleForPlot: function(plotRange, modelName) {
-            var m = appState.models[modelName];
-            var zMin = plotRange.min;
-            var zMax = plotRange.max;
-            if (m.colorRangeType == 'fixed') {
-                zMin = m.colorMin;
-                zMax = m.colorMax;
-            }
-            var colorMap = this.colorMapFromModel(modelName);
-            return d3.scale.linear()
-                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
         },
 
         linkPlot: function(scope, element) {
@@ -587,6 +609,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
     };
+
+    return self;
 });
 
 SIREPO.app.directive('animationButtons', function() {
@@ -666,17 +690,10 @@ SIREPO.app.directive('colorPicker', function() {
     };
 });
 
-SIREPO.app.service('focusPointService', function(plotting) {
+SIREPO.app.service('focusPointService', function(plotting, layoutService) {
 
     var svc = this;
 
-    this.formatFocusPointData = function(focusPoint, xLabel, yLabel) {
-        return {
-            xText: svc.formatDatum((xLabel || 'X'), focusPoint.data.x, focusPoint.config.xAxis.units),
-            yText: svc.formatDatum((yLabel || 'Y'), focusPoint.data.y, focusPoint.config.yAxis.units),
-            fwhmText: svc.formatFWHM(focusPoint.data.fwhm, focusPoint.config.xAxis.units)
-        };
-    };
     this.dataCoordsToMouseCoords = function(focusPoint) {
         var mouseX, mouseY;
         if (focusPoint.config.invertAxis) {
@@ -690,6 +707,133 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return {
             x: mouseX,
             y: mouseY
+        };
+    };
+
+    this.formatFocusPointData = function(focusPoint, xLabel, yLabel, xUnits, yUnits) {
+        var xl = xLabel || focusPoint.config.xLabel || 'X';
+        var yl = yLabel || focusPoint.config.yLabel || 'Y';
+        var xu = processUnit(xUnits || focusPoint.config.xAxis.units);
+        var yu = processUnit(yUnits || focusPoint.config.yAxis.units);
+        return {
+            xText: formatDatum(xl, focusPoint.data.x, xu),
+            yText: formatDatum(yl, focusPoint.data.y, yu),
+            fwhmText: formatFWHM(focusPoint.data.fwhm, focusPoint.config.xAxis.units)
+        };
+    };
+
+
+    this.invokeDelegatesForFocusPoint = function(delegates, fp, delegateFn, params) {
+        delegates.forEach(function (fpd) {
+            if(fpd.focusPoints.indexOf(fp) >= 0) {
+                fpd[delegateFn].apply(null, params);
+            }
+        });
+    };
+
+    this.loadFocusPoint = function(focusPoint, axisPoints, preservePoint, plotInfoDelegates) {
+        var hideAfterLoad = ! focusPoint.load(axisPoints, preservePoint);
+        if(hideAfterLoad) {
+            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
+        }
+    };
+
+    this.refreshFocusPoint = function(focusPoint, plotInfoDelegates) {
+        var refreshOK = focusPoint.data.isActive;
+        if (refreshOK) {
+            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'showFocusPointInfo');
+        }
+        else {
+            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
+        }
+    };
+
+    this.setupFocusPoint = function(xAxis, yAxis, invertAxis, name) {
+
+        function init() {
+            return {
+                config: {
+                    name: name,
+                    color: 'steelblue',
+                    invertAxis: invertAxis,
+                    xAxis: xAxis,
+                    yAxis: yAxis,
+                    xLabel: '',
+                    yLabel: '',
+                },
+                data: {
+                    focusIndex: -1,
+                    isActive: false,
+                },
+                load: function(axisPoints, preservePoint) {
+                    if (preservePoint && (axisPoints.length != (this.config.points || []).length)) {
+                        preservePoint = false;
+                    }
+                    this.config.points = axisPoints;
+                    if(preservePoint) {
+                        return true;
+                    }
+                    return false;
+                },
+                move: function(step) {
+                    if(! this.data.isActive) {
+                        return false;
+                    }
+                    if(this.config.invertAxis) {
+                        step = -step;
+                    }
+                    var newIndex = this.data.focusIndex + step;
+                    if(newIndex < 0 || newIndex >= this.config.points.length) {
+                        return false;
+                    }
+                    this.data.focusIndex = newIndex;
+                    return true;
+                },
+                unset: function () {
+                    this.data.focusIndex = -1;
+                    this.data.isActive = false;
+                },
+            };
+        }
+
+        return init();
+    };
+
+    // Each focus point info directive (focusCircle etc.) sets up the functions for its delegate
+    // The parent plot directive (plot2d etc.) provides the completion methods
+    // The interface property references the overlayInterface directive
+    this.setupInfoDelegate = function(showCompletion, hideCompletion, name) {
+
+        return {
+            name: name,
+            focusPoints: [],
+            interface: null,
+            showFocusPointInfo: function() {
+                //srlog('Override showFocusPointInfo in directive for', name);
+                return false;
+            },
+            showFocusPointInfoComplete: showCompletion ? showCompletion : function() {
+            },
+            moveFocusPointInfo: function() {
+                //srlog('Override moveFocusPointInfo in directive for', name);
+                return false;
+            },
+            hideFocusPointInfo: function() {
+                //srlog('Override hideFocusPointInfo in directive for', name);
+                return false;
+            },
+            hideFocusPointInfoComplete: hideCompletion ? hideCompletion : function() {
+            },
+            setInfoVisible: function() {
+            },
+            isInfoVisible: function() {
+                return false;
+            },
+            doScreenChanges: function () {
+            },
+            formatFocusPointData: function(focusPoint) {
+                return svc.formatFocusPointData(focusPoint);
+            }
         };
     };
 
@@ -748,14 +892,6 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return false;
     };
 
-    this.formatDatum = function(label, val, units) {
-        return val || val === 0 ? label + ' = ' + plotting.formatValue(val) + (units || '') : '';
-    };
-
-    this.formatFWHM = function(fwhm, units) {
-        return fwhm ? 'FWHM = ' + d3.format('.6s')(fwhm) + (units || '') : '';
-    };
-
     this.updateFocusData = function(focusPoint) {
         if (! focusPoint.data.isActive) {
             return false;
@@ -773,6 +909,13 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return true;
     };
 
+    function formatDatum(label, val, units) {
+        return val || val === 0 ? label + ' = ' + plotting.formatValue(val) + (units || '') : '';
+    }
+
+    function formatFWHM(fwhm, units) {
+        return fwhm ? 'FWHM = ' + d3.format('.6s')(fwhm) + (units || '') : '';
+    }
 
     function fwhmFromLocalVals(focusPoint) {
 
@@ -854,123 +997,38 @@ SIREPO.app.service('focusPointService', function(plotting) {
         return NaN;
     }
 
-    //this.setupFocusPoint = function(xAxisScale, yAxisScale, invertAxis, axis, name) {
-    this.setupFocusPoint = function(xAxis, yAxis, invertAxis, name) {
-
-        function init() {
-            return {
-                load: function(axisPoints, preservePoint) {
-                    if (preservePoint && (axisPoints.length != (this.config.points || []).length)) {
-                        preservePoint = false;
-                    }
-                    this.config.points = axisPoints;
-                    if(preservePoint) {
-                        return true;
-                    }
-                    return false;
-                },
-                move: function(step) {
-                    if(! this.data.isActive) {
-                        return false;
-                    }
-                    if(this.config.invertAxis) {
-                        step = -step;
-                    }
-                    var newIndex = this.data.focusIndex + step;
-                    if(newIndex < 0 || newIndex >= this.config.points.length) {
-                        return false;
-                    }
-                    this.data.focusIndex = newIndex;
-                    return true;
-                },
-                unset: function () {
-                    this.data.focusIndex = -1;
-                    this.data.isActive = false;
-                },
-                config: {
-                    name: name,
-                    color: 'steelblue',
-                    invertAxis: invertAxis,
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                },
-                data: {
-                    focusIndex: -1,
-                    isActive: false,
-                }
-            };
+    function processUnit(unit) {
+        if(! unit) {
+            return null;
         }
-
-        return init();
-    };
-
-    // Each focus point info directive (focusCircle etc.) sets up the functions for its delegate
-    // The parent plot directive (plot2d etc.) provides the completion methods
-    // The interface property references the overlayInterface directive
-    this.setupInfoDelegate = function(showCompletion, hideCompletion, name) {
-
-        return {
-            name: name,
-            focusPoints: [],
-            interface: null,
-            showFocusPointInfo: function() {
-                //srlog('Override showFocusPointInfo in directive for', name);
-                return false;
-            },
-            showFocusPointInfoComplete: showCompletion ? showCompletion : function() {
-            },
-            moveFocusPointInfo: function() {
-                //srlog('Override moveFocusPointInfo in directive for', name);
-                return false;
-            },
-            hideFocusPointInfo: function() {
-                //srlog('Override hideFocusPointInfo in directive for', name);
-                return false;
-            },
-            hideFocusPointInfoComplete: hideCompletion ? hideCompletion : function() {
-            },
-            setInfoVisible: function() {
-            },
-            isInfoVisible: function() {
-                return false;
-            },
-            doScreenChanges: function () {
-            },
-            formatFocusPointData: function(focusPoint) {
-                return svc.formatFocusPointData(focusPoint);
-            }
-        };
-    };
-
-    this.invokeDelegatesForFocusPoint = function(delegates, fp, delegateFn, params) {
-        delegates.forEach(function (fpd) {
-            if(fpd.focusPoints.indexOf(fp) >= 0) {
-                fpd[delegateFn].apply(null, params);
-            }
-        });
-    };
-
-    this.loadFocusPoint = function(focusPoint, axisPoints, preservePoint, plotInfoDelegates) {
-        var hideAfterLoad = ! focusPoint.load(axisPoints, preservePoint);
-        if(hideAfterLoad) {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
+        // units that are "1/<unit>" become "<unit>-1" (otherwise the "1" looks like part of the value)
+        // Once laTeX is handled we won't need this kind of thing
+        var isInverse = /^1\/([a-zA-Z]+)$/;
+        var m = unit.match(isInverse);
+        if(m) {
+            return m[1] + '-1';
         }
-    };
-    this.refreshFocusPoint = function(focusPoint, plotInfoDelegates) {
-        var refreshOK = focusPoint.data.isActive;
-        if (refreshOK) {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'showFocusPointInfo');
-        }
-        else {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
-        }
-    };
+        return unit;
+    }
 
 });
 
 SIREPO.app.service('layoutService', function(plotting, utilities) {
 
     var svc = this;
+
+    svc.parseLabelAndUnits = function(label) {
+        var units = '';
+        var match = label.match(/\[(.*?)\]/);
+        if (match) {
+            units = match[1];
+            label = label.replace(/\s*\[.*?\]/, '');
+        }
+        return {
+            label: label,
+            units: units
+        };
+    };
 
     this.plotAxis = function(margin, dimension, orientation, refresh) {
         var MAX_TICKS = 10;
@@ -1127,16 +1185,10 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
         };
 
         self.parseLabelAndUnits = function(label) {
-            var match = label.match(/\[(.*?)\]/);
-            if (match) {
-                self.units = match[1];
-                label = label.replace(/\s*\[.*?\]/, '');
-            }
-            else {
-                self.units = '';
-            }
+            var lu = svc.parseLabelAndUnits(label);
+            self.units = lu.units;
             self.unitSymbol = '';
-            self.label = label;
+            self.label = lu.label;
         };
 
         function baseLabel() {
@@ -1369,8 +1421,8 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 $('body').append(inputField);
 
                 var fmtText = '';
-                $scope.focusPoints.forEach(function (fp, fpIndex) {
-                    var fpt = focusPointService.formatFocusPointData($scope.focusPoints[fpIndex]);
+                $scope.focusPoints.forEach(function (fp) {
+                    var fpt = focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, fp.config.yLabel);
                     fmtText = fmtText + fpt.xText + ', ' + fpt.yText + ', ' + fpt.fwhmText + '\n';
                 });
                 inputField.val(fmtText).select();
@@ -1500,86 +1552,34 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                             '<text class="report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
                         '</g>',
                     '</g>',
-                    '<g class="text-group" data-ng-repeat="fp in focusPoints">',
+                    '<g class="text-block">',
+                        '<text id="x-text" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                        '<g class="text-group" data-ng-repeat="fp in focusPoints">',
                         // the space value is needed for PNG download on MSIE 11
-                        '<text data-ng-attr-id="x-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                        '<text data-ng-attr-id="y-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                        '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                            '<g data-ng-attr-id="y-text-{{$index}}">',
+                            '</g>',
+                            '<g class="fwhm-text-group">',
+                                '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                            '</g>',
+                        '</g>',
                     '</g>',
                 '</g>',
+              // this element is used to check the size of strings for wrapping.  It cannot be hidden or the size
+              // will be 0, so instead we make the text transparent
+              '<text class="hidden-txt-layout" fill="none"></text>',
             '</g>',
         ].join(''),
         controller: function($scope, $element) {
 
             // TODO(mvk): allow resize?
 
-            var d3self;
-            var group;
-            var rptWindow;
-            var dgElement;
-
-            var popupMargin = 4;
-
-            var moveEventDetected = false;
-            var didDragToNewPositon = false;
-            $scope.focusPoints.allowClone = false;
-
-            if($scope.plotInfoDelegate) {
-                $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
-                $scope.plotInfoDelegate.hideFocusPointInfo = hidePopup;
-                $scope.plotInfoDelegate.moveFocusPointInfo = movePopup;
-                $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
-                $scope.plotInfoDelegate.isInfoVisible = isInfoVisible;
-                $scope.plotInfoDelegate.doScreenChanges = doScreenChanges;
-            }
-
-            var axisIndex = $scope.invertAxis ? 1 : 0;
             $scope.plotting = plotting;
 
-            init();
-
-            function init() {
-                d3self = d3.selectAll($element);
-                group = d3self.select('.popup-group');
-                rptWindow = group.select('.report-window');
-                dgElement = angular.element(group.select('g').node());
-                d3self.select('.popup-group .report-window-close')
-                    .on('click', closePopup);
-            }
-
-            $scope.overlaySize = function() {
-                return {
-                    width: parseInt(d3self.attr('width')),
-                    height: parseInt(d3self.attr('height'))
-                };
-            };
-
-            function popupWindowSize() {
-                var tg = d3self.selectAll('.text-group');
-                var w = 0;
-                tg.each(function () {
-                    w = Math.max(w, this.getBBox().width);
-                });
-                return {
-                    width: Math.max(175, w + 2 * 8),
-                    height: 24 + 56 * $scope.focusPoints.length
-                };
-            }
-            function popupTitleSize() {
-                 return {
-                    width: popupWindowSize().width - 2,
-                    height: 24
-                };
-            }
-            $scope.textPosition = function(groupIndex, elementPosition) {
-                if(groupIndex == 0) {
-                     return elementPosition;
-                }
-                if( d3self.select('.popup-group #fwhm-text-' + (groupIndex - 1)).text() ) {
-                    return elementPosition + 4 * groupIndex ;
-                }
-                return (elementPosition - 1) + 4 * groupIndex;
-            };
+            $scope.$on('$destroy', function() {
+                group.select('.report-window-close')
+                    .on('click', null);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+            });
 
             // ngDraggable interprets even clicks as starting a drag event - we don't want to do transforms later
             // unless we really moved it
@@ -1589,6 +1589,7 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                     moveEventDetected = true;
                 }
             });
+
             $scope.dragDone = function($data, $event) {
                 didDragToNewPositon = true;
                 var xf = currentXform();
@@ -1598,118 +1599,32 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 moveEventDetected = false;
             };
 
-            // listen for going to/from fullscreen so we can reposition the popup - otherwise it can get
-            // stuck offscreen until the user interacts with the plot again
+            $scope.overlaySize = function() {
+                return {
+                    width: parseInt(d3self.attr('width')),
+                    height: parseInt(d3self.attr('height'))
+                };
+            };
+
+            var borderWidth = 1;
+            var d3self;
+            var dgElement;
+            var didDragToNewPositon = false;
             var fullscreenElement = null;
             var fullscreenChangesPending = false;
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            function fullscreenChangehandler(evt) {
-                if(isInfoVisible()) {
-                    if(! utilities.isFullscreen()) {
-                        if(fullscreenElement) {
-                            fullscreenChangesPending = true;
-                            fullscreenElement = null;
-                        }
-                    }
-                    else {
-                        var fsel = utilities.getFullScreenElement();
-                        if(fsel && fsel.contains($element[0])) {
-                            fullscreenChangesPending = true;
-                            fullscreenElement = fsel;
-                        }
-                    }
-                }
-            }
-            function doScreenChanges() {
-                if(! fullscreenChangesPending) {
-                    return;
-                }
+            var group;
+            var moveEventDetected = false;
+            var popupMargin = 4;
+            var rptWindow;
+            var textMargin = 8;
+            var titleBarHeight = 24;
+
+            function closePopup() {
+                $scope.plotInfoDelegate.interface.removeKeyListener();
                 didDragToNewPositon = false;
-                movePopup();
-                fullscreenChangesPending = false;
+                hidePopup();
             }
 
-            function showPopup(geometry, isReposition) {
-                if(! geometry) {
-                    return true;
-                }
-                d3self.style('display', 'block');
-                refreshText();
-                if (didDragToNewPositon && ! isReposition) {
-                    return true;
-                }
-                var x = geometry.mouseX;
-                var y = geometry.mouseY;
-
-                // set position and size
-                var newX = Math.max(popupMargin, x);
-                var newY = Math.max(popupMargin, y);
-
-                var reportWidth = parseFloat(d3self.attr('width'));
-                var reportHeight = parseFloat(d3self.attr('height'));
-                var tbw = parseFloat(rptWindow.attr('width'));
-                var tbh = parseFloat(rptWindow.attr('height'));
-                var bw = rptWindow.style('stroke-width');
-                var borderWidth = utilities.fontSizeFromString(bw);
-
-                newX = Math.min(reportWidth - tbw - popupMargin, newX);
-                newY = Math.min(reportHeight - tbh - popupMargin, newY);
-                group.attr('transform', 'translate(' + newX + ',' + newY + ')');
-                group.select('.report-window-title-bar').attr('width', tbw - 2 * borderWidth);
-                return true;
-            }
-            function refreshText() {
-                // format data
-
-                $scope.focusPoints.forEach(function (fp, fpIndex) {
-                    var color = fp.config.color;
-                    var fmtText = $scope.plotInfoDelegate.formatFocusPointData(fp);
-                    d3self.select('.popup-group #x-text-' + fpIndex)
-                        .text(fmtText.xText)
-                        .style('fill', color)
-                        .attr('y', popupTitleSize().height)
-                        .attr('dy', $scope.textPosition(fpIndex, 1) + 'em');
-                    d3self.select('.popup-group #y-text-' + fpIndex)
-                        .text(fmtText.yText)
-                        .style('fill', color)
-                        .attr('y', popupTitleSize().height)
-                        .attr('dy', $scope.textPosition(fpIndex, 2) + 'em');
-                    d3self.select('.popup-group #fwhm-text-' + fpIndex)
-                        .text(fmtText.fwhmText)
-                        .style('fill', color)
-                        .attr('y', popupTitleSize().height)
-                        .attr('dy', $scope.textPosition(fpIndex, 3) + 'em');
-                });
-                refreshWindow();
-            }
-            function refreshWindow() {
-                var size = popupWindowSize();
-                //srdbg('pw', size);
-                d3self.select('.report-window')
-                    .attr('width', size.width)
-                    .attr('height', size.height);
-                var tSize = popupTitleSize();
-                d3self.select('.report-window-title-bar')
-                    .attr('width', tSize.width)
-                    .attr('height', tSize.height);
-                d3self.select('.report-window-close')
-                    .attr('x', size.width);
-            }
-            // move in response to arrow keys - but if user dragged the window we assume they don't
-            // want it to track the focus point
-            function movePopup() {
-                if(! didDragToNewPositon) {
-                    // just use the first focus point
-                    var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoints[0]);
-                    var xf = currentXform();
-                    if(! isNaN(xf.tx) && ! isNaN(xf.ty)) {
-                        showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
-                    }
-                }
-                else {
-                    refreshText();
-                }
-            }
             function currentXform(d3Element) {
                 if(! d3Element) {
                     d3Element = group;
@@ -1732,10 +1647,31 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 return xform;
             }
 
-            function closePopup() {
-                $scope.plotInfoDelegate.interface.removeKeyListener();
+            function doScreenChanges() {
+                if(! fullscreenChangesPending) {
+                    return;
+                }
                 didDragToNewPositon = false;
-                hidePopup();
+                movePopup();
+                fullscreenChangesPending = false;
+            }
+
+            function fullscreenChangehandler(evt) {
+                if(isInfoVisible()) {
+                    if(! utilities.isFullscreen()) {
+                        if(fullscreenElement) {
+                            fullscreenChangesPending = true;
+                            fullscreenElement = null;
+                        }
+                    }
+                    else {
+                        var fsel = utilities.getFullScreenElement();
+                        if(fsel && fsel.contains($element[0])) {
+                            fullscreenChangesPending = true;
+                            fullscreenElement = fsel;
+                        }
+                    }
+                }
             }
 
             function hidePopup() {
@@ -1745,22 +1681,167 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 }
                 $scope.plotInfoDelegate.hideFocusPointInfoComplete();
             }
-            function setInfoVisible(pIndex, isVisible) {
-                // don't completely hide for now, so it's clear the data exists
-                var textAlpha = isVisible ? 1.0 : 0.4;
-                d3self.select('.popup-group #x-text-' + pIndex).style('opacity', textAlpha);
-                d3self.select('.popup-group #y-text-' + pIndex).style('opacity', textAlpha);
-                d3self.select('.popup-group #fwhm-text-' + pIndex).style('opacity', textAlpha);
+
+            function init() {
+                d3self = d3.selectAll($element);
+                group = d3self.select('.popup-group');
+                rptWindow = group.select('.report-window');
+                dgElement = angular.element(group.select('g').node());
+                group.select('.report-window-close')
+                    .on('click', closePopup);
             }
+
             function isInfoVisible() {
                 return d3self.style('display') === 'block';
             }
 
-            $scope.$on('$destroy', function() {
-                d3self.select('.popup-group .report-window-close')
-                    .on('click', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
+            // move in response to arrow keys - but if user dragged the window we assume they don't
+            // want it to track the focus point
+            function movePopup() {
+                if(! didDragToNewPositon) {
+                    // just use the first focus point
+                    var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoints[0]);
+                    var xf = currentXform();
+                    if(! isNaN(xf.tx) && ! isNaN(xf.ty)) {
+                        showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
+                    }
+                }
+                else {
+                    refreshText();
+                }
+            }
+
+            function popupTextSize() {
+                return group.select('.text-block').node().getBBox();
+            }
+
+            function popupTitleSize() {
+                 return {
+                    width: popupWindowSize().width - 2 * borderWidth,
+                    height: titleBarHeight
+                };
+            }
+
+            function popupWindowSize() {
+                var tw = popupTextSize().width;
+                var th = popupTextSize().height;
+                var maxWidth = parseFloat(d3self.attr('width')) - 2 * popupMargin;
+                var maxHeight = parseFloat(d3self.attr('height')) - 2 * popupMargin;
+                return {
+                    width: Math.min(maxWidth, tw + 2 * textMargin),
+                    height: Math.min(maxHeight, titleBarHeight + th + 2 * textMargin)
+                };
+            }
+
+            function refreshText() {
+                // format data
+                var maxWidth = parseFloat(d3self.attr('width')) - 2 * popupMargin - 2 * textMargin;
+
+                // all focus points share the same x value
+                var xText = $scope.plotInfoDelegate.formatFocusPointData($scope.focusPoints[0]).xText;
+                var hNode = d3self.select('.hidden-txt-layout');
+                var tNode = group.select('#x-text')
+                    .text(xText)
+                    .style('fill', '#000000')
+                    .attr('y', popupTitleSize().height)
+                    .attr('dy', '1em');
+                var tSize = tNode.node().getBBox();
+                var txtY = tSize.y + tSize.height;
+                $scope.focusPoints.forEach(function (fp, fpIndex) {
+                    var color = fp.config.color;
+                    var fmtText = $scope.plotInfoDelegate.formatFocusPointData(fp);
+                    var fits = plotting.fitSplit(fmtText.yText, hNode, maxWidth);
+                    var yGrp = group.select('#y-text-' + fpIndex);
+                    yGrp.selectAll('text').remove();
+                    fits.forEach(function (str) {
+                        tNode = yGrp.append('text')
+                            .text(str)
+                            .attr('class', 'focus-text-popup')
+                            .style('fill', color)
+                            .attr('x', 0)
+                            .attr('dx', '0.5em')
+                            .attr('y', txtY)
+                            .attr('dy', '1em');
+                        txtY += tNode.node().getBBox().height;
+                    });
+
+                    tNode = group.select('#fwhm-text-' + fpIndex)
+                        .text(fmtText.fwhmText)
+                        .style('fill', color)
+                        .attr('y', txtY)
+                        .attr('dy', '1em');
+                    txtY += (tNode.node().getBBox().height + textMargin);
+                });
+                hNode.text('');
+                refreshWindow();
+            }
+
+            function refreshWindow() {
+                var size = popupWindowSize();
+                d3self.select('.report-window')
+                    .attr('width', size.width)
+                    .attr('height', size.height);
+                var tSize = popupTitleSize();
+                d3self.select('.report-window-title-bar')
+                    .attr('width', tSize.width)
+                    .attr('height', tSize.height);
+                d3self.select('.report-window-close')
+                    .attr('x', size.width);
+            }
+
+            function setInfoVisible(pIndex, isVisible) {
+                // don't completely hide for now, so it's clear the data exists
+                var textAlpha = isVisible ? 1.0 : 0.4;
+                group.select('#x-text-' + pIndex).style('opacity', textAlpha);
+                group.select('#y-text-' + pIndex).style('opacity', textAlpha);
+                group.select('#fwhm-text-' + pIndex).style('opacity', textAlpha);
+            }
+
+            function showPopup(geometry, isReposition) {
+                if(! geometry) {
+                    return true;
+                }
+                d3self.style('display', 'block');
+                refreshText();
+                if (didDragToNewPositon && ! isReposition) {
+                    return true;
+                }
+                var x = geometry.mouseX;
+                var y = geometry.mouseY;
+
+                // set position and size
+                var newX = Math.max(popupMargin, x);
+                var newY = Math.max(popupMargin, y);
+
+                var reportWidth = parseFloat(d3self.attr('width'));
+                var reportHeight = parseFloat(d3self.attr('height'));
+                var tbw = parseFloat(rptWindow.attr('width'));
+                var tbh = parseFloat(rptWindow.attr('height'));
+                var borderWidth = utilities.fontSizeFromString(rptWindow.style('stroke-width'));
+
+                newX = Math.min(reportWidth - tbw - popupMargin, newX);
+                newY = Math.min(reportHeight - tbh - popupMargin, newY);
+                group.attr('transform', 'translate(' + newX + ',' + newY + ')');
+                group.select('.report-window-title-bar').attr('width', tbw - 2 * borderWidth);
+                return true;
+            }
+
+            // listen for going to/from fullscreen so we can reposition the popup - otherwise it can get
+            // stuck offscreen until the user interacts with the plot again
+            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
+
+            $scope.focusPoints.allowClone = false;
+            if($scope.plotInfoDelegate) {
+                $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
+                $scope.plotInfoDelegate.hideFocusPointInfo = hidePopup;
+                $scope.plotInfoDelegate.moveFocusPointInfo = movePopup;
+                $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
+                $scope.plotInfoDelegate.isInfoVisible = isInfoVisible;
+                $scope.plotInfoDelegate.doScreenChanges = doScreenChanges;
+            }
+
+            init();
+
         },
     };
 });
@@ -1913,12 +1994,14 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 var p = d3.zip(xPoints, json.points);
                 plotting.addConvergencePoints(select, '.plot-viewport', points, p);
 
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], p, true, $scope.plotInfoDelegates);
-                }
                 $.each(axes, function (dim, axis) {
                     axis.parseLabelAndUnits(json[dim + '_label']);
                     select('.' + dim + '-axis-label').text(json[dim + '_label']);
+                });
+                $scope.focusPoints.forEach(function (fp) {
+                    focusPointService.loadFocusPoint(fp, p, true, $scope.plotInfoDelegates);
+                    fp.config.xLabel = json.x_label;
+                    fp.config.yLabel = json.y_label;
                 });
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
@@ -2650,10 +2733,13 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
             $scope.popupDelegate.formatFocusPointData = function (fp) {
                 var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
+                var lu = {};
                 if(yLabel) {
-                    fp.config.yAxis.parseLabelAndUnits(yLabel);
+                    lu = layoutService.parseLabelAndUnits(yLabel);
+                    yLabel = lu.label;
                 }
-                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, fp.config.yAxis.label);
+                fp.config.yLabel = yLabel;
+                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, yLabel, null, lu.units);
             };
             $scope.plotInfoDelegates = [$scope.popupDelegate];
 
@@ -2812,19 +2898,15 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     return;
                 }
                 var itemWidth;
-                for (var i = 0; i < plots.length; i++) {
-                    var plot = plots[i];
+                plots.forEach(function (plot, i) {
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
-                    // no option to toggle plot if only 1
-                    if(plots.length > 1) {
-                        item.append('text')
-                            .attr('class', 'focus-text-popup glyphicon plot-visibility')
-                            .attr('x', 8)
-                            .attr('y', 17 + i * 20)
-                            .text(vIconText(true))
-                            .on('click', getVToggleFn(i));
-                    }
+                    item.append('text')
+                        .attr('class', 'focus-text-popup glyphicon plot-visibility')
+                        .attr('x', 8)
+                        .attr('y', 17 + i * 20)
+                        .text(vIconText(true))
+                        .on('click', getVToggleFn(i));
                     itemWidth = item.node().getBBox().width;
                     item.append('circle')
                         .attr('r', 5)
@@ -2838,7 +2920,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                         .attr('x', 12 + itemWidth)
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
-                }
+                });
             }
 
             function getVToggleFn(i) {
