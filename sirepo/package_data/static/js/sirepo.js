@@ -2302,6 +2302,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return {};
     }
 
+
     self.isActive = function(name) {
         return activeSection.getActiveSection() == name;
     };
@@ -2361,6 +2362,11 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
+
+    self.simulationURL = function(item) {
+        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': item.simulationId})
+    };
+
     self.getLocation = function() {
         return $window.location.href;
     };
