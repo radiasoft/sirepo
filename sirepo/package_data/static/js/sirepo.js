@@ -2302,7 +2302,6 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return {};
     }
 
-
     self.isActive = function(name) {
         return activeSection.getActiveSection() == name;
     };
