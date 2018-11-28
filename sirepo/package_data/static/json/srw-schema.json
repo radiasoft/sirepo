@@ -568,8 +568,7 @@
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
-            "notes": ["Notes", "Text", ""],
-            "showFWHM": ["Compute FWHM", "Boolean", "1"]
+            "notes": ["Notes", "Text", ""]
         },
         "lens": {
             "title": ["Element Name", "String", "Lens"],
@@ -655,8 +654,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
-            "notes": ["Notes", "Text", ""],
-            "showFWHM": ["Compute FWHM", "Boolean", "1"]
+            "notes": ["Notes", "Text", ""]
         },
         "propagationParameters": {
             "0": ["Auto-resize before propagation", "Boolean", "0"],

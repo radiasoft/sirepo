@@ -536,10 +536,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return selector ? e.select(selector) : e;
         },
 
-        showFWHM: function(scope) {
-            return (SIREPO.APP_SCHEMA.model[scope.modelName].showFWHM || {})[SIREPO.INFO_INDEX_DEFAULT_VALUE];
-        },
-
         tickFontSize: function(node) {
             var defaultSize = 12;
             if(! node || ! node[0] || ! node[0][0]) {
@@ -714,7 +710,7 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
         };
     };
 
-    this.formatFocusPointData = function(focusPoint, xLabel, yLabel, xUnits, yUnits, showFWHM) {
+    this.formatFocusPointData = function(focusPoint, xLabel, yLabel, xUnits, yUnits) {
         var xl = xLabel || focusPoint.config.xLabel || 'X';
         var yl = yLabel || focusPoint.config.yLabel || 'Y';
         var xu = processUnit(xUnits || focusPoint.config.xAxis.units);
@@ -723,7 +719,7 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
             xText: formatDatum(xl, focusPoint.data.x, xu),
             yText: formatDatum(yl, focusPoint.data.y, yu),
         };
-        if(showFWHM) {
+        if(SIREPO.PLOTTING_SHOW_FWHM) {
             fmt.fwhmText = formatFWHM(focusPoint.data.fwhm, focusPoint.config.xAxis.units);
         }
         return fmt;
@@ -1930,7 +1926,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
             };
 
             function formatFocusPointData(fp) {
-                return focusPointService.formatFocusPointData(fp, null, null, null, null, plotting.showFWHM($scope));
+                return focusPointService.formatFocusPointData(fp);
             }
 
             function refresh() {
@@ -2318,17 +2314,15 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
             }
 
             function formatFocusPointData(fp) {
-                return focusPointService.formatFocusPointData(fp, null, null, null, null, plotting.showFWHM($scope));
+                return focusPointService.formatFocusPointData(fp);
             }
 
             function formatForSnapshot(fp) {
                 return focusPointService.formatFocusPointData(
                     fp,
                     fp.config.xAxis.label,
-                    select('.z-axis-label').text(),
-                    null,
-                    null,
-                    plotting.showFWHM($scope));
+                    select('.z-axis-label').text()
+                );
             }
 
             function refresh() {
