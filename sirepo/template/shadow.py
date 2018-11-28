@@ -88,7 +88,7 @@ def get_application_data(data):
             return {
                 'material_name': name,
             }
-        except:
+        except Exception:
             return {
                 'error': 'invalid material name',
             }

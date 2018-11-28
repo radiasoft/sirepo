@@ -706,7 +706,7 @@ def save_simulation_json(data, do_validate=True):
         # Never save this
         #TODO(robnagler) have "_private" fields that don't get saved
         del data['simulationStatus']
-    except:
+    except Exception:
         pass
     data = fixup_old_data(data)[0]
     s = data.models.simulation

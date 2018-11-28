@@ -320,7 +320,7 @@ def _beam_evolution_status(run_dir, settings, has_rates):
                 'percentComplete': 100.0 * t_max / settings.time,
                 'hasRates': has_rates,
             }
-    except:
+    except Exception:
         pass
     return {
         'frameCount': 0,

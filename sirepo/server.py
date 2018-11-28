@@ -735,7 +735,7 @@ def _handle_error(error):
         status_code = error.code
     try:
         error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]['url']
-    except:
+    except Exception:
         error_file = DEFAULT_ERROR_FILE
     f = flask.send_from_directory(static_dir('html'), error_file)
 
