@@ -1293,13 +1293,8 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
 
             init();
 
-            function setupGeometry(isMainFocus) {
-                return {
-                    mouseX: 0,
-                    mouseY: 0,
-                    isMainFocus: isMainFocus || true
-                };
-            }
+            self.copyToClipboard = copyToClipboard;
+
             self.geometryForFocusPoint = function(fp) {
                 var fpIndex = $scope.focusPoints.indexOf(fp);
                 if(fpIndex < 0) {
@@ -1307,6 +1302,7 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 }
                 return self.geometries[fpIndex];
             };
+
             self.removeKeyListener = function () {
                 keypressService.removeListener(listenerId);
             };
@@ -1454,6 +1450,14 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                 return e.select(selector);
             }
 
+            function setupGeometry(isMainFocus) {
+                return {
+                    mouseX: 0,
+                    mouseY: 0,
+                    isMainFocus: isMainFocus || true
+                };
+            }
+
             // not all delegates may be added at init - listen for them being added
             $scope.$on('delegate.added', function (event, delegate) {
                 delegate.interface = self;
@@ -1558,7 +1562,10 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                         '<rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>',
                         '<g ng-drag-handle="">',
                             '<rect class="report-window-title-bar" x="1" y="1"></rect>',
-                            '<text class="report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
+                            '<text class="report-window-title-icon report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
+                            '<text class="report-window-title-icon report-window-copy" y="0" dy="1.5em" dx="0.5em">',
+                                '&#xe205;',
+                            '</text>',
                         '</g>',
                     '</g>',
                     '<g class="text-block">',
@@ -1586,6 +1593,8 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
 
             $scope.$on('$destroy', function() {
                 group.select('.report-window-close')
+                    .on('click', null);
+                group.select('.report-window-copy')
                     .on('click', null);
                 document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
             });
@@ -1632,6 +1641,17 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 $scope.plotInfoDelegate.interface.removeKeyListener();
                 didDragToNewPositon = false;
                 hidePopup();
+            }
+
+            function copyToClipboard() {
+                group.select('.report-window-copy')
+                    .transition()
+                    .delay(0)
+                    .duration(100)
+                    .style('fill', 'white')
+                    .transition()
+                    .style('fill', null);
+                $scope.plotInfoDelegate.interface.copyToClipboard();
             }
 
             function currentXform(d3Element) {
@@ -1698,6 +1718,8 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 dgElement = angular.element(group.select('g').node());
                 group.select('.report-window-close')
                     .on('click', closePopup);
+                group.select('.report-window-copy')
+                    .on('click', copyToClipboard);
             }
 
             function isInfoVisible() {
