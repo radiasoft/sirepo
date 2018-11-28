@@ -2363,7 +2363,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
 
     self.simulationURL = function(item) {
-        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': item.simulationId})
+        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': item.simulationId});
     };
 
     self.getLocation = function() {
