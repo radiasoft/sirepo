@@ -6,6 +6,7 @@ u"""Run jobs as subprocesses
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from sirepo import mpi
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -110,6 +111,8 @@ class BackgroundJob(runner.JobBase):
         We don't use pksubprocess. This method is not called from the MainThread
         so can't set signals.
         """
+        env = _safe_env()
+        env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
         try:
             pid = os.fork()
         except OSError as e:
@@ -140,9 +143,15 @@ class BackgroundJob(runner.JobBase):
             sys.stderr.flush()
             try:
                 simulation_db.write_status('running', self.run_dir)
-                os.execvpe(self.cmd[0], self.cmd, env=_safe_env())
+                os.execvpe(self.cmd[0], self.cmd, env=env)
+            except BaseException as e:
+                pkdlog(
+                    '{}: execvp error: {} errno={}',
+                    self.jid,
+                    e.strerror if hasattr(e, 'strerror') else '',
+                    e.errno if hasattr(e, 'errno') else '',
+                )
             finally:
-                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             # NOTE: there's no lock here so just append to the log. This

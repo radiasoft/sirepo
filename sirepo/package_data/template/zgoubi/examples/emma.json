@@ -1,0 +1,314 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 7,
+                "distance": 0.39448099999999997,
+                "id": 1,
+                "items": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    3
+                ],
+                "length": 0.39448099999999997,
+                "name": "BL1"
+            },
+            {
+                "angle": -1.0471975511966498,
+                "count": 49,
+                "distance": 2.633607388918196,
+                "id": 12,
+                "items": [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                "l": 0,
+                "length": 2.7613669999999995,
+                "name": "BL2"
+            },
+            {
+                "angle": -6.283185307179903,
+                "count": 294,
+                "distance": 8.359317622470353e-13,
+                "id": 13,
+                "items": [
+                    12,
+                    12,
+                    12,
+                    12,
+                    12,
+                    12
+                ],
+                "l": 0,
+                "length": 16.56820200000006,
+                "name": "RING"
+            }
+        ],
+        "bunch": {
+            "D0": 1,
+            "DP": 0,
+            "DT": 0.069794038,
+            "DY": 0.0018133426,
+            "DZ": 0,
+            "KD": "2",
+            "KP": "2",
+            "KT": "2",
+            "KX": "2",
+            "KY": "2",
+            "KZ": "2",
+            "P0": 0,
+            "T0": 0,
+            "X0": 0,
+            "Y0": 0,
+            "Z0": 0,
+            "alpha_X": 0,
+            "alpha_Y": 1.6759384,
+            "alpha_Z": -1.2249858,
+            "beta_X": 1,
+            "beta_Y": 0.24074147,
+            "beta_Z": 0.2562679,
+            "emit_X": 1e-06,
+            "emit_Y": 1e-06,
+            "emit_Z": 1e-06,
+            "match_twiss_parameters": "1",
+            "n_cutoff2_X": 0,
+            "n_cutoff2_Y": 0,
+            "n_cutoff2_Z": 0,
+            "n_cutoff_X": 3,
+            "n_cutoff_Y": 3,
+            "n_cutoff_Z": 3,
+            "particleCount": 1000,
+            "rigidity": -35.01946103883
+        },
+        "bunchAnimation": {
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "notes": "",
+            "startTime": 1542062357,
+            "x": "Y",
+            "y": "T"
+        },
+        "bunchAnimation2": {
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "notes": "",
+            "startTime": 1542062357,
+            "x": "Z",
+            "y": "P"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Y",
+            "y": "T"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Z",
+            "y": "P"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Y",
+            "y": "Z"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "S",
+            "y": "D1"
+        },
+        "elements": [
+            {
+                "ALE": 0.14959965017095,
+                "XCE": 0,
+                "YCE": 0,
+                "_id": 4,
+                "angle": -0.14959965017095,
+                "format": "old",
+                "name": "C1",
+                "order": "",
+                "type": "CHANGREF"
+            },
+            {
+                "ALE": 0,
+                "XCE": 0,
+                "YCE": -0.034048,
+                "_id": 5,
+                "format": "old",
+                "name": "C2",
+                "order": "",
+                "type": "CHANGREF"
+            },
+            {
+                "ALE": 0,
+                "XCE": 0,
+                "YCE": 0.034048,
+                "_id": 7,
+                "format": "old",
+                "name": "C3",
+                "order": "",
+                "type": "CHANGREF"
+            },
+            {
+                "ALE": 0,
+                "XCE": 0,
+                "YCE": -0.007514,
+                "_id": 9,
+                "format": "old",
+                "name": "C4",
+                "order": "",
+                "type": "CHANGREF"
+            },
+            {
+                "ALE": 0,
+                "XCE": 0,
+                "YCE": 0.007514,
+                "_id": 11,
+                "format": "old",
+                "name": "C5",
+                "order": "",
+                "type": "CHANGREF"
+            },
+            {
+                "_id": 3,
+                "l": 0.105,
+                "name": "ld",
+                "type": "DRIFT"
+            },
+            {
+                "_id": 8,
+                "l": 0.05,
+                "name": "sd",
+                "type": "DRIFT"
+            },
+            {
+                "ALE": 0,
+                "B_0": 2.49312,
+                "CS_0": 0,
+                "CS_1": 0,
+                "CS_2": 0,
+                "CS_3": 0,
+                "CS_4": 0,
+                "CS_5": 0,
+                "C_0": 0,
+                "C_1": 0,
+                "C_2": 0,
+                "C_3": 0,
+                "C_4": 0,
+                "C_5": 0,
+                "IL": "0",
+                "KPOS": "1",
+                "LAM_E": 0,
+                "LAM_S": 0,
+                "NCE": "0",
+                "NCS": "0",
+                "R_0": 0.053,
+                "XCE": 0,
+                "XPAS": "#20|20|20",
+                "X_E": 0,
+                "X_S": 0,
+                "YCE": 0,
+                "_id": 6,
+                "l": 0.075699,
+                "name": "defoc",
+                "type": "QUADRUPO"
+            },
+            {
+                "ALE": 0,
+                "B_0": -2.47715,
+                "CS_0": 0,
+                "CS_1": 0,
+                "CS_2": 0,
+                "CS_3": 0,
+                "CS_4": 0,
+                "CS_5": 0,
+                "C_0": 0,
+                "C_1": 0,
+                "C_2": 0,
+                "C_3": 0,
+                "C_4": 0,
+                "C_5": 0,
+                "IL": "0",
+                "KPOS": "1",
+                "LAM_E": 0,
+                "LAM_S": 0,
+                "NCE": "0",
+                "NCS": "0",
+                "R_0": 0.037000000000000005,
+                "XCE": 0,
+                "XPAS": "#20|20|20",
+                "X_E": 0,
+                "X_S": 0,
+                "YCE": 0,
+                "_id": 10,
+                "l": 0.058782,
+                "name": "foc",
+                "type": "QUADRUPO"
+            }
+        ],
+        "opticsReport": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "xm",
+            "y2": "none",
+            "y3": "none"
+        },
+        "particle": {
+            "G": 0.0011596521811,
+            "M": 0.51099892,
+            "Q": -1.602176487e-19,
+            "Tau": 1e+99,
+            "particleType": "Other"
+        },
+        "simulation": {
+            "activeBeamlineId": 13,
+            "folder": "/",
+            "name": "EMMA",
+            "simulationId": "NE4pnakI",
+            "simulationSerial": 1542066443718959,
+            "visualizationBeamlineId": 1
+        },
+        "simulationSettings": {
+            "npass": 10
+        },
+        "simulationStatus": {},
+        "twissReport": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "btx",
+            "y2": "bty",
+            "y3": "Dx"
+        },
+        "twissReport2": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "btx",
+            "y2": "bty",
+            "y3": "Dx"
+        }
+    },
+    "simulationType": "zgoubi",
+    "version": "20181109.173737"
+}

@@ -407,7 +407,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-color-map-menu="" class="dropdown"></div>',
               '</div>',
               '<div data-ng-switch-when="Text" data-ng-class="fieldClass">',
-                '<div data-collapsable-notes=""></div>',
+                '<div data-collapsable-notes="" data-model="model" data-field="field" ></div>',
               '</div>',
               '<div data-ng-switch-when="UserFolder" data-ng-class="fieldClass">',
                 '<div data-user-folder-list="" data-model="model" data-field="field"></div>',
@@ -742,47 +742,79 @@ SIREPO.app.directive('columnEditor', function(appState) {
             modelData: '=',
         },
         template: [
-            '<div data-ng-if="! oneLabelLayout" class="row">',
-              '<div class="col-sm-6" data-ng-repeat="col in columnFields">',
-                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ col[0] }}</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in col[1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[$parent.$index][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
+            '<div class="sr-column-editor">',
+              '<div class="row">',
+                '<div class="col-sm-{{ ::head.size || 3 }}" data-ng-repeat="head in ::headings">',
+                  '<div class="lead text-center">{{ ::head.text }}</div>',
                 '</div>',
               '</div>',
-            '</div>',
-            '<div data-ng-if="oneLabelLayout" class="row">',
-              '<div class="col-sm-8">',
-                '<div class="row">',
-                  '<div class="col-sm-5 col-sm-offset-7">',
-                    '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[0][0] }}</div>',
+              '<div class="form-group form-group-sm" data-ng-repeat="row in ::rows">',
+                '<div data-ng-repeat="col in ::row">',
+                  '<div data-ng-if="::! col.field" class="col-sm-{{ ::col.size || 3 }} control-label">',
+                    '<div data-label-with-tooltip="" data-label="{{ ::col.label }}" data-tooltip="{{ ::col.tooltip }}"></div>',
                   '</div>',
-                '</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[0][1]">',
-                  '<div data-model-field="f" data-label-size="7" data-field-size="5" data-custom-label="columnLabels[0][$index]" data-model-name="modelName" data-model-data="modelData"></div>',
-                '</div>',
-              '</div>',
-              '<div class="col-sm-3">',
-                '<div class="lead text-center" data-ng-class="columnHeadingClass()">{{ columnFields[1][0] }}</div>',
-                '<div class="form-group form-group-sm" data-ng-repeat="f in columnFields[1][1]">',
-                  '<div data-model-field="f" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
+                  '<div data-ng-if="::col.field" class="col-sm-{{ ::col.size || 3 }}"><div class="row">',
+                    '<div data-model-field="::col.field" data-label-size="0" data-field-size="12" data-model-name="modelName" data-model-data="modelData"></div>',
+                  '</div></div>',
                 '</div>',
               '</div>',
+              '<div>&nbsp;</div>',
             '</div>',
-            '<div>&nbsp;</div>',
         ].join(''),
         controller: function($scope) {
 
-            function createLabels() {
-                var res = [];
+            function initLayout() {
+                var headings = [];
+                var rows = [];
                 for (var i = 0; i < $scope.columnFields.length; i++) {
                     var heading = $scope.columnFields[i][0];
-                    res[i] = [];
+                    headings.push({
+                        text: heading,
+                    });
                     for (var j = 0; j < $scope.columnFields[i][1].length; j++) {
+                        if (! rows[j]) {
+                            rows[j] = [{
+                                label: '',
+                            }];
+                        }
                         var col = $scope.columnFields[i][1][j];
-                        res[i][j] = getLabel(heading, col);
+                        rows[j][i * 2] = getLabel(heading, col);
+                        rows[j][i * 2 + 1] = {
+                            field: col,
+                        };
                     }
                 }
-                return res;
+                if (isOneLabelLayout(rows)) {
+                    if (rows[0].length == 4) {
+                        // one label, two fields
+                        headings.unshift({
+                            text: '',
+                            size: 5,
+                        });
+                        rows.forEach(function(row) {
+                            row[0].size = 5;
+                            row.splice(2, 1);
+                        });
+                    }
+                    else {
+                        // one label, three fields
+                        headings.unshift({
+                            text: '',
+                        });
+                        rows.forEach(function(row) {
+                            row.splice(4, 1);
+                            row.splice(2, 1);
+                        });
+                    }
+                }
+                else {
+                    // two labels, two fields
+                    headings.forEach(function(h) {
+                        h.size = 6;
+                    });
+                }
+                $scope.headings = headings;
+                $scope.rows = rows;
             }
 
             function getLabel(heading, f) {
@@ -793,26 +825,23 @@ SIREPO.app.directive('columnEditor', function(appState) {
                     f = modelField[1];
                 }
                 var info = appState.modelInfo(m)[f];
-                var label = info[0];
-                heading = heading.replace(/ .*/, '');
-                label = label.replace(heading, '');
-                return label;
+                return {
+                    label: info[0].replace(heading.replace(/ .*/, ''), ''),
+                    tooltip: info[3],
+                };
             }
 
-            function isOneLabelLayout() {
-                for (var i = 0; i < $scope.columnLabels[0].length; i++) {
-                    if ($scope.columnLabels[0][i] != $scope.columnLabels[1][i]) {
+            function isOneLabelLayout(rows) {
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    if (row[1] && row[2] && (row[0].label != row[2].label)) {
                         return false;
                     }
                 }
                 return true;
             }
 
-            $scope.columnLabels = createLabels();
-            $scope.oneLabelLayout = isOneLabelLayout();
-            $scope.columnHeadingClass = function() {
-                return 'model-' + $scope.modelName + '-column-heading';
-            };
+            initLayout();
         },
     };
 });
@@ -1250,28 +1279,42 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     };
 });
 
-SIREPO.app.directive('collapsableNotes', function(appState) {
+SIREPO.app.directive('collapsableNotes', function() {
 
     return {
         restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
         template: [
             '<div>',
             '<a href data-ng-click="toggleNotes()" style="text-decoration: none;">',
             '<span class="glyphicon" data-ng-class="{\'glyphicon-chevron-down\': ! showNotes, \'glyphicon-chevron-up\': showNotes}" style="font-size:16px;"></span>',
-            ' <span data-ng-show="! showNotes && model[field]">...</span>',
-            ' <span data-ng-show="! showNotes && ! model[field]" style="font-style: italic; font-size: small">click to enter notes</span>',
+            ' <span data-ng-show="! openNotes() && hasNotes()">...</span>',
+            ' <span data-ng-show="! openNotes() && ! hasNotes()" style="font-style: italic; font-size: small">click to enter notes</span>',
             '</a>',
 
-            '<textarea data-ng-show="showNotes" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
+            '<textarea data-ng-show="openNotes()" data-ng-model="model[field]" class="form-control" style="resize: vertical; min-height: 2em;"></textarea>',
             '</div>',
         ].join(''),
         controller: function($scope) {
 
+            var hasOpened = false;
             $scope.showNotes = false;
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-
+            $scope.hasNotes = function () {
+                return ! ! $scope.model &&
+                    ! ! $scope.model[$scope.field] &&
+                    ! ! $scope.model[$scope.field].length;
+            };
+            $scope.openNotes = function () {
+                if(! hasOpened) {
+                    $scope.showNotes = $scope.hasNotes();
+                }
+                return $scope.showNotes;
+            };
             $scope.toggleNotes = function () {
+                hasOpened = true;
                 $scope.showNotes = ! $scope.showNotes;
             };
 
@@ -1355,6 +1398,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             panelHeading: '@',
             modelKey: '=',
             isReport: '@',
+            reportId: '<',
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
@@ -1407,14 +1451,19 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                 return '';
             };
             $scope.downloadImage = function(height) {
-                var svg = $scope.panel.find('svg')[0];
-                if (! svg) {
+                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
+                if(plotToPNG.hasCanvas($scope.reportId)) {
+                    plotToPNG.downloadCanvas($scope.reportId, 0, height, fileName);
                     return;
                 }
-                var fileName = panelState.fileNameFromText($scope.panelHeading, 'png');
                 var plot3dCanvas = $scope.panel.find('canvas')[0];
+                var svg = $scope.panel.find('svg')[0];
+                if (! svg || $(svg).is(':hidden')) {
+                    return;
+                }
                 plotToPNG.downloadPNG(svg, height, plot3dCanvas, fileName);
             };
+
             $scope.hasData = function() {
                 if (! $scope.panel.find('svg')[0]) {
                     return;
@@ -1492,7 +1541,7 @@ SIREPO.app.directive('reportContent', function(panelState) {
                 '<div data-ng-switch-when="3d" data-plot3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="heatmap" data-heatmap="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="particle" data-particle="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
-                '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+                '<div data-ng-switch-when="particle3d" data-particle-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="parameter" data-parameter-plot="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
                 '<div data-ng-switch-when="lattice" data-lattice="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
                 '<div data-ng-switch-when="parameterWithLattice" data-parameter-with-lattice="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
@@ -1525,9 +1574,9 @@ SIREPO.app.directive('reportPanel', function(appState) {
         },
         template: [
             '<div class="panel panel-info" data-ng-attr-id="{{ ::reportId }}">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-report-id="reportId"></div>',
               '<div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}" data-report-id="reportId"><div data-ng-transclude=""></div></div>',
-            '</div>',
+              '<button data-ng-if="notes()" class="close sr-help-icon notes" title="{{ notes() }}"><span class="glyphicon glyphicon-question-sign"></span></button>',
         ].join(''),
         controller: function($scope) {
 
@@ -1540,6 +1589,12 @@ SIREPO.app.directive('reportPanel', function(appState) {
             }
             $scope.reportTitle = function() {
                 return $scope.panelTitle ? $scope.panelTitle : appState.viewInfo($scope.modelName).title;
+            };
+            $scope.notes = function () {
+                if(appState.models[$scope.modelKey]) {
+                    return appState.models[$scope.modelKey].notes;
+                }
+                return null;
             };
         },
     };
@@ -2281,6 +2336,8 @@ SIREPO.app.directive('simStatusPanel', function() {
 
 SIREPO.app.service('plotToPNG', function($http) {
 
+    var canvases = {};
+
     function downloadPlot(svg, height, plot3dCanvas, fileName) {
         var canvas = document.createElement('canvas');
         var context = canvas.getContext("2d");
@@ -2310,6 +2367,55 @@ SIREPO.app.service('plotToPNG', function($http) {
         value = value.replace(/px/, '');
         return parseInt(value);
     }
+
+    // Stores canvases for updates and later use.  We use the existing reportID
+    // as the key
+    this.addCanvas = function(canvas, reportId) {
+        if (!reportId) {
+            return;
+        }
+        canvases[reportId] = canvas;
+    };
+
+    this.getCanvas = function(reportId) {
+        return canvases[reportId];
+    };
+
+    this.getCopy = function (reportId, size) {
+        var canvas = this.getCanvas(reportId);
+        if(! canvas ) {
+            return null;
+        }
+
+        var s = [
+            parseInt(canvas.getAttribute('width')),
+            parseInt(canvas.getAttribute('height'))
+        ];
+        size.forEach(function (dim, i) {
+            var nextI = (i + 1) % 2;
+            var next = size[nextI];
+            if(! dim) {
+                if(next) {
+                    s[i] *= (next / s[nextI]);
+                    s[nextI] = next;
+                }
+            }
+        });
+        var cnvCopy = document.createElement('canvas');
+        var cnvCtx = cnvCopy.getContext('2d');
+        cnvCopy.width = s[0];
+        cnvCopy.height = s[1];
+        cnvCtx.drawImage(canvas, 0, 0, s[0], s[1]);
+        return cnvCopy;
+    };
+
+    this.hasCanvas = function(reportId) {
+        return ! ! canvases[reportId];
+    };
+
+    this.removeCanvas = function(reportId) {
+        delete canvases[reportId];
+    };
 
     this.downloadPNG = function(svg, height, plot3dCanvas, fileName) {
         // embed all css styles into SVG node before rendering
@@ -2342,6 +2448,14 @@ SIREPO.app.service('plotToPNG', function($http) {
         }
         promises[0].then(cssResponse);
     };
+
+    this.downloadCanvas = function(reportId, width, height, fileName)  {
+        var cnv = this.getCopy(reportId, [width || 0, height || 0]);
+        cnv.toBlob(function(blob) {
+            saveAs(blob, fileName);
+        });
+    };
+
 });
 
 SIREPO.app.service('fileUpload', function($http) {
@@ -2513,6 +2627,13 @@ SIREPO.app.service('utilities', function($window, $interval) {
             return 0;
         }
         return parseFloat(fsString.substring(0, fsString.indexOf('px')));
+    };
+
+    this.wordSplits = function(str) {
+        var wds = str.split(/(\s+)/);
+        return wds.map(function (value, index) {
+            return wds.slice(0, index).join('') + value;
+        });
     };
 
     // fullscreen utilities

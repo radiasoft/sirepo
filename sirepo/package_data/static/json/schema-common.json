@@ -43,6 +43,10 @@
         "warpvnd": {
             "longName": "Warp VND",
             "shortName": "Warp VND"
+        },
+        "zgoubi": {
+            "longName": "ZGOUBI",
+            "shortName": "ZGOUBI"
         }
     },
     "productInfo": {

@@ -365,6 +365,7 @@
             ["modified-midpoint", "Modified Midpoint"]
         ],
         "TwissParameter": [
+            ["none", "None"],
             ["betax", "betax"],
             ["alphax", "alphax"],
             ["psix", "psix"],
@@ -376,8 +377,7 @@
             ["psiy", "psiy"],
             ["etay", "etay"],
             ["etayp", "etayp"],
-            ["yAperture", "yAperture"],
-            ["none", "None"]
+            ["yAperture", "yAperture"]
         ],
         "TwlaMethod": [
             ["runge-kutta", "Runge-Kutta"],

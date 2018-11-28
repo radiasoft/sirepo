@@ -658,7 +658,7 @@ def report_info(data):
         cached_data=None,
         cached_hash=None,
         job_id=job_id(data),
-        model_name=data['report'],
+        model_name=_report_name(data),
         parameters_changed=False,
         run_dir=simulation_run_dir(data),
     )
@@ -706,7 +706,7 @@ def save_simulation_json(data, do_validate=True):
         # Never save this
         #TODO(robnagler) have "_private" fields that don't get saved
         del data['simulationStatus']
-    except:
+    except Exception:
         pass
     data = fixup_old_data(data)[0]
     s = data.models.simulation
@@ -779,7 +779,7 @@ def simulation_run_dir(data, remove_dir=False):
     Returns:
         py.path: directory to run
     """
-    d = simulation_dir(data['simulationType'], parse_sid(data)).join(_report_name(data))
+    d = simulation_dir(data['simulationType'], parse_sid(data)).join(_report_dir(data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
@@ -1062,11 +1062,17 @@ def _random_id(parent_dir, simulation_type=None):
     raise RuntimeError('{}: failed to create unique directory'.format(parent_dir))
 
 
+def _report_dir(data):
+    """Return the report execution directory name. Allows multiple models to get data from same simulation run.
+    """
+    template = sirepo.template.import_module(data)
+    if hasattr(template, 'simulation_dir_name'):
+        return template.simulation_dir_name(_report_name(data))
+    return _report_name(data)
+
+
 def _report_name(data):
     """Extract report name from data
-
-    Animations don't have a report name so we just return animation.
-
     Args:
         data (dict): passed in params
     Returns:

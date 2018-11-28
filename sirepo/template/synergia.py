@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JSPEC execution template.
+u"""Synergia execution template.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.template import template_common, elegant_lattice_importer
+from sirepo.template import template_common, elegant_common, elegant_lattice_importer
 import glob
 import h5py
 import math
@@ -36,14 +36,15 @@ _FILE_ID_SEP = '-'
 
 _IGNORE_ATTRIBUTES = ['lrad']
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'includeLattice', 'notes']
-
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _UNITS = {
     'x': 'm',
     'y': 'm',
     'z': 'm',
+    'xp': 'rad',
+    'yp': 'rad',
+    'zp': 'rad',
     'cdt': 'm',
     'xstd': 'm',
     'ystd': 'm',
@@ -103,6 +104,20 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    if 'bunchReport' in data['models']:
+        del data['models']['bunchReport']
+        for i in range(4):
+            m = 'bunchReport{}'.format(i + 1)
+            model = data['models'][m] = {}
+            template_common.update_model_defaults(data['models'][m], 'bunchReport', _SCHEMA)
+            if i == 0:
+                model['y'] = 'xp'
+            elif i == 1:
+                model['x'] = 'y'
+                model['y'] = 'yp'
+            elif i == 3:
+                model['x'] = 'z'
+                model['y'] = 'zp'
 
 
 def format_float(v):
@@ -144,6 +159,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
+    elegant_common.sort_elements_and_beamlines(data)
     data['models']['simulation']['name'] = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
@@ -213,13 +229,10 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'beamlines',
-        'elements',
-    ]
-    if r == 'bunchReport':
+    res = ['beamlines', 'elements']
+    if 'bunchReport' in r:
         res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif r == 'twissReport' or r == 'twissReport2':
+    elif 'twissReport' in r:
         res += ['simulation.{}'.format(_beamline_id_for_report(r))]
     return res
 
@@ -259,8 +272,82 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
+def prepare_output_file(report_info, data):
+    report = data['report']
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, report_info.run_dir)
+
+
 def remove_last_frame(run_dir):
     pass
+
+
+def save_report_data(data, run_dir):
+    if 'bunchReport' in data['report']:
+        import synergia.bunch
+        with h5py.File(str(run_dir.join(OUTPUT_FILE['twissReport'])), 'r') as f:
+            twiss0 = dict(map(
+                lambda k: (k, format_float(f[k][0])),
+                ('alpha_x', 'alpha_y', 'beta_x', 'beta_y'),
+            ))
+        report = data.models[data['report']]
+        bunch = data.models.bunch
+        if bunch.distribution == 'file':
+            bunch_file = template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+        else:
+            bunch_file = OUTPUT_FILE['bunchReport']
+        if not run_dir.join(bunch_file).exists():
+            return
+        with h5py.File(str(run_dir.join(bunch_file)), 'r') as f:
+            x = f['particles'][:, getattr(synergia.bunch.Bunch, report['x'])]
+            y = f['particles'][:, getattr(synergia.bunch.Bunch, report['y'])]
+        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
+        res = {
+            'title': '',
+            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+            'x_label': label(report['x'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
+            'y_label': label(report['y'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
+            'z_matrix': hist.T.tolist(),
+            'summaryData': {
+                'bunchTwiss': twiss0,
+            },
+        }
+    else:
+        report_name = data['report']
+        x = None
+        plots = []
+        report = data['models'][report_name]
+        with h5py.File(str(run_dir.join(OUTPUT_FILE[report_name])), 'r') as f:
+            x = f['s'][:].tolist()
+            for yfield in ('y1', 'y2', 'y3'):
+                if report[yfield] == 'none':
+                    continue
+                name = report[yfield]
+                plots.append({
+                    'name': name,
+                    'label': label(report[yfield], _SCHEMA['enum']['TwissParameter']),
+                    'points': f[name][:].tolist(),
+                })
+        res = {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_range': template_common.compute_plot_color_and_range(plots),
+            'x_label': 's [m]',
+            'y_label': '',
+            'x_points': x,
+            'plots': plots,
+        }
+    simulation_db.write_result(res, run_dir=run_dir)
+
+
+def simulation_dir_name(report_name):
+    if 'bunchReport' in report_name:
+        return 'bunchReport'
+    return report_name
 
 
 def validate_file(file_type, path):
@@ -586,9 +673,9 @@ def _generate_parameters_file(data):
     v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
-    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
+    if 'bunchReport' in report or 'twissReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-        if report == 'bunchReport':
+        if 'bunchReport' in report:
             res += template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
     else:
         res += template_common.render_jinja(SIM_TYPE, v, 'parameters.py')
@@ -714,8 +801,6 @@ def _import_elegant_file(text):
     if 'activeBeamlineId' in elegant_sim:
         data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
         data['models']['simulation']['visualizationBeamlineId'] = elegant_sim['activeBeamlineId']
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: el['type'])
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
     return data
 
 
@@ -760,7 +845,6 @@ def _import_elements(lattice, data):
                 if attr not in _IGNORE_ATTRIBUTES:
                     pkdlog('unknown attr: {}: {}'.format(model_name, attr))
         data['models']['elements'].append(m)
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 
 
 def _import_mad_file(reader, beamline_names):

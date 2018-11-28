@@ -1636,8 +1636,11 @@ def _lib_file_datetime(filename):
 
 def _load_user_model_list(model_name):
     filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
-    if filepath.exists():
-        return simulation_db.read_json(filepath)
+    try:
+        if filepath.exists():
+            return simulation_db.read_json(filepath)
+    except Exception:
+        pkdlog('user list read failed, resetting contents: {}', filepath)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
 
@@ -1745,7 +1748,7 @@ def _process_undulator_definition(model):
             und = SRWLMagFldU([], float(model['undulator_period']))
             model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
         return model
-    except:
+    except Exception:
         return model
 
 
@@ -1755,17 +1758,8 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
     ar2d = info['points']
 
     totLen = int(x_range[2] * y_range[2])
-    lenAr2d = len(ar2d)
-    if lenAr2d > totLen:
-        ar2d = np.array(ar2d[0:totLen])
-    elif lenAr2d < totLen:
-        auxAr = np.array('d', [0] * lenAr2d)
-        for i in range(lenAr2d):
-            auxAr[i] = ar2d[i]
-        ar2d = np.array(auxAr)
-    if isinstance(ar2d, (list, np.array)):
-        ar2d = np.array(ar2d)
-    ar2d = ar2d.reshape(y_range[2], x_range[2])
+    n = len(ar2d) if totLen > len(ar2d) else totLen
+    ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
 
     if scale != 'linear':
         ar2d[np.where(ar2d <= 0.)] = 1.e-23
@@ -1789,7 +1783,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
-        except:
+        except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
 
