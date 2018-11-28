@@ -1636,8 +1636,11 @@ def _lib_file_datetime(filename):
 
 def _load_user_model_list(model_name):
     filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
-    if filepath.exists():
-        return simulation_db.read_json(filepath)
+    try:
+        if filepath.exists():
+            return simulation_db.read_json(filepath)
+    except:
+        pkdlog('user list read failed, resetting contents: {}', filepath)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
 
