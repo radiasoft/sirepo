@@ -2362,8 +2362,8 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
     };
 
-    self.simulationURL = function(item) {
-        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': item.simulationId});
+    self.simulationURL = function(simulationId) {
+        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': simulationId});
     };
 
     self.getLocation = function() {
