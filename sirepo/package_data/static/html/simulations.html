@@ -34,7 +34,7 @@
           </thead>
           <tbody>
             <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', simulations.sortField]">
-              <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a></td>
+              <td><a data-ng-href="{{nav.simulationURL(item)}}" data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a></td>
               <td>{{ item.lastModified }}</td>
             </tr>
             <tr data-ng-show="simulations.isWaitingForSim">
