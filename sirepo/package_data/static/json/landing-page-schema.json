@@ -56,9 +56,6 @@
                 "url":""
             }
         },
-        "light": {
-            "url": "/static/html/light.html"
-        },
         "opal": {
             "url": "/static/html/landing-page-opal.html",
             "infoPanelTitle": "OPAL",
@@ -157,10 +154,5 @@
                 "url":""
             }
         }
-    },
-    "srwAppRoutes": {
-        "calculator": "SR Calculator",
-        "light-sources": "Light Source Facilities",
-        "wavefront": "Wavefront Propagation"
     }
 }
