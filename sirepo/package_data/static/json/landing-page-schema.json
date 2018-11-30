@@ -56,6 +56,9 @@
                 "url":""
             }
         },
+        "light": {
+            "url": "/static/html/light.html"
+        },
         "opal": {
             "url": "/static/html/landing-page-opal.html",
             "infoPanelTitle": "OPAL",
