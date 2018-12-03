@@ -2701,6 +2701,7 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     self.toggleIconView = function() {
+        srdbg('TOGGLEIONG');
         self.isIconView = ! self.isIconView;
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.listView, self.isIconView);
     };
@@ -2725,7 +2726,8 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     cookieService.fixup();
-    self.isIconView = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView) || true;
+    var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
+    self.isIconView = (lv == null ? true : lv);
     //cookieService.unfix();
     clearModels();
     $scope.$on('simulation.changed', function() {
@@ -2836,6 +2838,7 @@ SIREPO.app.factory('cookieService', function($cookies) {
     };
 
     svc.addCookie = function (cookieDef, value) {
+        srdbg('adding ck', cookieDef, '=', value);
         add(cookieDef.name, value || cookieDef.value, this.timeoutOrDefault(cookieDef));
     };
 
