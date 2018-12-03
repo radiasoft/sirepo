@@ -1636,8 +1636,11 @@ def _lib_file_datetime(filename):
 
 def _load_user_model_list(model_name):
     filepath = simulation_db.simulation_lib_dir(SIM_TYPE).join(_USER_MODEL_LIST_FILENAME[model_name])
-    if filepath.exists():
-        return simulation_db.read_json(filepath)
+    try:
+        if filepath.exists():
+            return simulation_db.read_json(filepath)
+    except Exception:
+        pkdlog('user list read failed, resetting contents: {}', filepath)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
 
@@ -1745,7 +1748,7 @@ def _process_undulator_definition(model):
             und = SRWLMagFldU([], float(model['undulator_period']))
             model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
         return model
-    except:
+    except Exception:
         return model
 
 
@@ -1780,7 +1783,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
-        except:
+        except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
 

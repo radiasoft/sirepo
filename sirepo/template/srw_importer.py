@@ -23,7 +23,7 @@ import traceback
 
 try:
     import cPickle as pickle
-except:
+except Exception:
     import pickle
 
 js_dir = py.path.local(pkresource.filename('static/js'))
@@ -175,11 +175,11 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['l'] = 1
         try:
             data['energy'] = obj.aux_energy
-        except:
+        except Exception:
             data['energy'] = None
         try:
             data['grazingAngle'] = obj.aux_ang_dif_pl
-        except:
+        except Exception:
             data['grazingAngle'] = 0.0
         data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
@@ -354,7 +354,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         name = obj_arOpt[i].__class__.__name__
         try:
             next_name = obj_arOpt[i + 1].__class__.__name__
-        except:
+        except Exception:
             next_name = None
 
         if name == 'SRWLOptD':
@@ -434,7 +434,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
 
             try:
                 names[key] += 1
-            except:
+            except Exception:
                 pass
 
             title = key + str(names[key])
@@ -472,7 +472,7 @@ def _get_default_drift():
     try:
         with open(js_dir + '/srw.js') as f:
             file_content = f.read()
-    except:
+    except Exception:
         file_content = ''
 
     default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
@@ -492,7 +492,7 @@ def _get_default_drift():
                         default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
                         break
                 break
-    except:
+    except Exception:
         pass
 
     default_drift_prop = ast.literal_eval(default_drift_prop)
@@ -507,7 +507,7 @@ def _get_propagation(op):
         name = op.arOpt[i].__class__.__name__
         try:
             next_name = op.arOpt[i + 1].__class__.__name__
-        except:
+        except Exception:
             next_name = None
 
         if (name != 'SRWLOptD') or \
@@ -594,14 +594,14 @@ def _parsed_dict(v, op):
         if not hasattr(obj, parm):
             try:
                 return getattr(std, parm)
-            except:
+            except Exception:
                 if def_val is not None:
                     return def_val
                 else:
                     return ''
         try:
             return getattr(obj, parm)
-        except:
+        except Exception:
             if def_val is not None:
                 return def_val
             else:
@@ -847,18 +847,18 @@ def _update_crystals(data, v):
         if data[i]['type'] == 'crystal':
             try:  # get crystal #
                 crystal_id = int(data[i]['title'].replace('Crystal', ''))
-            except:
+            except Exception:
                 crystal_id = 1
 
             try:  # update rotation angle
                 data[i]['rotationAngle'] = getattr(v, 'op_DCM_ac{}'.format(crystal_id))
-            except:
+            except Exception:
                 pass
 
             if not data[i]['energy']:
                 try:  # update energy if an old srwlib.py is used
                     data[i]['energy'] = v.op_DCM_e
-                except:
+                except Exception:
                     data[i]['energy'] = v.w_e
 
     return data

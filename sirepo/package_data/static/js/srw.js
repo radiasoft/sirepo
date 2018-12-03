@@ -7,6 +7,7 @@ SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+SIREPO.PLOTTING_SHOW_FWHM = true;
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamList">',

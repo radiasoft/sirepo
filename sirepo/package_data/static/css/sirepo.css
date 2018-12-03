@@ -385,6 +385,10 @@
       fill: none;
       stroke-width: 2px;
     }
+    .sr-plot path.line-amr-grid {
+      stroke: white;
+      opacity: 0.65;
+    }
     .sr-plot circle.line-absorbed {
       fill: steelblue;
       stroke: steelblue;
@@ -472,7 +476,7 @@
     .sr-plot .popup-group {
         fill: white;
     }
-   .sr-plot .popup-group .report-window {
+    .sr-plot .popup-group .report-window {
         fill: rgba(255, 255, 255, 0.90);
         stroke: blue;
     }
@@ -481,13 +485,20 @@
         stroke: none;
         cursor: move;
     }
-    .sr-plot .popup-group .report-window-close {
+
+    .sr-plot .popup-group .report-window-title-icon {
         fill: #222;
         cursor: pointer;
         user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         -webkit-user-select: none;
+    }
+    .sr-plot .popup-group .report-window-close {
+    }
+    .sr-plot .popup-group .report-window-copy {
+        font-family: "Glyphicons Halflings";
+        fill: #337ab7;
     }
 
 

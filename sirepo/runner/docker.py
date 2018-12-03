@@ -153,6 +153,8 @@ class DockerJob(runner.JobBase):
         cmd = _RUN_PREFIX + (
             '--cpus={}'.format(slot.cores),
             '--detach',
+            #TODO(robnagler) other environ vars required?
+            '--env=SIREPO_MPI_CORES={}'.format(slot.cores),
             '--init',
             '--memory={}g'.format(slot.gigabytes),
             '--name={}'.format(self.__cname),
