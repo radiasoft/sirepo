@@ -3650,7 +3650,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // a box around the elements, for visual clarity
                 outlineBundle = coordMapper.buildBox();
-                outlineSource =  outlineBundle.source;  // vtk.Filters.Sources.vtkCubeSource.newInstance();
+                outlineSource =  outlineBundle.source;
 
                 outlineBundle.actor.getProperty().setColor(1, 1, 1);
                 outlineBundle.actor.getProperty().setEdgeVisibility(true);
@@ -3808,10 +3808,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 epsOrigin.forEach(function (o, i) {
                     osCtr.push((o - spsOrigin[i]) / 2.0);
                 });
-
-                //for(var i = 0; i < 3; ++i) {
-                //    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
-                //}
 
                 outlineBundle.setLength([
                     Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
@@ -4190,7 +4186,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 //TODO (mvk): move to an object that encapsulates all this (in progress)
 
-                //var osCenter = warpVTKService.getOutline().source.getCenter();
                 var osCenter = outlineSource.getCenter();
 
                 // center lines
@@ -4231,6 +4226,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var vpCorners = osCorners.map(function (corner) {
                     return vtkPlotting.localCoordFromWorld(worldCoord, corner);
                 });
+                //srdbg('vpCorners', vpCorners);
                 var vpCenters = osCenters.map(function (corner) {
                     return vtkPlotting.localCoordFromWorld(worldCoord, corner);
                 });
@@ -4277,6 +4273,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var vpXEdges = [
                     vpBottomOut, vpBottomIn, vpTopOut, vpTopIn
                 ];
+                //srdbg('vpXEdges', vpXEdges);
+                var boundEdges = {};
+                geometry.basis.forEach(function (dim) {
+                    boundEdges[dim] = vpOutline.edgesForDimension(dim);
+                //        .map(function (edge) {
+                //            return edge.points().map(function (p) {
+                //                return vtkPlotting.localCoordFromWorld(worldCoord, p.coords());
+                //            });
+                //        });
+                });
+                //srdbg('will bind x to', boundEdges.x);
+
                 var vpYEdges = [
                     vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
                 ];
@@ -4288,6 +4296,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var leftmostCorners = plotUtilities.extrema(vpCorners, 0, false);
                 var highestCorners = plotUtilities.extrema(vpCorners, 1, false);
                 var rightmostCorners = plotUtilities.extrema(vpCorners, 0, true);
+
+                var lwc = vpOutline.extr();
+                //srdbg('lwc', lwc);
+                //var lfc = plotUtilities.extrema(vpCorners, 0, false);
+                //var hgc = plotUtilities.extrema(vpCorners, 1, false);
+                //var rtc = plotUtilities.extrema(vpCorners, 0, true);
 
                 // for the z (out-in) axis,
                 var bottomofleftmost = plotUtilities.extrema(leftmostCorners, 1, true);
@@ -4351,7 +4365,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var sceneXLen = 0;
                 var showXAxisEnds = false;
 
+                //srdbg('gettin x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
+                var ep = geometry.propertiesOfEdges(boundEdges.x, [], screenRect);
+                //srdbg('x edges', edgeProps);
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
                 if (edges) {
@@ -4392,6 +4409,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
                     xAxisAngle = 180 * Math.atan(tanPsi) / Math.PI;
                 }
+                var xAxisLineSeg = geometry.lineSegment(
+                    geometry.point(xAxisLeft, xAxisTop),
+                    geometry.point(xAxisRight, xAxisBottom)
+                );
 
                 var xrange = Math.min(xAxisProjLen, sceneXLen);
 
@@ -4823,7 +4844,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // TODO: use feature_config to restrict this to dev
                 if (SIREPO.APP_SCHEMA.feature_config.display_test_boxes) {
                     $scope.testBoxes = [
-                        /*
+
                         {
                             x: xAxisLeft, //clippedXEnds[0][0],
                             y: xAxisTop, //clippedXEnds[0][1],
@@ -4834,7 +4855,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             y: xAxisBottom, //clippedXEnds[1][1],
                             color: "blue"
                         },
-                        */
+
                         /*
                         {
                             x: yAxisLeft, //clippedYEnds[0][0],
@@ -4986,7 +5007,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             // Could be none fit, in which case no properties are defined
             function propertiesOfEdges(vpEdges, cornersArr, bounds, dim, reverse) {
                 var props = {};
+                //srdbg('checking edges', vpEdges);
                 for(var corners in cornersArr) {
+                    //srdbg('checking corners', corners);
                     var edges = plotUtilities.edgesWithCorners(vpEdges, cornersArr[corners])[0];
                     if(! edges) {
                         continue;

@@ -6,8 +6,8 @@ var srdbg = SIREPO.srdbg;
 SIREPO.app.service('geometry', function() {
 
     var svc = this;
-    var basis = ['x', 'y', 'z'];
 
+    this.basis = ['x', 'y', 'z'];
 
     // Used for both 2d and 3d
     this.pointFromArr = function (arr) {
@@ -34,12 +34,12 @@ SIREPO.app.service('geometry', function() {
                     (p2.z - this.z) * (p2.z - this.z)
                 );
             },
-            isInRect: function (r) {
-                return r.containsPoint(this);
-            },
             equals: function (p2) {
                 return this.dimension() == p2.dimension() &&
                     this.x === p2.x && this.y === p2.y && this.z === p2.z;
+            },
+            isInRect: function (r) {
+                return r.containsPoint(this);
             },
             str: function () {
                 return this.coords() + ' dimension ' + this.dimension();
@@ -50,11 +50,17 @@ SIREPO.app.service('geometry', function() {
     // 2d only
     this.line = function(point1, point2) {
         return {
-            points: function () {
-                return [point1, point2];
+            containsPoint: function (p) {
+                if(this.slope() === Infinity) {
+                    return p.x === point1.x;
+                }
+                return p.y === this.slope() * p.x + this.intercept();
             },
-            slope: function() {
-                return point2.x === point1.x ? Infinity : (point2.y - point1.y) / (point2.x - point1.x);
+            equals: function (l2) {
+                if(this.slope() === Infinity && l2.slope() === Infinity) {
+                    return this.points()[0].x === l2.points()[0].x;
+                }
+                return this.slope() === l2.slope() && this.intercept() === l2.intercept();
             },
             intercept: function() {
                 return point1.y - point1.x * this.slope();
@@ -77,18 +83,17 @@ SIREPO.app.service('geometry', function() {
                     (l2.slope() * this.intercept() - this.slope() *l2.intercept()) / (l2.slope() - this.slope())
                 );
             },
-            equals: function (l2) {
-                if(this.slope() === Infinity && l2.slope() === Infinity) {
-                    return this.points()[0].x === l2.points()[0].x;
-                }
-                return this.slope() === l2.slope() && this.intercept() === l2.intercept();
+            points: function () {
+                return [point1, point2];
             },
-            containsPoint: function (p) {
-                if(this.slope() === Infinity) {
-                    return p.x === point1.x;
-                }
-                return p.y === this.slope() * p.x + this.intercept();
+            slope: function() {
+                return point2.x === point1.x ? Infinity : (point2.y - point1.y) / (point2.x - point1.x);
             },
+            str: function () {
+                return this.points().map(function (p) {
+                    return p.str();
+                });
+            }
         };
     };
 
@@ -102,21 +107,18 @@ SIREPO.app.service('geometry', function() {
                     (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
                     (p.y >= ext[1][0] && p.y <= ext[1][1]);
             },
+            equals: function (ls2) {
+                var ps1 = this.points();
+                var ps2 = ls2.points();
+                return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
+                    (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
+            },
             extents: function() {
                 var pts = this.points();
                 return [
                     [Math.min(pts[0].x, pts[1].x), Math.max(pts[0].x, pts[1].x)],
                     [Math.min(pts[0].y, pts[1].y), Math.max(pts[0].y, pts[1].y)]
                 ];
-            },
-            points: function () {
-                return [point1, point2];
-            },
-            line: function() {
-                return svc.line(point1, point2);
-            },
-            slope: function() {
-                return this.line().slope();
             },
             intercept: function() {
                 return this.line().intercept();
@@ -128,12 +130,20 @@ SIREPO.app.service('geometry', function() {
             length: function () {
                 return point1.dist(point2);
             },
-            equals: function (ls2) {
-                var ps1 = this.points();
-                var ps2 = ls2.points();
-                return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
-                    (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
+            line: function() {
+                return svc.line(point1, point2);
             },
+            points: function () {
+                return [point1, point2];
+            },
+            slope: function() {
+                return this.line().slope();
+            },
+            str: function () {
+                return this.points().map(function (p) {
+                    return p.str();
+                });
+            }
         };
     };
 
@@ -372,6 +382,42 @@ SIREPO.app.service('geometry', function() {
             m.push(r);
         }
         return m;
+    };
+
+    // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
+    // Returns the properties of the first set of corners that fit - order them by desired location.
+    // Could be none fit, in which case no properties are defined
+    this.propertiesOfEdges = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
+        var props = {};
+        for(var corners in cornersArr) {
+            var edges = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
+            if(! edges) {
+                continue;
+            }
+            var sceneEnds = this.sortInDimension(edges, dim);
+            var sceneLen = sceneEnds[0].dist(sceneEnds[1]);
+            var screenEnds = boundingRect.boundaryIntersectons(sceneEnds[0], sceneEnds[1]);
+            var edgesThatFit = [];
+            for(var i in screenEnds) {
+                var edge = screenEnds[i];
+                if(boundingRect.containsLineSegment(edge)) {
+                    edgesThatFit.push(edge);
+                }
+            }
+            var clippedEnds = this.sortInDimension(edgesThatFit, dim, reverse);
+            if(clippedEnds && clippedEnds.length == 2) {
+             var clippedLen = clippedEnds[0].dist(clippedEnds[1]);
+                if(clippedLen / sceneLen > 0.5) {
+                    props.edges = edges;
+                    props.sceneEnds = sceneEnds;
+                    props.screenEnds = screenEnds;
+                    props.sceneLen = sceneLen;
+                    props.clippedEnds = clippedEnds;
+                    return props;
+                }
+            }
+        }
+        return props;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
