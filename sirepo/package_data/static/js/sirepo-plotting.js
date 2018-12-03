@@ -43,6 +43,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     }
                     panelState.setError(scope.modelName, null);
                     scope.load(data);
+                    if (data.summaryData) {
+                        $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
+                    }
                 }
                 if (scope.isPlaying) {
                     scope.advanceFrame(1);
@@ -2608,12 +2611,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 height: 0,
             };
             $scope.dataCleared = true;
-            $scope.margin = {top: 40, left: 70, right: 100, bottom: 50};
+            $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var aspectRatio = 1.0;
-            var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
+            var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
             var cacheCanvas, imageData;
             var colorbar;
             var axes = {
@@ -2678,7 +2681,8 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 else {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-move');
                 }
-                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, true);
+                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, ! SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL);
+                select('.line-amr-grid').attr('d', amrLine);
                 resetZoom();
                 select('.mouse-rect').call(zoom);
                 $.each(axes, function(dim, axis) {
@@ -2703,10 +2707,15 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }
 
             function setColorScale() {
+                var plotMin = plotting.min2d(heatmap);
+                var plotMax = plotting.max2d(heatmap);
+                if (plotMin == plotMax) {
+                    plotMax = (plotMin || 1e-6) * 10;
+                }
                 var colorScale = plotting.initImage(
                     {
-                        min: plotting.min2d(heatmap),
-                        max: plotting.max2d(heatmap),
+                        min: plotMin,
+                        max: plotMax,
                     },
                     heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
@@ -2741,6 +2750,14 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
                     .thickness(30)
                     .orient('vertical');
+                amrLine = d3.svg.line()
+                    .defined(function(d) { return d !== null; })
+                    .x(function(d) {
+                        return axes.x.scale(d[0]);
+                    })
+                    .y(function(d) {
+                        return axes.y.scale(d[1]);
+                    });
             };
 
             $scope.load = function(json) {
@@ -2761,6 +2778,18 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
                 setColorScale();
+
+                var amrLines = [];
+                if (json.amr_grid) {
+                    for (var i = 0; i < json.amr_grid.length; i++) {
+                        var p = json.amr_grid[i];
+                        amrLines.push([p[0][0], p[1][0]]);
+                        amrLines.push([p[0][1], p[1][0]]);
+                        amrLines.push([p[0][1], p[1][1]]);
+                        amrLines.push(null);
+                    }
+                }
+                select('.line-amr-grid').datum(amrLines);
                 $scope.resize();
                 $scope.resize();
             };
