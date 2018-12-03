@@ -12,9 +12,9 @@
             "longName": "elegant",
             "shortName": "Elegant"
         },
-        "flashcap": {
-            "longName": "FLASHCap",
-            "shortName": "FLASHCap"
+        "flash": {
+            "longName": "FLASH",
+            "shortName": "FLASH"
         },
         "hellweg": {
             "longName": "Hellweg",
