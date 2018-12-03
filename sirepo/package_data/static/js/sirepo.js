@@ -2701,7 +2701,6 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     self.toggleIconView = function() {
-        srdbg('TOGGLEIONG');
         self.isIconView = ! self.isIconView;
         cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.listView, self.isIconView);
     };
@@ -2838,7 +2837,6 @@ SIREPO.app.factory('cookieService', function($cookies) {
     };
 
     svc.addCookie = function (cookieDef, value) {
-        srdbg('adding ck', cookieDef, '=', value);
         add(cookieDef.name, value || cookieDef.value, this.timeoutOrDefault(cookieDef));
     };
 
