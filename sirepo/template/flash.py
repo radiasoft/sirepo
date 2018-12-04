@@ -241,6 +241,8 @@ def _generate_parameters_file(data):
                     if not has_heading:
                         has_heading = True
                         res += heading
+                    if schema[f][1] == 'Boolean':
+                        v = '.TRUE.' if v == '1' else '.FALSE.'
                     res += '{} = "{}"\n'.format(f, v)
             if has_heading:
                 res += '\n'
