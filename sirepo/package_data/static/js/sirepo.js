@@ -2725,7 +2725,8 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     cookieService.fixup();
-    self.isIconView = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView) || true;
+    var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
+    self.isIconView = (lv == null ? true : lv);
     //cookieService.unfix();
     clearModels();
     $scope.$on('simulation.changed', function() {
