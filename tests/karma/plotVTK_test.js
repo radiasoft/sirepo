@@ -140,7 +140,7 @@ describe('geometry', function() {
         var p5 = geometry.point(-1, 0);
         var p6 = geometry.point(0, 1);
 
-        var bint1 = r1.boundaryIntersectons(p5, p6);
+        var bint1 = r1.boundaryIntersectionsWithPts(p5, p6);
         expect(bint1[0].equals(geometry.point(-0.5, 0.5))).toBeTruthy();
         expect(bint1[1].equals(geometry.point(-0.5, 0.5))).toBeTruthy();
         expect(bint1[2].equals(geometry.point(0.5, 1.5))).toBeTruthy();

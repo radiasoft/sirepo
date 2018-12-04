@@ -4276,7 +4276,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('vpXEdges', vpXEdges);
                 var boundEdges = {};
                 geometry.basis.forEach(function (dim) {
-                    boundEdges[dim] = vpOutline.edgesForDimension(dim);
+                    boundEdges[dim] = vpOutline.vpEdgesForDimension(dim);
                 //        .map(function (edge) {
                 //            return edge.points().map(function (p) {
                 //                return vtkPlotting.localCoordFromWorld(worldCoord, p.coords());
@@ -4297,8 +4297,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var highestCorners = plotUtilities.extrema(vpCorners, 1, false);
                 var rightmostCorners = plotUtilities.extrema(vpCorners, 0, true);
 
-                var lwc = vpOutline.extr();
+                var lwc = vpOutline.extr().y;
                 //srdbg('lwc', lwc);
+                var vpe = vpOutline.vpEdgesForDimension('x');
+                //srdbg('vpe', vpe.map(function (ls) {
+                //    return ls.str();
+                //}));
                 //var lfc = plotUtilities.extrema(vpCorners, 0, false);
                 //var hgc = plotUtilities.extrema(vpCorners, 1, false);
                 //var rtc = plotUtilities.extrema(vpCorners, 0, true);
@@ -4365,10 +4369,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var sceneXLen = 0;
                 var showXAxisEnds = false;
 
-                //srdbg('gettin x props');
+                //srdbg('getting x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
-                var ep = geometry.propertiesOfEdges(boundEdges.x, [], screenRect);
+                var dim = 'x';
+                var ep = geometry.propertiesOfEdges(boundEdges[dim], lwc, screenRect, dim, false);
                 //srdbg('x edges', edgeProps);
+                //srdbg('x ep', ep);
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
                 if (edges) {
@@ -5009,7 +5015,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var props = {};
                 //srdbg('checking edges', vpEdges);
                 for(var corners in cornersArr) {
-                    //srdbg('checking corners', corners);
+                    //srdbg('checking corners', cornersArr[corners]);
                     var edges = plotUtilities.edgesWithCorners(vpEdges, cornersArr[corners])[0];
                     if(! edges) {
                         continue;

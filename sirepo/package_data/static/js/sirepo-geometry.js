@@ -42,7 +42,7 @@ SIREPO.app.service('geometry', function() {
                 return r.containsPoint(this);
             },
             str: function () {
-                return this.coords() + ' dimension ' + this.dimension();
+                return this.coords();  // + ' dimension ' + this.dimension();
             }
         };
     };
@@ -124,6 +124,7 @@ SIREPO.app.service('geometry', function() {
                 return this.line().intercept();
             },
             intersection: function (ls2) {
+                //srdbg('intx l1', this.str(), 'l2', ls2.str());
                 var p = this.line().intersection(ls2.line());
                 return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
             },
@@ -153,11 +154,25 @@ SIREPO.app.service('geometry', function() {
             area: function () {
                 return Math.abs(diagPoint2.x - diagPoint1.x) * Math.abs(diagPoint2.y - diagPoint1.y);
             },
-            boundaryIntersectons: function (point1, point2) {
-                var l1 = svc.line(point1, point2);
+            boundaryIntersectionsWithLine: function (l1) {
                 return this.sides().map(function (l2) {
                     return l1.intersection(l2);
                 });
+            },
+            boundaryIntersectionsWithPts: function (point1, point2) {
+                //srdbg('intx', point1, point2);
+                //var l1 = svc.line(point1, point2);
+                //return this.sides().map(function (l2) {
+                //    return l1.intersection(l2);
+                //});
+                return this.boundaryIntersectionsWithSeg(svc.lineSegment(point1, point2));
+            },
+            boundaryIntersectionsWithSeg: function (lseg) {
+                //srdbg('intx', lseg);
+                //return this.sides().map(function (l2) {
+                //    return lseg.intersection(l2);
+                //});
+                return this.boundaryIntersectionsWithLine(lseg.line());
             },
             center: function () {
                 svc.point(
@@ -166,6 +181,7 @@ SIREPO.app.service('geometry', function() {
                 );
             },
             containsLineSegment: function (l) {
+                //srdbg('contais', l);
                 return this.containsPoint(l.points()[0]) && this.containsPoint(l.points()[1]);
             },
             containsPoint: function (p) {
@@ -389,26 +405,31 @@ SIREPO.app.service('geometry', function() {
     // Could be none fit, in which case no properties are defined
     this.propertiesOfEdges = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
         var props = {};
+        //srdbg('gm checknig edges', vpEdges, reverse);
         for(var corners in cornersArr) {
-            var edges = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
-            if(! edges) {
+            //srdbg('gm checknig corner', cornersArr[corners]);
+            var edge = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
+            if(! edge) {
                 continue;
             }
-            var sceneEnds = this.sortInDimension(edges, dim);
+            var sceneEnds = this.sortInDimension(edge.points(), dim);
+            //srdbg('gm sorted pts', sceneEnds);
             var sceneLen = sceneEnds[0].dist(sceneEnds[1]);
-            var screenEnds = boundingRect.boundaryIntersectons(sceneEnds[0], sceneEnds[1]);
+            var screenEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+            //srdbg('gm intx with bounds', screenEnds);
             var edgesThatFit = [];
             for(var i in screenEnds) {
-                var edge = screenEnds[i];
-                if(boundingRect.containsLineSegment(edge)) {
-                    edgesThatFit.push(edge);
+                var end = screenEnds[i];
+                //srdbg('br conts', end);
+                if(end && boundingRect.containsPoint(end)) {
+                    edgesThatFit.push(end);
                 }
             }
             var clippedEnds = this.sortInDimension(edgesThatFit, dim, reverse);
             if(clippedEnds && clippedEnds.length == 2) {
              var clippedLen = clippedEnds[0].dist(clippedEnds[1]);
                 if(clippedLen / sceneLen > 0.5) {
-                    props.edges = edges;
+                    props.edges = edge;
                     props.sceneEnds = sceneEnds;
                     props.screenEnds = screenEnds;
                     props.sceneLen = sceneLen;
@@ -433,7 +454,9 @@ SIREPO.app.service('geometry', function() {
     // contain any of the points in another array
     this.edgesWithCorners = function(lines, points) {
         return lines.filter(function (l) {
+            //srdbg('checking seg', l.str());
             return l.points().some(function (c) {
+                //srdbg('checking pt', c);
                 return points.some(function (p) {
                     return p.equals(c);
                 });
@@ -441,6 +464,7 @@ SIREPO.app.service('geometry', function() {
         });
     };
     this.firstEdgeWithCorners = function(lines, points) {
+        //srdbg('1st edgs', this.edgesWithCorners(lines, points)[0].str());
         return this.edgesWithCorners(lines, points)[0];
     };
 
@@ -453,6 +477,7 @@ SIREPO.app.service('geometry', function() {
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
+        //srdbg('sorting', points);
         //srdbg('sorting', this.parrstr(points), 'in dim', dim, 'reverse?', doReverse, 'p0', points[0][dim]);
         if(! points || ! points.length) {
             throw svc.parrstr(points) + ': Invalid points';
@@ -463,7 +488,6 @@ SIREPO.app.service('geometry', function() {
             //srdbg('p1[' + dim + ']:', p1[dim], 'p2[' + dim + ']:', p2[dim]);
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
-        //srdbg('sorted', parrstr(arr));
     };
 
 });

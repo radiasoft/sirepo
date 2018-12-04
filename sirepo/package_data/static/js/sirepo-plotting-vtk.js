@@ -180,6 +180,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
     };
 
     // "Superclass" for representation of vtk source objects in viewport coordinates
+    // Note this means that vpObjects are implicitly two-dimensional
     self.vpObject = function(vtkSource, renderer) {
 
         var vpObj = {};
@@ -201,11 +202,17 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return vpObj.getEdges()[name];
         };
         vpObj.edgesForDimension = function(dim) {
-            return {
-                x: [],
-                y: [],
-                z: []
-            };
+            return [];
+        };
+
+        vpObj.localCoordFromWorld = function (point) {
+            //srdbg('localCoordFromWorld point', point);
+            // this is required to do conversions for different displays/devices
+            var pixels = window.devicePixelRatio;
+            vpObj.wCoord.setCoordinateSystemToWorld();
+            vpObj.wCoord.setValue(point.coords());
+            var lCoord = vpObj.wCoord.getComputedLocalDisplayValue();
+            return geometry.point(lCoord[0] / pixels, lCoord[1] / pixels);
         };
 
         // Attaches a plotAxis to any of the named edges (an edge being a pair of points) -- when updated the axis will
@@ -351,6 +358,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         box.edgesForDimension = function (dim) {
             return box.edgs()[dim];
         };
+        box.vpEdgesForDimension = function (dim) {
+            return vpEgds()[dim];
+        };
 
         function vpCorners() {
             return wCorners().map(function (p) {
@@ -359,8 +369,28 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         }
         function vpcrns() {
             return wcrn().map(function (p) {
-                return self.lcfw(box.wCoord, p);
+                return box.localCoordFromWorld(p);
             });
+        }
+        function vpEgds() {
+            var ee = {};
+            var es = box.edgs();
+            for(var e in es) {
+                var wEdges = es[e];
+                var lEdges = [];
+                for(var i = 0; i < wEdges.length; ++i) {
+                    var ls = wEdges[i];
+                    var wpts = ls.points();
+                    var lpts = [];
+                    for(var j = 0; j < wpts.length; ++j) {
+                        lpts.push(box.localCoordFromWorld(wpts[j]));
+                    }
+                    var lEdge = geometry.lineSegment(lpts[0], lpts[1]);
+                    lEdges.push(lEdge);
+                }
+                ee[e] = lEdges;
+            }
+            return ee;
         }
 
         function wCenterLines() {
@@ -479,14 +509,24 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
         };
         box.extr = function() {
-            var ex = [];
-            var dims = ['x', 'y'];
-            var rev = [true, false];
-            for(var i in dims) {
+            var ex = {};
+            // just x and y
+            var dims = geometry.basis.slice(0, 2);
+            var rev = [false, true];
+            dims.forEach(function (dim) {
+                ex[dim] = [];
                 for( var j in rev ) {
-                    ex.push(geometry.extrema(vpcrns(), dims[i], rev[j]));
+                    ex[dim].push(geometry.extrema(vpcrns(), dim, rev[j]));
+                }
+            });
+            /*
+            for(var i in dims) {
+                ex[i] = [];
+                for( var j in rev ) {
+                    ex[i].push(geometry.extrema(vpcrns(), dims[i], rev[j]));
                 }
             }
+            */
             return ex;
         };
 
@@ -1169,7 +1209,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
             /*
             $scope.load = function() {
 
-                srdbg('display load');
+                //srdbg('display load');
                 $scope.dataCleared = false;
 
                 vtkPlotting.removeActors(renderer, actors);
