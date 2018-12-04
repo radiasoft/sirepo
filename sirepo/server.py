@@ -266,7 +266,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                 })
                 break
         else:
-            raise AssertionError(util.err(simulation_name, 'simulation not found with type {}', simulation_type))
+            util.raise_not_found('{}: simulation not found by name: {}', simulation_type, simulation_name)
     return javascript_redirect(
         uri_router.format_uri(
             simulation_type,
