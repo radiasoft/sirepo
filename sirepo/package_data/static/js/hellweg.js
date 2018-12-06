@@ -267,7 +267,7 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope, $rootScope) {
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope, $rootScope) {
     var self = this;
     self.settingsModel = 'simulationSettings';
     self.panelState = panelState;
@@ -275,6 +275,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
     function handleStatus(data) {
         frameCache.setFrameCount(data.frameCount);
         if (data.startTime && ! data.error) {
+            plotRangeService.computeFieldRanges(self, 'beamAnimation', data.percentComplete);
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
                 appState.models[modelName].startTime = data.startTime;
                 appState.saveQuietly(modelName);
@@ -287,8 +288,20 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         }
     }
 
+    self.handleModalShown = function(name) {
+        if (name == 'beamAnimation') {
+            plotRangeService.processPlotRange(self, name);
+        }
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        appState.watchModelFields($scope, ['beamAnimation.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, 'beamAnimation');
+        });
+    });
+
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
+        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
         beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],
         parameterAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'startTime'],

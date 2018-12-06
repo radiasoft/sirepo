@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdc
 from rslinac.solver import BeamSolver
 from sirepo import simulation_db
 from sirepo.template import template_common
+import py.path
 import sirepo.template.hellweg as template
 
 def run(cfg_dir):
@@ -23,9 +24,9 @@ def run(cfg_dir):
     report = data['models'][data['report']]
     res = None
     if data['report'] == 'beamReport':
-        res = template.extract_beam_report(report, cfg_dir, 0)
+        res = template.extract_beam_report(report, py.path.local(cfg_dir), 0)
     elif data['report'] == 'beamHistogramReport':
-        res = template.extract_beam_histrogram(report, cfg_dir, 0)
+        res = template.extract_beam_histrogram(report, py.path.local(cfg_dir), 0)
     else:
         raise RuntimeError('unknown report: {}'.format(data['report']))
     simulation_db.write_result(res)

@@ -120,10 +120,8 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
     var self = this;
-    var isComputingRanges = false;
-    var fieldRange;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.hasParticles = false;
@@ -131,9 +129,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
 
     function handleStatus(data) {
         if (data.startTime && ! data.error) {
-            if (self.simState.isStateRunning()) {
-                appState.models.particleAnimation.isRunning = 1;
-            }
+            plotRangeService.computeFieldRanges(self, 'particleAnimation', data.percentComplete);
             ['beamEvolutionAnimation', 'coolingRatesAnimation', 'particleAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
@@ -141,23 +137,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 self.hasRates = data.hasRates;
                 frameCache.setFrameCount(data.frameCount, m);
             });
-            if (data.percentComplete == 100 && ! isComputingRanges) {
-                fieldRange = null;
-                isComputingRanges = true;
-                requestSender.getApplicationData(
-                    {
-                        method: 'compute_particle_ranges',
-                        simulationId: appState.models.simulation.simulationId,
-                    },
-                    function(data) {
-                        isComputingRanges = false;
-                        if (appState.isLoaded() && data.fieldRange) {
-                            appState.models.particleAnimation.isRunning = 0;
-                            appState.saveQuietly('particleAnimation');
-                            fieldRange = data.fieldRange;
-                        }
-                    });
-            }
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -175,33 +154,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         panelState.showField('electronCoolingRate', 'sample_number', settings.model == 'particle');
     }
 
-    function processPlotRange() {
-        var particleAnimation = appState.models.particleAnimation;
-        panelState.showEnum('particleAnimation', 'plotRangeType', 'fit', fieldRange);
-        panelState.showRow('particleAnimation', 'horizontalSize', particleAnimation.plotRangeType != 'none');
-        ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
-            panelState.enableField('particleAnimation', f, particleAnimation.plotRangeType == 'fixed');
-        });
-        if (particleAnimation.plotRangeType == 'fit' && fieldRange) {
-            setFieldRange('horizontal', particleAnimation, 'x');
-            setFieldRange('vertical', particleAnimation, 'y');
-        }
-    }
-
-    function setFieldRange(prefix, particleAnimation, field) {
-        var f = particleAnimation[field];
-        if (f == 'dpp') {
-            f = 'dp/p';
-        }
-        var range = fieldRange[f];
-        particleAnimation[prefix + 'Size'] = range[1] - range[0];
-        particleAnimation[prefix + 'Offset'] = (range[0] + range[1]) / 2;
-    }
-
     self.handleModalShown = function(name) {
         if (name == 'particleAnimation') {
             processColorRange();
-            processPlotRange();
+            plotRangeService.processPlotRange(self, name);
         }
     };
 
@@ -222,8 +178,10 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
-        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], processPlotRange);
         appState.watchModelFields($scope, ['particleAnimation.colorRangeType'], processColorRange);
+        appState.watchModelFields($scope, ['particleAnimation.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, 'particleAnimation');
+        });
     });
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
