@@ -1420,7 +1420,6 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            //TODO(pjm): enable when full screen doesn't cut off reports
             $scope.panelState = panelState;
             $scope.utilities = utilities;
 
@@ -1553,9 +1552,9 @@ SIREPO.app.directive('reportContent', function(panelState) {
         controller: function($scope, $element) {
             $scope.panelState = panelState;
             $scope.hasTransclude = function() {
-                return $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)').length > 0;
+                var el = $($element).find('div[data-ng-transclude] > div[data-ng-transclude]:not(:empty)');
+                return el.children().first().length > 0;
             };
-
         },
     };
 });
@@ -2430,7 +2429,6 @@ SIREPO.app.service('plotToPNG', function($http) {
         var cssText = '';
         function cssResponse(response) {
             promises.shift();
-            //console.log('resp:', response.data);
             cssText += response.data;
             if (promises.length) {
                 promises[0].then(cssResponse);
@@ -2607,6 +2605,65 @@ SIREPO.app.service('keypressService', function() {
         $('#' + reportId).removeClass('sr-panel-active');
     }
 
+});
+
+SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
+    var self = this;
+
+    function setFieldRange(controller, prefix, model, field) {
+        //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
+        if (field == 'dpp') {
+            field = 'dp/p';
+        }
+        var range = controller.fieldRange[field];
+        if (range) {
+            model[prefix + 'Size'] = range[1] - range[0];
+            model[prefix + 'Offset'] = (range[0] + range[1]) / 2;
+        }
+    }
+
+    self.computeFieldRanges = function(controller, name, percentComplete) {
+        if (controller.simState.isStateRunning()) {
+            appState.models[name].isRunning = 1;
+        }
+        if (percentComplete == 100 && ! controller.isComputingRanges) {
+            controller.fieldRange = null;
+            controller.isComputingRanges = true;
+            requestSender.getApplicationData(
+                {
+                    method: 'compute_particle_ranges',
+                    simulationId: appState.models.simulation.simulationId,
+                },
+                function(data) {
+                    controller.isComputingRanges = false;
+                    if (appState.isLoaded() && data.fieldRange) {
+                        appState.models[name].isRunning = 0;
+                        appState.saveQuietly(name);
+                        controller.fieldRange = data.fieldRange;
+                    }
+                });
+        }
+    };
+
+    self.processPlotRange = function(controller, name) {
+        var model = appState.models[name];
+        panelState.showEnum(name, 'plotRangeType', 'fit', controller.fieldRange);
+        panelState.showRow(name, 'horizontalSize', model.plotRangeType != 'none');
+        ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
+            panelState.enableField(name, f, model.plotRangeType == 'fixed');
+        });
+        if (model.plotRangeType == 'fit' && controller.fieldRange) {
+            if (model.reportType) {
+                var fields = model.reportType.split('-');
+                setFieldRange(controller, 'horizontal', model, fields[0]);
+                setFieldRange(controller, 'vertical', model, fields[1]);
+            }
+            else {
+                setFieldRange(controller, 'horizontal', model, model.x);
+                setFieldRange(controller, 'vertical', model, model.y);
+            }
+        }
+    };
 });
 
 SIREPO.app.service('utilities', function($window, $interval) {

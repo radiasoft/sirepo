@@ -1129,7 +1129,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 formatInfo.base = base;
                 formatInfo.baseFormat = baseFormat;
             }
-            if ((orientation == 'left' || orientation == 'right')) {
+            if ((orientation == 'left' || orientation == 'right') && ! canvasSize.isPlaying) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
                 margin[orientation] = (w + 6) * (fontSize / 2);
             }
@@ -2372,6 +2372,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 axes.bottomY.updateLabelAndTicks({
                     height: $scope.bottomPanelHeight,
                     width: $scope.canvasSize,
+                    isPlaying: $scope.isPlaying,
                 }, select, '.bottom-panel ');
                 axes.rightX.updateLabelAndTicks({
                     width: $scope.rightPanelWidth - $scope.margin.right,
