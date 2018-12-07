@@ -1127,7 +1127,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         if (! opt) {
             // handle case where enum is displayed as a button group rather than a select
-            opt = $(fieldClass(model, field)).find('a')[optionIndex];
+            opt = $(fieldClass(model, field)).find('button')[optionIndex];
         }
         showValue($(opt), isShown);
         // this is required for MSIE 11 and Safari which can't hide select options
