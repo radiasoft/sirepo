@@ -159,11 +159,7 @@ def get_application_data(data):
             'simList': res,
         }
     elif data['method'] == 'compute_particle_ranges':
-        return template_common.compute_field_range(
-            SIM_TYPE,
-            data['simulationId'],
-            'particleAnimation',
-            _compute_range_across_files)
+        return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
 
 

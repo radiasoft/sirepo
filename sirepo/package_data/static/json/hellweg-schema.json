@@ -167,10 +167,10 @@
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
-            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
-            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
-            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
+            "horizontalSize": ["Horizontal Size", "Float", 0.1],
+            "verticalSize": ["Vertical Size", "Float", 0.1],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "beamHistogramAnimation": {

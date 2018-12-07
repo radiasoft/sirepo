@@ -63,7 +63,8 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     panelState.waitForUI(function() {
-                        $scope.parentController.handleModalShown($scope.modelName);
+                        $scope.parentController.handleModalShown(
+                            $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
             };
@@ -2633,26 +2634,29 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                 {
                     method: 'compute_particle_ranges',
                     simulationId: appState.models.simulation.simulationId,
+                    modelName: name,
                 },
                 function(data) {
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
-                        appState.models[name].isRunning = 0;
-                        appState.saveQuietly(name);
+                        if (appState.models[name].isRunning) {
+                            appState.models[name].isRunning = 0;
+                            appState.saveQuietly(name);
+                        }
                         controller.fieldRange = data.fieldRange;
                     }
                 });
         }
     };
 
-    self.processPlotRange = function(controller, name) {
-        var model = appState.models[name];
-        panelState.showEnum(name, 'plotRangeType', 'fit', controller.fieldRange);
+    self.processPlotRange = function(controller, name, modelKey) {
+        var model = appState.models[modelKey || name];
         panelState.showRow(name, 'horizontalSize', model.plotRangeType != 'none');
         ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
             panelState.enableField(name, f, model.plotRangeType == 'fixed');
         });
-        if (model.plotRangeType == 'fit' && controller.fieldRange) {
+        if ((model.plotRangeType == 'fit' && controller.fieldRange)
+            || (model.plotRangeType == 'fixed' && ! model.horizontalSize)) {
             if (model.reportType) {
                 var fields = model.reportType.split('-');
                 setFieldRange(controller, 'horizontal', model, fields[0]);
@@ -2660,7 +2664,7 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
             }
             else {
                 setFieldRange(controller, 'horizontal', model, model.x);
-                setFieldRange(controller, 'vertical', model, model.y);
+                setFieldRange(controller, 'vertical', model, model.y || model.y1);
             }
         }
     };

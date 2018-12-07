@@ -356,6 +356,14 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
         },
 
+        ensureDomain: function(domain) {
+            if (domain[0] == domain[1]) {
+                domain[0] -= (domain[0] || 1);
+                domain[1] += (domain[1] || 1);
+            }
+            return domain;
+        },
+
         exportCSV: function(fileName, heading, points) {
             fileName = fileName.replace(/\s+$/, '').replace(/(\_|\W|\s)+/g, '-') + '.csv';
             // format csv heading values within quotes
@@ -2686,6 +2694,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 select('.line-amr-grid').attr('d', amrLine);
                 resetZoom();
                 select('.mouse-rect').call(zoom);
+                $scope.canvasSize.isPlaying = $scope.isPlaying;
                 $.each(axes, function(dim, axis) {
                     axis.updateLabelAndTicks($scope.canvasSize, select);
                 });
@@ -2809,7 +2818,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
 });
 
 //TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutService, focusPointService) {
+SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPointService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2918,11 +2927,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                 }
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
-                if (json.y_range[0] == json.y_range[1]) {
-                    // y has no range, expand it so axis can be computed
-                    json.y_range[0] -= (json.y_range[0] || 1);
-                    json.y_range[1] += (json.y_range[1] || 1);
-                }
+                plotting.ensureDomain(json.y_range);
                 axes.y.domain = [json.y_range[0], json.y_range[1]];
                 axes.y.scale.domain(axes.y.domain).nice();
                 $.each(axes, function(dim, axis) {
@@ -3131,7 +3136,13 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
 
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    axes.y.scale.domain(visibleDomain()).nice();
+                    var model = appState.models[$scope.modelName];
+                    if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
+                        axes.y.scale.domain(axes.y.domain).nice();
+                    }
+                    else {
+                        axes.y.scale.domain(visibleDomain()).nice();
+                    }
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
@@ -3144,6 +3155,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                     axis.updateLabelAndTicks({
                         width: $scope.width,
                         height: $scope.height,
+                        isPlaying: $scope.isPlaying,
                     }, select);
                     axis.grid.ticks(axis.tickCount);
                     select('.' + dim + '.axis.grid').call(axis.grid);
@@ -3220,7 +3232,7 @@ SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutServic
                         return Math.max.apply(null, axes.y.plots[index].points);
                     })
                 );
-                return [ydomMin, ydomMax];
+                return plotting.ensureDomain([ydomMin, ydomMax]);
             }
         },
         link: function link(scope, element) {

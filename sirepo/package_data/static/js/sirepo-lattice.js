@@ -858,6 +858,10 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
                         }
                         return true;
                     }
+                    else if (plotScope && plotScope.onRefresh) {
+                        delete plotScope.onRefresh;
+                        updateLattice();
+                    }
                 }
                 return false;
             };

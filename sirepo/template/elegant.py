@@ -64,7 +64,7 @@ _INFIX_TO_RPN = {
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
-_OUTPUT_INFO_VERSION = '1'
+_OUTPUT_INFO_VERSION = '2'
 
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
@@ -112,10 +112,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join('animation'))):
-        animation_dir = py.path.local(target_path).join('animation')
+    if os.path.isdir(str(py.path.local(source_path).join(get_animation_name(data)))):
+        animation_dir = py.path.local(target_path).join(get_animation_name(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(get_animation_name(data), '*'))):
             py.path.local(f).copy(animation_dir)
 
 
@@ -144,36 +144,27 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
                 return y_col['err']
             y = y_col['values']
             plots.append({
+                'field': yfield,
                 'points': y,
                 'label': _field_label(yfield, y_col['column_def'][1]),
             })
         title = ''
         if page_count > 1:
             title = 'Plot {} of {}'.format(page_index + 1, page_count)
-        return {
+        return template_common.parameter_plot(x, plots, data, {
             'title': title,
-            'x_range': [min(x), max(x)],
             'y_label': '',
             'x_label': _field_label(xfield, x_col['column_def'][1]),
-            'x_points': x,
-            'plots': plots,
-            'y_range': template_common.compute_plot_color_and_range(plots),
-        }
+        })
     yfield = data['y1'] if 'y1' in data else data['y']
     y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
-    y = y_col['values']
-    bins = data['histogramBins']
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+    return template_common.heatmap([x, y_col['values']], data, {
         'x_label': _field_label(xfield, x_col['column_def'][1]),
         'y_label': _field_label(yfield, y_col['column_def'][1]),
         'title': _plot_title(xfield, yfield, page_index, page_count),
-        'z_matrix': hist.T.tolist(),
-    }
+    })
 
 
 def fixup_old_data(data):
@@ -323,13 +314,16 @@ def get_simulation_frame(run_dir, data, model_data):
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
             '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
-            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
+            '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
+            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
         },
     )
     page_count = 0
     for info in _output_info(run_dir):
         if info['modelKey'] == data['modelName']:
             page_count = info['pageCount']
+            frame_data['fieldRange'] = info['fieldRange']
+    frame_data['y'] = frame_data['y1']
     return extract_report_data(
         _file_name_from_id(frame_data.xFileId, model_data, run_dir),
         frame_data,
@@ -359,7 +353,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == 'animation':
+    if model == get_animation_name(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -801,24 +795,37 @@ def _file_info(filename, run_dir, id, output_index):
         column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
         plottable_columns = []
         double_column_count = 0
+        field_range = {}
         for col in column_names:
             col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
             if col_type < _SDDS_STRING_TYPE:
                 plottable_columns.append(col)
             if col_type == _SDDS_DOUBLE_TYPE:
                 double_column_count += 1
+            field_range[col] = []
         parameter_names = sdds.sddsdata.GetParameterNames(_SDDS_INDEX)
         parameters = dict([(p, []) for p in parameter_names])
         page_count = 0
         row_counts = []
         while True:
-            page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
-            if page <= 0:
+            if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
                 break
             row_counts.append(sdds.sddsdata.RowCount(_SDDS_INDEX))
             page_count += 1
             for i, p in enumerate(parameter_names):
                 parameters[p].append(_safe_sdds_value(sdds.sddsdata.GetParameter(_SDDS_INDEX, i)))
+            for col in column_names:
+                values = sdds.sddsdata.GetColumn(
+                    _SDDS_INDEX,
+                    column_names.index(col),
+                )
+                if not len(values):
+                    pass
+                elif len(field_range[col]):
+                    field_range[col][0] = min(min(values), field_range[col][0])
+                    field_range[col][1] = max(max(values), field_range[col][1])
+                else:
+                    field_range[col] = [min(values), max(values)]
         return {
             'isAuxFile': False if double_column_count > 1 else True,
             'filename': filename,
@@ -831,6 +838,7 @@ def _file_info(filename, run_dir, id, output_index):
             'plottableColumns': plottable_columns,
             'lastUpdateTime': int(os.path.getmtime(str(file_path))),
             'isHistogram': _is_histogram_file(filename, column_names),
+            'fieldRange': field_range,
         }
     finally:
         try:

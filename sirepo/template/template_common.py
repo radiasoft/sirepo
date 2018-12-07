@@ -46,19 +46,20 @@ _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 
-def compute_field_range(sim_type, sim_id, model_name, compute_range):
+def compute_field_range(args, compute_range):
     """ Computes the fieldRange values for all parameters across all animation files.
     Caches the value on the animation input file. compute_range() is called to
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
     run_dir = simulation_db.simulation_run_dir({
-        'simulationType': sim_type,
-        'simulationId': sim_id,
+        'simulationType': args['simulationType'],
+        'simulationId': args['simulationId'],
         'report': 'animation',
     })
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
+    model_name = args['modelName']
     if model_name in data.models:
         if 'fieldRange' in data.models[model_name]:
             res = data.models[model_name].fieldRange
@@ -216,6 +217,30 @@ def model_defaults(name, schema):
         field_info = schema['model'][name][f]
         if len(field_info) >= 3 and field_info[2] is not None:
             res[f] = field_info[2]
+    return res
+
+
+def parameter_plot(x, plots, model, plot_fields=None):
+    res = {
+        'x_points': x,
+        'x_range': [min(x), max(x)],
+        'plots': plots,
+        'y_range': compute_plot_color_and_range(plots),
+    }
+    if 'plotRangeType' in model:
+        if model.plotRangeType == 'fixed':
+            res['x_range'] = _plot_range(model, 'horizontal')
+            res['y_range'] = _plot_range(model, 'vertical')
+        elif model.plotRangeType == 'fit':
+            res['x_range'] = model.fieldRange[model.x]
+            for i in range(len(plots)):
+                r = model.fieldRange[plots[i]['field']]
+                if r[0] < res['y_range'][0]:
+                    res['y_range'][0] = r[0]
+                if r[1] > res['y_range'][1]:
+                    res['y_range'][1] = r[1]
+    if plot_fields:
+        res.update(plot_fields)
     return res
 
 
