@@ -2630,6 +2630,7 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
+            appState.models[name].isRunning = 1;
             requestSender.getApplicationData(
                 {
                     method: 'compute_particle_ranges',
