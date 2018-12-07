@@ -1,2 +1,1 @@
-python:
-  pip_install: true
+requirements_file: rtfd_requirements.txt
