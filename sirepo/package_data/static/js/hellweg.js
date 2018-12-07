@@ -273,7 +273,6 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
     self.panelState = panelState;
 
     function handleStatus(data) {
-        frameCache.setFrameCount(data.frameCount);
         if (data.startTime && ! data.error) {
             plotRangeService.computeFieldRanges(self, 'beamAnimation', data.percentComplete);
             ['beamAnimation', 'beamHistogramAnimation', 'particleAnimation', 'parameterAnimation'].forEach(function(modelName) {
@@ -286,6 +285,7 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
                 frameCache.setFrameCount(1, 'parameterAnimation');
             }
         }
+        frameCache.setFrameCount(data.frameCount);
     }
 
     self.handleModalShown = function(name) {
