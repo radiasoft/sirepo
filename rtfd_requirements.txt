@@ -1,6 +1,0 @@
-# other dependencies in setup.py
-# has to be installed before setup.py is run
-pykern
-# needs to be here for Flask-OAuthlib, see https://github.com/radiasoft/sirepo/issues/1197
-flask
-python-dateutil>=2.6.0
