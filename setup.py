@@ -18,7 +18,6 @@ pykern.pksetup.setup(
         'SQLAlchemy',
         'aenum',
         'beaker',
-        'bnlcrl',
         'celery==3.1.23',
         'cryptography',
         'dicompyler-core==0.5.4',
