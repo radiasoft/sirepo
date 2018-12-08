@@ -12,7 +12,8 @@
             "framesPerSecond": "5",
             "histogramBins": 100,
             "reportType": "r-ar",
-            "startTime": 1490893953
+            "startTime": 1490893953,
+            "plotRangeType": "none"
         },
         "beamHistogramAnimation": {
             "framesPerSecond": "5",

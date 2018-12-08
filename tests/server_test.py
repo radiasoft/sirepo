@@ -104,6 +104,7 @@ def test_get_data_file():
 def test_srw():
     from pykern import pkio
     from pykern.pkdebug import pkdpretty
+    from pykern.pkunit import pkeq
     from sirepo import srunit
     import json
 
@@ -115,3 +116,6 @@ def test_srw():
         'listSimulations',
         {'simulationType': 'srw', 'search': ''},
     )
+    pkeq(fc.get('/find-by-name/srw/default/UndulatorRadiation').status_code, 404)
+    for sep in (' ', '%20', '+'):
+        pkeq(fc.get('/find-by-name/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)

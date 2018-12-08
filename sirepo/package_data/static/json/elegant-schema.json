@@ -78,6 +78,11 @@
             ["t", "t"],
             ["p", "p"]
         ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
+        ],
         "AmplificationFactorsPlane": [
             ["h", "Horizontal"],
             ["v", "Vertical"]
@@ -486,6 +491,11 @@
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "parameterTable": {
@@ -4027,24 +4037,37 @@
                 "name"
             ]
         },
-        "elementAnimation": {
+        "heatmapFrameAnimation": {
+            "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "histogramBins",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "parameterTable": {
@@ -4054,6 +4077,40 @@
                 "page"
             ],
             "advanced": []
+        },
+        "plotFrameAnimation": {
+            "model": "elementAnimation",
+            "title": "Output Report",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "includeLattice",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
         },
         "simulation": {
             "title": "Simulation",

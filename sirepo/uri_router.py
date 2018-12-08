@@ -149,7 +149,8 @@ def _dispatch(path):
     try:
         if path is None:
             return _dispatch_call(_empty_route.func, {})
-        parts = path.split('/')
+        # werkzeug doesn't convert '+' to ' '
+        parts = re.sub(r'\+', ' ', path).split('/')
         try:
             route = _uri_to_route[parts[0]]
             parts.pop(0)
