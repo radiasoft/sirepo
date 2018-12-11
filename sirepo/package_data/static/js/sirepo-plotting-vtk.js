@@ -40,6 +40,23 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         return props;
     }
 
+    self.adjustContainerSize = function(container, rect, ctrAspectRatio, thresholdPct) {
+        var fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
+
+        container.height(container.width() / (utilities.isFullscreen() ? fsAspectRatio : ctrAspectRatio));
+
+        var w = container.width();
+        var h = container.height();
+        var wThresh = Math.max(thresholdPct * w, 1);
+        var hThresh = Math.max(thresholdPct * h, 1);
+        var wdiff = Math.abs(w - rect.width);
+        var hdiff = Math.abs(h - rect.height);
+        if (hdiff > hThresh || wdiff > wThresh) {
+            return true;
+        }
+        return false;
+    };
+
     self.vtkPlot = function(scope, element) {
 
         scope.element = element[0];
