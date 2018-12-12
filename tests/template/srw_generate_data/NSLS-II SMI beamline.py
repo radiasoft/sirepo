@@ -425,7 +425,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_1_nvz', 'f', -0.0971266167475, 'nvz'],
     ['op_MOAT_1_tvx', 'f', -0.00943241252825, 'tvx'],
     ['op_MOAT_1_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_1_ang', 'f', 0.0972679033965, 'grazingAngle'],
+    ['op_MOAT_1_ang', 'f', 1.57079632, 'grazingAngle'],
     ['op_MOAT_1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_1_MOAT_2: drift
@@ -448,7 +448,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_2_nvz', 'f', -0.0971266167475, 'nvz'],
     ['op_MOAT_2_tvx', 'f', 0.00943241252825, 'tvx'],
     ['op_MOAT_2_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_2_ang', 'f', -0.0972679033965, 'grazingAngle'],
+    ['op_MOAT_2_ang', 'f', -1.57079632, 'grazingAngle'],
     ['op_MOAT_2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_2_HFM: drift
