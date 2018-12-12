@@ -56,8 +56,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
-    assert data['report'] == 'heightWeightReport', \
-        'unknown report: {}'.format(data['report'])
+    if 'report' in data:
+        assert data['report'] == 'heightWeightReport', \
+            'unknown report: {}'.format(data['report'])
     v = copy.deepcopy(data['models'], pkcollections.Dict())
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME

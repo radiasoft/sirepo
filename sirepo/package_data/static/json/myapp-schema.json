@@ -45,18 +45,6 @@
         "heightWeightReport": {
             "title": "Physical Characteristics",
             "advanced": []
-        },
-        "simulation": {
-            "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
         }
     }
 }
