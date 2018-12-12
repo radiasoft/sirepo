@@ -446,7 +446,8 @@ def api_runCancel():
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
         t = sirepo.template.import_module(data)
-        t.remove_last_frame(run_dir)
+        if hasattr(t, 'remove_last_frame'):
+            t.remove_last_frame(run_dir)
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 
