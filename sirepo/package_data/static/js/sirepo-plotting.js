@@ -5328,7 +5328,7 @@ SIREPO.app.service('plotUtilities', function() {
             return null;
         }
         return points.slice(0).sort(function (p1, p2) {
-            return doReverse ? (p1[dim] < p2[dim]) : (p1[dim] >= p2[dim]);
+            return doReverse ? (p2[dim] - p1[dim]) : (p1[dim] - p2[dim]);
         });
     };
 
