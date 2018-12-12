@@ -31,9 +31,9 @@ def test_uri_for_api():
 
         fc = srunit.flask_client()
         uri = uri_router.uri_for_api('homePage')
-        pkre('http://[^/]+/light$', uri)
+        pkre('http://[^/]+/about$', uri)
         uri = uri_router.uri_for_api('homePage', external=False)
-        pkre('^/light$', uri)
+        pkre('^/about$', uri)
         with pkexcept(KeyError):
             uri_router.uri_for_api('notAnApi')
         with pkexcept('missing parameter'):
