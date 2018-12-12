@@ -154,10 +154,5 @@
                 "url":""
             }
         }
-    },
-    "srwAppRoutes": {
-        "calculator": "SR Calculator",
-        "light-sources": "Light Source Facilities",
-        "wavefront": "Wavefront Propagation"
     }
 }

@@ -369,7 +369,6 @@ def api_importFile(simulation_type=None):
 @api_perm.allow_visitor
 def api_homePage():
     return _render_root_page('landing-page', pkcollections.Dict())
-light_landing_page = api_homePage
 
 
 @api_perm.require_user
@@ -586,10 +585,8 @@ def api_simulationSchema():
 
 
 @api_perm.allow_visitor
-def api_srLandingPage():
-    return flask.redirect('/light')
-sr_landing_page = api_srLandingPage
-
+def api_srwLight():
+    return _render_root_page('light', pkcollections.Dict())
 
 @api_perm.allow_visitor
 def api_srUnit():
