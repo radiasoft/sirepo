@@ -3582,7 +3582,21 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var snapshotCanvas;
             var snapshotCtx;
 
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+            var isAdjustingSize = false;
+            function adjustSize(rect) {
+                if(isAdjustingSize) {
+                    isAdjustingSize = false;
+                    return;
+                }
+                var cnt = $($element).find('.sr-plot-particle-3d .vtk-canvas-holder');
+                var fitThreshold = 0.01;
+                var cntAspectRatio = 1.0;
+                isAdjustingSize = vtkPlotting.adjustContainerSize(cnt, rect, cntAspectRatio, fitThreshold);
+                if(isAdjustingSize) {
+                    //$scope.$apply(fsRenderer.resize);
+                    fsRenderer.resize();
+                }
+            }
 
             $scope.requestData = function() {
                 if (! $scope.hasFrames()) {
@@ -3619,11 +3633,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 1, 1, 1],
                     container: rw,
-                    listenWindowResize: false,
                 });
+                document.addEventListener(utilities.fullscreenListenerEvent(), fsRenderer.resize);
                 renderer = fsRenderer.getRenderer();
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
+                fsRenderer.setResizeCallback(adjustSize);
                 interactor = renderWindow.getInteractor();
                 mainView = renderWindow.getViews()[0];
 
@@ -3638,11 +3653,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var isDragging = false;
                 var isPointerUp = true;
-                rw.onpointerdown = function(evt) {
+
+                // Safari does not support pointer* methods so pass through to mouse*
+                rw.onmousedown = function(evt) {
                     isDragging = false;
                     isPointerUp = false;
                 };
-                rw.onpointermove = function(evt) {
+                rw.onmousemove = function(evt) {
                     if(isPointerUp) {
                         return;
                     }
@@ -3651,7 +3668,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     $scope.side = null;
                     utilities.debounce(refresh, 100)();
                 };
-                rw.onpointerup = function(evt) {
+                rw.onmouseup = function(evt) {
                     if(! isDragging) {
                         // use picker to display info on objects
                     }
@@ -3659,6 +3676,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     isPointerUp = true;
                     refresh(true);
                 };
+
+                rw.onpointerdown = rw.onmousedown;
+                rw.onpointermove = rw.onmousemove;
+                rw.onpointerup = rw.onmouseup;
+
                 rw.onwheel = function (evt) {
                     var camPos = cam.getPosition();
 
@@ -3673,8 +3695,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         },
                         100)();
                 };
-
-                //warpVTKService.initScene(coordMapper, renderer);
 
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
@@ -3823,8 +3843,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     ]
                 );
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
-
-                //warpVTKService.updateScene(coordMapper, axisInfo);
 
                 coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
@@ -4232,7 +4250,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 //TODO (mvk): move to an object that encapsulates all this (in progress)
 
-                //var osCenter = warpVTKService.getOutline().source.getCenter();
                 var osCenter = outlineSource.getCenter();
 
                 // center lines
@@ -5142,16 +5159,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             $scope.destroy = function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), fsRenderer.resize);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 rw.removeEventListener('dblclick', reset);
                 $($element).off();
                 fsRenderer.getInteractor().unbindEvents();
+                window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.delete();
                 plotToPNG.removeCanvas($scope.reportId);
             };
 
             $scope.resize = function() {
+                //srdbg('resize');
                 refresh(false);
             };
 
@@ -5309,7 +5328,7 @@ SIREPO.app.service('plotUtilities', function() {
             return null;
         }
         return points.slice(0).sort(function (p1, p2) {
-            return doReverse ? (p1[dim] < p2[dim]) : (p1[dim] >= p2[dim]);
+            return doReverse ? (p2[dim] - p1[dim]) : (p1[dim] - p2[dim]);
         });
     };
 

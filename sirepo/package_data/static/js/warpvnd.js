@@ -1576,14 +1576,16 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
             reportId: '<',
         },
         template: [
-            '<div></div>',
+            '', //'<div></div>',
         ].join(''),
         controller: function($scope, $element) {
 
-            $scope.defaultColor = '#6992ff';
+            $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;  //'#6992ff';
 
-            var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
-            var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
+            //var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
+            //var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
+            var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
+            var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var fsRenderer = null;
 
             // this canvas is the one created by vtk
@@ -1657,18 +1659,34 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                 return;
             }
 
+            var isAdjustingSize = false;
+            function adjustSize(rect) {
+                if(isAdjustingSize) {
+                    isAdjustingSize = false;
+                    return;
+                }
+                var cnt = $($element);
+                var fitThreshold = 0.01;
+                var cntAspectRatio = 1.3;
+                isAdjustingSize = vtkPlotting.adjustContainerSize(cnt, rect, cntAspectRatio, fitThreshold);
+                if(isAdjustingSize) {
+                    fsRenderer.resize();
+                }
+            }
+
             function init() {
                 var rw = $($element);
                 rw.on('dblclick', reset);
-                rw.height(rw.width() / 1.3);
+
+                // removed listenWindowResize: false - turns out we need it for fullscreen to work.
+                // Instead we remove the event listener ourselves on destroy
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
                         container: rw[0],
-                        // This prevents a memory leak - vtk is missing removeEventListener for window.resize
-                        listenWindowResize: false,
                     });
                 fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
+                fsRenderer.setResizeCallback(adjustSize);
 
                 rw.on('pointerup', cacheCanvas);
                 rw.on('wheel', function () {
@@ -1738,6 +1756,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
 
             $scope.$on('$destroy', function() {
                 $element.off();
+                window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();
                 plotToPNG.removeCanvas($scope.reportId);
