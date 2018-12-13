@@ -167,8 +167,8 @@
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
-            "horizontalSize": ["Horizontal Size", "Float", 0.1],
-            "verticalSize": ["Vertical Size", "Float", 0.1],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
