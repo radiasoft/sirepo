@@ -28,7 +28,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             fieldDef: '@',
         },
         template: [
-            '<h5 data-ng-if="description">{{ description }}</h5>',
+            '<h5 data-ng-if="description"><span data-text-with-math="description"></span></h5>',
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate>',
               '<ul data-ng-if="pages" class="nav nav-tabs">',
                 '<li data-ng-repeat="page in pages" role="presentation" class="{{page.class}}" data-ng-class="{active: page.isActive}"><a href data-ng-click="setActivePage(page)">{{ page.name }}</a></li>',
@@ -326,7 +326,7 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
-SIREPO.app.directive('labelWithTooltip', function() {
+SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
     return {
         restrict: 'A',
         scope: {
@@ -334,19 +334,19 @@ SIREPO.app.directive('labelWithTooltip', function() {
             'tooltip': '@',
         },
         template: [
-            '<label>{{ label }}&nbsp;<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
+            '<label><span data-text-with-math="label"></span>&nbsp;<span data-ng-show="tooltip" class="glyphicon glyphicon-info-sign sr-info-pointer"></span></label>',
         ],
         link: function link(scope, element) {
             if (scope.tooltip) {
-                $(element).find('span').tooltip({
+                $(element).find('.sr-info-pointer').tooltip({
                     title: function() {
-                        return scope.tooltip;
+                        return mathRendering.mathAsHTML(scope.tooltip);
                     },
-                    html: scope.tooltip.indexOf('</') >= 0,
+                    html: true,
                     placement: 'bottom',
                 });
                 scope.$on('$destroy', function() {
-                    $(element).find('span').tooltip('destroy');
+                    $(element).find('.sr-info-pointer').tooltip('destroy');
                 });
             }
         },
@@ -1186,6 +1186,23 @@ SIREPO.app.directive('safePath', function() {
                 scope.showWarning = false;
                 return v;
             });
+        },
+    };
+});
+
+SIREPO.app.directive('textWithMath', function(mathRendering, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            'textWithMath': '<',
+        },
+        template: [
+            '<span data-ng-bind-html="::getHTML()"></span>',
+        ],
+        controller: function($scope) {
+            $scope.getHTML = function() {
+                return $sce.trustAsHtml(mathRendering.mathAsHTML($scope.textWithMath));
+            };
         },
     };
 });
@@ -2477,6 +2494,50 @@ SIREPO.app.service('fileUpload', function($http) {
                 //TODO(pjm): error handling
                 srlog('file upload failed');
             });
+    };
+});
+
+SIREPO.app.service('mathRendering', function() {
+    // Renders math expressions in a plain text string using KaTeX.
+    // The math expressions must be tightly bound by $, ex. $E = mc^2$
+    var RE = /\$[\w\\](.*\S)?\$/;
+
+    function encodeHTML(text) {
+        return $('<div />').text(text).html();
+    }
+
+    this.mathAsHTML = function(text) {
+        if (! this.textContainsMath(text)) {
+            return encodeHTML(text);
+        }
+        var parts = [];
+
+        var i = text.search(RE);
+        while (i != -1) {
+            if (i > 0) {
+                parts.push(encodeHTML(text.slice(0, i)));
+                text = text.slice(i + 1);
+            }
+            else {
+                text = text.slice(1);
+            }
+            i = text.search(/\S\$/);
+            if (i == -1) {
+                // should never get here
+                throw 'invalid math expression';
+            }
+            parts.push(katex.renderToString(text.slice(0, i + 1)));
+            text = text.slice(i + 2);
+            i = text.search(RE);
+        }
+        if (text) {
+            parts.push(encodeHTML(text));
+        }
+        return parts.join('');
+    };
+
+    this.textContainsMath = function(text) {
+        return RE.test(text);
     };
 });
 
