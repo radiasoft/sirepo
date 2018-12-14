@@ -44,6 +44,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/sirepo-geometry.js',
         'sirepo/package_data/static/js/srw.js',
         'sirepo/package_data/static/js/ext/d3-3.5.9.js',
+        'sirepo/package_data/static/js/ext/katex.js',
         'tests/helpers/angular/*.js',
         'tests/karma/**/*.js',
     ],

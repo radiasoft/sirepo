@@ -193,7 +193,7 @@
             "Tau": ["COM Life-time [s]", "Float", 1e99]
         },
         "bunch": {
-            "rigidity": ["Reference Rigidity", "Float", 1000.0, "Bρ"],
+            "rigidity": ["Reference Rigidity", "Float", 1000.0, "$B\\rho$"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
             "KY": ["Probability Y", "ProbabilityDensity", "2"],
             "KT": ["Probability Y'", "ProbabilityDensity", "2"],

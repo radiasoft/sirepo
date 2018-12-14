@@ -142,7 +142,8 @@
                     "canvas-toBlob.js",
                     "d3-3.5.9.min.js",
                     "fontdetect-0.3.js",
-                    "ie10-viewport-bug-workaround.js"
+                    "ie10-viewport-bug-workaround.js",
+                    "katex.min.js"
                 ]
             },
             "sirepoLibs": {
@@ -257,6 +258,7 @@
                     "bootstrap-3.3.7.min.css",
                     "bootstrap-colxl.css",
                     "bootstrap-toggle.min.css",
+                    "katex.min.css",
                     "cookieconsent.min.css"
                 ]
             },
