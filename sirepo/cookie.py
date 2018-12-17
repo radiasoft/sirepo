@@ -176,7 +176,8 @@ class _State(dict):
         return self._crypto().decrypt(base64.urlsafe_b64decode(value))
 
     def _deserialize(self, value):
-        v = value.split(_SERIALIZER_SEP)
+        v = value.decode("utf-8")
+        v = v.split(_SERIALIZER_SEP)
         v = dict(zip(v[::2], v[1::2]))
         assert v[_COOKIE_SENTINEL] == _COOKIE_SENTINEL_VALUE, \
             'cookie sentinel value is not correct'
@@ -229,7 +230,7 @@ class _State(dict):
             itertools.chain.from_iterable(
                 [(k, self[k]) for k in sorted(self.keys())],
             ),
-        )
+        ).encode("utf-8")
 
 
 @pkconfig.parse_none
