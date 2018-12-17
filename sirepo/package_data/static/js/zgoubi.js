@@ -11,6 +11,9 @@ SIREPO.appFieldEditors = [
       '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
+].join('');
 
 SIREPO.lattice = {
     elementColor: {
@@ -56,6 +59,7 @@ SIREPO.app.directive('appHeader', function(latticeService) {
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'source\')}"><a data-ng-href="{{ nav.sectionURL(\'source\') }}"><span class="glyphicon glyphicon-flash"></span> Bunch</a></li>',
+                  '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'twiss\')}"><a data-ng-href="{{ nav.sectionURL(\'twiss\') }}"><span class="glyphicon glyphicon-option-horizontal"></span> Twiss</a></li>',
                   '<li class="sim-section" data-ng-if="latticeService.hasBeamlines()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
@@ -159,7 +163,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
 
 SIREPO.app.controller('SourceController', function(appState, latticeService, panelState, $scope) {
     var self = this;
-    var TWISS_FIELDS = ['alpha_Y', 'beta_Y', 'alpha_Z', 'beta_Z', 'DY', 'DT', 'DZ', 'DP'];
+    var TWISS_FIELDS = ['alpha_Y', 'beta_Y', 'alpha_Z', 'beta_Z', 'DY', 'DT', 'DZ', 'DP', 'Y0', 'T0'];
 
     function processBunchTwiss() {
         var bunch = appState.models.bunch;
@@ -204,7 +208,11 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+SIREPO.app.controller('TwissController', function() {
+    var self = this;
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, $rootScope, $scope) {
     var self = this;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
@@ -214,6 +222,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
             ['bunchAnimation', 'bunchAnimation2'].forEach(function(m) {
+                plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
@@ -225,6 +234,12 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return latticeService.bunchReportHeading(name);
     };
 
+    self.handleModalShown = function(name) {
+        if (name.indexOf('bunchAnimation') >= 0) {
+            plotRangeService.processPlotRange(self, name);
+        }
+    };
+
     self.notRunningMessage = function() {
         return 'Simulation ' + self.simState.stateAsText();
     };
@@ -234,8 +249,8 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
-        bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
+        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+        bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
 
     appState.whenModelsLoaded($scope, function() {
@@ -243,5 +258,81 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         $scope.$on('simulation.changed', function(e, name) {
             $rootScope.$broadcast('activeBeamlineChanged');
         });
+        appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, 'bunchAnimation');
+        });
+        appState.watchModelFields($scope, ['bunchAnimation2.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, 'bunchAnimation2');
+        });
     });
+});
+
+SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="form-horizontal">',
+              '<div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::summaryValues">',
+                '<div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[1] }}" tooltip="{{ item[0] }}"></div></div>',
+                '<div class="col-sm-6 form-control-static">{{ item[2] }}</div>',
+              '</div>',
+              '<div class="row">&nbsp;</div>',
+              '<div class="row" data-ng-show="columnValues">',
+                '<div class="col-sm-3 col-sm-offset-6 lead text-center">Horizontal</div>',
+                '<div class="col-sm-3 lead text-center">Vertical</div>',
+              '</div>',
+              '<div class="form-group sr-parameter-table-row" data-ng-repeat="item in ::columnValues">',
+                '<div class="col-sm-6 control-label"><div data-label-with-tooltip="" label="{{ item[0][1] }}" tooltip="{{ item[0][0] }}, {{ item[1][0] }}"></div></div>',
+                '<div class="col-sm-3 form-control-static">{{ item[0][2] }}</div>',
+                '<div class="col-sm-3 form-control-static">{{ item[1][2] }}</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function addSummaryRows(rows) {
+                $scope.columnValues = {};
+                $scope.summaryValues = [];
+                rows.forEach(function(row) {
+                    var label = row[1];
+                    if (/^(Horizontal|Vertical)\s/.test(label)) {
+                        var index = /^Horizontal/.test(label) ? 0 : 1;
+                        label = label.replace(/^.*?\s/, '');
+                        label = label.charAt(0).toUpperCase() + label.slice(1);
+                        if (! $scope.columnValues[label]) {
+                            $scope.columnValues[label] = [];
+                        }
+                        row[1] = label;
+                        $scope.columnValues[label][index] = row;
+                    }
+                    else {
+                        $scope.summaryValues.push(row);
+                    }
+                });
+            }
+
+            function updateSummaryInfo(e, rows) {
+                if (rows) {
+                    addSummaryRows(rows);
+                }
+                else {
+                    $scope.summaryRows = null;
+                }
+            }
+
+            //TODO(pjm): these should be no-op in sirepo-plotting, for text reports, see jspec.js
+            var noOp = function() {};
+            $scope.clearData = noOp;
+            $scope.destroy = noOp;
+            $scope.init = noOp;
+            $scope.resize = noOp;
+            $scope.load = function(json) {
+                updateSummaryInfo(null, appState.clone(json.summaryData));
+            };
+        },
+        link: function link(scope, element) {
+            scope.modelName = 'twissSummaryReport';
+            plotting.linkPlot(scope, element);
+        },
+    };
 });

@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
+import re
 import sirepo.template.zgoubi as template
 import subprocess
 
@@ -25,6 +26,9 @@ _TWISS_TO_BUNCH_FIELD = {
     'Dy': 'DZ',
     'Dyp': 'DP',
 }
+
+_ZGOUBI_FIT_FILE = 'zgoubi.FIT.out.dat'
+
 
 def run(cfg_dir):
     data = _bunch_match_twiss(cfg_dir)
@@ -46,6 +50,18 @@ def _bunch_match_twiss(cfg_dir):
             bunch[_TWISS_TO_BUNCH_FIELD[f]] = v
             if f == 'btx' or f == 'bty':
                 assert v > 0, 'invalid twiss parameter: {} <= 0'.format(f)
+        found_fit = False
+        lines = pkio.read_text(_ZGOUBI_FIT_FILE).split('\n')
+        for i in xrange(len(lines)):
+            line = lines[i]
+            if re.search(r"^\s*'OBJET'", line):
+                values = lines[i + 4].split()
+                assert len(values) >= 5 and float(values[5]) == 1.0
+                found_fit = True
+                bunch['Y0'] = float(values[0]) * 1e-2
+                bunch['T0'] = float(values[1]) * 1e-3
+                break
+        assert found_fit, 'failed to parse fit parameters'
         simulation_db.write_json(py.path.local(cfg_dir).join(template.BUNCH_SUMMARY_FILE), bunch)
         data['report'] = report
         # rewrite the original report with original parameters
