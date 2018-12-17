@@ -477,7 +477,7 @@ SIREPO.app.service('geometry', function() {
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
-        //srdbg('sorting', points);
+        srdbg('sorting', points);
         //srdbg('sorting', this.parrstr(points), 'in dim', dim, 'reverse?', doReverse, 'p0', points[0][dim]);
         if(! points || ! points.length) {
             throw svc.parrstr(points) + ': Invalid points';

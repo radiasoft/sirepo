@@ -4283,7 +4283,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //            });
                 //        });
                 });
-                //srdbg('will bind x to', boundEdges.x);
+                srdbg('will bind x to', boundEdges.x.map(function (e) {
+                    return e.str();
+                }));
 
                 var vpYEdges = [
                     vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
@@ -4297,8 +4299,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var highestCorners = plotUtilities.extrema(vpCorners, 1, false);
                 var rightmostCorners = plotUtilities.extrema(vpCorners, 0, true);
 
-                var lwc = vpOutline.extr().y;
-                //srdbg('lwc', lwc);
+                var lwc = vpOutline.extr().y[1];
+                var hgc = vpOutline.extr().y[0];
+                srdbg('lwc', lwc, 'hgc', hgc);
                 var vpe = vpOutline.vpEdgesForDimension('x');
                 //srdbg('vpe', vpe.map(function (ls) {
                 //    return ls.str();
@@ -4372,9 +4375,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('getting x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
                 var dim = 'x';
-                var ep = geometry.propertiesOfEdges(boundEdges[dim], lwc, screenRect, dim, false);
-                //srdbg('x edges', edgeProps);
-                //srdbg('x ep', ep);
+                var ep = geometry.propertiesOfEdges(boundEdges[dim], [lwc, hgc], screenRect, dim, false);
+                srdbg('x edges', edgeProps);
+                srdbg('x ep', ep);
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
                 if (edges) {

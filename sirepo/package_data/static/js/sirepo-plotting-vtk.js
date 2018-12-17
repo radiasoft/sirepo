@@ -508,6 +508,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             };
 
         };
+        // points on the screen that have the largest and smallest values in each dimension
         box.extr = function() {
             var ex = {};
             // just x and y
@@ -519,15 +520,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                     ex[dim].push(geometry.extrema(vpcrns(), dim, rev[j]));
                 }
             });
-            /*
-            for(var i in dims) {
-                ex[i] = [];
-                for( var j in rev ) {
-                    ex[i].push(geometry.extrema(vpcrns(), dims[i], rev[j]));
-                }
-            }
-            */
             return ex;
+        };
+        box.gtextr = function(dim, minmax) {
+            return this.extr()[dim][minmax];
         };
 
         // A list of the keys used by getEdges(), for convenience in specifying edge names
