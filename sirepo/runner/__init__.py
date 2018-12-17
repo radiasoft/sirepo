@@ -41,7 +41,7 @@ class State(aenum.UniqueEnum):
     RUN = 4
     STOP = 5
 
-_JOB_CLASSES = ('background', 'celery', 'docker')
+_JOB_CLASSES = ('background', 'celery', 'docker', 'container')
 
 _JOB_CLASS_DEFAULT = _JOB_CLASSES[0]
 

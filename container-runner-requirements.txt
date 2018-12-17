@@ -1,0 +1,6 @@
+trio
+redis
+hiredis
+docker
+-e src/radiasoft/pykern
+-e src/radiasoft/sirepo
