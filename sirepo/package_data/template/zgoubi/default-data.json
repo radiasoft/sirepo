@@ -85,7 +85,7 @@
         "opticsReport": {
             "includeLattice": "1",
             "notes": "",
-            "y1": "xm",
+            "y1": "x",
             "y2": "none",
             "y3": "none"
         },

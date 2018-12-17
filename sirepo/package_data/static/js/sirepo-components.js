@@ -49,7 +49,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
-
+            if (! $scope.advancedFields) {
+                throw $scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields';
+            }
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
             };

@@ -3,14 +3,14 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('MyAppSourceController', function (appState, panelState, $scope, $rootScope) {
+SIREPO.app.controller('MyAppSourceController', function (appState, panelState, $scope) {
     var self = this;
 
     function handleDogDisposition() {
         panelState.showField('dog', 'favoriteTreat', appState.models.dog.disposition == 'friendly');
     }
 
-    appState.whenModelsLoaded($rootScope, function() {
+    appState.whenModelsLoaded($scope, function() {
         // after the model data is available, hide/show the
         // favoriteTreat field depending on the disposition
         handleDogDisposition();

@@ -31,6 +31,8 @@ def import_file(text):
             'items': beamline,
         },
     ]
+    data['models']['simulation']['activeBeamlineId'] = 1
+    data['models']['simulation']['visualizationBeamlineId'] = 1
     current_id = 2
     title, elements = zgoubi_parser.parse_file(text, 1)
     data['models']['simulation']['name'] = title if title else 'zgoubi'
@@ -71,6 +73,10 @@ def _validate_field(model, field, model_info):
             model[field] /= 1000.0
         elif field in _CM_FIELDS and model['type'] != 'CAVITE':
             model[field] *= 0.01
+    elif field == 'XPAS':
+        #TODO(pjm): need special handling, may be in #00|00|00 format
+        if not re.search(r'\#', model[field]):
+            model[field] = str(float(model[field]) * 0.01)
     elif model['type'] == 'CHANGREF' and field == 'order' and model['format'] == 'new':
         res = ''
         model['order'] = re.sub(r'\s+$', '', model['order'])

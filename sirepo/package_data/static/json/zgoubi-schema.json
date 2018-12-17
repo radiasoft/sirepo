@@ -29,6 +29,13 @@
                 "templateUrl": "/static/html/zgoubi-lattice.html"
             }
         },
+        "twiss": {
+            "route": "/twiss/:simulationId",
+            "config": {
+                "controller": "TwissController as twiss",
+                "templateUrl": "/static/html/zgoubi-twiss.html"
+            }
+        },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
@@ -79,53 +86,73 @@
             ["20", "20"]
         ],
         "OpticsParameter": [
-            ["alfx", "Horizontal alpha"],
-            ["btx", "Horizontal beta [m]"],
-            ["alfy", "Vertical alpha"],
-            ["bty", "Vertical beta [m]"],
-            ["alfl", "Longitudinal alpha"],
-            ["btl", "Longitudinal beta [m]"],
-            ["Dx", "Horizontal dispersion"],
-            ["Dxp", "Horizontal dispersion derivative"],
-            ["Dy", "Vertical dispersion"],
-            ["Dyp", "Vertical dispersion derivative"],
-            ["phix2pi", "Horizontal phi/2pi"],
-            ["phiy2pi", "Vertical phi/2pi"],
-            ["xm", "x [m]"],
-            ["xprad", "xp [rad]"],
-            ["ym", "y [m]"],
-            ["yprad", "yp [rad]"],
-            ["FO61m", "FO(6,1) [m]"],
+            ["x", "x [m]"],
+            ["xp", "xp [rad]"],
+            ["y", "y [m]"],
+            ["yp", "yp [rad]"],
+            ["FO61", "FO(6,1)"],
             ["K0L", "K0*L"],
             ["K1L", "K1*L"],
             ["K2L", "K2*L"],
             ["C", "|C|"],
-            ["r", "r"]
+            ["r", "r"],
+            ["IPASS", "IPASS"],
+            ["DPREF", "DPREF"],
+            ["R11", "R11"],
+            ["R12", "R12"],
+            ["R21", "R21"],
+            ["R22", "R22"],
+            ["R33", "R33"],
+            ["R34", "R34"],
+            ["R43", "R43"],
+            ["R44", "R44"],
+            ["R51", "R51"],
+            ["R52", "R52"],
+            ["R53", "R53"],
+            ["R54", "R54"],
+            ["R56", "R56"],
+            ["F66", "F66"],
+            ["SX", "SX"],
+            ["SY", "SY"],
+            ["SZ", "SZ"],
+            ["S", "|S|"],
+            ["Length", "Length"],
+            ["Deviation", "Deviation"]
         ],
         "OpticsOptionalParameter": [
             ["none", "None"],
-            ["alfx", "Horizontal alpha"],
-            ["btx", "Horizontal beta [m]"],
-            ["alfy", "Vertical alpha"],
-            ["bty", "Vertical beta [m]"],
-            ["alfl", "Longitudinal alpha"],
-            ["btl", "Longitudinal beta [m]"],
-            ["Dx", "Horizontal dispersion"],
-            ["Dxp", "Horizontal dispersion derivative"],
-            ["Dy", "Vertical dispersion"],
-            ["Dyp", "Vertical dispersion derivative"],
-            ["phix2pi", "Horizontal phi/2pi"],
-            ["phiy2pi", "Vertical phi/2pi"],
-            ["xm", "x [m]"],
-            ["xprad", "xp [rad]"],
-            ["ym", "y [m]"],
-            ["yprad", "yp [rad]"],
-            ["FO61m", "FO(6,1) [m]"],
+            ["x", "x [m]"],
+            ["xp", "xp [rad]"],
+            ["y", "y [m]"],
+            ["yp", "yp [rad]"],
+            ["FO61", "FO(6,1)"],
             ["K0L", "K0*L"],
             ["K1L", "K1*L"],
             ["K2L", "K2*L"],
             ["C", "|C|"],
-            ["r", "r"]
+            ["r", "r"],
+            ["IPASS", "IPASS"],
+            ["DPREF", "DPREF"],
+            ["R11", "R11"],
+            ["R12", "R12"],
+            ["R21", "R21"],
+            ["R22", "R22"],
+            ["R33", "R33"],
+            ["R34", "R34"],
+            ["R43", "R43"],
+            ["R44", "R44"],
+            ["R51", "R51"],
+            ["R52", "R52"],
+            ["R53", "R53"],
+            ["R54", "R54"],
+            ["R56", "R56"],
+            ["F66", "F66"],
+            ["SX", "SX"],
+            ["SY", "SY"],
+            ["SZ", "SZ"],
+            ["S", "|S|"],
+            ["Length", "Length"],
+            ["Deviation", "Deviation"]
         ],
         "ParticleType": [
             ["ELECTRON", "Electron"],
@@ -142,6 +169,11 @@
             ["S", "s"],
             ["time", "t"],
             ["D1", "dp/p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
         ],
         "ProbabilityDensity": [
             ["1", "Uniform"],
@@ -163,7 +195,9 @@
             ["alfy", "Vertical alpha"],
             ["Dy", "Vertical dispersion [m]"],
             ["Dyp", "Vertical dispersion derivative"],
-            ["phiy2pi", "Vertical phase advance"]
+            ["phiy2pi", "Vertical phase advance"],
+            ["btl", "Longitudinal beta [m]"],
+            ["alfl", "Longitudinal alpha"]
         ],
         "TwissOptionalParameter": [
             ["none", "None"],
@@ -176,7 +210,9 @@
             ["alfy", "Vertical alpha"],
             ["Dy", "Vertical dispersion [m]"],
             ["Dyp", "Vertical dispersion derivative"],
-            ["phiy2pi", "Vertical phase advance"]
+            ["phiy2pi", "Vertical phase advance"],
+            ["btl", "Longitudinal beta [m]"],
+            ["alfl", "Longitudinal alpha"]
         ]
     },
     "model": {
@@ -190,10 +226,10 @@
             "M": ["Mass [MeV/c²]", "Float", 938.27203],
             "Q": ["Charge [C]", "Float", 1.602176487e-19],
             "G": ["Gyromagnetic Factor", "Float", 1.79284735],
-            "Tau": ["COM Life-time [s]", "Float", 1e99]
+            "Tau": ["COM Lifetime [s]", "Float", 1e99]
         },
         "bunch": {
-            "rigidity": ["Reference Rigidity", "Float", 1000.0, "$B\\rho$"],
+            "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
             "KY": ["Probability Y", "ProbabilityDensity", "2"],
             "KT": ["Probability Y'", "ProbabilityDensity", "2"],
@@ -206,13 +242,13 @@
             "Z0": ["Mean Z [m]", "Float", 0.0],
             "P0": ["Mean Z' [rad]", "Float", 0.0],
             "X0": ["Mean X [m]", "Float", 0.0],
-            "D0": ["Mean D0 (B𝜌/BORO)", "Float", 1.0],
+            "D0": ["Mean D0 ($B\\rho/\\text{BORO}$)", "Float", 1.0],
             "match_twiss_parameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
             "alpha_Y": ["Horizontal Alpha", "Float", 0.0],
             "beta_Y": ["Horizontal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Y": ["Horizontal Emittance", "Float", 1e-6],
             "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 3, "RMS cutoff"],
-            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If cutoff 1 is negative, fill ring from |N| to N"],
+            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If Cutoff 1 is negative, fill ring from |N| to N"],
             "DY": ["Horizontal Dispersion [m]", "Float", 0],
             "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
             "alpha_Z": ["Vertical Alpha", "Float", 0.0],
@@ -234,6 +270,11 @@
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
@@ -242,6 +283,11 @@
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
@@ -252,8 +298,8 @@
             "notes": ["Notes", "Text", ""]
         },
         "opticsReport": {
-            "y1": ["Y1 Value", "OpticsParameter", "xm"],
-            "y2": ["Y2 Value", "OpticsOptionalParameter", "ym"],
+            "y1": ["Y1 Value", "OpticsParameter", "x"],
+            "y2": ["Y2 Value", "OpticsOptionalParameter", "y"],
             "y3": ["Y3 Value", "OpticsOptionalParameter", "none"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
@@ -278,6 +324,8 @@
             "y3": ["Y3 Value", "TwissOptionalParameter", "Dx"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
+        },
+        "twissSummaryReport": {
         },
         "AUTOREF": {
             "name": ["Name", "ValidatedString"],
@@ -481,7 +529,9 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "particleCount"
+                    "particleCount",
+                    "match_twiss_parameters",
+                    "simulation.visualizationBeamlineId"
                 ]],
                 ["Distribution", [
                     [
@@ -504,8 +554,6 @@
                     ]
                 ]],
                 ["Phase Space", [
-                    "match_twiss_parameters",
-                    "simulation.visualizationBeamlineId",
                     [
                         ["Horizontal", [
                             "alpha_Y",
@@ -550,35 +598,65 @@
         "bunchAnimation": {
             "title": "Beam Phase Space",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y"
-                    ]]
-                ],
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "bunchAnimation2": {
             "title": "Beam Phase Space",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y"
-                    ]]
-                ],
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "bunchReport": {
@@ -615,6 +693,13 @@
             ],
             "advanced": []
         },
+        "twissSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId"
+            ],
+            "advanced": []
+        },
         "twissReport": {
             "title": "Twiss Parameters",
             "advanced": [
@@ -634,6 +719,11 @@
                 "includeLattice",
                 "notes"
             ]
+        },
+        "twissSummaryReport": {
+            "title": "Twiss Summary",
+            "basic": [],
+            "advanced": []
         },
         "AUTOREF": {
             "title": "AUTOREF",
