@@ -245,7 +245,7 @@ app.directive('lpMediaPanel', function(appRoutes, utilities) {
     };
 });
 
-app.directive('lpOpportunities', function(utilities, $location) {
+app.directive('lpOpportunities', function(utilities, $sce) {
     return {
         restrict: 'A',
         scope: {
@@ -257,7 +257,7 @@ app.directive('lpOpportunities', function(utilities, $location) {
                 '<ul>',
                 '<li class="lp-opportunity">',
                     '<span class="title">{{ firstOpp.title }}</span>',
-                    '<div>{{ firstOpp.text }} <span class="glyphicon glyphicon-star rs-blue" style="padding-left: 8px;"></span> <a href="{{ firstOpp.url }}">Check it out</a></div>',
+                    '<div><span data-ng-bind-html="firstText"></span> <span class="glyphicon glyphicon-star rs-blue" style="padding-left: 8px;"></span> <a href="{{ firstURL }}">Check it out</a></div>',
                 '</li>',
                 '</ul>',
             '</div>',
@@ -265,6 +265,8 @@ app.directive('lpOpportunities', function(utilities, $location) {
         controller: function($scope) {
             $scope.opps = $scope.opps || utilities.getOpportuinities();
             $scope.firstOpp = $scope.opps[0];
+            $scope.firstText = $sce.trustAsHtml($scope.firstOpp.text);
+            $scope.firstURL = $sce.trustAsResourceUrl($scope.firstOpp.url);
         },
     };
 });
