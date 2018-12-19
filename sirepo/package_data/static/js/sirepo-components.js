@@ -328,6 +328,65 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
+SIREPO.app.directive('copyConfirmation', function() {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            id: '@',
+            title: '@',
+            okText: '@',
+            okClicked: '&',
+            cancelText: '@',
+            itemType: '<',
+            copyName: '<',
+            showUserFolders: '<',
+            copyObj: '&',
+            disabled: '&',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ itemType }}" data-ok-text="Create Copy" data-ok-clicked="okClicked()">',
+              '<form class="form-horizontal" autocomplete="off">',
+                '<div class="form-group">',
+                '<label class="col-sm-3 control-label">New Name</label>',
+                '<div class="col-sm-9">',
+                  '<input data-safe-path="" class="form-control" data-ng-model="copyName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                '</div>',
+                '</div>',
+                '<div class="form-group" data-ng-if="showUserFolders">',
+                  '<label class="col-sm-3 control-label">Folder</label>',
+                  '<div class="col-sm-9">',
+                    '<div data-user-folder-list="" data-model="copyObj()" data-field="\'copyFolder\'"></div>',
+                  '</div>',
+              '</div>',
+              '</form>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            //srdbg('copy conf id', $scope.id, 'title', $scope.title, 'name', $scope.copyName, 'disabled?', $scope.disabled());
+            /*
+            $scope.formCtl = null;
+            $scope.clicked = function() {
+                if ($scope.okClicked() !== false) {
+                    $('#' + $scope.id).modal('hide');
+                }
+            };
+            $scope.isValid = function() {
+                if(! $scope.formCtl) {
+                    var f = $($element).find('form').eq(0);
+                    $scope.formCtl = angular.element(f).controller('form');
+                }
+                if(! $scope.formCtl) {
+                    return true;
+                }
+                return $scope.formCtl.$valid;
+            };
+            */
+        },
+    };
+});
+
 SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
     return {
         restrict: 'A',
@@ -1353,9 +1412,16 @@ SIREPO.app.directive('userFolderList', function(appState, fileManager) {
         template: [
             '<select class="form-control" data-ng-model="model[field]" data-ng-if="! model.isExample" data-ng-options="item for item in fileManager.getUserFolderPaths()"></select>',
             '<div class="form-control" data-ng-if="model.isExample" readonly>{{ model.folder }}</div>',
+            //'<div data-ng-show="check()"></div>',
         ].join(''),
         controller: function($scope) {
+            //srdbg('ufl model', $scope.model, $scope.field);
             $scope.fileManager = fileManager;
+
+            $scope.check = function () {
+                //srdbg('check ufl model', $scope.model, $scope.field);
+                return false;
+            };
         },
     };
 });
@@ -1880,7 +1946,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelState, requestSender, $location, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window) {
 
     return {
         restrict: 'A',
@@ -1915,11 +1981,29 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
               '</ul>',
         ].join(''),
         controller: function($scope) {
+            //srdbg('settings');
             var currentSimulationId = null;
+
+            var copyConfModalHTML = [
+                '<div data-copy-confirmation="" ',
+                'data-item-type="\'Simulation\'" ',
+                'data-ok-clicked="copy()"',
+                'data-copy-name="copyName" ',
+                'data-copy-obj="copyCfg()" ',
+                'data-show-user-folders="showUserFolders"',
+                'data-disabled="! readyToCopy()"',
+                '>',
+                '</div>',
+            ].join('');
+            var copyConfModal = $compile(copyConfModalHTML)($scope);
+            var currentFolder;
 
             function simulationId() {
                 return appState.models.simulation.simulationId;
             }
+
+            $scope.showUserFolders = true;
+            $scope.copyFolder = fileManager.defaultCreationFolderPath();
 
             $scope.showDocumentationUrl = function() {
                 panelState.showModalEditor('simDoc');
@@ -1935,11 +2019,34 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
                 return appDataService.canCopy();
             };
             $scope.copy = function() {
+                //srdbg('COPY');
+
                 appState.copySimulation(
                     simulationId(),
                     function(data) {
                         requestSender.localRedirectHome(data.models.simulation.simulationId);
                     });
+
+            };
+
+            var cfg = {
+                copyName: '',
+                copyFolder: '/',
+                isExample: false,
+            };
+            $scope.copyCfg = function () {
+                //srdbg('getting cfg');
+                return appState.models.simulation;  //cfg;
+            };
+
+            $scope.copyItem = function() {
+                if(! $('#sr-copy-confirmation')[0]) {
+                    $('body').append(copyConfModal);
+                }
+                if(! currentFolder) {
+                    loadList();
+                }
+                $('#sr-copy-confirmation').modal('show');
             };
 
             $scope.hasRelatedSimulations = function() {
@@ -1988,6 +2095,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
                 requestSender.localRedirectHome(item.simulationId);
             };
 
+            $scope.readyToCopy = function() {
+                //srdbg('ready?');
+                return ! ! currentFolder;
+            };
+
             $scope.exportArchive = function(extension) {
                 $window.open(requestSender.formatUrl('exportArchive', {
                     '<simulation_id>': simulationId(),
@@ -1995,6 +2107,37 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
                     '<filename>':  $scope.nav.simulationName() + '.' + extension,
                 }), '_blank');
             };
+
+            $scope.$on('$destroy', function() {
+                $('#sr-copy-confirmation').remove();
+            });
+
+            function loadList() {
+                appState.listSimulations(
+                    $location.search(),
+                    function(data) {
+                        //data.sort(function(a, b) {
+                        //    return a.last_modified.localeCompare(b.last_modified);
+                        //});
+                        fileManager.updateTreeFromFileList(data);
+                        currentFolder = fileManager.getFolderWithPath(appState.models.simulation.folder);
+                        cfg.copyFolder = appState.models.simulation.folder;
+
+                        var names = {};
+                        currentFolder.children.forEach(function (c) {
+                            names[c.name] = true;
+                        });
+                        var count = 2;
+                        var name = appState.models.simulation.name;
+                        name = name.replace(/\s+\d+$/, '');
+                        while (names[name + ' ' + count]) {
+                            count++;
+                        }
+                        $scope.copyName = name + ' ' + count;
+                        cfg.copyName = $scope.copyName;
+                    });
+            }
+
         },
     };
 });
