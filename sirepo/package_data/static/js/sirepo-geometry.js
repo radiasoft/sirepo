@@ -10,9 +10,6 @@ SIREPO.app.service('geometry', function() {
     this.basis = ['x', 'y', 'z'];
 
     // Used for both 2d and 3d
-    this.pointFromArr = function (arr) {
-        return this.point(arr[0], arr[1], arr[2]);
-    };
     this.point = function(x, y, z) {
         return {
             x: x || 0,
@@ -45,6 +42,9 @@ SIREPO.app.service('geometry', function() {
                 return this.coords();  // + ' dimension ' + this.dimension();
             }
         };
+    };
+    this.pointFromArr = function (arr) {
+        return this.point(arr[0], arr[1], arr[2]);
     };
 
     // 2d only
@@ -95,6 +95,9 @@ SIREPO.app.service('geometry', function() {
                 });
             }
         };
+    };
+    this.lineFromArr = function (arr) {
+        return this.line(arr[0], arr[1]);
     };
 
 
@@ -147,6 +150,9 @@ SIREPO.app.service('geometry', function() {
             }
         };
     };
+    this.lineSegmentFromArr = function (arr) {
+        return this.lineSegment(arr[0], arr[1]);
+    };
 
     // 2d only
     this.rect = function(diagPoint1, diagPoint2) {
@@ -155,23 +161,19 @@ SIREPO.app.service('geometry', function() {
                 return Math.abs(diagPoint2.x - diagPoint1.x) * Math.abs(diagPoint2.y - diagPoint1.y);
             },
             boundaryIntersectionsWithLine: function (l1) {
-                return this.sides().map(function (l2) {
+                var r = this;
+                return r.sides()
+                    .map(function (l2) {
                     return l1.intersection(l2);
-                });
+                })
+                    .filter(function (p) {
+                        return p && r.containsPoint(p);
+                    });
             },
             boundaryIntersectionsWithPts: function (point1, point2) {
-                //srdbg('intx', point1, point2);
-                //var l1 = svc.line(point1, point2);
-                //return this.sides().map(function (l2) {
-                //    return l1.intersection(l2);
-                //});
                 return this.boundaryIntersectionsWithSeg(svc.lineSegment(point1, point2));
             },
             boundaryIntersectionsWithSeg: function (lseg) {
-                //srdbg('intx', lseg);
-                //return this.sides().map(function (l2) {
-                //    return lseg.intersection(l2);
-                //});
                 return this.boundaryIntersectionsWithLine(lseg.line());
             },
             center: function () {
@@ -403,42 +405,92 @@ SIREPO.app.service('geometry', function() {
     // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
     // Returns the properties of the first set of corners that fit - order them by desired location.
     // Could be none fit, in which case no properties are defined
-    this.propertiesOfEdges = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
-        var props = {};
-        //srdbg('gm checknig edges', vpEdges, reverse);
+    // maybe return a line segment instead
+    // should corners beome a selection function for the edge?
+    this.bestLineSegment = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
+        //var props = {};
         for(var corners in cornersArr) {
             //srdbg('gm checknig corner', cornersArr[corners]);
+            // first check whether any of the supplied edges contain the corners
             var edge = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
             if(! edge) {
+                continue;  // try next corners
+            }
+            //srdbg('using edge', edge);
+            // these are the coordinates of the ends of the selected edge
+            var sceneEnds = edge.points().filter(function (p) {
+                        return boundingRect.containsPoint(p);
+                    });
+            //sceneEnds = this.sortInDimension(boundingRect.boundaryIntersectionsWithSeg(edge), dim, reverse);
+            //srdbg('gm sorted pts', sceneEnds);
+            //var edgeLen = edge.length();  //sceneEnds[0].dist(sceneEnds[1]);
+            // screenEnds are the 4 points where the boundary rectangle intersects the
+            // *line* defined by the selected edge
+            var screenEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+            srdbg('gm intx with bounds', screenEnds);
+
+            // if the bound edge does not intersect the boundary rectangle in 2 places, it
+            // means one or both ends are off screen; so, reject it
+            if(screenEnds.length == 0) {
                 continue;
             }
-            var sceneEnds = this.sortInDimension(edge.points(), dim);
-            //srdbg('gm sorted pts', sceneEnds);
-            var sceneLen = sceneEnds[0].dist(sceneEnds[1]);
-            var screenEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
-            //srdbg('gm intx with bounds', screenEnds);
-            var edgesThatFit = [];
-            for(var i in screenEnds) {
-                var end = screenEnds[i];
-                //srdbg('br conts', end);
-                if(end && boundingRect.containsPoint(end)) {
-                    edgesThatFit.push(end);
-                }
-            }
-            var clippedEnds = this.sortInDimension(edgesThatFit, dim, reverse);
-            if(clippedEnds && clippedEnds.length == 2) {
-             var clippedLen = clippedEnds[0].dist(clippedEnds[1]);
-                if(clippedLen / sceneLen > 0.5) {
-                    props.edges = edge;
+            // projectedEnds are just the screenEnds, sorted
+            //var projectedEnds = this.sortInDimension(screenEnds, dim, reverse);
+            var allPoints = sceneEnds.concat(screenEnds)
+                .filter(function (p) {
+                return edge.containsPoint(p);
+            });
+            var uap = unique(
+                this.sortInDimension(allPoints, dim, reverse),
+                function (p1, p2) {
+                return p1.equals(p2);
+            });
+            //if(projectedEnds && projectedEnds.length == 2) {
+                // clippedLen is the length of the line segment defined by the clipped ends
+                //var clippedLen = projectedEnds[0].dist(projectedEnds[1]);
+                // if the clipped edge length is too small (here half the length of the actual edge),
+                // do not bind to this edge (not enough will be visible to be effective)
+                //if(clippedLen / edgeLen > 0.5) {
+            var seg = this.lineSegmentFromArr(uap);
+                if(seg.length() / edge.length() > 0.5) {
+                    /*
+                    props.boundEdge = edge;
                     props.sceneEnds = sceneEnds;
                     props.screenEnds = screenEnds;
-                    props.sceneLen = sceneLen;
-                    props.clippedEnds = clippedEnds;
-                    return props;
+                    props.sceneLen = edgeLen;
+                    props.projectedEnds = projectedEnds;
+                    */
+                    // if both ends of the edge are offscreen, use the clipped ends
+                    // if both are on screen, use the edge
+                    // if one is on, use the seg made by connecting the
+                    // clipped end that is on the visible edge (it must exist if we got here)
+
+                    /*
+                    switch (sceneEnds.length) {
+                        case 0:
+                            srdbg('no scene');
+                            props.seg = this.lineSegmentFromArr(projectedEnds);
+                            break;
+                        case 1:
+                            srdbg('1 scene');
+                            var p1 = sceneEnds[0];
+                            var p2 = edge.containsPoint(projectedEnds[0]) ? projectedEnds[0] : projectedEnds[1];
+                            srdbg('sorting seg');
+                            var arr = this.sortInDimension([p1, p2], dim, reverse);
+                            props.seg = this.lineSegmentFromArr(arr);
+                            break;
+                        default:
+                            srdbg('2 scene');
+                            props.seg = this.lineSegmentFromArr(sceneEnds);
+                     }
+                            */
+                    //props.seg = this.lineSegmentFromArr(uap);  // always 0 or 2?
+                    return seg;  // this.lineSegmentFromArr(uap);  // always 0 or 2?
+                    //return props;
                 }
-            }
-        }
-        return props;
+            //}
+        }  // end loop over corners
+        return null;  //props;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
@@ -477,7 +529,6 @@ SIREPO.app.service('geometry', function() {
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
-        srdbg('sorting', points);
         //srdbg('sorting', this.parrstr(points), 'in dim', dim, 'reverse?', doReverse, 'p0', points[0][dim]);
         if(! points || ! points.length) {
             throw svc.parrstr(points) + ': Invalid points';
@@ -489,5 +540,21 @@ SIREPO.app.service('geometry', function() {
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
     };
+
+    // returns an array containing the unique elements of the input,
+    // according to a two-input equality function (null means use ===)
+    function unique(arr, equals) {
+        var uniqueArr = [];
+        arr.forEach(function (a) {
+            var found = false;
+            uniqueArr.forEach(function (b) {
+                found = equals ? equals(a, b) : a === b;
+            });
+            if(! found) {
+                uniqueArr.push(a);
+            }
+        });
+        return uniqueArr;
+    }
 
 });

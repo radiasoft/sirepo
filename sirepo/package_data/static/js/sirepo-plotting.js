@@ -43,9 +43,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     }
                     panelState.setError(scope.modelName, null);
                     scope.load(data);
-                    if (data.summaryData) {
-                        $rootScope.$broadcast(scope.modelName + '.summaryData', data.summaryData);
-                    }
                 }
                 if (scope.isPlaying) {
                     scope.advanceFrame(1);
@@ -354,14 +351,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 -(yDomain[1] - yZoomDomain[1]) / zoomHeight * height - yPixelSize / 2,
                 (xDomain[1] - xDomain[0]) / zoomWidth * width + xPixelSize,
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
-        },
-
-        ensureDomain: function(domain) {
-            if (domain[0] == domain[1]) {
-                domain[0] -= (domain[0] || 1);
-                domain[1] += (domain[1] || 1);
-            }
-            return domain;
         },
 
         exportCSV: function(fileName, heading, points) {
@@ -1137,7 +1126,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 formatInfo.base = base;
                 formatInfo.baseFormat = baseFormat;
             }
-            if ((orientation == 'left' || orientation == 'right') && ! canvasSize.isPlaying) {
+            if ((orientation == 'left' || orientation == 'right')) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
                 margin[orientation] = (w + 6) * (fontSize / 2);
             }
@@ -2380,7 +2369,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 axes.bottomY.updateLabelAndTicks({
                     height: $scope.bottomPanelHeight,
                     width: $scope.canvasSize,
-                    isPlaying: $scope.isPlaying,
                 }, select, '.bottom-panel ');
                 axes.rightX.updateLabelAndTicks({
                     width: $scope.rightPanelWidth - $scope.margin.right,
@@ -2620,12 +2608,12 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 height: 0,
             };
             $scope.dataCleared = true;
-            $scope.margin = {top: 50, left: 70, right: 100, bottom: 50};
+            $scope.margin = {top: 40, left: 70, right: 100, bottom: 50};
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var aspectRatio = 1.0;
-            var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
+            var canvas, ctx, heatmap, mouseMovePoint, pointer, zoom;
             var cacheCanvas, imageData;
             var colorbar;
             var axes = {
@@ -2690,11 +2678,9 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 else {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-move');
                 }
-                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, ! SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL);
-                select('.line-amr-grid').attr('d', amrLine);
+                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, true);
                 resetZoom();
                 select('.mouse-rect').call(zoom);
-                $scope.canvasSize.isPlaying = $scope.isPlaying;
                 $.each(axes, function(dim, axis) {
                     axis.updateLabelAndTicks($scope.canvasSize, select);
                 });
@@ -2717,15 +2703,10 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
             }
 
             function setColorScale() {
-                var plotMin = plotting.min2d(heatmap);
-                var plotMax = plotting.max2d(heatmap);
-                if (plotMin == plotMax) {
-                    plotMax = (plotMin || 1e-6) * 10;
-                }
                 var colorScale = plotting.initImage(
                     {
-                        min: plotMin,
-                        max: plotMax,
+                        min: plotting.min2d(heatmap),
+                        max: plotting.max2d(heatmap),
                     },
                     heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
@@ -2760,14 +2741,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                     .margin({top: 10, right: 100, bottom: 20, left: 10})
                     .thickness(30)
                     .orient('vertical');
-                amrLine = d3.svg.line()
-                    .defined(function(d) { return d !== null; })
-                    .x(function(d) {
-                        return axes.x.scale(d[0]);
-                    })
-                    .y(function(d) {
-                        return axes.y.scale(d[1]);
-                    });
             };
 
             $scope.load = function(json) {
@@ -2788,18 +2761,6 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
                 setColorScale();
-
-                var amrLines = [];
-                if (json.amr_grid) {
-                    for (var i = 0; i < json.amr_grid.length; i++) {
-                        var p = json.amr_grid[i];
-                        amrLines.push([p[0][0], p[1][0]]);
-                        amrLines.push([p[0][1], p[1][0]]);
-                        amrLines.push([p[0][1], p[1][1]]);
-                        amrLines.push(null);
-                    }
-                }
-                select('.line-amr-grid').datum(amrLines);
                 $scope.resize();
                 $scope.resize();
             };
@@ -2818,7 +2779,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
 });
 
 //TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPointService, plotting, utilities) {
+SIREPO.app.directive('parameterPlot', function(plotting, utilities, layoutService, focusPointService) {
     return {
         restrict: 'A',
         scope: {
@@ -2927,7 +2888,11 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                 }
                 axes.x.domain = xdom;
                 axes.x.scale.domain(xdom);
-                plotting.ensureDomain(json.y_range);
+                if (json.y_range[0] == json.y_range[1]) {
+                    // y has no range, expand it so axis can be computed
+                    json.y_range[0] -= (json.y_range[0] || 1);
+                    json.y_range[1] += (json.y_range[1] || 1);
+                }
                 axes.y.domain = [json.y_range[0], json.y_range[1]];
                 axes.y.scale.domain(axes.y.domain).nice();
                 $.each(axes, function(dim, axis) {
@@ -3136,13 +3101,7 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
 
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
-                    var model = appState.models[$scope.modelName];
-                    if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
-                        axes.y.scale.domain(axes.y.domain).nice();
-                    }
-                    else {
-                        axes.y.scale.domain(visibleDomain()).nice();
-                    }
+                    axes.y.scale.domain(visibleDomain()).nice();
                 }
                 else {
                     select('.overlay').attr('class', 'overlay mouse-move-ew');
@@ -3155,7 +3114,6 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                     axis.updateLabelAndTicks({
                         width: $scope.width,
                         height: $scope.height,
-                        isPlaying: $scope.isPlaying,
                     }, select);
                     axis.grid.ticks(axis.tickCount);
                     select('.' + dim + '.axis.grid').call(axis.grid);
@@ -3232,7 +3190,7 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                         return Math.max.apply(null, axes.y.plots[index].points);
                     })
                 );
-                return plotting.ensureDomain([ydomMin, ydomMax]);
+                return [ydomMin, ydomMax];
             }
         },
         link: function link(scope, element) {
@@ -3582,21 +3540,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var snapshotCanvas;
             var snapshotCtx;
 
-            var isAdjustingSize = false;
-            function adjustSize(rect) {
-                if(isAdjustingSize) {
-                    isAdjustingSize = false;
-                    return;
-                }
-                var cnt = $($element).find('.sr-plot-particle-3d .vtk-canvas-holder');
-                var fitThreshold = 0.01;
-                var cntAspectRatio = 1.0;
-                isAdjustingSize = vtkPlotting.adjustContainerSize(cnt, rect, cntAspectRatio, fitThreshold);
-                if(isAdjustingSize) {
-                    //$scope.$apply(fsRenderer.resize);
-                    fsRenderer.resize();
-                }
-            }
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             $scope.requestData = function() {
                 if (! $scope.hasFrames()) {
@@ -3633,12 +3577,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
                     background: [1, 1, 1, 1],
                     container: rw,
+                    listenWindowResize: false,
                 });
-                document.addEventListener(utilities.fullscreenListenerEvent(), fsRenderer.resize);
                 renderer = fsRenderer.getRenderer();
                 renderer.getLights()[0].setLightTypeToSceneLight();
                 renderWindow = fsRenderer.getRenderWindow();
-                fsRenderer.setResizeCallback(adjustSize);
                 interactor = renderWindow.getInteractor();
                 mainView = renderWindow.getViews()[0];
 
@@ -3653,13 +3596,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var isDragging = false;
                 var isPointerUp = true;
-
-                // Safari does not support pointer* methods so pass through to mouse*
-                rw.onmousedown = function(evt) {
+                rw.onpointerdown = function(evt) {
                     isDragging = false;
                     isPointerUp = false;
                 };
-                rw.onmousemove = function(evt) {
+                rw.onpointermove = function(evt) {
                     if(isPointerUp) {
                         return;
                     }
@@ -3668,7 +3609,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     $scope.side = null;
                     utilities.debounce(refresh, 100)();
                 };
-                rw.onmouseup = function(evt) {
+                rw.onpointerup = function(evt) {
                     if(! isDragging) {
                         // use picker to display info on objects
                     }
@@ -3676,11 +3617,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     isPointerUp = true;
                     refresh(true);
                 };
-
-                rw.onpointerdown = rw.onmousedown;
-                rw.onpointermove = rw.onmousemove;
-                rw.onpointerup = rw.onmouseup;
-
                 rw.onwheel = function (evt) {
                     var camPos = cam.getPosition();
 
@@ -3695,6 +3631,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         },
                         100)();
                 };
+
+                //warpVTKService.initScene(coordMapper, renderer);
 
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
@@ -3843,6 +3781,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     ]
                 );
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
+
+                //warpVTKService.updateScene(coordMapper, axisInfo);
 
                 coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
@@ -4435,16 +4375,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('getting x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
                 var dim = 'x';
-                var ep = geometry.propertiesOfEdges(boundEdges[dim], [lwc, hgc], screenRect, dim, false);
+                var seg = geometry.bestLineSegment(boundEdges[dim], [lwc, hgc], screenRect, dim, false);
                 srdbg('x edges', edgeProps);
-                srdbg('x ep', ep);
+                //srdbg('x ep', ep, 'seg', ep.seg.str());
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
+                isXReversed = vpLeftRight[0][0] > vpLeftRight[1][0];
                 if (edges) {
-                    isXReversed = edges[0][0] > edges[1][0];
+                    //isXReversed = edges[0][0] > edges[1][0];
                     sceneXEnds = edgeProps.sceneEnds;
                     sceneXLen = edgeProps.sceneLen;
                     clippedXEnds = edgeProps.clippedEnds;
+                    // left end of the x axis is the rightmost left end from the scene vs clipped ends
                     xAxisLeft = Math.max(sceneXEnds[0][0], clippedXEnds[0][0]);
                     xAxisTop = xAxisLeft == sceneXEnds[0][0] ? sceneXEnds[0][1] : clippedXEnds[0][1];
                     xAxisRight = Math.min(sceneXEnds[1][0], clippedXEnds[1][0]);
@@ -4455,7 +4397,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 else {
                     showXAxisEnds = true;
-                    isXReversed = vpLeftRight[0][0] > vpLeftRight[1][0];
+                    //isXReversed = vpLeftRight[0][0] > vpLeftRight[1][0];
                     sceneXEnds = plotUtilities.sortInDimension(vpLeftRight, 0);
                     screenXEnds = plotUtilities.boundsIntersections(vtkCanvasHolderBounds, sceneXEnds[0], sceneXEnds[1]);
                     clippedXEnds = plotUtilities.sortInDimension(
@@ -4478,10 +4420,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
                     xAxisAngle = 180 * Math.atan(tanPsi) / Math.PI;
                 }
+                if(seg) {
+                    // do nothing?  line segment has all information
+                    srdbg('x seg', seg.str());
+                }
+                else {
+                    // get a new line segment
+                    srdbg('try new x seg');
+                }
+
                 var xAxisLineSeg = geometry.lineSegment(
                     geometry.point(xAxisLeft, xAxisTop),
                     geometry.point(xAxisRight, xAxisBottom)
                 );
+                srdbg('axis seg', xAxisLineSeg.str());
 
                 var xrange = Math.min(xAxisProjLen, sceneXLen);
 
@@ -4599,8 +4551,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 edges = edgeProps.edges;
                 var tanPhi = 0;
                 var phi = 0;
+                isYReversed = vpBottomTop[0][1] < vpBottomTop[1][1];
                 if (edges) {
-                    isYReversed = edges[0][1] < edges[1][1];
+                    //isYReversed = edges[0][1] < edges[1][1];
                     sceneYEnds = edgeProps.sceneEnds;
                     //screenYEnds = edgeProps.screenEnds;
                     sceneYLen = edgeProps.sceneLen;
@@ -4621,7 +4574,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 else {
                     showYAxisEnds = true;
-                    isYReversed = vpBottomTop[0][1] < vpBottomTop[1][1];
+                    //isYReversed = vpBottomTop[0][1] < vpBottomTop[1][1];
                     sceneYEnds = plotUtilities.sortInDimension(vpBottomTop, 1);
                     screenYEnds = plotUtilities.boundsIntersections(vtkCanvasHolderBounds, sceneYEnds[0], sceneYEnds[1]);
                     clippedYEnds = plotUtilities.sortInDimension(
@@ -5192,18 +5145,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             $scope.destroy = function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fsRenderer.resize);
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 rw.removeEventListener('dblclick', reset);
                 $($element).off();
                 fsRenderer.getInteractor().unbindEvents();
-                window.removeEventListener('resize', fsRenderer.resize);
                 fsRenderer.delete();
                 plotToPNG.removeCanvas($scope.reportId);
             };
 
             $scope.resize = function() {
-                //srdbg('resize');
                 refresh(false);
             };
 
