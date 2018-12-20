@@ -266,7 +266,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
                 })
                 break
         else:
-            raise AssertionError(util.err(simulation_name, 'simulation not found with type {}', simulation_type))
+            util.raise_not_found('{}: simulation not found by name: {}', simulation_type, simulation_name)
     return javascript_redirect(
         uri_router.format_uri(
             simulation_type,
@@ -369,7 +369,6 @@ def api_importFile(simulation_type=None):
 @api_perm.allow_visitor
 def api_homePage():
     return _render_root_page('landing-page', pkcollections.Dict())
-light_landing_page = api_homePage
 
 
 @api_perm.require_user
@@ -447,7 +446,8 @@ def api_runCancel():
         # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
         # the last frame file may not be finished, remove it
         t = sirepo.template.import_module(data)
-        t.remove_last_frame(run_dir)
+        if hasattr(t, 'remove_last_frame'):
+            t.remove_last_frame(run_dir)
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 
@@ -586,10 +586,8 @@ def api_simulationSchema():
 
 
 @api_perm.allow_visitor
-def api_srLandingPage():
-    return flask.redirect('/light')
-sr_landing_page = api_srLandingPage
-
+def api_srwLight():
+    return _render_root_page('light', pkcollections.Dict())
 
 @api_perm.allow_visitor
 def api_srUnit():

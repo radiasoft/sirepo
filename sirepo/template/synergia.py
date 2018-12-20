@@ -13,7 +13,6 @@ from sirepo.template import template_common, elegant_common, elegant_lattice_imp
 import glob
 import h5py
 import math
-import numpy as np
 import py.path
 import re
 import werkzeug
@@ -132,14 +131,7 @@ def get_application_data(data):
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
     if data['method'] == 'compute_particle_ranges':
-        run_dir = simulation_db.simulation_run_dir({
-            'simulationType': SIM_TYPE,
-            'simulationId': data['simulationId'],
-            'report': 'animation',
-        })
-        return {
-            'fieldRange': _compute_range_across_files(run_dir),
-        }
+        return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
 
 
@@ -304,18 +296,14 @@ def save_report_data(data, run_dir):
         with h5py.File(str(run_dir.join(bunch_file)), 'r') as f:
             x = f['particles'][:, getattr(synergia.bunch.Bunch, report['x'])]
             y = f['particles'][:, getattr(synergia.bunch.Bunch, report['y'])]
-        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']))
-        res = {
+        res = template_common.heatmap([x, y], report, {
             'title': '',
-            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
             'x_label': label(report['x'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
             'y_label': label(report['y'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
-            'z_matrix': hist.T.tolist(),
             'summaryData': {
                 'bunchTwiss': twiss0,
             },
-        }
+        })
     else:
         report_name = data['report']
         x = None
@@ -460,12 +448,7 @@ def _calc_particle_info(bunch):
     bunch['charge'] = charge
 
 
-def _compute_range_across_files(run_dir):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    if 'bunchAnimation' not in data.models:
-        return None
-    if 'fieldRange' in data.models.bunchAnimation:
-        return data.models.bunchAnimation.fieldRange
+def _compute_range_across_files(run_dir, data):
     res = {}
     for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
         res[v[0]] = []
@@ -478,8 +461,6 @@ def _compute_range_across_files(run_dir):
                     res[field][1] = max(max(values), res[field][1])
                 else:
                     res[field] = [min(values), max(values)]
-    data.models.bunchAnimation.fieldRange = res
-    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     return res
 
 
@@ -498,24 +479,16 @@ def _extract_bunch_plot(report, frame_index, run_dir):
             return {
                 'error': 'Report not generated',
             }
-        bunch_animation = data.models.bunchAnimation
-        range = None
-        if report['plotRangeType'] == 'fixed':
-            range = [_plot_range(report, 'horizontal'), _plot_range(report, 'vertical')]
-        elif report['plotRangeType'] == 'fit' and 'fieldRange' in bunch_animation:
-            range = [bunch_animation.fieldRange[report['x']], bunch_animation.fieldRange[report['y']]]
-        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
         tlen = f['tlen'][()]
         s_n = f['s_n'][()]
         rep = 0 if s_n == 0 else int(round(tlen / s_n))
-        return {
-            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        model = data.models.bunchAnimation
+        model.update(report)
+        return template_common.heatmap([x, y], model, {
             'x_label': label(report['x']),
             'y_label': label(report['y']),
             'title': '{}-{} at {:.1f}m, turn {}'.format(report['x'], report['y'], tlen, rep),
-            'z_matrix': hist.T.tolist(),
-        }
+        })
 
 
 def _extract_evolution_plot(report, run_dir):
@@ -964,12 +937,6 @@ def _plot_field(field):
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, 'unknown field: {}'.format(field)
-
-
-def _plot_range(report, axis):
-    half_size = float(report['{}Size'.format(axis)]) / 2.0
-    midpoint = float(report['{}Offset'.format(axis)])
-    return [midpoint - half_size, midpoint + half_size]
 
 
 def _plot_values(h5file, field):

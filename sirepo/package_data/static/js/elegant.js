@@ -529,8 +529,10 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, requestSender, $rootScope, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, plotRangeService, $rootScope, $scope) {
     var self = this;
+    var plotRangeWatchers = [];
+    var fieldRanges = {};
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -592,7 +594,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var outputFile = {
                 info: info,
                 reportType: info.isHistogram ? 'heatmap' : 'parameterWithLattice',
-                modelName: 'elementAnimation',
+                viewName: (info.isHistogram ? 'heatmap' : 'plot') + 'FrameAnimation',
                 filename: info.filename,
                 modelAccess: {
                     modelKey: info.modelKey,
@@ -612,15 +614,21 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             animationArgs[modelKey] = [
-                SIREPO.ANIMATION_ARGS_VERSION + '4',
+                SIREPO.ANIMATION_ARGS_VERSION + '5',
                 'x',
                 'y1',
                 'y2',
                 'y3',
                 'histogramBins',
                 'xFileId',
+                'plotRangeType',
+                'horizontalSize',
+                'horizontalOffset',
+                'verticalSize',
+                'verticalOffset',
                 'startTime',
             ];
+            fieldRanges[modelKey] = info.fieldRange;
             var m = null;
             if (appState.models[modelKey]) {
                 m = appState.models[modelKey];
@@ -630,6 +638,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m.y1File = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
+                }
+                if (! m.plotRangeType) {
+                    m.plotRangeType = 'none';
                 }
             }
             else {
@@ -671,6 +682,21 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         frameCache.setAnimationArgs(animationArgs);
     }
 
+    function processPlotRange(name, modelKey) {
+        self.fieldRange = fieldRanges[modelKey];
+        plotRangeService.processPlotRange(self, name, modelKey);
+    }
+
+    function registerPlotRangeWatcher(name, modelKey) {
+        if (plotRangeWatchers.indexOf(modelKey) >= 0) {
+            return;
+        }
+        plotRangeWatchers.push(modelKey);
+        appState.watchModelFields($scope, [modelKey + '.plotRangeType'], function() {
+            processPlotRange(name, modelKey);
+        });
+    }
+
     function yFileUpdate(modelKey) {
         var m = appState.models[modelKey];
         if (! m.y1 && m.y) {
@@ -699,19 +725,15 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     }
 
     self.handleModalShown = function(name, modelKey) {
-        self.outputFiles.forEach(function(info) {
-            if (info.modelAccess.modelKey == modelKey) {
-                ['histogramBins', 'colorMap'].forEach(function(f) {
-                    panelState.showField(name, f, info.reportType == 'heatmap');
-                });
-                panelState.showField(name, 'framesPerSecond', frameCache.getFrameCount(modelKey) > 1);
-                ['y2', 'y2File', 'y3', 'y3File'].forEach(function(f) {
-                    panelState.showField(name, f, info.reportType.indexOf('parameter') >= 0);
-                });
-                panelState.showField(
-                    name, 'includeLattice',
-                    info.reportType.indexOf('parameter') >= 0
-                        && appState.models[modelKey].valueList.x.indexOf('s') >= 0);
+        self.outputFiles.forEach(function(outputFile) {
+            if (outputFile.modelAccess.modelKey == modelKey) {
+                if (outputFile.reportType == 'parameterWithLattice') {
+                    panelState.showField(
+                        name, 'includeLattice',
+                        appState.models[modelKey].valueList.x.indexOf('s') >= 0);
+                }
+                registerPlotRangeWatcher(name, modelKey);
+                processPlotRange(name, modelKey);
             }
         });
     };
@@ -1099,11 +1121,12 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
 SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
     return {
         scope: {
+            viewName: '@',
             modelKey: '@',
             controller: '=parentController',
         },
         template: [
-            '<div data-modal-editor="" view-name="elementAnimation" data-model-data="modelAccess" data-parent-controller="controller"></div>',
+            '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess" data-parent-controller="controller"></div>',
         ].join(''),
         controller: function($scope) {
             $scope.modelAccess = {
@@ -1867,9 +1890,9 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
               '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
                 '<form name="form" class="form-horizontal" autocomplete="off">',
                   '<div data-ng-repeat="item in parameterRows">',
-                    '<div class="elegant-parameter-table-row form-group form-group-sm">',
+                    '<div class="sr-parameter-table-row form-group">',
                       '<div class="control-label col-sm-5" data-label-with-tooltip="" data-label="{{ item.name }}" data-tooltip="{{ item.description }}"></div>',
-                      '<div class="col-sm-5 elegant-parameter-table-value">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>',
+                      '<div class="col-sm-5 form-control-static">{{ item.value }}<span ng-bind-html="item.units"></span></span></div>',
                     '</div>',
                   '</div>',
                 '</form>',

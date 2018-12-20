@@ -11,7 +11,9 @@
       </div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="3d" data-model-name="beamAnimation"></div>
+      <div data-report-panel="3d" data-model-name="beamAnimation">
+        <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
+      </div>
     </div>
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
       <div data-report-panel="parameter" data-model-name="parameterAnimation"></div>
@@ -24,3 +26,6 @@
     </div>
   </div>
 </div>
+
+<!-- modal dialogs -->
+<div data-modal-editor="" view-name="beamAnimation" data-parent-controller="visualization"></div>

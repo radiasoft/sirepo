@@ -14,12 +14,6 @@ import os.path
 import re
 import sirepo.template.jspec as template
 
-_PLOT_LINE_COLOR = {
-    'y1': '#1f77b4',
-    'y2': '#ff7f0e',
-    'y3': '#2ca02c',
-}
-
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
@@ -91,16 +85,9 @@ def _extract_twiss_report(data):
     for f in ('y1', 'y2', 'y3'):
         if report[f] == 'none':
             continue
-        y = _float_list(values[report[f]])
-        if y_range:
-            y_range[0] = min(y_range[0], min(y))
-            y_range[1] = max(y_range[1], max(y))
-        else:
-            y_range = [min(y), max(y)]
         plots.append({
-            'points': y,
+            'points': _float_list(values[report[f]]),
             'label': '{} [{}]'.format(report[f], _FIELD_UNITS[report[f]]) if report[f] in _FIELD_UNITS else report[f],
-            'color': _PLOT_LINE_COLOR[f],
         })
     return {
         'title': '',
@@ -109,7 +96,7 @@ def _extract_twiss_report(data):
         'x_label': '{} [{}]'.format(report['x'], 'm'),
         'x_points': x,
         'plots': plots,
-        'y_range': y_range,
+        'y_range': template_common.compute_plot_color_and_range(plots),
     }
 
 

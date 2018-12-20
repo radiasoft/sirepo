@@ -385,6 +385,10 @@
       fill: none;
       stroke-width: 2px;
     }
+    .sr-plot path.line-amr-grid {
+      stroke: white;
+      opacity: 0.65;
+    }
     .sr-plot circle.line-absorbed {
       fill: steelblue;
       stroke: steelblue;
@@ -908,6 +912,11 @@ li.sr-model-list-item > a {
     margin-top: calc(23px + 0.75em);
 }
 
+.sr-parameter-table-row {
+  margin-bottom: 0;
+  padding: 0;
+}
+
 .sr-drop-left {
   background-color: #d9edf7;
   width: 0;
@@ -995,4 +1004,10 @@ li.sr-model-list-item > a {
 .split.split-horizontal, .gutter.gutter-horizontal {
   height: 100%;
   float: left;
+}
+
+/* katex */
+.katex {
+  font-size: 1em;
+  white-space: nowrap;
 }

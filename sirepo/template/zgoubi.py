@@ -30,6 +30,8 @@ _ZGOUBI_DATA_FILE = 'zgoubi.fai'
 
 _ZGOUBI_LOG_FILE = 'zgoubi.res'
 
+_ZGOUBI_TWISS_FILE = 'zgoubi.TWISS.out'
+
 _INITIAL_PHASE_MAP = {
     'D1': 'Do1',
     'time': 'to',
@@ -59,10 +61,42 @@ _PYZGOUBI_FIELD_MAP = {
     'plt': 'label2',
 }
 
-_REPORT_INFO = {
-    'twissReport': ['zgoubi.TWISS.out', 'TwissParameter', 'sums'],
-    'twissReport2': ['zgoubi.TWISS.out', 'TwissParameter', 'sums'],
-    'opticsReport': ['zgoubi.OPTICS.out', 'OpticsParameter', 'cumulsm'],
+_REPORT_ENUM_INFO = {
+    'twissReport': 'TwissParameter',
+    'twissReport2': 'TwissParameter',
+    'opticsReport': 'OpticsParameter',
+}
+
+_TWISS_SUMMARY_LABELS = {
+    'LENGTH': 'Beamline length [m]',
+    'ORBIT5': 'Orbit5 [m]',
+    'ALFA': 'Momentum compaction factor',
+    'GAMMATR': 'Transition energy gamma',
+    'DELTAP': 'Energy difference',
+    'ENERGY': 'Particle energy [GeV]',
+    'GAMMA': 'Particle gamma',
+
+    'Q1': 'Horizontal tune (fractional)',
+    'DQ1': 'Horizontal chromaticity',
+    'BETXMIN': 'Horizontal minimum beta [m]',
+    'BETXMAX': 'Horizontal maximum beta [m]',
+    'DXMIN': 'Horizontal minimum dispersion [m]',
+    'DXMAX': 'Horizontal maximum dispersion [m]',
+    'DXRMS': 'Horizontal RMS dispersion [m]',
+    'XCOMIN': 'Horizontal closed orbit minimum deviation [m]',
+    'XCOMAX': 'Horizontal closed orbit maximum deviation [m]',
+    'XCORMS': 'Horizontal closed orbit RMS deviation [m]',
+
+    'Q2': 'Vertical tune (fractional)',
+    'DQ2': 'Vertical chromaticity',
+    'BETYMIN': 'Vertical minimum beta [m]',
+    'BETYMAX': 'Vertical maximum beta [m]',
+    'DYMIN': 'Vertical minimum dispersion [m]',
+    'DYMAX': 'Vertical maximum dispersion [m]',
+    'DYRMS': 'Vertical RMS dispersion [m]',
+    'YCOMIN': 'Vertical closed orbit minimum deviation [m]',
+    'YCOMAX': 'Vertical closed orbit maximum deviation [m]',
+    'YCORMS': 'Vertical closed orbit RMS deviation [m]',
 }
 
 
@@ -96,8 +130,7 @@ def column_data(col, col_names, rows):
 
 
 def extract_first_twiss_row(run_dir):
-    filename = _REPORT_INFO['twissReport'][0]
-    col_names, rows = read_data_file(py.path.local(run_dir).join(filename))
+    col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
     return col_names, rows[0]
 
 
@@ -111,6 +144,7 @@ def fixup_old_data(data):
             'opticsReport',
             'twissReport',
             'twissReport2',
+            'twissSummaryReport',
     ]:
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
@@ -119,6 +153,11 @@ def fixup_old_data(data):
 
 def get_animation_name(data):
     return 'animation'
+
+
+def get_application_data(data):
+    if data['method'] == 'compute_particle_ranges':
+        return template_common.compute_field_range(data, _compute_range_across_frames)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -145,7 +184,7 @@ def models_related_to_report(data):
     ]
     if r == 'twissReport':
         res.append('simulation.activeBeamlineId')
-    if r == 'twissReport2' or 'opticsReport' in r:
+    if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
         res.append('simulation.visualizationBeamlineId')
     return res
 
@@ -178,6 +217,8 @@ def read_data_file(path):
             if not re.search(r'^\@', line):
                 mode = 'header'
             continue
+        # work-around odd header/value "! optimp.f"
+        line = re.sub(r'\!\s', '', line)
         if mode == 'header':
             # header row starts with '# <letter>'
             if re.search(r'^#\s+[a-zA-Z]', line):
@@ -200,10 +241,10 @@ def remove_last_frame(run_dir):
 def save_report_data(data, run_dir):
     report_name = data['report']
     if 'twissReport' in report_name or 'opticsReport' in report_name:
-        filename, enum_name, x_field = _REPORT_INFO[report_name]
+        enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
         plots = []
-        col_names, rows = read_data_file(py.path.local(run_dir).join(filename))
+        col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
@@ -211,7 +252,8 @@ def save_report_data(data, run_dir):
                 'points': column_data(report[f], col_names, rows),
                 'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
             })
-        x = column_data(x_field, col_names, rows)
+        #TODO(pjm): use template_common
+        x = column_data('sums', col_names, rows)
         res = {
             'title': '',
             'x_range': [min(x), max(x)],
@@ -220,6 +262,13 @@ def save_report_data(data, run_dir):
             'x_points': x,
             'plots': plots,
             'y_range': template_common.compute_plot_color_and_range(plots),
+            'summaryData': _read_twiss_header(run_dir),
+        }
+    elif report_name == 'twissSummaryReport':
+        res = {
+            #TODO(pjm): x_range requied by sirepo-plotting.js
+            'x_range': [],
+            'summaryData': _read_twiss_header(run_dir),
         }
     elif 'bunchReport' in report_name:
         report = data['models'][report_name]
@@ -241,6 +290,8 @@ def save_report_data(data, run_dir):
 def simulation_dir_name(report_name):
     if 'bunchReport' in report_name:
         return 'bunchReport'
+    if 'opticsReport' in report_name or report_name == 'twissSummaryReport':
+        return 'twissReport2'
     return report_name
 
 
@@ -251,19 +302,41 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     )
 
 
+def _compute_range_across_frames(run_dir, data):
+    res = {}
+    for v in _SCHEMA.enum.PhaseSpaceCoordinate:
+        res[v[0]] = []
+    col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
+    ipass_index = int(col_names.index('IPASS'))
+    for field in res:
+        values = column_data(field, col_names, rows)
+        values += column_data(_initial_phase_field(field), col_names, rows)
+        if len(res[field]):
+            res[field][0] = min(min(values), res[field][0])
+            res[field][1] = max(max(values), res[field][1])
+        else:
+            res[field] = [min(values), max(values)]
+    for field in res.keys():
+        factor = _PHASE_SPACE_FIELD_INFO[field][1]
+        res[field][0] *= factor
+        res[field][1] *= factor
+        res[_initial_phase_field(field)] = res[field]
+    return res
+
+
 def _element_value(el, field):
     converter = _MODEL_UNITS.get(el['type'], {}).get(field, None)
     return converter(el[field]) if converter else el[field]
 
 
 def _extract_bunch_animation(run_dir, data, model_data):
-    # KEX, Do-1, Yo, To, Zo, Po, So, to, D-1, Y, T, Z, P, S, time, SXo, SYo, SZo, modSo, SX, SY, SZ, modS, ENEKI, ENERG, IT, IREP, SORT, M, Q, G, tau, unused, RET, DPR, PS, BORO, IPASS, NOEL, KLEY, LABEL1, LABEL2, LET
-    # int, float, cm, mrd, cm, mrd, cm, mu_s, float, cm, mrd, cm, mrd, cm, mu_s, float,float,float, float, float,float,float,float,     MeV,   MeV, int,  int,   cm, MeV/c2, C, float, float,  float, float, float, float, kG.cm,   int,  int, string,  string, string, string
-    #TODO(pjm): extract units from datafile
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
         data,
-        {'': ['x', 'y', 'histogramBins', 'startTime']},
+        {
+            '1': ['x', 'y', 'histogramBins', 'startTime'],
+            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+        },
     )
     is_frame_0 = False
     # remap frame 0 to use initial "o" values from frame 1
@@ -271,7 +344,7 @@ def _extract_bunch_animation(run_dir, data, model_data):
         is_frame_0 = True
         for f in ('x', 'y'):
             v = report[f]
-            report[f] = _INITIAL_PHASE_MAP.get(v, '{}o'.format(v))
+            report[f] = _initial_phase_field(v)
         frame_index = 1
     col_names, all_rows = read_data_file(run_dir.join(_ZGOUBI_DATA_FILE))
     rows = []
@@ -279,7 +352,9 @@ def _extract_bunch_animation(run_dir, data, model_data):
     for row in all_rows:
         if int(row[ipass_index]) == frame_index:
             rows.append(row)
-    return _extract_bunch_data(report, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(frame_index))
+    model = model_data.models.bunchAnimation
+    model.update(report)
+    return _extract_bunch_data(model, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(frame_index))
 
 
 def _extract_bunch_data(report, col_names, rows, title):
@@ -287,16 +362,12 @@ def _extract_bunch_data(report, col_names, rows, title):
     y_info = _PHASE_SPACE_FIELD_INFO[report['y']]
     x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
     y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report.histogramBins))
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+    return template_common.heatmap([x, y], report, {
         'x_label': x_info[0],
         'y_label': y_info[0],
         'title': title,
-        'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
-    }
+    });
 
 
 def _generate_beamline(data, beamline_map, element_map, beamline_id):
@@ -356,10 +427,10 @@ def _generate_parameters_file(data):
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
-    if 'twissReport' in report:
+    if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-    if 'opticsReport' in report:
-        return res + template_common.render_jinja(SIM_TYPE, v, 'optics.py')
+    # if 'opticsReport' in report:
+    #     return res + template_common.render_jinja(SIM_TYPE, v, 'optics.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
@@ -459,6 +530,10 @@ def _init_model_units():
     }
 
 
+def _initial_phase_field(field):
+    return _INITIAL_PHASE_MAP.get(field, '{}o'.format(field))
+
+
 def _parse_zgoubi_log(run_dir):
     path = run_dir.join(_ZGOUBI_LOG_FILE)
     if not path.exists():
@@ -481,6 +556,22 @@ def _parse_zgoubi_log(run_dir):
             num = match.group(1)
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
+    return res
+
+
+def _read_twiss_header(run_dir):
+    path = py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE)
+    res = []
+    for line in pkio.read_text(path).split('\n'):
+        for var in line.split('@ '):
+            values = var.split()
+            if len(values) and values[0] in _TWISS_SUMMARY_LABELS:
+                v = values[2]
+                if re.search(r'[a-z]{2}', v, re.IGNORECASE):
+                    pass
+                else:
+                    v = float(v)
+                res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
     return res
 
 

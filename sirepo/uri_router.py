@@ -149,7 +149,8 @@ def _dispatch(path):
     try:
         if path is None:
             return _dispatch_call(_empty_route.func, {})
-        parts = path.split('/')
+        # werkzeug doesn't convert '+' to ' '
+        parts = re.sub(r'\+', ' ', path).split('/')
         try:
             route = _uri_to_route[parts[0]]
             parts.pop(0)
@@ -204,7 +205,7 @@ def _init_uris(app, simulation_db):
         r.decl_uri = v
         r.name = k
         assert not r.base_uri in _uri_to_route, \
-            '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
+            '{}: duplicate end point; other={}'.format(v, _uri_to_route[r.base_uri])
         _uri_to_route[r.base_uri] = r
         _api_to_route[k] = r
         if r.base_uri == '':
@@ -213,8 +214,7 @@ def _init_uris(app, simulation_db):
             srunit_uri = v
     assert _default_route, \
         'missing default route'
-    # 'light' is the homePage, not 'root'
-    _empty_route = _uri_to_route.light
+    _empty_route = _uri_to_route.about
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
@@ -241,7 +241,7 @@ def _split_uri(uri):
         m = _PARAM_RE.search(p)
         if not m:
             assert first is None, \
-                '{}: too many non-paramter components of uri'.format(uri)
+                '{}: too many non-parameter components of uri'.format(uri)
             first = p
             continue
         rp = pkcollections.Dict()

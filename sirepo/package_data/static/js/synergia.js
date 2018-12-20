@@ -122,23 +122,19 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
     var self = this;
-    var fieldRange;
     var turnCount = 0;
     self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
-    self.isComputingRanges = false;
 
     function handleStatus(data) {
         frameCache.setFrameCount(0, 'turnComparisonAnimation');
         turnCount = 0;
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
-            if (self.simState.isStateRunning()) {
-                appState.models.bunchAnimation.isRunning = 1;
-            }
+            plotRangeService.computeFieldRanges(self, 'bunchAnimation', data.percentComplete);
             turnCount = data.turnCount;
             ['beamEvolutionAnimation', 'bunchAnimation', 'turnComparisonAnimation'].forEach(function(m) {
                 appState.models[m].startTime = data.startTime;
@@ -151,51 +147,16 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                     frameCache.setFrameCount(data[key], m);
                 }
             });
-            if (data.percentComplete == 100 && ! self.isComputingRanges) {
+            if (data.percentComplete == 100) {
                 frameCache.setFrameCount(1, 'turnComparisonAnimation');
-                fieldRange = null;
-                self.isComputingRanges = true;
-                requestSender.getApplicationData(
-                    {
-                        method: 'compute_particle_ranges',
-                        simulationId: appState.models.simulation.simulationId,
-                    },
-                    function(data) {
-                        self.isComputingRanges = false;
-                        if (appState.isLoaded() && data.fieldRange) {
-                            appState.models.bunchAnimation.isRunning = 0;
-                            appState.saveQuietly('bunchAnimation');
-                            fieldRange = data.fieldRange;
-                        }
-                    });
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    function processPlotRange() {
-        var bunchAnimation = appState.models.bunchAnimation;
-        panelState.showEnum('bunchAnimation', 'plotRangeType', 'fit', fieldRange);
-        panelState.showRow('bunchAnimation', 'horizontalSize', bunchAnimation.plotRangeType != 'none');
-        ['horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset'].forEach(function(f) {
-            panelState.enableField('bunchAnimation', f, bunchAnimation.plotRangeType == 'fixed');
-        });
-        if (bunchAnimation.plotRangeType == 'fit' && fieldRange) {
-            setFieldRange('horizontal', bunchAnimation, 'x');
-            setFieldRange('vertical', bunchAnimation, 'y');
-        }
-    }
-
-    function setFieldRange(prefix, bunchAnimation, field) {
-        var f = bunchAnimation[field];
-        var range = fieldRange[f];
-        bunchAnimation[prefix + 'Size'] = range[1] - range[0];
-        bunchAnimation[prefix + 'Offset'] = (range[0] + range[1]) / 2;
-    }
-
     self.handleModalShown = function(name) {
         if (name == 'bunchAnimation') {
-            processPlotRange();
+            plotRangeService.processPlotRange(self, name);
         }
     };
 
@@ -215,7 +176,9 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     appState.whenModelsLoaded($scope, function() {
-        appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], processPlotRange);
+        appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], function() {
+            plotRangeService.processPlotRange(self, 'bunchAnimation');
+        });
     });
 
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {

@@ -216,7 +216,7 @@
                 "W_E": 0,
                 "W_S": 0,
                 "XCE": 0,
-                "XPAS": "0.5",
+                "XPAS": "5e-3",
                 "X_E": 0,
                 "X_S": 0,
                 "YCE": 0,
@@ -550,17 +550,10 @@
                 "type": "MULTIPOL"
             }
         ],
-        "opticsAnimation": {
-            "includeLattice": "1",
-            "notes": "",
-            "y1": "xm",
-            "y2": "xprad",
-            "y3": "none"
-        },
         "opticsReport": {
             "includeLattice": "1",
             "notes": "",
-            "y1": "xm",
+            "y1": "x",
             "y2": "none",
             "y3": "none"
         },

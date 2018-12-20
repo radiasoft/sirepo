@@ -16,14 +16,21 @@
         "Gender": [
             ["male", "Male"],
             ["female", "Female"]
+        ],
+        "DogDisposition": [
+            ["aggressive", "Aggressive"],
+            ["friendly", "Friendly"],
+            ["submissive", "Submissive"]
         ]
     },
     "model": {
         "dog": {
             "breed": ["Breed", "String"],
-            "gender": ["Gender", "Gender"],
-            "height": ["Height [cm]", "Float", null, "Distance from front paws to withers"],
-            "weight": ["Weight [lbs]", "Float"]
+            "gender": ["Gender", "Gender", "male"],
+            "height": ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
+            "weight": ["Weight [lbs]", "Float", 60.5],
+            "disposition": ["Disposition", "DogDisposition", "friendly"],
+            "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
         },
         "heightWeightReport": {}
     },
@@ -33,7 +40,9 @@
             "basic": [
                 "breed",
                 "weight",
-                "height"
+                "height",
+                "disposition",
+                "favoriteTreat"
             ],
             "advanced": [
                 "breed",
@@ -45,18 +54,6 @@
         "heightWeightReport": {
             "title": "Physical Characteristics",
             "advanced": []
-        },
-        "simulation": {
-            "title": "Simulation",
-            "advanced": [
-                "name"
-            ]
-        },
-        "simulationFolder": {
-            "title": "New Folder",
-            "advanced": [
-                "name"
-            ]
         }
     }
 }

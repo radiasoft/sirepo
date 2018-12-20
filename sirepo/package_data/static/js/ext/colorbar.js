@@ -257,7 +257,7 @@ function Colorbar() {
                 tickFormat = fillLegendScale.tickFormat();
             }
             else {
-                tickFormat = d3.format('s');
+                tickFormat = d3.format('.3s');
                 colorAxisFunction.tickFormat(tickFormat);
             }
 
