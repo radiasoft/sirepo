@@ -732,6 +732,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                         name, 'includeLattice',
                         appState.models[modelKey].valueList.x.indexOf('s') >= 0);
                 }
+                panelState.showField(
+                    name, 'framesPerSecond',
+                    outputFile.info.pageCount > 1);
                 registerPlotRangeWatcher(name, modelKey);
                 processPlotRange(name, modelKey);
             }
