@@ -930,7 +930,7 @@ def _compute_crl_focus(model):
 
 
 def _compute_crystal_init(model):
-    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle']
+    parms_list = ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']
     try:
         material_raw = model['material']  # name contains either "(SRW)" or "(X0h)"
         material = material_raw.split()[0]  # short name for SRW (e.g., Si), long name for X0h (e.g., Silicon)
@@ -967,10 +967,14 @@ def _compute_crystal_init(model):
     return model
 
 
+def _compute_crystal_grazing_angle(model):
+    model['grazingAngle'] = math.acos(math.sqrt(1 - model['tvx'] ** 2 - model['tvy'] **2)) * 1e3
+
+
 def _compute_crystal_orientation(model):
     if not model['dSpacing']:
         return model
-    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']
+    parms_list = ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']
     try:
         opCr = srwlib.SRWLOptCryst(
             _d_sp=model['dSpacing'],
@@ -983,7 +987,7 @@ def _compute_crystal_orientation(model):
             _tc=model['crystalThickness'],
             _ang_as=model['asymmetryAngle'],
         )
-        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['grazingAngle']))[0]
+        orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['diffractionAngle']))[0]
         tCr = orientDataCr[0]  # Tangential Vector to Crystal surface
         nCr = orientDataCr[2]  # Normal Vector to Crystal surface
 
@@ -997,6 +1001,7 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
+        _compute_crystal_grazing_angle(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
@@ -1014,7 +1019,8 @@ def _compute_grazing_angle(model):
             item[field] = - item[field]
 
     grazing_angle = float(model['grazingAngle']) / 1000.0
-    preserve_sign(model, 'normalVectorZ', math.sin(grazing_angle))
+    # z is always negative
+    model['normalVectorZ'] = - abs(math.sin(grazing_angle))
     if model['autocomputeVectors'] == 'horizontal':
         preserve_sign(model, 'normalVectorX', math.cos(grazing_angle))
         preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle))
@@ -1200,9 +1206,10 @@ def _fixup_beamline(data):
                 item = _compute_crl_focus(item)
 
         if item['type'] == 'crystal':
-            if isinstance(item['grazingAngle'], (int, float)):
+            if 'diffractionAngle' not in item:
                 allowed_angles = [x[0] for x in _SCHEMA['enum']['DiffractionPlaneAngle']]
-                item['grazingAngle'] = _find_closest_angle(item['grazingAngle'], allowed_angles)
+                item['diffractionAngle'] = _find_closest_angle(item['grazingAngle'], allowed_angles)
+                _compute_crystal_grazing_angle(item)
 
         if item['type'] == 'sample':
             if 'horizontalCenterCoordinate' not in item:

@@ -384,7 +384,8 @@
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
-            "grazingAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
+            "diffractionAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
             "rotationAngle": ["Rotation angle [rad]", "Float", 0.0],
             "crystalThickness": ["Crystal thickness [m]", "Float", 0.01],
@@ -938,7 +939,7 @@
                 ]],
                 ["Geometry", [
                     "energy",
-                    "grazingAngle",
+                    "diffractionAngle",
                     "asymmetryAngle",
                     "rotationAngle",
                     "crystalThickness",
