@@ -402,41 +402,41 @@ SIREPO.app.service('geometry', function() {
         return m;
     };
 
-    // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
-    // Returns the properties of the first set of corners that fit - order them by desired location.
-    // Could be none fit, in which case no properties are defined
-    // maybe return a line segment instead
+    // returns a line segment matching the portion of an edge inside the given rectangle
+    // The edge is selected from those provided by picking the first one that
+    // contains the given corners
     // should corners beome a selection function for the edge?
     this.bestLineSegment = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
-        //var props = {};
         for(var corners in cornersArr) {
-            //srdbg('gm checknig corner', cornersArr[corners]);
             // first check whether any of the supplied edges contain the corners
             var edge = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
             if(! edge) {
-                continue;  // try next corners
-            }
-            //srdbg('using edge', edge);
-            // these are the coordinates of the ends of the selected edge
-            var sceneEnds = edge.points().filter(function (p) {
-                        return boundingRect.containsPoint(p);
-                    });
-            //sceneEnds = this.sortInDimension(boundingRect.boundaryIntersectionsWithSeg(edge), dim, reverse);
-            //srdbg('gm sorted pts', sceneEnds);
-            //var edgeLen = edge.length();  //sceneEnds[0].dist(sceneEnds[1]);
-            // screenEnds are the 4 points where the boundary rectangle intersects the
-            // *line* defined by the selected edge
-            var screenEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
-            srdbg('gm intx with bounds', screenEnds);
-
-            // if the bound edge does not intersect the boundary rectangle in 2 places, it
-            // means one or both ends are off screen; so, reject it
-            if(screenEnds.length == 0) {
                 continue;
             }
-            // projectedEnds are just the screenEnds, sorted
-            //var projectedEnds = this.sortInDimension(screenEnds, dim, reverse);
-            var allPoints = sceneEnds.concat(screenEnds)
+
+            // sceneEnds are the coordinates of the ends of the selected edge are inside or on the
+            // boundary rectangle
+            // FIX JSHINT err
+            var sceneEnds = edge.points().filter(function (p) {
+                return boundingRect.containsPoint(p);
+            });
+
+            // projectedEnds are the 4 points where the boundary rectangle intersects the
+            // *line* defined by the selected edge
+            var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+            //srdbg('gm intx with bounds', screenEnds);
+
+            // if the selected edge does not intersect the boundary, it
+            // means both ends are off screen; so, reject it
+            if(projectedEnds.length == 0) {
+                continue;
+            }
+
+            // now we have any edge endpoint that is in or on the boundary, plus
+            // the points projected to the boundary
+            // get all of those points that also lie on the edge
+            // FIX JSHINT err
+            var allPoints = sceneEnds.concat(projectedEnds)
                 .filter(function (p) {
                 return edge.containsPoint(p);
             });
@@ -445,52 +445,18 @@ SIREPO.app.service('geometry', function() {
                 function (p1, p2) {
                 return p1.equals(p2);
             });
-            //if(projectedEnds && projectedEnds.length == 2) {
-                // clippedLen is the length of the line segment defined by the clipped ends
-                //var clippedLen = projectedEnds[0].dist(projectedEnds[1]);
-                // if the clipped edge length is too small (here half the length of the actual edge),
-                // do not bind to this edge (not enough will be visible to be effective)
-                //if(clippedLen / edgeLen > 0.5) {
+            srdbg('uniques', uap);
+            // we are guaranteed to have 2 unique points now
+            // OR NOT ??
             var seg = this.lineSegmentFromArr(uap);
-                if(seg.length() / edge.length() > 0.5) {
-                    /*
-                    props.boundEdge = edge;
-                    props.sceneEnds = sceneEnds;
-                    props.screenEnds = screenEnds;
-                    props.sceneLen = edgeLen;
-                    props.projectedEnds = projectedEnds;
-                    */
-                    // if both ends of the edge are offscreen, use the clipped ends
-                    // if both are on screen, use the edge
-                    // if one is on, use the seg made by connecting the
-                    // clipped end that is on the visible edge (it must exist if we got here)
 
-                    /*
-                    switch (sceneEnds.length) {
-                        case 0:
-                            srdbg('no scene');
-                            props.seg = this.lineSegmentFromArr(projectedEnds);
-                            break;
-                        case 1:
-                            srdbg('1 scene');
-                            var p1 = sceneEnds[0];
-                            var p2 = edge.containsPoint(projectedEnds[0]) ? projectedEnds[0] : projectedEnds[1];
-                            srdbg('sorting seg');
-                            var arr = this.sortInDimension([p1, p2], dim, reverse);
-                            props.seg = this.lineSegmentFromArr(arr);
-                            break;
-                        default:
-                            srdbg('2 scene');
-                            props.seg = this.lineSegmentFromArr(sceneEnds);
-                     }
-                            */
-                    //props.seg = this.lineSegmentFromArr(uap);  // always 0 or 2?
-                    return seg;  // this.lineSegmentFromArr(uap);  // always 0 or 2?
-                    //return props;
-                }
-            //}
+            // if the line segment is too short (here half the length of the actual edge),
+            // do not use it
+            if(seg.length() / edge.length() > 0.5) {
+                return seg;
+            }
         }  // end loop over corners
-        return null;  //props;
+        return null;
     };
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
