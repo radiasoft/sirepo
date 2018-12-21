@@ -458,7 +458,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_DCM_C1_nvz', 'f', -0.247163387763, 'nvz'],
     ['op_DCM_C1_tvx', 'f', -0.247163387763, 'tvx'],
     ['op_DCM_C1_tvy', 'f', 6.62271741473e-09, 'tvy'],
-    ['op_DCM_C1_ang', 'f', 1.57079632, 'grazingAngle'],
+    ['op_DCM_C1_ang', 'f', 0.249751717635, 'grazingAngle'],
     ['op_DCM_C1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2: crystal
@@ -478,7 +478,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_DCM_C2_nvz', 'f', -0.247163387763, 'nvz'],
     ['op_DCM_C2_tvx', 'f', 0.247163387763, 'tvx'],
     ['op_DCM_C2_tvy', 'f', 0.0, 'tvy'],
-    ['op_DCM_C2_ang', 'f', -1.57079632, 'grazingAngle'],
+    ['op_DCM_C2_ang', 'f', 0.249751717635, 'grazingAngle'],
     ['op_DCM_C2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # DCM_C2_At_BPM1: drift
