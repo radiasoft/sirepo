@@ -4283,9 +4283,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //            });
                 //        });
                 });
-                srdbg('will bind x to', boundEdges.x.map(function (e) {
-                    return e.str();
-                }));
+                //srdbg('will bind x to', boundEdges.x.map(function (e) {
+                //    return e.str();
+                //}));
 
                 var vpYEdges = [
                     vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
@@ -4301,14 +4301,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var lwc = vpOutline.extr().y[1];
                 var hgc = vpOutline.extr().y[0];
-                srdbg('lwc', lwc, 'hgc', hgc);
-                var vpe = vpOutline.vpEdgesForDimension('x');
+                //srdbg('lwc', lwc, 'hgc', hgc);
                 //srdbg('vpe', vpe.map(function (ls) {
                 //    return ls.str();
                 //}));
-                //var lfc = plotUtilities.extrema(vpCorners, 0, false);
-                //var hgc = plotUtilities.extrema(vpCorners, 1, false);
-                //var rtc = plotUtilities.extrema(vpCorners, 0, true);
+                var lfc = vpOutline.extr().x[0];
+                var rtc = vpOutline.extr().x[1];
+                //srdbg('lfc', lfc, 'rtc', rtc);
 
                 // for the z (out-in) axis,
                 var bottomofleftmost = plotUtilities.extrema(leftmostCorners, 1, true);
@@ -4375,8 +4374,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('getting x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
                 var dim = 'x';
-                var seg = geometry.bestLineSegment(boundEdges[dim], [lwc, hgc], screenRect, dim, false);
-                srdbg('x edges', edgeProps);
+                var rev = false;
+                var es = [lwc, hgc].map(function (crn) {
+                    return geometry.firstEdgeWithCorners(boundEdges[dim], crn);
+                });
+                //srdbg('es', es);
+
+                var seg = geometry.bestLineSegment(boundEdges[dim], [lwc, hgc], screenRect, dim, rev);
+                //srdbg('x edges', edgeProps);
                 //srdbg('x ep', ep, 'seg', ep.seg.str());
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
@@ -4420,22 +4425,26 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     tanPsi = (sceneXEnds[0][1] - sceneXEnds[1][1]) / (sceneXEnds[0][0] - sceneXEnds[1][0]);
                     xAxisAngle = 180 * Math.atan(tanPsi) / Math.PI;
                 }
-                if(seg) {
-                    // do nothing?  line segment has all information
-                    srdbg('x seg', seg.str());
+                if(! seg) {
+                    // all desired edges are offscreen, so
+                    srdbg('offscreen');
                 }
                 else {
-                    // get a new line segment
-                    srdbg('try new x seg');
+                    //var xaa = 180 * Math.atan(seg.clipped.slope()) / Math.PI;
+                    //srdbg('x seg', seg.clipped.str(), 'seg angle', xaa);
+                    srdbg('x seg', seg.full.str(), seg.clipped.str());
                 }
+                // do nothing?  line segment has all information
 
                 var xAxisLineSeg = geometry.lineSegment(
                     geometry.point(xAxisLeft, xAxisTop),
                     geometry.point(xAxisRight, xAxisBottom)
                 );
-                srdbg('axis seg', xAxisLineSeg.str());
+                //srdbg('axis seg', xAxisLineSeg.str(), 'axis angle', xAxisAngle);
 
                 var xrange = Math.min(xAxisProjLen, sceneXLen);
+                var xr = Math.min(seg.full.length(), seg.clipped.length());
+                //srdbg('xrange', xrange, 'seg xr', xr);
 
                 // Change the domain if axis ends go offscreen
                 var newMin = zmin;
@@ -4464,6 +4473,29 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 axes.x.scale.domain([newMin, newMax]).nice();
                 axes.x.scale.range([isXReversed ? xrange : 0, isXReversed ? 0 : xrange]);
+
+                var domPct = seg.full.length() / seg.clipped.length();
+                var allPts = seg.full.points().concat(seg.clipped.points());
+                var aps = geometry.sortInDimension(allPts, dim, rev);
+                srdbg('all pts sorted', aps);
+
+                // 1st 2, last 2 points
+                // map z values to segment?  in axis code?
+                var zs = isXReversed ? [zmax, zmin] : [zmin, zmax];
+                for(var i = 0; i < aps.length; i += 2) {
+                    var p1 = aps[i];
+                    var p2 = aps[i+1];
+                    var d = p1.dist(p2);
+                    if(d != 0) {
+                        var j = Math.floor(i / 2);
+                        var z = zs[j];
+                        var otherz = zs[1 - j];
+                        var dp = d / seg.full.length();
+                        var part = (z - otherz) * dp;
+                        var newz = z - part;
+                        srdbg('recalc dom', i, p1, p2, d, dp, 'old', z, 'new', newz);
+                    }
+                }
 
                 // we use the axis for calculations but show no ticks if both ends are off-screen
                 if (showXAxisEnds) {

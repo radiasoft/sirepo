@@ -50,11 +50,15 @@ SIREPO.app.service('geometry', function() {
     // 2d only
     this.line = function(point1, point2) {
         return {
-            containsPoint: function (p) {
+            containsPoint: function (p, tolerance) {
+                // since we do math to see if the point satisfies the line's equation,
+                // we need to specify how close we can get to account for rounding errors
+                var t = tolerance || 0.0001;
                 if(this.slope() === Infinity) {
-                    return p.x === point1.x;
+                    return Math.abs(p.x - point1.x) <= t;
                 }
-                return p.y === this.slope() * p.x + this.intercept();
+                var y = this.slope() * p.x + this.intercept();
+                return Math.abs(p.y - y) <= t;
             },
             equals: function (l2) {
                 if(this.slope() === Infinity && l2.slope() === Infinity) {
@@ -127,7 +131,6 @@ SIREPO.app.service('geometry', function() {
                 return this.line().intercept();
             },
             intersection: function (ls2) {
-                //srdbg('intx l1', this.str(), 'l2', ls2.str());
                 var p = this.line().intersection(ls2.line());
                 return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
             },
@@ -136,6 +139,12 @@ SIREPO.app.service('geometry', function() {
             },
             line: function() {
                 return svc.line(point1, point2);
+            },
+            pointFilter: function() {
+                var ls = this;
+                return function (point) {
+                    return ls.containsPoint(point);
+                };
             },
             points: function () {
                 return [point1, point2];
@@ -183,7 +192,6 @@ SIREPO.app.service('geometry', function() {
                 );
             },
             containsLineSegment: function (l) {
-                //srdbg('contais', l);
                 return this.containsPoint(l.points()[0]) && this.containsPoint(l.points()[1]);
             },
             containsPoint: function (p) {
@@ -231,6 +239,12 @@ SIREPO.app.service('geometry', function() {
                     }
                 }
                 return false;
+            },
+            pointFilter: function() {
+                var r = this;
+                return function (point) {
+                    return r.containsPoint(point);
+                };
             },
             points: function () {
                 return [diagPoint1, diagPoint2];
@@ -405,21 +419,21 @@ SIREPO.app.service('geometry', function() {
     // returns a line segment matching the portion of an edge inside the given rectangle
     // The edge is selected from those provided by picking the first one that
     // contains the given corners
-    // should corners beome a selection function for the edge?
-    this.bestLineSegment = function (vpEdges, cornersArr, boundingRect, dim, reverse) {
+    // should corners beome a selection function for the edge?  could filter before calling also
+    // move to plotting vtk?  It's not basic enough for geometry
+    // may not need dimension or sort direction?
+    // we need both the clipped and unclipped segments
+    this.bestLineSegment = function (edges, cornersArr, boundingRect, dim, reverse) {
         for(var corners in cornersArr) {
             // first check whether any of the supplied edges contain the corners
-            var edge = this.firstEdgeWithCorners(vpEdges, cornersArr[corners]);
+            var edge = this.firstEdgeWithCorners(edges, cornersArr[corners]);
             if(! edge) {
                 continue;
             }
 
-            // sceneEnds are the coordinates of the ends of the selected edge are inside or on the
+            // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
             // boundary rectangle
-            // FIX JSHINT err
-            var sceneEnds = edge.points().filter(function (p) {
-                return boundingRect.containsPoint(p);
-            });
+            var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
 
             // projectedEnds are the 4 points where the boundary rectangle intersects the
             // *line* defined by the selected edge
@@ -435,25 +449,35 @@ SIREPO.app.service('geometry', function() {
             // now we have any edge endpoint that is in or on the boundary, plus
             // the points projected to the boundary
             // get all of those points that also lie on the edge
-            // FIX JSHINT err
-            var allPoints = sceneEnds.concat(projectedEnds)
-                .filter(function (p) {
-                return edge.containsPoint(p);
-            });
+
+            var ap = edgeEndsInBounds.concat(projectedEnds);
+            var allPoints = ap.filter(edge.pointFilter());
             var uap = unique(
+                allPoints
+                /*
                 this.sortInDimension(allPoints, dim, reverse),
                 function (p1, p2) {
                 return p1.equals(p2);
-            });
-            srdbg('uniques', uap);
+            }
+            */
+            );
+            //srdbg('uniques', uap);
             // we are guaranteed to have 2 unique points now
             // OR NOT ??
+            //if(uap.length < 2) {
+            //    srdbg('not enough uniques');
+            //    continue;
+            //}
             var seg = this.lineSegmentFromArr(uap);
 
             // if the line segment is too short (here half the length of the actual edge),
             // do not use it
             if(seg.length() / edge.length() > 0.5) {
-                return seg;
+                return {
+                    full: edge,
+                    clipped: seg
+                };
+                //return seg;
             }
         }  // end loop over corners
         return null;
@@ -472,9 +496,7 @@ SIREPO.app.service('geometry', function() {
     // contain any of the points in another array
     this.edgesWithCorners = function(lines, points) {
         return lines.filter(function (l) {
-            //srdbg('checking seg', l.str());
             return l.points().some(function (c) {
-                //srdbg('checking pt', c);
                 return points.some(function (p) {
                     return p.equals(c);
                 });
@@ -482,27 +504,26 @@ SIREPO.app.service('geometry', function() {
         });
     };
     this.firstEdgeWithCorners = function(lines, points) {
-        //srdbg('1st edgs', this.edgesWithCorners(lines, points)[0].str());
         return this.edgesWithCorners(lines, points)[0];
     };
 
     this.parrstr = function(arr) {
-        return arr.map(function (p) {
+        return '[' +
+            arr.map(function (p) {
             return p.str();
-        });
+        }) +
+            ']';
     };
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
-        //srdbg('sorting', this.parrstr(points), 'in dim', dim, 'reverse?', doReverse, 'p0', points[0][dim]);
         if(! points || ! points.length) {
             throw svc.parrstr(points) + ': Invalid points';
         }
         return points.slice(0).sort(function (p1, p2) {
             // throws an exception if the points have different dimensions
             p1.dist(p2);
-            //srdbg('p1[' + dim + ']:', p1[dim], 'p2[' + dim + ']:', p2[dim]);
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
     };
