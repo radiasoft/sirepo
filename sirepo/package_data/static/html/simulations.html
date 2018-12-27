@@ -99,22 +99,8 @@
   </form>
 </div>
 
-<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ simulations.selectedItemType() }}" data-ok-text="Create Copy" data-ok-clicked="simulations.copySelected()">
-  <form class="form-horizontal" autocomplete="off">
-    <div class="form-group">
-    <label class="col-sm-3 control-label">New Name</label>
-    <div class="col-sm-9">
-      <input data-safe-path="" class="form-control" data-ng-model="simulations.copyName" required/>
-      <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
-    </div>
-    </div>
-    <div class="form-group" data-ng-if="simulations.fileManager.getUserFolderPaths().length > 1">
-      <label class="col-sm-3 control-label">Folder</label>
-      <div class="col-sm-9">
-        <div data-user-folder-list="" data-model="simulations" data-field="'copyFolder'"></div>
-      </div>
-  </div>
-  </form>
+
+<div data-copy-confirmation="" data-sim-id="simulations.selectedItem.simulationId" data-copy-cfg="simulations.copyCfg" data-disabled="false">
 </div>
 
 <div data-confirmation-modal="" data-id="sr-move-confirmation" data-title="Move {{ simulations.selectedItemType() }}" data-ok-text="Move" data-ok-clicked="simulations.moveSelected()">
