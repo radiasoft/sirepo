@@ -293,6 +293,13 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 box.source.getZLength()
             ];
         }
+        function wl() {
+            return {
+                x: box.source.getXLength(),
+                y: box.source.getYLength(),
+                z: box.source.getZLength()
+            };
+        }
 
         function wCorners() {
             var ctr = wCenter();
@@ -353,19 +360,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
         box.edgs = function () {
             var c = box.crns();
-            //srdbg('edfes from', c);
             var e = {};
-           // for(var i in pairs ) {
             for(var dim in edgeCornerPairs ) {
                 var lines = [];
-                //for(var j in  pairs[i]) {
                 for(var j in  edgeCornerPairs[dim]) {
-                    //var p = pairs[i][j];
                     var p = edgeCornerPairs[dim][j];
-                    //var l = geometry.line(c[p[0]], c[p[1]]);
                     var l = geometry.lineSegment(c[p[0]], c[p[1]]);
-                    //e.push(l);
-                    //srdbg('edge', plotUtilities.parrstr(l.points()));
                     lines.push(l);
                 }
                 e[dim] = lines;
@@ -377,6 +377,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
         box.vpEdgesForDimension = function (dim) {
             return vpEgds()[dim];
+        };
+        box.vpCenterLineForDimension = function (dim) {
+            return vpcls()[dim];
         };
 
         function vpCorners() {
@@ -414,7 +417,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             var c = wCenter();
             var cls = [];
             var sides = [-0.5, 0.5];
-            var src = box.source;
             var l = wLength();
             for(var dim = 0; dim < 3; ++dim) {
                 for(var i in sides) {
@@ -428,17 +430,31 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 }
             }
             return cls;
-            /*
-            return [
-                [c[0] - 0.5 * box.source.getXLength(), c[1], c[2]],
-                [c[0] + 0.5 * box.source.getXLength(), c[1], c[2]],
-                [c[0], c[1] - 0.5 * box.source.getYLength(), c[2]],
-                [c[0], c[1] + 0.5 * box.source.getYLength(), c[2]],
-                [c[0], c[1], c[2] - 0.5 * box.source.getZLength()],
-                [c[0], c[1], c[2] + 0.5 * box.source.getZLength()]
-            ];
-            */
         }
+        function vpcls() {
+            var ctr = wc().coords();
+            var cls = {};
+            var lens = wl();
+            var m = [
+                [lens.x / 2, 0, 0],
+                [0, lens.y / 2, 0],
+                [0, 0, lens.z / 2]
+            ];
+            var tx = geometry.transform(m);
+            for(var dim in geometry.basisVectors) {
+                var txp = tx.doTransform(geometry.basisVectors[dim]);
+                var p1 = box.localCoordFromWorld(geometry.pointFromArr(
+                    geometry.vectorAdd(ctr, txp)
+                ));
+                var p2 = box.localCoordFromWorld(geometry.pointFromArr(
+                    geometry.vectorSubtract(ctr, txp)
+                ));
+                cls[dim] = geometry.lineSegment(p1, p2);
+            }
+            //srdbg('vp cls', cls.x.str(), cls.y.str(), cls.z.str());
+            return cls;
+        }
+
         function vpCenterLines() {
             return wCenterLines().map(function (p) {
                 return self.localCoordFromWorld(box.wCoord, p);

@@ -8,6 +8,11 @@ SIREPO.app.service('geometry', function() {
     var svc = this;
 
     this.basis = ['x', 'y', 'z'];
+    this.basisVectors = {
+        x: [1, 0, 0],
+        y: [0, 1, 0],
+        z: [0, 0, 1]
+    };
 
     // Used for both 2d and 3d
     this.point = function(x, y, z) {
@@ -161,6 +166,13 @@ SIREPO.app.service('geometry', function() {
     };
     this.lineSegmentFromArr = function (arr) {
         return this.lineSegment(arr[0], arr[1]);
+    };
+
+    this.matrixAdd = function (matrix1, matrix2) {
+        var m = [];
+        matrix1.forEach(function (row1, i) {
+            m.push(this.vectorAdd(row1, matrix2[i]));
+        });
     };
 
     // 2d only
@@ -343,27 +355,30 @@ SIREPO.app.service('geometry', function() {
             throw errMsg('Matrix is not invertable');
         }
 
-        xform.det = function() {
-            return det(xform.matrix);
-        };
-
-        xform.doTransform = function (point) {
-            return vectorMult(xform.matrix, point);
-        };
-        xform.doTX = function (point) {
-            return svc.pointFromArr(
-                xform.doTransform(point.coords())
-            );
-        };
         xform.compose = function (otherXForm) {
             if(otherXForm.matrix.length !== l) {
                 throw errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length);
             }
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
         };
+        
         xform.composeFromMatrix = function (m) {
             return xform.compose(svc.transform(m));
         };
+
+        xform.det = function() {
+            return det(xform.matrix);
+        };
+
+        xform.doTransform = function (coords) {
+            return vectorMult(xform.matrix, coords);
+        };
+        xform.doTX = function (point) {
+            return svc.pointFromArr(
+                xform.doTransform(point.coords())
+            );
+        };
+
         xform.equals = function(otherXForm) {
             for(var i in xform.matrix) {
                 for(var j in xform.matrix) {
@@ -416,6 +431,34 @@ SIREPO.app.service('geometry', function() {
         return m;
     };
 
+    this.vectorAdd = function (vector1, vector2) {
+        return this.vectorLinearCombination(vector1, vector2, 1);
+    };
+
+    this.vectorLinearCombination = function (vector1, vector2, constant) {
+        var v = [];
+        vector1.forEach(function (el1, i) {
+            v.push(el1 + constant * vector2[i]);
+        });
+        return v;
+    };
+
+    this.vectorMult = function (m1, v) {
+        var v2 = [];
+        m1.forEach(function (row) {
+            var c = 0;
+            for(var i in row) {
+                c += row[i] * v[i];
+            }
+            v2.push(c);
+        });
+        return v2;
+    };
+
+    this.vectorSubtract = function (vector1, vector2) {
+        return this.vectorLinearCombination(vector1, vector2, -1);
+    };
+
     // returns a line segment matching the portion of an edge inside the given rectangle
     // The edge is selected from those provided by picking the first one that
     // contains the given corners
@@ -424,43 +467,49 @@ SIREPO.app.service('geometry', function() {
     // may not need dimension or sort direction?
     // we need both the clipped and unclipped segments
     this.bestLineSegment = function (edges, cornersArr, boundingRect, dim, reverse) {
+        var edge;
+        var seg;
+        if(! cornersArr || cornersArr.length === 0) {
+            edge = edges[0];
+            seg = bestLineSegmentForEdge(edge, boundingRect);
+        }
         for(var corners in cornersArr) {
             // first check whether any of the supplied edges contain the corners
-            var edge = this.firstEdgeWithCorners(edges, cornersArr[corners]);
+            edge = this.firstEdgeWithCorners(edges, cornersArr[corners]);
             if(! edge) {
                 continue;
             }
 
             // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
             // boundary rectangle
-            var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
+            ////var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
 
             // projectedEnds are the 4 points where the boundary rectangle intersects the
             // *line* defined by the selected edge
-            var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+            ////var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
             //srdbg('gm intx with bounds', screenEnds);
 
             // if the selected edge does not intersect the boundary, it
             // means both ends are off screen; so, reject it
-            if(projectedEnds.length == 0) {
-                continue;
-            }
+            ////if(projectedEnds.length == 0) {
+            ////    continue;
+            ////}
 
             // now we have any edge endpoint that is in or on the boundary, plus
             // the points projected to the boundary
-            // get all of those points that also lie on the edge
+            // get all of those points that also lie on the selected edge
 
-            var ap = edgeEndsInBounds.concat(projectedEnds);
-            var allPoints = ap.filter(edge.pointFilter());
-            var uap = unique(
-                allPoints
+            ////var ap = edgeEndsInBounds.concat(projectedEnds);
+            ////var allPoints = ap.filter(edge.pointFilter());
+            ////var uap = unique(
+            ////    allPoints
                 /*
                 this.sortInDimension(allPoints, dim, reverse),
                 function (p1, p2) {
                 return p1.equals(p2);
             }
             */
-            );
+            ////);
             //srdbg('uniques', uap);
             // we are guaranteed to have 2 unique points now
             // OR NOT ??
@@ -468,20 +517,64 @@ SIREPO.app.service('geometry', function() {
             //    srdbg('not enough uniques');
             //    continue;
             //}
-            var seg = this.lineSegmentFromArr(uap);
+            //seg = this.lineSegmentFromArr(uap);
+            seg = bestLineSegmentForEdge(edge, boundingRect);
 
-            // if the line segment is too short (here half the length of the actual edge),
+            // if the line segment is too short (here half the length of the actual edge or less),
             // do not use it
-            if(seg.length() / edge.length() > 0.5) {
-                return {
-                    full: edge,
-                    clipped: seg
-                };
+            //if(seg.length() / edge.length() > 0.5) {
+            if(seg) {
+                break;
+                //return {
+                //    full: edge,
+                //    clipped: seg
+                //};
                 //return seg;
             }
         }  // end loop over corners
+        if(edge && seg) {
+            return {
+                full: edge,
+                clipped: seg
+            };
+        }
         return null;
     };
+
+    function bestLineSegmentForEdge(edge, boundingRect) {
+
+        // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
+        // boundary rectangle
+        var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
+
+        // projectedEnds are the 4 points where the boundary rectangle intersects the
+        // *line* defined by the selected edge
+        var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
+        //srdbg('gm intx with bounds', screenEnds);
+
+        // if the selected edge does not intersect the boundary, it
+        // means both ends are off screen; so, reject it
+        if(projectedEnds.length == 0) {
+            return null;
+        }
+
+        // now we have any edge endpoint that is in or on the boundary, plus
+        // the points projected to the boundary
+        // get all of those points that also lie on the selected edge
+
+        var ap = edgeEndsInBounds.concat(projectedEnds);
+        var allPoints = ap.filter(edge.pointFilter());
+        var uap = unique(allPoints);
+        //srdbg('uniques', uap);
+        var seg = svc.lineSegmentFromArr(uap);
+
+        // if the line segment is too short (here half the length of the actual edge),
+        // do not use it
+        if(seg.length() / edge.length() > 0.5) {
+            return seg;
+        }
+        return null;
+    }
 
     // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
     this.extrema = function(points, dim, doReverse) {
