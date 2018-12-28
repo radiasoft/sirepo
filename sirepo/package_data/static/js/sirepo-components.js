@@ -2004,7 +2004,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             $scope.copyItem = function() {
                 if(! $('#sr-jit-copy-confirmation')[0]) {
-                    $('body').append(copyConfModal);
+                    $('div[data-ng-view]').append(copyConfModal);
                 }
                 if(! $scope.doneLoadingSimList) {
                     loadList();
@@ -2065,10 +2065,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<filename>':  $scope.nav.simulationName() + '.' + extension,
                 }), '_blank');
             };
-
-            $scope.$on('$destroy', function() {
-                $('#sr-jit-copy-confirmation').remove();
-            });
 
             function loadList() {
                 appState.listSimulations(
