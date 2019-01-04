@@ -3454,6 +3454,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh, utilities),
                 z: layoutService.plotAxis($scope.margin, 'z', 'bottom', refresh, utilities)
             };
+            var axisCfg = {};
             var boundAxes = {};
 
             // rendering
@@ -3587,7 +3588,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 cam = renderer.get().activeCamera;
 
-                rw.addEventListener('dblclick', reset);
+                rw.addEventListener('dblclick', resetAndDigest);
 
                 var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
                     renderer: renderer
@@ -3738,26 +3739,29 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     lostCoords.push(geometry.transpose([pointData.lost_y[i], pointData.lost_z[i], pointData.lost_x[i]]));
                 });
 
-                var axisInfo = {
+                axisCfg = {
                     x: {
+                        dimLabel: 'z',
+                        label: pointData.x_label,
                         min: zmin,
                         max: zmax,
                         numPoints: zpoints.length,
-                        label: pointData.x_label,
                         orientation: vtkPlotting.orientations.horizontal,
                     },
                     y: {
+                        dimLabel: 'x',
+                        label: pointData.y_label,
                         min: xmin,
                         max: xmax,
                         numPoints: xpoints.length,
-                        label: pointData.y_label,
                         orientation: vtkPlotting.orientations.vertical,
                     },
                     z: {
+                        dimLabel: 'y',
+                        label: pointData.z_label,
                         min: ymin,
                         max: ymax,
                         numPoints: ypoints.length,
-                        label: pointData.z_label,
                         orientation: vtkPlotting.orientations.horizontal,
                     },
                 };
@@ -3782,7 +3786,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 );
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
 
-                //warpVTKService.updateScene(coordMapper, axisInfo);
+                //warpVTKService.updateScene(coordMapper, axisCfg);
 
                 coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
@@ -3869,18 +3873,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numInterPoints = 50;
 
                 for(var dim in axes) {
-                    var info = axisInfo[dim];
+                    var cfg = axisCfg[dim];
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
-                    axes[dim].values = plotting.linearlySpacedArray(info.min, info.max, info.numPoints);
-                    axes[dim].scale.domain([info.min, info.max]);
-                    axes[dim].parseLabelAndUnits(info.label);
+                    axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
+                    axes[dim].scale.domain([cfg.min, cfg.max]);
+                    axes[dim].parseLabelAndUnits(cfg.label);
 
                     boundAxes[dim + '0'] = vtkPlotting.ba(
                         axes[dim],
                         vpOutline,
                         dim,
-                        axisInfo[dim].orientation
+                        axisCfg[dim].orientation
                     );
                 }
                 //boundAxes.x = vpOutline.bindAxis(
@@ -4277,15 +4281,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var boundEdges = {};
                 geometry.basis.forEach(function (dim) {
                     boundEdges[dim] = vpOutline.vpEdgesForDimension(dim);
-                //        .map(function (edge) {
-                //            return edge.points().map(function (p) {
-                //                return vtkPlotting.localCoordFromWorld(worldCoord, p.coords());
-                //            });
-                //        });
                 });
-                //srdbg('will bind x to', boundEdges.x.map(function (e) {
-                //    return e.str();
-                //}));
 
                 var vpYEdges = [
                     vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
@@ -4301,15 +4297,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var lwc = vpOutline.extr().y[1];
                 var hgc = vpOutline.extr().y[0];
-                var clsx = vpOutline.vpCenterLineForDimension('x');
-                //srdbg('x ctr', clsx);
                 //srdbg('lwc', lwc, 'hgc', hgc);
-                //srdbg('vpe', vpe.map(function (ls) {
-                //    return ls.str();
-                //}));
                 var lfc = vpOutline.extr().x[0];
                 var rtc = vpOutline.extr().x[1];
-                var clsy = vpOutline.vpCenterLineForDimension('y');
                 //srdbg('lfc', lfc, 'rtc', rtc);
 
                 // for the z (out-in) axis,
@@ -4332,6 +4322,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 for (index in rightofbottommost) {
                     zRight.push(rightofbottommost[index]);
                 }
+
+                var zl = [
+                    geometry.sortInDimension(lfc, 'y', true)[0],
+                    geometry.sortInDimension(lwc, 'x', false)[0]
+                ];
+                var zr = [
+                    geometry.sortInDimension(rtc, 'y', true)[0],
+                    geometry.sortInDimension(lwc, 'x', true)[0],
+                ];
+                //srdbg('zleft', zLeft, 'zl', zl, 'zright', zRight, 'zr', zr);
 
                 //boundAxes.x.update(
                 //    vtkCanvasHolderBounds,
@@ -4374,18 +4374,134 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var sceneXLen = 0;
                 var showXAxisEnds = false;
 
-                //srdbg('getting x props');
                 var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
+
+                for(var i in geometry.basis) {
+                    var dim = geometry.basis[i];
+                //geometry.basis.forEach(function (dim) {
+
+                    var externalEdges = vpOutline.externalVpEdgesForDimension(dim);
+                    srdbg(dim, 'ext', externalEdges);
+                    var isReversed = vpOutline.isReversed()[dim];
+                    var orientation = axisCfg[dim].orientation;
+
+                    // 1: increasing coordinate -> increasing value
+                    // -1: increasing coordinate -> decreasing value
+                    var sense = orientation === vtkPlotting.orientations.horizontal ? 1 : -1;
+
+                    var showAxisEnds = false;
+                    var axisSelector = '.' + dim + '.axis';
+
+                    var seg = geometry.bestLineSegmentForEdges(externalEdges, screenRect, dim, false);
+
+                    if(! seg) {
+                        showAxisEnds = true;
+                        var cl = vpOutline.vpCenterLineForDimension(dim);
+                        seg = geometry.bestLineSegmentForEdges([cl], screenRect, dim, rev);
+                    }
+                    if(! seg) {
+                        // don't draw axes
+                        select(axisSelector).style('opacity', 0.0);
+                        continue;
+                    }
+                    select(axisSelector).style('opacity', 1.0);
+
+                    var newRange = Math.min(seg.full.length(), seg.clipped.length());
+                    var angle = (180 * Math.atan(seg.clipped.slope()) / Math.PI);
+                    // this orientation starts out vertical
+                    if(orientation === 'left' || orientation === 'right') {
+                        angle -= 90;
+                        if (angle < -90) {
+                            angle += 180;
+                        }
+                    }
+                    var allPts = seg.full.points().concat(seg.clipped.points());
+                    var aps = geometry.sortInDimension(allPts, dim, rev);
+
+                    // 1st 2, last 2 points
+                    var zs = isReversed ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
+                    var newDom = [axisCfg[dim].min, axisCfg[dim].max];
+                    for(var i = 0; i < aps.length; i += 2) {
+                        var p1 = aps[i];
+                        var p2 = aps[i+1];
+                        var d = p1.dist(p2);
+                        if(d != 0) {
+                            var j = Math.floor(i / 2);
+                            var k = sense * (isReversed ? (1 + sense) / 2 - j : j - (1 - sense) / 2);
+                            var z = zs[j];
+                            var otherz = zs[1 - j];
+                            var dp = d / seg.full.length();
+                            var part = (z - otherz) * dp;
+                            var newz = sense * (z - part);
+                            newDom[k] = newz;
+                        }
+                    }
+                    //srdbg(dim, 'dom', [newMin, newMax], 'newDom', newdom);
+                    ////axes[dim].scale.domain(newDom).nice();
+                    ////axes[dim].scale.range([isReversed ? newRange : 0, isReversed ? 0 : newRange]);
+
+                    ////if (showAxisEnds) {
+                    ////    axes[dim].svgAxis.ticks(0);
+                    ////    select('.' + dim + '.axis').call(axes[dim].svgAxis);
+                    ////}
+                    ////else {
+                    ////    axes[dim].updateLabelAndTicks({
+                    ////        width: newRange,
+                    ////        height: 0
+                    ////    }, select);
+                    ////}
+
+                    var xform = 'translate(' +
+                        seg.clipped.points()[0].x + ',' +
+                        seg.clipped.points()[0].y + ') ' +
+                        'rotate(' + angle + ')';
+                    //srdbg('xxf', xform);
+                    ////select('.x.axis').attr('transform', xform);
+
+                    var dimLabel = axisCfg[dim].dimLabel;
+                    /*
+                    d3self.selectAll('.' + dim + '.axis-end')
+                        .style('opacity', showAxisEnds ? 1 : 0);
+
+                    select(axisSelector + '-end.low')
+                        .text('◄ ' + dimLabel + ' ' + axes[dim].svgAxis.tickFormat()(isReversed ? newMax : newMin) + axes[dim].unitSymbol + axes[dim].units)
+                        .attr('x', xAxisLeft)
+                        .attr('y', xAxisTop)
+                        .attr('transform', 'rotate(' + (angle) + ', ' + xAxisLeft + ', ' + xAxisTop + ')');
+
+                    select(axisSelector + '-end.high')
+                        .attr('text-anchor', 'end')
+                        .text(axes[dim].svgAxis.tickFormat()(isReversed ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units + ' ' + dimLabel + ' ►')
+                        .attr('x', xAxisRight)
+                        .attr('y', xAxisBottom)
+                        .attr('transform', 'rotate(' + (angle) + ', ' + xAxisRight + ', ' + xAxisBottom + ')');
+
+                    // counter-rotate the tick labels
+                    var xlabels = d3self.selectAll('.' + dim + '.axis text');
+                    xlabels.attr('transform', 'rotate(' + (-angle) + ')');
+                    select('.x.axis .domain').style({'stroke': 'none'});
+                    //select('.x.axis').style('opacity', newRange < minAxisDisplayLen ? 0.0 : 1.0);
+
+                    select('.x-axis-label')
+                        .attr('x', xAxisLeft + (xAxisRight - xAxisLeft) / 2.0)
+                        .attr('y', xAxisTop + 2 * plotting.tickFontSize(select('.x-axis-label')) + (xAxisBottom - xAxisTop) / 2.0)
+                        //.style('opacity', showXAxisEnds || xrange < minAxisDisplayLen ? 0.0 : 1.0);
+                        */
+                };
+                // vvvvvv
                 var dim = 'x';
                 var rev = false;
-                var es = [lwc, hgc].map(function (crn) {
-                    return geometry.firstEdgeWithCorners(boundEdges[dim], crn);
-                });
-                //srdbg('es', es);
+                var sense = 1;  // increasing coordinate -> increasing value
+                var cl = null;
+                var angle = 0;
+                var isReversed = false;
+                var orientation = '';
+                var seg = null;
+                var xform = '';
+                // ^^^^^^
 
-                var seg = geometry.bestLineSegment(boundEdges[dim], [lwc, hgc], screenRect, dim, rev);
-                //srdbg('x edges', edgeProps);
-                //srdbg('x ep', ep, 'seg', ep.seg.str());
+
+                seg = geometry.bestLineSegment(boundEdges[dim], [lwc, hgc], screenRect, dim, rev);
                 var edges = edgeProps.edges;
                 var tanPsi = 0;
                 isXReversed = vpLeftRight[0][0] > vpLeftRight[1][0];
@@ -4429,16 +4545,29 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 if(! seg) {
                     // all desired edges are offscreen, so
                     //srdbg('x offscreen');
-                    seg = geometry.bestLineSegment([clsx], [], screenRect, dim, rev);
+                    cl = vpOutline.vpCenterLineForDimension(dim);
+                    seg = geometry.bestLineSegment([cl], [], screenRect, dim, rev);
                     //srdbg('offscreen x seg', seg.full.str(), seg.clipped.str());
                 }
-                else {
-                    // do nothing?  line segment has all information
-                    //var xaa = 180 * Math.atan(seg.clipped.slope()) / Math.PI;
-                    //srdbg('x seg', seg.clipped.str(), 'seg angle', xaa);
+                var isr = vpOutline.isReversed();
+                //srdbg('isr', isr);
+                isReversed = isr[dim];
+                orientation = axes[dim].svgAxis.orient();
+                angle = (180 * Math.atan(seg.clipped.slope()) / Math.PI);
+                // this orientation starts out vertical
+                if(orientation == 'left' || orientation == 'right') {
+                    angle -= 90;
+                    if (angle < -90) {
+                        angle += 180;
+                    }
                 }
-                //srdbg('x seg full', seg.full.str(), 'clipped', seg.clipped.str());
-
+                //srdbg('x seg full', seg.full.str(), 'clipped', seg.clipped.str(), 'angle', angle);
+                //srdbg(dim, 'seg full', seg.full.str(), 'clipped', seg.clipped.str(), 'angle', angle);
+                //srdbg(dim, 'angle', angle, 'rev', isReversed, 'xangle', xAxisAngle, 'xrev', isXReversed);
+                //srdbg(dim, 'rev', isReversed, 'xrev', isXReversed);
+                //if( (isReversed && ! isXReversed) || (! isReversed && isXReversed) ) {
+                //    srdbg(dim, 'REV DISAGREEMENT: ', isReversed, '!=', isXReversed);
+                //}
 
                 var xAxisLineSeg = geometry.lineSegment(
                     geometry.point(xAxisLeft, xAxisTop),
@@ -4484,25 +4613,25 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 // 1st 2, last 2 points
                 // map z values to segment?  in axis code?
-                var zs = isXReversed ? [zmax, zmin] : [zmin, zmax];
-                var newdom = isXReversed ? [zmax, zmin] : [zmin, zmax];
+                var zs = isReversed ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
+                var newdom = [axisCfg[dim].min, axisCfg[dim].max];
                 for(var i = 0; i < aps.length; i += 2) {
                     var p1 = aps[i];
                     var p2 = aps[i+1];
                     var d = p1.dist(p2);
                     if(d != 0) {
                         var j = Math.floor(i / 2);
-                        //var k = isXReversed ? 1 - j : j;
+                        var k = sense * (isReversed ? (1 + sense) / 2 - j : j - (1 - sense) / 2);
                         var z = zs[j];
                         var otherz = zs[1 - j];
                         var dp = d / seg.full.length();
                         var part = (z - otherz) * dp;
-                        var newz = z - part;
+                        var newz = sense * (z - part);
                         //srdbg(dim, 'recalc dom', i, p1, p2, d, dp, 'old', z, 'new', newz);
-                        newdom[j] = newz;
+                        newdom[k] = newz;
                     }
                 }
-                //srdbg('xdom', [newMin, newMax], 'newdom', newdom);
+                //srdbg(dim, 'dom', [newMin, newMax], 'newdom', newdom);
 
                 // we use the axis for calculations but show no ticks if both ends are off-screen
                 if (showXAxisEnds) {
@@ -4532,10 +4661,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('xxform', xxform);
                 select('.x.axis').attr('transform', xxform);
 
-                var xxf = 'translate(' +
+                xform = 'translate(' +
                     seg.clipped.points()[0].x + ',' +
                     seg.clipped.points()[0].y + ') ' +
-                    'rotate(' + (180 * Math.atan(seg.clipped.slope()) / Math.PI) + ')';
+                    'rotate(' + angle + ')';
                 //srdbg('xxf', xxf);
 
                 d3self.selectAll('.x.axis-end')
@@ -4596,9 +4725,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 edgeProps = propertiesOfEdges(vpYEdges, [leftmostCorners, rightmostCorners], vtkCanvasHolderBounds, 1, false);
                 dim = 'y';
                 rev = false;
-                //srdbg('getting y seg');
+                sense = -1;  // increasing coordinate -> decreasing value
                 seg = geometry.bestLineSegment(boundEdges[dim], [lfc, rtc], screenRect, dim, rev);
-                //srdbg('got y seg');
                 edges = edgeProps.edges;
                 var tanPhi = 0;
                 var phi = 0;
@@ -4655,15 +4783,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 if(! seg) {
                     // all desired edges are offscreen, so
                     //srdbg('y offscreen');
+                    var clsy = vpOutline.vpCenterLineForDimension(dim);
                     seg = geometry.bestLineSegment([clsy], [], screenRect, dim, rev);
                     //srdbg('offscreen x seg', seg.full.str(), seg.clipped.str());
                 }
-                else {
-                    // do nothing?  line segment has all information
-                    //var xaa = 180 * Math.atan(seg.clipped.slope()) / Math.PI;
-                    //srdbg('x seg', seg.clipped.str(), 'seg angle', xaa);
+                //srdbg('y seg', seg,  'full', seg.full.str(), 'clipped', seg.clipped.str());
+                orientation = axes[dim].svgAxis.orient();
+                angle = (180 * Math.atan(seg.clipped.slope()) / Math.PI);
+                if(orientation == 'left' || orientation == 'right') {
+                    angle -= 90;
+                    if (angle < -90) {
+                        angle += 180;
+                    }
                 }
-                //srdbg('y seg full', seg.full.str(), 'clipped', seg.clipped.str());
+
 
                 var yAxisLineSeg = geometry.lineSegment(
                     geometry.point(yAxisLeft, yAxisTop),
@@ -4710,23 +4843,25 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // 1st 2, last 2 points
                 // map z values to segment?  in axis code?
                 var xs = isYReversed ? [xmax, xmin] : [xmin, xmax];
-                newdom = isYReversed ? [xmax, xmin] : [xmin, xmax];
+                newdom = [xmin, xmax];
                 for(var i = 0; i < aps.length; i += 2) {
                     var p1 = aps[i];
                     var p2 = aps[i+1];
                     var d = p1.dist(p2);
-                    if(d != 0) {
+                    if(d !== 0) {
                         var j = Math.floor(i / 2);
+                        //var k = isYReversed ? j : 1 - j;
+                        var k = sense * (isYReversed ? (1 + sense) / 2 - j : j - (1 - sense) / 2);
                         var x = xs[j];
                         var otherx = xs[1 - j];
                         var dp = d / seg.full.length();
                         var part = (x - otherx) * dp;
-                        var newx = x - part;
+                        var newx = sense * (x - part);
                         //srdbg(dim, 'recalc dom', i, p1, p2, d, dp, 'old', x, 'other', otherx, 'part', part, 'new', newx);
-                        newdom[j] = newx;
+                        newdom[k] = newx;
                     }
                 }
-                srdbg('ydom', [newMin, newMax], 'newdom', newdom);
+                //srdbg('ydom', [newMin, newMax], 'newdom', newdom);
 
                 if (showYAxisEnds) {
                     axes.y.svgAxis.ticks(0);
@@ -4753,7 +4888,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     yAxisLeft + ',' +
                     (Math.min(yAxisTop, yAxisBottom)) + ') ' +
                     'rotate(' + yAxisAngle + ')';
+                //srdbg('yxform', yxform);
                 select('.y.axis').attr('transform', yxform);
+
+                var yxf = 'translate(' +
+                    seg.clipped.points()[0].x + ',' +
+                    seg.clipped.points()[0].y  + ') ' +
+                    'rotate(' + angle + ')';
+                //srdbg('yxf', yxf);
 
                 d3self.selectAll('.y.axis-end')
                     .style('opacity', showYAxisEnds ? 1 : 0);
@@ -4793,8 +4935,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var showZAxisEnds = false;
 
                 edgeProps = propertiesOfEdges(vpZEdges, [zLeft, zRight], vtkCanvasHolderBounds, 0, false);
+                dim = 'z';
+                rev = false;
+                sense = 1;  // increasing coordinate -> increasing value
+                //srdbg('getting z seg');
+                seg = geometry.bestLineSegment(boundEdges[dim], [zl, zr], screenRect, dim, rev);
+                //srdbg('got z seg');
                 edges = edgeProps.edges;
                 var tanTheta = 0;
+                //isZReversed = vpInOut[0][0] > vpInOut[1][0];
                 if (edges) {
                     isZReversed = edges[0][0] > edges[1][0];
                     sceneZEnds = edgeProps.sceneEnds;
@@ -4833,6 +4982,28 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
                     zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
                 }
+                if(! seg) {
+                    // all desired edges are offscreen, so
+                    var clsz = vpOutline.vpCenterLineForDimension(dim);
+                    seg = geometry.bestLineSegment([clsz], [], screenRect, dim, rev);
+                    //srdbg('offscreen x seg', seg.full.str(), seg.clipped.str());
+                }
+                //isZReversed = seg.clipped.points()[0];
+                orientation = axes[dim].svgAxis.orient();
+                angle = (180 * Math.atan(seg.clipped.slope()) / Math.PI);
+                if(orientation == 'left' || orientation == 'right') {
+                    angle -= 90;
+                    if (angle < -90) {
+                        angle += 180;
+                    }
+                }
+                //srdbg('z seg', seg,  'full', seg.full.str(), 'clipped', seg.clipped.str(), 'angle', angle);
+
+                var zAxisLineSeg = geometry.lineSegment(
+                    geometry.point(zAxisLeft, zAxisTop),
+                    geometry.point(zAxisRight, zAxisBottom)
+                );
+                //srdbg('z axis seg', zAxisLineSeg.str(), 'axis angle', zAxisAngle);
 
                 function pickdim(arr, dim) {
                     return arr.map(function (d) {
@@ -4879,7 +5050,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // TODO (mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
 
                 var zrange = Math.min(zAxisProjLen, sceneZLen);
-
+                var zrn = Math.min(seg.full.length(), seg.clipped.length());
+                //srdbg('zrange', zrange, 'seg zr', zrn);
 
                 newMin = ymin;
                 newMax = ymax;
@@ -4907,6 +5079,33 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 axes.z.scale.domain([newMin, newMax]).nice();
                 axes.z.scale.range([isZReversed ? zrange : 0, isZReversed ? 0 : zrange]);
+
+                allPts = seg.full.points().concat(seg.clipped.points());
+                aps = geometry.sortInDimension(allPts, dim, rev);
+                //srdbg(dim , 'all pts sorted', aps);
+
+                // 1st 2, last 2 points
+                // map z values to segment?  in axis code?
+                var ys = isZReversed ? [ymax, ymin] : [ymin, ymax];
+                newdom = [ymin, ymax];
+                for(var i = 0; i < aps.length; i += 2) {
+                    var p1 = aps[i];
+                    var p2 = aps[i+1];
+                    var d = p1.dist(p2);
+                    if(d !== 0) {
+                        var j = Math.floor(i / 2);
+                        var k = sense * (isZReversed ? (1 + sense) / 2 - j : j - (1 - sense) / 2);
+                        var y = ys[j];
+                        var othery = ys[1 - j];
+                        var dp = d / seg.full.length();
+                        var part = (y - othery) * dp;
+                        var newy = sense * (y - part);
+                        //srdbg(dim, 'recalc dom', i, p1, p2, d, dp, 'old', x, 'other', otherx, 'part', part, 'new', newx);
+                        newdom[k] = newy;
+                    }
+                }
+                //srdbg('zdom', [newMin, newMax], 'newdom', newdom, 'rev?', isZReversed);
+
                 // note that the 'z' dimension is treated like 'y' in plotAxis,
                 // so only the height below is used
                 if (showZAxisEnds) {
@@ -5039,6 +5238,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 }
 
+                //srdbg('cam angles', cam.getViewUp(), cam.getPosition());
                 if(doCacheCanvas) {
                     cacheCanvas();
                 }
@@ -5201,6 +5401,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
             }
 
+            function resetAndDigest() {
+                $scope.$apply(reset);
+            }
             function reset() {
                 camPos = [0, 0, 1];
                 camViewUp = [0, 1, 0];
@@ -5244,7 +5447,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.destroy = function() {
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
-                rw.removeEventListener('dblclick', reset);
+                rw.removeEventListener('dblclick', resetAndDigest);
                 $($element).off();
                 fsRenderer.getInteractor().unbindEvents();
                 fsRenderer.delete();

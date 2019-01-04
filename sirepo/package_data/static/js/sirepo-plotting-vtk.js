@@ -210,16 +210,25 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         vpObj.source = vtkSource;
         vpObj.wCoord = worldCoord;
 
-        // Override in subclass.  getEdges() should return a mapping
-        // of names to pairs of points
+        // Override in subclass
+        vpObj.edgesForDimension = function(dim) {
+            return [];
+        };
+
         vpObj.getEdges = function() {
             return {};
         };
+
         vpObj.getEdge = function(name) {
             return vpObj.getEdges()[name];
         };
-        vpObj.edgesForDimension = function(dim) {
-            return [];
+
+        vpObj.isReversed = function() {
+            var revObj = {};
+            geometry.basis.forEach(function (dim) {
+                revObj[dim] = false;
+            });
+            return revObj;
         };
 
         vpObj.localCoordFromWorld = function (point) {
@@ -276,12 +285,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
     self.vpBox = function(vtkCubeSource, renderer) {
 
         var box = self.vpObject(vtkCubeSource, renderer);
+        // we record the positions of the edges upon creation in order to determine when they
+        // have reversed direction
+        var initialVPEdges = {};
 
         function wCenter() {
             return box.source.getCenter();
         }
         function wc() {
-            //srdbg('point from box ctr');
             return geometry.pointFromArr(box.source.getCenter());
         }
 
@@ -325,7 +336,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         }
         function wcrn() {
             var ctr = wc();
-            //srdbg('center', ctr);
             var corners = [];
 
             var sides = [-0.5, 0.5];
@@ -375,8 +385,51 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         box.edgesForDimension = function (dim) {
             return box.edgs()[dim];
         };
+
+        var revFn = box.isReversed;
+        box.isReversed = function() {
+            var revObj = revFn();
+            geometry.basis.forEach(function (dim, i) {
+                // only need one edge (?)
+                var currentVector = box.vpEdgesForDimension(dim)[0].vector();
+                var initVector = initialVPEdges[dim][0].vector();
+                revObj[dim] = geometry.dotProduct(currentVector, initVector) < 0;
+            });
+            return revObj;
+        };
+
         box.vpEdgesForDimension = function (dim) {
             return vpEgds()[dim];
+        };
+
+        // external edges have all other corners on the same side of the line they define
+        box.externalVpEdgesForDimension = function (dim) {
+            var ext = [];
+            box.vpEdgesForDimension(dim).forEach(function (edge) {
+                var numCorners = 0;
+                var compCount = 0;
+                for(var i in geometry.basis) {
+                    var otherDim = geometry.basis[i];
+                    if(otherDim === dim) {
+                        continue;
+                    }
+                    var otherEdges = box.vpEdgesForDimension(otherDim);
+                    for(var j = 0; j < otherEdges.length; ++j) {
+                        var otherEdgeCorners = otherEdges[j].points();
+                        for(var k = 0; k <= 1; ++k) {
+                            var n = edge.line().comparePoint(otherEdgeCorners[k]);
+                            compCount += n;
+                            if(n !== 0) {
+                                numCorners++;
+                            }
+                        }
+                    }
+                }
+                if(Math.abs(compCount) === numCorners) {
+                    ext.push(edge);
+                }
+            });
+            return ext;
         };
         box.vpCenterLineForDimension = function (dim) {
             return vpcls()[dim];
@@ -444,10 +497,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             for(var dim in geometry.basisVectors) {
                 var txp = tx.doTransform(geometry.basisVectors[dim]);
                 var p1 = box.localCoordFromWorld(geometry.pointFromArr(
-                    geometry.vectorAdd(ctr, txp)
+                    geometry.vectorSubtract(ctr, txp)
                 ));
                 var p2 = box.localCoordFromWorld(geometry.pointFromArr(
-                    geometry.vectorSubtract(ctr, txp)
+                    geometry.vectorAdd(ctr, txp)
                 ));
                 cls[dim] = geometry.lineSegment(p1, p2);
             }
@@ -592,6 +645,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return e;
         };
 
+
+        geometry.basis.forEach(function (dim) {
+            initialVPEdges[dim] = box.vpEdgesForDimension(dim);
+        });
+        //srdbg('initial edges', initialVPEdges);
         return box;
     };
 

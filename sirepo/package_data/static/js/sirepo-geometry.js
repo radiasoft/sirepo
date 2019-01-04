@@ -3,7 +3,7 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.service('geometry', function() {
+SIREPO.app.service('geometry', function(utilities) {
 
     var svc = this;
 
@@ -12,6 +12,17 @@ SIREPO.app.service('geometry', function() {
         x: [1, 0, 0],
         y: [0, 1, 0],
         z: [0, 0, 1]
+    };
+
+    this.dotProduct = function (vector1, vector2) {
+        if(vector1.length !== vector2.length) {
+            throw 'Vectors have different dimensions: ' + vector1.length + ' != ' + vector2.length;
+        }
+        var prod = 0;
+        vector1.forEach(function (e, i) {
+            prod += (e * vector2[i]);
+        });
+        return prod;
     };
 
     // Used for both 2d and 3d
@@ -37,8 +48,9 @@ SIREPO.app.service('geometry', function() {
                 );
             },
             equals: function (p2) {
+                var t = 0.0001;
                 return this.dimension() == p2.dimension() &&
-                    this.x === p2.x && this.y === p2.y && this.z === p2.z;
+                    Math.abs(this.x - p2.x) <= t && Math.abs(this.y - p2.y) <= t && Math.abs(this.z - p2.z) <= t;
             },
             isInRect: function (r) {
                 return r.containsPoint(this);
@@ -75,6 +87,7 @@ SIREPO.app.service('geometry', function() {
                 return point1.y - point1.x * this.slope();
             },
             intersection: function (l2) {
+                //srdbg('finding int', this.points(), l2.points());
                 if(this.slope() === l2.slope()) {
                     if(this.equals(l2)) {
                         return this.points()[0];
@@ -92,6 +105,19 @@ SIREPO.app.service('geometry', function() {
                     (l2.slope() * this.intercept() - this.slope() *l2.intercept()) / (l2.slope() - this.slope())
                 );
             },
+            comparePoint: function(p) {
+                // for our purposes, "below" means having a y value less than the
+                // line at the same x; or, for vertical lines, having an x value less than
+                // that of the line
+                if(this.containsPoint(p)) {
+                    return 0;
+                }
+                if(this.slope() === Infinity) {
+                    return p.x > point1.x ? 1 : -1;
+                }
+                var y = this.slope() * p.x + this.intercept();
+                return p.y > y ? 1 : -1;
+            },
             points: function () {
                 return [point1, point2];
             },
@@ -99,10 +125,14 @@ SIREPO.app.service('geometry', function() {
                 return point2.x === point1.x ? Infinity : (point2.y - point1.y) / (point2.x - point1.x);
             },
             str: function () {
-                return this.points().map(function (p) {
-                    return p.str();
-                });
-            }
+                return 'slope ' + this.slope() + ' intercept ' + this.intercept() + ' (' +
+                    this.points().map(function (p) {
+                    p.str();
+                }) + ')';
+            },
+            vector: function () {
+                return [point1.x - point2.x, point1.y - point2.y];
+            },
         };
     };
     this.lineFromArr = function (arr) {
@@ -161,7 +191,10 @@ SIREPO.app.service('geometry', function() {
                 return this.points().map(function (p) {
                     return p.str();
                 });
-            }
+            },
+            vector: function () {
+                return [point1.x - point2.x, point1.y - point2.y];
+            },
         };
     };
     this.lineSegmentFromArr = function (arr) {
@@ -493,6 +526,22 @@ SIREPO.app.service('geometry', function() {
         return null;
     };
 
+    this.bestLineSegmentForEdges = function (edges, boundingRect, dim, reverse) {
+        var edge;
+        var seg;
+        for(var i in edges) {
+            edge = edges[i];
+            seg = bestLineSegmentForEdge(edge, boundingRect, dim, reverse);
+            if(seg) {
+                return {
+                    full: edge,
+                    clipped: seg
+                };
+            }
+        }
+        return null;
+    };
+
     function bestLineSegmentForEdge(edge, boundingRect, dim, reverse) {
 
         //srdbg(dim, 'getting best seg for', edge.str());
@@ -509,6 +558,7 @@ SIREPO.app.service('geometry', function() {
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
         if(projectedEnds.length == 0) {
+            //srdbg(dim, 'all offscreen', projectedEnds);
             return null;
         }
 
@@ -520,9 +570,11 @@ SIREPO.app.service('geometry', function() {
         //srdbg(dim, 'all points', ap);
         var allPoints = ap.filter(edge.pointFilter());
         //srdbg(dim, 'all points on edge', allPoints);
-        var uap = unique(allPoints);
-        if(uap.length === 0) {
-            //srdbg(dim, 'no points');
+        var uap = utilities.unique(allPoints, function (p1, p2) {
+            return p1.equals(p2);
+        });
+        if(uap.length < 2) {  // need 2 points to define the line segment
+            //srdbg(dim, 'not enough points', uap);
             return null;
         }
         //srdbg(dim, 'uniques', uap);
@@ -534,10 +586,12 @@ SIREPO.app.service('geometry', function() {
 
         // if the edge is showing and the line segment is too short (here half the length of the actual edge),
         // do not use it
+        //srdbg(dim, 'checking seg', seg.points());
         if(seg.length() / edge.length() > 0.5) {
             return seg;
         }
-        //srdbg(dim, 'seg too short:', seg.length(), edge.length(), seg.length() / edge.length());
+        //srdbg(dim, 'points', allPoints, 'uniques', uap);
+        //srdbg(dim, 'seg too short:', seg.str(), seg.length(), edge.length(), seg.length() / edge.length());
         return null;
     }
 
@@ -590,11 +644,16 @@ SIREPO.app.service('geometry', function() {
     // according to a two-input equality function (null means use ===)
     function unique(arr, equals) {
         var uniqueArr = [];
-        arr.forEach(function (a) {
+        arr.forEach(function (a, i) {
             var found = false;
-            uniqueArr.forEach(function (b) {
+            //srdbg('checking uniques', uniqueArr);
+            for(var j = 0; j < uniqueArr.length; ++j) {
+                var b = arr[j];
                 found = equals ? equals(a, b) : a === b;
-            });
+                if(found) {
+                    break;
+                }
+            }
             if(! found) {
                 uniqueArr.push(a);
             }

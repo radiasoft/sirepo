@@ -2824,4 +2824,24 @@ SIREPO.app.service('utilities', function($window, $interval) {
         };
     };
 
+    // returns an array containing the unique elements of the input,
+    // according to a two-input equality function (null means use ===)
+    this.unique = function(arr, equals) {
+        var uniqueArr = [];
+        arr.forEach(function (a, i) {
+            var found = false;
+            for(var j = 0; j < uniqueArr.length; ++j) {
+                var b = arr[j];
+                found = equals ? equals(a, b) : a === b;
+                if(found) {
+                    break;
+                }
+            }
+            if(! found) {
+                uniqueArr.push(a);
+            }
+        });
+        return uniqueArr;
+    };
+
 });
