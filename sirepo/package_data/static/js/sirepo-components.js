@@ -1760,7 +1760,8 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
             '<div class="nav sr-navbar-right-flex">',
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
-                '<ul class="nav navbar-nav sr-navbar-right" data-ng-if="isLoaded()">',
+                // the line below has to be a ngShow, not ngIf or the transcluded slot may get rendered empty in some cases
+                '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
                     '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
                     '<li data-settings-menu="nav">',
@@ -1974,7 +1975,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
             $scope.doneLoadingSimList = false;
 
             $scope.simulationId = function () {
-                return appState.models.simulation.simulationId;
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.simulationId;
+                }
+                return null;
             };
 
             $scope.copyFolder = fileManager.defaultCreationFolderPath();
