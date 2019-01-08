@@ -14,7 +14,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
 {% endif %}
                 _dim={{ field(item, 'orientation') }},
-                _ang={{ field(item, 'grazingAngle') }},
+                _ang=abs({{ field(item, 'grazingAngle') }}),
                 _amp_coef={{ field(item, 'heightAmplification') }},
 {% if 'horizontalTransverseSize' in item %}
                 _size_x={{ field(item, 'horizontalTransverseSize') }},

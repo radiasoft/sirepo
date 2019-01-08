@@ -329,6 +329,49 @@ SIREPO.app.directive('confirmationModal', function() {
     };
 });
 
+SIREPO.app.directive('copyConfirmation', function(appState, fileManager) {
+    return {
+        restrict: 'A',
+        scope: {
+            simId: '<',
+            copyCfg: '=',
+            disabled: '<',
+        },
+        template: [
+            '<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy Simulation" data-ok-text="Create Copy" data-ok-clicked="copy()">',
+              '<form class="form-horizontal" autocomplete="off">',
+                '<div class="form-group">',
+                '<label class="col-sm-3 control-label">New Name</label>',
+                '<div class="col-sm-9">',
+                  '<input data-ng-disabled="disabled" data-safe-path="" class="form-control" data-ng-model="copyCfg.copyName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                '</div>',
+                '</div>',
+                '<div class="form-group" data-ng-if="showFolders()">',
+                  '<label class="col-sm-3 control-label">Folder</label>',
+                  '<div class="col-sm-9">',
+                    '<div data-user-folder-list="" data-model="copyCfg" data-field="\'copyFolder\'"></div>',
+                  '</div>',
+              '</div>',
+              '</form>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showFolders = function () {
+                return fileManager.getUserFolderPaths().length > 1;
+            };
+            $scope.copy = function() {
+                appState.copySimulation(
+                    $scope.simId,
+                    $scope.copyCfg.completion,
+                    $scope.copyCfg.copyName,
+                    $scope.copyCfg.copyFolder
+                );
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('labelWithTooltip', function(mathRendering) {
     return {
         restrict: 'A',
@@ -1710,6 +1753,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
             '<div class="nav sr-navbar-right-flex">',
                 // spacer to fix wrapping problem in firefox
                 '<div style="width: 16px"></div>',
+                // the line below has to be a ngShow, not ngIf or the transcluded slot may get rendered empty in some cases
                 '<ul class="nav navbar-nav sr-navbar-right" data-ng-show="isLoaded()">',
                     '<li data-ng-transclude="appHeaderRightSimLoadedSlot"></li>',
                     '<li data-ng-if="hasDocumentationUrl()"><a href data-ng-click="openDocumentation()"><span class="glyphicon glyphicon-book"></span> Notes</a></li>',
@@ -1876,7 +1920,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelState, requestSender, $location, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window) {
 
     return {
         restrict: 'A',
@@ -1896,7 +1940,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
                     '<li><a href data-ng-if="nav.modeIsDefault()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>',
                     '<li><a href data-ng-click="exportArchive(\'zip\')"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>',
                     '<li><a href data-ng-click="pythonSource()"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Python Source</a></li>',
-                    '<li data-ng-if="canCopy()"><a href data-ng-click="copy()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
+                    '<li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>',
                     '<li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>',
                     '<li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>',
                     '<li data-ng-if="hasRelatedSimulations()" class="divider"></li>',
@@ -1911,17 +1955,35 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
               '</ul>',
         ].join(''),
         controller: function($scope) {
+
             var currentSimulationId = null;
 
-            function simulationId() {
-                return appState.models.simulation.simulationId;
-            }
+            // We don't add this modal unless we need it
+            var copyConfModalHTML = [
+                '<div id="sr-jit-copy-confirmation" data-copy-confirmation="" ',
+                'data-sim-id="simulationId()" ',
+                'data-copy-cfg="copyCfg" ',
+                'data-disabled="! doneLoadingSimList"',
+                '>',
+                '</div>',
+            ].join('');
+            var copyConfModal = $compile(copyConfModalHTML)($scope);
+            $scope.doneLoadingSimList = false;
+
+            $scope.simulationId = function () {
+                if (appState.isLoaded()) {
+                    return appState.models.simulation.simulationId;
+                }
+                return null;
+            };
+
+            $scope.copyFolder = fileManager.defaultCreationFolderPath();
 
             $scope.showDocumentationUrl = function() {
                 panelState.showModalEditor('simDoc');
             };
             $scope.pythonSource = function() {
-                panelState.pythonSource(simulationId());
+                panelState.pythonSource($scope.simulationId());
             };
 
 
@@ -1930,12 +1992,24 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
             $scope.canCopy = function() {
                 return appDataService.canCopy();
             };
-            $scope.copy = function() {
-                appState.copySimulation(
-                    simulationId(),
-                    function(data) {
-                        requestSender.localRedirectHome(data.models.simulation.simulationId);
-                    });
+
+            $scope.copyCfg = {
+                copyName: '',
+                copyFolder: '/',
+                isExample: false,
+                completion: function (data) {
+                    requestSender.localRedirectHome(data.models.simulation.simulationId);
+                },
+            };
+
+            $scope.copyItem = function() {
+                if(! $('#sr-jit-copy-confirmation')[0]) {
+                    $('div[data-ng-view]').append(copyConfModal);
+                }
+                if(! $scope.doneLoadingSimList) {
+                    loadList();
+                }
+                $('#sr-copy-confirmation').modal('show');
             };
 
             $scope.hasRelatedSimulations = function() {
@@ -1986,11 +2060,22 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, panelSta
 
             $scope.exportArchive = function(extension) {
                 $window.open(requestSender.formatUrl('exportArchive', {
-                    '<simulation_id>': simulationId(),
+                    '<simulation_id>': $scope.simulationId(),
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                     '<filename>':  $scope.nav.simulationName() + '.' + extension,
                 }), '_blank');
             };
+
+            function loadList() {
+                appState.listSimulations(
+                    $location.search(),
+                    function(data) {
+                        fileManager.updateTreeFromFileList(data);
+                        $scope.copyCfg.copyFolder = appState.models.simulation.folder;
+                        $scope.copyCfg.copyName  = fileManager.nextNameInFolder(appState.models.simulation.name, appState.models.simulation.folder);
+                        $scope.doneLoadingSimList = true;
+                    });
+            }
         },
     };
 });
