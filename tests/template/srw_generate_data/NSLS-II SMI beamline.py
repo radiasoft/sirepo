@@ -47,7 +47,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_MOAT_1_dim,
-                _ang=v.op_MOAT_1_ang,
+                _ang=abs(v.op_MOAT_1_ang),
                 _amp_coef=v.op_MOAT_1_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -107,7 +107,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HFM_dim,
-                _ang=v.op_HFM_ang,
+                _ang=abs(v.op_HFM_ang),
                 _amp_coef=v.op_HFM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -138,7 +138,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VFM_dim,
-                _ang=v.op_VFM_ang,
+                _ang=abs(v.op_VFM_ang),
                 _amp_coef=v.op_VFM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -169,7 +169,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VDM_dim,
-                _ang=v.op_VDM_ang,
+                _ang=abs(v.op_VDM_ang),
                 _amp_coef=v.op_VDM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
