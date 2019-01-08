@@ -1208,7 +1208,7 @@ def _fixup_beamline(data):
         if item['type'] == 'crystal':
             if 'diffractionAngle' not in item:
                 allowed_angles = [x[0] for x in _SCHEMA['enum']['DiffractionPlaneAngle']]
-                item['diffractionAngle'] = _find_closest_angle(item['grazingAngle'], allowed_angles)
+                item['diffractionAngle'] = _find_closest_angle(item['grazingAngle'] or 0, allowed_angles)
                 _compute_crystal_grazing_angle(item)
 
         if item['type'] == 'sample':

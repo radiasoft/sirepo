@@ -65,6 +65,8 @@ app.controller('LandingPageController', function ($http, $location) {
         });
     };
 
+    self.opps = LANDING_PAGE_SCHEMA.opportunities || [];
+
     self.onMainLandingPage = function () {
         return $location.path() === '/about';
     };
@@ -97,7 +99,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
     };
 });
 
-app.directive('lpBody', function() {
+app.directive('lpBody', function(utilities) {
     return {
         restrict: 'A',
         scope: {},
@@ -112,6 +114,7 @@ app.directive('lpBody', function() {
                     '<div data-ng-transclude="lpInfoSlot">',
                         '<div data-lp-info-panel=""></div>',
                     '</div>',
+                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-lp-opportunities="" data-opps="opps"></div>',
                 '</div>',
                 '<div class=" lp-flex-col col-md-5 rs-blue-background">',
                     '<div data-ng-if="onMainLandingPage()" class="lp-main-header lp-show-wide">',
@@ -131,11 +134,16 @@ app.directive('lpBody', function() {
             $scope.onMainLandingPage = function () {
                 return $location.path() === '/about';
             };
+
+            $scope.opps = utilities.getOpportuinities();
+            $scope.showOpps = function() {
+                return $scope.opps[0] && $scope.onMainLandingPage();
+            };
        },
     };
 });
 
-app.directive('lpInfoPanel', function(appRoutes) {
+app.directive('lpInfoPanel', function(appRoutes, utilities) {
     return {
         restrict: 'A',
         scope: {},
@@ -157,9 +165,11 @@ app.directive('lpInfoPanel', function(appRoutes) {
                 var route = appRoutes[$location.path().substring(1)];
                 return route ? route.infoPanelTitle || '' : '';
             };
+            $scope.utilities = utilities;
         },
     };
 });
+
 app.directive('lpDoeFooter', function(utilities) {
     return {
         restrict: 'A',
@@ -232,6 +242,32 @@ app.directive('lpMediaPanel', function(appRoutes, utilities) {
                 return null;
             };
        },
+    };
+});
+
+app.directive('lpOpportunities', function(utilities, $sce) {
+    return {
+        restrict: 'A',
+        scope: {
+            opps: '<',
+        },
+        template: [
+            '<div class="lp-onfo">',
+                '<span class="header">New Opportunity!</span>',
+                '<ul>',
+                '<li class="lp-opportunity">',
+                    '<span class="title">{{ firstOpp.title }}</span>',
+                    '<div><span data-ng-bind-html="firstText"></span> <span class="glyphicon glyphicon-star rs-blue" style="padding-left: 8px;"></span> <a href="{{ firstURL }}">Check it out</a></div>',
+                '</li>',
+                '</ul>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.opps = $scope.opps || utilities.getOpportuinities();
+            $scope.firstOpp = $scope.opps[0];
+            $scope.firstText = $sce.trustAsHtml($scope.firstOpp.text);
+            $scope.firstURL = $sce.trustAsResourceUrl($scope.firstOpp.url);
+        },
     };
 });
 
@@ -395,6 +431,10 @@ app.directive('modeSelector', function() {
 });
 
 app.service('utilities', function() {
+
+    this.getOpportuinities = function () {
+        return LANDING_PAGE_SCHEMA.opportunities || [];
+    };
 
     this.checkContentOverlap = function(container, footer, offset) {
 

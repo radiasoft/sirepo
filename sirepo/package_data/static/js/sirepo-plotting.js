@@ -3869,10 +3869,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     osCtr.push((o - spsOrigin[i]) / 2.0);
                 });
 
-                //for(var i = 0; i < 3; ++i) {
-                //    osCtr.push((epsOrigin[i] - spsOrigin[i]) / 2.0);
-                //}
-
                 outlineBundle.setLength([
                     Math.abs(epsOrigin[0] - spsOrigin[0]) + padding,
                     Math.abs(epsP2[1] - epsP1[1]) + padding,
@@ -3882,7 +3878,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 for(var d = 0; d < 3; ++d) {
                     for(var s = 0; s < 1; ++s) {
-                        //var ps = gridPlaneSources[d][s];
                         var pb = gridPlaneBundles[d][s];
                         var gpOrigin = s == 0 ?
                             [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
@@ -3944,7 +3939,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         axes[dim],
                         vpOutline,
                         dim,
-                        axisInfo[dim].orientation
+                        info.orientation
                     );
                 }
                 //boundAxes.x = vpOutline.bindAxis(
@@ -4069,8 +4064,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     for(var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
                         if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
                             cModel = appState.models.conductorTypes[ctIndex];
-                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
-                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
+                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
                             cColor = cModel.voltage == 0 ? zColor : vColor;
                             break;
                         }
