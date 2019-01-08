@@ -5,8 +5,9 @@ u"""User cookie state
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from sirepo import cookie
 from pykern import pkcollections
+from sirepo import cookie
+import flask
 
 # login_state values
 _ANONYMOUS = 'a'
@@ -30,30 +31,33 @@ def init_beaker_compat():
     beaker_compat.oauth_hook = _beaker_compat_map_keys
 
 
-def set_anonymous():
-    _update_session(_ANONYMOUS)
-    cookie.clear_user()
+def process_logout(simulation_type):
+    """Set the current user as logged out. If the 'anonymous' query flag is set,
+    clear the user and change to an anonymous session.
+    """
+    if cookie.has_user_value() and cookie.has_key(_COOKIE_STATE) and cookie.get_value(_COOKIE_STATE) != _ANONYMOUS:
+        if flask.request.args.get(_ANONYMOUS_STATE, False):
+            _update_session(_ANONYMOUS)
+            cookie.clear_user()
+        else:
+            _update_session(_LOGGED_OUT)
+    return flask.redirect('/{}'.format(simulation_type))
 
 
-def set_default_state(logged_out_as_anonymous=False):
+def set_default_state(auth_method):
     if not cookie.has_sentinel():
         return None
     if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
-    elif logged_out_as_anonymous and cookie.get_value(_COOKIE_STATE) == _LOGGED_OUT:
-        _update_session(_ANONYMOUS)
     return pkcollections.Dict(
         login_state=_LOGIN_STATE_MAP.get(cookie.get_value(_COOKIE_STATE), _ANONYMOUS_STATE),
         user_name=cookie.get_value(_COOKIE_NAME),
+        auth_method=auth_method,
     )
 
 
 def set_logged_in(user_name):
     _update_session(_LOGGED_IN, user_name)
-
-
-def set_logged_out():
-    _update_session(_LOGGED_OUT)
 
 
 def _beaker_compat_map_keys(key_map):

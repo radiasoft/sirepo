@@ -36,7 +36,7 @@ def assert_api_call(func):
     elif p == a.ALLOW_COOKIELESS_USER:
         cookie.set_sentinel()
         if login_module:
-            login_module.allow_cookieless_user()
+            login_module.set_default_state()
     elif p == a.ALLOW_LOGIN:
 #TODO(robnagler) need state so that set_user can happen
         cookie.set_sentinel()

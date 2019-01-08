@@ -889,6 +889,44 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
+SIREPO.app.factory('loginService', function(notificationService) {
+    var self = {};
+    var loginNotification = null;
+    self.isEmailAuth = SIREPO.userState && SIREPO.userState.authMethod == 'email';
+    self.authMethodName = self.isEmailAuth ? 'email' : 'GitHub';
+
+    self.enableNotification = function(isEnabled) {
+        if (loginNotification) {
+            loginNotification.active = isEnabled;
+            if (isEnabled) {
+                notificationService.sleepNotification(loginNotification);
+            }
+            else {
+                notificationService.dismissNotification(loginNotification);
+            }
+        }
+    };
+
+    self.initNotification = function() {
+        if (! loginNotification) {
+            loginNotification = SIREPO.APP_SCHEMA.notifications.login;
+            loginNotification.content = '<strong>To save your work, sign in with ' + self.authMethodName + '</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
+            loginNotification.active = ! self.isLoggedIn() && ! SIREPO.IS_LOGGED_OUT;
+            notificationService.addNotification(loginNotification);
+        }
+    };
+
+    self.isLoggedIn = function() {
+        return SIREPO.userState && SIREPO.userState.loginState == 'logged_in';
+    };
+
+    self.isNotificationDisplayed = function() {
+        return notificationService.shouldPresent('login');
+    };
+
+    return self;
+});
+
 SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
@@ -1307,11 +1345,17 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
-    self.formatAuthUrl = function(oauthType) {
+    self.formatAuthUrl = function() {
         return self.formatUrl('oauthLogin', {
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<oauth_type>': oauthType,
+            '<oauth_type>': SIREPO.userState.authMethod,
         }) + '?next=' + $location.url();
+    };
+
+    self.formatLogoutUrl = function(wantAnonymous) {
+        return self.formatUrl('logout', {
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        }) + (wantAnonymous ? '?anonymous=1' : '');
     };
 
     self.formatUrlLocal = function(routeName, params) {
@@ -2424,8 +2468,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 
 SIREPO.app.controller('LoggedOutController', function (requestSender) {
     var self = this;
-    self.anonymousUrl = requestSender.formatAuthUrl('anonymous');
-    self.githubUrl = requestSender.formatAuthUrl('github');
+    self.anonymousUrl = requestSender.formatLogoutUrl(true);
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {

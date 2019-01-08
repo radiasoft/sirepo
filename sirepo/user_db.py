@@ -21,6 +21,23 @@ _db = None
 _db_serial_lock = threading.RLock()
 
 
+def all_uids(user_class):
+#TODO(robnagler) do we need locking
+    res = set()
+    for u in user_class.query.all():
+        if u.uid:
+            res.add(u.uid)
+    return res
+
+
+def find_or_create_user(user_class, user_data):
+    with _db_serial_lock:
+        user = user_class.search(user_data)
+        if not user:
+            user = user_class(None, user_data)
+        return user
+
+
 def init(app, callback):
     global _db
     if not _db:
@@ -30,10 +47,15 @@ def init(app, callback):
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
         )
         _db = SQLAlchemy(app, session_options=dict(autoflush=True))
-    callback(_db)
+    tablename = callback(_db)
     if not os.path.exists(_db_filename(app)):
         pkdlog('creating user database')
         _db.create_all()
+    else:
+        engine = _db.get_engine(app)
+        if not engine.dialect.has_table(engine.connect(), tablename):
+            pkdlog('creating database table: {}', tablename)
+            _db.create_all()
 
 
 def update_user(user_class, user_data):
@@ -42,7 +64,9 @@ def update_user(user_class, user_data):
         session_uid = cookie.get_user(checked=False)
         if user:
             if session_uid and session_uid != user.uid:
-                simulation_db.move_user_simulations(user.uid)
+                # check if session_uid is already in the user database, if so, don't copy simulations to new user
+                if not user_class.query.filter_by(uid=session_uid).first():
+                    simulation_db.move_user_simulations(user.uid)
             user.update(user_data)
             cookie.set_user(user.uid)
         else:

@@ -279,9 +279,10 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            isRequired: '@',
         },
         template: [
-            '<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="{{ isRequired ? \'static\' : true }}" id="{{ id }}" tabindex="-1" role="dialog">',
               '<div class="modal-dialog">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-warning">',
@@ -298,7 +299,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       '<div class="row">',
                         '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
                           '<button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
+                          ' <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
                     '</div>',
@@ -511,64 +512,56 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
-
-    var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
-
+SIREPO.app.directive('loginLink', function(loginService, requestSender) {
     return {
         restrict: 'A',
         scope: {
-            notifyActive: '=',
+            loginClass: '@',
         },
         template: [
-              '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
-                '<ul class="dropdown-menu">',
-                  '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
-                  '<li class="divider"></li>',
-                  '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
-                '</ul>',
-              '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(\'login\')}">',
-                '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
-                '<ul class="dropdown-menu">',
-                  '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
-                '</ul>',
-              '</li>',
+            '<a href data-ng-if="::loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-target="#sr-email-login" data-toggle="modal" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
+            '<a data-ng-if="::! loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-ng-href="{{ ::requestSender.formatAuthUrl() }}" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
         ].join(''),
         controller: function($scope) {
+            $scope.loginService = loginService;
+            $scope.requestSender = requestSender;
+        },
+    };
+});
+
+SIREPO.app.directive('loginMenu', function(appDataService, loginService, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<li data-ng-if="loginService.isLoggedIn()" class="sr-logged-in-menu dropdown">',
+              '<a href data-ng-if="::loginService.isEmailAuth" class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
+                '<span class="glyphicon glyphicon-user text-primary"></span> <span class="caret"></span>',
+              '</a>',
+              '<a href data-ng-if="::! loginService.isEmailAuth" class="dropdown-toggle" data-toggle="dropdown">',
+                '<img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img>',
+                ' <span class="caret"></span>',
+              '</a>',
+              '<ul class="dropdown-menu">',
+                '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
+                '<li class="divider"></li>',
+                '<li><a data-ng-href="{{ logoutURL }}" loginService.enableNotification(true)">Sign out</a></li>',
+              '</ul>',
+            '</li>',
+            '<li data-ng-if="! loginService.isLoggedIn()" class="dropdown" data-ng-class="{\'alert-success\': loginService.isNotificationDisplayed()}">',
+              '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
+              '<ul class="dropdown-menu">',
+                '<li data-login-link=""></li>',
+              '</ul>',
+            '</li>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.loginService = loginService;
             $scope.userState = SIREPO.userState;
-            $scope.githubLoginURL = function() {
-                return requestSender.formatAuthUrl('github');
-            };
-            $scope.logoutURL = requestSender.formatUrl('oauthLogout', {
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            });
-            $scope.isLoggedIn = function() {
-                if($scope.loginNotification) {
-                    $scope.loginNotification.active = $scope.loginNotification.active && $scope.notifyActive;
-                }
-                return $scope.userState && $scope.userState.loginState == 'logged_in';
-            };
-            $scope.isLoggedOut = function() {
-                return $scope.userState && ! $scope.isLoggedIn();
-            };
-            $scope.doLogoutTasks = function() {
-                $scope.loginNotification.active = true;
-                notificationService.sleepNotification($scope.loginNotification);
-            };
-            $scope.doLoginTasks = function() {
-                $scope.loginNotification.active = false;
-                notificationService.dismissNotification($scope.loginNotification);
-            };
-
-            var n = SIREPO.APP_SCHEMA.notifications.login;
-            n.content = loginNotifyContent;
-            n.active = $scope.notifyActive && $scope.isLoggedOut();
-
-            $scope.notificationService = notificationService;
-            $scope.sr_login_notify_cookie = n.name;
-            $scope.loginNotification = n;
-            notificationService.addNotification(n);
+            $scope.logoutURL = requestSender.formatLogoutUrl();
+            if (appDataService.isApplicationMode('default')) {
+                loginService.initNotification();
+            }
         },
     };
 });
@@ -1738,7 +1731,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                     '</ul>',
                   '</li>',
                 '</ul>',
-                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()" data-notify-active="modeIsDefault()"></ul>',
+                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="displayLoginMenu()"></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1754,6 +1747,9 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
         },
         controller: function($scope) {
 
+            $scope.displayLoginMenu = function() {
+                return SIREPO.userState && $scope.modeIsDefault();
+            };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -2062,8 +2058,113 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
+SIREPO.app.directive('completeRegistrationModal', function(loginService, panelState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-ng-if="::missingUserName()" data-confirmation-modal="" data-id="sr-complete-registration" data-is-required="true" data-title="Complete your registration" data-ok-text="Continue" data-ok-clicked="updateUserName()">',
+              '<p>Please enter your full name to complete your Sirepo registration.</p>',
+              '<form class="form-horizontal" autocomplete="off">',
+                '<label class="col-sm-3 control-label">Your email</label>',
+                '<div class="col-sm-9">',
+                    '<p class="form-control-static">{{ data.email }}</p>',
+                '</div>',
+                '<label class="col-sm-3 control-label">Your full name</label>',
+                '<div class="col-sm-9">',
+                  '<input class="form-control" data-ng-model="data.displayName" required/>',
+                '</div>',
+              '</form>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    SIREPO.userState.displayNameSet = 1;
+                }
+                else {
+                    //TODO(pjm): add server error message
+                }
+            }
 
-SIREPO.app.directive('commonFooter', function() {
+            $scope.updateUserName = function() {
+                requestSender.sendRequest(
+                    'emailUserName',
+                    handleResponse,
+                    {
+                        email: SIREPO.userState.userName,
+                        displayName: $scope.data.displayName,
+                    });
+            };
+
+            $scope.missingUserName = function() {
+                if (loginService.isLoggedIn() && ! SIREPO.userState.displayNameSet) {
+                    $scope.data = {
+                        email: SIREPO.userState.userName,
+                        name: '',
+                    };
+                    panelState.waitForUI(function() {
+                        $('#sr-complete-registration').modal('show');
+                    });
+                    return true;
+                }
+                return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-confirmation-modal="" data-id="sr-email-login" data-title="Sign in with email" data-ok-text="Continue" data-ok-clicked="login()">',
+              '<p>Enter your email address and we\'ll send a magic link to your inbox.</p>',
+              '<form class="form-horizontal" autocomplete="off">',
+                '<label class="col-sm-3 control-label">Your Email</label>',
+                '<div class="col-sm-9">',
+                  '<input type="email" class="form-control" data-ng-model="data.email" required/>',
+                '</div>',
+              '</form>',
+            '</div>',
+            '<div data-confirmation-modal="" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="OK">',
+              '<p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in.</p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    $('#sr-email-login').modal('hide');
+                    $scope.data.sentEmail = $scope.data.email;
+                    $scope.data.email = '';
+                    $scope.form.$setPristine();
+                    $('#sr-email-login-done').modal('show');
+                }
+                else {
+                    //TODO(pjm): add server error message
+                }
+            }
+            $scope.data = {};
+            $scope.login = function() {
+                requestSender.sendRequest(
+                    'emailLogin',
+                    handleResponse,
+                    {
+                        email: $scope.data.email,
+                        next: $location.url(),
+                        simulationType: SIREPO.APP_NAME,
+                    });
+            };
+        },
+        link: function(scope, element) {
+            // get the angular form from within the transcluded content
+            scope.form = element.find('input').eq(0).controller('form');
+        }
+    };
+});
+
+SIREPO.app.directive('commonFooter', function(loginService) {
     return {
         restrict: 'A',
         scope: {
@@ -2072,7 +2173,14 @@ SIREPO.app.directive('commonFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
+            '<div data-ng-if="::loginService.isEmailAuth">',
+              '<div data-email-login-modal=""></div>',
+              '<div data-complete-registration-modal=""></div>',
+            '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.loginService = loginService;
+        },
     };
 });
 

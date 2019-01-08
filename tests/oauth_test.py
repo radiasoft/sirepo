@@ -36,7 +36,7 @@ def test_login_logout():
     #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
     text = fc.get('/oauth-authorized/github')
     text = fc.sr_get(
-        'oauthLogout',
+        'logout',
         {
             'simulation_type': sim_type,
         },

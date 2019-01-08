@@ -21,7 +21,7 @@ import flask.sessions
 import flask_oauthlib.client
 import sqlalchemy
 
-_ANONYMOUS_OAUTH_TYPE = 'anonymous'
+_AUTH_METHOD = 'github'
 
 # cookie keys for oauth
 _COOKIE_NEXT = 'sronx'
@@ -29,15 +29,7 @@ _COOKIE_NONCE = 'sronn'
 
 
 def all_uids():
-#TODO(robnagler) do we need locking
-    res = set()
-    for u in User.query.all():
-        res.add(u.uid)
-    return res
-
-
-def allow_cookieless_user():
-    user_state.set_default_state(logged_out_as_anonymous=True)
+    return user_db.all_uids(User)
 
 
 @api_perm.allow_login
@@ -51,8 +43,8 @@ def api_oauthLogin(simulation_type, oauth_type):
 
 
 @api_perm.allow_visitor
-def api_oauthLogout(simulation_type):
-    return _logout(simulation_type)
+def api_logout(simulation_type):
+    return user_state.process_logout(simulation_type)
 
 
 def init_apis(app):
@@ -63,8 +55,8 @@ def init_apis(app):
     api_auth.register_login_module()
 
 
-def set_default_state(logged_out_as_anonymous=False):
-    return user_state.set_default_state(logged_out_as_anonymous)
+def set_default_state():
+    return user_state.set_default_state(_AUTH_METHOD)
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -91,9 +83,6 @@ def _authorize(simulation_type, oauth_type):
     If oauth_type is 'anonymous', the current session is cleared.
     """
     oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
-    if oauth_type == _ANONYMOUS_OAUTH_TYPE:
-        user_state.set_anonymous()
-        return server.javascript_redirect(oauth_next)
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_NEXT, oauth_next)
@@ -176,12 +165,8 @@ def _init_user_model(_db):
             self.user_name = user_data['login']
             self.display_name = user_data['name']
 
+    return User.__tablename__
 
-def _logout(simulation_type):
-    """Sets the login_state to logged_out and clears the user session.
-    """
-    user_state.set_logged_out()
-    return flask.redirect('/{}'.format(simulation_type))
 
 
 def _oauth_client(oauth_type):
