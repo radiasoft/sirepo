@@ -2831,7 +2831,7 @@ SIREPO.app.service('utilities', function($window, $interval) {
         arr.forEach(function (a, i) {
             var found = false;
             for(var j = 0; j < uniqueArr.length; ++j) {
-                var b = arr[j];
+                var b = uniqueArr[j];
                 found = equals ? equals(a, b) : a === b;
                 if(found) {
                     break;

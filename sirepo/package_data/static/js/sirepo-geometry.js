@@ -145,7 +145,7 @@ SIREPO.app.service('geometry', function(utilities) {
         return {
             containsPoint: function (p) {
                 var ext = this.extents();
-                return this.line().containsPoint(p) &&
+                return this.line.containsPoint(p) &&
                     (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
                     (p.y >= ext[1][0] && p.y <= ext[1][1]);
             },
@@ -163,18 +163,19 @@ SIREPO.app.service('geometry', function(utilities) {
                 ];
             },
             intercept: function() {
-                return this.line().intercept();
+                return this.line.intercept();
             },
             intersection: function (ls2) {
-                var p = this.line().intersection(ls2.line());
+                var p = this.line.intersection(ls2.line);
                 return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
             },
             length: function () {
                 return point1.dist(point2);
             },
-            line: function() {
-                return svc.line(point1, point2);
-            },
+            //line: function() {
+            //    return svc.line(point1, point2);
+            //},
+            line: svc.line(point1, point2),
             pointFilter: function() {
                 var ls = this;
                 return function (point) {
@@ -185,7 +186,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return [point1, point2];
             },
             slope: function() {
-                return this.line().slope();
+                return this.line.slope();
             },
             str: function () {
                 return this.points().map(function (p) {
@@ -228,7 +229,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return this.boundaryIntersectionsWithSeg(svc.lineSegment(point1, point2));
             },
             boundaryIntersectionsWithSeg: function (lseg) {
-                return this.boundaryIntersectionsWithLine(lseg.line());
+                return this.boundaryIntersectionsWithLine(lseg.line);
             },
             center: function () {
                 svc.point(
@@ -464,8 +465,15 @@ SIREPO.app.service('geometry', function(utilities) {
         return m;
     };
 
+    // we will use "vector" to mean an array of numbers, and "point" to be an object
+    // that wraps coordinates and defines methods to manipulated them
     this.vectorAdd = function (vector1, vector2) {
         return this.vectorLinearCombination(vector1, vector2, 1);
+    };
+
+    this.vectorFromPoints = function(point1, point2) {
+        var p2 = point2 || svc.point();
+        return [point1.x - p2.x, point1.y - p2.y, point1.z - p2.z];
     };
 
     this.vectorLinearCombination = function (vector1, vector2, constant) {
@@ -535,7 +543,8 @@ SIREPO.app.service('geometry', function(utilities) {
             if(seg) {
                 return {
                     full: edge,
-                    clipped: seg
+                    clipped: seg,
+                    index: i
                 };
             }
         }
@@ -543,6 +552,10 @@ SIREPO.app.service('geometry', function(utilities) {
     };
 
     function bestLineSegmentForEdge(edge, boundingRect, dim, reverse) {
+
+        if(! edge) {
+            return null;
+        }
 
         //srdbg(dim, 'getting best seg for', edge.str());
         // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
@@ -639,26 +652,5 @@ SIREPO.app.service('geometry', function(utilities) {
             return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
         });
     };
-
-    // returns an array containing the unique elements of the input,
-    // according to a two-input equality function (null means use ===)
-    function unique(arr, equals) {
-        var uniqueArr = [];
-        arr.forEach(function (a, i) {
-            var found = false;
-            //srdbg('checking uniques', uniqueArr);
-            for(var j = 0; j < uniqueArr.length; ++j) {
-                var b = arr[j];
-                found = equals ? equals(a, b) : a === b;
-                if(found) {
-                    break;
-                }
-            }
-            if(! found) {
-                uniqueArr.push(a);
-            }
-        });
-        return uniqueArr;
-    }
-
+    
 });
