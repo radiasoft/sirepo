@@ -44,7 +44,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HDM_dim,
-                _ang=v.op_HDM_ang,
+                _ang=abs(v.op_HDM_ang),
                 _amp_coef=v.op_HDM_amp_coef,
                 _size_x=v.op_HDM_size_x,
                 _size_y=v.op_HDM_size_y,
