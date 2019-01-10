@@ -31,6 +31,10 @@ def init_beaker_compat():
     beaker_compat.oauth_hook = _beaker_compat_map_keys
 
 
+def is_logged_in():
+    return cookie.has_key(_COOKIE_STATE) and cookie.get_value(_COOKIE_STATE) == _LOGGED_IN
+
+
 def process_logout(simulation_type):
     """Set the current user as logged out. If the 'anonymous' query flag is set,
     clear the user and change to an anonymous session.

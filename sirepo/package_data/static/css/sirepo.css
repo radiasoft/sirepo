@@ -693,6 +693,10 @@ input.ng-invalid.ng-invalid-email {
   margin: 5px;
   padding: 11px 10px 15px 10px;
 }
+.navbar-nav > li > a.sr-logged-in:hover,
+.navbar-nav > li > a.sr-logged-in:focus {
+  background-color: #d9edf7;
+}
 .sr-help-icon {
   color: #337ab7;
   opacity: 1;

@@ -286,7 +286,7 @@ SIREPO.app.directive('confirmationModal', function() {
               '<div class="modal-dialog">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-warning">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<button data-ng-if="! isRequired" type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">{{ title }}</span>',
                   '</div>',
                   '<div class="modal-body">',
@@ -325,6 +325,15 @@ SIREPO.app.directive('confirmationModal', function() {
                 }
                 return $scope.formCtl.$valid;
             };
+
+            $scope.$on('$destroy', function() {
+                // release modal data to prevent memory leak
+                $($element).off();
+            });
+
+            $($element).on('shown.bs.modal', function() {
+                $($element).find('.form-control').first().select();
+            });
         },
     };
 });
@@ -579,7 +588,7 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService, request
         template: [
             '<li data-ng-if="loginService.isLoggedIn()" class="sr-logged-in-menu dropdown">',
               '<a href data-ng-if="::loginService.isEmailAuth" class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
-                '<span class="glyphicon glyphicon-user text-primary"></span> <span class="caret"></span>',
+                '<span class="glyphicon glyphicon-user"></span> <span class="caret"></span>',
               '</a>',
               '<a href data-ng-if="::! loginService.isEmailAuth" class="dropdown-toggle" data-toggle="dropdown">',
                 '<img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img>',
@@ -2205,7 +2214,7 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
         scope: {},
         template: [
             '<div data-confirmation-modal="" data-id="sr-email-login" data-title="Sign in with email" data-ok-text="Continue" data-ok-clicked="login()">',
-              '<p>Enter your email address and we\'ll send a magic link to your inbox.</p>',
+              '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
               '<form class="form-horizontal" autocomplete="off">',
                 '<label class="col-sm-3 control-label">Your Email</label>',
                 '<div class="col-sm-9">',
