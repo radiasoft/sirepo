@@ -13,6 +13,8 @@ from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply, http_request
+from sirepo import server
+from sirepo import simulation_db
 from sirepo import uri_router
 from sirepo import user_db
 from sirepo import user_state
@@ -44,12 +46,13 @@ def api_emailAuthorized(simulation_type, token):
             return flask.redirect('/{}'.format(simulation_type))
         if not user:
             pkdlog('login with invalid token: {}', token)
-            #TODO(pjm): need a token-not-found page
-            util.raise_not_found('token not found: {}', token)
         else:
             pkdlog('login with expired token: {}, email: {}', token, user.unverified_email)
-            #TODO(pjm): need a token expired page
-            util.raise_not_found('token expired: {}', token)
+        #TODO(pjm): need uri_router method for this?
+        return server.javascript_redirect('/{}#{}'.format(
+            simulation_type,
+            simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
+        ))
     user_db.update_user(UserEmail, {
         'email': user.unverified_email,
         'unverified_email': user.unverified_email,

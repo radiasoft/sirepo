@@ -221,6 +221,12 @@
                 "config": {
                   "templateUrl": "/static/html/not-authorized.html"
                 }
+            },
+            "authorizationFailed": {
+                "route": "/auth-failed",
+                "config": {
+                  "templateUrl": "/static/html/auth-failed.html"
+                }
             }
         },
         "model": {

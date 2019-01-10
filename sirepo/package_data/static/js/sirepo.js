@@ -121,6 +121,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 
     if (SIREPO.IS_LOGGED_OUT) {
+        addRoute('authorizationFailed');
         addRoute('loggedOut', true);
     } else {
         for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
