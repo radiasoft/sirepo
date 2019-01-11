@@ -20,7 +20,7 @@ import trio
 import yarl
 
 # XX TODO: should this be configurable somehow?
-_HTTP_API_URL = yarl.URL("http://127.0.0.1:8001")
+_HTTP_API_URL = yarl.URL('http://127.0.0.1:8001')
 
 # How often threaded blocking operations should wake up and check for Trio
 # cancellation
@@ -60,9 +60,9 @@ async def _container_wait(container):
 
 
 class JobStatus(enum.Enum):
-    NOT_STARTED = "NOT_STARTED"
-    RUNNING = "RUNNING"
-    FINISHED = "FINISHED"
+    NOT_STARTED = 'NOT_STARTED'
+    RUNNING = 'RUNNING'
+    FINISHED = 'FINISHED'
 
 
 class JobTracker:
@@ -108,29 +108,29 @@ class JobTracker:
             # finishes before our call to wait() starts, then it just errors
             # out with docker.errors.NotFound
             with _catch_and_log_errors(
-                    Exception, "error waiting for container {}", jid
+                    Exception, 'error waiting for container {}', jid
             ):
                 pkdp(await _container_wait(container))
         finally:
             self.jid_to_status[jid] = JobStatus.FINISHED
 
 
-@_QUART_APP.route('/jobs/<jid>', methods=["PUT"])
+@_QUART_APP.route('/jobs/<jid>', methods=['PUT'])
 async def start_job(jid):
-    pkdp("start_job", jid)
+    pkdp('start_job', jid)
     config = await quart.request.get_json()
     await _JOB_TRACKER.start_job(jid, config)
-    return ""
+    return ''
 
 
-@_QUART_APP.route('/jobs/<jid>', methods=["GET"])
+@_QUART_APP.route('/jobs/<jid>', methods=['GET'])
 async def job_status(jid):
-    pkdp("job_status: {}", jid)
+    pkdp('job_status: {}', jid)
     return _JOB_TRACKER.jid_to_status[jid].value
-    return ""
+    return ''
 
 
-@_QUART_APP.route('/jobs/<jid>/cancel', methods=["POST"])
+@_QUART_APP.route('/jobs/<jid>/cancel', methods=['POST'])
 async def cancel_job(jid):
     try:
         container = _DOCKER.containers.get(jid)
@@ -150,7 +150,7 @@ async def cancel_job(jid):
         pass
     # Doesn't update status, because that will happen automatically
     # when it actually stops...
-    return ""
+    return ''
 
 
 # This is a temporary kluge until we get app.serve(...) or similar:
@@ -162,7 +162,7 @@ async def app_serve(app, host, port):
     config = hypercorn.Config()
     config.host = host
     config.port = port
-    config.access_log_format = "%(h)s %(r)s %(s)s %(b)s %(D)s"
+    config.access_log_format = '%(h)s %(r)s %(s)s %(b)s %(D)s'
     config.access_logger = quart.logging.create_serving_logger()
     config.error_logger = config.access_logger
     config.application_path = None
