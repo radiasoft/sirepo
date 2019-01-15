@@ -47,7 +47,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_MOAT_1_dim,
-                _ang=v.op_MOAT_1_ang,
+                _ang=abs(v.op_MOAT_1_ang),
                 _amp_coef=v.op_MOAT_1_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -107,7 +107,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_HFM_dim,
-                _ang=v.op_HFM_ang,
+                _ang=abs(v.op_HFM_ang),
                 _amp_coef=v.op_HFM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -138,7 +138,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VFM_dim,
-                _ang=v.op_VFM_ang,
+                _ang=abs(v.op_VFM_ang),
                 _amp_coef=v.op_VFM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -169,7 +169,7 @@ def set_optics(v=None):
             el.append(srwlib.srwl_opt_setup_surf_height_1d(
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
                 _dim=v.op_VDM_dim,
-                _ang=v.op_VDM_ang,
+                _ang=abs(v.op_VDM_ang),
                 _amp_coef=v.op_VDM_amp_coef,
             ))
             pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
@@ -425,7 +425,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_1_nvz', 'f', -0.0971266167475, 'nvz'],
     ['op_MOAT_1_tvx', 'f', -0.00943241252825, 'tvx'],
     ['op_MOAT_1_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_1_ang', 'f', 1.57079632, 'grazingAngle'],
+    ['op_MOAT_1_ang', 'f', 0.0972799772892, 'grazingAngle'],
     ['op_MOAT_1_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_1_MOAT_2: drift
@@ -448,7 +448,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_MOAT_2_nvz', 'f', -0.0971266167475, 'nvz'],
     ['op_MOAT_2_tvx', 'f', 0.00943241252825, 'tvx'],
     ['op_MOAT_2_tvy', 'f', 0.0966675192333, 'tvy'],
-    ['op_MOAT_2_ang', 'f', -1.57079632, 'grazingAngle'],
+    ['op_MOAT_2_ang', 'f', 0.0972799772892, 'grazingAngle'],
     ['op_MOAT_2_amp_coef', 'f', 1.0, 'heightAmplification'],
 
     # MOAT_2_HFM: drift
