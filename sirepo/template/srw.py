@@ -1260,7 +1260,8 @@ def _fixup_electron_beam(data):
 def _generate_beamline_optics(report, models, last_id):
     if not _is_beamline_report(report):
         return '    pass', ''
-    if not last_id:
+    has_beamline_elements = len(models.beamline) > 0
+    if has_beamline_elements and not last_id:
         last_id = models.beamline[-1].id
     names = []
     items = []
@@ -1313,7 +1314,7 @@ def _generate_beamline_optics(report, models, last_id):
         'items': items,
         'names': names,
         'postPropagation': models.postPropagation,
-        'wantPostPropagation': int(last_id) == int(models.beamline[-1].id),
+        'wantPostPropagation': has_beamline_elements and (int(last_id) == int(models.beamline[-1].id)),
         'maxNameSize': max_name_size,
         'nameMap': {
             'apertureShape': 'ap_shape',
