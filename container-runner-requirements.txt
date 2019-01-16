@@ -1,7 +1,0 @@
-trio
-docker
-quart-trio
-hypercorn[trio]
-yarl
--e src/radiasoft/pykern
--e src/radiasoft/sirepo
