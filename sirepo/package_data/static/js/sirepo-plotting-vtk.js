@@ -209,6 +209,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
         vpObj.source = vtkSource;
         vpObj.wCoord = worldCoord;
+        vpObj.initialVPEdges = {};
 
         // Override in subclass
         vpObj.edgesForDimension = function(dim) {
@@ -223,12 +224,26 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return vpObj.getEdges()[name];
         };
 
+        vpObj.initializeEdges = function(dim) {
+            if(! this.initialVPEdges[dim]) {
+                this.initialVPEdges[dim] = vpObj.vpEdgesForDimension(dim);
+            }
+        };
+
         vpObj.isReversed = function() {
             var revObj = {};
             geometry.basis.forEach(function (dim) {
                 revObj[dim] = false;
             });
             return revObj;
+        };
+
+        vpObj.senseForEdgeAtIndex = function(dim, index, orientation) {
+            if(orientation === self.orientations.vertical) {
+                return -1;
+            }
+            var edge = this.initialVPEdges[dim][index];
+            return edge.points()[0].x < edge.points()[1].x ? 1 : -1;
         };
 
         vpObj.localCoordFromWorld = function (point) {
@@ -285,9 +300,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
     self.vpBox = function(vtkCubeSource, renderer) {
 
         var box = self.vpObject(vtkCubeSource, renderer);
-        // we record the positions of the edges upon creation in order to determine when they
-        // have reversed direction
-        var initialVPEdges = {};
 
         function wCenter() {
             return box.source.getCenter();
@@ -382,7 +394,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         var edgeCornerPairs = {
             x: [[0, 1], [5, 4], [2, 3], [7, 6]],
             y: [[0, 2], [1, 3], [4, 6], [5, 7]],
-            z: [[0, 4], [5, 1], [2, 6], [3, 7]]
+            z: [[0, 4], [5, 1], [2, 6], [7, 3]]
         };
         box.edgs = function () {
             var c = box.crns();
@@ -409,15 +421,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 // only need one edge (?)
                 // no, need to specify the edge
                 var currentVector = box.vpEdgesForDimension(dim)[0].vector();
-                var initVector = initialVPEdges[dim][0].vector();
+                var initVector = box.initialVPEdges[dim][0].vector();
                 revObj[dim] = geometry.dotProduct(currentVector, initVector) < 0;
             });
             return revObj;
         };
         box.isEdgeReversed = function(dim, index) {
-            var currentVector = box.vpEdgesForDimension(dim)[index].vector();
-            var initVector = initialVPEdges[dim][index].vector();
-            //srdbg('edfge rev', initVector, currentVector, geometry.dotProduct(currentVector, initVector));
+            var edge = box.vpEdgesForDimension(dim)[index];
+            var currentVector = edge.vector();
+            var initVector = geometry.vectsFromEdges(box.initialVPEdges[dim])[index];
+            //srdbg(dim, index, 'edge rev', 'init', initVector, initEdge.slope(), 'curr', currentVector, edge.slope(), 'dot prod', geometry.dotProduct(currentVector, initVector));
             return geometry.dotProduct(currentVector, initVector) < 0;
         };
 
@@ -449,11 +462,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                     }
                 }
                 if(Math.abs(compCount) === numCorners) {
-                    //srdbg('adding edge at index', edgeIndex);
                     ext.push(edge);
                 }
                 else {
-                    //srdbg('adding NULL at index', edgeIndex);
                     ext.push(null);
                 }
             });
@@ -670,10 +681,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
 
 
+        /*
         geometry.basis.forEach(function (dim) {
             initialVPEdges[dim] = box.vpEdgesForDimension(dim);
+            initialVPVects[dim] = initialVPEdges[dim].map(function (e) {
+                return e.vector();
+            });
+            srdbg(dim, 'initial edges', initialVPEdges[dim], 'vects', initialVPVects[dim]);
         });
-        srdbg('initial edges', initialVPEdges);
+        */
         return box;
     };
 

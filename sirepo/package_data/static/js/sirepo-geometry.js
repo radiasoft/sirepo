@@ -56,7 +56,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return r.containsPoint(this);
             },
             str: function () {
-                return this.coords();  // + ' dimension ' + this.dimension();
+                return '(' + this.coords() + ')';  // + ' dimension ' + this.dimension();
             }
         };
     };
@@ -200,6 +200,11 @@ SIREPO.app.service('geometry', function(utilities) {
     };
     this.lineSegmentFromArr = function (arr) {
         return this.lineSegment(arr[0], arr[1]);
+    };
+    this.vectsFromEdges = function (arr) {
+        return arr.map(function (e) {
+            return e.vector();
+        });
     };
 
     this.matrixAdd = function (matrix1, matrix2) {
@@ -630,6 +635,14 @@ SIREPO.app.service('geometry', function(utilities) {
     };
     this.firstEdgeWithCorners = function(lines, points) {
         return this.edgesWithCorners(lines, points)[0];
+    };
+
+    this.arrStr = function(arr) {
+        return '[' +
+            arr.map(function (e) {
+            return e.str();
+        }) +
+            ']';
     };
 
     this.parrstr = function(arr) {
