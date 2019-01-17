@@ -107,7 +107,7 @@ app.controller('LightController', function (appRoutes, $http, $location) {
 
     self.pageTitle = function() {
         var name = self.pageName();
-        return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - Radiasoft';
+        return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - RadiaSoft';
     };
 
 });
@@ -194,7 +194,7 @@ app.directive('pageHeading', function() {
         template += [
                     '<div class="pull-right">',
                         '<a href="http://radiasoft.net">',
-                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="RadiaSoft" />',
                         '</a>',
                     '</div>',
                 '</div>',
