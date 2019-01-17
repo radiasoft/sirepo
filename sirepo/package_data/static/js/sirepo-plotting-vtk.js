@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, plotUtilities, geometry, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, geometry, $window) {
 
     var self = {};
 
@@ -230,14 +230,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
         };
 
-        vpObj.isReversed = function() {
-            var revObj = {};
-            geometry.basis.forEach(function (dim) {
-                revObj[dim] = false;
-            });
-            return revObj;
+        vpObj.isEdgeReversed = function(dim, index) {
+            return false;
         };
-
+/*
         vpObj.senseForEdgeAtIndex = function(dim, index, orientation) {
             if(orientation === self.orientations.vertical) {
                 return -1;
@@ -245,7 +241,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             var edge = this.initialVPEdges[dim][index];
             return edge.points()[0].x < edge.points()[1].x ? 1 : -1;
         };
-
+*/
         vpObj.localCoordFromWorld = function (point) {
             //srdbg('localCoordFromWorld point', point);
             // this is required to do conversions for different displays/devices
@@ -301,10 +297,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
         var box = self.vpObject(vtkCubeSource, renderer);
 
+        /*
         function wCenter() {
             return box.source.getCenter();
         }
-        function wc() {
+        */
+        function wCenter() {
             return geometry.pointFromArr(box.source.getCenter());
         }
 
@@ -316,14 +314,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 box.source.getZLength()
             ];
         }
+
         function wl() {
+            var l = wLength();
             return {
-                x: box.source.getXLength(),
-                y: box.source.getYLength(),
-                z: box.source.getZLength()
+                x: l[0],
+                y: l[1],
+                z: l[2]
             };
         }
-
+/*
         function wCorners() {
             var ctr = wCenter();
             var corners = [];
@@ -346,8 +346,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             //srdbg('wCorners', corners);
             return corners;
         }
-        function wcrn() {
-            var ctr = wc();
+        */
+        function wCorners() {
+            var ctr = wCenter();
             var corners = [];
 
             var sides = [-0.5, 0.5];
@@ -357,7 +358,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 for (var j in sides) {
                     for (var k in sides) {
                         var s = [sides[k], sides[j], sides[i]];
-                        //srdbg('sides', s);
                         var c = [];
                         for(var l = 0; l < 3; ++l) {
                             c.push(ctr.coords()[l] + s[l] * len[l]);
@@ -370,11 +370,13 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         }
 
         // a rectangle enclosing the screen representation of the box
+        // TO VPOBJ?
         box.boundingRect = function() {
-            var extrema = box.extr().x.concat(box.extr().y);
+            var e = extrema();
+            var ex = e.x.concat(e.y);
             var xCoords = [];
             var yCoords = [];
-            extrema.forEach(function (arr) {
+            ex.forEach(function (arr) {
                 arr.forEach(function (p) {
                     xCoords.push(p.x);
                     yCoords.push(p.y);
@@ -386,18 +388,29 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             );
         };
 
+        /*
         box.crns = function() {
-            return wcrn();
+            return wCorners();
         };
+*/
 
-
+        // box corners are defined thus:
+        //
+        //   2------X-------3    6------X-------7
+        //   |              |    |              |
+        //   |              |    |              |
+        //   Y    Front     Y    Y    Back      Y
+        //   |              |    |              |
+        //   |              |    |              |
+        //   0------X-------1    4------X-------5
+        //
         var edgeCornerPairs = {
             x: [[0, 1], [5, 4], [2, 3], [7, 6]],
             y: [[0, 2], [1, 3], [4, 6], [5, 7]],
             z: [[0, 4], [5, 1], [2, 6], [7, 3]]
         };
-        box.edgs = function () {
-            var c = box.crns();
+        box.wEdges = function () {
+            var c = wCorners();
             var e = {};
             for(var dim in edgeCornerPairs ) {
                 var lines = [];
@@ -410,10 +423,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
             return e;
         };
-        box.edgesForDimension = function (dim) {
-            return box.edgs()[dim];
+        box.wEdgesForDimension = function (dim) {
+            return box.wEdges()[dim];
         };
-
+/*
         var revFn = box.isReversed;
         box.isReversed = function() {
             var revObj = revFn();
@@ -426,6 +439,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             });
             return revObj;
         };
+        */
         box.isEdgeReversed = function(dim, index) {
             var edge = box.vpEdgesForDimension(dim)[index];
             var currentVector = edge.vector();
@@ -435,7 +449,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
 
         box.vpEdgesForDimension = function (dim) {
-            return vpEgds()[dim];
+            return vpEdges()[dim];
         };
 
         // an external edge has all other corners on the same side of the line it defines
@@ -471,27 +485,29 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return ext;
         };
         box.vpCenterLineForDimension = function (dim) {
-            return vpcls()[dim];
+            return vpCenterLines()[dim];
         };
 
+        /*
         function vpCorners() {
             return wCorners().map(function (p) {
                 return self.localCoordFromWorld(box.wCoord, p);
             });
         }
-        function vpcrns() {
-            return wcrn().map(function (p) {
+        */
+        function vpCorners() {
+            return wCorners().map(function (p) {
                 return box.localCoordFromWorld(p);
             });
         }
-        function vpEgds() {
+        function vpEdges() {
             var ee = {};
-            var es = box.edgs();
+            var es = box.wEdges();
             for(var e in es) {
-                var wEdges = es[e];
+                var edges = es[e];
                 var lEdges = [];
-                for(var i = 0; i < wEdges.length; ++i) {
-                    var ls = wEdges[i];
+                for(var i = 0; i < edges.length; ++i) {
+                    var ls = edges[i];
                     var wpts = ls.points();
                     var lpts = [];
                     for(var j = 0; j < wpts.length; ++j) {
@@ -504,7 +520,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
             return ee;
         }
-
+/*
         function wCenterLines() {
             var c = wCenter();
             var cls = [];
@@ -523,8 +539,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
             return cls;
         }
-        function vpcls() {
-            var ctr = wc().coords();
+        */
+        function vpCenterLines() {
+            var ctr = wCenter().coords();
             var cls = {};
             var lens = wl();
             var m = [
@@ -545,17 +562,18 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             }
             return cls;
         }
-
+/*
         function vpCenterLines() {
             return wCenterLines().map(function (p) {
                 return self.localCoordFromWorld(box.wCoord, p);
             });
         }
-
+*/
         // These member functions use descriptive names for the geometry,
         // to simplify usage
 
         // A list of the keys used by getCorners(), for convenience in specifying edge names
+        /*
         box.corners = {
                 leftBottomOut: 'leftBottomOut',
                 leftTopOut: 'leftTopOut',
@@ -566,10 +584,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 rightTopIn: 'rightTopIn',
                 rightBottomIn: 'rightBottomIn'
         };
+        */
+        /*
         box.getCorners = function() {
             var cArr = vpCorners();
             var c = {};
-            /*
+            /STAR
             c[box.corners.leftBottomOut] = cArr[0];
             c[box.corners.leftTopOut] = cArr[1];
             c[box.corners.rightTopOut] = cArr[2];
@@ -578,7 +598,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             c[box.corners.leftTopIn] = cArr[5];
             c[box.corners.rightTopIn] = cArr[6];
             c[box.corners.rightBottomIn] = cArr[7];
-            */
+            STAR/
 
             c[box.corners.leftBottomOut] = cArr[4];
             c[box.corners.leftTopOut] = cArr[6];
@@ -589,7 +609,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             c[box.corners.rightTopIn] = cArr[2];
             c[box.corners.rightBottomIn] = cArr[1];
             return c;
-            /*
+            /STAR
             return {
                 leftBottomOut: cArr[0],
                 leftTopOut: cArr[1],
@@ -600,25 +620,28 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 rightTopIn: cArr[6],
                 rightBottomIn: cArr[7]
             };
-            */
+            STAR/
         };
-
+*/
+        /*
         box.extrema = {
                 lowestCorners: 'lowestCorners',
                 leftmostCorners: 'leftmostCorners',
                 highestCorners: 'highestCorners',
                 rightmostCorners: 'rightmostCorners'
         };
+        */
+        /*
         box.getExtrema = function() {
             var corners = vpCorners();
-            /*
+            /STAR
             var e = {};
             e[box.extrema.lowestCorners] =  plotUtilities.extrema(corners, 1, true);
             e[box.extrema.leftmostCorners] =  plotUtilities.extrema(corners, 0, false);
             e[box.extrema.highestCorners] =  plotUtilities.extrema(corners, 1, false);
             e[box.extrema.rightmostCorners] =  plotUtilities.extrema(corners, 0, true);
             return e;
-            */
+            STAR/
 
             return {
                 //lowestCorners: self.pointArrToObj(plotUtilities.extrema(corners, 1, true)),
@@ -632,8 +655,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             };
 
         };
+        */
         // points on the screen that have the largest and smallest values in each dimension
-        box.extr = function() {
+        function extrema() {
             var ex = {};
             // just x and y
             var dims = geometry.basis.slice(0, 2);
@@ -641,13 +665,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             dims.forEach(function (dim) {
                 ex[dim] = [];
                 for( var j in rev ) {
-                    ex[dim].push(geometry.extrema(vpcrns(), dim, rev[j]));
+                    ex[dim].push(geometry.extrema(vpCorners(), dim, rev[j]));
                 }
             });
             return ex;
-        };
+        }
 
         // A list of the keys used by getEdges(), for convenience in specifying edge names
+        /*
         box.edges = {
                 bottomOut: 'bottomOut',
                 bottomIn: 'bottomIn',
@@ -679,17 +704,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             e[box.edges.rightIn] = [corners.rightBottomIn, corners.rightTopIn];
             return e;
         };
+*/
 
-
-        /*
-        geometry.basis.forEach(function (dim) {
-            initialVPEdges[dim] = box.vpEdgesForDimension(dim);
-            initialVPVects[dim] = initialVPEdges[dim].map(function (e) {
-                return e.vector();
-            });
-            srdbg(dim, 'initial edges', initialVPEdges[dim], 'vects', initialVPVects[dim]);
-        });
-        */
         return box;
     };
 
