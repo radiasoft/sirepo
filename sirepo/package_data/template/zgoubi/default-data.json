@@ -105,7 +105,6 @@
         "simulationSettings": {
             "npass": 10
         },
-        "simulationStatus": {},
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
