@@ -54,7 +54,7 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
         template: [
             '<div data-page-heading="" data-lc="lc"></div>',
             '<div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>',
-            '<div class="lp-launch-button centered" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
+            '<div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
         ].join('')
     });
     Object.keys(appRoutes).forEach(function(key) {
