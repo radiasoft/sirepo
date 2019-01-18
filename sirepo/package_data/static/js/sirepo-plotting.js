@@ -4186,175 +4186,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 renderWindow.render();
 
-                //TODO (mvk): move to an object that encapsulates all this (in progress)
-
                 /*
-                var osCenter = outlineSource.getCenter();
-
-                // center lines
-                var osLeftCenterCenter = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1], osCenter[2]];
-                var osRightCenterCenter = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1], osCenter[2]];
-                var osCenterBottomCenter = [osCenter[0], osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2]];
-                var osCenterTopCenter = [osCenter[0], osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2]];
-                var osCenterCenterIn = [osCenter[0], osCenter[1], osCenter[2] - 0.5 * outlineSource.getZLength()];
-                var osCenterCenterOut = [osCenter[0], osCenter[1], osCenter[2] + 0.5 * outlineSource.getZLength()];
-
-                // outline corners - axes will adhere to the proper sides
-                var osLeftBottomOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osLeftTopOut = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osRightTopOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osRightBottomOut = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] + 0.5 * outlineSource.getZLength()];
-                var osLeftBottomIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                var osLeftTopIn = [osCenter[0] - 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                var osRightTopIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] + 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-                var osRightBottomIn = [osCenter[0] + 0.5 * outlineSource.getXLength(), osCenter[1] - 0.5 * outlineSource.getYLength(), osCenter[2] - 0.5 * outlineSource.getZLength()];
-
-                // put in arrays for ease of transformation
-                var osCorners = [
-                    osLeftBottomOut, osLeftTopOut, osRightTopOut, osRightBottomOut,
-                    osLeftBottomIn, osLeftTopIn, osRightTopIn, osRightBottomIn
-                ];
-                var osCenters = [
-                    osLeftCenterCenter, osRightCenterCenter,
-                    osCenterBottomCenter, osCenterTopCenter,
-                    osCenterCenterIn, osCenterCenterOut
-                ];
-*/
                 var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
                     renderer: renderer
                 });
                 worldCoord.setCoordinateSystemToWorld();
+                */
 
-                /*
-                // "vp" for "viewPort"
-                var vpCorners = osCorners.map(function (corner) {
-                    return vtkPlotting.localCoordFromWorld(worldCoord, corner);
-                });
-                //srdbg('vpCorners', vpCorners);
-                var vpCenters = osCenters.map(function (corner) {
-                    return vtkPlotting.localCoordFromWorld(worldCoord, corner);
-                });
-
-                // names are easier to think about
-                var vpLeftBottomOut = vpCorners[0];
-                var vpLeftBottomIn = vpCorners[4];
-                var vpLeftTopOut = vpCorners[1];
-                var vpLeftTopIn = vpCorners[5];
-
-                var vpRightBottomOut = vpCorners[3];
-                var vpRightBottomIn = vpCorners[7];
-                var vpRightTopOut = vpCorners[2];
-                var vpRightTopIn = vpCorners[6];
-
-                var vpLeftCenterCenter = vpCenters[0];
-                var vpRightCenterCenter = vpCenters[1];
-                var vpCenterBottomCenter = vpCenters[2];
-                var vpCenterTopCenter = vpCenters[3];
-                var vpCenterCenterIn = vpCenters[4];
-                var vpCenterCenterOut = vpCenters[5];
-
-                // edges
-                var vpBottomOut = [vpLeftBottomOut, vpRightBottomOut];
-                var vpBottomIn = [vpLeftBottomIn, vpRightBottomIn];
-                var vpTopOut = [vpLeftTopOut, vpRightTopOut];
-                var vpTopIn = [vpLeftTopIn, vpRightTopIn];
-
-                var vpLeftBottom = [vpLeftBottomOut, vpLeftBottomIn];
-                var vpRightBottom = [vpRightBottomOut, vpRightBottomIn];
-                var vpLeftTop = [vpLeftTopOut, vpLeftTopIn];
-                var vpRightTop = [vpRightTopOut, vpRightTopIn];
-
-                var vpLeftOut = [vpLeftBottomOut, vpLeftTopOut];
-                var vpLeftIn = [vpLeftBottomIn, vpLeftTopIn];
-                var vpRightOut = [vpRightBottomOut, vpRightTopOut];
-                var vpRightIn = [vpRightBottomIn, vpRightTopIn];
-
-                var vpLeftRight = [vpLeftCenterCenter, vpRightCenterCenter];
-                var vpBottomTop = [vpCenterBottomCenter, vpCenterTopCenter];
-                var vpInOut = [vpCenterCenterIn, vpCenterCenterOut];
-
-                // arrays for axis handling
-                var vpXEdges = [
-                    vpBottomOut, vpBottomIn, vpTopOut, vpTopIn
-                ];
-                //srdbg('vpXEdges', vpXEdges);
-                var boundEdges = {};
-                geometry.basis.forEach(function (dim) {
-                    boundEdges[dim] = vpOutline.vpEdgesForDimension(dim);
-                });
-
-                var vpYEdges = [
-                    vpLeftOut, vpLeftIn, vpRightOut, vpRightIn
-                ];
-                var vpZEdges = [
-                    vpLeftBottom, vpRightBottom, vpLeftTop, vpRightTop
-                ];
-
-                var lowestCorners = plotUtilities.extrema(vpCorners, 1, true);
-                var leftmostCorners = plotUtilities.extrema(vpCorners, 0, false);
-                var highestCorners = plotUtilities.extrema(vpCorners, 1, false);
-                var rightmostCorners = plotUtilities.extrema(vpCorners, 0, true);
-
-                var lwc = vpOutline.extr().y[1];
-                var hgc = vpOutline.extr().y[0];
-                //srdbg('lwc', lwc, 'hgc', hgc);
-                var lfc = vpOutline.extr().x[0];
-                var rtc = vpOutline.extr().x[1];
-                //srdbg('lfc', lfc, 'rtc', rtc);
-
-                // for the z (out-in) axis,
-                var bottomofleftmost = plotUtilities.extrema(leftmostCorners, 1, true);
-                var leftofbottommost = plotUtilities.extrema(lowestCorners, 0, false);
-                var bottomofrightmost = plotUtilities.extrema(rightmostCorners, 1, true);
-                var rightofbottommost = plotUtilities.extrema(lowestCorners, 0, true);
-                var zLeft = [];
-                var zRight = [];
-                var index = 0;
-                for (index in bottomofleftmost) {
-                    zLeft.push(bottomofleftmost[index]);
-                }
-                for (index in leftofbottommost) {
-                    zLeft.push(leftofbottommost[index]);
-                }
-                for (index in bottomofrightmost) {
-                    zRight.push(bottomofrightmost[index]);
-                }
-                for (index in rightofbottommost) {
-                    zRight.push(rightofbottommost[index]);
-                }
-
-                var zl = [
-                    geometry.sortInDimension(lfc, 'y', true)[0],
-                    geometry.sortInDimension(lwc, 'x', false)[0]
-                ];
-                var zr = [
-                    geometry.sortInDimension(rtc, 'y', true)[0],
-                    geometry.sortInDimension(lwc, 'x', true)[0],
-                ];
-                //srdbg('zleft', zLeft, 'zl', zl, 'zright', zRight, 'zr', zr);
-
-                //boundAxes.x.update(
-                //    vtkCanvasHolderBounds,
-                //    [vpOutline.getExtrema().lowestCorners, vpOutline.getExtrema().highestCorners],
-                //    vpOutline.selectEdgesByCorners
-                //);
-
-                var xAxisProjLen = 0;
-                var xAxisLeft = vtkCanvasHolderBounds.left;
-                var xAxisTop = vtkCanvasHolderBounds.top + (vtkCanvasHolderBounds.bottom - vtkCanvasHolderBounds.top) / 2.0;
-                var xAxisRight = vtkCanvasHolderBounds.right;
-                var xAxisBottom = vtkCanvasHolderBounds.top + (vtkCanvasHolderBounds.bottom - vtkCanvasHolderBounds.top) / 2.0;
-                var xAxisAngle = 0;
-                var isXReversed = false;
-                var sceneXEnds = [[0, 0], [0, 0]];
-                var screenXEnds = sceneXEnds;
-                var clippedXEnds = sceneXEnds;
-                var sceneXLen = 0;
-                var showXAxisEnds = false;
-
-                var edgeProps = propertiesOfEdges(vpXEdges, [lowestCorners, highestCorners], vtkCanvasHolderBounds, 0, false);
-
-*/
+                // wait for a render cycle to initialize
+                vpOutline.initializeWorld();
                 sceneRect =  vpOutline.boundingRect();
 
                 // initial area of scene
@@ -4378,158 +4218,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 else {
                     setCam(lastCamPos, lastCamFP ,lastCamViewUp);
                 }
-/*
-                var zAxisProjLen = 0;
-                var zAxisLeft = vtkCanvasHolderBounds.left;
-                var zAxisTop = vtkCanvasHolderBounds.top;
-                var zAxisRight = vtkCanvasHolderBounds.left;
-                var zAxisBottom = vtkCanvasHolderBounds.bottom;
-                var zAxisAngle = 0;
-                var isZReversed = false;
-                var sceneZEnds = [[0, 0], [0, 0]];
-                var screenZEnds = sceneZEnds;
-                var clippedZEnds = sceneZEnds;
-                var sceneZLen = 0;
-                var showZAxisEnds = false;
 
-                var edgeProps = propertiesOfEdges(vpZEdges, [zLeft, zRight], vtkCanvasHolderBounds, 0, false);
-                dim = 'z';
-                var rev = false;
-                var edges = edgeProps.edges;
-                var tanTheta = 0;
-                if (edges) {
-                    isZReversed = edges[0][0] > edges[1][0];
-                    sceneZEnds = edgeProps.sceneEnds;
-                    sceneZLen = edgeProps.sceneLen;
-                    clippedZEnds = edgeProps.clippedEnds;
-                    zAxisLeft = Math.max(sceneZEnds[0][0], clippedZEnds[0][0]);
-                    zAxisTop = zAxisLeft == sceneZEnds[0][0] ? sceneZEnds[0][1] : clippedZEnds[0][1];
-                    zAxisRight = Math.min(sceneZEnds[1][0], clippedZEnds[1][0]);
-                    zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
-                    zAxisProjLen = plotUtilities.dist([zAxisLeft, zAxisTop], [zAxisRight, zAxisBottom]);
-                    tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
-                    zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
-                }
-                else {
-                    showZAxisEnds = true;
-                    isZReversed = vpInOut[0][0] > vpInOut[1][0];
-                    sceneZEnds = plotUtilities.sortInDimension(vpInOut, 0);
-                    screenZEnds = plotUtilities.boundsIntersections(vtkCanvasHolderBounds, sceneZEnds[0], sceneZEnds[1]);
-                    clippedZEnds = plotUtilities.sortInDimension(
-                        plotUtilities.edgesInsideBounds(screenZEnds, vtkCanvasHolderBounds),
-                        0, false);
-                    if(clippedZEnds) {
-                        zAxisLeft = Math.max(sceneZEnds[0][0], clippedZEnds[0][0]);
-                        zAxisTop = zAxisLeft == sceneZEnds[0][0] ? sceneZEnds[0][1] : clippedZEnds[0][1];
-                        zAxisRight = Math.min(sceneZEnds[1][0], clippedZEnds[1][0]);
-                        zAxisBottom = zAxisRight == sceneZEnds[1][0] ? sceneZEnds[1][1] : clippedZEnds[1][1];
-                    }
-                    else {
-                        zAxisLeft = sceneZEnds[0][0];
-                        zAxisTop = sceneZEnds[0][1];
-                        zAxisRight = sceneZEnds[1][0];
-                        zAxisBottom = sceneZEnds[1][1];
-                    }
-                    zAxisProjLen = plotUtilities.dist([zAxisLeft, zAxisTop], [zAxisRight, zAxisBottom]);
-                    sceneZLen = plotUtilities.dist(sceneZEnds[0], sceneZEnds[1]);
-                    tanTheta = (sceneZEnds[0][1] - sceneZEnds[1][1]) / (sceneZEnds[0][0] - sceneZEnds[1][0]);
-                    zAxisAngle = 180 * Math.atan(tanTheta) / Math.PI;
-                }
-                //srdbg('zleft', zAxisLeft, 'ztop', zAxisTop, 'zright', zAxisRight, 'zbottom', zAxisBottom, 'len', sceneZLen);
-
-                // domain is the value of the data points
-                // range is the position on the screen
-                // TODO (mvk): plotAxis should handle arbitrary rotated axes instead of doing it here
-
-                var zrange = Math.min(zAxisProjLen, sceneZLen);
-
-                var newMin = ymin;
-                var newMax = ymax;
-                var domainPct = 0.0;
-                var domainPart = 0.0;
-                if (!plotUtilities.isPointWithinBounds(sceneZEnds[0], vtkCanvasHolderBounds)) {
-                    domainPct = clippedZEnds ? plotUtilities.dist(sceneZEnds[0], clippedZEnds[0]) / sceneZLen : 0;
-                    domainPart = (ymax - ymin) * domainPct;
-                    if (isZReversed) {
-                        newMax = ymax - domainPart;
-                    }
-                    else {
-                        newMin = ymin + domainPart;
-                    }
-                }
-                if (!plotUtilities.isPointWithinBounds(sceneZEnds[1], vtkCanvasHolderBounds)) {
-                    domainPct = clippedZEnds ? plotUtilities.dist(sceneZEnds[1], clippedZEnds[1]) / sceneZLen : 0;
-                    domainPart = (ymax - ymin) * domainPct;
-                    if (isZReversed) {
-                        newMin = ymin + domainPart;
-                    }
-                    else {
-                        newMax = ymax - domainPart;
-                    }
-                }
-                //axes.z.scale.domain([newMin, newMax]).nice();
-                //axes.z.scale.range([isZReversed ? zrange : 0, isZReversed ? 0 : zrange]);
-                srdbg('z', 'newDom', [newMin, newMax], 'newRange', [isZReversed ? zrange : 0, isZReversed ? 0 : zrange], 'rev?', isZReversed);
-                /STAR
-                // note that the 'z' dimension is treated like 'y' in plotAxis,
-                // so only the height below is used
-                if (showZAxisEnds) {
-                    axes.z.svgAxis.ticks(0);
-                    select('.z.axis').call(axes.z.svgAxis);
-                }
-                else {
-                    axes.z.updateLabelAndTicks({
-                        width: zrange,
-                        height: zrange
-                    }, select);
-                }
-                STAR/
-
-                //select('.z.axis .domain').style({'stroke': 'none'});
-                var zxform = 'translate(' +
-                    zAxisLeft + ',' +
-                    zAxisTop + ') ' +
-                    'rotate(' + zAxisAngle + ')';
-                //srdbg('z xfrom', zxform);
-                /STAR
-                d3self.selectAll('.z.axis')
-                    .attr('transform', zxform);
-
-                d3self.selectAll('.z.axis-end')
-                    .style('opacity', showZAxisEnds ? 1 : 0);
-                select('.z.axis-end.low')
-                    .text('◄ y ' + axes.z.svgAxis.tickFormat()(isZReversed ? newMax : newMin) + axes.z.unitSymbol + axes.z.units)
-                    .attr('x', zAxisLeft)
-                    .attr('y', zAxisTop)
-                    .attr('transform', 'rotate(' + (zAxisAngle) + ', ' + zAxisLeft + ', ' + zAxisTop + ')');
-                select('.z.axis-end.high')
-                    .attr('text-anchor', 'end')
-                    .text(axes.z.svgAxis.tickFormat()(isZReversed ? newMin : newMax) + axes.z.unitSymbol + axes.z.units + ' y ►')
-                    .attr('x', zAxisRight)
-                    .attr('y', zAxisBottom)
-                    .attr('transform', 'rotate(' + (zAxisAngle) + ', ' + zAxisRight + ', ' + zAxisBottom + ')');
-
-
-                // counter-rotate the tick labels
-                d3self.selectAll('.z.axis text')
-                    .attr('transform', 'rotate(' + (-zAxisAngle) + ')');
-                select('.z.axis').style('opacity', zrange < minAxisDisplayLen ? 0.0 : 1.0);
-
-                select('.z-axis-label')
-                    .attr('x', zAxisLeft + (zAxisRight - zAxisLeft) / 2.0)
-                    .attr('y', zAxisTop + 2 * plotting.tickFontSize(select('.z-axis-label')) + (zAxisBottom - zAxisTop) / 2.0)
-                    .style('opacity', showZAxisEnds || zrange < minAxisDisplayLen ? 0.0 : 1.0);
-                STAR/
-
-*/
-                // TODO (mvk): move axis stuff above to the refreshAxes function
                 refreshAxes();
 
                 // do this after the axes are set so the number of sections in the grids
                 // match the new number of ticks
                 refreshGridPlanes();
 
-                // TODO: use feature_config to restrict this to dev
                 if (SIREPO.APP_SCHEMA.feature_config.display_test_boxes) {
                     $scope.testBoxes = [
 
@@ -4614,48 +4309,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
             }
 
-            // Find where the "scene" (bounds of the rendered objects) intersects the screen (viewport)
-            // Returns the properties of the first set of corners that fit - order them by desired location.
-            // Could be none fit, in which case no properties are defined
-            /*
-            function propertiesOfEdges(vpEdges, cornersArr, bounds, dim, reverse) {
-                var props = {};
-                //srdbg('checking edges', vpEdges);
-                for(var corners in cornersArr) {
-                    //srdbg('checking corners', cornersArr[corners]);
-                    var edges = plotUtilities.edgesWithCorners(vpEdges, cornersArr[corners])[0];
-                    if(! edges) {
-                        continue;
-                    }
-                    var sceneEnds = plotUtilities.sortInDimension(edges, dim);
-                    var screenEnds = plotUtilities.boundsIntersections(bounds, sceneEnds[0], sceneEnds[1]);
-                    var sceneLen = plotUtilities.dist(sceneEnds[0], sceneEnds[1]);
-                    var clippedEnds = plotUtilities.sortInDimension(
-                        plotUtilities.edgesInsideBounds(screenEnds, bounds),
-                        dim, reverse);
-                    if(clippedEnds && clippedEnds.length == 2) {
-                     var clippedLen = plotUtilities.dist(clippedEnds[0], clippedEnds[1]);
-                        if(clippedLen / sceneLen > 0.5) {
-                            props.edges = edges;
-                            props.sceneEnds = sceneEnds;
-                            props.screenEnds = screenEnds;
-                            props.sceneLen = sceneLen;
-                            props.clippedEnds = clippedEnds;
-                            return props;
-                        }
-                    }
-                }
-                return props;
-            }
-            */
-
             function refreshAxes() {
 
                 // If an axis is shorter than this, don't display it -- the ticks will
                 // be cramped and unreadable
                 var minAxisDisplayLen = 50;
 
-                var b = ['z'];
+                var b = ['x'];
                 for(var i in b) {
                 //for(var i in geometry.basis) {
 
@@ -4671,12 +4331,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var axisSelector = '.' + dim + '.axis';
                     var axisLabelSelector = '.' + dim + '-axis-label';
 
-                    var seg = geometry.bestLineSegmentForEdges(externalEdges, screenRect, dim, false);
+                    var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
 
                     if(! seg) {
                         // all possible axis ends offscreen, so try a centerline
                         var cl = vpOutline.vpCenterLineForDimension(dim);
-                        seg = geometry.bestLineSegmentForEdges([cl], screenRect, dim, false);
+                        seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
                         if(! seg) {
                             // don't draw axes
                             select(axisSelector).style('opacity', 0.0);
@@ -4690,8 +4350,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;
                     var isReversed = vpOutline.isEdgeReversed(dim, seg.index);
-                    var reverseOnScreen = (isReversed && isHorizontal) || (! isReversed && ! isHorizontal);
-                    //var sense = vpOutline.senseForEdgeAtIndex(dim, seg.index, axisCfg[dim].orientation);  // 1;
+                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, axisCfg[dim].orientation);  //(isReversed && isHorizontal) || (! isReversed && ! isHorizontal);
                     var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
@@ -4777,6 +4436,25 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
 
                 }
+            }
+
+            function shouldReverseOnScreen(dim, index, orientation) {
+                var isEdgeReversed = vpOutline.isEdgeReversed(dim, index);
+                var screenDim = orientation === vtkPlotting.orientations.horizontal ? 'x' : 'y';
+                var currentEdge = vpOutline.vpEdgesForDimension(dim)[index];
+                var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
+                var currDiffDir = currDiff === 0 ? 0 : currDiff / Math.abs(currDiff);
+                var initEdge = vpOutline.initialVPEdges[dim][index];
+                var initDiff = initEdge.points()[1][screenDim] - initEdge.points()[0][screenDim];
+                var initDiffDir = initDiff === 0 ? 0 : initDiff / Math.abs(initDiff);
+                srdbg('init coord', initDiff, 'curr diff', currDiff, 'prod', initDiff * currDiff, 'rev?', isEdgeReversed);
+                srdbg('init diff', initDiff, 'curr diff', currDiff, 'prod', initDiff * currDiff, 'rev?', isEdgeReversed);
+
+                if(orientation === vtkPlotting.orientations.vertical) {
+                    return ! isEdgeReversed;
+                }
+
+                return isEdgeReversed;
             }
 
             // takes the result of a d3.selectAll

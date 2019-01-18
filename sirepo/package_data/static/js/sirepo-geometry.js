@@ -505,46 +505,13 @@ SIREPO.app.service('geometry', function(utilities) {
         return this.vectorLinearCombination(vector1, vector2, -1);
     };
 
-    // returns a line segment matching the portion of an edge inside the given rectangle
-    // The edge is selected from those provided by picking the first one that
-    // contains the given corners
-    // should corners beome a selection function for the edge?  could filter before calling also
-    // move to plotting vtk?  It's not basic enough for geometry
-    // may not need dimension or sort direction?
-    // we need both the clipped and unclipped segments
-    this.bestLineSegment = function (edges, cornersArr, boundingRect, dim, reverse) {
-        var edge;
-        var seg;
-        if(! cornersArr || cornersArr.length === 0) {
-            edge = edges[0];
-            seg = bestLineSegmentForEdge(edge, boundingRect, dim, reverse);
-        }
-        for(var corners in cornersArr) {
-            // first check whether any of the supplied edges contain the corners
-            edge = this.firstEdgeWithCorners(edges, cornersArr[corners]);
-            if(! edge) {
-                continue;
-            }
-            seg = bestLineSegmentForEdge(edge, boundingRect, dim, reverse);
-            if(seg) {
-                break;
-            }
-        }  // end loop over corners
-        if(edge && seg) {
-            return {
-                full: edge,
-                clipped: seg
-            };
-        }
-        return null;
-    };
 
-    this.bestLineSegmentForEdges = function (edges, boundingRect, dim, reverse) {
+    this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
         var edge;
         var seg;
         for(var i in edges) {
             edge = edges[i];
-            seg = bestLineSegmentForEdge(edge, boundingRect, dim, reverse);
+            seg = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
             if(seg) {
                 return {
                     full: edge,
@@ -556,27 +523,23 @@ SIREPO.app.service('geometry', function(utilities) {
         return null;
     };
 
-    function bestLineSegmentForEdge(edge, boundingRect, dim, reverse) {
+    function sectionOfEdgeInBounds(edge, boundingRect, dim, reverse) {
 
         if(! edge) {
             return null;
         }
 
-        //srdbg(dim, 'getting best seg for', edge.str());
         // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
         // boundary rectangle
         var edgeEndsInBounds = edge.points().filter(boundingRect.pointFilter());
-        //srdbg(dim, 'edgeEndsInBounds', edgeEndsInBounds);
 
         // projectedEnds are the 4 points where the boundary rectangle intersects the
         // *line* defined by the selected edge
         var projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
-        //srdbg('gm intx with bounds', projectedEnds);
 
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
         if(projectedEnds.length == 0) {
-            //srdbg(dim, 'all offscreen', projectedEnds);
             return null;
         }
 
@@ -585,17 +548,13 @@ SIREPO.app.service('geometry', function(utilities) {
         // get all of those points that also lie on the selected edge
 
         var ap = edgeEndsInBounds.concat(projectedEnds);
-        //srdbg(dim, 'all points', ap);
         var allPoints = ap.filter(edge.pointFilter());
-        //srdbg(dim, 'all points on edge', allPoints);
         var uap = utilities.unique(allPoints, function (p1, p2) {
             return p1.equals(p2);
         });
         if(uap.length < 2) {  // need 2 points to define the line segment
-            //srdbg(dim, 'not enough points', uap);
             return null;
         }
-        //srdbg(dim, 'uniques', uap);
         var seg = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
 
         if(edgeEndsInBounds.length === 0) {
@@ -604,12 +563,9 @@ SIREPO.app.service('geometry', function(utilities) {
 
         // if the edge is showing and the line segment is too short (here half the length of the actual edge),
         // do not use it
-        //srdbg(dim, 'checking seg', seg.points());
         if(seg.length() / edge.length() > 0.5) {
             return seg;
         }
-        //srdbg(dim, 'points', allPoints, 'uniques', uap);
-        //srdbg(dim, 'seg too short:', seg.str(), seg.length(), edge.length(), seg.length() / edge.length());
         return null;
     }
 
