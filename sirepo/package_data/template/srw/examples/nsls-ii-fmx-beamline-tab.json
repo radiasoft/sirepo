@@ -429,15 +429,6 @@
             "verticalPosition": 0,
             "verticalRange": 0.4
         },
-        "simulationStatus": {
-            "fluxAnimation": {
-                "state": "initial"
-            },
-            "multiElectronAnimation": {
-                "startTime": 1470429746,
-                "state": "running"
-            }
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,

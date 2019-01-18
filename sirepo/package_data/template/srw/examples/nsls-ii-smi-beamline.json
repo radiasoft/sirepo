@@ -561,18 +561,6 @@
             "verticalPosition": 0,
             "verticalRange": 0.4
         },
-        "simulationStatus": {
-            "multiElectronAnimation": {
-                "elapsedTime": 0,
-                "frameCount": 0,
-                "lastUpdateTime": 1471633722,
-                "parametersChanged": null,
-                "percentComplete": 0,
-                "report": "multiElectronAnimation",
-                "startTime": 1471633722,
-                "state": "stopped"
-            }
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 29.5,

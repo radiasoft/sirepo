@@ -1123,7 +1123,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="radiasoft"></a>',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
