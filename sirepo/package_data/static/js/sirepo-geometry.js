@@ -142,61 +142,68 @@ SIREPO.app.service('geometry', function(utilities) {
 
     // 2d only
     this.lineSegment = function(point1, point2) {
-        return {
-            containsPoint: function (p) {
-                var ext = this.extents();
-                return this.line.containsPoint(p) &&
-                    (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
-                    (p.y >= ext[1][0] && p.y <= ext[1][1]);
-            },
-            equals: function (ls2) {
-                var ps1 = this.points();
-                var ps2 = ls2.points();
-                return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
-                    (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
-            },
-            extents: function() {
-                var pts = this.points();
-                return [
-                    [Math.min(pts[0].x, pts[1].x), Math.max(pts[0].x, pts[1].x)],
-                    [Math.min(pts[0].y, pts[1].y), Math.max(pts[0].y, pts[1].y)]
-                ];
-            },
-            intercept: function() {
-                return this.line.intercept();
-            },
-            intersection: function (ls2) {
-                var p = this.line.intersection(ls2.line);
-                return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
-            },
-            length: function () {
-                return point1.dist(point2);
-            },
-            //line: function() {
-            //    return svc.line(point1, point2);
-            //},
-            line: svc.line(point1, point2),
-            pointFilter: function() {
-                var ls = this;
-                return function (point) {
-                    return ls.containsPoint(point);
-                };
-            },
-            points: function () {
-                return [point1, point2];
-            },
-            slope: function() {
-                return this.line.slope();
-            },
-            str: function () {
-                return this.points().map(function (p) {
-                    return p.str();
-                });
-            },
-            vector: function () {
-                return [point1.x - point2.x, point1.y - point2.y];
-            },
+        var ls = {
+            p1: point1,
+            p2: point2
         };
+        ls.containsPoint = function (p) {
+            var ext = this.extents();
+            return this.line().containsPoint(p) &&
+                (p.x >= ext[0][0] && p.x <= ext[0][1]) &&
+                (p.y >= ext[1][0] && p.y <= ext[1][1]);
+        };
+        ls.equals = function (ls2) {
+            var ps1 = this.points();
+            var ps2 = ls2.points();
+            return (ps1[0].equals(ps2[0]) && ps1[1].equals(ps2[1])) ||
+                (ps1[0].equals(ps2[1]) && ps1[1].equals(ps2[0]));
+        };
+        ls.extents = function() {
+            var pts = this.points();
+            return [
+                [Math.min(pts[0].x, pts[1].x), Math.max(pts[0].x, pts[1].x)],
+                [Math.min(pts[0].y, pts[1].y), Math.max(pts[0].y, pts[1].y)]
+            ];
+        };
+        ls.intercept = function() {
+            return this.line().intercept();
+        };
+        ls.intersection = function (ls2) {
+            var p = this.line().intersection(ls2.line());
+            return p ? (this.containsPoint(p) && ls2.containsPoint(p) ? p : null) : null;
+        };
+        ls.length = function () {
+            return point1.dist(point2);
+        };
+        ls.line = function() {
+            return svc.line(this.p1, this.p2);
+        };
+        ls.pointFilter = function() {
+            var ls = this;
+            return function (point) {
+                return ls.containsPoint(point);
+            };
+        };
+        ls.points = function () {
+            return [this.p1, this.p2];
+        };
+        ls.slope = function() {
+            return this.line().slope();
+        };
+        ls.str = function () {
+            return this.points().map(function (p) {
+                return p.str();
+            });
+        };
+        ls.update = function(newp1, newp2) {
+            this.p1 = newp1;
+            this.p2 = newp2;
+        };
+        ls.vector = function () {
+            return [this.p1.x - this.p2.x, this.p1.y - this.p2.y];
+        };
+
+        return ls;
     };
     this.lineSegmentFromArr = function (arr) {
         return this.lineSegment(arr[0], arr[1]);
@@ -234,7 +241,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return this.boundaryIntersectionsWithSeg(svc.lineSegment(point1, point2));
             },
             boundaryIntersectionsWithSeg: function (lseg) {
-                return this.boundaryIntersectionsWithLine(lseg.line);
+                return this.boundaryIntersectionsWithLine(lseg.line());
             },
             center: function () {
                 svc.point(
@@ -313,7 +320,10 @@ SIREPO.app.service('geometry', function(utilities) {
                     s.push(svc.lineSegment(crn[i], crn[(i + 1) % 4]));
                 }
                 return s;
-            }
+            },
+            str: function () {
+                return svc.geomObjArrStr(this.points());
+            },
         };
     };
 
@@ -508,14 +518,14 @@ SIREPO.app.service('geometry', function(utilities) {
 
     this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
         var edge;
-        var seg;
+        var section;
         for(var i in edges) {
             edge = edges[i];
-            seg = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
-            if(seg) {
+            section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
+            if(section) {
                 return {
                     full: edge,
-                    clipped: seg,
+                    clipped: section,
                     index: i
                 };
             }
@@ -555,16 +565,16 @@ SIREPO.app.service('geometry', function(utilities) {
         if(uap.length < 2) {  // need 2 points to define the line segment
             return null;
         }
-        var seg = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
+        var section = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
 
         if(edgeEndsInBounds.length === 0) {
-            return seg;
+            return section;
         }
 
         // if the edge is showing and the line segment is too short (here half the length of the actual edge),
         // do not use it
-        if(seg.length() / edge.length() > 0.5) {
-            return seg;
+        if(section.length() / edge.length() > 0.5) {
+            return section;
         }
         return null;
     }
@@ -577,34 +587,14 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
-
-    // Returns the members of an array of edges (point pairs) that
-    // contain any of the points in another array
-    this.edgesWithCorners = function(lines, points) {
-        return lines.filter(function (l) {
-            return l.points().some(function (c) {
-                return points.some(function (p) {
-                    return p.equals(c);
-                });
-            });
-        });
-    };
-    this.firstEdgeWithCorners = function(lines, points) {
-        return this.edgesWithCorners(lines, points)[0];
-    };
-
-    this.arrStr = function(arr) {
+    this.geomObjArrStr = function(arr) {
         return '[' +
             arr.map(function (e) {
-            return e.str();
-        }) +
-            ']';
-    };
-
-    this.parrstr = function(arr) {
-        return '[' +
-            arr.map(function (p) {
-            return p.str();
+                var strFn = e.str;
+                if(! strFn) {
+                    return '<OBJ>';
+                }
+                return strFn();
         }) +
             ']';
     };
@@ -613,7 +603,7 @@ SIREPO.app.service('geometry', function(utilities) {
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
         if(! points || ! points.length) {
-            throw svc.parrstr(points) + ': Invalid points';
+            throw svc.geomObjArrStr(points) + ': Invalid points';
         }
         return points.slice(0).sort(function (p1, p2) {
             // throws an exception if the points have different dimensions

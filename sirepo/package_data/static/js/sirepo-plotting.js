@@ -3661,8 +3661,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 renderer.addActor(outlineBundle.actor);
 
                 vpOutline = vtkPlotting.vpBox(outlineBundle.source, renderer);
-                //srdbg('outline edges', vpOutline.edgs());
-                //srdbg('outline extrena', vpOutline.extr());
 
                 // a little widget that mirrors the orientation (not the scale) of the scence
                 var axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
@@ -3729,7 +3727,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 ymin = pointData.z_range[0];
                 ymax = pointData.z_range[1];
 
-                // matrices might be helpful
                 var lcoords = [];
                 var lostCoords = [];
                 zpoints.forEach(function (z, i) {
@@ -3746,7 +3743,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         min: zmin,
                         max: zmax,
                         numPoints: zpoints.length,
-                        orientation: vtkPlotting.orientations.horizontal,
+                        screenDim: 'x',
                     },
                     y: {
                         dimLabel: 'x',
@@ -3754,7 +3751,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         min: xmin,
                         max: xmax,
                         numPoints: xpoints.length,
-                        orientation: vtkPlotting.orientations.vertical,
+                        screenDim: 'y',
                     },
                     z: {
                         dimLabel: 'y',
@@ -3762,7 +3759,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         min: ymin,
                         max: ymax,
                         numPoints: ypoints.length,
-                        orientation: vtkPlotting.orientations.horizontal,
+                        screenDim: 'x',
                     },
                 };
 
@@ -3785,8 +3782,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     ]
                 );
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
-
-                //warpVTKService.updateScene(coordMapper, axisCfg);
 
                 coordMapper.setPlane(startPlaneBundle,
                     [xmin, ymin, zmin],
@@ -3878,46 +3873,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
                     axes[dim].scale.domain([cfg.min, cfg.max]);
                     axes[dim].parseLabelAndUnits(cfg.label);
-/*
-                    boundAxes[dim + '0'] = vtkPlotting.ba(
-                        axes[dim],
-                        vpOutline,
-                        dim,
-                        axisCfg[dim].orientation
-                    );
-                    */
                 }
-                //boundAxes.x = vpOutline.bindAxis(
-                //    axes.x,
-                //    vtkPlotting.orientations.horizontal,
-                //    [vpOutline.edges.bottomOut, vpOutline.edges.bottomIn, vpOutline.edges.topOut, vpOutline.edges.topIn]
-                //);
-                /*
-                boundAxes.x = vtkPlotting.bindAxis(
-                    axes.x,
-                    vpOutline,
-                    [vpOutline.edges.bottomOut, vpOutline.edges.bottomIn, vpOutline.edges.topOut, vpOutline.edges.topIn],
-                    vtkPlotting.orientations.horizontal
-                );
-
-                //boundAxes.y = vpOutline.bindAxis(
-                //    axes.y,
-                //    vtkPlotting.orientations.vertical,
-                //    [vpOutline.edges.leftOut, vpOutline.edges.leftIn, vpOutline.edges.rightOut, vpOutline.edges.rightIn]
-                //);
-                boundAxes.y = vtkPlotting.bindAxis(
-                    axes.y,
-                    vpOutline,
-                    [vpOutline.edges.leftOut, vpOutline.edges.leftIn, vpOutline.edges.rightOut, vpOutline.edges.rightIn],
-                    vtkPlotting.orientations.vertical
-                );
-
-                boundAxes.z = vpOutline.bindAxis(
-                    axes.z,
-                    vtkPlotting.orientations.horizontal,
-                    [vpOutline.edges.leftBottom, vpOutline.edges.rightBottom, vpOutline.edges.leftTop, vpOutline.edges.rightTop]
-                );
-*/
 
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestIndex = 0;
@@ -4138,12 +4094,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     width: $('.vtk-canvas-holder').width(),
                     height: $('.vtk-canvas-holder').height()
                 };
+                /*
                 var vtkCanvasHolderBounds = {
                     left: $scope.axesMargins.x.width,
                     top: $scope.axesMargins.y.height,
                     right: vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
                     bottom: vtkCanvasHolderSize.height - $scope.axesMargins.y.height
                 };
+                */
                 screenRect = geometry.rect(
                     geometry.point(
                         $scope.axesMargins.x.width,
@@ -4159,11 +4117,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     width: $scope.width + $scope.margin.left + $scope.margin.right,
                     height: $scope.height + $scope.margin.top + $scope.margin.bottom
                 };
+                /*
                 var axisMax = {
                     x: vtkCanvasHolderSize.width - 2 * $scope.axesMargins.x.width,
                     y: vtkCanvasHolderSize.height - 2 * $scope.axesMargins.y.height,
                     z: 200,
                 };
+                */
 
                 select('.vtk-canvas-holder svg')
                     .attr('width', vtkCanvasSize.width)
@@ -4315,14 +4275,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // be cramped and unreadable
                 var minAxisDisplayLen = 50;
 
-                var b = ['x'];
-                for(var i in b) {
-                //for(var i in geometry.basis) {
+                var b = ['z'];
+                //for(var i in b) {
+                for(var i in geometry.basis) {
 
-                    var dim = b[i];  //geometry.basis[i];
+                    //var dim = b[i];
+                    var dim = geometry.basis[i];
                     vpOutline.initializeEdges(dim);
                     var externalEdges = vpOutline.externalVpEdgesForDimension(dim);
-                    var isHorizontal= axisCfg[dim].orientation === vtkPlotting.orientations.horizontal;
+                    var isHorizontal = axisCfg[dim].screenDim ==='x';
 
                     var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
                     var screenDim = isHorizontal ? 'x' : 'y';
@@ -4349,8 +4310,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;
-                    var isReversed = vpOutline.isEdgeReversed(dim, seg.index);
-                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, axisCfg[dim].orientation);  //(isReversed && isHorizontal) || (! isReversed && ! isHorizontal);
+                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, axisCfg[dim].screenDim);
                     var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
@@ -4358,13 +4318,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var axisBottom = sortedPts[1].y;
 
                     var newRange = Math.min(fullSeg.length(), clippedSeg.length());
-                    var angle = (180 * Math.atan(clippedSeg.slope()) / Math.PI);
+                    var radAngle = Math.atan(clippedSeg.slope());
                     if(! isHorizontal) {
-                        angle -= 90;
-                        if (angle < -90) {
-                            angle += 180;
+                        radAngle -= Math.PI / 2;
+                        if (radAngle < -Math.PI / 2) {
+                            angle += Math.PI;
                         }
                     }
+                    var angle = (180 * radAngle / Math.PI);
 
                     var allPts = geometry.sortInDimension(fullSeg.points().concat(clippedSeg.points()), screenDim, false);
 
@@ -4388,7 +4349,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     axes[dim].scale.domain(newDom).nice();
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
-                    srdbg(dim, 'looped newDom', newDom, 'newRange', [reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange], 'rev?', isReversed, 'screen rev?', reverseOnScreen);
+                    //srdbg(dim, 'looped newDom', newDom, 'newRange', [reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange], 'rev?', isReversed, 'screen rev?', reverseOnScreen);
 
                     if (showAxisEnds) {
                         axes[dim].svgAxis.ticks(0);
@@ -4429,32 +4390,45 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     select(axisSelector + ' .domain').style({'stroke': 'none'});
                     select(axisSelector).style('opacity', newRange < minAxisDisplayLen ? 0 : 1);
 
+                    var labelSpace = 2 * plotting.tickFontSize(select(axisSelector + '-label'));
+                    var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
+                    var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
+                    srdbg(dim, 'lx', labelSpaceX, 'ly', labelSpaceY);
+                    var labelX = axisLeft - labelSpaceX + (axisRight - axisLeft) / 2.0;
+                    var labelY = axisTop + labelSpaceY + (axisBottom - axisTop) / 2.0;
+                    var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
+
                     select('.' + dim + '-axis-label')
-                        .attr('x', axisLeft + (axisRight - axisLeft) / 2.0)
-                        .attr('y', axisTop + 2 * plotting.tickFontSize(select(axisSelector + '-label')) + (axisBottom - axisTop) / 2.0)
+                        //.attr('x', axisLeft + (axisRight - axisLeft) / 2.0)
+                        //.attr('y', axisTop + 2 * plotting.tickFontSize(select(axisSelector + '-label')) + (axisBottom - axisTop) / 2.0)
+                        //.attr('transform', labelXform)
+                        //.style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
+                        .attr('x', labelX)
+                        .attr('y', labelY)
+                        .attr('transform', labelXform)
                         .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
 
 
                 }
             }
 
-            function shouldReverseOnScreen(dim, index, orientation) {
-                var isEdgeReversed = vpOutline.isEdgeReversed(dim, index);
-                var screenDim = orientation === vtkPlotting.orientations.horizontal ? 'x' : 'y';
+            function shouldReverseOnScreen(dim, index, screenDim) {
+                //var screenDim = orientation === vtkPlotting.orientations.horizontal ? 'x' : 'y';
                 var currentEdge = vpOutline.vpEdgesForDimension(dim)[index];
                 var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
                 var currDiffDir = currDiff === 0 ? 0 : currDiff / Math.abs(currDiff);
                 var initEdge = vpOutline.initialVPEdges[dim][index];
                 var initDiff = initEdge.points()[1][screenDim] - initEdge.points()[0][screenDim];
                 var initDiffDir = initDiff === 0 ? 0 : initDiff / Math.abs(initDiff);
-                srdbg('init coord', initDiff, 'curr diff', currDiff, 'prod', initDiff * currDiff, 'rev?', isEdgeReversed);
-                srdbg('init diff', initDiff, 'curr diff', currDiff, 'prod', initDiff * currDiff, 'rev?', isEdgeReversed);
+                //srdbg(dim, index, 'init coord', initEdge.points()[0][screenDim], '->', initEdge.points()[1][screenDim]);
+                //srdbg(dim, index, 'curr coord', currentEdge.points()[0][screenDim], '->', currentEdge.points()[1][screenDim]);
+                //srdbg(dim, index, 'init diff', initDiffDir, 'curr diff', currDiffDir, 'prod', initDiffDir * currDiffDir, 'rev?', isEdgeReversed);
 
-                if(orientation === vtkPlotting.orientations.vertical) {
-                    return ! isEdgeReversed;
-                }
+                //if(orientation === vtkPlotting.orientations.vertical) {
+                //    return currDiffDir < 0;  //! isEdgeReversed;
+                //}
 
-                return isEdgeReversed;
+                return currDiffDir < 0;  //isEdgeReversed;
             }
 
             // takes the result of a d3.selectAll
@@ -4619,134 +4593,3 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
         },
     };
 });
-
-//TODO(mvk) (in progress): all basic geometric stuff should move to geometry service
-/*
-SIREPO.app.service('plotUtilities', function() {
-
-    var utils = this;
-
-    // Find where the line defined by startPoint and endPoint intersects the lines that
-    // define the given bounds
-    this.boundsIntersections = function(bounds, startPoint, endPoint) {
-        var startX = startPoint[0];  var startY = startPoint[1];
-        var endX = endPoint[0];  var endY = endPoint[1];
-
-        // horizontal line
-        if(startY == endY) {
-            return {
-                left: [bounds.left, startY],
-                top: [-Infinity, bounds.top],
-                right: [bounds.right, endY],
-                bottom: [Infinity, bounds.bottom]
-            };
-        }
-        // vertical line
-        if(startX == endX) {
-            return {
-                left: [bounds.left, -Infinity],
-                top: [startX, bounds.top],
-                right: [bounds.right, Infinity],
-                bottom: [endX, bounds.bottom]
-            };
-        }
-
-        var m = (endY - startY) / (endX - startX);
-        return {
-            left: [bounds.left, startY + m * (bounds.left - startX)],
-            top: [startX + (bounds.top - startY) / m, bounds.top],
-            right: [bounds.right, startY + m * (bounds.right - startX)],
-            bottom: [startX + (bounds.bottom - startY) / m, bounds.bottom]
-        };
-    };
-
-    this.isPointWithinBounds = function (point, bounds) {
-        return point[0] >= bounds.left && point[0] <= bounds.right && point[1] >= bounds.top && point[1] <= bounds.bottom;
-    };
-
-    // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
-    this.extrema = function(points, dim, doReverse) {
-        var sPArr = utils.sortInDimension(points, dim, doReverse);
-        if(! sPArr) {
-            return null;
-        }
-        return sPArr.filter(function (point) {
-            return point[dim] == sPArr[0][dim];
-        });
-    };
-
-    // Returns the members of an array of edges (point pairs) that
-    // contain any of the points in another array
-    this.edgesWithCorners = function(edgeArr, pArr) {
-        var edges = edgeArr.filter(function (edge) {
-            return edge.some(function (corner) {
-                return pArr.some(function (point) {
-                    return point[0] == corner[0] && point[1] == corner[1];
-                });
-            });
-        });
-        return edges;
-    };
-    this.firstEdgeWithCorners = function(edgeArr, pArr) {
-        return this.edgesWithCorners(edgeArr, pArr)[0];
-    };
-
-
-    // Returns edges that fit entirely within the given bounds (if any)
-    this.edgesInsideBounds = function(edges, bounds) {
-        var clippedEnds = [];
-        for(var edge in edges) {
-            var p = edges[edge];
-            if(! utils.isPointWithinBounds(p, bounds)) {
-                continue;
-            }
-            clippedEnds.push(p);
-        }
-        return clippedEnds;
-    };
-
-    // Sort (with optional reversal) the point array by the values in the given dimension;
-    // Array is cloned first so the original is unchanged
-    this.sortInDimension = function (points, dim, doReverse) {
-        if(!points || !points.length || dim >= points[0].length ) {
-            //throw points + ': Invalid points';
-            return null;
-        }
-        return points.slice(0).sort(function (p1, p2) {
-            return doReverse ? (p2[dim] - p1[dim]) : (p1[dim] - p2[dim]);
-        });
-    };
-
-    this.parrstr = function(arr) {
-        return arr.map(function (p) {
-            return p.coords() + ' dimension ' + p.dimension();
-        });
-    };
-    this.sid = function (points, dim, doReverse) {
-        //srdbg('sorting', this.parrstr(points), 'in dim', dim, 'reverse?', doReverse, 'p0', points[0][dim]);
-        if(! points || ! points.length) {
-            throw utils.parrstr(points) + ': Invalid points';
-        }
-        return points.slice(0).sort(function (p1, p2) {
-            // throws an exception if the points have different dimensions
-            p1.dist(p2);
-            //srdbg('p1[' + dim + ']:', p1[dim], 'p2[' + dim + ']:', p2[dim]);
-            return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
-        });
-        //srdbg('sorted', parrstr(arr));
-    };
-
-    // returns the distance bewteen two points
-    this.dist = function(p1, p2) {
-        if(p1.length != p2.length) {
-            throw 'Points have different dimensions: ' + p1.length + " != " + p2.length;
-        }
-        var dsq = 0;
-        for(var i = 0; i < p1.length; ++i) {
-            dsq += ((p2[i] - p1[i]) * (p2[i] - p1[i]));
-        }
-        return Math.sqrt(dsq);
-    };
-
-});
-*/
