@@ -9,6 +9,7 @@ from pykern import pkio
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 import pytest
+import re
 pytest.importorskip('srwl_bl')
 
 def test_generate_python():
@@ -29,7 +30,9 @@ def test_generate_python():
             },
             raw_response=True,
         )
-        filename = '{}.py'.format(name)
+        filename = '{}.py'.format(name.lower())
+        filename = re.sub(r'\s', '-', filename)
+        filename = re.sub(r'[^a-z0-9\-\.]', '', filename)
         with open(str(pkunit.work_dir().join(filename)), 'wb') as f:
             f.write(resp.data)
             expect = pkio.read_text(pkunit.data_dir().join(filename))

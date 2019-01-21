@@ -34,13 +34,13 @@ describe('Controller: NavController', function() {
         isLoaded = false;
         var controller = createController();
         expect(controller.sectionTitle()).toBe(null);
-        expect(controller.pageTitle()).toBe('SRW - Radiasoft');
+        expect(controller.pageTitle()).toBe('SRW - RadiaSoft');
     }));
 
     it('should show the simulation name in title', inject(function(activeSection) {
         isLoaded = true;
         var controller = createController();
         expect(controller.sectionTitle()).toBe('my simulation');
-        expect(controller.pageTitle()).toBe('my simulation - SRW - Radiasoft');
+        expect(controller.pageTitle()).toBe('my simulation - SRW - RadiaSoft');
     }));
 });

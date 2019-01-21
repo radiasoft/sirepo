@@ -118,6 +118,11 @@ def app_version():
     return SCHEMA_COMMON.version
 
 
+def assert_id(sid):
+    if not _ID_RE.search(sid):
+        raise RuntimeError('{}: invalid simulation id'.format(sid))
+
+
 def celery_queue(data):
     """Which queue to execute simulation in
 
@@ -752,8 +757,7 @@ def simulation_dir(simulation_type, sid=None):
     d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
-    if not _ID_RE.search(sid):
-        raise RuntimeError('{}: invalid simulation id'.format(sid))
+    assert_id(sid)
     return d.join(sid)
 
 
@@ -1121,8 +1125,7 @@ def _serial_new():
 
 def _sid_from_path(path):
     sid = os.path.split(os.path.split(str(path))[0])[1]
-    if not _ID_RE.search(sid):
-        raise RuntimeError('{}: invalid simulation id'.format(sid))
+    assert_id(sid)
     return sid
 
 

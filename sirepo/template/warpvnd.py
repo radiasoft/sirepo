@@ -387,7 +387,7 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = _meters(grid['plate_spacing'])
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    if data.models.simulationGrid.simulation_mode == '3d':
+    if _is_3D(data):
         cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
         cathode_area = _meters(grid['channel_width'])
@@ -568,8 +568,13 @@ def _generate_lattice(data):
         permittivity = ''
         if ct.isConductor == '0':
             permittivity = ', permittivity={}'.format(float(ct.permittivity))
-        res += "\n" + '    Box({}, {}, {}, voltage={}, xcent={}, ycent=0.0, zcent={}{}),'.format(
-            _meters(ct.xLength), _meters(ct.yLength), _meters(ct.zLength), ct.voltage, _meters(c.xCenter), _meters(c.zCenter), permittivity)
+        y_length = _meters(ct.yLength)
+        y_center = _meters(c.yCenter)
+        if not _is_3D(data):
+            y_length = 1
+            y_center = 0
+        res += "\n" + '    Box({}, {}, {}, voltage={}, xcent={}, ycent={}, zcent={}{}),'.format(
+            _meters(ct.xLength), y_length, _meters(ct.zLength), ct.voltage, _meters(c.xCenter), y_center, _meters(c.zCenter), permittivity)
     res += '''
 ]
 for c in conductors:
@@ -592,7 +597,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
-    v['is3D'] = data.models.simulationGrid.simulation_mode == '3d'
+    v['is3D'] = _is_3D(data)
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -616,6 +621,10 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
+
+
+def _is_3D(data):
+    return data.models.simulationGrid.simulation_mode == '3d'
 
 
 def _max_conductor_voltage(data):

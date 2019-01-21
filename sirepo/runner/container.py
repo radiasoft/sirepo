@@ -110,14 +110,14 @@ class JobTracker:
             with _catch_and_log_errors(
                     Exception, 'error waiting for container {}', jid
             ):
-                pkdp(await _container_wait(container))
+                pkdc(await _container_wait(container))
         finally:
             self.jid_to_status[jid] = JobStatus.FINISHED
 
 
 @_QUART_APP.route('/jobs/<jid>', methods=['PUT'])
 async def start_job(jid):
-    pkdp('start_job', jid)
+    pkdc('start_job', jid)
     config = await quart.request.get_json()
     await _JOB_TRACKER.start_job(jid, config)
     return ''
@@ -125,7 +125,7 @@ async def start_job(jid):
 
 @_QUART_APP.route('/jobs/<jid>', methods=['GET'])
 async def job_status(jid):
-    pkdp('job_status: {}', jid)
+    pkdc('job_status: {}', jid)
     return _JOB_TRACKER.jid_to_status[jid].value
     return ''
 

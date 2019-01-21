@@ -177,9 +177,6 @@ lp-info a:hover {
 }
 
 lp-info-content .lp-launch-button, .jupyter-launch-button, .centered {
-  margin: auto;
-  width: fit-content;
-  width: -moz-fit-content;
   padding-top: 8px;
   padding-bottom: 12px;
 }

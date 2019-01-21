@@ -560,20 +560,6 @@
             "verticalPosition": 0,
             "verticalRange": 1
         },
-        "simulationStatus": {
-            "fluxAnimation": {
-                "elapsedTime": 44336,
-                "frameCount": 1,
-                "frameId": 1476981215,
-                "isStateProcessing": false,
-                "lastUpdateTime": 1476981215,
-                "parametersChanged": false,
-                "percentComplete": 100,
-                "report": "fluxAnimation",
-                "startTime": 1476936879,
-                "state": "completed"
-            }
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 31.6,

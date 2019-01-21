@@ -2232,7 +2232,6 @@
             "steps_per_element": 5,
             "turn_count": 50
         },
-        "simulationStatus": {},
         "turnComparisonAnimation": {
             "notes": "",
             "startTime": 1528473345,

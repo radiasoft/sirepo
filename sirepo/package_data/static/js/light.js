@@ -54,7 +54,7 @@ app.config(function(appRoutesProvider, $locationProvider, $routeProvider) {
         template: [
             '<div data-page-heading="" data-lc="lc"></div>',
             '<div data-ng-repeat="item in lc.srwExamples" data-big-button="item"></div>',
-            '<div class="lp-launch-button centered" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
+            '<div class="lp-launch-button text-center" data-launch-button="" data-label="\'Launch SRW Full\'" data-url="\'/srw\'"></div>',
         ].join('')
     });
     Object.keys(appRoutes).forEach(function(key) {
@@ -107,7 +107,7 @@ app.controller('LightController', function (appRoutes, $http, $location) {
 
     self.pageTitle = function() {
         var name = self.pageName();
-        return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - Radiasoft';
+        return (name ? (name + ' - ') : '') + 'Synchrotron Radiation Workshop - RadiaSoft';
     };
 
 });
@@ -194,7 +194,7 @@ app.directive('pageHeading', function() {
         template += [
                     '<div class="pull-right">',
                         '<a href="http://radiasoft.net">',
-                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="Radiasoft" />',
+                            '<img class="lp-header-rs-logo" src="/static/img/RSLogo.png',SIREPO.SOURCE_CACHE_KEY,'" alt="RadiaSoft" />',
                         '</a>',
                     '</div>',
                 '</div>',
