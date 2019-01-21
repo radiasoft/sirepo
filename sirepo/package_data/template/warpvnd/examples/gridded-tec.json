@@ -108,8 +108,6 @@
             "particles_per_step": 1000,
             "plate_spacing": 10,
             "z_particle_min": 0.00125
-        },
-        "simulationStatus": {
         }
     },
     "simulationType": "warpvnd",

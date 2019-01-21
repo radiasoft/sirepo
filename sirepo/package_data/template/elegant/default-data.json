@@ -212,8 +212,7 @@
             "simulationMode": "serial",
             "simulationSerial": 1504732820846010,
             "visualizationBeamlineId": ""
-        },
-        "simulationStatus": {}
+        }
     },
     "report": "bunchReport4",
     "simulationType": "elegant",

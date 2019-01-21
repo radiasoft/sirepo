@@ -87,14 +87,6 @@
             "zMin": -20.324980154631,
             "zParticlesPerCell": 2,
             "zScale": 2
-        },
-        "simulationStatus": {
-            "animation": {
-                "startTime": 1459995878,
-                "state": "completed"
-            },
-            "startTime": 0,
-            "state": "initial"
         }
     },
     "report": "laserPreviewReport",

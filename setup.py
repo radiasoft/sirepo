@@ -12,6 +12,7 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
+        'Flask-BasicAuth',
         'Flask-OAuthlib',
         'Flask-Mail',
         'Flask_SQLAlchemy',
@@ -28,6 +29,7 @@ pykern.pksetup.setup(
         'pyIsEmail',
         'pykern',
         'pytz==2015.7',
+        'requests-oauthlib',
         'uwsgi',
     ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',

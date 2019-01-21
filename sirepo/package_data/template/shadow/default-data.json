@@ -99,8 +99,7 @@
             "x2": 0.02,
             "z1": -0.02,
             "z2": 0.02
-        },
-        "simulationStatus": {}
+        }
     },
     "simulationType": "shadow",
     "version": "20170214.000000"

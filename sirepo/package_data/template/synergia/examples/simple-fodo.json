@@ -131,19 +131,6 @@
             "steps_per_element": 2,
             "turn_count": 1
         },
-        "simulationStatus": {
-            "animation": {
-                "elapsedTime": 3,
-                "frameCount": 9,
-                "lastUpdateTime": 1527283408,
-                "parametersChanged": false,
-                "percentComplete": 50,
-                "report": "animation",
-                "startTime": 1527283405,
-                "state": "completed",
-                "turnCount": 1
-            }
-        },
         "twissReport": {
             "y1": "beta_x",
             "y2": "beta_y",
