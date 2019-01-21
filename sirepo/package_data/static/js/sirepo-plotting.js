@@ -3987,6 +3987,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     }
                 }
 
+                // do an initial render
+                renderWindow.render();
+
+                // wait to initialize after the render so the world to viewport transforms are ready
+                vpOutline.initializeWorld();
+
                 refresh(true);
             };
 
@@ -4094,14 +4100,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     width: $('.vtk-canvas-holder').width(),
                     height: $('.vtk-canvas-holder').height()
                 };
-                /*
-                var vtkCanvasHolderBounds = {
-                    left: $scope.axesMargins.x.width,
-                    top: $scope.axesMargins.y.height,
-                    right: vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
-                    bottom: vtkCanvasHolderSize.height - $scope.axesMargins.y.height
-                };
-                */
+
                 screenRect = geometry.rect(
                     geometry.point(
                         $scope.axesMargins.x.width,
@@ -4117,13 +4116,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     width: $scope.width + $scope.margin.left + $scope.margin.right,
                     height: $scope.height + $scope.margin.top + $scope.margin.bottom
                 };
-                /*
-                var axisMax = {
-                    x: vtkCanvasHolderSize.width - 2 * $scope.axesMargins.x.width,
-                    y: vtkCanvasHolderSize.height - 2 * $scope.axesMargins.y.height,
-                    z: 200,
-                };
-                */
 
                 select('.vtk-canvas-holder svg')
                     .attr('width', vtkCanvasSize.width)
@@ -4146,15 +4138,6 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 renderWindow.render();
 
-                /*
-                var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
-                    renderer: renderer
-                });
-                worldCoord.setCoordinateSystemToWorld();
-                */
-
-                // wait for a render cycle to initialize
-                vpOutline.initializeWorld();
                 sceneRect =  vpOutline.boundingRect();
 
                 // initial area of scene
@@ -4276,22 +4259,24 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var minAxisDisplayLen = 50;
 
                 var b = ['z'];
-                //for(var i in b) {
+                //for(var i in b) {  // use to test inidividual axes
                 for(var i in geometry.basis) {
 
                     //var dim = b[i];
                     var dim = geometry.basis[i];
-                    vpOutline.initializeEdges(dim);
-                    var externalEdges = vpOutline.externalVpEdgesForDimension(dim);
-                    var isHorizontal = axisCfg[dim].screenDim ==='x';
 
+                    var screenDim = axisCfg[dim].screenDim;
+                    var isHorizontal = screenDim === 'x';
                     var axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
-                    var screenDim = isHorizontal ? 'x' : 'y';
+                    var perpScreenDim = isHorizontal ? 'y' : 'x';
 
                     var showAxisEnds = false;
                     var axisSelector = '.' + dim + '.axis';
                     var axisLabelSelector = '.' + dim + '-axis-label';
 
+                    // sort the external edges so we'll preferentially pick the left and bottom
+                    var externalEdges = vpOutline.externalVpEdgesForDimension(dim)
+                        .sort(edgeSorter(perpScreenDim, ! isHorizontal));
                     var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
 
                     if(! seg) {
@@ -4310,7 +4295,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     var fullSeg = seg.full;
                     var clippedSeg = seg.clipped;
-                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, axisCfg[dim].screenDim);
+                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, screenDim);
                     var sortedPts = geometry.sortInDimension(clippedSeg.points(), screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
@@ -4322,7 +4307,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     if(! isHorizontal) {
                         radAngle -= Math.PI / 2;
                         if (radAngle < -Math.PI / 2) {
-                            angle += Math.PI;
+                            radAngle += Math.PI;
                         }
                     }
                     var angle = (180 * radAngle / Math.PI);
@@ -4331,8 +4316,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
                     var newDom = [axisCfg[dim].min, axisCfg[dim].max];
-                    // 1st 2, last 2 points -- they may coincide
+                    // 1st 2, last 2 points
                     for(var m = 0; m < allPts.length; m += 2) {
+                        // a point may coincide with its successor
                         var d = allPts[m].dist(allPts[m+1]);
                         if(d != 0) {
                             var j = Math.floor(m / 2);
@@ -4349,7 +4335,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     axes[dim].scale.domain(newDom).nice();
                     axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
-                    //srdbg(dim, 'looped newDom', newDom, 'newRange', [reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange], 'rev?', isReversed, 'screen rev?', reverseOnScreen);
+
+                    // this places the axis tick labels on the appropriate side of the axis
+                    var outsideCorner = geometry.sortInDimension(vpOutline.vpCorners(), perpScreenDim, isHorizontal)[0];
+                    var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
+                    if(isHorizontal) {
+                        axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
+                    }
+                    else {
+                        axes[dim].svgAxis.orient(bottomOrLeft ? 'left' : 'right');
+                    }
+
 
                     if (showAxisEnds) {
                         axes[dim].svgAxis.ticks(0);
@@ -4393,16 +4389,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var labelSpace = 2 * plotting.tickFontSize(select(axisSelector + '-label'));
                     var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
                     var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
-                    srdbg(dim, 'lx', labelSpaceX, 'ly', labelSpaceY);
-                    var labelX = axisLeft - labelSpaceX + (axisRight - axisLeft) / 2.0;
-                    var labelY = axisTop + labelSpaceY + (axisBottom - axisTop) / 2.0;
+                    var labelX = axisLeft + (bottomOrLeft ? -1 : 1) * labelSpaceX + (axisRight - axisLeft) / 2.0;
+                    var labelY = axisTop + (bottomOrLeft ? 1 : -1) * labelSpaceY + (axisBottom - axisTop) / 2.0;
                     var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
 
                     select('.' + dim + '-axis-label')
-                        //.attr('x', axisLeft + (axisRight - axisLeft) / 2.0)
-                        //.attr('y', axisTop + 2 * plotting.tickFontSize(select(axisSelector + '-label')) + (axisBottom - axisTop) / 2.0)
-                        //.attr('transform', labelXform)
-                        //.style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
                         .attr('x', labelX)
                         .attr('y', labelY)
                         .attr('transform', labelXform)
@@ -4412,30 +4403,27 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
             }
 
-            function shouldReverseOnScreen(dim, index, screenDim) {
-                //var screenDim = orientation === vtkPlotting.orientations.horizontal ? 'x' : 'y';
-                var currentEdge = vpOutline.vpEdgesForDimension(dim)[index];
-                var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
-                var currDiffDir = currDiff === 0 ? 0 : currDiff / Math.abs(currDiff);
-                var initEdge = vpOutline.initialVPEdges[dim][index];
-                var initDiff = initEdge.points()[1][screenDim] - initEdge.points()[0][screenDim];
-                var initDiffDir = initDiff === 0 ? 0 : initDiff / Math.abs(initDiff);
-                //srdbg(dim, index, 'init coord', initEdge.points()[0][screenDim], '->', initEdge.points()[1][screenDim]);
-                //srdbg(dim, index, 'curr coord', currentEdge.points()[0][screenDim], '->', currentEdge.points()[1][screenDim]);
-                //srdbg(dim, index, 'init diff', initDiffDir, 'curr diff', currDiffDir, 'prod', initDiffDir * currDiffDir, 'rev?', isEdgeReversed);
-
-                //if(orientation === vtkPlotting.orientations.vertical) {
-                //    return currDiffDir < 0;  //! isEdgeReversed;
-                //}
-
-                return currDiffDir < 0;  //isEdgeReversed;
+            function edgeSorter(dim, shouldReverse) {
+                return function (e1, e2) {
+                    if(! e1) {
+                        if(! e2) {
+                            return 0;
+                        }
+                        return 1;
+                    }
+                    if(! e2) {
+                        return -1;
+                    }
+                    var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
+                    var pt2 = geometry.sortInDimension(e2.points(), dim, shouldReverse)[0];
+                    return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
+                };
             }
 
-            // takes the result of a d3.selectAll
-            function maxLabelLen(lSelect) {
-                return Math.max.apply(null, lSelect[0].map(function (item) {
-                    return item.textContent.length;
-                }));
+            function shouldReverseOnScreen(dim, index, screenDim) {
+                var currentEdge = vpOutline.vpEdgesForDimension(dim)[index];
+                var currDiff = currentEdge.points()[1][screenDim] - currentEdge.points()[0][screenDim];
+                return currDiff < 0;
             }
 
             // Redraw the grid planes to match the number of tick marks

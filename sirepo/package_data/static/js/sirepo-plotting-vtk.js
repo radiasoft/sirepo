@@ -159,11 +159,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         };
     };
 
-    self.orientations = {
-        horizontal: 'h',
-        vertical: 'v'
-    };
-
     // "Superclass" for representation of vtk source objects in ViewPort coordinates
     // Note this means that vpObjects are implicitly two-dimensional
     // A vpObject is assumed to have corners and edges connecting them, but no other
@@ -187,8 +182,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
         vpObj.viewportCorners = [];
         vpObj.viewportEdges = {};
-        vpObj.initialVPEdges = {};
-
 
         // Override in subclass
         // world geometry does not change so they can be set once
@@ -217,7 +210,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         // an external edge has all other corners on the same side of the line it defines
         vpObj.externalVpEdgesForDimension = function (dim) {
             var ext = [];
-            vpObj.vpEdgesForDimension(dim).forEach(function (edge, edgeIndex) {
+            vpObj.vpEdgesForDimension(dim).forEach(function (edge) {
                 var numCorners = 0;
                 var compCount = 0;
                 for(var i in geometry.basis) {
@@ -240,22 +233,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 ext.push(Math.abs(compCount) === numCorners ? edge : null);
             });
             return ext;
-        };
-
-        vpObj.initializeEdges = function(dim) {
-            vpObj.initializeWorld();
-            if(! vpObj.initialVPEdges[dim]) {
-                // copy instead of using the same objects
-                var edges = vpObj.vpEdgesForDimension(dim);
-                var initialEdges = [];
-                edges.forEach(function (e) {
-                    var pts = e.points();
-                    var p1 = geometry.point(pts[0].x, pts[0].y);
-                    var p2 = geometry.point(pts[1].x, pts[1].y);
-                    initialEdges.push(geometry.lineSegment(p1, p2));
-                });
-                vpObj.initialVPEdges[dim] = initialEdges;
-            }
         };
 
         vpObj.initializeWorld = function() {
@@ -383,15 +360,15 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 
         // box corners are defined thus:
         //
-        //   2------X-------3    6------X-------7
+        //   2------X2------3    6------X3------7
         //   |              |    |              |
         //   |              |    |              |
-        //   Y    Front     Y    Y    Back      Y
+        //   Y0   Front    Y1    Y2   Back     Y3
         //   |              |    |              |
         //   |              |    |              |
-        //   0------X-------1    4------X-------5
+        //   0------X0------1    4------X1------5
         //
-        // Order is important only for axis direction and so should be supplied externally
+        //TODO(mvk): Order is important only for axis direction and should be supplied externally
         var edgeCornerPairs = {
             x: [[0, 1], [4, 5], [2, 3], [6, 7]],
             y: [[0, 2], [1, 3], [4, 6], [5, 7]],

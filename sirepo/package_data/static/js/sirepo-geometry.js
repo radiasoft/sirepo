@@ -14,17 +14,6 @@ SIREPO.app.service('geometry', function(utilities) {
         z: [0, 0, 1]
     };
 
-    this.dotProduct = function (vector1, vector2) {
-        if(vector1.length !== vector2.length) {
-            throw 'Vectors have different dimensions: ' + vector1.length + ' != ' + vector2.length;
-        }
-        var prod = 0;
-        vector1.forEach(function (e, i) {
-            prod += (e * vector2[i]);
-        });
-        return prod;
-    };
-
     // Used for both 2d and 3d
     this.point = function(x, y, z) {
         return {
@@ -87,7 +76,6 @@ SIREPO.app.service('geometry', function(utilities) {
                 return point1.y - point1.x * this.slope();
             },
             intersection: function (l2) {
-                //srdbg('finding int', this.points(), l2.points());
                 if(this.slope() === l2.slope()) {
                     if(this.equals(l2)) {
                         return this.points()[0];
@@ -106,9 +94,6 @@ SIREPO.app.service('geometry', function(utilities) {
                 );
             },
             comparePoint: function(p) {
-                // for our purposes, "below" means having a y value less than the
-                // line at the same x; or, for vertical lines, having an x value less than
-                // that of the line
                 if(this.containsPoint(p)) {
                     return 0;
                 }
@@ -207,11 +192,6 @@ SIREPO.app.service('geometry', function(utilities) {
     };
     this.lineSegmentFromArr = function (arr) {
         return this.lineSegment(arr[0], arr[1]);
-    };
-    this.vectsFromEdges = function (arr) {
-        return arr.map(function (e) {
-            return e.vector();
-        });
     };
 
     this.matrixAdd = function (matrix1, matrix2) {
@@ -484,11 +464,6 @@ SIREPO.app.service('geometry', function(utilities) {
     // that wraps coordinates and defines methods to manipulated them
     this.vectorAdd = function (vector1, vector2) {
         return this.vectorLinearCombination(vector1, vector2, 1);
-    };
-
-    this.vectorFromPoints = function(point1, point2) {
-        var p2 = point2 || svc.point();
-        return [point1.x - p2.x, point1.y - p2.y, point1.z - p2.z];
     };
 
     this.vectorLinearCombination = function (vector1, vector2, constant) {
