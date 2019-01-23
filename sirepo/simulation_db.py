@@ -855,6 +855,8 @@ def user_dir_name(uid=None):
         return d
     return d.join(uid)
 
+def validate_name(data):
+    _validate_name(data)
 
 def validate_serial(req_data):
     """Verify serial in data validates
@@ -1241,37 +1243,55 @@ def _validate_fields(data):
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
 
+
 def _validate_name(data):
     """Validate and if necessary uniquify name
 
     Args:
         data (dict): what to validate
     """
-    starts_with = pkcollections.Dict()
     s = data.models.simulation
+    t = data.simulationType
+    id = s.simulationId
     n = s.name
-    for d in iterate_simulation_datafiles(
-        data.simulationType,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': s.folder},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
-            starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with:
+    f = s.folder
+    starts_with = _similar_names(t, id, n, f)
+    if data.models.simulation.name in starts_with:
         _validate_name_uniquify(data, starts_with)
 
+
+def _similar_names(sim_type, sim_id, proposed_name, folder):
+    starts_with = pkcollections.Dict()
+    for d in iterate_simulation_datafiles(
+        sim_type,
+        lambda res, _, d: res.append(d),
+        {'simulation.folder': folder},
+    ):
+        n2 = d.models.simulation.name
+        if n2.startswith(proposed_name) and d.models.simulation.simulationId != sim_id:
+            starts_with[n2] = d.models.simulation.simulationId
+    return starts_with
+
+
+def next_valid_name(sim_type, sim_id, proposed_name, folder):
+    starts_with = _similar_names(sim_type, sim_id, proposed_name, folder)
+    return _uniquify_name(proposed_name, starts_with)
+
+
+def _uniquify_name(proposed_name, starts_with):
+    """Uniquify data.models.simulation.name"""
+    i = 2
+    n2 = proposed_name
+    while n2 in starts_with:
+        n2 = proposed_name + ' {}'.format(i)
+        i += 1
+    assert i - 1 <= SCHEMA_COMMON.common.constants.maxSimCopies, util.err(proposed_name, 'Too many copies: {} > {}', i, SCHEMA_COMMON.common.constants.maxSimCopies)
+    return n2
 
 
 def _validate_name_uniquify(data, starts_with):
     """Uniquify data.models.simulation.name"""
-    i = 2
-    n = data.models.simulation.name
-    n2 = n
-    while n2 in starts_with:
-        n2 = n + ' ({})'.format(i)
-        i += 1
-    data.models.simulation.name = n2
+    data.models.simulation.name = _uniquify_name(data.models.simulation.name, starts_with) #.n2
 
 
 def _validate_number(val, sch_field_info):
