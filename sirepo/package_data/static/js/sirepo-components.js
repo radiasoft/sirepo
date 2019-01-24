@@ -1924,7 +1924,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window, $timeout) {
 
     return {
         restrict: 'A',
@@ -1971,7 +1971,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 '>',
                 '</div>',
             ].join('');
-            var copyConfModal = $compile(copyConfModalHTML)($scope);
             $scope.doneLoadingSimList = false;
 
             $scope.simulationId = function () {
@@ -2002,18 +2001,25 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 copyFolder: '/',
                 isExample: false,
                 completion: function (data) {
+                    $scope.doneLoadingSimList = false;
                     requestSender.localRedirectHome(data.models.simulation.simulationId);
                 },
             };
 
             $scope.copyItem = function() {
+                // always recompile, or the scope will not match
                 if(! $('#sr-jit-copy-confirmation')[0]) {
-                    $('div[data-ng-view]').append(copyConfModal);
+                    compileJITDialogs();
                 }
                 if(! $scope.doneLoadingSimList) {
                     loadList();
                 }
-                $('#sr-copy-confirmation').modal('show');
+                else {
+                    loadCopyConfig();
+                }
+                $timeout(function () {
+                    $('#sr-copy-confirmation').modal('show');
+                });
             };
 
             $scope.hasRelatedSimulations = function() {
@@ -2070,14 +2076,24 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 }), '_blank');
             };
 
+            function compileJITDialogs() {
+                $compile(copyConfModalHTML)($scope, function (el, scope) {
+                    $('div[data-ng-view]').append(el);
+                });
+            }
+
+            function loadCopyConfig() {
+                $scope.copyCfg.copyFolder = appState.models.simulation.folder;
+                $scope.copyCfg.copyName  = fileManager.nextNameInFolder(appState.models.simulation.name, appState.models.simulation.folder);
+            }
+
             function loadList() {
                 appState.listSimulations(
                     $location.search(),
                     function(data) {
-                        fileManager.updateTreeFromFileList(data);
-                        $scope.copyCfg.copyFolder = appState.models.simulation.folder;
-                        $scope.copyCfg.copyName  = fileManager.nextNameInFolder(appState.models.simulation.name, appState.models.simulation.folder);
                         $scope.doneLoadingSimList = true;
+                        fileManager.updateTreeFromFileList(data);
+                        loadCopyConfig();
                     });
             }
         },

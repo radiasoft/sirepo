@@ -97,17 +97,18 @@ def api_copyNonSessionSimulation():
 
 @api_perm.require_user
 def api_copySimulation():
-    """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
+    """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
     req = http_request.parse_json()
     sim_type = req.simulationType
     name = req.name
     assert name, util.err(req, 'No name in request')
+    #pkdp('copying {}', name)
     folder = req.folder if 'folder' in req else '/'
     m = re.search(r'(.+) [0-9]+$', name)
     if m:
         name = m.group(1)
     new_name = simulation_db.next_valid_name(sim_type, req.simulationId, name, folder)
-    pkdlog('copying {} to {}', name, new_name)
+    #pkdp('copying base {} to {}', name, new_name)
     data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
     data.models.simulation.name = new_name
     data.models.simulation.folder = folder

@@ -409,6 +409,11 @@ def move_user_simulations(to_uid):
             os.rename(dir_path, new_dir_path)
 
 
+def next_valid_name(sim_type, sim_id, proposed_name, folder):
+    starts_with = _similar_names(sim_type, sim_id, proposed_name, folder)
+    return _uniquify_name(proposed_name, starts_with)
+
+
 def open_json_file(sim_type, path=None, sid=None, fixup=True):
     """Read a db file and return result
 
@@ -1250,6 +1255,7 @@ def _validate_name(data):
     Args:
         data (dict): what to validate
     """
+    #pkdp('validatin name')
     s = data.models.simulation
     t = data.simulationType
     id = s.simulationId
@@ -1270,28 +1276,25 @@ def _similar_names(sim_type, sim_id, proposed_name, folder):
         n2 = d.models.simulation.name
         if n2.startswith(proposed_name) and d.models.simulation.simulationId != sim_id:
             starts_with[n2] = d.models.simulation.simulationId
+    #pkdp('names like {}: {}', proposed_name, starts_with)
     return starts_with
-
-
-def next_valid_name(sim_type, sim_id, proposed_name, folder):
-    starts_with = _similar_names(sim_type, sim_id, proposed_name, folder)
-    return _uniquify_name(proposed_name, starts_with)
 
 
 def _uniquify_name(proposed_name, starts_with):
     """Uniquify data.models.simulation.name"""
     i = 2
     n2 = proposed_name
+    max = 2 #SCHEMA_COMMON.common.constants.maxSimCopies
     while n2 in starts_with:
         n2 = proposed_name + ' {}'.format(i)
         i += 1
-    assert i - 1 <= SCHEMA_COMMON.common.constants.maxSimCopies, util.err(proposed_name, 'Too many copies: {} > {}', i, SCHEMA_COMMON.common.constants.maxSimCopies)
+    assert i - 1 <= max, util.err(proposed_name, 'Too many copies: {} > {}', i, max)
     return n2
 
 
 def _validate_name_uniquify(data, starts_with):
     """Uniquify data.models.simulation.name"""
-    data.models.simulation.name = _uniquify_name(data.models.simulation.name, starts_with) #.n2
+    data.models.simulation.name = _uniquify_name(data.models.simulation.name, starts_with)
 
 
 def _validate_number(val, sch_field_info):
