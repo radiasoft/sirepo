@@ -16,6 +16,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
+from sirepo import runner_client
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import uri_router
@@ -430,24 +431,29 @@ def api_root(simulation_type):
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
-    # TODO(robnagler) need to have a way of listing jobs
-    # Don't bother with cache_hit check. We don't have any way of canceling
-    # if the parameters don't match so for now, always kill.
-    #TODO(robnagler) mutex required
-    if runner.job_is_processing(jid):
-        run_dir = simulation_db.simulation_run_dir(data)
-        # Write first, since results are write once, and we want to
-        # indicate the cancel instead of the termination error that
-        # will happen as a result of the kill.
-        simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        runner.job_kill(jid)
-        # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-        # the last frame file may not be finished, remove it
-        t = sirepo.template.import_module(data)
-        if hasattr(t, 'remove_last_frame'):
-            t.remove_last_frame(run_dir)
-    # Always true from the client's perspective
-    return http_reply.gen_json({'state': 'canceled'})
+    if feature_config.cfg.use_runner_daemon:
+        runner_client.cancel_job(jid)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
+    else:
+        # TODO(robnagler) need to have a way of listing jobs
+        # Don't bother with cache_hit check. We don't have any way of canceling
+        # if the parameters don't match so for now, always kill.
+        #TODO(robnagler) mutex required
+        if runner.job_is_processing(jid):
+            run_dir = simulation_db.simulation_run_dir(data)
+            # Write first, since results are write once, and we want to
+            # indicate the cancel instead of the termination error that
+            # will happen as a result of the kill.
+            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            runner.job_kill(jid)
+            # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+            # the last frame file may not be finished, remove it
+            t = sirepo.template.import_module(data)
+            if hasattr(t, 'remove_last_frame'):
+                t.remove_last_frame(run_dir)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
 
 
 @api_perm.require_user
