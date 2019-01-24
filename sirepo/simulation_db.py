@@ -409,11 +409,6 @@ def move_user_simulations(to_uid):
             os.rename(dir_path, new_dir_path)
 
 
-def next_valid_name(sim_type, sim_id, proposed_name, folder):
-    starts_with = _similar_names(sim_type, sim_id, proposed_name, folder)
-    return _uniquify_name(proposed_name, starts_with)
-
-
 def open_json_file(sim_type, path=None, sid=None, fixup=True):
     """Read a db file and return result
 
@@ -944,6 +939,11 @@ def write_status(status, run_dir):
     """
     pkio.write_text(run_dir.join(_STATUS_FILE), status)
 
+# name is used only for the error message
+def _assert_sim_copy_num(name, count):
+    max = SCHEMA_COMMON.common.constants.maxSimCopies
+    assert count <= max, util.err(name, 'Too many copies: {} > {}', count, max)
+
 
 def _create_example_and_lib_files(simulation_type):
     d = simulation_dir(simulation_type)
@@ -1255,40 +1255,38 @@ def _validate_name(data):
     Args:
         data (dict): what to validate
     """
-    #pkdp('validatin name')
     s = data.models.simulation
-    t = data.simulationType
-    id = s.simulationId
+    sim_type = data.simulationType
+    sim_id = s.simulationId
     n = s.name
     f = s.folder
-    starts_with = _similar_names(t, id, n, f)
-    if data.models.simulation.name in starts_with:
-        _validate_name_uniquify(data, starts_with)
-
-
-def _similar_names(sim_type, sim_id, proposed_name, folder):
+    c = None
+    m = re.search(r'(.+) ([0-9]+)$', n)
+    if m:
+        n = m.group(1)
+        c = int(m.group(2))
+    if c is not None:
+        _assert_sim_copy_num(s.name, c)
     starts_with = pkcollections.Dict()
     for d in iterate_simulation_datafiles(
         sim_type,
         lambda res, _, d: res.append(d),
-        {'simulation.folder': folder},
+        {'simulation.folder': f},
     ):
         n2 = d.models.simulation.name
-        if n2.startswith(proposed_name) and d.models.simulation.simulationId != sim_id:
+        if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
             starts_with[n2] = d.models.simulation.simulationId
-    #pkdp('names like {}: {}', proposed_name, starts_with)
-    return starts_with
+    _validate_name_uniquify(data, starts_with)
 
 
 def _uniquify_name(proposed_name, starts_with):
     """Uniquify data.models.simulation.name"""
     i = 2
     n2 = proposed_name
-    max = 2 #SCHEMA_COMMON.common.constants.maxSimCopies
     while n2 in starts_with:
-        n2 = proposed_name + ' {}'.format(i)
+        n2 = '{} {}'.format(proposed_name, i)
         i += 1
-    assert i - 1 <= max, util.err(proposed_name, 'Too many copies: {} > {}', i, max)
+    _assert_sim_copy_num(proposed_name, i - 1)
     return n2
 
 

@@ -102,15 +102,9 @@ def api_copySimulation():
     sim_type = req.simulationType
     name = req.name
     assert name, util.err(req, 'No name in request')
-    #pkdp('copying {}', name)
     folder = req.folder if 'folder' in req else '/'
-    m = re.search(r'(.+) [0-9]+$', name)
-    if m:
-        name = m.group(1)
-    new_name = simulation_db.next_valid_name(sim_type, req.simulationId, name, folder)
-    #pkdp('copying base {} to {}', name, new_name)
     data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
-    data.models.simulation.name = new_name
+    data.models.simulation.name = name
     data.models.simulation.folder = folder
     data.models.simulation.isExample = False
     data.models.simulation.outOfSessionSimulationId = ''
