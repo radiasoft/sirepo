@@ -2448,9 +2448,10 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {
     var self = this;
 
+    $rootScope.$broadcast('simulationUnloaded');
     var getStartedNotifyContent = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,

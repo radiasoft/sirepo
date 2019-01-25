@@ -2017,6 +2017,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 else {
                     loadCopyConfig();
                 }
+                // make sure the DOM is ready
                 $timeout(function () {
                     $('#sr-copy-confirmation').modal('show');
                 });
@@ -2075,6 +2076,10 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     '<filename>':  $scope.nav.simulationName() + '.' + extension,
                 }), '_blank');
             };
+
+            $scope.$on('simulationUnloaded', function() {
+                $scope.doneLoadingSimList = false;
+            });
 
             function compileJITDialogs() {
                 $compile(copyConfModalHTML)($scope, function (el, scope) {
