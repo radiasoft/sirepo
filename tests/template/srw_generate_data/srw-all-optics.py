@@ -17,7 +17,7 @@ import srwl_uti_smp
 def set_optics(v=None):
     el = []
     pp = []
-    names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Toroid', 'Toroid', 'Toroid_Crystal', 'Crystal', 'Crystal_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
+    names = ['Lens', 'Lens_CRL', 'CRL', 'CRL_Zone_Plate', 'Zone_Plate', 'Zone_Plate_Fiber', 'Fiber', 'Fiber_Aperture', 'Aperture', 'Aperture_Obstacle', 'Obstacle', 'Obstacle_Mask', 'Mask', 'Mask_Sample', 'Sample', 'Sample_Planar', 'Planar', 'Planar_Circular_Cylinder', 'Circular_Cylinder', 'Circular_Cylinder_Circular_Cylinder2', 'Circular_Cylinder2', 'Circular_Cylinder2_Elliptical_Cylinder', 'Elliptical_Cylinder', 'Elliptical_Cylinder_Elliptical_Cylinder2', 'Elliptical_Cylinder2', 'Elliptical_Cylinder2_Toroid', 'Toroid', 'Toroid_Toroid2', 'Toroid2', 'Toroid2_Crystal', 'Crystal', 'Crystal_Crystal2', 'Crystal2', 'Crystal2_Grating', 'Grating', 'Grating_Watchpoint', 'Watchpoint']
     for el_name in names:
         if el_name == 'Lens':
             # Lens: lens 20.0m
@@ -232,12 +232,43 @@ def set_optics(v=None):
             ))
             pp.append(v.op_Circular_Cylinder_pp)
             
-        elif el_name == 'Circular_Cylinder_Elliptical_Cylinder':
-            # Circular_Cylinder_Elliptical_Cylinder: drift 29.0m
+        elif el_name == 'Circular_Cylinder_Circular_Cylinder2':
+            # Circular_Cylinder_Circular_Cylinder2: drift 29.0m
             el.append(srwlib.SRWLOptD(
-                _L=v.op_Circular_Cylinder_Elliptical_Cylinder_L,
+                _L=v.op_Circular_Cylinder_Circular_Cylinder2_L,
             ))
-            pp.append(v.op_Circular_Cylinder_Elliptical_Cylinder_pp)
+            pp.append(v.op_Circular_Cylinder_Circular_Cylinder2_pp)
+        elif el_name == 'Circular_Cylinder2':
+            # Circular_Cylinder2: sphericalMirror 29.5m
+            el.append(srwlib.SRWLOptMirSph(
+                _r=v.op_Circular_Cylinder2_r,
+                _size_tang=v.op_Circular_Cylinder2_size_tang,
+                _size_sag=v.op_Circular_Cylinder2_size_sag,
+                _nvx=v.op_Circular_Cylinder2_nvx,
+                _nvy=v.op_Circular_Cylinder2_nvy,
+                _nvz=v.op_Circular_Cylinder2_nvz,
+                _tvx=v.op_Circular_Cylinder2_tvx,
+                _tvy=v.op_Circular_Cylinder2_tvy,
+                _x=v.op_Circular_Cylinder2_x,
+                _y=v.op_Circular_Cylinder2_y,
+            ))
+            pp.append(v.op_Circular_Cylinder2_pp)
+            mirror_file = v.op_Circular_Cylinder2_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by Circular_Cylinder2 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_Circular_Cylinder2_dim,
+                _ang=abs(v.op_Circular_Cylinder2_ang),
+                _amp_coef=v.op_Circular_Cylinder2_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'Circular_Cylinder2_Elliptical_Cylinder':
+            # Circular_Cylinder2_Elliptical_Cylinder: drift 29.5m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Circular_Cylinder2_Elliptical_Cylinder_L,
+            ))
+            pp.append(v.op_Circular_Cylinder2_Elliptical_Cylinder_pp)
         elif el_name == 'Elliptical_Cylinder':
             # Elliptical_Cylinder: ellipsoidMirror 30.0m
             el.append(srwlib.SRWLOptMirEl(
@@ -256,12 +287,45 @@ def set_optics(v=None):
             ))
             pp.append(v.op_Elliptical_Cylinder_pp)
             
-        elif el_name == 'Elliptical_Cylinder_Toroid':
-            # Elliptical_Cylinder_Toroid: drift 30.0m
+        elif el_name == 'Elliptical_Cylinder_Elliptical_Cylinder2':
+            # Elliptical_Cylinder_Elliptical_Cylinder2: drift 30.0m
             el.append(srwlib.SRWLOptD(
-                _L=v.op_Elliptical_Cylinder_Toroid_L,
+                _L=v.op_Elliptical_Cylinder_Elliptical_Cylinder2_L,
             ))
-            pp.append(v.op_Elliptical_Cylinder_Toroid_pp)
+            pp.append(v.op_Elliptical_Cylinder_Elliptical_Cylinder2_pp)
+        elif el_name == 'Elliptical_Cylinder2':
+            # Elliptical_Cylinder2: ellipsoidMirror 30.5m
+            el.append(srwlib.SRWLOptMirEl(
+                _p=v.op_Elliptical_Cylinder2_p,
+                _q=v.op_Elliptical_Cylinder2_q,
+                _ang_graz=v.op_Elliptical_Cylinder2_ang,
+                _size_tang=v.op_Elliptical_Cylinder2_size_tang,
+                _size_sag=v.op_Elliptical_Cylinder2_size_sag,
+                _nvx=v.op_Elliptical_Cylinder2_nvx,
+                _nvy=v.op_Elliptical_Cylinder2_nvy,
+                _nvz=v.op_Elliptical_Cylinder2_nvz,
+                _tvx=v.op_Elliptical_Cylinder2_tvx,
+                _tvy=v.op_Elliptical_Cylinder2_tvy,
+                _x=v.op_Elliptical_Cylinder2_x,
+                _y=v.op_Elliptical_Cylinder2_y,
+            ))
+            pp.append(v.op_Elliptical_Cylinder2_pp)
+            mirror_file = v.op_Elliptical_Cylinder2_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by Elliptical_Cylinder2 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_2d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
+                _dim=v.op_Elliptical_Cylinder2_dim,
+                _ang=abs(v.op_Elliptical_Cylinder2_ang),
+                _amp_coef=v.op_Elliptical_Cylinder2_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'Elliptical_Cylinder2_Toroid':
+            # Elliptical_Cylinder2_Toroid: drift 30.5m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Elliptical_Cylinder2_Toroid_L,
+            ))
+            pp.append(v.op_Elliptical_Cylinder2_Toroid_pp)
         elif el_name == 'Toroid':
             # Toroid: toroidalMirror 31.0m
             el.append(srwlib.SRWLOptMirTor(
@@ -280,12 +344,45 @@ def set_optics(v=None):
             ))
             pp.append(v.op_Toroid_pp)
             
-        elif el_name == 'Toroid_Crystal':
-            # Toroid_Crystal: drift 31.0m
+        elif el_name == 'Toroid_Toroid2':
+            # Toroid_Toroid2: drift 31.0m
             el.append(srwlib.SRWLOptD(
-                _L=v.op_Toroid_Crystal_L,
+                _L=v.op_Toroid_Toroid2_L,
             ))
-            pp.append(v.op_Toroid_Crystal_pp)
+            pp.append(v.op_Toroid_Toroid2_pp)
+        elif el_name == 'Toroid2':
+            # Toroid2: toroidalMirror 31.5m
+            el.append(srwlib.SRWLOptMirTor(
+                _rt=v.op_Toroid2_rt,
+                _rs=v.op_Toroid2_rs,
+                _size_tang=v.op_Toroid2_size_tang,
+                _size_sag=v.op_Toroid2_size_sag,
+                _x=v.op_Toroid2_horizontalPosition,
+                _y=v.op_Toroid2_verticalPosition,
+                _ap_shape=v.op_Toroid2_ap_shape,
+                _nvx=v.op_Toroid2_nvx,
+                _nvy=v.op_Toroid2_nvy,
+                _nvz=v.op_Toroid2_nvz,
+                _tvx=v.op_Toroid2_tvx,
+                _tvy=v.op_Toroid2_tvy,
+            ))
+            pp.append(v.op_Toroid2_pp)
+            mirror_file = v.op_Toroid2_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by Toroid2 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_Toroid2_dim,
+                _ang=abs(v.op_Toroid2_ang),
+                _amp_coef=v.op_Toroid2_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'Toroid2_Crystal':
+            # Toroid2_Crystal: drift 31.5m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Toroid2_Crystal_L,
+            ))
+            pp.append(v.op_Toroid2_Crystal_pp)
         elif el_name == 'Crystal':
             # Crystal: crystal 32.0m
             crystal = srwlib.SRWLOptCryst(
@@ -309,12 +406,50 @@ def set_optics(v=None):
             el.append(crystal)
             pp.append(v.op_Crystal_pp)
             
-        elif el_name == 'Crystal_Grating':
-            # Crystal_Grating: drift 32.0m
+        elif el_name == 'Crystal_Crystal2':
+            # Crystal_Crystal2: drift 32.0m
             el.append(srwlib.SRWLOptD(
-                _L=v.op_Crystal_Grating_L,
+                _L=v.op_Crystal_Crystal2_L,
             ))
-            pp.append(v.op_Crystal_Grating_pp)
+            pp.append(v.op_Crystal_Crystal2_pp)
+        elif el_name == 'Crystal2':
+            # Crystal2: crystal 32.5m
+            crystal = srwlib.SRWLOptCryst(
+                _d_sp=v.op_Crystal2_d_sp,
+                _psi0r=v.op_Crystal2_psi0r,
+                _psi0i=v.op_Crystal2_psi0i,
+                _psi_hr=v.op_Crystal2_psiHr,
+                _psi_hi=v.op_Crystal2_psiHi,
+                _psi_hbr=v.op_Crystal2_psiHBr,
+                _psi_hbi=v.op_Crystal2_psiHBi,
+                _tc=v.op_Crystal2_tc,
+                _ang_as=v.op_Crystal2_ang_as,
+            )
+            crystal.set_orient(
+                _nvx=v.op_Crystal2_nvx,
+                _nvy=v.op_Crystal2_nvy,
+                _nvz=v.op_Crystal2_nvz,
+                _tvx=v.op_Crystal2_tvx,
+                _tvy=v.op_Crystal2_tvy,
+            )
+            el.append(crystal)
+            pp.append(v.op_Crystal2_pp)
+            mirror_file = v.op_Crystal2_hfn
+            assert os.path.isfile(mirror_file), \
+                'Missing input file {}, required by Crystal2 beamline element'.format(mirror_file)
+            el.append(srwlib.srwl_opt_setup_surf_height_1d(
+                srwlib.srwl_uti_read_data_cols(mirror_file, "\t", 0, 1),
+                _dim=v.op_Crystal2_dim,
+                _ang=abs(v.op_Crystal2_ang),
+                _amp_coef=v.op_Crystal2_amp_coef,
+            ))
+            pp.append([0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0])
+        elif el_name == 'Crystal2_Grating':
+            # Crystal2_Grating: drift 32.5m
+            el.append(srwlib.SRWLOptD(
+                _L=v.op_Crystal2_Grating_L,
+            ))
+            pp.append(v.op_Crystal2_Grating_pp)
         elif el_name == 'Grating':
             # Grating: grating 33.0m
             mirror = srwlib.SRWLOptMirPl(
@@ -676,8 +811,27 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Circular_Cylinder_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Circular_Cylinder_y', 'f', 0.0, 'verticalOffset'],
 
-    # Circular_Cylinder_Elliptical_Cylinder: drift
-    ['op_Circular_Cylinder_Elliptical_Cylinder_L', 'f', 1.0, 'length'],
+    # Circular_Cylinder_Circular_Cylinder2: drift
+    ['op_Circular_Cylinder_Circular_Cylinder2_L', 'f', 0.5, 'length'],
+
+    # Circular_Cylinder2: sphericalMirror
+    ['op_Circular_Cylinder2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Circular_Cylinder2_dim', 's', 'x', 'orientation'],
+    ['op_Circular_Cylinder2_r', 'f', 1049.0, 'radius'],
+    ['op_Circular_Cylinder2_size_tang', 'f', 0.3, 'tangentialSize'],
+    ['op_Circular_Cylinder2_size_sag', 'f', 0.11, 'sagittalSize'],
+    ['op_Circular_Cylinder2_ang', 'f', 0.0031415926, 'grazingAngle'],
+    ['op_Circular_Cylinder2_nvx', 'f', 0.999995065202, 'normalVectorX'],
+    ['op_Circular_Cylinder2_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_Circular_Cylinder2_nvz', 'f', -0.00314158743229, 'normalVectorZ'],
+    ['op_Circular_Cylinder2_tvx', 'f', 0.00314158743229, 'tangentialVectorX'],
+    ['op_Circular_Cylinder2_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_Circular_Cylinder2_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_Circular_Cylinder2_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_Circular_Cylinder2_y', 'f', 0.0, 'verticalOffset'],
+
+    # Circular_Cylinder2_Elliptical_Cylinder: drift
+    ['op_Circular_Cylinder2_Elliptical_Cylinder_L', 'f', 0.5, 'length'],
 
     # Elliptical_Cylinder: ellipsoidMirror
     ['op_Elliptical_Cylinder_hfn', 's', '', 'heightProfileFile'],
@@ -696,8 +850,28 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Elliptical_Cylinder_x', 'f', 0.0, 'horizontalOffset'],
     ['op_Elliptical_Cylinder_y', 'f', 0.0, 'verticalOffset'],
 
-    # Elliptical_Cylinder_Toroid: drift
-    ['op_Elliptical_Cylinder_Toroid_L', 'f', 1.0, 'length'],
+    # Elliptical_Cylinder_Elliptical_Cylinder2: drift
+    ['op_Elliptical_Cylinder_Elliptical_Cylinder2_L', 'f', 0.5, 'length'],
+
+    # Elliptical_Cylinder2: ellipsoidMirror
+    ['op_Elliptical_Cylinder2_hfn', 's', 'mirror_2d.dat', 'heightProfileFile'],
+    ['op_Elliptical_Cylinder2_dim', 's', 'x', 'orientation'],
+    ['op_Elliptical_Cylinder2_p', 'f', 35.0, 'firstFocusLength'],
+    ['op_Elliptical_Cylinder2_q', 'f', 1.7, 'focalLength'],
+    ['op_Elliptical_Cylinder2_ang', 'f', 0.0036, 'grazingAngle'],
+    ['op_Elliptical_Cylinder2_amp_coef', 'f', 1.0, 'heightAmplification'],
+    ['op_Elliptical_Cylinder2_size_tang', 'f', 0.5, 'tangentialSize'],
+    ['op_Elliptical_Cylinder2_size_sag', 'f', 0.01, 'sagittalSize'],
+    ['op_Elliptical_Cylinder2_nvx', 'f', 0.999993520007, 'normalVectorX'],
+    ['op_Elliptical_Cylinder2_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_Elliptical_Cylinder2_nvz', 'f', -0.00359999222401, 'normalVectorZ'],
+    ['op_Elliptical_Cylinder2_tvx', 'f', -0.00359999222401, 'tangentialVectorX'],
+    ['op_Elliptical_Cylinder2_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_Elliptical_Cylinder2_x', 'f', 0.0, 'horizontalOffset'],
+    ['op_Elliptical_Cylinder2_y', 'f', 0.0, 'verticalOffset'],
+
+    # Elliptical_Cylinder2_Toroid: drift
+    ['op_Elliptical_Cylinder2_Toroid_L', 'f', 0.5, 'length'],
 
     # Toroid: toroidalMirror
     ['op_Toroid_hfn', 's', '', 'heightProfileFile'],
@@ -707,6 +881,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Toroid_rs', 'f', 0.186, 'sagittalRadius'],
     ['op_Toroid_size_tang', 'f', 0.96, 'tangentialSize'],
     ['op_Toroid_size_sag', 'f', 0.08, 'sagittalSize'],
+    ['op_Toroid_ang', 'f', 0.007, 'grazingAngle'],
     ['op_Toroid_horizontalPosition', 'f', 0.0, 'horizontalPosition'],
     ['op_Toroid_verticalPosition', 'f', 0.0, 'verticalPosition'],
     ['op_Toroid_nvx', 'f', 0.9999755001, 'normalVectorX'],
@@ -714,9 +889,31 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Toroid_nvz', 'f', -0.00699994283347, 'normalVectorZ'],
     ['op_Toroid_tvx', 'f', 0.00699994283347, 'tangentialVectorX'],
     ['op_Toroid_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_Toroid_amp_coef', 'f', 1.0, 'heightAmplification'],
 
-    # Toroid_Crystal: drift
-    ['op_Toroid_Crystal_L', 'f', 1.0, 'length'],
+    # Toroid_Toroid2: drift
+    ['op_Toroid_Toroid2_L', 'f', 0.5, 'length'],
+
+    # Toroid2: toroidalMirror
+    ['op_Toroid2_hfn', 's', 'mirror2_1d.dat', 'heightProfileFile'],
+    ['op_Toroid2_dim', 's', 'x', 'orientation'],
+    ['op_Toroid2_ap_shape', 's', 'r', 'apertureShape'],
+    ['op_Toroid2_rt', 'f', 7592.12, 'tangentialRadius'],
+    ['op_Toroid2_rs', 'f', 0.186, 'sagittalRadius'],
+    ['op_Toroid2_size_tang', 'f', 0.96, 'tangentialSize'],
+    ['op_Toroid2_size_sag', 'f', 0.08, 'sagittalSize'],
+    ['op_Toroid2_ang', 'f', 0.007, 'grazingAngle'],
+    ['op_Toroid2_horizontalPosition', 'f', 0.0, 'horizontalPosition'],
+    ['op_Toroid2_verticalPosition', 'f', 0.0, 'verticalPosition'],
+    ['op_Toroid2_nvx', 'f', 0.9999755001, 'normalVectorX'],
+    ['op_Toroid2_nvy', 'f', 0.0, 'normalVectorY'],
+    ['op_Toroid2_nvz', 'f', -0.00699994283347, 'normalVectorZ'],
+    ['op_Toroid2_tvx', 'f', 0.00699994283347, 'tangentialVectorX'],
+    ['op_Toroid2_tvy', 'f', 0.0, 'tangentialVectorY'],
+    ['op_Toroid2_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # Toroid2_Crystal: drift
+    ['op_Toroid2_Crystal_L', 'f', 0.5, 'length'],
 
     # Crystal: crystal
     ['op_Crystal_hfn', 's', '', 'heightProfileFile'],
@@ -738,8 +935,31 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Crystal_ang', 'f', 0.221507686183, 'grazingAngle'],
     ['op_Crystal_amp_coef', 'f', 1.0, 'heightAmplification'],
 
-    # Crystal_Grating: drift
-    ['op_Crystal_Grating_L', 'f', 1.0, 'length'],
+    # Crystal_Crystal2: drift
+    ['op_Crystal_Crystal2_L', 'f', 0.5, 'length'],
+
+    # Crystal2: crystal
+    ['op_Crystal2_hfn', 's', 'mirror_1d.dat', 'heightProfileFile'],
+    ['op_Crystal2_dim', 's', 'x', 'orientation'],
+    ['op_Crystal2_d_sp', 'f', 3.13557135638, 'dSpacing'],
+    ['op_Crystal2_psi0r', 'f', -1.20784200542e-05, 'psi0r'],
+    ['op_Crystal2_psi0i', 'f', 2.26348275468e-07, 'psi0i'],
+    ['op_Crystal2_psiHr', 'f', -6.38570337053e-06, 'psiHr'],
+    ['op_Crystal2_psiHi', 'f', 1.58030401297e-07, 'psiHi'],
+    ['op_Crystal2_psiHBr', 'f', -6.38570337053e-06, 'psiHBr'],
+    ['op_Crystal2_psiHBi', 'f', 1.58030401297e-07, 'psiHBi'],
+    ['op_Crystal2_tc', 'f', 0.01, 'crystalThickness'],
+    ['op_Crystal2_ang_as', 'f', 0.0, 'asymmetryAngle'],
+    ['op_Crystal2_nvx', 'f', 0.0, 'nvx'],
+    ['op_Crystal2_nvy', 'f', 0.975567318503, 'nvy'],
+    ['op_Crystal2_nvz', 'f', -0.219700721593, 'nvz'],
+    ['op_Crystal2_tvx', 'f', 0.0, 'tvx'],
+    ['op_Crystal2_tvy', 'f', 0.219700721593, 'tvy'],
+    ['op_Crystal2_ang', 'f', 0.221507686183, 'grazingAngle'],
+    ['op_Crystal2_amp_coef', 'f', 1.0, 'heightAmplification'],
+
+    # Crystal2_Grating: drift
+    ['op_Crystal2_Grating_L', 'f', 0.5, 'length'],
 
     # Grating: grating
     ['op_Grating_size_tang', 'f', 0.2, 'tangentialSize'],
@@ -762,35 +982,43 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_Grating_Watchpoint_L', 'f', 1.0, 'length'],
 
 #---Propagation parameters
-    ['op_Lens_pp', 'f',                                  [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Lens'],
-    ['op_Lens_CRL_pp', 'f',                              [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Lens_CRL'],
-    ['op_CRL_pp', 'f',                                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
-    ['op_CRL_Zone_Plate_pp', 'f',                        [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_Zone_Plate'],
-    ['op_Zone_Plate_pp', 'f',                            [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Zone_Plate'],
-    ['op_Zone_Plate_Fiber_pp', 'f',                      [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Zone_Plate_Fiber'],
-    ['op_Fiber_pp', 'f',                                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber'],
-    ['op_Fiber_Aperture_pp', 'f',                        [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber_Aperture'],
-    ['op_Aperture_pp', 'f',                              [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture'],
-    ['op_Aperture_Obstacle_pp', 'f',                     [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture_Obstacle'],
-    ['op_Obstacle_pp', 'f',                              [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Obstacle'],
-    ['op_Obstacle_Mask_pp', 'f',                         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Obstacle_Mask'],
-    ['op_Mask_pp', 'f',                                  [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Mask'],
-    ['op_Mask_Sample_pp', 'f',                           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Mask_Sample'],
-    ['op_Sample_pp', 'f',                                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Sample'],
-    ['op_Sample_Planar_pp', 'f',                         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Sample_Planar'],
-    ['op_Planar_pp', 'f',                                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Planar'],
-    ['op_Planar_Circular_Cylinder_pp', 'f',              [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Planar_Circular_Cylinder'],
-    ['op_Circular_Cylinder_pp', 'f',                     [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder'],
-    ['op_Circular_Cylinder_Elliptical_Cylinder_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder_Elliptical_Cylinder'],
-    ['op_Elliptical_Cylinder_pp', 'f',                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder'],
-    ['op_Elliptical_Cylinder_Toroid_pp', 'f',            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder_Toroid'],
-    ['op_Toroid_pp', 'f',                                [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid'],
-    ['op_Toroid_Crystal_pp', 'f',                        [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid_Crystal'],
-    ['op_Crystal_pp', 'f',                               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal'],
-    ['op_Crystal_Grating_pp', 'f',                       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal_Grating'],
-    ['op_Grating_pp', 'f',                               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Grating'],
-    ['op_Grating_Watchpoint_pp', 'f',                    [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Grating_Watchpoint'],
-    ['op_fin_pp', 'f',                                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
+    ['op_Lens_pp', 'f',                                     [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Lens'],
+    ['op_Lens_CRL_pp', 'f',                                 [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Lens_CRL'],
+    ['op_CRL_pp', 'f',                                      [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL'],
+    ['op_CRL_Zone_Plate_pp', 'f',                           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'CRL_Zone_Plate'],
+    ['op_Zone_Plate_pp', 'f',                               [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Zone_Plate'],
+    ['op_Zone_Plate_Fiber_pp', 'f',                         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Zone_Plate_Fiber'],
+    ['op_Fiber_pp', 'f',                                    [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber'],
+    ['op_Fiber_Aperture_pp', 'f',                           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Fiber_Aperture'],
+    ['op_Aperture_pp', 'f',                                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture'],
+    ['op_Aperture_Obstacle_pp', 'f',                        [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Aperture_Obstacle'],
+    ['op_Obstacle_pp', 'f',                                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Obstacle'],
+    ['op_Obstacle_Mask_pp', 'f',                            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Obstacle_Mask'],
+    ['op_Mask_pp', 'f',                                     [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Mask'],
+    ['op_Mask_Sample_pp', 'f',                              [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Mask_Sample'],
+    ['op_Sample_pp', 'f',                                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Sample'],
+    ['op_Sample_Planar_pp', 'f',                            [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Sample_Planar'],
+    ['op_Planar_pp', 'f',                                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Planar'],
+    ['op_Planar_Circular_Cylinder_pp', 'f',                 [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Planar_Circular_Cylinder'],
+    ['op_Circular_Cylinder_pp', 'f',                        [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder'],
+    ['op_Circular_Cylinder_Circular_Cylinder2_pp', 'f',     [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder_Circular_Cylinder2'],
+    ['op_Circular_Cylinder2_pp', 'f',                       [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder2'],
+    ['op_Circular_Cylinder2_Elliptical_Cylinder_pp', 'f',   [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Circular_Cylinder2_Elliptical_Cylinder'],
+    ['op_Elliptical_Cylinder_pp', 'f',                      [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder'],
+    ['op_Elliptical_Cylinder_Elliptical_Cylinder2_pp', 'f', [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder_Elliptical_Cylinder2'],
+    ['op_Elliptical_Cylinder2_pp', 'f',                     [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder2'],
+    ['op_Elliptical_Cylinder2_Toroid_pp', 'f',              [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Elliptical_Cylinder2_Toroid'],
+    ['op_Toroid_pp', 'f',                                   [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid'],
+    ['op_Toroid_Toroid2_pp', 'f',                           [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid_Toroid2'],
+    ['op_Toroid2_pp', 'f',                                  [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid2'],
+    ['op_Toroid2_Crystal_pp', 'f',                          [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Toroid2_Crystal'],
+    ['op_Crystal_pp', 'f',                                  [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal'],
+    ['op_Crystal_Crystal2_pp', 'f',                         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal_Crystal2'],
+    ['op_Crystal2_pp', 'f',                                 [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal2'],
+    ['op_Crystal2_Grating_pp', 'f',                         [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Crystal2_Grating'],
+    ['op_Grating_pp', 'f',                                  [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Grating'],
+    ['op_Grating_Watchpoint_pp', 'f',                       [0, 0, 1.0, 1, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'Grating_Watchpoint'],
+    ['op_fin_pp', 'f',                                      [0, 0, 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'final post-propagation (resize) parameters'],
 
     #[ 0]: Auto-Resize (1) or not (0) Before propagation
     #[ 1]: Auto-Resize (1) or not (0) After propagation
