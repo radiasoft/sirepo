@@ -93,7 +93,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.isElectronBeam = function() {
-        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole();
+        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole() || self.isArbitraryBeam();
     };
 
     self.isGaussianBeam = function() {
@@ -102,6 +102,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     self.isIdealizedUndulator = function() {
         return isSelected('u');
+    };
+
+    self.isArbitraryBeam = function() {
+        return isSelected('a');
     };
 
     self.isMultipole = function() {
@@ -1123,7 +1127,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="radiasoft"></a>',
               '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',

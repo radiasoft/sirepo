@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SRW execution template.
+"""SRW execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -313,7 +313,7 @@ def extract_report_data(filename, model_data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('arbitraryBeam', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -1260,8 +1260,7 @@ def _fixup_electron_beam(data):
 def _generate_beamline_optics(report, models, last_id):
     if not _is_beamline_report(report):
         return '    pass', ''
-    has_beamline_elements = len(models.beamline) > 0
-    if has_beamline_elements and not last_id:
+    if not last_id:
         last_id = models.beamline[-1].id
     names = []
     items = []
@@ -1314,7 +1313,7 @@ def _generate_beamline_optics(report, models, last_id):
         'items': items,
         'names': names,
         'postPropagation': models.postPropagation,
-        'wantPostPropagation': has_beamline_elements and (int(last_id) == int(models.beamline[-1].id)),
+        'wantPostPropagation': int(last_id) == int(models.beamline[-1].id),
         'maxNameSize': max_name_size,
         'nameMap': {
             'apertureShape': 'ap_shape',
@@ -1500,6 +1499,15 @@ def _generate_srw_main(data, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         'source_type, mag = srwl_bl.setup_source(v)',
     ]
+    #if source_type == 'a':
+    #    content += [
+    #        '#TODO: define AuxReadInMagFld3D()',
+    #        "#mag = AuxReadInMagFld3D('../../lib/', '#')".format(data['models']['arbitraryBeam']['magneticFile']),
+    #        "mag = AuxReadInMagFld3D('../../lib/junk/epu49HEtot.dat', '#')",
+    #        "#TODO: adjust mag by data['models']['arbitraryBeam']['longitudinalPosition'] and 'phase'",
+    #    ]
+    #else:
+    #    content.append('source_type, mag = srwl_bl.setup_source(v)')
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
@@ -1638,7 +1646,7 @@ def _is_tabulated_undulator_source(sim):
 
 
 def _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type):
-    return source_type == 't' and undulator_type == 'u_t'
+    return source_type == 'a' or (source_type == 't' and undulator_type == 'u_t')
 
 
 def _is_undulator_source(sim):

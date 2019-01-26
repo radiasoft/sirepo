@@ -59,7 +59,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_myyp', 'f', {{electronBeam_xxprY}}, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
 
 {% endif %}
-{% if simulation_sourceType in ['u', 't'] %}
+{% if simulation_sourceType in ['u', 't','a'] %}
 #---Undulator
     ['und_bx', 'f', {{undulator_horizontalAmplitude}}, 'undulator horizontal peak magnetic field [T]'],
     ['und_by', 'f', {{undulator_verticalAmplitude}}, 'undulator vertical peak magnetic field [T]'],

@@ -293,6 +293,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
+            ["a", "Arbitrary magnetic field" ],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -817,6 +818,11 @@
             "effectiveDeflectingParameter": ["Effective Deflecting Parameter", "Float"],
             "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
+        },
+        "arbitraryBeam": {
+            "phase": ["Magnet Arrays Shift [mm]", "Float", 0],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
+            "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1739,6 +1745,15 @@
                         "verticalSymmetry"
                     ]]
                 ]
+            ],
+            "advanced": []
+        },
+        "arbitraryBeam": {
+            "title": "Arbitrary Beam",
+            "basic": [
+                "phase",
+                "longitudinalPosition",
+                "magneticFile"
             ],
             "advanced": []
         },
