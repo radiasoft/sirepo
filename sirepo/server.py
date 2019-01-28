@@ -17,6 +17,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import srdb
 from sirepo import uri_router
 from sirepo import util
 from sirepo.template import template_common
@@ -35,9 +36,6 @@ import werkzeug.exceptions
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
     import h5py
-
-#: Relative to current directory only in test mode
-_DEFAULT_DB_SUBDIR = 'run'
 
 #: class that py.path.local() returns
 _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
@@ -659,15 +657,11 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(db_dir=None, uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
     from sirepo import uri_router
 
-    if db_dir:
-        cfg.db_dir = py.path.local(db_dir)
-    else:
-        db_dir = cfg.db_dir
-    app.sirepo_db_dir = db_dir
+    app.sirepo_db_dir = cfg.db_dir
     simulation_db.init_by_server(app)
     uri_router.init(app, uwsgi)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
@@ -697,27 +691,10 @@ def _as_attachment(resp, content_type, filename):
 
 @pkconfig.parse_none
 def _cfg_db_dir(value):
-    """Config value or root package's parent or cwd with _DEFAULT_SUBDIR"""
-    from pykern import pkinspect
-
-    if value:
-        assert os.path.isabs(value), \
-            '{}: SIREPO_SERVER_DB_DIR must be absolute'.format(value)
-        assert os.path.isdir(value), \
-            '{}: SIREPO_SERVER_DB_DIR must be a directory and exist'.format(value)
-        value = py.path.local(value)
-    else:
-        assert pkconfig.channel_in('dev'), \
-            'SIREPO_SERVER_DB_DIR must be configured except in DEV'
-        fn = sys.modules[pkinspect.root_package(_cfg_db_dir)].__file__
-        root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
-        # Check to see if we are in our dev directory. This is a hack,
-        # but should be reliable.
-        if not root.join('requirements.txt').check():
-            # Don't run from an install directory
-            root = py.path.local('.')
-        value = pkio.mkdir_parent(root.join(_DEFAULT_DB_SUBDIR))
-    return value
+    """DEPRECATED"""
+    if value is not None:
+        srdb.server_init_root(value)
+    return srdb.root()
 
 
 def _cfg_time_limit(value):
@@ -986,7 +963,7 @@ def static_dir(dir_name):
 
 
 cfg = pkconfig.init(
-    db_dir=(None, _cfg_db_dir, 'where database resides'),
+    db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
 )

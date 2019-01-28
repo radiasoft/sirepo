@@ -1673,7 +1673,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="radiasoft"></a>',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
                 '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
                   SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
@@ -3024,6 +3024,26 @@ SIREPO.app.service('utilities', function($window, $interval) {
             }
             debounceInterval = $interval(later, milliseconds, 1);
         };
+    };
+
+    // returns an array containing the unique elements of the input,
+    // according to a two-input equality function (null means use ===)
+    this.unique = function(arr, equals) {
+        var uniqueArr = [];
+        arr.forEach(function (a, i) {
+            var found = false;
+            for(var j = 0; j < uniqueArr.length; ++j) {
+                var b = uniqueArr[j];
+                found = equals ? equals(a, b) : a === b;
+                if(found) {
+                    break;
+                }
+            }
+            if(! found) {
+                uniqueArr.push(a);
+            }
+        });
+        return uniqueArr;
     };
 
 });

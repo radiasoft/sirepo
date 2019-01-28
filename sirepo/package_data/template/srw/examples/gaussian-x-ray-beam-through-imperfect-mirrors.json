@@ -385,10 +385,6 @@
             "sourceType": "g",
             "verticalPointCount": 100
         },
-        "simulationStatus": {
-            "startTime": 0,
-            "state": "initial"
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 270,

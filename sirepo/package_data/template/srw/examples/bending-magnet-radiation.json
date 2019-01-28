@@ -196,7 +196,6 @@
             "verticalPosition": 0,
             "verticalRange": "0.6"
         },
-        "simulationStatus": {},
         "sourceIntensityReport": {
             "characteristic": 0,
             "colorMap": "grayscale",

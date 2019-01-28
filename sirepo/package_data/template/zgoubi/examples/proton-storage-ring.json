@@ -581,7 +581,6 @@
             "npass": 10,
             "particleCount": 1000
         },
-        "simulationStatus": {},
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
