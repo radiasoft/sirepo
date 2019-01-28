@@ -19,26 +19,32 @@ from sirepo import uri_router
 from sirepo import user_db
 from sirepo import user_state
 from sirepo import util
-import base64
 import datetime
 import flask
 import flask_mail
-import hashlib
 import sqlalchemy
 
+
+#: Tell GUI how to authenticate (before schema is loaded)
 _AUTH_METHOD = 'email'
 
-# cookie key to track if user's full name has been entered
+#: cookie key to track if user's full name has been entered
 _COOKIE_DISPLAY_NAME_SET = 'sredn'
+
+#: SIREPO_EMAIL_AUTH_SMTP_SERVER=dev avoids SMTP entirely
+_DEV_SMTP_SERVER = 'dev'
+
+#: How to send mail (flask_mail.Mail instance)
+_smtp = None
 
 
 def all_uids():
-    return user_db.all_uids(UserEmail)
+    return user_db.all_uids(EmailAuth)
 
 
 @api_perm.allow_login
 def api_emailAuthorized(simulation_type, token):
-    user = UserEmail.search_by_token(token)
+    user = EmailAuth.search_by_token(token)
     if not user or user.expires < datetime.datetime.utcnow():
         # if the auth is invalid, but the user is already logged in (ie. following an old link from an email)
         # keep the user logged in and proceed to the app
@@ -53,10 +59,10 @@ def api_emailAuthorized(simulation_type, token):
             simulation_type,
             simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
         ))
-    user_db.update_user(UserEmail, {
+    user_db.update_user(EmailAuth, {
         'email': user.unverified_email,
         'unverified_email': user.unverified_email,
-        'token_hash': None,
+        'token': None,
         'expires': None,
     })
     user_state.set_logged_in(user.unverified_email)
@@ -70,7 +76,7 @@ def api_emailAuthorized(simulation_type, token):
 @api_perm.allow_cookieless_user
 def api_emailLogin():
     data = http_request.parse_json()
-    user = user_db.find_or_create_user(UserEmail, {
+    user = user_db.find_or_create_user(EmailAuth, {
         'unverified_email': data['email'].lower(),
     })
     if not user.email:
@@ -89,7 +95,7 @@ def api_emailLogin():
 @api_perm.require_user
 def api_emailUserName():
     data = http_request.parse_json(assert_sim_type=False)
-    user = UserEmail.search_by_uid_and_email(cookie.get_user(), data['email'])
+    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), data['email'])
     user.display_name = data.displayName
     user.save()
     cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
@@ -103,7 +109,7 @@ def api_logout(simulation_type):
 
 def init_apis(app):
     _init(app)
-    user_db.init(app, _init_user_email_model)
+    user_db.init(app, _init_email_auth_model)
     uri_router.register_api_module()
     api_auth.register_login_module()
 
@@ -118,44 +124,46 @@ def set_default_state():
 def _init(app):
     global cfg
     cfg = pkconfig.init(
-        mail_server=(None, str, 'Mail server'),
-        mail_username=(None, str, 'Mail user name'),
-        mail_password=(None, str, 'Mail password'),
-        mail_from_email=(None, str, 'From email address'),
-        mail_from_name=(None, str, 'From email name'),
+        smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
+        smtp_user=pkconfig.Required(str, 'SMTP auth user'),
+        smtp_password=pkconfig.Required(str, 'SMTP auth password'),
+        #TODO(robnagler) validate email
+        from_email=pkconfig.Required(str, 'From email address'),
+        from_name=pkconfig.Required(str, 'From display name'),
     )
-    assert cfg.mail_server and cfg.mail_username and cfg.mail_password \
-        and cfg.mail_from_email and cfg.mail_from_name, 'Missing mail config'
+    if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
+        return
     app.config.update(
         MAIL_USE_TLS=True,
         MAIL_PORT=587,
-        MAIL_SERVER=cfg.mail_server,
-        MAIL_USERNAME=cfg.mail_username,
-        MAIL_PASSWORD=cfg.mail_password,
+        MAIL_SERVER=cfg.smtp_server,
+        MAIL_USERNAME=cfg.smtp_user,
+        MAIL_PASSWORD=cfg.smtp_password,
     )
-    global _mail
-    _mail = flask_mail.Mail(app)
+    global _smtp
+    _smtp = flask_mail.Mail(app)
 
 
-def _init_user_email_model(_db):
-    """Creates UserEmail class bound to dynamic `_db` variable"""
-    global UserEmail
+def _init_email_auth_model(_db):
+    """Creates EmailAuth class bound to dynamic `_db` variable"""
+    global EmailAuth
 
     # Primary key is unverified_email.
-    # New user: (unverified_email, uid, token_hash, expires) -> auth -> (unverified_email, uid, email)
-    # Existing user: (unverified_email, token_hash, expires) -> auth -> (unverified_email, uid, email)
+    # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
+    # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
 
     # display_name is prompted after first login
 
-    class UserEmail(_db.Model):
+    class EmailAuth(_db.Model):
+        EMAIL_SIZE = 255
         EXPIRES_MINUTES = 15
-        TOKEN_SIZE = 12
-        __tablename__ = 'user_email_t'
-        unverified_email = _db.Column(_db.String(500), primary_key=True)
+        TOKEN_SIZE = 16
+        __tablename__ = 'email_auth_t'
+        unverified_email = _db.Column(_db.String(EMAIL_SIZE), primary_key=True)
         uid = _db.Column(_db.String(8))
-        email = _db.Column(_db.String(500))
-        display_name = _db.Column(_db.String(100))
-        token_hash = _db.Column(_db.String(100))
+        email = _db.Column(_db.String(255))
+        display_name = _db.Column(_db.String(EMAIL_SIZE))
+        token = _db.Column(_db.String(TOKEN_SIZE))
         expires = _db.Column(_db.DateTime())
 
         def __init__(self, uid, user_data):
@@ -165,15 +173,9 @@ def _init_user_email_model(_db):
         def create_token(self):
             token = util.random_base62(self.TOKEN_SIZE)
             self.expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=self.EXPIRES_MINUTES)
-            self.token_hash = self.hash_token(token)
+            self.token = token
             self.save()
             return token
-
-        @classmethod
-        def hash_token(cls, token):
-            h = hashlib.sha256()
-            h.update(token)
-            return 'v1:' + base64.urlsafe_b64encode(h.digest())
 
         def save(self):
             _db.session.add(self)
@@ -185,7 +187,7 @@ def _init_user_email_model(_db):
 
         @classmethod
         def search_by_token(cls, token):
-            return cls.query.filter_by(token_hash=cls.hash_token(token)).first()
+            return cls.query.filter_by(token=token).first()
 
         @classmethod
         def search_by_uid(cls, uid):
@@ -197,18 +199,22 @@ def _init_user_email_model(_db):
 
         def update(self, user_data):
             self.email = user_data['email']
-            self.token_hash = user_data['token_hash']
+            self.token = user_data['token']
             self.expires = user_data['expires']
 
-    return UserEmail.__tablename__
+    return EmailAuth.__tablename__
 
 
 def _send_login_email(user, url):
-    login_text = 'sign in to' if user.email else \
-                 'confirm your email and finish creating'
+    if not _smtp:
+        assert pkconfig.channel_in('dev')
+        pkdlog('{}', url)
+        return
+    login_text = u'sign in to' if user.email else \
+        u'confirm your email and finish creating'
     msg = flask_mail.Message(
         subject='Sign in to Sirepo',
-        sender=(cfg.mail_from_name, cfg.mail_from_email),
+        sender=(cfg.from_name, cfg.from_email),
         recipients=[user.unverified_email],
         body=u'''
 Click the link below to {} your Sirepo account.
@@ -216,14 +222,14 @@ Click the link below to {} your Sirepo account.
 This link will expire in {} minutes and can only be used once.
 
 {}
-'''.format(login_text, UserEmail.EXPIRES_MINUTES, url)
+'''.format(login_text, EmailAuth.EXPIRES_MINUTES, url)
     )
-    _mail.send(msg)
+    _smtp.send(msg)
 
 
 def _user_with_email_is_logged_in():
     if user_state.is_logged_in():
-        user = UserEmail.search_by_uid(cookie.get_user())
+        user = EmailAuth.search_by_uid(cookie.get_user())
         if user and user.email and user.email == user.unverified_email:
             return True
     return False

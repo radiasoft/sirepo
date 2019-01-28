@@ -40,21 +40,22 @@ def find_or_create_user(user_class, user_data):
 
 def init(app, callback):
     global _db
-    if not _db:
-        app.config.update(
-            SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
-            SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
-            SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        )
-        _db = SQLAlchemy(app, session_options=dict(autoflush=True))
-    tablename = callback(_db)
-    if not os.path.exists(_db_filename(app)):
-        pkdlog('creating user database')
-        _db.create_all()
-    else:
-        engine = _db.get_engine(app)
-        if not engine.dialect.has_table(engine.connect(), tablename):
-            pkdlog('creating database table: {}', tablename)
+    with _db_serial_lock:
+        if not _db:
+            app.config.update(
+                SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
+                SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
+                SQLALCHEMY_TRACK_MODIFICATIONS=False,
+            )
+            _db = SQLAlchemy(app, session_options=dict(autoflush=True))
+        tablename = callback(_db)
+        if _db_filename(app).check(file=True):
+            engine = _db.get_engine(app)
+            if not engine.dialect.has_table(engine.connect(), tablename):
+                pkdlog('creating table {} in existing db', tablename)
+                _db.create_all()
+        else:
+            pkdlog('creating user database {}', _db_filename(app))
             _db.create_all()
 
 
@@ -80,4 +81,4 @@ def update_user(user_class, user_data):
 
 
 def _db_filename(app):
-    return str(app.sirepo_db_dir.join(_USER_DB_FILE))
+    return app.sirepo_db_dir.join(_USER_DB_FILE)
