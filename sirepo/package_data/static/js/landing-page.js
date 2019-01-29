@@ -99,7 +99,7 @@ app.directive('lpCodesMenu', function(appRoutes) {
     };
 });
 
-app.directive('lpBody', function(utilities) {
+app.directive('lpBody', function(utilities, $document, $window) {
     return {
         restrict: 'A',
         scope: {},
@@ -114,7 +114,7 @@ app.directive('lpBody', function(utilities) {
                     '<div data-ng-transclude="lpInfoSlot">',
                         '<div data-lp-info-panel=""></div>',
                     '</div>',
-                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-lp-opportunities="" data-opps="opps"></div>',
+                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-ng-class="{short: isShort}" data-lp-opportunities="" data-opps="opps"></div>',
                 '</div>',
                 '<div class=" lp-flex-col col-md-5 rs-blue-background">',
                     '<div data-ng-if="onMainLandingPage()" class="lp-main-header lp-show-wide">',
@@ -131,6 +131,7 @@ app.directive('lpBody', function(utilities) {
             '</div>',
         ].join(''),
         controller: function($scope, $location) {
+
             $scope.onMainLandingPage = function () {
                 return $location.path() === '/about';
             };
@@ -139,6 +140,26 @@ app.directive('lpBody', function(utilities) {
             $scope.showOpps = function() {
                 return $scope.opps[0] && $scope.onMainLandingPage();
             };
+            $scope.isShort = false;
+
+            function checkSizeAndApply() {
+                var oppsRect = $('.lp-opportunities')[0].getBoundingClientRect();
+                var oppMinTop = $('.lp-info-panel-content .lp-list')[0].getBoundingClientRect().bottom;
+                var oppMaxBottom = $window.innerHeight - 12;
+                $scope.isShort = oppsRect.top < oppMinTop && oppsRect.bottom >= oppMaxBottom;
+                $scope.$apply();
+            }
+            
+            function onResize() {
+                checkSizeAndApply();
+            }
+            function cleanUp() {
+                $($window).off('resize', checkSizeAndApply);
+            }
+            $($window).on('resize', checkSizeAndApply);
+            $scope.$on('$destroy', cleanUp);
+
+            $document.ready(checkSizeAndApply);
        },
     };
 });
@@ -252,7 +273,7 @@ app.directive('lpOpportunities', function(utilities, $sce) {
             opps: '<',
         },
         template: [
-            '<div class="lp-onfo">',
+            '<div class="lp-info">',
                 '<span class="header">New Opportunity!</span>',
                 '<ul>',
                 '<li class="lp-opportunity">',
