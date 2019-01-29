@@ -855,8 +855,6 @@ def user_dir_name(uid=None):
         return d
     return d.join(uid)
 
-def validate_name(data):
-    _validate_name(data)
 
 def validate_serial(req_data):
     """Verify serial in data validates
@@ -938,11 +936,6 @@ def write_status(status, run_dir):
         run_dir (py.path): where to write the file
     """
     pkio.write_text(run_dir.join(_STATUS_FILE), status)
-
-# name is used only for the error message
-def _assert_sim_copy_num(name, count):
-    max = SCHEMA_COMMON.common.constants.maxSimCopies
-    assert count <= max, util.err(name, 'Too many copies: {} > {}', count, max)
 
 
 def _create_example_and_lib_files(simulation_type):
@@ -1260,13 +1253,6 @@ def _validate_name(data):
     sim_id = s.simulationId
     n = s.name
     f = s.folder
-    c = None
-    m = re.search(r'(.+) ([0-9]+)$', n)
-    if m:
-        n = m.group(1)
-        c = int(m.group(2))
-    if c is not None:
-        _assert_sim_copy_num(s.name, c)
     starts_with = pkcollections.Dict()
     for d in iterate_simulation_datafiles(
         sim_type,
@@ -1276,23 +1262,14 @@ def _validate_name(data):
         n2 = d.models.simulation.name
         if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
             starts_with[n2] = d.models.simulation.simulationId
-    _validate_name_uniquify(data, starts_with)
-
-
-def _uniquify_name(proposed_name, starts_with):
-    """Uniquify data.models.simulation.name"""
     i = 2
-    n2 = proposed_name
+    max = SCHEMA_COMMON.common.constants.maxSimCopies
+    n2 = data.models.simulation.name
     while n2 in starts_with:
-        n2 = '{} {}'.format(proposed_name, i)
+        n2 = '{} {}'.format(data.models.simulation.name, i)
         i += 1
-    _assert_sim_copy_num(proposed_name, i - 1)
-    return n2
-
-
-def _validate_name_uniquify(data, starts_with):
-    """Uniquify data.models.simulation.name"""
-    data.models.simulation.name = _uniquify_name(data.models.simulation.name, starts_with)
+    assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
+    data.models.simulation.name = n2
 
 
 def _validate_number(val, sch_field_info):
