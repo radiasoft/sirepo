@@ -105,8 +105,8 @@
         },
         "constants": {
             "clientCookie": "sirepo_cookie_js",
-            "oneDayMillis": 86400000,
-            "maxSimCopies": 100
+            "maxSimCopies": 100,
+            "oneDayMillis": 86400000
         },
         "cookies": {
             "firstVisit": {
