@@ -114,7 +114,7 @@ app.directive('lpBody', function(utilities, $document, $window) {
                     '<div data-ng-transclude="lpInfoSlot">',
                         '<div data-lp-info-panel=""></div>',
                     '</div>',
-                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-ng-class="{short: isShort}" data-lp-opportunities="" data-opps="opps"></div>',
+                    '<div data-ng-show="showOpps()" class="lp-opportunities main-page" data-ng-class="{\'short\': applyOverlapClass() }" data-lp-opportunities="" data-opps="opps"></div>',
                 '</div>',
                 '<div class=" lp-flex-col col-md-5 rs-blue-background">',
                     '<div data-ng-if="onMainLandingPage()" class="lp-main-header lp-show-wide">',
@@ -130,36 +130,34 @@ app.directive('lpBody', function(utilities, $document, $window) {
                 '</div>',
             '</div>',
         ].join(''),
+        link: function(scope) {
+            scope.applyOverlapClass = function() {
+                return $('.lp-opportunities')[0].getBoundingClientRect().bottom >= $window.innerHeight - 12 &&
+                    utilities.checkContentOverlap('.lp-info-panel-content .lp-list', '.lp-opportunities', 0);
+            };
+        },
         controller: function($scope, $location) {
+
+            $scope.opps = utilities.getOpportunities();
 
             $scope.onMainLandingPage = function () {
                 return $location.path() === '/about';
             };
 
-            $scope.opps = utilities.getOpportuinities();
             $scope.showOpps = function() {
                 return $scope.opps[0] && $scope.onMainLandingPage();
             };
-            $scope.isShort = false;
 
-            function checkSizeAndApply() {
-                var oppsRect = $('.lp-opportunities')[0].getBoundingClientRect();
-                var oppMinTop = $('.lp-info-panel-content .lp-list')[0].getBoundingClientRect().bottom;
-                var oppMaxBottom = $window.innerHeight - 12;
-                $scope.isShort = oppsRect.top < oppMinTop && oppsRect.bottom >= oppMaxBottom;
+            // just run the digest cycle to trigger applyOverlapClass
+            function resize() {
                 $scope.$apply();
             }
-            
-            function onResize() {
-                checkSizeAndApply();
-            }
-            function cleanUp() {
-                $($window).off('resize', checkSizeAndApply);
-            }
-            $($window).on('resize', checkSizeAndApply);
-            $scope.$on('$destroy', cleanUp);
 
-            $document.ready(checkSizeAndApply);
+            $($window).on('resize', resize);
+
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', resize);
+            });
        },
     };
 });
@@ -284,7 +282,7 @@ app.directive('lpOpportunities', function(utilities, $sce) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.opps = $scope.opps || utilities.getOpportuinities();
+            $scope.opps = $scope.opps || utilities.getOpportunities();
             $scope.firstOpp = $scope.opps[0];
             $scope.firstText = $sce.trustAsHtml($scope.firstOpp.text);
             $scope.firstURL = $sce.trustAsResourceUrl($scope.firstOpp.url);
@@ -453,7 +451,7 @@ app.directive('modeSelector', function() {
 
 app.service('utilities', function() {
 
-    this.getOpportuinities = function () {
+    this.getOpportunities = function () {
         return LANDING_PAGE_SCHEMA.opportunities || [];
     };
 
