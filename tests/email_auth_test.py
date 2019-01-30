@@ -10,7 +10,7 @@ import pytest
 
 def test_happy_path():
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkunit import pkok
+    from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     from sirepo import srunit
 
@@ -38,21 +38,13 @@ def test_happy_path():
         'emailAuthDisplayName',
         {'email': 'a@b.c', 'displayName': 'abc'},
     )
-    text = fc.sr_get(
-        'logout',
-        {
-            'simulation_type': sim_type,
-        },
-        raw_response=True,
-    ).data
-    pkok(
-        text.find('Redirecting') > 0,
-        'missing redirect',
-    )
-    pkok(
-        text.find('"/{}"'.format(sim_type)) > 0,
-        'missing redirect target',
-    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre("userName: 'a@b.c'", t)
+    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    pkre('/{}$'.format(sim_type), r.headers['Location'])
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre("userName: ''", t)
+
 
 #todo email of a different user already logged in
 #todo email and same email
