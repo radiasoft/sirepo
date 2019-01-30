@@ -458,6 +458,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="UserFolder" data-ng-class="fieldClass">',
                 '<div data-user-folder-list="" data-model="model" data-field="field"></div>',
               '</div>',
+              '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
+                '<div data-optimize-float="" data-model="model" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
+              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -475,7 +478,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             $scope.utilities = utilities;
             function fieldClass(fieldType, fieldSize, wantEnumButtons) {
                 return 'col-sm-' + (fieldSize || (
-                    (fieldType == 'Integer' || fieldType == 'Float')
+                    (fieldType == 'Integer' || fieldType.indexOf('Float') >= 0)
                         ? '3'
                         : wantEnumButtons
                             ? '7'
@@ -1231,6 +1234,32 @@ SIREPO.app.directive('safePath', function() {
                 scope.showWarning = false;
                 return v;
             });
+        },
+    };
+});
+
+SIREPO.app.directive('simplePanel', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            modelName: '@simplePanel',
+        },
+        template: [
+            '<div class="panel panel-info">',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ heading }}" data-model-key="modelName"></div>',
+                '<div class="panel-body" data-ng-hide="isHidden()">',
+                  '<div data-ng-transclude=""></div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var viewInfo = appState.viewInfo($scope.modelName);
+            $scope.heading = viewInfo.title;
+            $scope.isHidden = function() {
+                return panelState.isHidden($scope.modelName);
+            };
         },
     };
 });
@@ -2367,6 +2396,49 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
+SIREPO.app.directive('optimizeFloat', function(panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            min: '=',
+            max: '=',
+        },
+        template: [
+            // keep the field the same dimensions as regular float, but offset width by button size
+            '<div class="input-group input-group-sm" style="margin-right: -30px">',
+              '<input data-string-to-number="" data-ng-model="model[field]" data-min="min" data-max="max" class="form-control" style="text-align: right" data-lpignore="true" required />',
+              '<div class="input-group-btn">',
+                '<button data-ng-attr-class="btn btn-{{ buttonName() }} dropdown-toggle" data-toggle="dropdown" type="button" title="Optimization Settings"><span class="glyphicon glyphicon-cog"></span></button>',
+                '<ul class="dropdown-menu pull-right">',
+                  '<li><a href data-ng-click="toggleCheck()" ><span data-ng-attr-class="glyphicon glyphicon-{{ checkedName() }}"></span> Select this field for optimization</a></li>',
+                '</ul>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function checkField() {
+                //TODO(pjm): centralize '_opt'
+                return $scope.field + '_opt';
+            }
+            function isChecked() {
+                return $scope.model && $scope.model[checkField()];
+            }
+            $scope.buttonName = function() {
+                return isChecked() ? 'primary' : 'default';
+            };
+            $scope.checkedName = function() {
+                return isChecked() ? 'check' : 'unchecked';
+            };
+            $scope.toggleCheck = function() {
+                $scope.model[checkField()] = ! $scope.model[checkField()];
+                panelState.findParentAttribute($scope, 'form').$setDirty();
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('simSections', function(utilities) {
 
     return {
@@ -2388,9 +2460,6 @@ SIREPO.app.directive('simStatusPanel', function() {
         restrict: 'A',
         scope: {
             simState: '=simStatusPanel',
-            initMessage: '@',
-            runningMessage: '&',
-            notRunningMessage: '&',
         },
         template: [
             '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
@@ -2399,7 +2468,7 @@ SIREPO.app.directive('simStatusPanel', function() {
               '</div>',
               '<div data-ng-show="simState.isStateRunning()">',
                 '<div class="col-sm-12">',
-                  '<div data-ng-show="simState.isInitializing()">{{ initMessage }} {{ simState.dots }}</div>',
+                  '<div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>',
                   '<div data-ng-show="simState.getFrameCount() > 0">{{ message(true); }}</div>',
                   '<div class="progress">',
                     '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%">',
@@ -2420,18 +2489,31 @@ SIREPO.app.directive('simStatusPanel', function() {
                 '<button class="btn btn-default" data-ng-click="simState.runSimulation()">Start New Simulation</button>',
               '</div>',
             '</form>',
+            '<div class="clearfix"></div>',
+            '<div data-ng-if="errorMessage()"><div class="text-danger"><strong>{{ ::appName }} Error:</strong></div><pre>{{ errorMessage() }}</pre></div>',
         ].join(''),
         controller: function($scope) {
-            if (! $scope.initMessage) {
-                $scope.initMessage = 'Running Simulation';
+            $scope.appName = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName;
+
+            function callSimState(method) {
+                return $scope.simState[method] && $scope.simState[method]();
             }
+
+            $scope.errorMessage = function() {
+                return callSimState('errorMessage');
+            };
+
+            $scope.initMessage = function() {
+                return callSimState('initMessage')
+                    || 'Running Simulation';
+            };
 
             $scope.message = function(isRunning) {
                 if (isRunning) {
-                    return $scope.runningMessage()
+                    return callSimState('runningMessage')
                         || 'Completed frame: ' + $scope.simState.getFrameCount();
                 }
-                return $scope.notRunningMessage()
+                return callSimState('notRunningMessage')
                     || 'Simulation ' + $scope.simState.stateAsText() + ': ' + $scope.simState.getFrameCount() + ' animation frames';
             };
         },

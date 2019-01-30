@@ -422,7 +422,7 @@
             ]
         },
         "simulationStatus": {
-            "title": "SimulationStatus",
+            "title": "Simulation Status",
             "advanced": []
         },
         "twissReport": {

@@ -122,8 +122,6 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
     var self = this;
-    self.settingsModel = 'simulationStatus';
-    self.panelState = panelState;
     self.hasParticles = false;
     self.hasRates = false;
 
@@ -161,20 +159,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         }
     };
 
-    self.notRunningMessage = function() {
-        if (self.hasParticles) {
-            return '';
-        }
-        return 'Simulation ' + self.simState.stateAsText();
-    };
-
-    self.runningMessage = function() {
-        if (self.hasParticles) {
-            return '';
-        }
-        return 'Simulation running';
-    };
-
     appState.whenModelsLoaded($scope, function() {
         processModel();
         appState.watchModelFields($scope, ['simulationSettings.model', 'simulationSettings.e_cool'], processModel);
@@ -189,6 +173,20 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         coolingRatesAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
+
+    self.simState.notRunningMessage = function() {
+        if (self.hasParticles) {
+            return '';
+        }
+        return 'Simulation ' + self.simState.stateAsText();
+    };
+
+    self.simState.runningMessage = function() {
+        if (self.hasParticles) {
+            return '';
+        }
+        return 'Simulation running';
+    };
 });
 
 SIREPO.app.directive('appFooter', function() {
