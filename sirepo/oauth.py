@@ -34,11 +34,13 @@ def all_uids():
 
 @api_perm.allow_login
 def api_oauthAuthorized(oauth_type):
+#TODO(robnagler) assert oauth_type
     return _authorized_callback(oauth_type)
 
 
 @api_perm.allow_cookieless_user
 def api_oauthLogin(simulation_type, oauth_type):
+#TODO(robnagler) assert oauth_type
     return _authorize(simulation_type, oauth_type)
 
 
@@ -126,12 +128,10 @@ def _init(app):
     app.session_interface = _FlaskSessionInterface()
     global cfg
     cfg = pkconfig.init(
-        github_key=(None, str, 'GitHub application key'),
-        github_secret=(None, str, 'GitHub application secret'),
+        github_key=pkconfig.Required(str, 'GitHub application key'),
+        github_secret=pkconfig.Required(str, 'GitHub application secret'),
         github_callback_uri=(None, str, 'GitHub application callback URI'),
     )
-    if not cfg.github_key or not cfg.github_secret:
-        raise RuntimeError('Missing GitHub oauth config')
 
 
 def _init_user_model(_db):

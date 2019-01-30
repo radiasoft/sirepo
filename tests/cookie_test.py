@@ -10,8 +10,7 @@ from pykern import pkcollections
 
 
 def test_1():
-    import shutil
-    from pykern import pkconfig, pkunit, pkio
+    from pykern import pkunit
     from pykern.pkunit import pkeq
     from pykern.pkdebug import pkdp
     from sirepo import srunit

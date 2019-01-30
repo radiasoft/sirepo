@@ -42,6 +42,34 @@ def all_uids():
     return user_db.all_uids(EmailAuth)
 
 
+@api_perm.require_user
+def api_emailAuthDisplayName():
+    data = http_request.parse_json(assert_sim_type=False)
+    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), data.email)
+    user.display_name = data.displayName
+    user.save()
+    cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
+    return http_reply.gen_json_ok()
+
+
+@api_perm.allow_cookieless_user
+def api_emailAuthLogin():
+    data = http_request.parse_json()
+    user = user_db.find_or_create_user(EmailAuth, {
+        'unverified_email': data.email.lower(),
+    })
+    if not user.email:
+        # the user has never successfully logged in, use their current uid if present
+        if cookie.has_sentinel() and cookie.has_user_value():
+            user.uid = cookie.get_user()
+    return _send_login_email(
+        user,
+        uri_router.uri_for_api('emailAuthorized', dict(
+            simulation_type=data.simulationType,
+            token=user.create_token(),
+        )))
+
+
 @api_perm.allow_login
 def api_emailAuthorized(simulation_type, token):
     user = EmailAuth.search_by_token(token)
@@ -66,40 +94,12 @@ def api_emailAuthorized(simulation_type, token):
         'expires': None,
     })
     user_state.set_logged_in(user.unverified_email)
+#TODO(robnagler) user_state.display_name
     if user.display_name:
         cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
     else:
         cookie.unchecked_remove(_COOKIE_DISPLAY_NAME_SET)
     return flask.redirect('/{}'.format(simulation_type))
-
-
-@api_perm.allow_cookieless_user
-def api_emailLogin():
-    data = http_request.parse_json()
-    user = user_db.find_or_create_user(EmailAuth, {
-        'unverified_email': data['email'].lower(),
-    })
-    if not user.email:
-        # the user has never successfully logged in, use their current uid if present
-        if cookie.has_sentinel() and cookie.has_user_value():
-            user.uid = cookie.get_user()
-    _send_login_email(
-        user,
-        uri_router.uri_for_api('emailAuthorized', dict(
-            simulation_type=data.simulationType,
-            token=user.create_token(),
-        )))
-    return http_reply.gen_json_ok()
-
-
-@api_perm.require_user
-def api_emailUserName():
-    data = http_request.parse_json(assert_sim_type=False)
-    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), data['email'])
-    user.display_name = data.displayName
-    user.save()
-    cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
-    return http_reply.gen_json_ok()
 
 
 @api_perm.allow_visitor
@@ -195,7 +195,7 @@ def _init_email_auth_model(_db):
 
         @classmethod
         def search_by_uid_and_email(cls, uid, email):
-            return cls.query.filter_by(uid=uid, email=email).first()
+            return cls.query.filter_by(uid=uid, email=email.lower()).first()
 
         def update(self, user_data):
             self.email = user_data['email']
@@ -209,7 +209,7 @@ def _send_login_email(user, url):
     if not _smtp:
         assert pkconfig.channel_in('dev')
         pkdlog('{}', url)
-        return
+        return http_reply.gen_json_ok({'url': url})
     login_text = u'sign in to' if user.email else \
         u'confirm your email and finish creating'
     msg = flask_mail.Message(
@@ -225,6 +225,7 @@ This link will expire in {} minutes and can only be used once.
 '''.format(login_text, EmailAuth.EXPIRES_MINUTES, url)
     )
     _smtp.send(msg)
+    return http_reply.gen_json_ok()
 
 
 def _user_with_email_is_logged_in():

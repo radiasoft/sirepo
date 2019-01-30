@@ -34,7 +34,9 @@ def test_login_logout():
     ).data
     state = re.search(r'state=(.*?)"', text).group(1)
     #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
-    text = fc.get('/oauth-authorized/github')
+    #TODO(robnagler) test passes without it. why does it pass with it, because
+    # fc throws an exception, and taht should throw something bad back
+    # text = fc.get('/oauth-authorized/github')
     text = fc.sr_get(
         'logout',
         {

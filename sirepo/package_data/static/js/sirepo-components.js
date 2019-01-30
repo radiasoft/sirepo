@@ -2157,7 +2157,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
         restrict: 'A',
         scope: {},
         template: [
-            '<div data-ng-if="::missingUserName()" data-confirmation-modal="" data-id="sr-complete-registration" data-is-required="true" data-title="Complete your registration" data-ok-text="Continue" data-ok-clicked="updateUserName()">',
+            '<div data-ng-if="::missingDisplayName()" data-confirmation-modal="" data-id="sr-complete-registration" data-is-required="true" data-title="Complete your registration" data-ok-text="Continue" data-ok-clicked="updateDisplayName()">',
               '<p>Please enter your full name to complete your Sirepo registration.</p>',
               '<form class="form-horizontal" autocomplete="off">',
                 '<label class="col-sm-3 control-label">Your email</label>',
@@ -2181,9 +2181,9 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
                 }
             }
 
-            $scope.updateUserName = function() {
+            $scope.updateDisplayName = function() {
                 requestSender.sendRequest(
-                    'emailUserName',
+                    'emailAuthDisplayName',
                     handleResponse,
                     {
                         email: SIREPO.userState.userName,
@@ -2191,7 +2191,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
                     });
             };
 
-            $scope.missingUserName = function() {
+            $scope.missingDisplayName = function() {
                 if (loginService.isLoggedIn() && ! SIREPO.userState.displayNameSet) {
                     $scope.data = {
                         email: SIREPO.userState.userName,
@@ -2242,7 +2242,7 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
             $scope.data = {};
             $scope.login = function() {
                 requestSender.sendRequest(
-                    'emailLogin',
+                    'emailAuthLogin',
                     handleResponse,
                     {
                         email: $scope.data.email,
