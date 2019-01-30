@@ -1137,7 +1137,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 formatInfo.base = base;
                 formatInfo.baseFormat = baseFormat;
             }
-            if ((orientation == 'left' || orientation == 'right' && ! canvasSize.isPlaying)) {
+            if ((orientation == 'left' || orientation == 'right') && ! canvasSize.isPlaying) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
                 margin[orientation] = (w + 6) * (fontSize / 2);
             }
