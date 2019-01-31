@@ -214,7 +214,6 @@ SIREPO.app.controller('TwissController', function() {
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, latticeService, panelState, persistentSimulation, plotRangeService, $rootScope, $scope) {
     var self = this;
-    self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
 
@@ -240,10 +239,6 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         }
     };
 
-    self.notRunningMessage = function() {
-        return 'Simulation ' + self.simState.stateAsText();
-    };
-
     self.startSimulation = function() {
         self.simState.saveAndRunSimulation('simulation');
     };
@@ -252,6 +247,14 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
         bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
+
+    self.simState.errorMessage = function() {
+        return self.errorMessage;
+    };
+
+    self.simState.notRunningMessage = function() {
+        return 'Simulation ' + self.simState.stateAsText();
+    };
 
     appState.whenModelsLoaded($scope, function() {
         //TODO(pjm): need to work this into sirepo-lattice.js

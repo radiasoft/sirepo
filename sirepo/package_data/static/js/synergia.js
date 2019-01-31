@@ -125,7 +125,6 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
     var self = this;
     var turnCount = 0;
-    self.settingsModel = 'simulationStatus';
     self.panelState = panelState;
     self.errorMessage = '';
 
@@ -164,17 +163,6 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return frameCache.getFrameCount('turnComparisonAnimation') > 0;
     };
 
-    self.notRunningMessage = function() {
-        return 'Simulation ' + self.simState.stateAsText();
-    };
-
-    self.runningMessage = function() {
-        if (appState.isLoaded() && turnCount) {
-            return 'Simulating turn: ' + turnCount + ' / ' + appState.models.simulationSettings.turn_count;
-        }
-        return 'Simulation running';
-    };
-
     appState.whenModelsLoaded($scope, function() {
         appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], function() {
             plotRangeService.processPlotRange(self, 'bunchAnimation');
@@ -186,6 +174,21 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
         turnComparisonAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y', 'turn1', 'turn2', 'startTime'],
     });
+
+    self.simState.errorMessage = function() {
+        return self.errorMessage;
+    };
+
+    self.simState.notRunningMessage = function() {
+        return 'Simulation ' + self.simState.stateAsText();
+    };
+
+    self.simState.runningMessage = function() {
+        if (appState.isLoaded() && turnCount) {
+            return 'Simulating turn: ' + turnCount + ' / ' + appState.models.simulationSettings.turn_count;
+        }
+        return 'Simulation running';
+    };
 });
 
 SIREPO.app.directive('appFooter', function() {
