@@ -14,18 +14,22 @@
         "conductorTypes": [
             {
                 "id": 3,
+                "isConductor": "1",
                 "name": "Head",
                 "permittivity": 7,
                 "voltage": 30,
                 "xLength": 0.02,
+                "yLength": 0.01,
                 "zLength": 0.01
             },
             {
                 "id": 2,
+                "isConductor": "0",
                 "name": "Post",
                 "permittivity": 7,
                 "voltage": 0,
                 "xLength": 0.005,
+                "yLength": 0.01,
                 "zLength": 0.5
             }
         ],
@@ -34,83 +38,99 @@
                 "conductorTypeId": 2,
                 "id": 2,
                 "xCenter": "0.036363636",
+                "yCenter": 0,
                 "zCenter": "4.7500000"
             },
             {
                 "conductorTypeId": 2,
                 "id": 3,
                 "xCenter": "-0.036363636",
+                "yCenter": 0,
                 "zCenter": "4.7500000"
             },
             {
                 "conductorTypeId": 3,
                 "id": 4,
                 "xCenter": "0.036363636",
+                "yCenter": 0,
                 "zCenter": "4.4950000"
             },
             {
                 "conductorTypeId": 3,
                 "id": 5,
                 "xCenter": "-0.036363636",
+                "yCenter": 0,
                 "zCenter": "4.4950000"
             }
         ],
         "currentAnimation": {
             "framesPerSecond": "2",
-            "startTime": 1512001777
+            "startTime": 1548959048
         },
         "egunCurrentAnimation": {
             "framesPerSecond": "2",
-            "startTime": 1512001777
+            "startTime": 1548959048
         },
         "fieldAnimation": {
             "field": "phi",
             "framesPerSecond": "2",
-            "startTime": 1512001777
+            "startTime": 1548959048
         },
         "fieldComparisonReport": {
             "dimension": "x",
-            "xCell1": 3,
-            "xCell2": 5,
-            "xCell3": 9,
+            "xCell1": 6,
+            "xCell2": 10,
+            "xCell3": 18,
             "zCell1": 457,
             "zCell2": 460,
             "zCell3": 462
         },
-        "fieldReport": {},
+        "fieldReport": {
+            "colorMap": "viridis",
+            "notes": ""
+        },
         "impactDensityAnimation": {
-            "startTime": 1512001777
+            "colorMap": "coolwarm",
+            "notes": "",
+            "startTime": 1548959048
         },
         "panelState": {
             "hidden": []
         },
+        "particle3d": {
+            "colorMap": "viridis",
+            "renderCount": "10",
+            "startTime": 1548959048
+        },
         "particleAnimation": {
             "renderCount": "100",
-            "startTime": 1512001777
-        },
-        "particle3d": {
-            "renderCount": "10",
-            "startTime": 1512001777
+            "startTime": 1548959048
         },
         "simulation": {
+            "documentationUrl": "",
             "egun_mode": "0",
             "folder": "/",
             "isExample": true,
             "name": "Two Poles",
+            "notes": "",
             "outOfSessionSimulationId": "",
-            "simulationId": "WlS7afLO",
-            "simulationSerial": 1512001781077464
+            "simulationId": "naKMhbkF",
+            "simulationSerial": 1548959108505503
         },
         "simulationGrid": {
+            "channel_height": 0.08,
             "channel_width": 0.2,
             "num_steps": 400,
-            "num_x": 11,
+            "num_x": 22,
+            "num_y": 10,
             "num_z": 512,
-            "particles_per_step": 110,
+            "particles_per_step": 220,
             "plate_spacing": 5,
+            "simulation_mode": "2d",
             "z_particle_min": 0.001220703125
-        }
+        },
+        "simulationStatus": {}
     },
     "simulationType": "warpvnd",
-    "version": "20180613.000000"
+    "version": "20190125.225202"
 }
