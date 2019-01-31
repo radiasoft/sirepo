@@ -5,6 +5,7 @@ u"""User cookie state
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkcollections
 from sirepo import cookie
 import flask
@@ -15,11 +16,11 @@ _LOGGED_IN = 'li'
 _LOGGED_OUT = 'lo'
 
 _ANONYMOUS_STATE = 'anonymous'
-_LOGIN_STATE_MAP = {
+_LOGIN_STATE_MAP = pkcollections.Dict({
     _ANONYMOUS: _ANONYMOUS_STATE,
     _LOGGED_IN: 'logged_in',
     _LOGGED_OUT: 'logged_out',
-}
+})
 
 # cookie keys for user state
 _COOKIE_NAME = 'sron'
@@ -53,10 +54,13 @@ def set_default_state(auth_method):
         return None
     if not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
+    s = cookie.get_value(_COOKIE_STATE) or _ANONYMOUS
     return pkcollections.Dict(
-        login_state=_LOGIN_STATE_MAP.get(cookie.get_value(_COOKIE_STATE), _ANONYMOUS_STATE),
-        user_name=cookie.get_value(_COOKIE_NAME),
         auth_method=auth_method,
+        display_name_set=False,
+        is_logged_out=s == _LOGGED_OUT,
+        login_state=_LOGIN_STATE_MAP[s],
+        user_name=cookie.get_value(_COOKIE_NAME),
     )
 
 

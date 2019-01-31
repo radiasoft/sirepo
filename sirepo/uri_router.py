@@ -28,6 +28,9 @@ _PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
 
+#: modules that must be initialized. server must be first
+_REQUIRED_MODULES = ('server', 'api_auth')
+
 #: Where to route when no routes match (root)
 _default_route = None
 
@@ -72,7 +75,7 @@ def init(app, uwsgi):
     if _uri_to_route:
         return
     cookie.init_module(app, uwsgi)
-    for m in ('server',) + feature_config.cfg.api_modules:
+    for m in _REQUIRED_MODULES + feature_config.cfg.api_modules:
         importlib.import_module('sirepo.' + m).init_apis(app)
     _init_uris(app, simulation_db)
 

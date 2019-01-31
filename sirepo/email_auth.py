@@ -23,6 +23,7 @@ import datetime
 import flask
 import flask_mail
 import sqlalchemy
+import pyisemail
 
 
 #: Tell GUI how to authenticate (before schema is loaded)
@@ -45,7 +46,7 @@ def all_uids():
 @api_perm.require_user
 def api_emailAuthDisplayName():
     data = http_request.parse_json(assert_sim_type=False)
-    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), data.email)
+    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), _parse_email(data))
     user.display_name = data.displayName
     user.save()
     cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
@@ -55,8 +56,9 @@ def api_emailAuthDisplayName():
 @api_perm.allow_cookieless_user
 def api_emailAuthLogin():
     data = http_request.parse_json()
+
     user = user_db.find_or_create_user(EmailAuth, {
-        'unverified_email': data.email.lower(),
+        'unverified_email': _parse_email(data),
     })
     if not user.email:
         # the user has never successfully logged in, use their current uid if present
@@ -203,6 +205,13 @@ def _init_email_auth_model(_db):
             self.expires = user_data['expires']
 
     return EmailAuth.__tablename__
+
+
+def _parse_email(data):
+    res = data.email.lower()
+    assert pyisemail.is_email(res), \
+        'invalid email posted: {}'.format(data.email)
+    return res
 
 
 def _send_login_email(user, url):

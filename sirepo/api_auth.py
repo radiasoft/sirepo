@@ -6,9 +6,11 @@ u"""authentication and authorization routines
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern import pkcollections
 from pykern import pkinspect
-from sirepo import cookie
 from sirepo import api_perm
+from sirepo import cookie
+from sirepo import http_reply
 from sirepo import util
 
 
@@ -19,6 +21,26 @@ def all_uids():
     if not login_module:
         return []
     return login_module.all_uids()
+
+
+@api_perm.allow_visitor
+def api_userState():
+    v = pkcollections.Dict(
+        # means "have some type of auth method" and is logged out
+        is_logged_out=False,
+        user_state=None,
+    )
+    if login_module:
+        s = login_module.set_default_state()
+        if s:
+            v.user_state = pkcollections.Dict(
+                authMethod=s.auth_method,
+                displayNameSet=s.display_name_set,
+                loginState=s.login_state,
+                userName=s.user_name,
+            )
+            v.is_logged_out = s.is_logged_out
+    return http_reply.render_static('user-state', 'js', v)
 
 
 def assert_api_call(func):
@@ -56,10 +78,10 @@ def assert_api_def(func):
         )
 
 
-def get_auth_user_state():
-    if login_module:
-        return login_module.set_default_state()
-    return None
+def init_apis(app):
+    from sirepo import uri_router
+
+    uri_router.register_api_module()
 
 
 def register_login_module():

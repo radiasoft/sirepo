@@ -474,19 +474,6 @@ def api_runStatus():
     return http_reply.gen_json(_simulation_run_status(data))
 
 
-@api_perm.allow_visitor
-def api_userState():
-    return _no_cache(
-        flask.Response(
-            flask.render_template(
-                'js/user-state.js',
-                user_state=api_auth.get_auth_user_state(),
-            ),
-            mimetype='application/javascript',
-        )
-    )
-
-
 @api_perm.require_user
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
@@ -521,14 +508,14 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         if pretty:
             _as_attachment(
                 resp,
-                app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-                '{}.json'.format(data['models']['simulation']['name']),
+                http_reply.MIME_TYPE.json,
+                '{}.json'.format(data.models.simulation.name),
             )
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
-    return _no_cache(resp)
+    return http_reply.headers_for_no_cache(resp)
 
 
 @api_perm.require_user
@@ -549,7 +536,7 @@ def api_simulationFrame(frame_id):
         resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
         resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
     else:
-        _no_cache(resp)
+        http_reply.headers_for_no_cache(resp)
     return resp
 
 
@@ -662,6 +649,7 @@ def init(uwsgi=None, use_reloader=False):
     from sirepo import uri_router
 
     app.sirepo_db_dir = cfg.db_dir
+    http_reply.init_by_server(app)
     simulation_db.init_by_server(app)
     uri_router.init(app, uwsgi)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
@@ -677,9 +665,11 @@ def init_apis(app):
 def javascript_redirect(redirect_uri):
     """Redirect using javascript for safari browser which doesn't support hash redirects.
     """
-    return flask.render_template(
-        'html/javascript-redirect.html',
-        redirect_uri=redirect_uri
+    return http_reply.render_static(
+        'javascript-redirect',
+        'html',
+        pkcollections.Dict(redirect_uri=redirect_uri),
+        cache_ok=True,
     )
 
 
@@ -740,24 +730,21 @@ def _lib_filepath(simulation_type, filename, file_type):
     return lib.join(_lib_filename(simulation_type, filename, file_type))
 
 
-def _no_cache(resp):
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    return resp
-
-
 def _parse_data_input(validate=False):
     data = http_request.parse_json(assert_sim_type=False)
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _render_root_page(page, values):
-    values.source_cache_key = _source_cache_key()
-    values.app_version = simulation_db.app_version()
-    values.static_files = simulation_db.static_libs()
-    return flask.render_template(
-        'html/{}.html'.format(page),
-        **values
+    return http_reply.render_static(
+        page,
+        'html',
+        pkcollections.Dict(
+            app_version=simulation_db.app_version(),
+            source_cache_key=_source_cache_key(),
+            static_files=simulation_db.static_libs(),
+        ),
+        cache_ok=True,
     )
 
 
