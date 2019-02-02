@@ -76,8 +76,6 @@ def file_as_stream(filename):
 
 
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True):
-    from sirepo import uri_router
-
     fc = flask_client(cfg)
     try:
         if before_request:
@@ -87,6 +85,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
             server.SRUNIT_TEST_IN_REQUEST,
             pkcollections.Dict(op=op, want_cookie=want_cookie),
         )
+        from sirepo import uri_router
         resp = fc.get(
             uri_router.srunit_uri,
             headers=headers,
