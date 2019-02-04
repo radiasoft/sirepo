@@ -15,6 +15,7 @@ from sirepo import cookie
 from sirepo import feature_config
 from sirepo import util
 from sirepo.template import template_common
+import copy
 import datetime
 import errno
 import glob
@@ -28,6 +29,7 @@ import re
 import sirepo.template
 import threading
 import time
+import werkzeug.exceptions
 
 #: Json files
 JSON_SUFFIX = '.json'
