@@ -656,6 +656,7 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
@@ -820,9 +821,9 @@
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "arbitraryBeam": {
-            "phase": ["Magnet Arrays Shift [mm]", "Float", 0],
+            "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
-            "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "magnetic_measurements.dat"]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1749,9 +1750,9 @@
             "advanced": []
         },
         "arbitraryBeam": {
-            "title": "Arbitrary Beam",
+            "title": "Arbitrary Magnetic Field",
             "basic": [
-                "phase",
+                "interpolationOrder",
                 "longitudinalPosition",
                 "magneticFile"
             ],
