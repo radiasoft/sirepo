@@ -693,6 +693,10 @@
             ],
             "advanced": []
         },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
         "twissSettings": {
             "title": "Simulation Settings",
             "basic": [

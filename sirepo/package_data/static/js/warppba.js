@@ -67,6 +67,10 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
         particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime'],
         beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'histogramBins', 'startTime'],
     });
+
+    self.simState.initMessage = function() {
+        return 'Initializing Laser Pulse and Plasma';
+    };
 });
 
 SIREPO.app.controller('WarpPBASourceController', function(appState, frameCache, warpPBAService, $scope) {

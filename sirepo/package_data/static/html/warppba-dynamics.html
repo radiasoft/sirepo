@@ -1,11 +1,8 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-6 col-xl-4">
-      <div class="panel panel-info">
-        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
-        <div class="panel-body" data-ng-hide="dynamics.panelState.isHidden('simulationStatus')">
-          <div data-sim-status-panel="dynamics.simState" data-init-message="Initializing Laser Pulse and Plasma"></div>
-        </div>
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="dynamics.simState"></div>
       </div>
     </div>
     <div class="clearfix"></div>
