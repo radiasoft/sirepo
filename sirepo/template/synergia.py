@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
+from sirepo.schema import get_enums
 from sirepo.template import template_common, elegant_common, elegant_lattice_importer
 import glob
 import h5py
@@ -394,22 +395,23 @@ def _build_beamline_map(data):
 
 def _calc_bunch_parameters(bunch):
     from synergia.foundation import Four_momentum
-    bunch_def = bunch['beam_definition']
-    mom = Four_momentum(bunch['mass'])
+    bunch_def = bunch.beam_definition
+    bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
+    mom = Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
-        if bunch_def == 'energy':
-            mom.set_total_energy(bunch['energy'])
-        elif bunch_def == 'momentum':
-            mom.set_momentum(bunch['momentum'])
-        elif bunch_def == 'gamma':
-            mom.set_gamma(bunch['gamma'])
+        if bunch_def == bunch_enums.energy:
+            mom.set_total_energy(bunch.energy)
+        elif bunch_def == bunch_enums.momentum:
+            mom.set_momentum(bunch.momentum)
+        elif bunch_def == bunch_enums.gamma:
+            mom.set_gamma(bunch.gamma)
         else:
             assert False, 'invalid bunch def: {}'.format(bunch_def)
-        bunch['gamma'] = format_float(mom.get_gamma())
-        bunch['energy'] = format_float(mom.get_total_energy())
-        bunch['momentum'] = format_float(mom.get_momentum())
-        bunch['beta'] = format_float(mom.get_beta())
+        bunch.gamma = format_float(mom.get_gamma())
+        bunch.energy = format_float(mom.get_total_energy())
+        bunch.momentum = format_float(mom.get_momentum())
+        bunch.beta = format_float(mom.get_beta())
     except Exception as e:
         bunch[bunch_def] = ''
     return {
@@ -420,32 +422,34 @@ def _calc_bunch_parameters(bunch):
 def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
     particle = bunch.particle
-    if particle == 'other':
+    particle_enums = get_enums(_SCHEMA, 'Particle')
+    if particle == particle_enums.other:
         return
     mass = 0
     charge = 0
-    if particle == 'proton':
+    if particle == particle_enums.proton:
         mass = pconstants.mp
         charge = pconstants.proton_charge
-    elif particle == 'antiproton':
-        mass = pconstants.mp
-        charge = pconstants.antiproton_charge
-    elif particle == 'electron':
+    # No antiprotons yet - commented out to avoid assertion error
+    #elif particle == particle_enums.antiproton:
+    #    mass = pconstants.mp
+    #    charge = pconstants.antiproton_charge
+    elif particle == particle_enums.electron:
         mass = pconstants.me
         charge = pconstants.electron_charge
-    elif particle == 'positron':
+    elif particle == particle_enums.positron:
         mass = pconstants.me
         charge = pconstants.positron_charge
-    elif particle == 'negmuon':
+    elif particle == particle_enums.negmuon:
         mass = pconstants.mmu
         charge = pconstants.muon_charge
-    elif particle == 'posmuon':
+    elif particle == particle_enums.posmuon:
         mass = pconstants.mmu
         charge = pconstants.antimuon_charge
     else:
         assert False, 'unknown particle: {}'.format(particle)
-    bunch['mass'] = mass
-    bunch['charge'] = charge
+    bunch.mass = mass
+    bunch.charge = charge
 
 
 def _compute_range_across_files(run_dir, data):
