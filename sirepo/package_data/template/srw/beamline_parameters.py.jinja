@@ -52,8 +52,8 @@
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
     {{- fields(item, 'f', ('radius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification', 'horizontalOffset', 'verticalOffset')) }}
 {% elif item.type == 'toroidalMirror' %}
-    {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
-    {{- fields(item, 'f', ('tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'horizontalPosition', 'verticalPosition', 'apertureShape', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY')) }}
+    {{- fields(item, 's', ('heightProfileFile', 'orientation', 'apertureShape')) }}
+    {{- fields(item, 'f', ('tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'horizontalPosition', 'verticalPosition', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification')) }}
 {% elif item.type == 'zonePlate' %}
     {{- fields(item, 'f', ('outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset')) }}
     {{- fields(item, 'i', ('numberOfZones', )) }}

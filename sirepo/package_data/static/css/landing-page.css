@@ -207,6 +207,10 @@ lp-info-content p {
   left: 8px;
   width: 50%;
 }
+.lp-opportunities.main-page.short {
+  position: relative;
+  width: 50vw;
+}
 .lp-opportunities.app-page {
   position: relative;
   margin-left: -8px;

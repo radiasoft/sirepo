@@ -11,16 +11,8 @@ pytest.importorskip('srwl_bl')
 
 
 def test_import_json():
-    try:
-        import StringIO
-    except:
-        from io import StringIO
-
-    def _parse(fn):
-        json = fn.read(mode='rb')
-        return json, StringIO.StringIO(json)
-
-    _do('json', _parse)
+    from sirepo import srunit
+    _do('json', srunit.file_as_stream)
 
 
 def test_import_zip():

@@ -240,7 +240,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _size_sag={{ field(item, 'sagittalSize') }},
                 _x={{ field(item, 'horizontalPosition') }},
                 _y={{ field(item, 'verticalPosition') }},
-                _ap_shape='{{ field(item, 'apertureShape') }}',
+                _ap_shape={{ field(item, 'apertureShape') }},
                 _nvx={{ field(item, 'normalVectorX') }},
                 _nvy={{ field(item, 'normalVectorY') }},
                 _nvz={{ field(item, 'normalVectorZ') }},

@@ -822,10 +822,10 @@ def _file_info(filename, run_dir, id, output_index):
                 if not len(values):
                     pass
                 elif len(field_range[col]):
-                    field_range[col][0] = min(min(values), field_range[col][0])
-                    field_range[col][1] = max(max(values), field_range[col][1])
+                    field_range[col][0] = min(_safe_sdds_value(min(values)), field_range[col][0])
+                    field_range[col][1] = max(_safe_sdds_value(max(values)), field_range[col][1])
                 else:
-                    field_range[col] = [min(values), max(values)]
+                    field_range[col] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
         return {
             'isAuxFile': False if double_column_count > 1 else True,
             'filename': filename,
@@ -1131,9 +1131,12 @@ def _output_info(run_dir):
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
     if os.path.isfile(str(info_file)):
-        res = simulation_db.read_json(info_file)
-        if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
-            return res
+        try:
+            res = simulation_db.read_json(info_file)
+            if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+                return res
+        except ValueError as e:
+            pass
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
