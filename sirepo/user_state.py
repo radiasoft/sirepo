@@ -28,6 +28,9 @@ _LOGIN_STATE_MAP = pkcollections.Dict({
 #: cookie keys for user state
 _COOKIE_STATE = 'sros'
 
+#: formerly used in the cookie but no longer
+_REMOVED_COOKIE_NAME = 'sron'
+
 
 #: registered module
 login_module = None
@@ -110,6 +113,7 @@ def set_logged_in():
 def update_from_cookie():
     if cookie.has_sentinel() and not cookie.has_key(_COOKIE_STATE):
         _update_session(_ANONYMOUS)
+    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
 
 
 def _beaker_compat_map_keys(key_map):

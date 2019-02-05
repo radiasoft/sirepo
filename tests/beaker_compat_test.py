@@ -37,7 +37,6 @@ def test_oauth_user():
         'S0QmCORV',
         (
             ('li', 'sros'),
-            ('moellep', 'sron'),
         ),
     )
 
