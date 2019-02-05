@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import server
@@ -21,15 +20,16 @@ import flask.sessions
 import flask_oauthlib.client
 import sqlalchemy
 
-_AUTH_METHOD = 'github'
+
+#: How do we authenticate
+AUTH_METHOD = 'github'
+
+#: Used by user_db
+UserModel = None
 
 # cookie keys for oauth
 _COOKIE_NEXT = 'sronx'
 _COOKIE_NONCE = 'sronn'
-
-
-def all_uids():
-    return user_db.all_uids(User)
 
 
 @api_perm.allow_login
@@ -54,11 +54,7 @@ def init_apis(app):
     user_db.init(app, _init_user_model)
     user_state.init_beaker_compat()
     uri_router.register_api_module()
-    api_auth.register_login_module()
-
-
-def set_default_state():
-    return user_state.set_default_state(_AUTH_METHOD)
+    user_state.register_login_module()
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -120,7 +116,7 @@ def _authorized_callback(oauth_type):
     user_data = oc.get('user', token=(resp['access_token'], '')).data
     user_data['oauth_type'] = oauth_type
     user_db.update_user(User, user_data)
-    user_state.set_logged_in(user_data['login'])
+    user_state.set_logged_in()
     return server.javascript_redirect(_remove_cookie_key(_COOKIE_NEXT))
 
 
@@ -136,7 +132,7 @@ def _init(app):
 
 def _init_user_model(_db):
     """Creates User class bound to dynamic `_db` variable"""
-    global User
+    global User, UserModel
 
     class User(_db.Model):
         __tablename__ = 'user_t'
@@ -161,10 +157,15 @@ def _init_user_model(_db):
         def search(cls, user_data):
             return cls.query.filter_by(oauth_id=user_data['id'], oauth_type=user_data['oauth_type']).first()
 
+        @classmethod
+        def search_by_uid(cls, uid):
+            return cls.query.filter_by(uid=uid).first()
+
         def update(self, user_data):
             self.user_name = user_data['login']
             self.display_name = user_data['name']
 
+    UserModel = User
     return User.__tablename__
 
 

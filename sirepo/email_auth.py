@@ -9,7 +9,6 @@ from __future__ import absolute_import, division, print_function
 from flask_sqlalchemy import SQLAlchemy
 from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply, http_request
@@ -27,10 +26,10 @@ import pyisemail
 
 
 #: Tell GUI how to authenticate (before schema is loaded)
-_AUTH_METHOD = 'email'
+AUTH_METHOD = 'email'
 
-#: cookie key to track if user's full name has been entered
-_COOKIE_DISPLAY_NAME_SET = 'sredn'
+#: Used by user_db
+UserModel = None
 
 #: SIREPO_EMAIL_AUTH_SMTP_SERVER=dev avoids SMTP entirely
 _DEV_SMTP_SERVER = 'dev'
@@ -39,17 +38,15 @@ _DEV_SMTP_SERVER = 'dev'
 _smtp = None
 
 
-def all_uids():
-    return user_db.all_uids(EmailAuth)
-
-
 @api_perm.require_user
 def api_emailAuthDisplayName():
     data = http_request.parse_json(assert_sim_type=False)
-    user = EmailAuth.search_by_uid_and_email(cookie.get_user(), _parse_email(data))
+    user = EmailAuth.search_by_uid_and_user_name(
+        cookie.get_user(),
+        _parse_email(data),
+    )
     user.display_name = data.displayName
     user.save()
-    cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
     return http_reply.gen_json_ok()
 
 
@@ -60,7 +57,7 @@ def api_emailAuthLogin():
     user = user_db.find_or_create_user(EmailAuth, {
         'unverified_email': _parse_email(data),
     })
-    if not user.email:
+    if not user.user_name:
         # the user has never successfully logged in, use their current uid if present
         if cookie.has_sentinel() and cookie.has_user_value():
             user.uid = cookie.get_user()
@@ -90,17 +87,12 @@ def api_emailAuthorized(simulation_type, token):
             simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
         ))
     user_db.update_user(EmailAuth, {
-        'email': user.unverified_email,
+        'user_name': user.unverified_email,
         'unverified_email': user.unverified_email,
         'token': None,
         'expires': None,
     })
-    user_state.set_logged_in(user.unverified_email)
-#TODO(robnagler) user_state.display_name
-    if user.display_name:
-        cookie.set_value(_COOKIE_DISPLAY_NAME_SET, 1)
-    else:
-        cookie.unchecked_remove(_COOKIE_DISPLAY_NAME_SET)
+    user_state.set_logged_in()
     return flask.redirect('/{}'.format(simulation_type))
 
 
@@ -113,14 +105,7 @@ def init_apis(app):
     _init(app)
     user_db.init(app, _init_email_auth_model)
     uri_router.register_api_module()
-    api_auth.register_login_module()
-
-
-def set_default_state():
-    res = user_state.set_default_state(_AUTH_METHOD)
-    if cookie.has_key(_COOKIE_DISPLAY_NAME_SET):
-        res.display_name_set = cookie.get_value(_COOKIE_DISPLAY_NAME_SET)
-    return res
+    user_state.register_login_module()
 
 
 def _init(app):
@@ -148,7 +133,7 @@ def _init(app):
 
 def _init_email_auth_model(_db):
     """Creates EmailAuth class bound to dynamic `_db` variable"""
-    global EmailAuth
+    global EmailAuth, UserModel
 
     # Primary key is unverified_email.
     # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
@@ -163,8 +148,8 @@ def _init_email_auth_model(_db):
         __tablename__ = 'email_auth_t'
         unverified_email = _db.Column(_db.String(EMAIL_SIZE), primary_key=True)
         uid = _db.Column(_db.String(8))
-        email = _db.Column(_db.String(255))
-        display_name = _db.Column(_db.String(EMAIL_SIZE))
+        user_name = _db.Column(_db.String(EMAIL_SIZE))
+        display_name = _db.Column(_db.String(100))
         token = _db.Column(_db.String(TOKEN_SIZE))
         expires = _db.Column(_db.DateTime())
 
@@ -196,14 +181,15 @@ def _init_email_auth_model(_db):
             return cls.query.filter_by(uid=uid).first()
 
         @classmethod
-        def search_by_uid_and_email(cls, uid, email):
-            return cls.query.filter_by(uid=uid, email=email.lower()).first()
+        def search_by_uid_and_user_name(cls, uid, user_name):
+            return cls.query.filter_by(uid=uid, user_name=user_name.lower()).first()
 
         def update(self, user_data):
-            self.email = user_data['email']
+            self.user_name = user_data['user_name']
             self.token = user_data['token']
             self.expires = user_data['expires']
 
+    UserModel = EmailAuth
     return EmailAuth.__tablename__
 
 
@@ -219,7 +205,7 @@ def _send_login_email(user, url):
         assert pkconfig.channel_in('dev')
         pkdlog('{}', url)
         return http_reply.gen_json_ok({'url': url})
-    login_text = u'sign in to' if user.email else \
+    login_text = u'sign in to' if user.user_name else \
         u'confirm your email and finish creating'
     msg = flask_mail.Message(
         subject='Sign in to Sirepo',
@@ -240,6 +226,6 @@ This link will expire in {} minutes and can only be used once.
 def _user_with_email_is_logged_in():
     if user_state.is_logged_in():
         user = EmailAuth.search_by_uid(cookie.get_user())
-        if user and user.email and user.email == user.unverified_email:
+        if user and user.user_name and user.user_name == user.unverified_email:
             return True
     return False

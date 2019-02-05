@@ -2203,7 +2203,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
-                    SIREPO.userState.displayNameSet = 1;
+                    SIREPO.userState.displayName = $scope.data.displayName;
                 }
                 else {
                     //TODO(pjm): add server error message
@@ -2221,7 +2221,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
             };
 
             $scope.missingDisplayName = function() {
-                if (loginService.isLoggedIn() && ! SIREPO.userState.displayNameSet) {
+                if (loginService.isLoggedIn() && ! SIREPO.userState.displayName) {
                     $scope.data = {
                         email: SIREPO.userState.userName,
                         name: '',

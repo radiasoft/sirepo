@@ -10,37 +10,8 @@ from pykern import pkcollections
 from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
-from sirepo import http_reply
+from sirepo import user_state
 from sirepo import util
-
-
-login_module = None
-
-
-def all_uids():
-    if not login_module:
-        return []
-    return login_module.all_uids()
-
-
-@api_perm.allow_visitor
-def api_userState():
-    v = pkcollections.Dict(
-        # means "have some type of auth method" and is logged out
-        is_logged_out=False,
-        user_state=None,
-    )
-    if login_module:
-        s = login_module.set_default_state()
-        if s:
-            v.user_state = pkcollections.Dict(
-                authMethod=s.auth_method,
-                displayNameSet=s.display_name_set,
-                loginState=s.login_state,
-                userName=s.user_name,
-            )
-            v.is_logged_out = s.is_logged_out
-    return http_reply.render_static('user-state', 'js', v)
 
 
 def assert_api_call(func):
@@ -57,8 +28,7 @@ def assert_api_call(func):
         pass
     elif p == a.ALLOW_COOKIELESS_USER:
         cookie.set_sentinel()
-        if login_module:
-            login_module.set_default_state()
+        user_state.update_from_cookie()
     elif p == a.ALLOW_LOGIN:
 #TODO(robnagler) need state so that set_user can happen
         cookie.set_sentinel()
@@ -76,18 +46,3 @@ def assert_api_def(func):
                 e,
             ),
         )
-
-
-def init_apis(app):
-    from sirepo import uri_router
-
-    uri_router.register_api_module()
-
-
-def register_login_module():
-    global login_module
-
-    m = pkinspect.caller_module()
-    assert not login_module, \
-        'login_module already registered: old={} new={}'.format(login_module, m)
-    login_module = m
