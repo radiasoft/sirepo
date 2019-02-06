@@ -822,9 +822,9 @@
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "arbitraryBeam": {
+            "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
-            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "magnetic_measurements.dat"],
-            "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1]
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "epu49HEtot.dat"]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1574,7 +1574,7 @@
                     "notes"
                 ]],
                 ["Accuracy", [
-		    "method",
+                    "method",
                     "precision"
                 ]],
                 ["Scale", [

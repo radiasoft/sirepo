@@ -338,6 +338,16 @@ def fixup_old_data(data):
             data['models']['intensityReport']['method'] = '2'
         else:
             data['models']['intensityReport']['method'] = '0'
+    # default sourceIntensityReport.method based on source type
+    if 'method' not in data['models']['sourceIntensityReport']:
+        if _is_undulator_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '1'
+        elif _is_dipole_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'
+        elif _is_arbitrary_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'            
+        else:
+            data['models']['sourceIntensityReport']['method'] = '0'
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = pkcollections.Dict()
     if 'facility' in data['models']['simulation']:
@@ -622,6 +632,8 @@ def new_simulation(data, new_simulation_data):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
     elif source == 'm':
         data['models']['intensityReport']['method'] = "2"
+    elif source == 'a':
+        data['models']['sourceIntensityReport']['method'] = "2"
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
@@ -851,6 +863,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    print('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir)
