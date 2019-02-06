@@ -735,6 +735,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -821,9 +822,9 @@
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
         "arbitraryBeam": {
-            "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
-            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "magnetic_measurements.dat"]
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "magnetic_measurements.dat"],
+            "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1573,7 +1574,7 @@
                     "notes"
                 ]],
                 ["Accuracy", [
-                    "magneticField",
+		    "method",
                     "precision"
                 ]],
                 ["Scale", [
@@ -1752,9 +1753,9 @@
         "arbitraryBeam": {
             "title": "Arbitrary Magnetic Field",
             "basic": [
-                "interpolationOrder",
                 "longitudinalPosition",
-                "magneticFile"
+                "magneticFile",
+                "interpolationOrder"
             ],
             "advanced": []
         },

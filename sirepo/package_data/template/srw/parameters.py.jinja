@@ -190,7 +190,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_ry', 'f', {{simulation_verticalRange}}, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', {{simulation_verticalPointCount}}, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', {{simulation_sampleFactor}}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', {{sourceIntensityReport_precision}}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', {{initialIntensityReport_fieldUnits}}, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', {{initialIntensityReport_polarization}}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
