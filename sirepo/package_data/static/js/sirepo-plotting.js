@@ -293,6 +293,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
+        colorScale: function(min, max, colorMap) {
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(min, max, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
+        },
+
         colorScaleForPlot: function(plotRange, modelName) {
             var m = appState.models[modelName];
             var zMin = plotRange.min;
@@ -302,10 +309,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 zMax = m.colorMax;
             }
             var colorMap = this.colorMapFromModel(modelName);
-            return d3.scale.linear()
-                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
+            //return d3.scale.linear()
+            //    .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
+            //    .range(colorMap)
+            //    .clamp(true);
+            return this.colorScale(zMin, zMax, colorMap);
         },
 
         colorsFromHexString: function(color, range) {
@@ -3982,6 +3990,30 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
+                var eRect = geometry.rect(
+                    geometry.point(ymin, xmin),
+                    geometry.point(ymax, xmax)
+                );
+                srdbg('rrect', eRect.points());
+                var znorm = 1.0 / Math.abs(zmax - zmin);
+                var projPts = lcoords.filter(function (ls) {
+                    var p = ls[ls.length -1];
+                    return znorm * Math.abs(p[2] - zmax) < 1e-3;
+                })
+                    .map(function (ls) {
+                        var p = ls[ls.length -1];
+                        return geometry.point(p[1], p[0]);
+                });
+                //srdbg('projected points', projPts);
+                //var density = geometry.pointDensity(eRect, projPts, 2e-8);
+                var density = geometry.pointDensity(eRect, projPts, 5, 10);
+                var dmin = 0;
+                //var d2 = geometry.bilinearInterpolation(density);
+                var dmax = plotting.max2d(density);
+                srdbg('density', density, dmin, dmax);
+                var dColorScale = plotting.colorScale(dmin, dmax, plotting.colorMapNameOrDefault('coolwarm'));
+
+
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);

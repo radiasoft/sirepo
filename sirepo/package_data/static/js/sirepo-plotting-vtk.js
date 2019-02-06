@@ -488,7 +488,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry, appVTKService) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkManager, vtkPlotting, layoutService, plotToPNG, utilities) {
 
     return {
         restrict: 'A',
@@ -497,11 +497,255 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         //},
         scope: {
             modelName: '@',
+            reportId: '<',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
             //TODO (mvk): fill in with common vtk stuff
-        },
+            var bundles;  // probably scope
+            var cam;
+            var camPos;
+            var camViewUp;
+            var canvas3d;
+            var d3self;
+            var didPan = false;
+            var fsRenderer;
+            var orientationMarker;
+            var lastCamPos;
+            var lastCamViewUp;
+            var lastCamFP;
+            var mainView;
+            var malSized = false;
+            var renderer;
+            var renderWindow;
+            var snapshotCanvas;
+            var snapshotCtx;
+            var zoomUnits = 0;
+
+            $scope.addOrientationMarker = false;
+
+            $scope.init = function() {
+
+                d3self = d3.selectAll($element);
+
+                var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: [1, 1, 1, 1],
+                    container: rw,
+                    listenWindowResize: false,
+                });
+                renderer = fsRenderer.getRenderer();
+                renderer.getLights()[0].setLightTypeToSceneLight();
+                renderWindow = fsRenderer.getRenderWindow();
+                mainView = renderWindow.getViews()[0];
+
+                cam = renderer.get().activeCamera;
+
+                rw.addEventListener('dblclick', resetAndDigest);
+
+                var worldCoord = vtk.Rendering.Core.vtkCoordinate.newInstance({
+                    renderer: renderer
+                });
+                worldCoord.setCoordinateSystemToWorld();
+
+                var isDragging = false;
+                var isPointerUp = true;
+                rw.onpointerdown = function(evt) {
+                    isDragging = false;
+                    isPointerUp = false;
+                };
+                rw.onpointermove = function(evt) {
+                    if(isPointerUp) {
+                        return;
+                    }
+                    isDragging = true;
+                    didPan = didPan || evt.shiftKey;
+                    $scope.side = null;
+                    utilities.debounce(refresh, 100)();
+                };
+                rw.onpointerup = function(evt) {
+                    if(! isDragging) {
+                        // use picker to display info on objects
+                    }
+                    isDragging = false;
+                    isPointerUp = true;
+                    refresh(true);
+                };
+                rw.onwheel = function (evt) {
+                    var camPos = cam.getPosition();
+
+                    // If zoom needs to be halted or limited, it can be done here.  For now track the "zoom units"
+                    // for managing refreshing and resetting
+                    if(! malSized) {
+                        zoomUnits += evt.deltaY;
+                    }
+                    utilities.debounce(
+                        function() {
+                            refresh(true);
+                        },
+                        100)();
+                };
+
+                // a little widget that mirrors the orientation (not the scale) of the scence
+                if($scope.addOrientationMarker) {
+                    var axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
+                    orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                        actor: axesActor,
+                        interactor: renderWindow.getInteractor()
+                    });
+                    orientationMarker.setEnabled(true);
+                    orientationMarker.setViewportCorner(
+                        vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                    );
+                    orientationMarker.setViewportSize(0.08);
+                    orientationMarker.setMinPixelSize(100);
+                    orientationMarker.setMaxPixelSize(300);
+                }
+
+                canvas3d = $($element).find('canvas')[0];
+
+                // this canvas is used to store snapshots of the 3d canvas
+                snapshotCanvas = document.createElement('canvas');
+                snapshotCtx = snapshotCanvas.getContext('2d');
+                plotToPNG.addCanvas(snapshotCanvas, $scope.reportId);
+            };
+
+            // override
+            function sceneRect() {
+                return geometry.rect(geometry.point(-0.5, -0.5), geometry.point(0.5, 0.5));
+            }
+
+            function refresh(doCacheCanvas) {
+
+                var viewAspectRatio = 1.0;  // override
+                var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
+                $scope.width = plotting.constrainFullscreenSize($scope, width, viewAspectRatio);
+                $scope.height = viewAspectRatio * $scope.width;
+
+                var vtkCanvasHolderSize = {
+                    width: $('.vtk-canvas-holder').width(),
+                    height: $('.vtk-canvas-holder').height()
+                };
+
+                var screenRect = geometry.rect(
+                    geometry.point(
+                        $scope.axesMargins.x.width,
+                        $scope.axesMargins.y.height
+                    ),
+                    geometry.point(
+                        vtkCanvasHolderSize.width - $scope.axesMargins.x.width,
+                        vtkCanvasHolderSize.height - $scope.axesMargins.y.height
+                    )
+                );
+
+                var vtkCanvasSize = {
+                    width: $scope.width + $scope.margin.left + $scope.margin.right,
+                    height: $scope.height + $scope.margin.top + $scope.margin.bottom
+                };
+
+                select('.vtk-canvas-holder svg')
+                    .attr('width', vtkCanvasSize.width)
+                    .attr('height', vtkCanvasSize.height);
+
+                // Note that vtk does not re-add actors to the renderer if they already exist
+                //vtkPlotting.addActors(renderer, actors);
+
+                // reset camera will negate zoom and pan but *not* rotation
+                if (zoomUnits == 0 && ! didPan) {
+                    renderer.resetCamera();
+                }
+                renderWindow.render();
+
+                var sceneRect =  sceneRect();
+                var sceneArea;
+
+                // initial area of scene
+                if(! sceneArea) {
+                    sceneArea = sceneRect.area();
+                }
+
+                var offscreen = ! (
+                    sceneRect.intersectsRect(screenRect) ||
+                    screenRect.containsRect(sceneRect) ||
+                    sceneRect.containsRect(screenRect)
+                );
+                var a = sceneRect.area() / sceneArea;
+                malSized = a < 0.1 || a > 7.5;
+                $scope.canInteract = ! offscreen && ! malSized;
+                if($scope.canInteract) {
+                    lastCamPos = cam.getPosition();
+                    lastCamViewUp = cam.getViewUp();
+                    lastCamFP = cam.getFocalPoint();
+                }
+                else {
+                    setCam(lastCamPos, lastCamFP ,lastCamViewUp);
+                }
+
+                if (SIREPO.APP_SCHEMA.feature_config.display_test_boxes) {
+                    $scope.testBoxes = [
+                        /*
+                        {
+                            x: x,
+                            y: y,
+                            color: "color"
+                        },
+                        */
+                    ];
+
+                }
+
+                if(doCacheCanvas) {
+                    cacheCanvas();
+                }
+            }
+
+            function resetAndDigest() {
+                $scope.$apply(reset);
+            }
+
+            function reset() {
+                camPos = [0, 0, 1];
+                camViewUp = [0, 1, 0];
+                resetCam();
+            }
+
+            function resetCam() {
+                setCam(camPos, [0,0,0], camViewUp);
+                cam.zoom(1.3);
+                renderer.resetCamera();
+                zoomUnits = 0;
+                didPan = false;
+                if($scope.addOrientationMarker) {
+                    orientationMarker.updateMarkerOrientation();
+                }
+                refresh(true);
+            }
+
+            function cacheCanvas() {
+                if(! snapshotCtx) {
+                    return;
+                }
+                var w = parseInt(canvas3d.getAttribute('width'));
+                var h = parseInt(canvas3d.getAttribute('height'));
+                snapshotCanvas.width = w;
+                snapshotCanvas.height = h;
+                // this call makes sure the buffer is fresh (it appears)
+                fsRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                snapshotCtx.drawImage(canvas3d, 0, 0, w, h);
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            function setCam(pos, fp, vu) {
+                cam.setPosition(pos[0], pos[1], pos[2]);
+                cam.setFocalPoint(fp[0], fp[1], fp[2]);
+                cam.setViewUp(vu[0], vu[1], vu[2]);
+            }
+
+       },
 
         link: function link(scope, element) {
             vtkPlotting.vtkPlot(scope, element);

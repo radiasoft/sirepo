@@ -264,6 +264,9 @@ SIREPO.app.service('geometry', function(utilities) {
                 c[3] = swap;
                 return c;
             },
+            height: function () {
+                return this.sides()[0].length();
+            },
             intersectsRect: function (r) {
                 var rs = r.sides();
                 var ts = this.sides();
@@ -304,8 +307,100 @@ SIREPO.app.service('geometry', function(utilities) {
             str: function () {
                 return svc.geomObjArrStr(this.points());
             },
+            width: function () {
+                return this.sides()[1].length();
+            }
         };
     };
+
+    //this.pointDensity = function(rect, points, resolution) {
+    this.pointDensity = function(rect, points, numX, numY) {
+        var pts = points.filter(rect.pointFilter());
+        var density = [];
+        var w = rect.width();
+        var h = rect.height();
+        //var numX = Math.ceil(w / resolution);
+        //var numY = Math.ceil(h / resolution);
+        var xRes = w / numX;  //resolution;  //w / numX;
+        var yRes = h / numY;  //resolution;  //h / numY;
+        //srdbg('nx/ny', numX, numY);
+        //srdbg('xres/yres', xRes, yRes);
+        var x0 = rect.points()[0].x;
+        var y0 = rect.points()[0].y;
+        for(var i = 0; i < numX; ++i) {
+            if(! density[i]) {
+                density[i] = [];
+            }
+            if(! density[i][numY - 1]) {
+                density[i][numY - 1] = 0;
+            }
+        }
+        //srdbg('init d', density);
+        pts.forEach(function (p) {
+            //var p = pts[k];
+            var i = Math.floor((p.x - x0) / xRes);
+            var j = Math.floor((p.y - y0) / yRes);
+            var l = i + numX * j;
+            //srdbg('found', p, k, 'at', i, j, l);
+            //if(! density[i]) {
+            //    density[i] = [];
+            //}
+            //density[l] = (density[l] || 0) + 1;
+            density[i][j] = (density[i][j] || 0) + 1;
+        });
+        //for(var k = 0; k < pts.length; ++k) {
+        //}
+        // add trailing 0s
+
+        return this.bilinearInterpolation(density);
+    };
+
+    this.bilinearInterpolation = function (arr) {
+        var a2 = [];
+        arr.forEach(function (col) {
+            a2.push(linearInterpolation(col.slice(0)));
+        });
+        var a3 = [];
+        this.transpose(a2).forEach(function (row) {
+            a3.push(linearInterpolation(row.slice(0)));
+        });
+        return this.transpose(a3);
+    };
+
+    function linearInterpolation(col) {
+        // all 0s, do nothing
+        if(col.reduce(function (sum, val) {
+            return sum + val;
+        }, 0) === 0) {
+            return col;
+        }
+
+        var k = 0;
+        var start = 0;
+        var val;
+        for(var j = 0; j < col.length; ++j) {
+            val = col[j] || 0;
+            if(val === 0) {
+                col[j] = 0;
+                continue;
+            }
+            if(j - start > 1) {
+                for(k = start; k < j; ++k) {
+                    col[k] = k * val / (j - start);
+                }
+            }
+            start = j + 1;
+        }
+        // trailing 0s
+        if(start < col.length - 1) {
+            val = col[start - 1];
+            j = col.length - 1;
+            for(k = start; k < j; ++k) {
+                col[k] = (j - k) * val / (j - start + 1);
+            }
+        }
+        return col;
+    }
 
     this.transform = function (matrix) {
 
