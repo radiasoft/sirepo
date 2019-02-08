@@ -315,7 +315,7 @@ def extract_report_data(filename, model_data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('arbitraryBeam', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('arbitraryMagField', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -553,6 +553,7 @@ def lib_files(data, source_lib):
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
+            print('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
     if _is_beamline_report(report):
         for m in dm.beamline:
@@ -583,7 +584,7 @@ def models_related_to_report(data):
     res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
-        'arbitraryBeam',
+        'arbitraryMagField',
     ]
     if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1510,7 +1511,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # prepare the field file
     # raise RuntimeError("{}, {}".format( data['models']['simulation']['sourceType'], run_dir))
     if data['models']['simulation']['sourceType'] == 'a':
-        field_file = str(_RESOURCE_DIR.join(v['arbitraryBeam_magneticFile']))
+        field_file = str(_RESOURCE_DIR.join(v['arbitraryMagField_magneticFile']))
         pkdlog("rundir= {}, {}", run_dir, field_file)
         shutil.copy(field_file, str(run_dir))
 
@@ -1525,15 +1526,6 @@ def _generate_srw_main(data, plot_reports):
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
         #'source_type, mag = srwl_bl.setup_source(v)',
     ]
-    #if source_type == 'a':
-    #    content += [
-    #        '#TODO: define AuxReadInMagFld3D()',
-    #        "#mag = AuxReadInMagFld3D('../../lib/', '#')".format(data['models']['arbitraryBeam']['magneticFile']),
-    #        "mag = AuxReadInMagFld3D('../../lib/junk/epu49HEtot.dat', '#')",
-    #        "#TODO: adjust mag by data['models']['arbitraryBeam']['longitudinalPosition'] and 'phase'",
-    #    ]
-    #else:
-    #    content.append('source_type, mag = srwl_bl.setup_source(v)')
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':

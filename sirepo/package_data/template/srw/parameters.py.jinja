@@ -79,9 +79,9 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 {% endif %}
 {% if simulation_sourceType == 'a' %}
-    ['mag_ior','f',{{arbitraryBeam_interpolationOrder}},'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
-    ['mag_zc','f',{{arbitraryBeam_longitudinalPosition}},'center longitudinal position [m]'],
-    ['mag_fn','s','{{arbitraryBeam_magneticFile}}','input 3D magnetic field file name'],
+    ['mag_ior','f',{{arbitraryMagField_interpolationOrder}},'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
+    ['mag_zc','f',{{arbitraryMagField_longitudinalPosition}},'center longitudinal position [m]'],
+    ['mag_fn','s','{{arbitraryMagField_magneticFile}}','input 3D magnetic field file name'],
 {% endif %}
 
 {% if simulation_sourceType == 'g' %}

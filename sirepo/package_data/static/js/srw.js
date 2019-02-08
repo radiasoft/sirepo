@@ -96,7 +96,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.isElectronBeam = function() {
-        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole() || self.isArbitraryBeam();
+        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole() || self.isArbitraryMagField();
     };
 
     self.isGaussianBeam = function() {
@@ -107,7 +107,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         return isSelected('u');
     };
 
-    self.isArbitraryBeam = function() {
+    self.isArbitraryMagField = function() {
         return isSelected('a');
     };
 

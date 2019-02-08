@@ -821,7 +821,7 @@
             "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
-        "arbitraryBeam": {
+        "arbitraryMagField": {
             "interpolationOrder": ["Interpolation Order (1<=mag_ior<=3)", "Float", 1],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
             "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "epu49HEtot.dat"]
@@ -1750,7 +1750,7 @@
             ],
             "advanced": []
         },
-        "arbitraryBeam": {
+        "arbitraryMagField": {
             "title": "Arbitrary Magnetic Field",
             "basic": [
                 "longitudinalPosition",
