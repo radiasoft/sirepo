@@ -265,8 +265,9 @@ async def lines(stream):
 
 
 async def _run_cmd_with_prefix(prefix, cmd, **kwargs):
-    kwargs["stdout"] = trio.subprocess.PIPE
-    kwargs["stderr"] = trio.subprocess.STDOUT
+    kwargs['stdout'] = trio.subprocess.PIPE
+    kwargs['stderr'] = trio.subprocess.STDOUT
+    print(kwargs['env']['PYENV_VERSION'])
     async with trio.subprocess.Process(cmd, **kwargs) as process:
         async for line in lines(process.stdout):
             sys.stdout.write(prefix + line.decode("utf8"))
@@ -284,13 +285,15 @@ async def _dev_main():
         os.environ['SIREPO_FEATURE_FLAG_RUNNER_DAEMON'] = '1'
         os.environ['PYTHONUNBUFFERED'] = '1'
         nursery.start_soon(
-            _run_cmd_then_quit, '\x1b[32mserver:\x1b[39m ', 'py2', ['sirepo', 'service', 'http'],
+            _run_cmd_then_quit, '\x1b[32mserver:\x1b[39m ', 'py2',
+            ['pyenv', 'exec', 'sirepo', 'service', 'http'],
         )
         # We could just run _main here, but spawning a subprocess makes sure
         # that everyone has the same config, e.g. for
         # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
         nursery.start_soon(
-            _run_cmd_then_quit, '\x1b[34mrunner:\x1b[39m ', 'py3', ['sirepo', 'runner', 'start'],
+            _run_cmd_then_quit, '\x1b[34mrunner:\x1b[39m ', 'py3',
+            ['pyenv', 'exec', 'sirepo', 'runner', 'start'],
         )
 
 
