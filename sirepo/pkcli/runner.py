@@ -20,6 +20,7 @@ import shlex
 from sirepo import mpi
 from sirepo import srdb
 from sirepo.template import template_common
+import sys
 import trio
 
 # How often threaded blocking operations should wake up and check for Trio
@@ -246,24 +247,50 @@ def start():
 
 # Temporary (?) hack to make testing easier: starts up the http dev server
 # under py2 and the runner daemon under py3, and if either exits then kills
-# the other.
+# the other. Also does fancy mangling of their output to make it more
+# readable.
+async def lines(stream):
+    buf = bytearray()
+    while True:
+        chunk = await stream.receive_some(_CHUNK_SIZE)
+        if not chunk:
+            if buf:
+                yield buf
+            return
+        buf += chunk
+        pieces = buf.split(b'\n')
+        buf = pieces.pop()
+        for piece in pieces:
+            yield piece + b'\n'
+
+
+async def _run_cmd_with_prefix(prefix, cmd, **kwargs):
+    kwargs["stdout"] = trio.subprocess.PIPE
+    kwargs["stderr"] = trio.subprocess.STDOUT
+    async with trio.subprocess.Process(cmd, **kwargs) as process:
+        async for line in lines(process.stdout):
+            sys.stdout.write(prefix + line.decode("utf8"))
+            sys.stdout.flush()
+        await process.wait()
+
+
 async def _dev_main():
     async with trio.open_nursery() as nursery:
-        async def _run_cmd_then_quit(py_env_name, cmd):
+        async def _run_cmd_then_quit(prefix, py_env_name, cmd):
             env = {**os.environ, 'PYENV_VERSION': py_env_name}
-            async with trio.subprocess.Process(cmd, env=env) as process:
-                await process.wait()
+            await _run_cmd_with_prefix(prefix, cmd, env=env)
             nursery.cancel_scope.cancel()
 
         os.environ['SIREPO_FEATURE_FLAG_RUNNER_DAEMON'] = '1'
+        os.environ['PYTHONUNBUFFERED'] = '1'
         nursery.start_soon(
-            _run_cmd_then_quit, 'py2', ['sirepo', 'service', 'http'],
+            _run_cmd_then_quit, '\x1b[32mserver:\x1b[39m ', 'py2', ['sirepo', 'service', 'http'],
         )
         # We could just run _main here, but spawning a subprocess makes sure
         # that everyone has the same config, e.g. for
         # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
         nursery.start_soon(
-            _run_cmd_then_quit, 'py3', ['sirepo', 'runner', 'start'],
+            _run_cmd_then_quit, '\x1b[34mrunner:\x1b[39m ', 'py3', ['sirepo', 'runner', 'start'],
         )
 
 
