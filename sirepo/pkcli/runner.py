@@ -45,7 +45,7 @@ def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
     try:
         yield
     except trio.MultiError as multi_exc:
-        raise AssertionError("handle MultiErrors in _catch_and_log_errors")
+        raise AssertionError('handle MultiErrors in _catch_and_log_errors')
     except exc_type:
         pkdlog(msg, *args, **kwargs)
         pkdlog(pkdexc())
@@ -131,7 +131,7 @@ class _JobTracker:
                 return
             try:
                 env = _subprocess_env()
-                with open(run_dir / template_common.RUN_LOG, "a+b") as run_log:
+                with open(run_dir / template_common.RUN_LOG, 'a+b') as run_log:
                     process = trio.Process(
                         config['command'],
                         cwd=config['working_dir'],
@@ -175,9 +175,9 @@ async def _job_status(job_tracker, request):
     pkdc('job_status: {}', request)
     job_info = job_tracker.jobs.get(request['jid'])
     if job_info is None:
-        return {"status": _JobStatus.NOT_STARTED.value}
+        return {'status': _JobStatus.NOT_STARTED.value}
     else:
-        return {"status": job_info.status.value}
+        return {'status': job_info.status.value}
 
 
 async def _cancel_job(job_tracker, request):
@@ -195,9 +195,9 @@ async def _cancel_job(job_tracker, request):
 
 
 _HANDLERS = {
-    "start_job": _start_job,
-    "job_status": _job_status,
-    "cancel_job", _cancel_job,
+    'start_job': _start_job,
+    'job_status': _job_status,
+    'cancel_job', _cancel_job,
 }
 
 
@@ -211,7 +211,7 @@ async def _handle_conn(job_tracker, stream):
                     break
                 request_bytes += chunk
             request = pkjson.load_any(request_bytes)
-            handler = _HANDLERS[request["action"]]
+            handler = _HANDLERS[request['action']]
             response = await handler(job_tracker, request)
             response_bytes = pkjson.dump_bytes(response)
         except Exception as exc:
@@ -244,3 +244,8 @@ async def _main():
 def start():
     """Starts the container runner."""
     trio.run(_main)
+
+
+def start_dev():
+    """Temporary hack for testing: starts the dev server + container runner."""
+    import subprocess
