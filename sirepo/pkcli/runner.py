@@ -10,11 +10,12 @@ from __future__ import absolute_import, division, print_function
 import aenum
 import collections
 import contextlib
-import docker
 import functools
+import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from pykern import pkio
 from pykern import pkjson
+import re
 import shlex
 from sirepo import mpi
 from sirepo import srdb
@@ -24,10 +25,6 @@ import trio
 # How often threaded blocking operations should wake up and check for Trio
 # cancellation
 _CANCEL_POLL_INTERVAL = 1
-
-# Global connection pool (don't worry, it doesn't actually make any
-# connections until we start using it)
-_DOCKER = docker.from_env()
 
 _CHUNK_SIZE = 4096
 _LISTEN_QUEUE = 1000
@@ -132,7 +129,7 @@ class _JobTracker:
             try:
                 env = _subprocess_env()
                 with open(run_dir / template_common.RUN_LOG, 'a+b') as run_log:
-                    process = trio.Process(
+                    process = trio.subprocess.Process(
                         config['command'],
                         cwd=config['working_dir'],
                         start_new_session=True,
@@ -197,7 +194,7 @@ async def _cancel_job(job_tracker, request):
 _HANDLERS = {
     'start_job': _start_job,
     'job_status': _job_status,
-    'cancel_job', _cancel_job,
+    'cancel_job': _cancel_job,
 }
 
 
@@ -225,12 +222,13 @@ async def _handle_conn(job_tracker, stream):
 
 
 async def _main():
+    pkdlog("runner daemon starting up")
     with trio.socket.socket(family=trio.socket.AF_UNIX) as sock:
         # XX TODO: better strategy for handoff between runner instances
         # Clear out any stale socket file
         sock_path = srdb.runner_socket_path()
         pkio.unchecked_remove(sock_path)
-        sock.bind(str(sock_path))
+        await sock.bind(str(sock_path))
         sock.listen(_LISTEN_QUEUE)
         listener = trio.SocketListener(sock)
 
@@ -242,10 +240,33 @@ async def _main():
 
 
 def start():
-    """Starts the container runner."""
+    """Starts the runner daemon."""
     trio.run(_main)
 
 
-def start_dev():
-    """Temporary hack for testing: starts the dev server + container runner."""
-    import subprocess
+# Temporary (?) hack to make testing easier: starts up the http dev server
+# under py2 and the runner daemon under py3, and if either exits then kills
+# the other.
+async def _dev_main():
+    async with trio.open_nursery() as nursery:
+        async def _run_cmd_then_quit(py_env_name, cmd):
+            env = {**os.environ, 'PYENV_VERSION': py_env_name}
+            async with trio.subprocess.Process(cmd, env=env) as process:
+                await process.wait()
+            nursery.cancel_scope.cancel()
+
+        os.environ['SIREPO_FEATURE_FLAG_RUNNER_DAEMON'] = '1'
+        nursery.start_soon(
+            _run_cmd_then_quit, 'py2', ['sirepo', 'service', 'http'],
+        )
+        # We could just run _main here, but spawning a subprocess makes sure
+        # that everyone has the same config, e.g. for
+        # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
+        nursery.start_soon(
+            _run_cmd_then_quit, 'py3', ['sirepo', 'runner', 'start'],
+        )
+
+
+def dev():
+    """Starts the runner daemon, plus an HTTP dev server."""
+    trio.run(_dev_main)
