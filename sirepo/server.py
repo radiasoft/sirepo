@@ -431,8 +431,12 @@ def api_root(simulation_type):
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
-    if feature_config.cfg.use_runner_daemon:
-        runner_client.cancel_job(jid)
+    if feature_config.cfg.runner_daemon:
+        if runner_client.cancel_job(jid)['canceled']:
+            # XX TODO: will need adjusting for remote run dirs
+            t = sirepo.template.import_module(data)
+            if hasattr(t, 'remove_last_frame'):
+                t.remove_last_frame(run_dir)
         # Always true from the client's perspective
         return http_reply.gen_json({'state': 'canceled'})
     else:
@@ -459,7 +463,9 @@ def api_runCancel():
 @api_perm.require_user
 def api_runSimulation():
     data = _parse_data_input(validate=True)
+    pkdp(data)
     res = _simulation_run_status(data, quiet=True)
+    pkdp(res)
     if (
         (
             not res['state'] in _RUN_STATES

@@ -1,13 +1,9 @@
-import json
+from pykern import pkjson
+from sirepo import srdb
 import socket
 
-# XX TODO: fill in
-# https://github.com/radiasoft/sirepo/issues/1499
-_db_dir = XXX
 
-
-class RunnerError(Exception):
-    pass
+_CHUNK_SIZE = 4096
 
 
 def _rpc(request):
@@ -19,20 +15,23 @@ def _rpc(request):
     Returns:
         response: the server response
     """
-    request_bytes = json.dumps(request).encode('ascii')
+    request_bytes = pkjson.dump_bytes(request)
     with socket.socket(socket.AF_UNIX) as sock:
-        sock.connect(_db_dir.join('runner.sock'))
+        sock.connect(str(srdb.runner_socket_path()))
+        # send the request
         sock.sendall(request_bytes)
+        # send EOF, so the other side knows we've sent the whole thing
         sock.shutdown(socket.SHUT_WR)
+        # read the response
         response_bytes = bytearray()
         while True:
-            chunk = sock.recv(4096)
+            chunk = sock.recv(_CHUNK_SIZE)
             if not chunk:
                 break
             response_bytes += chunk
-    response = json.loads(response_bytes)
+    response = pkjson.json_load_any(response_bytes)
     if 'error_string' in response:
-        raise RunnerError(response['error_string'])
+        raise AssertionError(response.error_string)
     return response
 
 
@@ -44,8 +43,10 @@ def start_job(jid, run_dir, config):
         'config': config,
     })
 
+
 def job_status(jid):
     return _rpc({'action': 'job_status', 'jid': jid})
+
 
 def cancel_job(jid):
     return _rpc({'action': 'cancel_job', 'jid': jid})
