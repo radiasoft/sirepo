@@ -50,7 +50,7 @@ _EXPIRES_MINUTES = 15
 _EXPIRES_DELTA = datetime.timedelta(minutes=EXPIRES_MINUTES)
 
 
-@api_perm.require_cookie_sentinel
+@api_perm.require_user
 def api_emailAuthDisplayName():
     data = http_request.parse_json(assert_sim_type=False)
     dn = _parse_display_name(data)
@@ -107,7 +107,11 @@ def api_emailAuthLogin():
 
 @api_perm.allow_cookieless_set_user
 def api_emailAuthorized(simulation_type, token):
-    #TODO(robnagler) locking
+    """Clicked by user in an email
+
+    User exists in db, but there user may be logging in via a different
+    browser.
+    """
     with user_db.thread_lock:
         user = EmailAuth.search_by(token=token)
         if not user or user.expires < datetime.datetime.utcnow():
@@ -125,8 +129,6 @@ def api_emailAuthorized(simulation_type, token):
                 simulation_type,
                 simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
             ))
-
-        user.delete_other()
         user.user_name = user.unverified_email
             'user_name': user.unverified_email,
                 'unverified_email':

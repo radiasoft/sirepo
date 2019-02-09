@@ -117,7 +117,7 @@ def process_logout(simulation_type):
     """Set the current user as logged out. If the 'anonymous' query flag is set,
     clear the user and change to an anonymous session.
     """
-    if _cookie_has_user():
+    if cookie.has_user_value() and ! is_anonymous_session():
         if login_module.ALLOW_ANONYMOUS_SESSION \
            and flask.request.args.get(_ANONYMOUS_SESSION, False):
             logout_as_anonymous()
@@ -135,14 +135,34 @@ def register_login_module():
     login_module = m
 
 
+def require_user():
+    if login_module:
+        # cookie_name is no longer used, remove from cookie
+        cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
+        if cookie.has_user_value():
+            if is_logged_in():
+                return None
+            if not is_anonymous_session():
+                return 'user={} is logged out'.format(cookie.get_user())
+            if login_module.ALLOW_ANONYMOUS_SESSION:
+                return None
+            return 'user={} is anonymous in auth={}'.format(
+                cookie.get_user(),
+                login_module.AUTH_METHOD,
+            )
+        elif not login_module.ALLOW_ANONYMOUS_SESSION:
+            return 'no user in cookie'
+    elif cookie.has_user_value():
+        return None
+    from sirepo import simulation_db
+    simulation_db.user_create()
+    return None
+
+
 def _beaker_compat_map_keys(key_map):
     key_map['key']['oauth_login_state'] = _COOKIE_SESSION
     # reverse map of login state values
     key_map['value'] = dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
-
-
-def _cookie_has_user():
-    return cookie.has_user_value() and ! is_anonymous_session()
 
 
 def _update_session(login_state):

@@ -11,26 +11,27 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import util
-
+from sirepo import user_state
 
 def assert_api_call(func):
     p = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
-    if p == a.REQUIRE_COOKIE_SENTINEL:
+    e = None
+    if p in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
         if not cookie.has_sentinel():
-            util.raise_unauthorized(
-                'cookie does not have a sentinel: perm={} func={}',
-                p,
-                func.__name__,
-            )
-        # cookie_name is no longer used, remove from cookie
-        cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
+            e = 'cookie does not have a sentinel'
+        elif p == a.REQUIRE_USER:
+            e = user_state.require_user():
     elif p == a.ALLOW_VISITOR:
         pass
-    elif p == a.ALLOW_COOKIELESS_SET_USER:
+    elif p in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
+        if p == a.ALLOW_COOKIELESS_REQUIRE_USER:
+            e = user_state.require_user():
     else:
         raise AssertionError('unexpected api_perm={}'.format(p))
+    if e:
+        util.raise_unauthorized('{}: perm={} func={}', e, p, func.__name__)
 
 
 def assert_api_def(func):

@@ -181,7 +181,7 @@ def _dispatch(path):
 
 
 def _dispatch_call(func, kwargs):
-    api_auth.assert_api_call(func)
+    resp = api_auth.assert_api_call(func)
     resp = flask.make_response(func(**kwargs))
     cookie.save_to_cookie(resp)
     return resp

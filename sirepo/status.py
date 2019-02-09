@@ -46,12 +46,10 @@ def init_apis(app):
     uri_router.register_api_module()
     global cfg
     cfg = pkconfig.init(
-        username=(None, str, 'Sirepo status user id'),
-        password=(None, str, 'Basic Auth password'),
+        uid=pkconfig.Required(str, 'Sirepo status user id'),
+        password=pkconfig.Required(str, 'Basic Auth password'),
     )
-    if not cfg.username or not cfg.password:
-        raise RuntimeError('Missing Sirepo status config')
-    app.config['BASIC_AUTH_USERNAME'] = cfg.username
+    app.config['BASIC_AUTH_USERNAME'] = cfg.uid
     app.config['BASIC_AUTH_PASSWORD'] = cfg.password
     global _basic_auth
     _basic_auth = BasicAuth(app)

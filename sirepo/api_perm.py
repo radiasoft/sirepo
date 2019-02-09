@@ -14,12 +14,16 @@ ATTR = 'api_perm'
 
 
 class APIPerm(aenum.Flag):
+    #: A user is required but there might not be a cookie yet
+    ALLOW_COOKIELESS_REQUIRE_USER = aenum.auto()
+    #: cookie.set_user can be called even if a cookie wasn't received
+    ALLOW_COOKIELESS_SET_USER = aenum.auto()
     #: anybody can view this page, even without cookies
     ALLOW_VISITOR = aenum.auto()
     #: a cookie has to have been returned, which contains a user
     REQUIRE_COOKIE_SENTINEL = aenum.auto()
-    #: cookie.set_user can be called even if a cookie wasn't received
-    ALLOW_COOKIELESS_SET_USER = aenum.auto()
+    #: a user will be created if necessary and auth may be necessary
+    REQUIRE_USER = aenum.auto()
 
 
 def _init():
