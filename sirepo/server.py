@@ -63,7 +63,7 @@ app.config.update(
 )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_copyNonSessionSimulation():
     req = http_request.parse_json()
     sim_type = req['simulationType']
@@ -93,7 +93,7 @@ def api_copyNonSessionSimulation():
     return res
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_copySimulation():
     """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
     req = http_request.parse_json()
@@ -118,7 +118,7 @@ def api_copySimulation():
     return _save_new_and_reply(data)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_deleteFile():
     req = http_request.parse_json()
     filename = werkzeug.secure_filename(req['fileName'])
@@ -135,14 +135,14 @@ def api_deleteFile():
     return http_reply.gen_json({})
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_deleteSimulation():
     data = _parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return http_reply.gen_json_ok()
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
     data = {
         'simulationType': sirepo.template.assert_sim_type(simulation_type),
@@ -162,7 +162,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     return _as_attachment(flask.make_response(content), content_type, filename)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_downloadFile(simulation_type, simulation_id, filename):
     lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(filename)
@@ -194,7 +194,7 @@ def api_errorLogging():
     return http_reply.gen_json_ok()
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_exportArchive(simulation_type, simulation_id, filename):
     from sirepo import exporter
     fn, mt = exporter.create_archive(simulation_type, simulation_id, filename)
@@ -219,7 +219,7 @@ def api_favicon():
     )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_listFiles(simulation_type, simulation_id, file_type):
     # simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
@@ -248,7 +248,7 @@ def api_listFiles(simulation_type, simulation_id, file_type):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_set_user
 def api_findByName(simulation_type, application_mode, simulation_name):
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
@@ -275,7 +275,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_getApplicationData(filename=''):
     """Get some data from the template
 
@@ -299,7 +299,7 @@ def api_getApplicationData(filename=''):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_set_user
 def api_importArchive():
     """
     Args:
@@ -318,7 +318,7 @@ def api_importArchive():
     )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_importFile(simulation_type=None):
     """
     Args:
@@ -369,7 +369,7 @@ def api_homePage():
     return _render_root_page('landing-page', pkcollections.Dict())
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
@@ -384,7 +384,7 @@ def api_newSimulation():
     return _save_new_and_reply(data)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
     import string
     data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
@@ -426,7 +426,7 @@ def api_root(simulation_type):
     return _render_root_page('index', values)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
@@ -450,7 +450,7 @@ def api_runCancel():
     return http_reply.gen_json({'state': 'canceled'})
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_runSimulation():
     data = _parse_data_input(validate=True)
     res = _simulation_run_status(data, quiet=True)
@@ -468,13 +468,13 @@ def api_runSimulation():
     return http_reply.gen_json(res)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_runStatus():
     data = _parse_data_input()
     return http_reply.gen_json(_simulation_run_status(data))
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
     res = _validate_serial(data)
@@ -492,7 +492,7 @@ def api_saveSimulationData():
     )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
@@ -518,7 +518,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     return http_reply.headers_for_no_cache(resp)
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_simulationFrame(frame_id):
     #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
@@ -540,7 +540,7 @@ def api_simulationFrame(frame_id):
     return resp
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_listSimulations():
     data = _parse_data_input()
     sim_type = data['simulationType']
@@ -553,7 +553,7 @@ def api_listSimulations():
         )
     )
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_getServerData():
     input = _parse_data_input(False)
     id = input.id if 'id' in input else None
@@ -593,7 +593,7 @@ def api_staticFile(path_info=None):
     )
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
     data = _parse_data_input()
@@ -607,7 +607,7 @@ def api_updateFolder():
     return http_reply.gen_json_ok()
 
 
-@api_perm.require_user
+@api_perm.require_cookie_sentinel
 def api_uploadFile(simulation_type, simulation_id, file_type):
     f = flask.request.files['file']
     filename = werkzeug.secure_filename(f.filename)

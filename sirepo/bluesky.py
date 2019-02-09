@@ -33,7 +33,7 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-@api_perm.allow_login
+@api_perm.allow_cookieless_set_user
 def api_blueskyAuth():
     req = http_request.parse_json()
     auth_hash(req, verify=True)

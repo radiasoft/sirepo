@@ -2215,7 +2215,6 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
                     'emailAuthDisplayName',
                     handleResponse,
                     {
-                        email: SIREPO.userState.userName,
                         displayName: $scope.data.displayName,
                     });
             };

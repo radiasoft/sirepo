@@ -18,29 +18,22 @@ _USER_DB_FILE = 'user.db'
 _db = None
 
 #: Locking of _db calls
-_db_serial_lock = threading.RLock()
+thread_lock = threading.RLock()
 
 
 def all_uids(user_class):
-#TODO(robnagler) do we need locking
-    res = set()
-    for u in user_class.query.all():
-        if u.uid:
-            res.add(u.uid)
-    return res
-
-
-def find_or_create_user(user_class, user_data):
-    with _db_serial_lock:
-        user = user_class.search(user_data)
-        if not user:
-            user = user_class(None, user_data)
-        return user
+    with thread_lock:
+        res = set()
+        for u in user_class.query.all():
+            if u.uid:
+                res.add(u.uid)
+        return res
 
 
 def init(app, callback):
-    global _db
-    with _db_serial_lock:
+    global _db, Model
+
+    with thread_lock:
         if not _db:
             app.config.update(
                 SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
@@ -48,37 +41,43 @@ def init(app, callback):
                 SQLALCHEMY_TRACK_MODIFICATIONS=False,
             )
             _db = SQLAlchemy(app, session_options=dict(autoflush=True))
-        tablename = callback(_db)
-        if _db_filename(app).check(file=True):
-            engine = _db.get_engine(app)
-            if not engine.dialect.has_table(engine.connect(), tablename):
-                pkdlog('creating table {} in existing db', tablename)
-                _db.create_all()
-        else:
-            pkdlog('creating user database {}', _db_filename(app))
-            _db.create_all()
 
+            class Model(_db.Model):
 
-def update_user(user_class, user_data):
-    with _db_serial_lock:
-        user = user_class.search(user_data)
-        session_uid = cookie.get_user(checked=False)
-        if user:
-            if session_uid and session_uid != user.uid:
-                # check if session_uid is already in the user database, if so, don't copy simulations to new user
-                if not user_class.query.filter_by(uid=session_uid).first():
-                    simulation_db.move_user_simulations(user.uid)
-            user.update(user_data)
-            cookie.set_user(user.uid)
-        else:
-            if not session_uid:
-                # ensures the user session (uid) is ready if new user logs in from logged-out session
-                pkdlog('creating new session for user: {}', user_data['id'])
-                simulation_db.simulation_dir('')
-            user = user_class(cookie.get_user(), user_data)
-        _db.session.add(user)
-        _db.session.commit()
+                def __init__(self, **kwargs):
+                    for k, v in kwargs.items():
+                        setattr(self, k, v)
 
+                def save(self):
+                    _db.session.add(self)
+                    _db.session.commit()
+
+                @classmethod
+                def search_by(cls, **kwargs):
+                    with user_db.thread_lock:
+                        return cls.query.filter_by(**kwargs).first()
+
+                def login(self, is_anonymous_session):
+                    with thread_lock:
+                        session_uid = cookie.unchecked_get_user()
+                        if session_uid and session_uid != self.uid:
+                            # check if session_uid is already in the
+                            # user database, if not, copy over simulations
+                            # from anonymous to this user.
+                            if not self.search_by(uid=session_uid).first():
+                                simulation_db.move_user_simulations(self.uid)
+                        cookie.set_user(self.uid)
+
+        callback(_db, Model)
+###        tablename = callback(_db, Model)
+###        if _db_filename(app).check(file=True):
+###            engine = _db.get_engine(app)
+###            if not engine.dialect.has_table(engine.connect(), tablename):
+###                pkdlog('creating table {} in existing db', tablename)
+###        else:
+###            pkdlog('creating user database {}', _db_filename(app))
+        # only creates tables that don't already exist
+        _db.create_all()
 
 def _db_filename(app):
     return app.sirepo_db_dir.join(_USER_DB_FILE)

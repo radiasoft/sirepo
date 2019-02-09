@@ -842,6 +842,15 @@ def uid_from_dir_name(dir_name):
     return m.group(1)
 
 
+def user_create():
+    """Always creates a new user
+
+    Returns:
+        str: new uid
+    """
+    return  _user_dir_create()
+
+
 def user_dir_name(uid=None):
     """String name for user name
 
@@ -1143,7 +1152,7 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = cookie.get_user(checked=False)
+    uid = cookie.unchecked_get_user()
     if not uid:
         uid = _user_dir_create()
     d = user_dir_name(uid)

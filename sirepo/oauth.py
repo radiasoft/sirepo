@@ -21,6 +21,9 @@ import flask_oauthlib.client
 import sqlalchemy
 
 
+#: GitHub/OAuth allows anonymous users
+ALLOW_ANONYMOUS_SESSION = True
+
 #: How do we authenticate
 AUTH_METHOD = 'github'
 
@@ -32,29 +35,34 @@ _COOKIE_NEXT = 'sronx'
 _COOKIE_NONCE = 'sronn'
 
 
-@api_perm.allow_login
+@api_perm.require_cookie_sentinel
 def api_oauthAuthorized(oauth_type):
 #TODO(robnagler) assert oauth_type
     return _authorized_callback(oauth_type)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_set_user
 def api_oauthLogin(simulation_type, oauth_type):
 #TODO(robnagler) assert oauth_type
     return _authorize(simulation_type, oauth_type)
 
 
-@api_perm.allow_visitor
-def api_logout(simulation_type):
-    return user_state.process_logout(simulation_type)
-
-
 def init_apis(app):
+    """`init_module` then call `user_state.register_login_module`"""
+    init_module(app)
+    user_state.register_login_module()
+
+
+def init_module(app):
+    """Used by email_auth to init without registering as login_module.
+
+    Used for backwards compatibility when migrating from GitHub to email_auth.
+    """
+    assert not UserModel
     _init(app)
     user_db.init(app, _init_user_model)
     user_state.init_beaker_compat()
     uri_router.register_api_module()
-    user_state.register_login_module()
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -101,26 +109,39 @@ def _authorized_callback(oauth_type):
     """Handle a callback from a successful OAUTH request. Tracks oauth
     users in a database.
     """
-    oc = _oauth_client(oauth_type)
-    resp = oc.authorized_response()
-    if not resp:
-        util.raise_forbidden('missing oauth response')
-    state = _remove_cookie_key(_COOKIE_NONCE)
-    if state != flask.request.args.get('state', ''):
-        util.raise_forbidden(
-            'mismatch oauth state: {} != {}',
-            state,
-            flask.request.args.get('state'),
-        )
-    # fields: id, login, name
-    user_data = oc.get('user', token=(resp['access_token'], '')).data
-    user_data['oauth_type'] = oauth_type
-    user_db.update_user(User, user_data)
-    user_state.set_logged_in()
-    return server.javascript_redirect(_remove_cookie_key(_COOKIE_NEXT))
+    with user_db.thread_lock:
+        oc = _oauth_client(oauth_type)
+        resp = oc.authorized_response()
+        if not resp:
+            util.raise_forbidden('missing oauth response')
+        expect = cookie.unchecked_remove(_COOKIE_NONCE)
+        got = flask.request.args.get('state', '')
+        if expect != actual:
+            util.raise_forbidden(
+                'mismatch oauth state: expected {} != got {}',
+                expect,
+                got,
+            )
+        data = oc.get('user', token=(resp['access_token'], '')).data
+        u = user_class.search_by(oauth_id=data['id'], oauth_type=oauth_type)
+        if u:
+            u.display_name = data['name']
+            u.user_name = data['login']
+        else:
+            # first time logging in to oauth so create oauth record
+            u = User(
+                display_name=data['name'],
+                oauth_id=data['id'],
+                oauth_type=oauth_type,
+                uid=cookie.get_user(),
+                user_name=data['login'],
+            )
+        user_state.set_logged_in(u)
+    return server.javascript_redirect(cookie.unchecked_remove(_COOKIE_NEXT))
 
 
 def _init(app):
+#TODO(robnagler) should this be deleted.
     app.session_interface = _FlaskSessionInterface()
     global cfg
     cfg = pkconfig.init(
@@ -130,11 +151,11 @@ def _init(app):
     )
 
 
-def _init_user_model(_db):
+def _init_user_model(_db, base_model):
     """Creates User class bound to dynamic `_db` variable"""
     global User, UserModel
 
-    class User(_db.Model):
+    class User(base_model):
         __tablename__ = 'user_t'
         uid = _db.Column(_db.String(8), primary_key=True)
         user_name = _db.Column(_db.String(100), nullable=False)
@@ -146,24 +167,6 @@ def _init_user_model(_db):
         oauth_id = _db.Column(_db.String(100), nullable=False)
         __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
 
-        def __init__(self, uid, user_data):
-            self.uid = uid
-            self.user_name = user_data['login']
-            self.display_name = user_data['name']
-            self.oauth_type = user_data['oauth_type']
-            self.oauth_id = user_data['id']
-
-        @classmethod
-        def search(cls, user_data):
-            return cls.query.filter_by(oauth_id=user_data['id'], oauth_type=user_data['oauth_type']).first()
-
-        @classmethod
-        def search_by_uid(cls, uid):
-            return cls.query.filter_by(uid=uid).first()
-
-        def update(self, user_data):
-            self.user_name = user_data['login']
-            self.display_name = user_data['name']
 
     UserModel = User
     return User.__tablename__
@@ -183,9 +186,3 @@ def _oauth_client(oauth_type):
             authorize_url='https://github.com/login/oauth/authorize',
         )
     raise RuntimeError('Unknown oauth_type: {}'.format(oauth_type))
-
-
-def _remove_cookie_key(name):
-    value = cookie.get_value(name)
-    cookie.unchecked_remove(name)
-    return value

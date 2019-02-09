@@ -22,7 +22,7 @@ import re
 import time
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_set_user
 def api_serverStatus():
     """Allow for remote monitoring of the web server status. Authentication
     is done via Basic Auth. The username should be an existing sirepo uid.

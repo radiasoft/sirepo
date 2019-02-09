@@ -896,6 +896,10 @@ SIREPO.app.factory('loginService', function(notificationService) {
     self.isEmailAuth = SIREPO.userState && SIREPO.userState.authMethod == 'email';
     self.authMethodName = self.isEmailAuth ? 'email' : 'GitHub';
 
+    self.allowAnonymous = function() {
+        return self.isEmailAuth ? 0 : 1;
+    };
+
     self.enableNotification = function(isEnabled) {
         if (loginNotification) {
             loginNotification.active = isEnabled;
@@ -912,13 +916,17 @@ SIREPO.app.factory('loginService', function(notificationService) {
         if (! loginNotification) {
             loginNotification = SIREPO.APP_SCHEMA.notifications.login;
             loginNotification.content = '<strong>To save your work, sign in with ' + self.authMethodName + '</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
-            loginNotification.active = ! self.isLoggedIn() && ! SIREPO.IS_LOGGED_OUT;
+            loginNotification.active = self.isAnonymous();
             notificationService.addNotification(loginNotification);
         }
     };
 
+    self.isAnonymous = function() {
+        return SIREPO.userState ? 0 : 1;
+    };
+
     self.isLoggedIn = function() {
-        return SIREPO.userState && SIREPO.userState.loginState == 'logged_in';
+        return ! self.isAnonymous() && SIREPO.userState.loginSession == 'logged_in';
     };
 
     self.isNotificationDisplayed = function() {
@@ -1266,7 +1274,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginService, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1356,7 +1364,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     self.formatLogoutUrl = function(wantAnonymous) {
         return self.formatUrl('logout', {
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        }) + (wantAnonymous ? '?anonymous=1' : '');
+        }) + (loginService.allowAnonymous && wantAnonymous ? '?anonymous=1' : '');
     };
 
     self.formatUrlLocal = function(routeName, params) {
@@ -2487,9 +2495,9 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoggedOutController', function (requestSender) {
+SIREPO.app.controller('LoggedOutController', function (requestSender, loginService) {
     var self = this;
-    self.anonymousUrl = requestSender.formatLogoutUrl(true);
+    self.anonymousUrl = loginService.allowAnonymous() ? requestSender.formatLogoutUrl(true) : null;
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {

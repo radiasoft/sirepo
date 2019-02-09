@@ -7,30 +7,34 @@ u"""User cookie state
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
+from sirepo import user_db
 import flask
 
-# login_state values
+#: login_state values in cookie
 _ANONYMOUS = 'a'
 _LOGGED_IN = 'li'
 _LOGGED_OUT = 'lo'
 
-_ANONYMOUS_STATE = 'anonymous'
-_LOGIN_STATE_MAP = pkcollections.Dict({
-    _ANONYMOUS: _ANONYMOUS_STATE,
+_ANONYMOUS_SESSION = 'anonymous'
+
+#:
+
+_LOGIN_SESSION_MAP = pkcollections.Dict({
+    _ANONYMOUS: _ANONYMOUS_SESSION,
     _LOGGED_IN: 'logged_in',
     _LOGGED_OUT: 'logged_out',
 })
 
 #: cookie keys for user state
-_COOKIE_STATE = 'sros'
+_COOKIE_SESSION = 'sros'
 
-#: formerly used in the cookie but no longer
+#: formerly used in the cookie but no longer so is removed below
 _REMOVED_COOKIE_NAME = 'sron'
-
 
 #: registered module
 login_module = None
@@ -43,20 +47,27 @@ def all_uids():
 
 
 @api_perm.allow_visitor
+def api_logout(simulation_type):
+    return process_logout(simulation_type)
+
+
+@api_perm.allow_visitor
 def api_userState():
     v = pkcollections.Dict(
-        # means "have some type of auth method" and is logged out
+        # means "no auth method" (is_logged_out is unused when user_state None)
         is_logged_out=False,
         user_state=None,
     )
     if login_module:
-        s = cookie.get_value(_COOKIE_STATE) or _ANONYMOUS
+        s = cookie.unchecked_get_value(_COOKIE_SESSION, _ANONYMOUS)
         v.user_state = pkcollections.Dict(
             authMethod=login_module.AUTH_METHOD,
             displayName=None,
-            loginState=_LOGIN_STATE_MAP[s],
+            loginSession=_LOGIN_SESSION_MAP[s],
             userName=None,
         )
+        if pkconfig.channel_in('dev'):
+            v.user_state.uid  = cookie.unchecked_get_user()
         if s == _LOGGED_IN and cookie.has_user_value():
             u = login_module.UserModel.search_by_uid(cookie.get_user())
             if u:
@@ -80,8 +91,26 @@ def init_beaker_compat():
     beaker_compat.oauth_hook = _beaker_compat_map_keys
 
 
+def is_anonymous_session():
+    return cookie.unchecked_get_value(_COOKIE_SESSION, _ANONYMOUS) == _ANONYMOUS
+
+
 def is_logged_in():
-    return cookie.has_key(_COOKIE_STATE) and cookie.get_value(_COOKIE_STATE) == _LOGGED_IN
+    return cookie.unchecked_get_value(_COOKIE_SESSION) == _LOGGED_IN
+
+
+def login_as_user(user):
+    user.login(is_anonymous_session())
+    _update_session(_LOGGED_IN)
+
+
+def logout_as_anonymous():
+    cookie.clear_user()
+    _update_session(_ANONYMOUS)
+
+
+def logout_as_user():
+    _update_session(_LOGGED_OUT)
 
 
 def process_logout(simulation_type):
@@ -89,11 +118,11 @@ def process_logout(simulation_type):
     clear the user and change to an anonymous session.
     """
     if _cookie_has_user():
-        if flask.request.args.get(_ANONYMOUS_STATE, False):
-            _update_session(_ANONYMOUS)
-            cookie.clear_user()
+        if login_module.ALLOW_ANONYMOUS_SESSION \
+           and flask.request.args.get(_ANONYMOUS_SESSION, False):
+            logout_as_anonymous()
         else:
-            _update_session(_LOGGED_OUT)
+            logout_as_user()
     return flask.redirect('/{}'.format(simulation_type))
 
 
@@ -106,26 +135,15 @@ def register_login_module():
     login_module = m
 
 
-def set_logged_in():
-    _update_session(_LOGGED_IN)
-
-
-def update_from_cookie():
-    if cookie.has_sentinel() and not cookie.has_key(_COOKIE_STATE):
-        _update_session(_ANONYMOUS)
-    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
-
-
 def _beaker_compat_map_keys(key_map):
-    key_map['key']['oauth_login_state'] = _COOKIE_STATE
+    key_map['key']['oauth_login_state'] = _COOKIE_SESSION
     # reverse map of login state values
-    key_map['value'] = dict(map(lambda k: (_LOGIN_STATE_MAP[k], k), _LOGIN_STATE_MAP))
+    key_map['value'] = dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
 
 
 def _cookie_has_user():
-    return cookie.has_user_value() and cookie.has_key(_COOKIE_STATE) \
-        and cookie.get_value(_COOKIE_STATE) != _ANONYMOUS
+    return cookie.has_user_value() and ! is_anonymous_session()
 
 
 def _update_session(login_state):
-    cookie.set_value(_COOKIE_STATE, login_state)
+    cookie.set_value(_COOKIE_SESSION, login_state)

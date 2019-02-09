@@ -27,7 +27,7 @@ def test_happy_path():
         },
     )
     r = fc.get('/{}'.format(sim_type))
-    # Needed to create a user
+    # create anonymous user
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     r = fc.sr_post(
         'emailAuthLogin',
@@ -66,9 +66,9 @@ def test_different_email():
             'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
         },
     )
-    r = fc.get('/{}'.format(sim_type))
+    #r = fc.get('/{}'.format(sim_type))
     # Needed to create a user
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    #r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'a@b.c', 'simulationType': sim_type},
@@ -83,11 +83,22 @@ def test_different_email():
     r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     t = fc.sr_get('userState', raw_response=True).data
+    m = re.search('"uid": "([^"]+)"')
+    uid = m.group(1)
     pkre('"userName": null', t)
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'x@y.z', 'simulationType': sim_type},
     )
+    r = fc.get(r.url);
+    r = fc.sr_post(
+        'emailAuthDisplayName',
+        {'email': 'x@y.z', 'displayName': 'xyz'},
+    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkdp(t)
+    pkre('"userName": "x@y.z"', t)
+    pkre('"userName": "xyz"', t)
 
 #todo email of a different user already logged in
 #todo email and same email

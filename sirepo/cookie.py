@@ -19,7 +19,7 @@ import re
 
 _MAX_AGE_SECONDS = 10 * 365 * 24 * 3600
 
-#: Identifies if the cookie has been returned by the client
+#: Identifies if the cookie has been returned at least once by the client
 _COOKIE_SENTINEL = 'srk'
 
 #: Unique, truthy that can be asserted on decrypt
@@ -48,8 +48,8 @@ def get_value(key):
     return _state()[key]
 
 
-def get_user(checked=True):
-    return _state().get_user(checked)
+def get_user():
+    return _state().get_user(True)
 
 
 def has_key(key):
@@ -89,7 +89,7 @@ def save_to_cookie(resp):
 
 def set_sentinel():
     """Bypasses the state where the cookie has not come back from the
-    client. This is used by bluesky and testing only, right now.
+    client. This is used by bluesky, login, and testing.
     """
     _state().set_sentinel()
 
@@ -122,11 +122,22 @@ def set_value(key, value):
     s[key] = value
 
 
+def unchecked_get_user():
+    return _state().get_user(False)
+
+
+def unchecked_get_value(default=None):
+    return _state().get(key, default)
+
+
 def unchecked_remove(key):
     try:
-        del _state()[key]
+        s = _state()
+        res = s[key]
+        del s[key]
+        return res
     except KeyError:
-       pass
+        return None
 
 
 class _State(dict):
