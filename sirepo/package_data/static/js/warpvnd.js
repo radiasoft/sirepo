@@ -21,9 +21,12 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
       '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
     '</div>',
+    '<div data-ng-switch-when="FileChooser" data-ng-class="fieldClass">',
+      '<form data-stl-file-chooser="" >',
+    '</div>',
 ].join('');
-
-SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $rootScope) {
+SIREPO.appImportText = 'Import an stl file';
+SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vtkPlotting, $rootScope) {
     var self = {};
     var plateSpacing = 0;
     var rootScopeListener = null;
@@ -116,10 +119,17 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
         return false;
     };
 
+    self.validateSTL = function(file) {
+        srdbg('validating in service');
+        return vtkPlotting.parseSTL(file);
+    };
+
     appState.whenModelsLoaded($rootScope, function() {
         if (rootScopeListener) {
             rootScopeListener();
         }
+        srdbg('c file', appState.models.simulation.conductorFile);
+
         plateSpacing = appState.models.simulationGrid.plate_spacing;
         rootScopeListener = $rootScope.$on('simulationGrid.changed', realignConductors);
     });
@@ -127,7 +137,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
     return self;
 });
 
-SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, panelState, $scope) {
+SIREPO.app.controller('WarpVNDSourceController', function (appState, panelState, vtkPlotting, warpvndService, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
 
@@ -289,6 +299,12 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         updateAllFields();
     };
 
+    self.usesSTL = function() {
+        var f = (appState.models.simulation || {}).conductorFile;
+        //srdbg('file?', f);
+        return ! ! f;  //appState.models.conductorFile;
+    };
+
     $scope.$on('cancelChanges', function(e, name) {
         if (name == 'box') {
             appState.removeModel(name);
@@ -327,6 +343,11 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     });
 
     appState.whenModelsLoaded($scope, function() {
+        var f = appState.models.simulation.conductorFile;
+        if(f) {
+            var r = vtkPlotting.loadSTL(f);
+            srdbg('LOADED STL READER');
+        }
         updateAllFields();
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
@@ -384,7 +405,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog=""></div>',
+            '<div data-import-dialog="" data-title="STL" data-file-formats=".stl" data-description="Use conductors from STL file"></div>',
         ].join(''),
     };
 });
@@ -1569,7 +1590,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService, utilities, plotToPNG) {
+SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG, utilities, vtkPlotting, warpVTKService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -1580,10 +1601,17 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
         ].join(''),
         controller: function($scope, $element) {
 
+            var stlReader;
+            var stlActor;
+            $scope.stlFile = 'honeycomb20nm.stl'; //simple_lattice  //CircularAperture_MIN  //honeycomb20nm
+            $timeout(function () {
+                stlReader = vtkPlotting.loadSTL($scope.stlFile);
+                //srdbg('got reader', stlReader);
+            });
+
+
             $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;  //'#6992ff';
 
-            //var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float('#f3d4c8');
-            //var voltsColor = vtk.Common.Core.vtkMath.hex2float('#6992ff');
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var fsRenderer = null;
@@ -1703,11 +1731,41 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                 refresh();
             }
 
+            function loadConductors() {
+                if(! stlReader) {
+                    return;
+                }
+                srdbg('loading...');
+                var p = stlReader.loadData({progressCallback: showLoadProgress});
+                p.then(function (res) {
+                    srdbg('...done');
+                    var cColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                    stlActor = vtk.Rendering.Core.vtkActor.newInstance();
+                    var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                    stlActor.setMapper(smapper);
+                    var pdata = stlReader.getOutputData();
+                    srdbg('bounds', pdata.getBounds());
+                    smapper.setInputConnection(stlReader.getOutputPort());
+                    stlActor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                    //stlActor.getProperty().setEdgeVisibility(true);
+                    stlActor.getProperty().setLighting(false);
+                    fsRenderer.getRenderer().addActor(stlActor);
+                    reset();
+                }, function (reason) {
+                    errorService.alertText($scope.stlFile + ': Error loading data from .stl file');
+                });
+            }
+
+            function showLoadProgress() {
+                srdbg('...still loading...');
+            };
+
             function refresh() {
                 removeActors();
-                var pointRanges = addConductors();
-                addPlane(pointRanges, 0, zeroVoltsColor);
-                addPlane(pointRanges, 1, voltsColor);
+                //var pointRanges = addConductors();
+                //addPlane(pointRanges, 0, zeroVoltsColor);
+                //addPlane(pointRanges, 1, voltsColor);
+                /*
                 var padding = (pointRanges.x[1] - pointRanges.x[0]) / 1000.0;
                 addSource(
                     vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -1720,7 +1778,9 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                         edgeVisibility: true,
                         frontfaceCulling: true,
                     });
-                reset();
+                    */
+                loadConductors();
+                //reset();
             }
 
             function removeActors() {

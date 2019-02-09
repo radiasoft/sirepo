@@ -19,6 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import werkzeug
 
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
@@ -90,28 +91,30 @@ def fixup_old_data(data):
             'simulation',
             'simulationGrid',
     ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'joinEvery' in data['models']['particle3d']:
-        del data['models']['particle3d']['joinEvery']
-    for c in data['models']['conductorTypes']:
+        if m not in data.models:
+            data.models[m] = {}
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if 'joinEvery' in data.models.particle3d:
+        del data.models.particle3d['joinEvery']
+    for c in data.models.conductorTypes:
         if 'isConductor' not in c:
-            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
+            c.isConductor = '1' if c.voltage > 0 else '0'
         template_common.update_model_defaults(c, 'box', _SCHEMA)
-    for c in data['models']['conductors']:
+    for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    if 'fieldComparisonReport' not in data['models']:
-        grid = data['models']['simulationGrid']
-        data['models']['fieldComparisonReport'] = {
+    if 'fieldComparisonReport' not in data.models:
+        grid = data.models.simulationGrid
+        data.models.fieldComparisonReport = {
             'dimension': 'x',
-            'xCell1': int(grid['num_x'] / 3.),
-            'xCell2': int(grid['num_x'] / 2.),
-            'xCell3': int(grid['num_x'] * 2. / 3),
-            'zCell1': int(grid['num_z'] / 2.),
-            'zCell2': int(grid['num_z'] * 2. / 3),
-            'zCell3': int(grid['num_z'] * 4. / 5),
+            'xCell1': int(grid.num_x / 3.),
+            'xCell2': int(grid.num_x / 2.),
+            'xCell3': int(grid.num_x * 2. / 3),
+            'zCell1': int(grid.num_z / 2.),
+            'zCell2': int(grid.num_z * 2. / 3),
+            'zCell3': int(grid.num_z * 4. / 5),
         }
+    if 'conductorFile' not in data.models.simulation:
+        data.models.simulation.conductorFile = ''
 
 
 def generate_field_comparison_report(data, run_dir):
@@ -208,6 +211,21 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
+def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
+    pkdp('IMPORTING STL {}', request.files)
+    f = request.files['file']
+    filename = werkzeug.secure_filename(f.filename)
+    input_data = test_data
+
+    if 'simulationId' in request.form:
+        pkdp('SIM ID {}', request.form['simulationId'])
+        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=request.form['simulationId'])
+    pkdp('IMPORT INPUT {}', input_data)
+    #data = input_data
+    #data.models.simulation.name = f.filename
+    return input_data #data
+
+
 def lib_files(data, source_lib):
     """No lib files"""
     return []
@@ -227,6 +245,15 @@ def models_related_to_report(data):
     if data['report'] != 'fieldComparisonReport':
         res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
+
+
+def new_simulation(data, new_simulation_data):
+    if 'conductorFile' in new_simulation_data:
+        c_file = new_simulation_data.conductorFile
+        if c_file:
+            # verify somehow?
+            # also copy file to user dir
+            data.models.simulation.conductorFile = c_file
 
 
 def open_data_file(run_dir, model_name, file_index=None):

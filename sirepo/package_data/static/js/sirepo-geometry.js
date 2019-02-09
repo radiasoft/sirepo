@@ -314,6 +314,7 @@ SIREPO.app.service('geometry', function(utilities) {
     };
 
     //this.pointDensity = function(rect, points, resolution) {
+    // turn into function?
     this.pointDensity = function(rect, points, numX, numY) {
         var pts = points.filter(rect.pointFilter());
         var density = [];
@@ -327,6 +328,9 @@ SIREPO.app.service('geometry', function(utilities) {
         //srdbg('xres/yres', xRes, yRes);
         var x0 = rect.points()[0].x;
         var y0 = rect.points()[0].y;
+
+        // might be useful to have "truncated" array but it is causing problems for now
+        /*
         for(var i = 0; i < numX; ++i) {
             if(! density[i]) {
                 density[i] = [];
@@ -334,6 +338,17 @@ SIREPO.app.service('geometry', function(utilities) {
             if(! density[i][numY - 1]) {
                 density[i][numY - 1] = 0;
             }
+            if(! density[i][0]) {
+                density[i][0] = 0;
+            }
+        }
+        */
+        for(var i = 0; i < numX; ++i) {
+            var col = [];
+            for(var j = 0; j < numY; ++j) {
+                col.push(0);
+            }
+            density.push(col);
         }
         //srdbg('init d', density);
         pts.forEach(function (p) {
@@ -348,9 +363,6 @@ SIREPO.app.service('geometry', function(utilities) {
             //density[l] = (density[l] || 0) + 1;
             density[i][j] = (density[i][j] || 0) + 1;
         });
-        //for(var k = 0; k < pts.length; ++k) {
-        //}
-        // add trailing 0s
 
         return this.bilinearInterpolation(density);
     };
@@ -360,10 +372,13 @@ SIREPO.app.service('geometry', function(utilities) {
         arr.forEach(function (col) {
             a2.push(linearInterpolation(col.slice(0)));
         });
+        //srdbg('col pass', a2);
         var a3 = [];
+        //srdbg('col xpose', this.transpose(a2));
         this.transpose(a2).forEach(function (row) {
             a3.push(linearInterpolation(row.slice(0)));
         });
+        //srdbg('row pass', a3);
         return this.transpose(a3);
     };
 

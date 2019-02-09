@@ -1868,6 +1868,28 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
     };
 });
 
+SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            title: '@',
+            description: '@',
+            fileFormats: '@',
+        },
+        template: [
+            '<div class="form-group">',
+              '<label>{{ description }}</label>',
+              '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.title = $scope.title || 'Import ZIP File';
+            $scope.description = $scope.description || 'Select File';
+            srdbg('scope', $scope);
+        },
+    };
+});
+
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
@@ -1887,6 +1909,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
+                    '<form data-file-loader="" data-file-formats="fileFormats" data-description="description">',
                       '<form name="importForm">',
                         '<div class="form-group">',
                           '<label>{{ description }}</label>',

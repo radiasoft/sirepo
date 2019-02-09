@@ -309,10 +309,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 zMax = m.colorMax;
             }
             var colorMap = this.colorMapFromModel(modelName);
-            //return d3.scale.linear()
-            //    .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
-            //    .range(colorMap)
-            //    .clamp(true);
             return this.colorScale(zMin, zMax, colorMap);
         },
 
@@ -3529,6 +3525,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var startPlaneBundle = null;
             var endPlaneBundle = null;
 
+            var densityPlaneBundles = [];
+
             // conductors (boxes)
             var conductorBundles = [];
             var conductorActors = [];
@@ -3757,9 +3755,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
 
-                impactSphereActors = [];
                 conductorActors = [];
                 conductorBundles = [];
+                densityPlaneBundles = [];
+                impactSphereActors = [];
 
                 if(!pointData) {
                     return;
@@ -3990,11 +3989,13 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
+
+                // short term add planes with density colors - vtk should be able to do this
                 var eRect = geometry.rect(
                     geometry.point(ymin, xmin),
                     geometry.point(ymax, xmax)
                 );
-                srdbg('rrect', eRect.points());
+                //srdbg('rrect', eRect.points());
                 var znorm = 1.0 / Math.abs(zmax - zmin);
                 var projPts = lcoords.filter(function (ls) {
                     var p = ls[ls.length -1];
@@ -4006,13 +4007,31 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 });
                 //srdbg('projected points', projPts);
                 //var density = geometry.pointDensity(eRect, projPts, 2e-8);
-                var density = geometry.pointDensity(eRect, projPts, 5, 10);
+                // select?
+                var ndx = 10;
+                var ndy = 10;
+                var dx = (xmax - xmin) / ndx;
+                var dy = (ymax - ymin) / ndy;
+                var dz = 0.01 * Math.abs(zmax - zmin);
+                var density = geometry.pointDensity(eRect, projPts, ndx, ndy);
                 var dmin = 0;
-                //var d2 = geometry.bilinearInterpolation(density);
                 var dmax = plotting.max2d(density);
                 srdbg('density', density, dmin, dmax);
-                var dColorScale = plotting.colorScale(dmin, dmax, plotting.colorMapNameOrDefault('coolwarm'));
-
+                var dColorScale = plotting.colorScale(dmin, dmax, plotting.COLOR_MAP[plotting.colorMapNameOrDefault('coolwarm')]);
+                density.forEach(function (col, i) {
+                    col.forEach(function (d, j) {
+                        var c = vtk.Common.Core.vtkMath.hex2float(dColorScale(d));
+                        //srdbg(i, j, d, 'color', c);
+                        var dplane = coordMapper.buildPlane();
+                        coordMapper.setPlane(dplane,
+                            [xmin + i * dx, ymin + j * dy, zmax + dz],
+                            [xmin + i * dx, ymin + (j + 1) * dy, zmax + dz],
+                            [xmin + (i + 1) * dx, ymin + j * dy, zmax + dz]
+                        );
+                        dplane.actor.getProperty().setColor(c[0], c[1], c[2]);
+                        densityPlaneBundles.push(dplane);
+                    });
+                });
 
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
@@ -4200,6 +4219,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.addActor(renderer, reflectedLineBundle.actor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
+                vtkPlotting.addActors(renderer, densityPlaneBundles.map(function (b) {
+                    return b.actor;
+                }));
 
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);

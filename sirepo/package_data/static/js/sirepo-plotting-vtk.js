@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, geometry, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $window) {
 
     var self = {};
 
@@ -23,6 +23,30 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return true;
         }
         return false;
+    };
+
+    self.loadSTL = function(fileName) {
+        var url = 'static/' + fileName;
+        srdbg('LOADING',  url);
+        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
+        var p = r.setUrl(url);
+        p.then(function(res) {
+            if(! r) {
+                srdbg('ERR STL');
+            }
+            else {
+                srdbg('PARSED STL');
+            }
+        }, function (err) {
+            srdbg('BAD STL', err);
+            errorService.alertText(fileName + ': Invalid or missing .stl file');
+        });
+        return r;
+    };
+
+    self.parseSTL = function(file) {
+        srdbg('PARSING', file);
+        return ! ! self.loadSTL(file);
     };
 
     self.vtkPlot = function(scope, element) {
@@ -752,6 +776,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         },
     };
 });
+
+SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div data-file-chooser="" data-title="" data-file-formats=".stl" data-description="Use conductors from STL file">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            srdbg('STL FILE CHOOSE');
+        },
+    };
+});
+
 
 // will be axis display
 SIREPO.app.directive('vtkAxes', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {

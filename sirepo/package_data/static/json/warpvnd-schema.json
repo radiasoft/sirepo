@@ -144,7 +144,8 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"]
         },
         "simulation": {
-            "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
+            "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
+            "conductorFile": ["Conductor File", "FileChooser"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
@@ -300,7 +301,8 @@
         "simulation": {
             "title": "Simulation",
             "advanced": [
-                "name"
+                "name",
+                "conductorFile"
             ]
         },
         "simulationStatus": {
