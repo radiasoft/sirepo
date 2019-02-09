@@ -1240,7 +1240,7 @@
                     ]
                 ]],
                 ["Groove Parameters", [
-                    "*Groove Density Polynomial:\na₀ + a₁y + a₂y² + a₃y³ + a₄y⁴",
+                    "*Groove Density Polynomial:\n$a_0 + a_1 y + a_2 y^2 + a_3 y^3 + a_4 y^4$",
                     "grooveDensity0",
                     "grooveDensity1",
                     "grooveDensity2",
