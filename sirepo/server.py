@@ -739,16 +739,12 @@ def _parse_data_input(validate=False):
 
 
 def _render_root_page(page, values):
-    return http_reply.render_static(
-        page,
-        'html',
-        pkcollections.Dict(
-            app_version=simulation_db.app_version(),
-            source_cache_key=_source_cache_key(),
-            static_files=simulation_db.static_libs(),
-        ),
-        cache_ok=True,
-    )
+    values.update(pkcollections.Dict(
+        app_version=simulation_db.app_version(),
+        source_cache_key=_source_cache_key(),
+        static_files=simulation_db.static_libs(),
+    ))
+    return http_reply.render_static(page, 'html', values, cache_ok=True)
 
 
 def _save_new_and_reply(*args):
