@@ -126,7 +126,7 @@ def unchecked_get_user():
     return _state().get_user(False)
 
 
-def unchecked_get_value(default=None):
+def unchecked_get_value(key, default=None):
     return _state().get(key, default)
 
 

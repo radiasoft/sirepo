@@ -21,13 +21,13 @@ def assert_api_call(func):
         if not cookie.has_sentinel():
             e = 'cookie does not have a sentinel'
         elif p == a.REQUIRE_USER:
-            e = user_state.require_user():
+            e = user_state.require_user()
     elif p == a.ALLOW_VISITOR:
         pass
     elif p in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
         if p == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            e = user_state.require_user():
+            e = user_state.require_user()
     else:
         raise AssertionError('unexpected api_perm={}'.format(p))
     if e:

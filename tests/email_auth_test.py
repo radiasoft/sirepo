@@ -26,9 +26,9 @@ def test_happy_path():
             'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
         },
     )
+    # set the sentinel
     r = fc.get('/{}'.format(sim_type))
-    # create anonymous user
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    # login as a new user, not in db
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'a@b.c', 'simulationType': sim_type},
@@ -38,6 +38,7 @@ def test_happy_path():
         'emailAuthDisplayName',
         {'email': 'a@b.c', 'displayName': 'abc'},
     )
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     t = fc.sr_get('userState', raw_response=True).data
     pkre('"userName": "a@b.c"', t)
     pkre('"displayName": "abc"', t)
@@ -53,6 +54,7 @@ def test_different_email():
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     from sirepo import srunit
+    import re
 
     sim_type = 'myapp'
     fc = srunit.flask_client(
@@ -66,9 +68,8 @@ def test_different_email():
             'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
         },
     )
-    #r = fc.get('/{}'.format(sim_type))
-    # Needed to create a user
-    #r = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    # set the sentinel
+    r = fc.get('/{}'.format(sim_type))
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'a@b.c', 'simulationType': sim_type},
@@ -83,7 +84,7 @@ def test_different_email():
     r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     t = fc.sr_get('userState', raw_response=True).data
-    m = re.search('"uid": "([^"]+)"')
+    m = re.search('"uid": "([^"]+)"', t)
     uid = m.group(1)
     pkre('"userName": null', t)
     r = fc.sr_post(
@@ -96,9 +97,8 @@ def test_different_email():
         {'email': 'x@y.z', 'displayName': 'xyz'},
     )
     t = fc.sr_get('userState', raw_response=True).data
-    pkdp(t)
     pkre('"userName": "x@y.z"', t)
-    pkre('"userName": "xyz"', t)
+    pkre('"displayName": "xyz"', t)
 
 #todo email of a different user already logged in
 #todo email and same email

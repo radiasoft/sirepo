@@ -151,20 +151,20 @@ def _init(app):
     )
 
 
-def _init_user_model(_db, base_model):
-    """Creates User class bound to dynamic `_db` variable"""
+def _init_user_model(db, base):
+    """Creates User class bound to dynamic `db` variable"""
     global User, UserModel
 
-    class User(base_model):
+    class User(base, db.Model):
         __tablename__ = 'user_t'
-        uid = _db.Column(_db.String(8), primary_key=True)
-        user_name = _db.Column(_db.String(100), nullable=False)
-        display_name = _db.Column(_db.String(100))
-        oauth_type = _db.Column(
-            _db.Enum('github', 'test', name='oauth_type'),
+        uid = db.Column(db.String(8), primary_key=True)
+        user_name = db.Column(db.String(100), nullable=False)
+        display_name = db.Column(db.String(100))
+        oauth_type = db.Column(
+            db.Enum('github', 'test', name='oauth_type'),
             nullable=False
         )
-        oauth_id = _db.Column(_db.String(100), nullable=False)
+        oauth_id = db.Column(db.String(100), nullable=False)
         __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
 
 

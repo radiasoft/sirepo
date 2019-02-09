@@ -68,8 +68,8 @@ def api_userState():
         )
         if pkconfig.channel_in('dev'):
             v.user_state.uid  = cookie.unchecked_get_user()
-        if s == _LOGGED_IN and cookie.has_user_value():
-            u = login_module.UserModel.search_by_uid(cookie.get_user())
+        if s == _LOGGED_IN:
+            u = login_module.UserModel.search_by(uid=cookie.get_user())
             if u:
                 v.user_state.update(
                     displayName=u.display_name,
@@ -117,7 +117,7 @@ def process_logout(simulation_type):
     """Set the current user as logged out. If the 'anonymous' query flag is set,
     clear the user and change to an anonymous session.
     """
-    if cookie.has_user_value() and ! is_anonymous_session():
+    if cookie.has_user_value() and not is_anonymous_session():
         if login_module.ALLOW_ANONYMOUS_SESSION \
            and flask.request.args.get(_ANONYMOUS_SESSION, False):
             logout_as_anonymous()

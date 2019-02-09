@@ -22,7 +22,7 @@ def test_1():
     with pkunit.pkexcept('Unauthorized'):
         cookie.get_user()
     with pkunit.pkexcept('Unauthorized'):
-        cookie.get_user(checked=False)
+        cookie.unchecked_get_user()
     cookie.set_sentinel()
     cookie.set_user('abc')
     cookie.set_value('hi', 'hello')
@@ -33,7 +33,7 @@ def test_1():
     pkeq('abc', cookie.get_user())
     cookie.clear_user()
     cookie.unchecked_remove('hi')
-    pkeq(None, cookie.get_user(checked=False))
+    pkeq(None, cookie.unchecked_get_user())
     cookie.init('sirepo_dev={}'.format(r.args[1]))
     pkeq('hello', cookie.get_value('hi'))
     pkeq('abc', cookie.get_user())

@@ -15,7 +15,6 @@ from sirepo import cookie
 from sirepo import http_reply, http_request
 from sirepo import server
 from sirepo import simulation_db
-from sirepo import template
 from sirepo import uri_router
 from sirepo import user_db
 from sirepo import user_state
@@ -23,9 +22,10 @@ from sirepo import util
 import datetime
 import flask
 import flask_mail
-import sqlalchemy
 import pyisemail
 import re
+import sirepo.template
+import sqlalchemy
 
 
 #: EmailAuth users most always be non-anonymous
@@ -47,7 +47,7 @@ _smtp = None
 _EXPIRES_MINUTES = 15
 
 #: for adding to now
-_EXPIRES_DELTA = datetime.timedelta(minutes=EXPIRES_MINUTES)
+_EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
 @api_perm.require_user
@@ -76,7 +76,7 @@ def api_emailAuthLogin():
             # might be different uid, but don't care for now, just logout
             user_state.logout_as_user()
         else:
-            uid = cookie.get_user()
+            uid = cookie.unchecked_get_user()
             if uid and not user_state.is_anonymous_session():
                 u = EmailAuth.search_by(uid=uid)
                 if u:
@@ -93,7 +93,7 @@ def api_emailAuthLogin():
                     uid = None
             if not uid:
                 uid = simulation_db.user_create()
-            u = EmailAuth(uid, email)
+            u = EmailAuth(uid=uid, unverified_email=email)
         token = u.create_token()
         u.save()
     return _send_login_email(
@@ -113,37 +113,30 @@ def api_emailAuthorized(simulation_type, token):
     browser.
     """
     with user_db.thread_lock:
-        user = EmailAuth.search_by(token=token)
-        if not user or user.expires < datetime.datetime.utcnow():
+        u = EmailAuth.search_by(token=token)
+        if not u or u.expires < datetime.datetime.utcnow():
     ### delete old email record, because not longer valid
             # if the auth is invalid, but the user is already logged in (ie. following an old link from an email)
             # keep the user logged in and proceed to the app
             if _user_with_email_is_logged_in():
                 return flask.redirect('/{}'.format(simulation_type))
-            if not user:
+            if not u:
                 pkdlog('login with invalid token: {}', token)
             else:
-                pkdlog('login with expired token: {}, email: {}', token, user.unverified_email)
+                pkdlog('login with expired token: {}, email: {}', token, u.unverified_email)
             #TODO(pjm): need uri_router method for this?
             return server.javascript_redirect('/{}#{}'.format(
                 simulation_type,
                 simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
             ))
-        user.user_name = user.unverified_email
-            'user_name': user.unverified_email,
-                'unverified_email':
-                'token': None,
-                'expires': None,
-            },
-        )
-        self.query.filter(
-            EmailAuth.user_name == self.unverified_email,
-            EmailAuth.unverified_email != self.unverified_email,
+        u.query.filter(
+            EmailAuth.user_name == u.unverified_email,
+            EmailAuth.unverified_email != u.unverified_email,
         ).delete()
-        self.user_name = self.unverified_email
-        self.token = None
-        self.expires = None
-        user_state.set_logged_in(self)
+        u.user_name = u.unverified_email
+        u.token = None
+        u.expires = None
+        user_state.login_as_user(u)
 #TODO(robnagler) user_state.set_logged_in should do all the work
     return flask.redirect('/{}'.format(simulation_type))
 
@@ -178,9 +171,8 @@ def _init(app):
     global _smtp
     _smtp = flask_mail.Mail(app)
 
-
-def _init_email_auth_model(_db, base_model):
-    """Creates EmailAuth class bound to dynamic `_db` variable"""
+def _init_email_auth_model(db, base):
+    """Creates EmailAuth class bound to dynamic `db` variable"""
     global EmailAuth, UserModel
 
     # Primary key is unverified_email.
@@ -190,16 +182,16 @@ def _init_email_auth_model(_db, base_model):
     # display_name is prompted after first login
 
 ### subclass model passed into _init_email_auth_model
-    class EmailAuth(base_model):
+    class EmailAuth(base, db.Model):
         EMAIL_SIZE = 255
         TOKEN_SIZE = 16
         __tablename__ = 'email_auth_t'
-        unverified_email = _db.Column(_db.String(EMAIL_SIZE), primary_key=True)
-        uid = _db.Column(_db.String(8))
-        user_name = _db.Column(_db.String(EMAIL_SIZE), unique=True)
-        display_name = _db.Column(_db.String(100))
-        token = _db.Column(_db.String(TOKEN_SIZE))
-        expires = _db.Column(_db.DateTime())
+        unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
+        uid = db.Column(db.String(8))
+        user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
+        display_name = db.Column(db.String(100))
+        token = db.Column(db.String(TOKEN_SIZE))
+        expires = db.Column(db.DateTime())
 
         def create_token(self):
             token = util.random_base62(self.TOKEN_SIZE)
@@ -213,16 +205,16 @@ def _init_email_auth_model(_db, base_model):
 
 
 def _parse_display_name(data):
-    res = data.display_name.strip()
+    res = data.displayName.strip()
     assert len(res), \
-        'invalid display_name posted: {}'.format(res)
+        'invalid post data: displayName={}'.format(data.displayName)
     return res
 
 
 def _parse_email(data):
     res = data.email.lower()
     assert pyisemail.is_email(res), \
-        'invalid email posted: {}'.format(data.email)
+        'invalid post data: email={}'.format(data.email)
     return res
 
 

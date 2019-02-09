@@ -57,12 +57,12 @@ def _test_cookie(filename, header, uid, cases):
     def _op():
         from sirepo import cookie
 
-        pkeq(uid, cookie.get_user(checked=False))
+        pkeq(uid, cookie.unchecked_get_user())
         for expect, key in cases:
             if expect is None:
                 pkeq(False, cookie.has_key(key))
             else:
-                pkeq(expect, cookie.get_value(key))
+                pkeq(expect, cookie.unchecked_get_value(key))
 
     srunit.test_in_request(
         op=_op,

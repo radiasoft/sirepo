@@ -13,9 +13,14 @@ from sirepo import simulation_db
 import os.path
 import threading
 
+#: sqlite file located in sirepo_db_dir
 _USER_DB_FILE = 'user.db'
 
+#: SQLAlchemy instance
 _db = None
+
+#: base for user models
+UserDbBase = None
 
 #: Locking of _db calls
 thread_lock = threading.RLock()
@@ -31,7 +36,7 @@ def all_uids(user_class):
 
 
 def init(app, callback):
-    global _db, Model
+    global _db, UserDbBase
 
     with thread_lock:
         if not _db:
@@ -42,7 +47,7 @@ def init(app, callback):
             )
             _db = SQLAlchemy(app, session_options=dict(autoflush=True))
 
-            class Model(_db.Model):
+            class UserDbBase(object):
 
                 def __init__(self, **kwargs):
                     for k, v in kwargs.items():
@@ -54,7 +59,7 @@ def init(app, callback):
 
                 @classmethod
                 def search_by(cls, **kwargs):
-                    with user_db.thread_lock:
+                    with thread_lock:
                         return cls.query.filter_by(**kwargs).first()
 
                 def login(self, is_anonymous_session):
@@ -68,7 +73,7 @@ def init(app, callback):
                                 simulation_db.move_user_simulations(self.uid)
                         cookie.set_user(self.uid)
 
-        callback(_db, Model)
+        callback(_db, UserDbBase)
 ###        tablename = callback(_db, Model)
 ###        if _db_filename(app).check(file=True):
 ###            engine = _db.get_engine(app)
