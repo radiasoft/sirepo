@@ -50,6 +50,15 @@ _EXPIRES_MINUTES = 15
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
+### when user hits escape on displayname modal it goes away
+
+### 401 goes to a localroute for missing cookies. It should really
+### go to a login page.
+
+### test the case of anonymous login then email_auth; should ask email
+
+### 401 must return a WWW header so not the right choice
+
 @api_perm.require_user
 def api_emailAuthDisplayName():
     data = http_request.parse_json(assert_sim_type=False)
@@ -59,7 +68,7 @@ def api_emailAuthDisplayName():
         'user is not logged in, uid={}'.format(uid)
     with user_db.thread_lock:
         user = EmailAuth.search_by(uid=uid)
-        user.display_name = data.displayName
+        user.display_name = dn
         user.save()
     return http_reply.gen_json_ok()
 

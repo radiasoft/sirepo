@@ -23,7 +23,6 @@ def test_login_logout():
     })
     sim_type = 'srw'
     fc.get('/{}'.format(sim_type))
-    fc.sr_post('listSimulations', {'simulationType': sim_type})
     text = fc.sr_get(
         'oauthLogin',
         {

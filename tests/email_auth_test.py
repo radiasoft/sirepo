@@ -99,6 +99,9 @@ def test_different_email():
     t = fc.sr_get('userState', raw_response=True).data
     pkre('"userName": "x@y.z"', t)
     pkre('"displayName": "xyz"', t)
+    m = re.search('"uid": "([^"]+)"', t)
+    uid2 = m.group(1)
+    assert uid != uid2
 
 #todo email of a different user already logged in
 #todo email and same email
