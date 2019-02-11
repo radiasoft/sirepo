@@ -37,8 +37,9 @@ _COOKIE_NONCE = 'sronn'
 
 @api_perm.require_user
 def api_oauthAuthorized(oauth_type):
-    """Handle a callback from a successful OAUTH request. Tracks oauth
-    users in a database.
+    """Handle a callback from a successful OAUTH request.
+
+    Tracks oauth users in a database.
     """
     with user_db.thread_lock:
         oc = _oauth_client(oauth_type)
@@ -113,27 +114,8 @@ def init_module(app):
     uri_router.register_api_module()
 
 
-class _FlaskSession(dict, flask.sessions.SessionMixin):
-    pass
-
-
-class _FlaskSessionInterface(flask.sessions.SessionInterface):
-    """Emphemeral session for oauthlib.client state
-
-    Without this class, Flask creates a NullSession which can't
-    be written to. Flask assumes the session needs to be persisted
-    to cookie or a db, which isn't true in our case.
-    """
-    def open_session(*args, **kwargs):
-        return _FlaskSession()
-
-    def save_session(*args, **kwargs):
-        pass
-
-
 def _init(app):
 #TODO(robnagler) should this be deleted.
-    app.session_interface = _FlaskSessionInterface()
     global cfg
     cfg = pkconfig.init(
         github_key=pkconfig.Required(str, 'GitHub application key'),
