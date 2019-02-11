@@ -13,6 +13,7 @@ def test_happy_path():
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     from sirepo import srunit
+    import re
 
     sim_type = 'myapp'
     fc = srunit.flask_client(
@@ -43,9 +44,12 @@ def test_happy_path():
     pkre('"userName": "a@b.c"', t)
     pkre('"displayName": "abc"', t)
     pkre('"loginSession": "logged_in"', t)
+    m = re.search('"uid": "([^"]+)"', t)
+    uid = m.group(1)
     r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     t = fc.sr_get('userState', raw_response=True).data
+    pkre('"uid": "{}"'.format(uid), t)
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
     pkre('"loginSession": "logged_out"', t)

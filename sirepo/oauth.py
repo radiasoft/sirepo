@@ -67,6 +67,7 @@ def api_oauthAuthorized(oauth_type):
                 uid=cookie.get_user(),
                 user_name=data['login'],
             )
+        u.save()
         user_state.login_as_user(u)
     return server.javascript_redirect(cookie.unchecked_remove(_COOKIE_NEXT))
 

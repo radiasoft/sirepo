@@ -6,22 +6,23 @@ u"""Test simulationSerial
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-pytest.importorskip('srwl_bl')
 
 
-def test_login_logout(monkeypatch):
+def test_happy_path(monkeypatch):
     from pykern import pkcollections
     from pykern import pkconfig
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkfail, pkok, pkeq
+    from pykern.pkunit import pkfail, pkok, pkeq, pkre
     from sirepo import srunit
     import re
 
+    sim_type = 'myapp'
     fc = srunit.flask_client({
         'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',
+        'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
+        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
         'SIREPO_OAUTH_GITHUB_KEY': 'key',
         'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
-        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
     })
     from sirepo import oauth
     oc = _OAuthClient(
@@ -35,7 +36,6 @@ def test_login_logout(monkeypatch):
         ),
     )
     monkeypatch.setattr(oauth, '_oauth_client', oc)
-    sim_type = 'srw'
     fc.get('/{}'.format(sim_type))
     fc.sr_get(
         'oauthLogin',
@@ -45,6 +45,11 @@ def test_login_logout(monkeypatch):
         },
         raw_response=True,
     )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"uid": null', t)
+    pkre('"loginSession": "anonymous"', t)
     state = oc.values.state
     fc.sr_get(
         'oauthAuthorized',
@@ -54,26 +59,19 @@ def test_login_logout(monkeypatch):
         query=pkcollections.Dict(state=state),
         raw_response=True,
     )
-    pkdp(state)
-    #TODO(pjm): causes a forbidden error due to missing variables, need to mock-up an oauth test type
-    #TODO(robnagler) test passes without it. why does it pass with it, because
-    # fc throws an exception, and taht should throw something bad back
-    # text = fc.get('/oauth-authorized/github')
-    text = fc.sr_get(
-        'logout',
-        {
-            'simulation_type': sim_type,
-        },
-        raw_response=True,
-    ).data
-    pkok(
-        text.find('Redirecting') > 0,
-        'missing redirect',
-    )
-    pkok(
-        text.find('"/{}"'.format(sim_type)) > 0,
-        'missing redirect target',
-    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": "joeblow"', t)
+    pkre('"displayName": "Joe Blow"', t)
+    pkre('"loginSession": "logged_in"', t)
+    m = re.search('"uid": "([^"]+)"', t)
+    uid = m.group(1)
+    r = fc.sr_get('logout', {'simulation_type': sim_type,}, raw_response=True)
+    pkre('/{}$'.format(sim_type), r.headers['Location'])
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"uid": "{}"'.format(uid), t)
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"loginSession": "logged_out"', t)
 
 
 class _OAuthClient(object):
@@ -82,8 +80,6 @@ class _OAuthClient(object):
         self.values = values
 
     def __call__(self, *args, **kwargs):
-        from pykern.pkdebug import pkdp
-        pkdp([args, kwargs])
         return self
 
     def authorize(self, callback, state):
@@ -94,11 +90,7 @@ class _OAuthClient(object):
         return http_reply.gen_json_ok()
 
     def authorized_response(self, *args, **kwargs):
-        from pykern.pkdebug import pkdp
-        pkdp([args, kwargs])
         return self.values
 
     def get(self, *args, **kwargs):
-        from pykern.pkdebug import pkdp
-        pkdp([args, kwargs])
         return self.values
