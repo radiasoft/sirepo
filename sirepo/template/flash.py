@@ -18,8 +18,7 @@ import re
 
 SIM_TYPE = 'flash'
 
-#TODO(pjm): change to True
-WANT_BROWSER_FRAME_CACHE = False
+WANT_BROWSER_FRAME_CACHE = True
 
 _FLASH_UNITS_PATH = '/home/vagrant/src/FLASH4.5/object/setup_units'
 _GRID_EVOLUTION_FILE = 'flash.dat'
@@ -205,10 +204,8 @@ def _extract_meshed_plot(run_dir, data):
         'y_range': [ydomain[0] / 100, ydomain[1] / 100, len(grid)],
         'x_label': 'x [m]',
         'y_label': 'y [m]',
-        #'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
         'title': '{}'.format(field),
         'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_index + 1),
-        #'aspect_ratio': 0.25,
         'aspect_ratio': aspect_ratio,
         'z_matrix': grid.tolist(),
         'amr_grid': amr_grid,

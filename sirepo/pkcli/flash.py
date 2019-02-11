@@ -14,11 +14,11 @@ import py.path
 import sirepo.template.flash as template
 import subprocess
 
+#TODO(pjm): change to flash executable path in container
 _EXE_PATH = '/home/vagrant/src/FLASH4.5/object/flash4'
 
 def run_background(cfg_dir):
     res = {}
     with pkio.save_chdir(cfg_dir):
-        #subprocess.call([_EXE_PATH])
         mpi.run_program([_EXE_PATH])
     simulation_db.write_result(res)
