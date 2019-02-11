@@ -300,10 +300,6 @@
             "verticalPosition": 0,
             "verticalRange": 2
         },
-        "simulationStatus": {
-            "startTime": 1454630148,
-            "state": "canceled"
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 120,

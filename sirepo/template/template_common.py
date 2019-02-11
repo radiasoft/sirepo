@@ -13,8 +13,9 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import hashlib
 import json
-import py.path
+import numpy as np
 import os.path
+import py.path
 import re
 import sirepo.template
 
@@ -43,6 +44,32 @@ _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
+
+
+def compute_field_range(args, compute_range):
+    """ Computes the fieldRange values for all parameters across all animation files.
+    Caches the value on the animation input file. compute_range() is called to
+    read the simulation specific datafiles and extract the ranges by field.
+    """
+    from sirepo import simulation_db
+    run_dir = simulation_db.simulation_run_dir({
+        'simulationType': args['simulationType'],
+        'simulationId': args['simulationId'],
+        'report': 'animation',
+    })
+    data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
+    res = None
+    model_name = args['modelName']
+    if model_name in data.models:
+        if 'fieldRange' in data.models[model_name]:
+            res = data.models[model_name].fieldRange
+        else:
+            res = compute_range(run_dir, data)
+            data.models[model_name].fieldRange = res
+            simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
+    return {
+        'fieldRange': res,
+    }
 
 
 def compute_plot_color_and_range(plots):
@@ -127,6 +154,27 @@ def filename_to_path(files, source_lib):
     return res
 
 
+def heatmap(values, model, plot_fields=None):
+    """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
+    range = None
+    if not np.any(values):
+        values = [[], []]
+    if 'plotRangeType' in model:
+        if model['plotRangeType'] == 'fixed':
+            range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]
+        elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
+            range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
+    hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
+    res = {
+        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        'z_matrix': hist.T.tolist(),
+    }
+    if plot_fields:
+        res.update(plot_fields)
+    return res
+
+
 def histogram_bins(nbins):
     """Ensure the histogram count is in a valid range"""
     nbins = int(nbins)
@@ -169,6 +217,30 @@ def model_defaults(name, schema):
         field_info = schema['model'][name][f]
         if len(field_info) >= 3 and field_info[2] is not None:
             res[f] = field_info[2]
+    return res
+
+
+def parameter_plot(x, plots, model, plot_fields=None):
+    res = {
+        'x_points': x,
+        'x_range': [min(x), max(x)],
+        'plots': plots,
+        'y_range': compute_plot_color_and_range(plots),
+    }
+    if 'plotRangeType' in model:
+        if model.plotRangeType == 'fixed':
+            res['x_range'] = _plot_range(model, 'horizontal')
+            res['y_range'] = _plot_range(model, 'vertical')
+        elif model.plotRangeType == 'fit':
+            res['x_range'] = model.fieldRange[model.x]
+            for i in range(len(plots)):
+                r = model.fieldRange[plots[i]['field']]
+                if r[0] < res['y_range'][0]:
+                    res['y_range'][0] = r[0]
+                if r[1] > res['y_range'][1]:
+                    res['y_range'][1] = r[1]
+    if plot_fields:
+        res.update(plot_fields)
     return res
 
 
@@ -457,3 +529,9 @@ def watchpoint_id(report):
 
 def _escape(v):
     return re.sub("[\"'()]", '', str(v))
+
+
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]

@@ -14,7 +14,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 srwlib.srwl_uti_read_data_cols(mirror_file, "\t"),
 {% endif %}
                 _dim={{ field(item, 'orientation') }},
-                _ang={{ field(item, 'grazingAngle') }},
+                _ang=abs({{ field(item, 'grazingAngle') }}),
                 _amp_coef={{ field(item, 'heightAmplification') }},
 {% if 'horizontalTransverseSize' in item %}
                 _size_x={{ field(item, 'horizontalTransverseSize') }},
@@ -30,7 +30,9 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
     el = []
     pp = []
     names = {{ names }}
+{% if items|length > 0 %}
     for el_name in names:
+{% endif %}
 {% for item in items %}
 {% if loop.index == 1 %}
         if el_name == '{{ item.name }}':
@@ -238,7 +240,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                 _size_sag={{ field(item, 'sagittalSize') }},
                 _x={{ field(item, 'horizontalPosition') }},
                 _y={{ field(item, 'verticalPosition') }},
-                _ap_shape='{{ field(item, 'apertureShape') }}',
+                _ap_shape={{ field(item, 'apertureShape') }},
                 _nvx={{ field(item, 'normalVectorX') }},
                 _nvy={{ field(item, 'normalVectorY') }},
                 _nvz={{ field(item, 'normalVectorZ') }},

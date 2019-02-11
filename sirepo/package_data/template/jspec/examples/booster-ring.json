@@ -85,8 +85,7 @@
             "save_particle_interval": 100,
             "step_number": 600,
             "time": 600
-        },
-        "simulationStatus": {}
+        }
     },
     "simulationType": "jspec",
     "version": "20180129.000001"

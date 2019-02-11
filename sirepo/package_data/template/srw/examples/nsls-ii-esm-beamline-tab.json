@@ -606,26 +606,6 @@
             "verticalPosition": 0,
             "verticalRange": 10
         },
-        "simulationStatus": {
-            "fluxAnimation": {
-                "elapsedTime": 2,
-                "frameCount": 0,
-                "isStateProcessing": true,
-                "lastUpdateTime": 1472577470,
-                "nextRequest": {
-                    "report": "fluxAnimation",
-                    "reportParametersHash": "f79375c75969156885395383bad92db0",
-                    "simulationId": "71u3K5Ye",
-                    "simulationType": "srw"
-                },
-                "nextRequestSeconds": 2,
-                "parametersChanged": false,
-                "percentComplete": 0,
-                "report": "fluxAnimation",
-                "startTime": 1472577468,
-                "state": "running"
-            }
-        },
         "sourceIntensityReport": {
             "characteristic": "1",
             "distanceFromSource": 27.5,

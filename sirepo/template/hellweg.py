@@ -12,7 +12,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common, hellweg_dump_reader
 import math
-import numpy
+import numpy as np
 import os.path
 import py.path
 import re
@@ -66,7 +66,7 @@ def background_percent_complete(report, run_dir, is_running):
 def extract_beam_histrogram(report, run_dir, frame):
     beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
     points = hellweg_dump_reader.get_points(beam_info, report.reportType)
-    hist, edges = numpy.histogram(points, template_common.histogram_bins(report.histogramBins))
+    hist, edges = np.histogram(points, template_common.histogram_bins(report.histogramBins))
     return {
         'title': _report_title(report.reportType, 'BeamHistogramReportType', beam_info),
         'x_range': [edges[0], edges[-1]],
@@ -77,23 +77,24 @@ def extract_beam_histrogram(report, run_dir, frame):
 
 
 def extract_beam_report(report, run_dir, frame):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    model = data.models.beamAnimation
+    model.update(report)
     beam_info = hellweg_dump_reader.beam_info(_dump_file(run_dir), frame)
     x, y = report.reportType.split('-')
-    data_list = [
+    values = [
         hellweg_dump_reader.get_points(beam_info, x),
         hellweg_dump_reader.get_points(beam_info, y),
     ]
-    hist, edges = numpy.histogramdd(data_list, template_common.histogram_bins(report.histogramBins))
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+    model['x'] = x
+    model['y'] = y
+    return template_common.heatmap(values, model, {
         'x_label': hellweg_dump_reader.get_label(x),
         'y_label': hellweg_dump_reader.get_label(y),
         'title': _report_title(report.reportType, 'BeamReportType', beam_info),
-        'z_matrix': hist.T.tolist(),
         'z_label': 'Number of Particles',
         'summaryData': _summary_text(run_dir),
-    }
+    })
 
 
 def extract_parameter_report(report, run_dir):
@@ -106,9 +107,9 @@ def extract_parameter_report(report, run_dir):
     x_field = 'z'
     x = solver.get_structure_parameters(_parameter_index(x_field))
     y1 = solver.get_structure_parameters(_parameter_index(y1_var))
-    y1_extent = [numpy.min(y1), numpy.max(y1)]
+    y1_extent = [np.min(y1), np.max(y1)]
     y2 = solver.get_structure_parameters(_parameter_index(y2_var))
-    y2_extent = [numpy.min(y2), numpy.max(y2)]
+    y2_extent = [np.min(y2), np.max(y2)]
     return {
         'title': _enum_text('ParameterReportType', report.reportType),
         'x_range': [x[0], x[-1]],
@@ -131,7 +132,7 @@ def extract_particle_report(report, run_dir):
     x = particle_info['z_values']
     return {
         'title': _enum_text('ParticleReportType', report.reportType),
-        'x_range': [numpy.min(x), numpy.max(x)],
+        'x_range': [np.min(x), np.max(x)],
         'y_label': hellweg_dump_reader.get_label(report.reportType),
         'x_label': hellweg_dump_reader.get_label(x_field),
         'x_points': x,
@@ -141,15 +142,10 @@ def extract_particle_report(report, run_dir):
 
 
 def fixup_old_data(data):
-    if 'particleAnimation' not in data['models']:
-        data['models']['particleAnimation'] = pkcollections.Dict({
-            'reportType': 'w',
-            'renderCount': '300',
-        })
-    if 'parameterAnimation' not in data['models']:
-        data['models']['parameterAnimation'] = pkcollections.Dict({
-            'reportType': 'wav-wmax',
-        })
+    for m in ('beamAnimation', 'beamHistogramAnimation', 'parameterAnimation', 'particleAnimation'):
+        if m not in data.models:
+            data.models[m] = pkcollections.Dict({})
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'solenoidFile' not in data['models']['solenoid']:
         data['models']['solenoid']['solenoidFile'] = ''
     if 'beamDefinition' not in data['models']['beam']:
@@ -167,6 +163,12 @@ def get_animation_name(data):
     return 'animation'
 
 
+def get_application_data(data):
+    if data['method'] == 'compute_particle_ranges':
+        return template_common.compute_field_range(data, _compute_range_across_files)
+    assert False, 'unknown application data method: {}'.format(data['method'])
+
+
 def lib_files(data, source_lib):
     return template_common.filename_to_path(_simulation_files(data), source_lib)
 
@@ -176,7 +178,10 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'beamAnimation':
         args = template_common.parse_animation_args(
             data,
-            {'': ['reportType', 'histogramBins', 'startTime']},
+            {
+                '1': ['reportType', 'histogramBins', 'startTime'],
+                '': ['reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            },
         )
         return extract_beam_report(args, run_dir, frame_index)
     elif data['modelName'] == 'beamHistogramAnimation':
@@ -267,6 +272,30 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
+
+
+def _compute_range_across_files(run_dir, data):
+    res = {}
+    for v in _SCHEMA.enum.BeamReportType:
+        x, y = v[0].split('-')
+        res[x] = []
+        res[y] = []
+    dump_file = _dump_file(run_dir)
+    if not os.path.exists(dump_file):
+        return res
+    beam_header = hellweg_dump_reader.beam_header(dump_file)
+    for frame in xrange(beam_header.NPoints):
+        beam_info = hellweg_dump_reader.beam_info(dump_file, frame)
+        for field in res:
+            values = hellweg_dump_reader.get_points(beam_info, field)
+            if not len(values):
+                pass
+            elif len(res[field]):
+                res[field][0] = min(min(values), res[field][0])
+                res[field][1] = max(max(values), res[field][1])
+            else:
+                res[field] = [min(values), max(values)]
+    return res
 
 
 def _dump_file(run_dir):

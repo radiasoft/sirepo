@@ -458,6 +458,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
+    self.optFieldName = function(fieldName) {
+        return fieldName + '_opt';
+    };
+
     self.parseModelField = function(name) {
         // returns [model, field] from a "model.field" name
         var match = name.match(/(.*?)\.(.*)/);
@@ -1127,7 +1131,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         if (! opt) {
             // handle case where enum is displayed as a button group rather than a select
-            opt = $(fieldClass(model, field)).find('a')[optionIndex];
+            opt = $(fieldClass(model, field)).find('button')[optionIndex];
         }
         showValue($(opt), isShown);
         // this is required for MSIE 11 and Safari which can't hide select options
@@ -2031,6 +2035,26 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         return null;
     };
 
+    self.nextNameInFolder = function(baseName, folderPath) {
+        var folder = self.getFolderWithPath(folderPath);
+        var names = {};
+        var hasName = false;
+        folder.children.forEach(function (c) {
+            names[c.name] = true;
+            hasName = hasName || c.name === baseName;
+        });
+        if(! hasName) {
+            return baseName;
+        }
+        var count = 2;
+        var name = baseName;
+        name = name.replace(/\s+\d+$/, '');
+        while (names[name + ' ' + count]) {
+            count++;
+        }
+        return  name + ' ' + count;
+    };
+
     self.rootFolder = function() {
         return self.fileTree[0];
     };
@@ -2324,7 +2348,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             [
                 self.sectionTitle(),
                 SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName,
-                'Radiasoft',
+                'RadiaSoft',
             ],
             function(n){ return n; })
             .join(' - ');
@@ -2547,31 +2571,20 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         return ! item.isExample;
     };
 
-    self.copyItem = function(item) {
-        self.selectedItem = item;
-        var names = {};
-        for (var i = 0; i < self.activeFolder.children.length; i++) {
-            names[self.activeFolder.children[i].name] = true;
-        }
-        var count = 2;
-        var name = item.name;
-        name = name.replace(/\s+\d+$/, '');
-        while (names[name + ' ' + count]) {
-            count++;
-        }
-        self.copyName = name + ' ' + count;
-        self.copyFolder = fileManager.defaultCreationFolderPath();
-        $('#sr-copy-confirmation').modal('show');
+    self.copyCfg = {
+        copyName: '',
+        copyFolder: '/',
+        isExample: false,
+        completion: function(data) {
+            self.openItem(data.models.simulation);
+            },
     };
 
-    self.copySelected = function() {
-        appState.copySimulation(
-            self.selectedItem.simulationId,
-            function(data) {
-                self.openItem(data.models.simulation);
-            },
-            self.copyName,
-            self.copyFolder);
+    self.copyItem = function(item) {
+        self.selectedItem = item;
+        self.copyCfg.copyName = fileManager.nextNameInFolder(item.name, self.pathName(self.activeFolder));
+        self.copyCfg.copyFolder = fileManager.defaultCreationFolderPath();
+        $('#sr-copy-confirmation').modal('show');
     };
 
     self.deleteItem = function(item) {
@@ -2725,7 +2738,8 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
     };
 
     cookieService.fixup();
-    self.isIconView = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView) || true;
+    var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
+    self.isIconView = (lv == null ? true : lv);
     //cookieService.unfix();
     clearModels();
     $scope.$on('simulation.changed', function() {

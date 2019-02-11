@@ -5,14 +5,16 @@
         <div class="row">
             <div class="col-sm-6">
               <div>
-                <span style="color: steelblue; font-size: 18px;">&#x25CF;</span><span data-ng-show="hasReflected">Absorbed <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showAbsorbed, 'glyphicon-eye-close': ! showAbsorbed}"></span></a></span>
-                [Impact Points <a href="" data-ng-click="toggleImpact()"> <span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showImpact, 'glyphicon-eye-close': ! showImpact}"></span></a>]
+                <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showAbsorbed, 'glyphicon-unchecked': ! showAbsorbed}"></span></a> <span data-ng-show="hasReflected">Absorbed</span>
+                  <div style="text-indent: 1em">
+                    <a href="" data-ng-click="toggleImpact()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpact, 'glyphicon-unchecked': ! showImpact}"></span></a> Impact Points
+                  </div>
               </div>
               <div>
-                <span data-ng-show="hasReflected" ><span style="color: #e04836; font-size: 18px;">&#x25CF;</span>Reflected <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showReflected, 'glyphicon-eye-close': ! showReflected}"></span></a></span>
+                <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Reflected </span>
               </div>
               <div>
-                <span style="color: #f3d4c8; font-size: 18px;">&#x25CF;</span>Conductors <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showConductors, 'glyphicon-eye-close': ! showConductors}"></span></a>
+                <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showConductors, 'glyphicon-unchecked': ! showConductors}"></span></a> Conductors
               </div>
             </div>
             <div class="col-sm-6">
@@ -36,7 +38,7 @@
         <text class="x axis-end high"></text>
 
         <g class="y axis"></g>
-        <text class="y-axis-label" transform="rotate(-90)"></text>
+        <text class="y-axis-label"></text>
         <text class="y axis-end low"></text>
         <text class="y axis-end high"></text>
 

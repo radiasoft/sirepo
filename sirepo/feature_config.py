@@ -10,13 +10,15 @@ from pykern import pkconfig
 from pykern import pkcollections
 import copy
 
-#: Codes on test and prod
-_NON_DEV_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
+#: Codes on beta and prod
+_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
 
-_DEV_CODES = ('myapp', 'adm', 'zgoubi', 'flash')
+#: Codes on dev and alpha
+_ALPHA_CODES = ('myapp', 'adm', 'zgoubi', 'flash')
+
 
 #: All possible codes
-_ALL_CODES = _NON_DEV_CODES + _DEV_CODES
+_ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES
 
 #: Configuration
 cfg = None
@@ -47,8 +49,10 @@ def _cfg_sim_types(value):
     return res
 
 
-def _codes(want_all=pkconfig.channel_in('dev')):
-    return _ALL_CODES if want_all else _NON_DEV_CODES
+def _codes(want_all=None):
+    if want_all is None:
+        want_all = pkconfig.channel_in_internal_test()
+    return _ALL_CODES if want_all else _NON_ALPHA_CODES
 
 
 cfg = pkconfig.init(

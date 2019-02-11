@@ -257,7 +257,6 @@
             "simulationSerial": 1505837190559084,
             "sourceType": "geometricSource"
         },
-        "simulationStatus": {},
         "sourceDivergence": {
             "hdiv1": 0.5,
             "hdiv2": 0.5,

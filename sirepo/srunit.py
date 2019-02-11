@@ -64,6 +64,17 @@ def init_user_db():
     )
 
 
+def file_as_stream(filename):
+    """Returns the file contents as a (text, stream) pair.
+    """
+    try:
+        import StringIO
+    except:
+        from io import StringIO
+    res = filename.read(mode='rb')
+    return res, StringIO.StringIO(res)
+
+
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True):
     from sirepo import uri_router
 

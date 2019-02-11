@@ -6,7 +6,7 @@
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
                 "energy": 20358,
-                "grazingAngle": 0.09726790339650605,
+                "grazingAngle": 1.57079632,
                 "h": 1,
                 "heightAmplification": 1,
                 "heightProfileFile": "Si_heat204.dat",
@@ -36,7 +36,7 @@
                 "crystalThickness": 0.01,
                 "dSpacing": 3.1355713563754857,
                 "energy": 20358,
-                "grazingAngle": -0.09726790339650605,
+                "grazingAngle": -1.57079632,
                 "h": 1,
                 "heightAmplification": 1,
                 "heightProfileFile": null,
@@ -560,18 +560,6 @@
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 0.4
-        },
-        "simulationStatus": {
-            "multiElectronAnimation": {
-                "elapsedTime": 0,
-                "frameCount": 0,
-                "lastUpdateTime": 1471633722,
-                "parametersChanged": null,
-                "percentComplete": 0,
-                "report": "multiElectronAnimation",
-                "startTime": 1471633722,
-                "state": "stopped"
-            }
         },
         "sourceIntensityReport": {
             "characteristic": 0,

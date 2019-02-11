@@ -137,10 +137,6 @@
             "verticalPosition": 0,
             "verticalRange": "0.6"
         },
-        "simulationStatus": {
-            "startTime": 0,
-            "state": "initial"
-        },
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,

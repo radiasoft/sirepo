@@ -73,9 +73,9 @@
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "getServerData": "/get-server-data/?<id>",
+        "homePage": "/about",
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
-        "homePage": "/light",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
@@ -89,11 +89,12 @@
         "runSimulation": "/run-simulation",
         "runStatus": "/run-status",
         "saveSimulationData": "/save-simulation",
+        "serverStatus": "/server-status",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
         "simulationFrame": "/simulation-frame/<frame_id>",
         "simulationSchema": "/simulation-schema",
-        "srLandingPage": "/sr",
         "srUnit": "/ srunit",
+        "srwLight": "/light",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
@@ -146,7 +147,8 @@
                     "canvas-toBlob.js",
                     "d3-3.5.9.min.js",
                     "fontdetect-0.3.js",
-                    "ie10-viewport-bug-workaround.js"
+                    "ie10-viewport-bug-workaround.js",
+                    "katex.min.js"
                 ]
             },
             "sirepoLibs": {
@@ -261,6 +263,7 @@
                     "bootstrap-3.3.7.min.css",
                     "bootstrap-colxl.css",
                     "bootstrap-toggle.min.css",
+                    "katex.min.css",
                     "cookieconsent.min.css"
                 ]
             },

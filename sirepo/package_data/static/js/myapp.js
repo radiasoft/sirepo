@@ -3,8 +3,22 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('MyAppSourceController', function () {
+SIREPO.app.controller('MyAppSourceController', function (appState, panelState, $scope) {
     var self = this;
+
+    function handleDogDisposition() {
+        panelState.showField('dog', 'favoriteTreat', appState.models.dog.disposition == 'friendly');
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        // after the model data is available, hide/show the
+        // favoriteTreat field depending on the disposition
+        handleDogDisposition();
+        appState.watchModelFields($scope, ['dog.disposition'], function() {
+            // respond to changes in the disposition field value
+            handleDogDisposition();
+        });
+    });
 });
 
 SIREPO.app.directive('appFooter', function() {

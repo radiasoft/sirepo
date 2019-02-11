@@ -233,12 +233,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     function computeCrystalInit(item) {
         if (item.material != 'Unknown') {
-            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle']);
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']);
         }
     }
 
     function computeCrystalOrientation(item) {
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']);
+        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']);
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -605,7 +605,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['grazingAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
@@ -1123,7 +1123,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="radiasoft"></a>',
+              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',

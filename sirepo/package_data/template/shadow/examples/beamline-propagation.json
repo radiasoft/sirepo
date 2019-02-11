@@ -111,7 +111,6 @@
             "simulationSerial": 1489776009412389,
             "sourceType": "bendingMagnet"
         },
-        "simulationStatus": {},
         "sourceDivergence": {
             "hdiv1": 0.5,
             "hdiv2": 0.5,

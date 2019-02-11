@@ -155,9 +155,11 @@
             }
         }
     },
-    "srwAppRoutes": {
-        "calculator": "SR Calculator",
-        "light-sources": "Light Source Facilities",
-        "wavefront": "Wavefront Propagation"
-    }
+    "opportunities": [
+        {
+            "title": "BNL Postdoc",
+            "text": "Our collaborators at Brookhaven National Laboratory have a postdoctoral position that will enable you to join a world class X&#8209;ray optics team and also become a Sirepo developer -- we encourage you to apply!",
+            "url": "https://jobs.bnl.gov/job/upton/post-doctoral-associate-simulation-of-experiments-nsls-ii/3437/9350753"
+        }
+    ]
 }
