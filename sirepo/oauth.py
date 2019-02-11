@@ -35,16 +35,63 @@ _COOKIE_NEXT = 'sronx'
 _COOKIE_NONCE = 'sronn'
 
 
-@api_perm.require_cookie_sentinel
+@api_perm.require_user
 def api_oauthAuthorized(oauth_type):
-#TODO(robnagler) assert oauth_type
-    return _authorized_callback(oauth_type)
+    """Handle a callback from a successful OAUTH request. Tracks oauth
+    users in a database.
+    """
+    with user_db.thread_lock:
+        oc = _oauth_client(oauth_type)
+        resp = oc.authorized_response()
+        if not resp:
+            util.raise_forbidden('missing oauth response')
+        expect = cookie.unchecked_remove(_COOKIE_NONCE)
+        got = flask.request.args.get('state', '')
+        if expect != got:
+            util.raise_forbidden(
+                'mismatch oauth state: expected {} != got {}',
+                expect,
+                got,
+            )
+        data = oc.get('user', token=(resp['access_token'], '')).data
+        u = UserModel.search_by(oauth_id=data['id'], oauth_type=oauth_type)
+        if u:
+            u.display_name = data['name']
+            u.user_name = data['login']
+        else:
+            # first time logging in to oauth so create oauth record
+            u = User(
+                display_name=data['name'],
+                oauth_id=data['id'],
+                oauth_type=oauth_type,
+                uid=cookie.get_user(),
+                user_name=data['login'],
+            )
+        user_state.login_as_user(u)
+    return server.javascript_redirect(cookie.unchecked_remove(_COOKIE_NEXT))
 
 
 @api_perm.allow_cookieless_set_user
 def api_oauthLogin(simulation_type, oauth_type):
-#TODO(robnagler) assert oauth_type
-    return _authorize(simulation_type, oauth_type)
+    """Redirects to an OAUTH request for the specified oauth_type ('github').
+
+    If oauth_type is 'anonymous', the current session is cleared.
+    """
+    oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
+    state = util.random_base62()
+    cookie.set_value(_COOKIE_NONCE, state)
+    cookie.set_value(_COOKIE_NEXT, oauth_next)
+    callback = cfg.github_callback_uri
+    if not callback:
+        from sirepo import uri_router
+        callback = uri_router.uri_for_api(
+            'oauthAuthorized',
+            dict(oauth_type=oauth_type),
+        )
+    return _oauth_client(oauth_type).authorize(
+        callback=callback,
+        state=state,
+    )
 
 
 def init_apis(app):
@@ -81,63 +128,6 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
 
     def save_session(*args, **kwargs):
         pass
-
-
-def _authorize(simulation_type, oauth_type):
-    """Redirects to an OAUTH request for the specified oauth_type ('github').
-
-    If oauth_type is 'anonymous', the current session is cleared.
-    """
-    oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
-    state = util.random_base62()
-    cookie.set_value(_COOKIE_NONCE, state)
-    cookie.set_value(_COOKIE_NEXT, oauth_next)
-    callback = cfg.github_callback_uri
-    if not callback:
-        from sirepo import uri_router
-        callback = uri_router.uri_for_api(
-            'oauthAuthorized',
-            dict(oauth_type=oauth_type),
-        )
-    return _oauth_client(oauth_type).authorize(
-        callback=callback,
-        state=state,
-    )
-
-
-def _authorized_callback(oauth_type):
-    """Handle a callback from a successful OAUTH request. Tracks oauth
-    users in a database.
-    """
-    with user_db.thread_lock:
-        oc = _oauth_client(oauth_type)
-        resp = oc.authorized_response()
-        if not resp:
-            util.raise_forbidden('missing oauth response')
-        expect = cookie.unchecked_remove(_COOKIE_NONCE)
-        got = flask.request.args.get('state', '')
-        if expect != actual:
-            util.raise_forbidden(
-                'mismatch oauth state: expected {} != got {}',
-                expect,
-                got,
-            )
-        data = oc.get('user', token=(resp['access_token'], '')).data
-        u = user_class.search_by(oauth_id=data['id'], oauth_type=oauth_type)
-        if u:
-            u.display_name = data['name']
-            u.user_name = data['login']
-        else:
-            # first time logging in to oauth so create oauth record
-            u = User(
-                display_name=data['name'],
-                oauth_id=data['id'],
-                oauth_type=oauth_type,
-                uid=cookie.get_user(),
-                user_name=data['login'],
-            )
-        user_state.set_logged_in(u)
-    return server.javascript_redirect(cookie.unchecked_remove(_COOKIE_NEXT))
 
 
 def _init(app):

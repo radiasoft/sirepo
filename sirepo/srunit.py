@@ -14,6 +14,12 @@ import flask
 import flask.testing
 import json
 import re
+try:
+    # py2
+    from urllib import urlencode
+except ImportError:
+    # py3
+    from urllib.parse import urlencode
 
 
 #: import sirepo.server
@@ -112,7 +118,7 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
-        return _req(route_name, params, op, raw_response=raw_response)
+        return _req(route_name, params, {}, op, raw_response=raw_response)
 
     def sr_post_form(self, route_name, data, params=None, raw_response=False):
         """Posts form data to route_name to server with data
@@ -126,9 +132,9 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=data)
-        return _req(route_name, params, op, raw_response=raw_response)
+        return _req(route_name, params, {}, op, raw_response=raw_response)
 
-    def sr_get(self, route_name, params=None, raw_response=False):
+    def sr_get(self, route_name, params=None, query=None, raw_response=False):
         """Gets a request to route_name to server
 
         Args:
@@ -138,7 +144,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        return _req(route_name, params, self.get, raw_response=raw_response)
+        return _req(route_name, params, query, self.get, raw_response=raw_response)
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
@@ -166,7 +172,7 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
 
-def _req(route_name, params, op, raw_response):
+def _req(route_name, params, query, op, raw_response):
     """Make request and parse result
 
     Args:
@@ -182,7 +188,7 @@ def _req(route_name, params, op, raw_response):
     uri = None
     resp = None
     try:
-        uri = _uri(route_name, params)
+        uri = _uri(route_name, params, query)
         resp = op(uri)
         if raw_response:
             return resp
@@ -192,12 +198,13 @@ def _req(route_name, params, op, raw_response):
         raise
 
 
-def _uri(route_name, params):
+def _uri(route_name, params, query):
     """Convert name to uri found in SCHEMA_COMMON.
 
     Args:
         route_name (str): string name of route
         params (dict): parameters to apply to route
+        query (dict): query string values
 
     Returns:
         str: URI
@@ -215,4 +222,6 @@ def _uri(route_name, params):
     route = re.sub(r'\??<[^>]+>', '', route)
     assert not '<' in route, \
         '{}: missing params'.format(route)
+    if query:
+        route += '?' + urlencode(query)
     return route

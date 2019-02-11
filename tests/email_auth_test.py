@@ -42,11 +42,13 @@ def test_happy_path():
     t = fc.sr_get('userState', raw_response=True).data
     pkre('"userName": "a@b.c"', t)
     pkre('"displayName": "abc"', t)
+    pkre('"loginSession": "logged_in"', t)
     r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     t = fc.sr_get('userState', raw_response=True).data
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
+    pkre('"loginSession": "logged_out"', t)
 
 
 def test_different_email():
@@ -75,6 +77,8 @@ def test_different_email():
         {'email': 'a@b.c', 'simulationType': sim_type},
     )
     r = fc.get(r.url);
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"loginSession": "logged_in"', t)
     r = fc.sr_post(
         'emailAuthDisplayName',
         {'email': 'a@b.c', 'displayName': 'abc'},
@@ -87,6 +91,7 @@ def test_different_email():
     m = re.search('"uid": "([^"]+)"', t)
     uid = m.group(1)
     pkre('"userName": null', t)
+    pkre('"loginSession": "logged_out"', t)
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'x@y.z', 'simulationType': sim_type},
@@ -99,6 +104,7 @@ def test_different_email():
     t = fc.sr_get('userState', raw_response=True).data
     pkre('"userName": "x@y.z"', t)
     pkre('"displayName": "xyz"', t)
+    pkre('"loginSession": "logged_in"', t)
     m = re.search('"uid": "([^"]+)"', t)
     uid2 = m.group(1)
     assert uid != uid2
