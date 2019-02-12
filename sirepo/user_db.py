@@ -74,13 +74,6 @@ def init(app, callback):
                         cookie.set_user(self.uid)
 
         callback(_db, UserDbBase)
-###        tablename = callback(_db, Model)
-###        if _db_filename(app).check(file=True):
-###            engine = _db.get_engine(app)
-###            if not engine.dialect.has_table(engine.connect(), tablename):
-###                pkdlog('creating table {} in existing db', tablename)
-###        else:
-###            pkdlog('creating user database {}', _db_filename(app))
         # only creates tables that don't already exist
         _db.create_all()
 
