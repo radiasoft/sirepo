@@ -143,15 +143,24 @@ def require_user():
             if is_logged_in():
                 return None
             if not is_anonymous_session():
-                return 'user={} is logged out'.format(cookie.get_user())
+                return (
+                    'userLogin',
+                    'user={} is logged out'.format(cookie.get_user())
+                )
             if login_module.ALLOW_ANONYMOUS_SESSION:
                 return None
-            return 'user={} is anonymous in auth={}'.format(
-                cookie.get_user(),
-                login_module.AUTH_METHOD,
+            return (
+                'userLogin',
+                'user={} is anonymous in auth={}'.format(
+                    cookie.get_user(),
+                    login_module.AUTH_METHOD,
+                ),
             )
         elif not login_module.ALLOW_ANONYMOUS_SESSION:
-            return 'no user in cookie'
+            return (
+                'userLogin',
+                'no user in cookie',
+            )
     elif cookie.has_user_value():
         return None
     from sirepo import simulation_db

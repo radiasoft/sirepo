@@ -74,6 +74,8 @@ def test_happy_path(monkeypatch):
     pkre('"loginSession": "logged_out"', t)
 
 
+### write a test with email auth will requrie a sep file
+
 class _OAuthClient(object):
 
     def __init__(self, values):

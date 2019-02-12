@@ -69,7 +69,7 @@ def init(app, callback):
                             # check if session_uid is already in the
                             # user database, if not, copy over simulations
                             # from anonymous to this user.
-                            if not self.search_by(uid=session_uid).first():
+                            if not self.search_by(uid=session_uid):
                                 simulation_db.move_user_simulations(self.uid)
                         cookie.set_user(self.uid)
 

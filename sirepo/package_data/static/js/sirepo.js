@@ -1283,6 +1283,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var srException = null;
 
     function logError(data, status) {
         var err = SIREPO.APP_SCHEMA.customErrors[status];
@@ -1428,6 +1429,20 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
             });
     };
 
+    self.getSRException = function() {
+        // returns and clears the current srException
+        var res = srException;
+        srException = null;
+        return res;
+    };
+
+    self.handleSRException = function(data) {
+        srException = data.srException;
+        srException.previousURL = $location.url();
+        requestSender.localRedirect(srException.routeName);
+        return;
+    };
+
     self.localRedirect = function(routeName, params) {
         $location.path(self.formatUrlLocal(routeName, params));
     };
@@ -1498,6 +1513,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
             }
             if (! data.state) {
                 data.state = 'error';
+            }
+            if (data.state == 'srException') {
+                self.handleSRException(data);
+                return;
             }
             if (status == -1) {
                 msg = 'Server unavailable';
@@ -2855,6 +2874,10 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         return null;
     }
 
+});
+
+SIREPO.app.controller('UserLoginController', function (requestSender, loginService) {
+    var self = this;
 });
 
 SIREPO.app.filter('simulationName', function() {

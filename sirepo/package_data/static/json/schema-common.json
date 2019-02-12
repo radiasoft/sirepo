@@ -177,6 +177,44 @@
             ]
         },
         "localRoutes": {
+            "authorizationFailed": {
+                "route": "/auth-failed",
+                "config": {
+                  "templateUrl": "/static/html/auth-failed.html"
+                }
+            },
+            "forbidden": {
+                "route": "/forbidden",
+                "config": {
+                  "templateUrl": "/static/html/forbidden.html"
+                }
+            },
+            "loggedOut": {
+                "route": "/logged-out",
+                "config": {
+                  "controller": "LoggedOutController as loggedOut",
+                  "templateUrl": "/static/html/logged-out.html"
+                }
+            },
+            "missingCookies": {
+                "route": "/missing-cookies",
+                "config": {
+                    "templateUrl": "/static/html/missing-cookies.html"
+                }
+            },
+            "notFound": {
+                "route": "/not-found",
+                "config": {
+                  "templateUrl": "/static/html/not-found.html"
+                }
+            },
+            "notFoundCopy": {
+                "route": "/copy-session/:simulationIds/:section",
+                "config": {
+                  "controller": "NotFoundCopyController as notFoundCopy",
+                  "templateUrl": "/static/html/copy-session.html"
+                }
+            },
             "simulations": {
                 "route": "/simulations",
                 "config": {
@@ -195,42 +233,11 @@
             "source": {
                 "route": "/source/:simulationId"
             },
-            "loggedOut": {
-                "route": "/logged-out",
+            "userLogin": {
+                "route": "/user-login",
                 "config": {
-                  "controller": "LoggedOutController as loggedOut",
-                  "templateUrl": "/static/html/logged-out.html"
-                }
-            },
-            "forbidden": {
-                "route": "/forbidden",
-                "config": {
-                  "templateUrl": "/static/html/forbidden.html"
-                }
-            },
-            "notFound": {
-                "route": "/not-found",
-                "config": {
-                  "templateUrl": "/static/html/not-found.html"
-                }
-            },
-            "notFoundCopy": {
-                "route": "/copy-session/:simulationIds/:section",
-                "config": {
-                  "controller": "NotFoundCopyController as notFoundCopy",
-                  "templateUrl": "/static/html/copy-session.html"
-                }
-            },
-            "notAuthorized": {
-                "route": "/missing-cookies",
-                "config": {
-                  "templateUrl": "/static/html/not-authorized.html"
-                }
-            },
-            "authorizationFailed": {
-                "route": "/auth-failed",
-                "config": {
-                  "templateUrl": "/static/html/auth-failed.html"
+                  "controller": "UserLoginController as userLogin",
+                  "templateUrl": "/static/html/user-login.html"
                 }
             }
         },
@@ -307,11 +314,6 @@
         }
     },
     "customErrors": {
-        "401": {
-            "url": "not-authorized.html",
-            "msg": "Missing Cookies",
-            "route": "notAuthorized"
-        },
         "403": {
             "url": "forbidden.html",
             "msg": "Forbidden",
