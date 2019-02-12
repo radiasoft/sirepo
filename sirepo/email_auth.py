@@ -163,6 +163,7 @@ def api_emailAuthorized(simulation_type, token):
         u.user_name = u.unverified_email
         u.token = None
         u.expires = None
+        u.save()
         user_state.login_as_user(u)
 #TODO(robnagler) user_state.set_logged_in should do all the work
     return flask.redirect('/{}'.format(simulation_type))
