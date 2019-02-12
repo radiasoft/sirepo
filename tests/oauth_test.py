@@ -7,6 +7,8 @@ u"""Test simulationSerial
 from __future__ import absolute_import, division, print_function
 import pytest
 
+### write a test with email auth will requrie a sep file
+
 
 def test_happy_path(monkeypatch):
     from pykern import pkcollections
@@ -25,16 +27,7 @@ def test_happy_path(monkeypatch):
         'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
     })
     from sirepo import oauth
-    oc = _OAuthClient(
-        pkcollections.Dict(
-            access_token='xyzzy',
-            data=pkcollections.Dict(
-                id='9999',
-                name='Joe Blow',
-                login='joeblow',
-            ),
-        ),
-    )
+    oc = _OAuthClient()
     monkeypatch.setattr(oauth, '_oauth_client', oc)
     fc.get('/{}'.format(sim_type))
     fc.sr_get(
@@ -91,16 +84,7 @@ def test_anonymous_merge(monkeypatch):
         'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
     })
     from sirepo import oauth
-    oc = _OAuthClient(
-        pkcollections.Dict(
-            access_token='xyzzy',
-            data=pkcollections.Dict(
-                id='9999',
-                name='Joe Blow',
-                login='joeblow',
-            ),
-        ),
-    )
+    oc = _OAuthClient()
     monkeypatch.setattr(oauth, '_oauth_client', oc)
     fc.get('/{}'.format(sim_type))
     fc.sr_get(
@@ -186,12 +170,19 @@ def test_anonymous_merge(monkeypatch):
     pkeq([u'Scooby Doo', u'anon-sim', u'oauth-sim'], sorted([x.name for x in d]))
 
 
-### write a test with email auth will requrie a sep file
-
 class _OAuthClient(object):
 
-    def __init__(self, values):
-        self.values = values
+    def __init__(self, values=None):
+        from pykern import pkcollections
+
+        self.values = values or pkcollections.Dict(
+            access_token='xyzzy',
+            data=pkcollections.Dict(
+                id='9999',
+                name='Joe Blow',
+                login='joeblow',
+            ),
+        )
 
     def __call__(self, *args, **kwargs):
         return self
