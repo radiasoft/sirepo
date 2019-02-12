@@ -20,17 +20,17 @@ _ANONYMOUS = 'a'
 _LOGGED_IN = 'li'
 _LOGGED_OUT = 'lo'
 
+#: used in query (process_logout) and map for SIREPO.userState
 _ANONYMOUS_SESSION = 'anonymous'
 
-#:
-
+#: map so SIREPO.userState in user-state.js
 _LOGIN_SESSION_MAP = pkcollections.Dict({
     _ANONYMOUS: _ANONYMOUS_SESSION,
     _LOGGED_IN: 'logged_in',
     _LOGGED_OUT: 'logged_out',
 })
 
-#: cookie keys for user state
+#: key for login state
 _COOKIE_SESSION = 'sros'
 
 #: formerly used in the cookie but no longer so is removed below
@@ -137,7 +137,7 @@ def register_login_module():
 
 def require_user():
     if login_module:
-        # cookie_name is no longer used, remove from cookie
+        # cookie_name is no longer used so clean up
         cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
         if cookie.has_user_value():
             if is_logged_in():

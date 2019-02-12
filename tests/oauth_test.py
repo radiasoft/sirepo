@@ -41,7 +41,7 @@ def test_happy_path(monkeypatch):
         'oauthLogin',
         {
             'simulation_type': sim_type,
-            'oauth_type': 'github',
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
         raw_response=True,
     )
@@ -54,7 +54,7 @@ def test_happy_path(monkeypatch):
     fc.sr_get(
         'oauthAuthorized',
         {
-            'oauth_type': 'github',
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
         query=pkcollections.Dict(state=state),
         raw_response=True,

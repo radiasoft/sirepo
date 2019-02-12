@@ -15,6 +15,7 @@ from sirepo import uri_router
 from sirepo import user_db
 from sirepo import user_state
 from sirepo import util
+import sirepo.template
 import flask
 import flask.sessions
 import flask_oauthlib.client
@@ -26,6 +27,9 @@ ALLOW_ANONYMOUS_SESSION = True
 
 #: How do we authenticate
 AUTH_METHOD = 'github'
+
+#: oauth_type value that should be passed in always
+DEFAULT_OAUTH_TYPE = AUTH_METHOD
 
 #: Used by user_db
 UserModel = None
@@ -79,7 +83,14 @@ def api_oauthLogin(simulation_type, oauth_type):
 
     If oauth_type is 'anonymous', the current session is cleared.
     """
-    oauth_next = '/{}#{}'.format(simulation_type, flask.request.args.get('next', ''))
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
+    return compat_login(
+        oauth_type,
+        '/{}#{}'.format(sim_type, flask.request.args.get('next', '')),
+    )
+
+
+def compat_login(oauth_type, oauth_next):
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_NEXT, oauth_next)
@@ -134,7 +145,7 @@ def _init_user_model(db, base):
         user_name = db.Column(db.String(100), nullable=False)
         display_name = db.Column(db.String(100))
         oauth_type = db.Column(
-            db.Enum('github', 'test', name='oauth_type'),
+            db.Enum(DEFAULT_OAUTH_TYPE, 'test', name='oauth_type'),
             nullable=False
         )
         oauth_id = db.Column(db.String(100), nullable=False)
@@ -145,11 +156,10 @@ def _init_user_model(db, base):
     return User.__tablename__
 
 
-
 def _oauth_client(oauth_type):
-    if oauth_type == 'github':
+    if oauth_type == DEFAULT_OAUTH_TYPE:
         return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
-            'github',
+            oauth_type,
             consumer_key=cfg.github_key,
             consumer_secret=cfg.github_secret,
             base_url='https://api.github.com/',

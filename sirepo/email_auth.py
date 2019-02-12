@@ -26,6 +26,12 @@ import pyisemail
 import re
 import sirepo.template
 import sqlalchemy
+try:
+    # py2
+    from urllib import urlencode
+except ImportError:
+    # py3
+    from urllib.parse import urlencode
 
 
 #: EmailAuth users most always be non-anonymous
@@ -48,7 +54,6 @@ _EXPIRES_MINUTES = 15
 
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
-
 
 ### when user hits escape on displayname modal it goes away
 
@@ -76,6 +81,13 @@ def api_emailAuthDisplayName():
 # You have to be an anonymous or logged in user at this point
 @api_perm.require_cookie_sentinel
 def api_emailAuthLogin():
+    email = flask.request.args.get('email', None)
+    if email:
+        # see oauth_compat case below
+        data = pkcollections.Dict(
+            email=email,
+            simulationType=flask.request.args.get('sim_type'),
+        )
     data = http_request.parse_json()
     email = _parse_email(data)
     sim_type = sirepo.template.assert_sim_type(data.simulationType)
@@ -88,17 +100,23 @@ def api_emailAuthLogin():
             uid = cookie.unchecked_get_user()
             if uid and not user_state.is_anonymous_session():
                 u = EmailAuth.search_by(uid=uid)
-                if u:
+                oauth_ok = False
+                if not u and cfg.oauth_compat:
+                    u = oauth.UserModel.search_by(uid=uid)
+                    if u:
+                        # Found in oauth table so if logged in, accept user
+                        if user_state.is_logged_in():
+                            oauth_ok = True
+                        else:
+                            # force user to login via GitHub first
+                            n = '?'.join(
+                                uri_router.uri_for_api('emailAuthLogin'),
+                                urlencode(dict(email=email, sim_type=sim_type)),
+                            )
+                            return oauth.compat_login(oauth.DEFAULT_OAUTH_TYPE, n)
+                if not oauth_ok:
                     # was logged in as different user so clear and get new user
                     user_state.logout_as_anonymous()
-                    uid = None
-                else:
-### check github, and see if is logged in: then just create email
-### record else force github to login; save something in cookie that
-### we tried once so we don't loop forever if the user wants to login
-### as a different user
-                    # is not EmailAuth so must be OAuth
-                    user_state.logout_as_user()
                     uid = None
             if not uid:
                 uid = simulation_db.user_create()
@@ -156,17 +174,23 @@ def init_apis(app):
     user_db.init(app, _init_email_auth_model)
     uri_router.register_api_module()
     user_state.register_login_module()
+    if cfg.oauth_compat:
+        global oauth
+        from sirepo import oauth
+
+        oauth.init_module(app)
 
 
 def _init(app):
     global cfg
     cfg = pkconfig.init(
-        smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
-        smtp_user=pkconfig.Required(str, 'SMTP auth user'),
-        smtp_password=pkconfig.Required(str, 'SMTP auth password'),
         #TODO(robnagler) validate email
         from_email=pkconfig.Required(str, 'From email address'),
         from_name=pkconfig.Required(str, 'From display name'),
+        oauth_compat=(False, bool, 'backward compatibility: try to find user in oauth'),
+        smtp_password=pkconfig.Required(str, 'SMTP auth password'),
+        smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
+        smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
     if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
         return
@@ -179,6 +203,7 @@ def _init(app):
     )
     global _smtp
     _smtp = flask_mail.Mail(app)
+
 
 def _init_email_auth_model(db, base):
     """Creates EmailAuth class bound to dynamic `db` variable"""
