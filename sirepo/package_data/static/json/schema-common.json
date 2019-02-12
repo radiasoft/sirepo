@@ -12,6 +12,10 @@
             "longName": "elegant",
             "shortName": "Elegant"
         },
+        "flash": {
+            "longName": "FLASH",
+            "shortName": "FLASH"
+        },
         "hellweg": {
             "longName": "Hellweg",
             "shortName": "Hellweg"

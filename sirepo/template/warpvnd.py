@@ -29,6 +29,7 @@ _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
+_OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
@@ -85,6 +86,8 @@ def fixup_old_data(data):
             'egunCurrentAnimation',
             'fieldReport',
             'impactDensityAnimation',
+            'optimizer',
+            'optimizerAnimation',
             'particle3d',
             'particleAnimation',
             'simulation',
@@ -136,6 +139,8 @@ def generate_field_comparison_report(data, run_dir):
 
 
 def get_animation_name(data):
+    if data['modelName'] == 'optimizerAnimation':
+        return 'optimization'
     return 'animation'
 
 
@@ -221,9 +226,13 @@ def models_related_to_report(data):
     Returns:
         list: Named models, model fields or values (dict, list) that affect report
     """
-    if data['report'] == 'animation':
+    if data['report'] == 'animation' or data['report'] == 'optimizerAnimation':
         return []
-    res = ['beam', 'simulationGrid', 'conductors', 'conductorTypes']
+    res = ['simulationGrid']
+    res.append(_non_opt_fields_to_array(data.models.beam))
+    for container in ('conductors', 'conductorTypes'):
+        for m in data.models[container]:
+            res.append(_non_opt_fields_to_array(m))
     if data['report'] != 'fieldComparisonReport':
         res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
@@ -258,7 +267,7 @@ def prepare_output_file(report_info, data):
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data, is_parallel=True)
+    return _generate_parameters_file(data)[0]
 
 
 def remove_last_frame(run_dir):
@@ -276,14 +285,21 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(
-            data,
-            run_dir,
-            is_parallel,
-        ),
-    )
+    txt, v = _generate_parameters_file(data)
+    if v['isOptimize']:
+        pkio.write_text(
+            run_dir.join(_OPTIMIZE_PARAMETER_FILE),
+            txt,
+        )
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            _generate_optimizer_file(data, v),
+        )
+    else:
+        pkio.write_text(
+            run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+            txt,
+        )
 
 
 def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, limit):
@@ -531,89 +547,72 @@ def _extract_particle(run_dir, data, limit):
     }
 
 
-def _generate_impact_density():
-    return '''
-from rswarp.diagnostics import ImpactDensity
-try:
-    plot_density = ImpactDensity.PlotDensity(None, None, scraper, top, w3d)
-    plot_density.gate_scraped_particles()
-    plot_density.map_density()
-    for gid in plot_density.gated_ids:
-        for side in plot_density.gated_ids[gid]:
-            del plot_density.gated_ids[gid][side]['interpolation']
-    density_results = {
-        'gated_ids': plot_density.gated_ids,
-        'dx': plot_density.dx,
-        'dz': plot_density.dz,
-        'min': plot_density.cmap_normalization.vmin,
-        'max': plot_density.cmap_normalization.vmax,
+def _grid_delta(data, length_field, count_field):
+    grid = data.models.simulationGrid
+    #TODO(pjm): already converted to meters
+    return grid[length_field] / grid[count_field]
+
+
+def _compute_delta_for_field(data, bounds, field):
+    #TODO(pjm): centralize list of meter fields
+    if field in ('xLength', 'yLength', 'zLength', 'xCenter', 'yCenter', 'zCenter'):
+        bounds[0] = _meters(bounds[0])
+        bounds[1] = _meters(bounds[1])
+    delta = {
+        'z': _grid_delta(data, 'plate_spacing', 'num_z'),
+        'x': _grid_delta(data, 'channel_width', 'num_x'),
+        'y': _grid_delta(data, 'channel_height', 'num_y'),
     }
-except AssertionError as e:
-    density_results = {
-        'error': e.message,
-    }
-    ''' + '''
-np.save('{}', density_results)
-    '''.format(_DENSITY_FILE)
+    m = re.search(r'^(\w)(Center|Length)$', field)
+    if m:
+        dim = m.group(1)
+        return delta[dim]
+    _DEFAULT_SIZE = 20
+    return (bounds[1] - bounds[0]) / _DEFAULT_SIZE
 
 
-def _generate_lattice(data):
-    conductorTypeMap = {}
-    for ct in data.models.conductorTypes:
-        conductorTypeMap[ct.id] = ct
-
-    res = 'conductors = ['
-    for c in data.models.conductors:
-        ct = conductorTypeMap[c.conductorTypeId]
-        permittivity = ''
-        if ct.isConductor == '0':
-            permittivity = ', permittivity={}'.format(float(ct.permittivity))
-        y_length = _meters(ct.yLength)
-        y_center = _meters(c.yCenter)
-        if not _is_3D(data):
-            y_length = 1
-            y_center = 0
-        res += "\n" + '    Box({}, {}, {}, voltage={}, xcent={}, ycent={}, zcent={}{}),'.format(
-            _meters(ct.xLength), y_length, _meters(ct.zLength), ct.voltage, _meters(c.xCenter), y_center, _meters(c.zCenter), permittivity)
-    res += '''
-]
-for c in conductors:
-    if c.voltage != 0.0:
-      installconductor(c)
-
-scraper = ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
-    '''
-    return res
+def _generate_optimizer_file(data, v):
+    # iterate opt vars and compute [min, max, dx]
+    for opt in data.models.optimizer.fields:
+        m, f, container, id = _parse_optimize_field(opt.field)
+        opt.bounds = [opt.minimum, opt.maximum]
+        opt.bounds.append(_compute_delta_for_field(data, opt.bounds, f))
+    v['optField'] = data.models.optimizer.fields
+    return _render_jinja('optimizer', v)
 
 
-def _generate_parameters_file(data, run_dir=None, is_parallel=False):
+def _generate_parameters_file(data):
     v = None
     template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
-    v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
-    v['impactDensityCalculation'] = _generate_impact_density()
+    v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
-    v['conductorLatticeAndParticleScraper'] = _generate_lattice(data)
+    v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
-    template_name = ''
     if 'report' not in data:
-        template_name = 'visualization'
-    elif data['report'] == 'animation':
+        data['report'] = 'animation'
+    v['isOptimize'] = data['report'] == 'optimizerAnimation'
+    if v['isOptimize']:
+        _replace_optimize_variables(data, v)
+    res = _render_jinja('base', v)
+    if data['report'] == 'animation':
         if data['models']['simulation']['egun_mode'] == '1':
             v['egunStatusFile'] = _EGUN_STATUS_FILE
-            template_name = 'egun'
+            res += _render_jinja('egun', v)
         else:
-            template_name = 'visualization'
+            res += _render_jinja('visualization', v)
+        res += _render_jinja('impact-density', v)
+    elif data['report'] == 'optimizerAnimation':
+        res += _render_jinja('parameters-optimize', v)
     else:
-        template_name = 'source-field'
-    return template_common.render_jinja(SIM_TYPE, v, 'base.py') \
-        + template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template_name))
+        res += _render_jinja('source-field', v)
+    return res, v
 
 
 def _h5_file_list(run_dir, model_name):
@@ -623,20 +622,28 @@ def _h5_file_list(run_dir, model_name):
     )
 
 
+def _find_by_id(container, id):
+    for c in container:
+        if str(c.id) == str(id):
+            return c
+    assert False, 'missing id: {} in container'.format(id)
+
+
 def _is_3D(data):
     return data.models.simulationGrid.simulation_mode == '3d'
 
 
+def _is_opt_field(field_name):
+    return re.search(r'\_opt$', field_name)
+
+
 def _max_conductor_voltage(data):
-    type_by_id = {}
-    for conductor_type in data.models.conductorTypes:
-        type_by_id[conductor_type.id] = conductor_type
-    max_voltage = data.models.beam.anode_voltage
-    for conductor in data.models.conductors:
-        conductor_type = type_by_id[conductor.conductorTypeId]
-        if conductor_type.voltage > max_voltage:
-            max_voltage = conductor_type.voltage
-    return max_voltage
+    res = data.models.beam.anode_voltage
+    for c in data.models.conductors:
+        # conductor_type has been added to conductor during _prepare_conductors()
+        if c.conductor_type.voltage > res:
+            res = c.conductor_type.voltage
+    return res
 
 
 def _meters(v):
@@ -644,10 +651,64 @@ def _meters(v):
     return float(v) * 1e-6
 
 
+def _non_opt_fields_to_array(model):
+    res = []
+    for f in model:
+        if _is_opt_field(f):
+            continue
+        res.append(model[f])
+    return res
+
+
 def _particle_line_has_slope(curr, next, prev, i1, i2):
     return abs(
         _slope(curr[i1], curr[i2], next[i1], next[i2]) - _slope(prev[i1], prev[i2], curr[i1], curr[i2])
     ) >= _CULL_PARTICLE_SLOPE
+
+
+def _prepare_conductors(data):
+    type_by_id = {}
+    for ct in data.models.conductorTypes:
+        type_by_id[ct.id] = ct
+        for f in ('xLength', 'yLength', 'zLength'):
+            ct[f] = _meters(ct[f])
+        if not _is_3D(data):
+            ct.yLength = 1
+        ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
+    for c in data.models.conductors:
+        c.conductor_type = type_by_id[c.conductorTypeId]
+        for f in ('xCenter', 'yCenter', 'zCenter'):
+            c[f] = _meters(c[f])
+        if not _is_3D(data):
+            c.yCenter = 0
+    return data.models.conductors
+
+
+def _render_jinja(template, v):
+    return template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template))
+
+
+def _parse_optimize_field(text):
+    # returns (model_name, field_name, container_name, id)
+    m, f = text.split('.')
+    container, id = None, None
+    if re.search(r'#', m):
+        container, id = m.split('#')
+    return m, f, container, id
+
+
+def _replace_optimize_variables(data, v):
+    v['optimizeFields'] = []
+    for opt in data.models.optimizer.fields:
+        v['optimizeFields'].append(opt.field)
+        value = 'opts[\'{}\']'.format(opt.field)
+        m, f, container, id = _parse_optimize_field(opt.field)
+        if container:
+            model = _find_by_id(data.models[container], id)
+            model[f] = value
+        else:
+            v['{}_{}'.format(m, f)] = value
+
 
 
 def _slope(x1, y1, x2, y2):

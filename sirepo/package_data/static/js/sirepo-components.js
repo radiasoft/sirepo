@@ -2512,7 +2512,7 @@ SIREPO.app.directive('bootstrapToggle', function() {
     };
 });
 
-SIREPO.app.directive('optimizeFloat', function(panelState) {
+SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -2535,8 +2535,7 @@ SIREPO.app.directive('optimizeFloat', function(panelState) {
         ].join(''),
         controller: function($scope) {
             function checkField() {
-                //TODO(pjm): centralize '_opt'
-                return $scope.field + '_opt';
+                return appState.optFieldName($scope.field);
             }
             function isChecked() {
                 return $scope.model && $scope.model[checkField()];
