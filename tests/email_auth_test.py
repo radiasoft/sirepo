@@ -55,6 +55,26 @@ def test_different_email():
     pkok(uid != uid2, 'did not get a new uid={}', uid)
 
 
+def test_force_login():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre, pkeq
+    from pykern.pkdebug import pkdp
+    from sirepo import srunit
+    import re
+
+    # login as a new user, not in db
+    r = fc.sr_post(
+        'emailAuthLogin',
+        {'email': 'a@b.c', 'simulationType': sim_type},
+    )
+    fc.get(r.url)
+    fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    pkeq(401, r.status_code)
+
+
 def test_happy_path():
     fc, sim_type = _fc()
 

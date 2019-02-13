@@ -1514,6 +1514,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
             if (! data.state) {
                 data.state = 'error';
             }
+            srdbg(data);
             if (data.state == 'srException') {
                 self.handleSRException(data);
                 return;

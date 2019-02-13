@@ -17,7 +17,7 @@ MIME_TYPE = None
 #: Default response
 _RESPONSE_OK = {'state': 'ok'}
 
-def gen_json(value, pretty=False):
+def gen_json(value, pretty=False, response_kwargs=None):
     """Generate JSON flask response
 
     Args:
@@ -27,9 +27,12 @@ def gen_json(value, pretty=False):
         Response: flask response
     """
     app = flask.current_app
+    if not response_kwargs:
+        response_kwargs = {}
     return app.response_class(
         simulation_db.generate_json(value, pretty=pretty),
         mimetype=MIME_TYPE.json,
+        **response_kwargs
     )
 
 
