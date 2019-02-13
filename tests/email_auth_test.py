@@ -9,26 +9,14 @@ import pytest
 
 
 def test_different_email():
+    fc, sim_type = _fc()
+
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     from sirepo import srunit
     import re
 
-    sim_type = 'myapp'
-    fc = srunit.flask_client(
-        cfg={
-            'SIREPO_EMAIL_AUTH_FROM_EMAIL': 'x',
-            'SIREPO_EMAIL_AUTH_FROM_NAME': 'x',
-            'SIREPO_EMAIL_AUTH_SMTP_PASSWORD': 'x',
-            'SIREPO_EMAIL_AUTH_SMTP_SERVER': 'dev',
-            'SIREPO_EMAIL_AUTH_SMTP_USER': 'x',
-            'SIREPO_FEATURE_CONFIG_API_MODULES': 'email_auth',
-            'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-        },
-    )
-    # set the sentinel
-    r = fc.get('/{}'.format(sim_type))
     r = fc.sr_post(
         'emailAuthLogin',
         {'email': 'a@b.c', 'simulationType': sim_type},
@@ -68,26 +56,14 @@ def test_different_email():
 
 
 def test_happy_path():
+    fc, sim_type = _fc()
+
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     from sirepo import srunit
     import re
 
-    sim_type = 'myapp'
-    fc = srunit.flask_client(
-        cfg={
-            'SIREPO_EMAIL_AUTH_FROM_EMAIL': 'x',
-            'SIREPO_EMAIL_AUTH_FROM_NAME': 'x',
-            'SIREPO_EMAIL_AUTH_SMTP_PASSWORD': 'x',
-            'SIREPO_EMAIL_AUTH_SMTP_SERVER': 'dev',
-            'SIREPO_EMAIL_AUTH_SMTP_USER': 'x',
-            'SIREPO_FEATURE_CONFIG_API_MODULES': 'email_auth',
-            'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-        },
-    )
-    # set the sentinel
-    r = fc.get('/{}'.format(sim_type))
     # login as a new user, not in db
     r = fc.sr_post(
         'emailAuthLogin',
@@ -115,11 +91,29 @@ def test_happy_path():
 
 
 def test_token_reuse():
+    fc, sim_type = _fc()
+
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    from sirepo import srunit
     import re
+
+    r = fc.sr_post(
+        'emailAuthLogin',
+        {'email': 'a@b.c', 'simulationType': sim_type},
+    )
+    login_url = r.url
+    r = fc.get(r.url)
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": "a@b.c"', t)
+    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    r = fc.get(login_url)
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"loginSession": "logged_out"', t)
+
+
+def _fc():
+    from sirepo import srunit
 
     sim_type = 'myapp'
     fc = srunit.flask_client(
@@ -134,20 +128,8 @@ def test_token_reuse():
         },
     )
     # set the sentinel
-    r = fc.get('/{}'.format(sim_type))
-    r = fc.sr_post(
-        'emailAuthLogin',
-        {'email': 'a@b.c', 'simulationType': sim_type},
-    )
-    login_url = r.url
-    r = fc.get(r.url)
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"userName": "a@b.c"', t)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
-    r = fc.get(login_url)
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"loginSession": "logged_out"', t)
-
+    fc.get('/{}'.format(sim_type))
+    return fc, sim_type
 
 #todo email of a different user already logged in
 #todo email and same email
