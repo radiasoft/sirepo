@@ -145,7 +145,8 @@
         },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
-            "conductorFile": ["Conductor File", "FileChooser"]
+            "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
+            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
@@ -302,6 +303,7 @@
             "title": "Simulation",
             "advanced": [
                 "name",
+                "useConductorFile",
                 "conductorFile"
             ]
         },

@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $rootScope, $window) {
 
     var self = {};
 
@@ -29,19 +29,23 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
         var url = 'static/' + fileName;
         srdbg('LOADING',  url);
         var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
-        var p = r.setUrl(url);
-        p.then(function(res) {
-            if(! r) {
-                srdbg('ERR STL');
-            }
-            else {
+        return r.setUrl(url)
+            //.catch(function (ee) {
+            //    srdbg('EE');
+            //})
+            .then(function() {
                 srdbg('PARSED STL');
-            }
+                return r;
         }, function (err) {
             srdbg('BAD STL', err);
-            errorService.alertText(fileName + ': Invalid or missing .stl file');
-        });
-        return r;
+            throw fileName + ': Invalid or missing .stl file';
+        })
+            .catch(function (e) {
+                srdbg('CAUGHT', e);
+                $rootScope.$apply(function () {
+                    errorService.alertText(e);
+                });
+            });
     };
 
     self.parseSTL = function(file) {
@@ -182,6 +186,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
             },
         };
     };
+
 
     // "Superclass" for representation of vtk source objects in ViewPort coordinates
     // Note this means that vpObjects are implicitly two-dimensional
@@ -780,15 +785,124 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
 SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
     return {
         restrict: 'A',
+        scope: {
+            require: '<',
+        },
         template: [
-            '<div data-file-chooser="" data-title="" data-file-formats=".stl" data-description="Use conductors from STL file">',
-            '</div>',
+            '<div data-file-chooser="" data-validate-on-change="validate" data-title="" data-file-formats=".stl" data-description="Load STL file" data-require="require">',
+           '</div>',
         ].join(''),
-        controller: function($scope) {
-            srdbg('STL FILE CHOOSE');
+        //template: [
+        //    '<div class="form-group">',
+        //      '<label>{{ description }}</label>',
+        //      '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}" validate-on-change="validate">',
+        //    '</div>',
+        //].join(''),
+        controller: function($scope, $element) {
+            srdbg('STL FILE CHOOSER CTL', $element);
+            $scope.validate = function (filename) {
+                srdbg('VALIDAITNG STL', filename);
+                return vtkPlotting.parseSTL(filename);
+            };
+            $scope.validationError = '';
+        },
+        link: function(scope, element, attrs) {
+
         },
     };
 });
+
+SIREPO.app.directive('createFromStlDialog', function(appState, vtkPlotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            title: '@',
+            description: '@',
+            fileFormats: '@',
+        },
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                    '<form data-file-loader="" data-file-formats="fileFormats" data-description="description">',
+                      '<form name="importForm">',
+                        '<div class="form-group">',
+                          '<label>{{ description }}</label>',
+                          '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
+                          '<br />',
+                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                        '</div>',
+                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
+                        '<div class="clearfix"></div>',
+                        '<div class="col-sm-6 pull-right">',
+                          '<button data-ng-click="newSim(inputFile)" class="btn btn-primary" data-ng-disabled="! inputFile || isUploading">Import File</button>',
+                          ' <button data-ng-click="inputFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
+                        '</div>',
+                      '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import STL File';
+            $scope.description = $scope.description || 'Select File';
+            $scope.newSim = function(inputFile) {
+                if (! inputFile) {
+                    return;
+                }
+                $scope.isUploading = true;
+                appState.newSimulation(
+                    appState.models.simulation,
+                    function (data) {
+                        
+                    }
+                );
+
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    {
+                        folder: fileManager.getActiveFolderPath(),
+                    },
+                    requestSender.formatUrl(
+                        'importFile',
+                        {
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        }),
+                    function(data) {
+                        $scope.isUploading = false;
+                        if (data.error) {
+                            $scope.fileUploadError = data.error;
+                        }
+                        else {
+                            $('#simulation-import').modal('hide');
+                            $scope.inputFile = null;
+                            requestSender.localRedirectHome(data.models.simulation.simulationId);
+                        }
+                    });
+            };
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+                scope.isUploading = false;
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
+        },
+    };});
 
 
 // will be axis display

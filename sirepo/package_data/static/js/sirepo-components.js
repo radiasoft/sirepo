@@ -1885,7 +1885,6 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
         controller: function($scope) {
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
-            srdbg('scope', $scope);
         },
     };
 });
