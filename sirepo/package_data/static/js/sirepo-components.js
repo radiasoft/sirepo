@@ -2277,8 +2277,8 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
                     handleResponse,
                     {
                         email: $scope.data.sentEmail,
-                        simulationType: SIREPO.APP_NAME,
-                    },
+                        simulationType: SIREPO.APP_NAME
+                    }
                 );
             };
         },
