@@ -232,13 +232,6 @@
             },
             "source": {
                 "route": "/source/:simulationId"
-            },
-            "userLogin": {
-                "route": "/user-login",
-                "config": {
-                  "controller": "UserLoginController as userLogin",
-                  "templateUrl": "/static/html/user-login.html"
-                }
             }
         },
         "model": {

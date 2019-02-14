@@ -1,7 +1,11 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-sm-6 col-sm-offset-3"><div class="well text-center">
-        Please login
-    </div></div>
+        You are signed out.
+        <div style="margin-top: 2ex">
+          <div style="display: inline" data-login-class="btn btn-primary" data-login-link=""></div>
+          <a data-ng-if="loggedOut.anonymousUrl" data-ng-href="{{ loggedOut.anonymousUrl }}" class="btn btn-default">Anonymous Access</a>
+        </div>
+    </div>
   </div>
 </div>

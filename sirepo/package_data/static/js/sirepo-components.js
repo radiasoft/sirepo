@@ -567,7 +567,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loginLink', function(loginService, requestSender) {
+SIREPO.app.directive('loginLink', function(loginService) {
     return {
         restrict: 'A',
         scope: {
@@ -575,16 +575,15 @@ SIREPO.app.directive('loginLink', function(loginService, requestSender) {
         },
         template: [
             '<a href data-ng-if="::loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-target="#sr-email-login" data-toggle="modal" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
-            '<a data-ng-if="::! loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-ng-href="{{ ::requestSender.formatAuthUrl() }}" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
+            '<a data-ng-if="::! loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-ng-href="{{ ::loginService.formatAuthUrl() }}" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
         ].join(''),
         controller: function($scope) {
             $scope.loginService = loginService;
-            $scope.requestSender = requestSender;
         },
     };
 });
 
-SIREPO.app.directive('loginMenu', function(appDataService, loginService, requestSender) {
+SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
     return {
         restrict: 'A',
         scope: {},
@@ -613,7 +612,7 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService, request
         controller: function($scope) {
             $scope.loginService = loginService;
             $scope.userState = SIREPO.userState;
-            $scope.logoutURL = requestSender.formatLogoutUrl();
+            $scope.logoutURL = loginService.formatLogoutUrl();
             if (appDataService.isApplicationMode('default')) {
                 loginService.initNotification();
             }
@@ -2255,28 +2254,32 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            var x = requestSender.getSRException('loggedOut');
             function handleResponse(data) {
                 if (data.state == 'ok') {
                     $('#sr-email-login').modal('hide');
-                    $scope.data.sentEmail = $scope.data.email;
                     $scope.data.email = '';
                     $scope.form.$setPristine();
                     $('#sr-email-login-done').modal('show');
                 }
                 else {
                     //TODO(pjm): add server error message
+                    // note that missingCookies is an exception so
+                    // won't appear here.
                 }
             }
             $scope.data = {};
             $scope.login = function() {
+                $scope.data.sentEmail = $scope.data.email;
+                //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'emailAuthLogin',
                     handleResponse,
                     {
-                        email: $scope.data.email,
-                        next: $location.url(),
+                        email: $scope.data.sentEmail,
                         simulationType: SIREPO.APP_NAME,
-                    });
+                    },
+                );
             };
         },
         link: function(scope, element) {
@@ -2296,7 +2299,6 @@ SIREPO.app.directive('commonFooter', function(loginService) {
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
             '<div data-ng-if="::loginService.isEmailAuth">',
-              '<div data-email-login-modal=""></div>',
               '<div data-complete-registration-modal=""></div>',
             '</div>',
         ].join(''),

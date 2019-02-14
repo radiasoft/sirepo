@@ -38,14 +38,7 @@ def check_api_call(func):
             p,
             func.__name__,
         )
-        #TODO(robnagler) assert route, but don't have sim_type
-        return http_reply.gen_json(
-            dict(
-                state='srException',
-                routeName=route,
-            ),
-            response_kwargs=dict(status=401),
-        )
+        return http_reply.gen_sr_exception(route)
 
     if p in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
         if not cookie.has_sentinel():

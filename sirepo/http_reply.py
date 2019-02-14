@@ -11,11 +11,20 @@ from sirepo import simulation_db
 from sirepo import util
 import flask
 
+#: HTTP status code for srException
+SR_EXCEPTION_STATUS = 400
+
+#: data.state for srException
+SR_EXCEPTION_STATE = 'srException'
+
 #: mapping of extension (json, js, html) to MIME type
 MIME_TYPE = None
 
+STATE = 'state'
+
 #: Default response
-_RESPONSE_OK = {'state': 'ok'}
+_RESPONSE_OK = {STATE: 'ok'}
+
 
 def gen_json(value, pretty=False, response_kwargs=None):
     """Generate JSON flask response
@@ -49,6 +58,25 @@ def gen_json_ok(*args, **kwargs):
     res = args[0]
     res.update(_RESPONSE_OK)
     return gen_json(res)
+
+
+def gen_sr_exception(route_name):
+    """Generate json response for srException
+
+    Args:
+        route_name (str): name (not uri) in localRoutes
+
+    Returns:
+        object: Flask response
+    """
+    #TODO(robnagler) assert route, but don't have sim_type
+    return gen_json(
+        {
+            STATE: SR_EXCEPTION_STATE,
+            SR_EXCEPTION_STATE: {'routeName': route_name},
+        },
+        response_kwargs=dict(status=SR_EXCEPTION_STATUS),
+    )
 
 
 def headers_for_no_cache(resp):

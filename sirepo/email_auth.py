@@ -139,23 +139,25 @@ def api_emailAuthorized(simulation_type, token):
     User exists in db, but there user may be logging in via a different
     browser.
     """
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
         u = EmailAuth.search_by(token=token)
         if not u or u.expires < datetime.datetime.utcnow():
-    ### delete old email record, because not longer valid
             # if the auth is invalid, but the user is already logged in (ie. following an old link from an email)
             # keep the user logged in and proceed to the app
             if _user_with_email_is_logged_in():
-                return flask.redirect('/{}'.format(simulation_type))
+                return flask.redirect('/{}'.format(sim_type))
             if not u:
                 pkdlog('login with invalid token: {}', token)
             else:
                 pkdlog('login with expired token: {}, email: {}', token, u.unverified_email)
             #TODO(pjm): need uri_router method for this?
             return server.javascript_redirect('/{}#{}'.format(
-                simulation_type,
-                simulation_db.get_schema(simulation_type).localRoutes.authorizationFailed.route,
+                sim_type,
+                simulation_db.get_schema(sim_type).localRoutes.authorizationFailed.route,
             ))
+        # delete old record if there was one. This would happen
+        # if there was a email change.
         u.query.filter(
             EmailAuth.user_name == u.unverified_email,
             EmailAuth.unverified_email != u.unverified_email,
@@ -166,7 +168,7 @@ def api_emailAuthorized(simulation_type, token):
         u.save()
         user_state.login_as_user(u)
 #TODO(robnagler) user_state.set_logged_in should do all the work
-    return flask.redirect('/{}'.format(simulation_type))
+    return flask.redirect('/{}'.format(sim_type))
 
 
 def init_apis(app):

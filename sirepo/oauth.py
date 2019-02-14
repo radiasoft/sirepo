@@ -87,10 +87,7 @@ def api_oauthLogin(simulation_type, oauth_type):
     If oauth_type is 'anonymous', the current session is cleared.
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
-    return compat_login(
-        oauth_type,
-        '/{}#{}'.format(sim_type, flask.request.args.get('next', '')),
-    )
+    return compat_login(oauth_type, '/{}'.format(sim_type))
 
 
 def compat_login(oauth_type, oauth_next):

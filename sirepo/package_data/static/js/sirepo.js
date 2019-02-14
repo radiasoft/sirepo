@@ -115,7 +115,10 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         $routeProvider.when(routeInfo.route, cfg);
         if (isDefault || routeInfo.isDefault) {
-            cfg.redirectTo = routeName;
+            if (routeInfo.route.indexOf(':') >= 0) {
+                throw 'default route must not have params: ' + routeInfo.route;
+            }
+            cfg.redirectTo = routeInfo.route;
             $routeProvider.otherwise(cfg);
         }
     }
@@ -894,7 +897,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('loginService', function(notificationService) {
+SIREPO.app.factory('loginService', function(requestSender, notificationService, $location) {
     var self = {};
     var loginNotification = null;
     self.isEmailAuth = SIREPO.userState && SIREPO.userState.authMethod == 'email';
@@ -914,6 +917,19 @@ SIREPO.app.factory('loginService', function(notificationService) {
                 notificationService.dismissNotification(loginNotification);
             }
         }
+    };
+
+    self.formatAuthUrl = function() {
+        return requestSender.formatUrl('oauthLogin', {
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<oauth_type>': SIREPO.userState.authMethod,
+        });
+    };
+
+    self.formatLogoutUrl = function(wantAnonymous) {
+        return requestSender.formatUrl('logout', {
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+        }) + (self.allowAnonymous && wantAnonymous ? '?anonymous=1' : '');
     };
 
     self.initNotification = function() {
@@ -1278,7 +1294,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginService, $http, $location, $interval, $q) {
+SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
@@ -1359,19 +1375,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
-    self.formatAuthUrl = function() {
-        return self.formatUrl('oauthLogin', {
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<oauth_type>': SIREPO.userState.authMethod,
-        }) + '?next=' + $location.url();
-    };
-
-    self.formatLogoutUrl = function(wantAnonymous) {
-        return self.formatUrl('logout', {
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        }) + (loginService.allowAnonymous && wantAnonymous ? '?anonymous=1' : '');
-    };
-
     self.formatUrlLocal = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
     };
@@ -1429,9 +1432,12 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
             });
     };
 
-    self.getSRException = function() {
-        // returns and clears the current srException
+    self.getSRException = function(routeName) {
+        // returns and clears the current srException if matches routeName
         var res = srException;
+        if (!res || res.routeName != routeName) {
+            return null;
+        }
         srException = null;
         return res;
     };
@@ -1439,7 +1445,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
     self.handleSRException = function(data) {
         srException = data.srException;
         srException.previousURL = $location.url();
-        requestSender.localRedirect(srException.routeName);
+        self.localRedirect(srException.routeName);
         return;
     };
 
@@ -1514,7 +1520,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, loginSer
             if (! data.state) {
                 data.state = 'error';
             }
-            srdbg(data);
             if (data.state == 'srException') {
                 self.handleSRException(data);
                 return;
@@ -2519,9 +2524,14 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoggedOutController', function (requestSender, loginService) {
+SIREPO.app.controller('LoggedOutController', function (requestSender, loginService, panelState) {
     var self = this;
-    self.anonymousUrl = loginService.allowAnonymous() ? requestSender.formatLogoutUrl(true) : null;
+    self.anonymousUrl = loginService.allowAnonymous() ? loginService.formatLogoutUrl(true) : null;
+    self.loginService = loginService;
+    panelState.waitForUI(function() {
+        $('#sr-email-login').modal('show');
+    });
+
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {
@@ -2875,10 +2885,6 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         return null;
     }
 
-});
-
-SIREPO.app.controller('UserLoginController', function (requestSender, loginService) {
-    var self = this;
 });
 
 SIREPO.app.filter('simulationName', function() {

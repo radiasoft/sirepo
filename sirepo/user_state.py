@@ -144,13 +144,13 @@ def require_user():
                 return None
             if not is_anonymous_session():
                 return (
-                    'userLogin',
+                    'loggedOut',
                     'user={} is logged out'.format(cookie.get_user())
                 )
             if login_module.ALLOW_ANONYMOUS_SESSION:
                 return None
             return (
-                'userLogin',
+                'loggedOut',
                 'user={} is anonymous in auth={}'.format(
                     cookie.get_user(),
                     login_module.AUTH_METHOD,
@@ -158,7 +158,7 @@ def require_user():
             )
         elif not login_module.ALLOW_ANONYMOUS_SESSION:
             return (
-                'userLogin',
+                'loggedOut',
                 'no user in cookie',
             )
     elif cookie.has_user_value():

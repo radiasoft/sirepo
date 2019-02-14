@@ -14,7 +14,6 @@ def test_different_email():
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    from sirepo import srunit
     import re
 
     r = fc.sr_post(
@@ -58,10 +57,11 @@ def test_different_email():
 def test_force_login():
     fc, sim_type = _fc()
 
+    from pykern import pkcollections
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkunit import pkok, pkre, pkeq
     from pykern.pkdebug import pkdp
-    from sirepo import srunit
+    from pykern.pkunit import pkok, pkre, pkeq
+    from sirepo import http_reply
     import re
 
     # login as a new user, not in db
@@ -72,7 +72,17 @@ def test_force_login():
     fc.get(r.url)
     fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
     r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
-    pkeq(401, r.status_code)
+    pkeq(http_reply.SR_EXCEPTION_STATUS, r.status_code)
+    d = pkcollections.json_load_any(r.data)
+    pkeq(http_reply.SR_EXCEPTION_STATE, d.state)
+    pkeq('loggedOut', d.srException.routeName)
+    r = fc.sr_post(
+        'emailAuthLogin',
+        {'email': 'a@b.c', 'simulationType': sim_type},
+    )
+    fc.get(r.url)
+    d = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    pkeq(1, len(d))
 
 
 def test_happy_path():
@@ -81,7 +91,6 @@ def test_happy_path():
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    from sirepo import srunit
     import re
 
     # login as a new user, not in db
