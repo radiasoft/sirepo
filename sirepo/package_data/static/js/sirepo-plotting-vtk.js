@@ -30,15 +30,20 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
         srdbg('LOADING',  url);
         var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
         return r.setUrl(url)
-            //.catch(function (ee) {
-            //    srdbg('EE');
-            //})
             .then(function() {
                 srdbg('PARSED STL');
                 return r;
         }, function (err) {
             srdbg('BAD STL', err);
-            throw fileName + ': Invalid or missing .stl file';
+            var errTxt =  fileName + ': Invalid or missing .stl file: ';
+            // format errors from the XMLHttpRequest
+            if(err.xhr) {
+                errTxt = errTxt + err.xhr.status + ' (' + err.xhr.statusText + ')';
+            }
+            else {
+                errTxt = errTxt + err;
+            }
+            throw errTxt;
         })
             .catch(function (e) {
                 srdbg('CAUGHT', e);

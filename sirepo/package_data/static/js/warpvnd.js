@@ -1609,7 +1609,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
         controller: function($scope, $element) {
 
             var stlActor;
-            $scope.stlFile = 'bad.stl'; //simple_lattice  //CircularAperture_MIN  //honeycomb20nm // bad
+            $scope.stlFile = 'CircularAperture_BND.stl'; //simple_lattice  //CircularAperture_MIN  //honeycomb20nm // bad
 
             $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;  //'#6992ff';
 
@@ -1745,7 +1745,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                     return;
                 }
                 srdbg('loading...');
-                reader.loadData({progressCallback: showLoadProgress})
+                reader.loadData()
                     .then(function (res) {
                         srdbg('...done');
                         var cColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
