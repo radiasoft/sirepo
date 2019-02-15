@@ -3487,6 +3487,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.dataCleared = true;
 
+            $scope.hasAbsorbed= false;
+            $scope.hasConductors = false;
             $scope.hasReflected = false;
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
@@ -3784,6 +3786,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 pointData.lost_z.forEach(function (z, i) {
                     lostCoords.push(geometry.transpose([pointData.lost_y[i], pointData.lost_z[i], pointData.lost_x[i]]));
                 });
+
+                $scope.hasAbsorbed = lcoords.length > 0;
+                $scope.hasConductors = appState.models.conductors.length > 0;
 
                 axisCfg = {
                     x: {
