@@ -1,70 +1,11 @@
 # -*- coding: utf-8 -*-
-u"""Test simulationSerial
+u"""Test oauth
 
-:copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2016-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-
-### write a test with email auth will requrie a sep file
-
-
-def test_happy_path(monkeypatch):
-    from pykern import pkcollections
-    from pykern import pkconfig
-    from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkfail, pkok, pkeq, pkre
-    from sirepo import srunit
-    import re
-
-    sim_type = 'myapp'
-    fc = srunit.flask_client({
-        'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',
-        'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
-        'SIREPO_OAUTH_GITHUB_KEY': 'key',
-        'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
-    })
-    from sirepo import oauth
-    oc = _OAuthClient()
-    monkeypatch.setattr(oauth, '_oauth_client', oc)
-    fc.get('/{}'.format(sim_type))
-    fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
-        },
-        raw_response=True,
-    )
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"userName": null', t)
-    pkre('"displayName": null', t)
-    pkre('"uid": null', t)
-    pkre('"loginSession": "anonymous"', t)
-    state = oc.values.state
-    fc.sr_get(
-        'oauthAuthorized',
-        {
-            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
-        },
-        query=pkcollections.Dict(state=state),
-        raw_response=True,
-    )
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"userName": "joeblow"', t)
-    pkre('"displayName": "Joe Blow"', t)
-    pkre('"loginSession": "logged_in"', t)
-    m = re.search('"uid": "([^"]+)"', t)
-    uid = m.group(1)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
-    pkre('/{}$'.format(sim_type), r.headers['Location'])
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"uid": "{}"'.format(uid), t)
-    pkre('"userName": null', t)
-    pkre('"displayName": null', t)
-    pkre('"loginSession": "logged_out"', t)
 
 
 def test_anonymous_merge(monkeypatch):
@@ -84,8 +25,9 @@ def test_anonymous_merge(monkeypatch):
         'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
     })
     from sirepo import oauth
-    oc = _OAuthClient()
-    monkeypatch.setattr(oauth, '_oauth_client', oc)
+    from sirepo import oauth_srunit
+
+    oc = oauth_srunit.MockOAuthClient(monkeypatch)
     fc.get('/{}'.format(sim_type))
     fc.sr_get(
         'oauthLogin',
@@ -170,32 +112,61 @@ def test_anonymous_merge(monkeypatch):
     pkeq([u'Scooby Doo', u'anon-sim', u'oauth-sim'], sorted([x.name for x in d]))
 
 
-class _OAuthClient(object):
+def test_happy_path(monkeypatch):
+    from pykern import pkcollections
+    from pykern import pkconfig
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkfail, pkok, pkeq, pkre
+    from sirepo import srunit
+    import re
 
-    def __init__(self, values=None):
-        from pykern import pkcollections
+    sim_type = 'myapp'
+    fc = srunit.flask_client({
+        'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',
+        'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
+        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
+        'SIREPO_OAUTH_GITHUB_KEY': 'key',
+        'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
+    })
+    from sirepo import oauth
+    from sirepo import oauth_srunit
 
-        self.values = values or pkcollections.Dict(
-            access_token='xyzzy',
-            data=pkcollections.Dict(
-                id='9999',
-                name='Joe Blow',
-                login='joeblow',
-            ),
-        )
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def authorize(self, callback, state):
-        from sirepo import http_reply
-
-        self.values.callback = callback
-        self.values.state = state
-        return http_reply.gen_json_ok()
-
-    def authorized_response(self, *args, **kwargs):
-        return self.values
-
-    def get(self, *args, **kwargs):
-        return self.values
+    oc = oauth_srunit.MockOAuthClient(monkeypatch)
+    fc.get('/{}'.format(sim_type))
+    r = fc.sr_get(
+        'oauthLogin',
+        {
+            'simulation_type': sim_type,
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
+        },
+        raw_response=True,
+    )
+    state = oc.values.state
+    pkeq(302, r.status_code)
+    pkre(state, r.headers['location'])
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"uid": null', t)
+    pkre('"loginSession": "anonymous"', t)
+    fc.sr_get(
+        'oauthAuthorized',
+        {
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
+        },
+        query=pkcollections.Dict(state=state),
+        raw_response=True,
+    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": "joeblow"', t)
+    pkre('"displayName": "Joe Blow"', t)
+    pkre('"loginSession": "logged_in"', t)
+    m = re.search('"uid": "([^"]+)"', t)
+    uid = m.group(1)
+    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    pkre('/{}$'.format(sim_type), r.headers['Location'])
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"uid": "{}"'.format(uid), t)
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"loginSession": "logged_out"', t)

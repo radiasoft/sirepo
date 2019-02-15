@@ -15,6 +15,9 @@ from sirepo import http_reply
 from sirepo import user_db
 import flask
 
+#: what routeName to return in the event user is logged out in require_user
+LOGGED_OUT_ROUTE_NAME = 'loggedOut'
+
 #: login_state values in cookie
 _ANONYMOUS = 'a'
 _LOGGED_IN = 'li'
@@ -141,16 +144,16 @@ def require_user():
         cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
         if cookie.has_user_value():
             if is_logged_in():
-                return None
+                return login_module.require_user()
             if not is_anonymous_session():
                 return (
-                    'loggedOut',
+                    LOGGED_OUT_ROUTE_NAME,
                     'user={} is logged out'.format(cookie.get_user())
                 )
             if login_module.ALLOW_ANONYMOUS_SESSION:
                 return None
             return (
-                'loggedOut',
+                LOGGED_OUT_ROUTE_NAME,
                 'user={} is anonymous in auth={}'.format(
                     cookie.get_user(),
                     login_module.AUTH_METHOD,
@@ -158,7 +161,7 @@ def require_user():
             )
         elif not login_module.ALLOW_ANONYMOUS_SESSION:
             return (
-                'loggedOut',
+                LOGGED_OUT_ROUTE_NAME,
                 'no user in cookie',
             )
     elif cookie.has_user_value():

@@ -125,6 +125,11 @@ def init_module(app):
     uri_router.register_api_module()
 
 
+def require_user():
+    """user_state helper function"""
+    # no special lookup
+    return None
+
 class _FlaskSession(dict, flask.sessions.SessionMixin):
     pass
 

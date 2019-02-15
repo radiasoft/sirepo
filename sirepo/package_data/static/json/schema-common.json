@@ -84,7 +84,7 @@
         "logout": "/logout/<simulation_type>",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
-        "oauthLogin": "/login/<simulation_type>/<oauth_type>",
+        "oauthLogin": "/oauth-login/<simulation_type>/<oauth_type>",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",

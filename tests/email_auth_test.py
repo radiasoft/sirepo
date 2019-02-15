@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-u"""Test sirepo.beaker_compat
+u"""Test email_auth
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -74,6 +74,7 @@ def test_force_login():
     r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
     pkeq(http_reply.SR_EXCEPTION_STATUS, r.status_code)
     d = pkcollections.json_load_any(r.data)
+    pkdp(d)
     pkeq(http_reply.SR_EXCEPTION_STATE, d.state)
     pkeq('loggedOut', d.srException.routeName)
     r = fc.sr_post(
@@ -119,6 +120,85 @@ def test_happy_path():
     pkre('"loginSession": "logged_out"', t)
 
 
+def test_oauth_conversion(monkeypatch):
+    fc, sim_type = _fc()
+
+    from pykern import pkcollections
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkok, pkre, pkeq
+    from sirepo import oauth
+    from sirepo import oauth_srunit
+    import re
+    oc = oauth_srunit.MockOAuthClient(monkeypatch)
+
+
+    fc.sr_get(
+        'oauthLogin',
+        {
+            'simulation_type': sim_type,
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
+        },
+        raw_response=True,
+    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"loginSession": "anonymous"', t)
+    pkre('"uid": null', t)
+    state = oc.values.state
+    fc.sr_get(
+        'oauthAuthorized',
+        {
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
+        },
+        query=pkcollections.Dict(state=state),
+        raw_response=True,
+    )
+    t = fc.sr_get('userState', raw_response=True).data
+    # won't have a userName or displayName, because moving to email auth
+    pkre('"userName": null', t)
+    pkre('"displayName": null', t)
+    pkre('"loginSession": "logged_in"', t)
+    m = re.search('"uid": "([^"]+)"', t)
+    uid = m.group(1)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    pkeq(u'Scooby Doo', r[0].name)
+    fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    pkeq(400, r.status_code)
+    oc.values.state = None
+    r = fc.sr_post(
+        'emailAuthLogin',
+        # different email than other db entries
+        {'email': 'joe@blow.com', 'simulationType': sim_type},
+        raw_response=True,
+    )
+    state = oc.values.state
+    pkeq(302, r.status_code)
+    pkre(state, r.headers['location'])
+    fc.sr_get(
+        'oauthAuthorized',
+        {
+            'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
+        },
+        query=pkcollections.Dict(state=state),
+        raw_response=True,
+    )
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"loginSession": "logged_in"', t)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    pkeq(400, r.status_code)
+    r = fc.sr_post(
+        'emailAuthLogin',
+        # different email than other db entries
+        {'email': 'joe@blow.com', 'simulationType': sim_type},
+    )
+    r = fc.get(r.url)
+    t = fc.sr_get('userState', raw_response=True).data
+    pkre('"userName": "joe@blow.com"', t)
+    pkre('"loginSession": "logged_in"', t)
+
+
 def test_token_reuse():
     fc, sim_type = _fc()
 
@@ -149,18 +229,17 @@ def _fc():
         cfg={
             'SIREPO_EMAIL_AUTH_FROM_EMAIL': 'x',
             'SIREPO_EMAIL_AUTH_FROM_NAME': 'x',
+            'SIREPO_EMAIL_AUTH_OAUTH_COMPAT': '1',
             'SIREPO_EMAIL_AUTH_SMTP_PASSWORD': 'x',
             'SIREPO_EMAIL_AUTH_SMTP_SERVER': 'dev',
             'SIREPO_EMAIL_AUTH_SMTP_USER': 'x',
             'SIREPO_FEATURE_CONFIG_API_MODULES': 'email_auth',
             'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
+            'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
+            'SIREPO_OAUTH_GITHUB_KEY': 'key',
+            'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
         },
     )
     # set the sentinel
     fc.get('/{}'.format(sim_type))
     return fc, sim_type
-
-#todo email of a different user already logged in
-#todo email and same email
-#todo change email
-#todo forgot email(?)

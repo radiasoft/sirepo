@@ -55,14 +55,11 @@ _EXPIRES_MINUTES = 15
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-### when user hits escape on displayname modal it goes away
+#: if in the cookie, we need to upgrade to force a login
+_COOKIE_OAUTH_COMPAT_LOGIN = 'sreaocl'
 
-### 401 goes to a localroute for missing cookies. It should really
-### go to a login page.
+#TODO(robnagler) when user hits escape on displayname modal it goes away
 
-### test the case of anonymous login then email_auth; should ask email
-
-### 401 must return a WWW header so not the right choice
 
 @api_perm.require_user
 def api_emailAuthDisplayName():
@@ -108,11 +105,12 @@ def api_emailAuthLogin():
                         if user_state.is_logged_in():
                             oauth_ok = True
                         else:
+                            cookie.set_value(_COOKIE_OAUTH_COMPAT_LOGIN, 'x')
                             # force user to login via GitHub first
-                            n = '?'.join(
+                            n = '?'.join([
                                 uri_router.uri_for_api('emailAuthLogin'),
                                 urlencode(dict(email=email, sim_type=sim_type)),
-                            )
+                            ])
                             return oauth.compat_login(oauth.DEFAULT_OAUTH_TYPE, n)
                 if not oauth_ok:
                     # was logged in as different user so clear and get new user
@@ -156,6 +154,9 @@ def api_emailAuthorized(simulation_type, token):
                 sim_type,
                 simulation_db.get_schema(sim_type).localRoutes.authorizationFailed.route,
             ))
+        if cfg.oauth_compat:
+            # user is logged in so clear compatibility login
+            cookie.unchecked_remove(_COOKIE_OAUTH_COMPAT_LOGIN)
         # delete old record if there was one. This would happen
         # if there was a email change.
         u.query.filter(
@@ -182,6 +183,20 @@ def init_apis(app):
         from sirepo import oauth
 
         oauth.init_module(app)
+
+
+def require_user():
+    """user_state helper function
+
+    If oauth_compat is on and _COOKIE_OAUTH_COMPAT is set, then
+    don't have a user and throw an exception to force a login.
+    """
+    if cfg.oauth_compat and cookie.has_key(_COOKIE_OAUTH_COMPAT_LOGIN):
+        return (
+            user_state.LOGGED_OUT_ROUTE_NAME,
+            'oauth_compat mode: force login with email_auth'.format(cookie.get_user())
+        )
+    return None
 
 
 def _init(app):
