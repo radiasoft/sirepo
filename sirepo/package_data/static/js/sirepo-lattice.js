@@ -872,8 +872,10 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
                 updateLattice();
             });
             $scope.$on('sr-plotLinked', function(event) {
-                plotScope = event.targetScope;
-                event.stopPropagation();
+                if (event.targetScope.focusPoints) {
+                    plotScope = event.targetScope;
+                    event.stopPropagation();
+                }
             });
         },
     };
