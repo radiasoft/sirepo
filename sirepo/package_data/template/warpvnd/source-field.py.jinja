@@ -1,9 +1,9 @@
 
 #prevent GIST from starting upon setup
-top.lprntpara = false
-top.lpsplots = false
+wp.top.lprntpara = False
+wp.top.lpsplots = False
 
-top.verbosity = 0 # Reduce solver verbosity
+wp.top.verbosity = 0 # Reduce solver verbosity
 solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
 
 # removed, issue #798
@@ -12,8 +12,8 @@ solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket 
 # solverE.mgparam = omega
 
 solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
-package("w3d")
-generate()
+wp.package("w3d")
+wp.generate()
 solverE.mgmaxiters = 100
 
 #------
@@ -44,7 +44,7 @@ from scipy.interpolate import interp1d as scipy_interp1d
 #Grab Ez from the solver and average over the transverse (x) plane
 Ez = solverE.getez()
 flat_Ez = np.mean(Ez,0)
-if w3d.solvergeom == w3d.XYZgeom:
+if wp.w3d.solvergeom == wp.w3d.XYZgeom:
     flat_Ez = np.mean(flat_Ez,0)
 
 #Generate an interpolating function for smooth particle integration
@@ -53,8 +53,8 @@ Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
 #Integrate the particle motion subject to initial conditions specified by the simulation
 tof_expected = steps_expected = None
 try:
-    tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, top.dt)
-    steps_expected = tof_expected/top.dt
+    tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, wp.top.dt)
+    steps_expected = tof_expected/wp.top.dt
 except ValueError as e:
     pass
 except AssertionError as e:
@@ -64,7 +64,7 @@ except AssertionError as e:
 
 #Grab Phi from the solver and average over the transverse (x) plane
 Phi = solverE.getphi()
-flat_Phi = -1.*numpy.mean(Phi,0) #Needs to be made negative
+flat_Phi = -1.*np.mean(Phi,0) #Needs to be made negative
 
 #Generate an interpolating function for smooth particle integration
 Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')

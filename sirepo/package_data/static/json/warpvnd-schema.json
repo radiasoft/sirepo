@@ -26,15 +26,22 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "WarpVNDSourceController as source",
+                "controller": "SourceController as source",
                 "templateUrl": "/static/html/warpvnd-source.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
-                "controller": "WarpVNDVisualizationController as visualization",
+                "controller": "VisualizationController as visualization",
                 "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        },
+        "optimization": {
+            "route": "/optimization/:simulationId",
+            "config": {
+                "controller": "OptimizationController as optimization",
+                "templateUrl": "/static/html/warpvnd-optimization.html"
             }
         }
     },
@@ -68,6 +75,9 @@
             ["15", "15"],
             ["20", "20"]
         ],
+        "ObjectiveFunction": [
+            ["efficiency", "Efficiency"]
+        ],
         "ParticleRenderCount": [
             ["100", "100"],
             ["80", "80"],
@@ -84,27 +94,27 @@
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
             "x_radius": ["Beam X Radius [µm]", "Float"],
-            "beam_current": ["Beam Current [A]", "Float"],
-            "cathode_temperature": ["Cathode Temperature [K]", "Float"],
-            "cathode_work_function": ["Cathode Work Function [eV]", "Float"],
-            "anode_work_function": ["Anode Work Function [eV]", "Float"],
-            "anode_voltage": ["Anode Voltage [eV]", "Float"]
+            "beam_current": ["Beam Current [A]", "OptFloat"],
+            "cathode_temperature": ["Cathode Temperature [K]", "OptFloat"],
+            "cathode_work_function": ["Cathode Work Function [eV]", "OptFloat"],
+            "anode_work_function": ["Anode Work Function [eV]", "OptFloat"],
+            "anode_voltage": ["Anode Voltage [eV]", "OptFloat"]
         },
         "box": {
             "name": ["Name", "String"],
-            "voltage": ["Voltage [eV]", "Float"],
-            "xLength": ["Width (X) [µm]", "Float"],
-            "zLength": ["Length (Z) [µm]", "Float"],
-            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
+            "voltage": ["Voltage [eV]", "OptFloat"],
+            "xLength": ["Width (X) [µm]", "OptFloat"],
+            "zLength": ["Length (Z) [µm]", "OptFloat"],
+            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
             "color": ["Color", "Color"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
-            "xCenter": ["Center X [µm]", "Float"],
-            "zCenter": ["Center Z [µm]", "Float"],
-            "yCenter": ["Center Y [µm]", "Float", 0.0]
+            "xCenter": ["Center X [µm]", "OptFloat"],
+            "zCenter": ["Center Z [µm]", "OptFloat"],
+            "yCenter": ["Center Y [µm]", "OptFloat", 0.0]
         },
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
@@ -135,6 +145,17 @@
         "impactDensityAnimation": {
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "notes": ["Notes", "Text", ""]
+        },
+        "optimizer": {
+            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"]
+        },
+        "optimizerAnimation": {
+        },
+        "optimizerField": {
+            "field": ["Field", "String"],
+            "minimum": ["Minimum", "Float"],
+            "maximum": ["Maximum", "Float"],
+            "initialValue": ["Initial Value", "Float"]
         },
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "100"]
@@ -266,6 +287,10 @@
                 "colorMap",
                 "notes"
             ]
+        },
+        "optimizer": {
+            "title": "Optimization Fields",
+            "advanced": []
         },
         "particleAnimation": {
             "title": "Particle Trace",
