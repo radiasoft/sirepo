@@ -37,9 +37,10 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
 
     function findModelById(name, id) {
         var model = null;
-        appState.models[name].forEach(function(m) {
+        appState.models[name].some(function(m) {
             if (m.id == id) {
                 model = m;
+                return true;
             }
         });
         if (! model) {
@@ -75,6 +76,14 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
 
     self.allow3D = function() {
         return SIREPO.APP_SCHEMA.feature_config.allow_3d_mode;
+    };
+
+    self.conductorTypeMap = function() {
+        var res = {};
+        appState.models.conductorTypes.forEach(function(m) {
+            res[m.id] = m;
+        });
+        return res;
     };
 
     self.findConductor = function(id) {
@@ -127,7 +136,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, $r
     return self;
 });
 
-SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndService, panelState, $scope) {
+SIREPO.app.controller('SourceController', function (appState, warpvndService, panelState, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
 
@@ -207,13 +216,8 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     };
 
     self.deleteConductor = function() {
-        var conductors = [];
-        appState.models.conductors.forEach(function(m) {
-            if (m.id != self.deleteWarning.conductor.id) {
-                conductors.push(m);
-            }
-        });
-        appState.models.conductors = conductors;
+        appState.models.conductors.splice(
+            appState.models.conductors.indexOf(self.deleteWarning.conductor), 1);
         appState.saveChanges(['conductors']);
     };
 
@@ -230,30 +234,18 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
 
     self.deleteConductorType = function() {
         var model = self.deleteWarning.conductorType;
-        var conductorTypes = [];
-        appState.models.conductorTypes.forEach(function(m) {
-            if (m.id != model.id) {
-                conductorTypes.push(m);
-            }
+        appState.models.conductorTypes.splice(
+            appState.models.conductorTypes.indexOf(model), 1);
+        appState.models.conductors = appState.models.conductors.filter(function(m) {
+            return m.conductorTypeId != model.id;
         });
-        appState.models.conductorTypes = conductorTypes;
-        var conductors = [];
-        appState.models.conductors.forEach(function(m) {
-            if (m.conductorTypeId != model.id) {
-                conductors.push(m);
-            }
-        });
-        appState.models.conductors = conductors;
         appState.saveChanges(['conductorTypes', 'conductors']);
     };
 
     self.deleteConductorTypePrompt = function(model) {
-        var count = 0;
-        appState.models.conductors.forEach(function(m) {
-            if (m.conductorTypeId == model.id) {
-                count++;
-            }
-        });
+        var count = appState.models.conductors.reduce(function(accumulator, m) {
+            return accumulator + (m.conductorTypeId == model.id ? 1 : 0);
+        }, 0);
         var message = count === 0
             ? ''
             : ('There ' + (
@@ -270,13 +262,7 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     };
 
     self.editConductor = function(id) {
-        var conductor = null;
-        appState.models.conductors.forEach(function(m) {
-            if (m.id == id) {
-                conductor = m;
-            }
-        });
-        appState.models.conductorPosition = conductor;
+        appState.models.conductorPosition = warpvndService.findConductor(id);
         panelState.showModalEditor('conductorPosition');
     };
 
@@ -285,8 +271,11 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
         panelState.showModalEditor(type);
     };
 
-    self.handleModalShown = function() {
+    self.handleModalShown = function(name) {
         updateAllFields();
+        if (name == 'fieldComparisonReport') {
+            updateFieldComparison();
+        }
     };
 
     $scope.$on('cancelChanges', function(e, name) {
@@ -303,14 +292,11 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     $scope.$on('modelChanged', function(e, name) {
         if (name == 'box') {
             var model = appState.models[name];
-            var foundIt = false;
-            for (var i = 0; i < appState.models.conductorTypes.length; i++) {
-                var m = appState.models.conductorTypes[i];
+            var foundIt = appState.models.conductorTypes.some(function(m) {
                 if (m.id == model.id) {
-                    foundIt = true;
-                    break;
+                    return true;
                 }
-            }
+            });
             if (! foundIt) {
                 appState.models.conductorTypes.push(model);
             }
@@ -338,7 +324,17 @@ SIREPO.app.controller('WarpVNDSourceController', function (appState, warpvndServ
     });
 });
 
-SIREPO.app.controller('WarpVNDVisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
+SIREPO.app.controller('OptimizationController', function (persistentSimulation, $scope) {
+    var self = this;
+
+    function handleStatus(data) {
+    }
+
+    self.simState = persistentSimulation.initSimulationState($scope, 'optimizerAnimation', handleStatus, {
+    });
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
@@ -402,7 +398,8 @@ SIREPO.app.directive('appHeader', function() {
               '<app-header-right-sim-loaded>',
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -621,10 +618,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     shape.x = anodeLeft - shape.width;
                     return;
                 }
-                var typeMap = {};
-                appState.models.conductorTypes.forEach(function(conductorType) {
-                    typeMap[conductorType.id] = conductorType;
-                });
+                var typeMap = warpvndService.conductorTypeMap();
                 appState.models.conductors.forEach(function(m) {
                     if (m.id != shape.id) {
                         var conductorLeft = toMicron(m.zCenter - typeMap[m.conductorTypeId].zLength / 2);
@@ -643,7 +637,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function alignValue(p, n) {
                 var pn = fmod(p, n);
-                var v = pn < n / 2
+                var v = pn < n
                     ? p - pn
                     : p + n - pn;
                 if (Math.abs(v) < 1e-16) {
@@ -709,12 +703,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function d3DragEndShape(shape) {
-                var conductorPosition = null;
-                appState.models.conductors.forEach(function(m) {
-                    if (shape.id == m.id) {
-                        conductorPosition = m;
-                    }
-                });
+                var conductorPosition = warpvndService.findConductor(shape.id);
                 $scope.$applyAsync(function() {
                     if (isShapeInBounds(shape)) {
                         conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
@@ -891,10 +880,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawShapes() {
-                var typeMap = {};
-                appState.models.conductorTypes.forEach(function(conductorType) {
-                    typeMap[conductorType.id] = conductorType;
-                });
+                var typeMap = warpvndService.conductorTypeMap();
                 drawConductors(typeMap, 'x');
                 if (warpvndService.is3D()) {
                     drawConductors(typeMap, 'y');
@@ -1297,10 +1283,185 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     plateSpacing = appState.models.simulationGrid.plate_spacing;
                     replot();
                 });
+                $scope.$on('fieldComparisonReport.changed', replot);
             });
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<form name="form" class="form-horizontal">',
+            '<div class="form-group form-group-sm">',
+              '<table class="table table-striped table-condensed">',
+                '<thead>',
+                  '<tr>',
+                    '<th>Field</th>',
+                    '<th>Minimum</th>',
+                    '<th>Maximum</th>',
+                    '<th> </th>',
+                  '</tr>',
+                '</thead>',
+                '<tbody>',
+                  '<tr data-ng-repeat="optimizerField in appState.models.optimizer.fields track by $index">',
+                    '<td>',
+                      '<div class="form-control-static">{{ labelForField(optimizerField.field) }}</div>',
+                    '</td><td>',
+                      '<div class="row" data-field-editor="\'minimum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>',
+                    '</td><td>',
+                      '<div class="row" data-field-editor="\'maximum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>',
+                    '</td>',
+                    '<td style="vertical-align: middle">',
+                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteRow($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                    '</td>',
+                  '</tr>',
+                  '<tr>',
+                    '<td>',
+                      '<select class="input-sm form-control" data-ng-model="selected" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addField(selected)"></select>',
+                    '</td>',
+                    '<td></td>',
+                    '<td></td>',
+                    '<td></td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+            '<div class="form-group form-group-sm">',
+              '<div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>',
+            '</div>',
+
+            '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
+              '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
+              '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
+            '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.form = angular.element($($element).find('form').eq(0));
+            $scope.appState = appState;
+            $scope.selected = null;
+
+            function addOptimizeContainerFields(containerName, modelName, optFloatFields) {
+                var idx = {};
+                appState.models[containerName].forEach(function(m) {
+                    var name;
+                    if (m.name) {
+                        name = m.name;
+                    }
+                    else {
+                        var conductorTypeName = warpvndService.findConductorType(m.conductorTypeId).name;
+                        idx[conductorTypeName] = (idx[conductorTypeName] || 0) + 1;
+                        name = conductorTypeName + ' #' + idx[conductorTypeName];
+                    }
+                    $.each(m, function(fieldName, value) {
+                        var field = containerName + '#' + m.id + '.' + fieldName;
+
+                        if (m[appState.optFieldName(fieldName)]) {
+                            var label = optFloatFields[modelName + '.' + fieldName];
+                            $scope.optFields.push({
+                                field: field,
+                                label: name + ' ' + label,
+                                value: m[fieldName],
+                            });
+                        }
+                    });
+                });
+            }
+
+            function addOptimizeModelFields() {
+                var optFloatFields = {};
+
+                // look through schema for OptFloat types which have been enabled
+                $.each(SIREPO.APP_SCHEMA.model, function(modelName, modelInfo) {
+                    $.each(modelInfo, function(fieldName, fieldInfo) {
+                        if (fieldInfo[1] == 'OptFloat') {
+                            var field = modelName + '.' + fieldName;
+                            optFloatFields[field] = fieldInfo[0];
+                            var m = appState.models[modelName];
+                            if (m && m[appState.optFieldName(fieldName)]) {
+                                $scope.optFields.push({
+                                    field: field,
+                                    label: fieldInfo[0],
+                                    value: m[fieldName],
+                                });
+                            }
+                        }
+                    });
+                });
+                return optFloatFields;
+            }
+
+            function buildOptimizeFields() {
+                //TODO(pjm): need to remove appState.models.optimizer.fields element if _opt has been removed
+                if (! appState.models.optimizer.fields) {
+                    appState.models.optimizer.fields = [];
+                }
+                $scope.optFields = [];
+                var optFloatFields = addOptimizeModelFields();
+                addOptimizeContainerFields('conductorTypes', 'box', optFloatFields);
+                addOptimizeContainerFields('conductors', 'conductorPosition', optFloatFields);
+            }
+
+            function setDefaults(model) {
+                $scope.optFields.some(function(f) {
+                    if (f.field == model.field) {
+                        model.minimum = model.maximum = model.initialValue = f.value;
+                        return true;
+                    }
+                });
+            }
+
+            $scope.addField = function(field) {
+                var m = {
+                    field: field,
+                };
+                appState.models.optimizer.fields.push(m);
+                setDefaults(m);
+                $scope.selected = null;
+            };
+
+            $scope.cancelChanges = function() {
+                appState.cancelChanges('optimizer');
+                $scope.form.$setPristine();
+            };
+
+            $scope.deleteRow = function(idx) {
+                appState.models.optimizer.fields.splice(idx, 1);
+                $scope.form.$setDirty();
+            };
+
+            $scope.hasChanges = function() {
+                if ($scope.form.$dirty) {
+                    return true;
+                }
+                return appState.areFieldsDirty('optimizer.fields');
+            };
+
+            $scope.labelForField = function(field) {
+                var res = '';
+                if ($scope.optFields) {
+                    $scope.optFields.some(function(f) {
+                        if (f.field == field) {
+                            res = f.label;
+                            return true;
+                        }
+                    });
+                }
+                return res;
+            };
+
+            $scope.saveChanges = function() {
+                appState.saveChanges('optimizer');
+                $scope.form.$setPristine();
+            };
+
+            appState.whenModelsLoaded($scope, buildOptimizeFields);
         },
     };
 });
@@ -1313,9 +1474,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             modelName: '@simulationStatusPanel',
         },
         template: [
-            '<div class="panel panel-info">',
-              '<div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="modelName"></div>',
-              '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
+            '<div data-simple-panel="{{ modelName }}">',
                 '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isProcessing()">',
                   '<div data-ng-show="simState.isStatePending()">',
                     '<div class="col-sm-12">{{ simState.stateAsText() }} {{ simState.dots }}</div>',
@@ -1340,7 +1499,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 '<form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">',
                   '<div data-ng-transclude=""></div>',
                 '</form>',
-              '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -1569,7 +1727,7 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKService, utilities, plotToPNG) {
+SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpvndService, warpVTKService, utilities, plotToPNG) {
     return {
         restrict: 'A',
         scope: {
@@ -1604,10 +1762,7 @@ SIREPO.app.directive('conductors3d', function(appState, vtkPlotting, warpVTKServ
                 };
                 var ASPECT_RATIO = 4.0 / 7;
                 var xfactor = domain.height / domain.width / ASPECT_RATIO;
-                var typeMap = {};
-                appState.models.conductorTypes.forEach(function(conductorType) {
-                    typeMap[conductorType.id] = conductorType;
-                });
+                var typeMap = warpvndService.conductorTypeMap();
                 appState.models.conductors.forEach(function(conductor) {
                     var cModel = typeMap[conductor.conductorTypeId];
                     var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
@@ -1871,4 +2026,3 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
     };
 
 });
-

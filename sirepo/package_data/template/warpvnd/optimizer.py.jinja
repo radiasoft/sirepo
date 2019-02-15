@@ -1,0 +1,71 @@
+
+from __future__ import absolute_import, division, print_function
+
+from scipy.optimize import minimize
+import numpy as np
+import re
+import scipy
+import subprocess
+import sys
+
+_OUTFILE = 'opt.out'
+
+_MAX_VALUE = 1.0
+
+def wrapper(parameters, bounds, cache):
+    for i in range(len(parameters)):
+        b = bounds[i]
+        if parameters[i] < b[0] or parameters[i] > b[1]:
+            return _MAX_VALUE
+        parameters[i] = round(parameters[i] / b[2]) * b[2]
+    command = 'python parameters-optimize.py ' + ' '.join(map(lambda x: '{:.8E}'.format(x), parameters))
+    if command in cache:
+        efficiency = cache[command]
+    else:
+        run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, error = run_warp.communicate()
+        assert not error, error
+        m = re.search(r'efficiency:\s+(.*)', out)
+        assert m, 'efficiency not found'
+        efficiency = 1 - float(m.group(1))
+        cache[command] = efficiency
+    with open(_OUTFILE, 'a') as f:
+        #f.write('{:.6f}, {:.6f}\n'.format(parameters[0] * 1e9, efficiency))
+        f.write(' '.join(map(lambda x: '{:.6E}'.format(x), parameters)) + ' {:.6f}\n'.format(efficiency))
+    return efficiency
+
+
+def build_simplex(bounds):
+    b = np.copy(bounds)
+    # for bound in b:
+    #     db = (b[1] - b[0]) / 8
+    #     b[0] += db
+    #     b[1] -= db
+    sim = np.zeros((len(b) + 1, len(b)))
+    sim[0] = b[:, 0]
+    for i in range(len(b)):
+        sim[i + 1] = sim[0]
+        sim[i + 1][i] = b[i][1]
+    return sim
+
+
+# min, max, step size
+bounds = [
+{% for opt in optField %}
+    [{{ opt.bounds[0] }}, {{ opt.bounds[1] }}, {{ opt.bounds[2] }}],
+{% endfor %}
+]
+
+cache = {}
+
+result = minimize(
+    fun=wrapper,
+    x0=np.array(bounds)[:, 0],
+    method='Nelder-Mead',
+    constraints=None,
+    args=(bounds, cache),
+    options={
+        'initial_simplex': build_simplex(np.array(bounds)),
+        'adaptive': True,
+    })
+print('{}'.format(result))

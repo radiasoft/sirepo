@@ -458,6 +458,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
             });
     };
 
+    self.optFieldName = function(fieldName) {
+        return fieldName + '_opt';
+    };
+
     self.parseModelField = function(name) {
         // returns [model, field] from a "model.field" name
         var match = name.match(/(.*?)\.(.*)/);

@@ -32,7 +32,7 @@ def run(cfg_dir):
                 'e_cross': e_cross,
             })
         elif data['report'] == 'fieldComparisonReport':
-            step(template.COMPARISON_STEP_SIZE)
+            wp.step(template.COMPARISON_STEP_SIZE)
             res = template.generate_field_comparison_report(data, cfg_dir)
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))

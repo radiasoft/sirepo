@@ -1180,7 +1180,7 @@ def _validate_enum(val, sch_field_info, sch_enums):
     if not type in sch_enums:
         return
     if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
-        raise AssertionError(util.err(sch_enums, 'enum value {} not in schema', val))
+        raise AssertionError(util.err(sch_enums[type], '{} enum value {} not in schema', type, val))
 
 
 def _is_enum(sch_field_info, sch_enums):
