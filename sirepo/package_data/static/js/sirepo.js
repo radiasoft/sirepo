@@ -366,6 +366,26 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return res;
     };
 
+    // intermediate method to change from arrays to objects when defining model fields
+    self.fieldProperties = function(modelName, fieldName) {
+        if(! self.models[modelName]) {
+            throw modelName + ": no such model in simulation " + SIREPO.APP_SCHEMA.simulationType;
+        }
+
+        var info = self.modelInfo(modelName, fieldName)[fieldName];
+        if(! info) {
+            throw fieldName + ": no such field in model " + modelName;
+        }
+        var infoNames = ['label', 'type', 'default', 'toolTip', 'min', 'max'];
+        var p = {};
+        info.forEach(function (v, i) {
+            p[i] = v;
+            p[infoNames[i]] = v;
+        });
+        return p;
+    };
+
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
