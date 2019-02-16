@@ -5,8 +5,9 @@ u"""OAUTH support
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-from pykern import pkconfig, pkcollections
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import cookie
@@ -28,11 +29,17 @@ ALLOW_ANONYMOUS_SESSION = True
 #: How do we authenticate
 AUTH_METHOD = 'github'
 
+#: user_state._COOKIE_AUTH_METHOD value
+AUTH_METHOD_COOKIE_VALUE = 'g'
+
 #: oauth_type value that should be passed in always
 DEFAULT_OAUTH_TYPE = AUTH_METHOD
 
 #: Used by user_db
 UserModel = None
+
+#: module handle
+this_module = pkinspect.this_module()
 
 # cookie keys for oauth
 _COOKIE_NEXT = 'sronx'

@@ -62,7 +62,7 @@ def init(app, callback):
                     with thread_lock:
                         return cls.query.filter_by(**kwargs).first()
 
-                def login(self, is_anonymous_session):
+                def login(self):
                     with thread_lock:
                         session_uid = cookie.unchecked_get_user()
                         if session_uid and session_uid != self.uid:

@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 from flask_sqlalchemy import SQLAlchemy
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import cookie
@@ -40,8 +41,14 @@ ALLOW_ANONYMOUS_SESSION = False
 #: Tell GUI how to authenticate (before schema is loaded)
 AUTH_METHOD = 'email'
 
+#: user_stat._COOKIE_AUTH_METHOD value
+AUTH_METHOD_COOKIE_VALUE = 'e'
+
 #: Used by user_db
 UserModel = None
+
+#: module handle
+this_module = pkinspect.this_module()
 
 #: SIREPO_EMAIL_AUTH_SMTP_SERVER=dev avoids SMTP entirely
 _DEV_SMTP_SERVER = 'dev'
@@ -92,7 +99,7 @@ def api_emailAuthLogin():
         u = EmailAuth.search_by(unverified_email=email)
         if u:
             # might be different uid, but don't care for now, just logout
-            user_state.logout_as_user()
+            user_state.logout_as_user(this_module)
         else:
             uid = cookie.unchecked_get_user()
             if uid and not user_state.is_anonymous_session():
@@ -167,7 +174,7 @@ def api_emailAuthorized(simulation_type, token):
         u.token = None
         u.expires = None
         u.save()
-        user_state.login_as_user(u)
+        user_state.login_as_user(u, this_module)
 #TODO(robnagler) user_state.set_logged_in should do all the work
     return flask.redirect('/{}'.format(sim_type))
 

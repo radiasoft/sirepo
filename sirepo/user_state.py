@@ -18,23 +18,32 @@ import flask
 #: what routeName to return in the event user is logged out in require_user
 LOGGED_OUT_ROUTE_NAME = 'loggedOut'
 
+_AUTH_METHOD_ANONYMOUS_VALUE = 'a'
+_AUTH_METHOD_ANONYMOUS_NAME = 'anonymous'
+
 #: login_state values in cookie
-_ANONYMOUS = 'a'
+_ANONYMOUS_DEPRECATED = 'a'
 _LOGGED_IN = 'li'
 _LOGGED_OUT = 'lo'
 
-#: used in query (process_logout) and map for SIREPO.userState
-_ANONYMOUS_SESSION = 'anonymous'
+#: used in query of api_logout to indicate an anonymous session
+_ANONYMOUS_LOGIN_QUERY = 'anonymous'
 
 #: map so SIREPO.userState in user-state.js
 _LOGIN_SESSION_MAP = pkcollections.Dict({
-    _ANONYMOUS: _ANONYMOUS_SESSION,
+    _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_NAME,
     _LOGGED_IN: 'logged_in',
     _LOGGED_OUT: 'logged_out',
 })
 
 #: key for login state
-_COOKIE_SESSION = 'sros'
+_COOKIE_LOGIN_SESSION = 'srusl'
+
+#: key for auth method for login state
+_COOKIE_AUTH_METHOD = 'srusa'
+
+#: key for login state
+_COOKIE_SESSION_DEPRECATED = 'sros'
 
 #: formerly used in the cookie but no longer so is removed below
 _REMOVED_COOKIE_NAME = 'sron'
@@ -51,34 +60,44 @@ def all_uids():
 
 @api_perm.allow_visitor
 def api_logout(simulation_type):
-    return process_logout(simulation_type)
+    """Set the current user as logged out. If the 'anonymous' query flag is set,
+    clear the user and change to an anonymous session.
+    """
+    migrate_cookie_keys()
+    if cookie.has_user_value() and not is_anonymous_session():
+        if login_module.ALLOW_ANONYMOUS_SESSION \
+           and flask.request.args.get(_ANONYMOUS_LOGIN_QUERY, False):
+            logout_as_anonymous()
+        else:
+            logout_as_user()
+    return flask.redirect('/{}'.format(simulation_type))
 
 
 @api_perm.allow_visitor
 def api_userState():
+    migrate_cookie_keys()
+    a = cookie.unchecked_get_value(_COOKIE_AUTH_METHOD, _AUTH_METHOD_ANONYMOUS_VALUE)
+    s = cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION, _LOGGED_OUT)
     v = pkcollections.Dict(
-        # means "no auth method" (is_logged_out is unused when user_state None)
-        is_logged_out=False,
-        user_state=None,
-    )
-    if login_module:
-        s = cookie.unchecked_get_value(_COOKIE_SESSION, _ANONYMOUS)
-        v.user_state = pkcollections.Dict(
-            authMethod=login_module.AUTH_METHOD,
+        user_state = pkcollections.Dict(
+            authMethod=_AUTH_METHOD_ANONYMOUS_NAME
             displayName=None,
             loginSession=_LOGIN_SESSION_MAP[s],
             userName=None,
-        )
+        ),
+        is_logged_out=s == _LOGGED_OUT,
+    )
+    if login_module:
+        v.user_state.authMethod = login_module.AUTH_METHOD
         if pkconfig.channel_in('dev'):
             v.user_state.uid  = cookie.unchecked_get_user()
-        if s == _LOGGED_IN:
+        if a == login_module.AUTH_METHOD_COOKIE_VALUE and s == _LOGGED_IN:
             u = login_module.UserModel.search_by(uid=cookie.get_user())
             if u:
                 v.user_state.update(
                     displayName=u.display_name,
                     userName=u.user_name,
                 )
-        v.is_logged_out = s == _LOGGED_OUT
     return http_reply.render_static('user-state', 'js', v)
 
 
@@ -95,39 +114,38 @@ def init_beaker_compat():
 
 
 def is_anonymous_session():
-    return cookie.unchecked_get_value(_COOKIE_SESSION, _ANONYMOUS) == _ANONYMOUS
+    migrate_cookie_keys()
+    return cookie.get_value(_COOKIE_AUTH_METHOD)
 
 
 def is_logged_in():
-    return cookie.unchecked_get_value(_COOKIE_SESSION) == _LOGGED_IN
+    migrate_cookie_keys()
+    return cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION) == _LOGGED_IN
 
 
-def login_as_user(user):
+def login_as_user(user, module):
+    migrate_cookie_keys()
     user.login(is_anonymous_session())
-    _update_session(_LOGGED_IN)
+    _update_session(_LOGGED_IN, module.AUTH_METHOD_COOKIE_VALUE)
 
 
 def logout_as_anonymous():
+    migrate_cookie_keys()
     cookie.clear_user()
-    _update_session(_ANONYMOUS)
+    _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_VALUE)
 
 
-def logout_as_user():
-    _update_session(_LOGGED_OUT)
+def logout_as_user(module):
+    migrate_cookie_keys()
+    _update_session(_LOGGED_OUT, module.AUTH_METHOD_COOKIE_VALUE)
 
 
-def process_logout(simulation_type):
-    """Set the current user as logged out. If the 'anonymous' query flag is set,
-    clear the user and change to an anonymous session.
-    """
-    if cookie.has_user_value() and not is_anonymous_session():
-        if login_module.ALLOW_ANONYMOUS_SESSION \
-           and flask.request.args.get(_ANONYMOUS_SESSION, False):
-            logout_as_anonymous()
-        else:
-            logout_as_user()
-    return flask.redirect('/{}'.format(simulation_type))
-
+def migrate_cookie_keys():
+    if cookie.has_key(_COOKIE_AUTH_METHOD):
+        return
+    # cookie_name is no longer used so clean up
+    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
+    to do
 
 def register_login_module():
     global login_module
@@ -139,9 +157,8 @@ def register_login_module():
 
 
 def require_user():
+    migrate_cookie_keys()
     if login_module:
-        # cookie_name is no longer used so clean up
-        cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
         if cookie.has_user_value():
             if is_logged_in():
                 return login_module.require_user()
@@ -172,10 +189,11 @@ def require_user():
 
 
 def _beaker_compat_map_keys(key_map):
-    key_map['key']['oauth_login_state'] = _COOKIE_SESSION
+    key_map['key']['oauth_login_state'] = _COOKIE_SESSION_DEPRECATED
     # reverse map of login state values
     key_map['value'] = dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
 
 
-def _update_session(login_state):
-    cookie.set_value(_COOKIE_SESSION, login_state)
+def _update_session(login_state, module):
+    cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
+    cookie.set_value(_COOKIE_AUTH_METHOD, module.AUTH_METHOD_COOKIE_VALUE)
