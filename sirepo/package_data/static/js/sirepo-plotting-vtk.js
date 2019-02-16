@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $rootScope, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $rootScope, $timeout, $window) {
 
     var self = {};
 
@@ -35,15 +35,17 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
                 return r;
         }, function (err) {
             srdbg('BAD STL', err);
-            var errTxt =  fileName + ': Invalid or missing .stl file: ';
+            //var errTxt =  fileName + ': Invalid or missing .stl file: ';
+            //var errTxt2 = err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err;
             // format errors from the XMLHttpRequest
-            if(err.xhr) {
-                errTxt = errTxt + err.xhr.status + ' (' + err.xhr.statusText + ')';
-            }
-            else {
-                errTxt = errTxt + err;
-            }
-            throw errTxt;
+            //if(err.xhr) {
+            //    errTxt = errTxt + err.xhr.status + ' (' + err.xhr.statusText + ')';
+           // }
+           // else {
+           //     errTxt = errTxt + err;
+            //}
+            throw fileName + ': Invalid or missing .stl file: ' +
+            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
         })
             .catch(function (e) {
                 srdbg('CAUGHT', e);
@@ -55,7 +57,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
 
     self.parseSTL = function(file) {
         srdbg('PARSING', file);
-        return ! ! self.loadSTL(file);
+        var ok = false;
+        $timeout(function () {
+            ok = ! ! self.loadSTL(file);
+        });
+        return ok;
     };
 
     self.vtkPlot = function(scope, element) {
@@ -791,20 +797,18 @@ SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
+            description: '=',
+            model: '=',
             require: '<',
+            title: '@',
         },
         template: [
-            '<div data-file-chooser="" data-validate-on-change="validate" data-title="" data-file-formats=".stl" data-description="Load STL file" data-require="require">',
-           '</div>',
+            '<div data-file-chooser="" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">',
+            '</div>',
         ].join(''),
-        //template: [
-        //    '<div class="form-group">',
-        //      '<label>{{ description }}</label>',
-        //      '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}" validate-on-change="validate">',
-        //    '</div>',
-        //].join(''),
         controller: function($scope, $element) {
-            srdbg('STL FILE CHOOSER CTL', $element);
+            //srdbg('STL FILE CHOOSER CTL', $element);
+            //srdbg('STL FILE CHOOSER CTL', $scope.description);
             $scope.validate = function (filename) {
                 srdbg('VALIDAITNG STL', filename);
                 return vtkPlotting.parseSTL(filename);
@@ -817,13 +821,12 @@ SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
     };
 });
 
-SIREPO.app.directive('createFromStlDialog', function(appState, vtkPlotting) {
+SIREPO.app.directive('stlImportDialog', function(appState, vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
             title: '@',
             description: '@',
-            fileFormats: '@',
         },
         template: [
             '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
@@ -836,21 +839,13 @@ SIREPO.app.directive('createFromStlDialog', function(appState, vtkPlotting) {
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
-                    '<form data-file-loader="" data-file-formats="fileFormats" data-description="description">',
-                      '<form name="importForm">',
-                        '<div class="form-group">',
-                          '<label>{{ description }}</label>',
-                          '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
-                          '<br />',
-                          '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
-                        '</div>',
-                        '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
-                        '<div class="clearfix"></div>',
-                        '<div class="col-sm-6 pull-right">',
-                          '<button data-ng-click="newSim(inputFile)" class="btn btn-primary" data-ng-disabled="! inputFile || isUploading">Import File</button>',
-                          ' <button data-ng-click="inputFile = null" data-dismiss="modal" class="btn btn-default" data-ng-disabled="isUploading">Cancel</button>',
-                        '</div>',
-                      '</form>',
+                        '<form>',
+                        '<div data-stl-file-chooser="" data-input-file="inputFile" data-title="title" data-description="description" data-require="true"></div>',
+                          '<div class="col-sm-6 pull-right">',
+                            '<button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
+                            ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                          '</div>',
+                        '</form>',
                     '</div>',
                   '</div>',
                 '</div>',
@@ -858,6 +853,12 @@ SIREPO.app.directive('createFromStlDialog', function(appState, vtkPlotting) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.inputFile = null;
+            srdbg('desc', $scope.description);
+            $scope.isMissingImportFile = function() {
+                return ! $scope.inputFile;
+            };
+
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import STL File';

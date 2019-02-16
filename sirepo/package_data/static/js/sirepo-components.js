@@ -515,6 +515,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
+            //$scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
@@ -1872,9 +1873,11 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
     return {
         restrict: 'A',
         scope: {
-            title: '@',
-            description: '@',
+            title: '=',
+            description: '=',
             fileFormats: '@',
+            validator: '&',
+            inputFile: '=',
         },
         template: [
             '<div class="form-group">',
@@ -1883,6 +1886,7 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
             '</div>',
         ].join(''),
         controller: function($scope) {
+            srdbg('inputFile', $scope.inputFile);
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
         },
@@ -2348,10 +2352,21 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
         link: function(scope, element, attrs) {
             var model = $parse(attrs.fileModel);
             var modelSetter = model.assign;
+            var validator = scope.validator ? scope.validator() : null;
+            var isValid = true;
+            //srdbg('got validator', validator);
             element.bind('change', function() {
-                scope.$apply(function() {
-                    modelSetter(scope, element[0].files[0]);
-                });
+                var filename = element[0].files[0].name;
+                if(validator) {
+                    isValid = validator(filename);
+                }
+                srdbg(filename, 'valid?', isValid);
+                if(isValid) {
+                    srdbg('setting');
+                    scope.$apply(function () {
+                        modelSetter(scope, element[0].files[0]);
+                    });
+                }
             });
         }
     };

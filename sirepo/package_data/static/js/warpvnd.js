@@ -402,7 +402,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="STL" data-file-formats=".stl" data-description="Use conductors from STL file"></div>',
+            '<div data-stl-import-dialog="" data-title="STL" data-file-formats=".stl" data-description="Use conductors from STL file"></div>',
         ].join(''),
     };
 });
@@ -1889,7 +1889,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
             }
 
             function loadConductors() {
-                srdbg('getting reader for', $scope.stlFile);
+                //srdbg('getting reader for', $scope.stlFile);
                 vtkPlotting.loadSTL($scope.stlFile).then(function (r) {
                     loadConductorData(r);
                 });
