@@ -1,9 +1,20 @@
+import aenum
+import contextlib
 from pykern import pkjson
+from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import srdb
 import socket
 
 
 _CHUNK_SIZE = 4096
+
+
+class JobStatus(aenum.Enum):
+    MISSING = 'missing'   # no data on disk, not currently running
+    RUNNING = 'running'   # data on disk is incomplete but it's running
+    ERROR = 'error'       # data on disk exists, but job failed somehow
+    CANCELED = 'canceled' # data on disk exists, but is incomplete
+    COMPLETE = 'complete' # data on disk exists, and is fully usable
 
 
 def _rpc(request):
@@ -15,8 +26,9 @@ def _rpc(request):
     Returns:
         response: the server response
     """
+    pkdp(request)
     request_bytes = pkjson.dump_bytes(request)
-    with socket.socket(socket.AF_UNIX) as sock:
+    with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
         sock.connect(str(srdb.runner_socket_path()))
         # send the request
         sock.sendall(request_bytes)
@@ -29,24 +41,30 @@ def _rpc(request):
             if not chunk:
                 break
             response_bytes += chunk
-    response = pkjson.json_load_any(response_bytes)
+    response = pkjson.load_any(bytes(response_bytes))
+    pkdp(response)
     if 'error_string' in response:
         raise AssertionError(response.error_string)
     return response
 
 
-def start_job(jid, run_dir, config):
+def start_job(run_dir, jhash, cmd):
     return _rpc({
         'action': 'start_job',
-        'jid': jid,
-        'run_dir': run_dir,
-        'config': config,
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+        'cmd': cmd,
     })
 
 
-def job_status(jid):
-    return _rpc({'action': 'job_status', 'jid': jid})
+def job_status(run_dir, jhash):
+    result = _rpc({
+        'action': 'job_status', 'run_dir': str(run_dir), 'jhash': jhash,
+    })
+    return JobStatus(result.status)
 
 
-def cancel_job(jid):
-    return _rpc({'action': 'cancel_job', 'jid': jid})
+def cancel_job(run_dir, jhash):
+    return _rpc({
+        'action': 'cancel_job', 'run_dir': str(run_dir), 'jhash': jhash,
+    })

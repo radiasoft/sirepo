@@ -8,6 +8,7 @@
 from __future__ import absolute_import, division, print_function
 
 import aenum
+import async_generator
 import collections
 import contextlib
 import functools
@@ -18,6 +19,7 @@ from pykern import pkjson
 import re
 import shlex
 from sirepo import mpi
+from sirepo import runner_client
 from sirepo import srdb
 from sirepo.template import template_common
 import sys
@@ -49,6 +51,36 @@ def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
         pkdlog(pkdexc())
 
 
+# Used to make sure that if we get simultaneous RPCs for the same jid/run_dir,
+# then only one RPC handler runs at a time. Like defaultdict(trio.Lock), but
+# without the memory leak. (Maybe should be upstreamed to Trio?)
+class _LockDict:
+    def __init__(self):
+        # {key: ParkingLot}
+        # lock is held iff the key exists
+        self._waiters = {}
+
+    @async_generator.asynccontextmanager
+    async def __getitem__(self, key):
+        # acquire
+        if key not in self._waiters:
+            # lock is unheld; adding a key makes it held
+            self._waiters[key] = trio.hazmat.ParkingLot()
+        else:
+            # lock is held; wait for someone to pass it to us
+            await self._waiters[keys].park()
+        try:
+            yield
+        finally:
+            # release
+            if self._waiters[key]:
+                # someone is waiting, so pass them the lock
+                self._waiters[key].unpark()
+            else:
+                # no-one is waiting, so mark the lock unheld
+                del self._waiters[key]
+
+
 # Helper to call container.wait in a async/cancellation-friendly way
 async def _container_wait(container):
     while True:
@@ -67,32 +99,24 @@ async def _container_wait(container):
 def _write_status(status, run_dir):
     fn = run_dir.join('result.json')
     if not fn.exists():
-        pkjson.dump_pretty({'state': status}, filename=fn)
-        pkio.write_text(run_dir.join('status'), status)
+        pkjson.dump_pretty({'state': status.value}, filename=fn)
+        pkio.write_text(run_dir.join('status'), status.value)
 
 
 def _subprocess_env():
     env = dict(os.environ)
-    for k in list(env.items()):
+    for k in list(env):
         if _EXEC_ENV_REMOVE.search(k):
             del env[k]
-    env['SIREPO_MPI_CORES'] = mpi.cfg.cores
+    env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
     return env
 
 
-class _JobStatus(aenum.Enum):
-    MISSING = 'missing'   # no data on disk, not currently running
-    PENDING = 'pending'   # data on disk is incomplete but it's running
-    ERROR = 'error'       # data on disk exists, but job failed somehow
-    CANCELED = 'canceled' # data on disk exists, but is incomplete
-    COMPLETE = 'complete' # data on disk exists, and is fully usable
-
-
 class _JobInfo:
-    def __init__(self, jid, run_dir, status, process):
-        self.jid = jid
-        self.status = status
+    def __init__(self, run_dir, jhash, status, process):
         self.run_dir = run_dir
+        self.jhash = jhash
+        self.status = status
         self.finished = trio.Event()
         self.process = process
 
@@ -105,101 +129,128 @@ class _JobTracker:
         self.jobs = {}
         self._nursery = nursery
 
-    def status(self, jid, run_dir):
-        fn = run_dir.join('status')
-        if fn.exists():
-            return pkio.read_text(fn)
-        if jid in self.jobs:
-            return self.jobs[jid].status
-        return _JobStatus.MISSING
+    def status(self, run_dir, jhash):
+        disk_in_path = run_dir.join("in.json")
+        disk_status_path = run_dir.join('status')
+        if disk_in_path.exists() and disk_status_path.exists():
+            disk_in_text = pkio.read_text(disk_in_path)
+            disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
+            if disk_jhash == jhash:
+                disk_status = pkio.read_text(disk_status_path)
+                if disk_status == 'pending':
+                    # We never write this, so it must be stale, in which case
+                    # the job is no longer pending...
+                    return runner_client.JobStatus.ERROR
+                return runner_client.JobStatus(disk_status)
+        if run_dir in self.jobs and self.jobs[run_dir].jhash == jhash:
+            return self.jobs[run_dir].status
+        return runner_client.JobStatus.MISSING
 
-    async def start_job(self, jid, run_dir, config):
-        await self._nursery.start(self._run_job, jid, run_dir, config)
+    async def start_job(self, run_dir, jhash, cmd):
+        await self._nursery.start(self._run_job, run_dir, jhash, cmd)
 
     async def _run_job(
-            self, jid, run_dir, config, *, task_status=trio.TASK_STATUS_IGNORED
+            self, run_dir, jhash, cmd, *, task_status=trio.TASK_STATUS_IGNORED
     ):
         # XX TODO: there are all kinds of race conditions here, e.g. if the
         # same jid gets started multiple times in parallel... we need to
         # revisit this once jids are globally unique, and possibly add
         # features like "if there is another job running with the same
         # user/sim/job but a different hash, then auto-cancel that other job"
-        with _catch_and_log_errors(Exception):
-            if self.status(jid, run_dir) is not _JobStatus.MISSING:
+        with _catch_and_log_errors(Exception, 'error in run_job'):
+            if run_dir in self.jobs:
+                # Right now, I don't know what happens if we reach here while
+                # the previous job is still running. The old job might be
+                # writing to the new job's freshly-initialized run_dir? This
+                # will be fixed once we move away from having server.py write
+                # directly into the run_dir.
+                assert self.jobs[jhash] == jhash
                 return
             try:
                 env = _subprocess_env()
-                with open(run_dir / template_common.RUN_LOG, 'a+b') as run_log:
+                run_log_path = run_dir.join(template_common.RUN_LOG)
+                # hack: switch back to py2 mode to run the actual command
+                env['PYENV_VERSION'] = 'py2'
+                cmd = ['pyenv', 'exec'] + cmd
+                with open(run_log_path, 'a+b') as run_log:
                     process = trio.subprocess.Process(
-                        config['command'],
-                        cwd=config['working_dir'],
+                        cmd,
+                        cwd=run_dir,
                         start_new_session=True,
-                        stdin=run_log,  # XX TODO: should be /dev/null?
+                        stdin=run_log,  # XX TODO: should be subprocess.DEVNULL?
                         stdout=run_log,
                         stderr=run_log,
                         env=env,
                     )
-                self.jobs[jid] = _JobInfo(
-                    jid, run_dir, _JobStatus.PENDING, process
+                self.jobs[run_dir] = _JobInfo(
+                    run_dir, jhash, runner_client.JobStatus.RUNNING, process
                 )
                 async with process:
                     task_status.started()
+                    # XX more race conditions here, in case we're writing to
+                    # the wrong version of the directory...
                     await process.wait()
                     if process.returncode:
-                        _write_status(_JobStatus.ERROR, run_dir)
+                        _write_status(runner_client.JobStatus.ERROR, run_dir)
                     else:
-                        _write_status(_JobStatus.COMPLETE, run_dir)
+                        _write_status(runner_client.JobStatus.COMPLETE, run_dir)
             finally:
                 # _write_status is a no-op if there's already a status, so
                 # this really means "if we get here without having written a
                 # status, assume there was some error"
-                _write_status(_JobStatus.ERROR, run_dir)
+                _write_status(runner_client.JobStatus.ERROR, run_dir)
                 # Make sure that we clear out the running job info and tell
                 # everyone the job is done, no matter what happened
-                job_info = self.jobs.pop(jid, None)
+                job_info = self.jobs.pop(run_dir, None)
                 if job_info is not None:
                     job_info.finished.set()
 
 
+_RPC_HANDLERS = {}
+
+
+def _rpc_handler(fn):
+    _RPC_HANDLERS[fn.__name__.lstrip("_")] = fn
+    return fn
+
+
+@_rpc_handler
 async def _start_job(job_tracker, request):
     pkdc('start_job: {}', request)
     await job_tracker.start_job(
-        request['jid'], request['run_dir'], request['config']
+        request.run_dir, request.jhash, request.cmd
     )
     return {}
 
 
+@_rpc_handler
 async def _job_status(job_tracker, request):
     pkdc('job_status: {}', request)
-    job_info = job_tracker.jobs.get(request['jid'])
-    if job_info is None:
-        return {'status': _JobStatus.NOT_STARTED.value}
-    else:
-        return {'status': job_info.status.value}
+    return {
+        'status': job_tracker.status(request.run_dir, request.jhash).value
+    }
 
 
+@_rpc_handler
 async def _cancel_job(job_tracker, request):
-    job_info = job_tracker.jobs[request['jid']]
-    if job_info.status is not _JobStatus.PENDING:
-        return {'canceled': False}
-    job_info.status = _JobStatus.CANCELED
-    _write_status(_JobStatus.CANCELED, run_dir)
+    if request.run_dir not in job_tracker.jobs:
+        return {}
+    job_info = job_tracker.jobs[request.run_dir]
+    if job_info.status is not runner_client.JobStatus.RUNNING:
+        return {}
+    job_info.status = runner_client.JobStatus.CANCELED
+    _write_status(runner_client.JobStatus.CANCELED, request.run_dir)
     job_info.process.terminate()
     with trio.move_on_after(_KILL_TIMEOUT_SECS):
         await job_info.finished.wait()
     job_info.process.kill()
     await job_info.finished.wait()
-    return {'canceled': True}
+    return {}
 
 
-_HANDLERS = {
-    'start_job': _start_job,
-    'job_status': _job_status,
-    'cancel_job': _cancel_job,
-}
-
-
-async def _handle_conn(job_tracker, stream):
+# XX should we just always acquire a per-job lock here, to make sure we never
+# have to worry about different requests for the same job racing?
+async def _handle_conn(job_tracker, lock_dict, stream):
     with _catch_and_log_errors(Exception, 'error handling request'):
         try:
             request_bytes = bytearray()
@@ -209,8 +260,13 @@ async def _handle_conn(job_tracker, stream):
                     break
                 request_bytes += chunk
             request = pkjson.load_any(request_bytes)
-            handler = _HANDLERS[request['action']]
-            response = await handler(job_tracker, request)
+            if 'run_dir' in request:
+                request.run_dir = pkio.py_path(request.run_dir)
+            pkdp(request)
+            handler = _RPC_HANDLERS[request.action]
+            async with lock_dict[request.run_dir]:
+                response = await handler(job_tracker, request)
+            pkdp(response)
             response_bytes = pkjson.dump_bytes(response)
         except Exception as exc:
             await stream.send_all(
@@ -235,8 +291,10 @@ async def _main():
 
         async with trio.open_nursery() as nursery:
             job_tracker = _JobTracker(nursery)
+            lock_dict = _LockDict()
             await trio.serve_listeners(
-                functools.partial(_handle_conn, job_tracker), [listener]
+                functools.partial(_handle_conn, job_tracker, lock_dict),
+                [listener]
             )
 
 
@@ -247,56 +305,34 @@ def start():
 
 # Temporary (?) hack to make testing easier: starts up the http dev server
 # under py2 and the runner daemon under py3, and if either exits then kills
-# the other. Also does fancy mangling of their output to make it more
-# readable.
-async def lines(stream):
-    buf = bytearray()
-    while True:
-        chunk = await stream.receive_some(_CHUNK_SIZE)
-        if not chunk:
-            if buf:
-                yield buf
-            return
-        buf += chunk
-        pieces = buf.split(b'\n')
-        buf = pieces.pop()
-        for piece in pieces:
-            yield piece + b'\n'
-
-
-async def _run_cmd_with_prefix(prefix, cmd, **kwargs):
-    kwargs['stdout'] = trio.subprocess.PIPE
-    kwargs['stderr'] = trio.subprocess.STDOUT
-    print(kwargs['env']['PYENV_VERSION'])
+# the other.
+async def _run_cmd(cmd, **kwargs):
     async with trio.subprocess.Process(cmd, **kwargs) as process:
-        async for line in lines(process.stdout):
-            sys.stdout.write(prefix + line.decode("utf8"))
-            sys.stdout.flush()
         await process.wait()
 
 
 async def _dev_main():
+    # To be inherited by children
+    os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
+    os.environ['PYTHONUNBUFFERED'] = '1'
+
     async with trio.open_nursery() as nursery:
-        async def _run_cmd_then_quit(prefix, py_env_name, cmd):
+        async def _run_cmd_in_env_then_quit(py_env_name, cmd):
             env = {**os.environ, 'PYENV_VERSION': py_env_name}
-            await _run_cmd_with_prefix(prefix, cmd, env=env)
+            await _run_cmd(['pyenv', 'exec'] + cmd, env=env)
             nursery.cancel_scope.cancel()
 
-        os.environ['SIREPO_FEATURE_FLAG_RUNNER_DAEMON'] = '1'
-        os.environ['PYTHONUNBUFFERED'] = '1'
         nursery.start_soon(
-            _run_cmd_then_quit, '\x1b[32mserver:\x1b[39m ', 'py2',
-            ['pyenv', 'exec', 'sirepo', 'service', 'http'],
+            _run_cmd_in_env_then_quit, 'py2', ['sirepo', 'service', 'http'],
         )
         # We could just run _main here, but spawning a subprocess makes sure
         # that everyone has the same config, e.g. for
         # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
         nursery.start_soon(
-            _run_cmd_then_quit, '\x1b[34mrunner:\x1b[39m ', 'py3',
-            ['pyenv', 'exec', 'sirepo', 'runner', 'start'],
+            _run_cmd_in_env_then_quit, 'py3', ['sirepo', 'runner', 'start'],
         )
 
 
 def dev():
-    """Starts the runner daemon, plus an HTTP dev server."""
+    """Starts the runner daemon + the HTTP dev server."""
     trio.run(_dev_main)
