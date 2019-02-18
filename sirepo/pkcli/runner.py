@@ -264,11 +264,11 @@ async def _handle_conn(job_tracker, lock_dict, stream):
             request = pkjson.load_any(request_bytes)
             if 'run_dir' in request:
                 request.run_dir = pkio.py_path(request.run_dir)
-            pkdp(request)
+            pkdp('runner request: {!r}', request)
             handler = _RPC_HANDLERS[request.action]
             async with lock_dict[request.run_dir]:
                 response = await handler(job_tracker, request)
-            pkdp(response)
+            pkdp('runner response: {!r}', response)
             response_bytes = pkjson.dump_bytes(response)
         except Exception as exc:
             await stream.send_all(

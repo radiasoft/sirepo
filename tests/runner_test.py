@@ -87,5 +87,3 @@ def test_runner_myapp():
     finally:
         runner.terminate()
         runner.wait()
-
-    assert False

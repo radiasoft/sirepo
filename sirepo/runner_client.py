@@ -26,7 +26,6 @@ def _rpc(request):
     Returns:
         response: the server response
     """
-    pkdp(request)
     request_bytes = pkjson.dump_bytes(request)
     with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
         sock.connect(str(srdb.runner_socket_path()))
@@ -42,7 +41,6 @@ def _rpc(request):
                 break
             response_bytes += chunk
     response = pkjson.load_any(bytes(response_bytes))
-    pkdp(response)
     if 'error_string' in response:
         raise AssertionError(response.error_string)
     return response
