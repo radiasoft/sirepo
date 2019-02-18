@@ -719,6 +719,11 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
 
     this.init2dPlot = function($scope, attrs) {
         var zoom;
+        // default scope values
+        $.extend($scope, {
+            aspectRatio: 4.0 / 7,
+            zoomContainer: '.overlay',
+        });
         $.extend($scope, attrs);
         $scope.width = $scope.height = 0;
         $scope.dataCleared = true;
@@ -763,16 +768,18 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
                 $scope.axes.x.grid.tickSize(-$scope.height);
                 $scope.axes.y.grid.tickSize(-$scope.width);
             }
-            if (plotting.trimDomain($scope.axes.x.scale, $scope.axes.x.domain)) {
-                $scope.select('.overlay').attr('class', 'overlay mouse-zoom');
+            var isFullSize = plotting.trimDomain($scope.axes.x.scale, $scope.axes.x.domain);
+            if (isFullSize) {
                 $scope.setYDomain();
             }
-            else {
-                $scope.select('.overlay').attr('class', 'overlay mouse-move-ew');
+            else if ($scope.recalculateYDomain) {
                 $scope.recalculateYDomain();
             }
+            $scope.select($scope.zoomContainer)
+                .classed('mouse-zoom', isFullSize)
+                .classed('mouse-move-ew', ! isFullSize);
             resetZoom();
-            $scope.select('.overlay').call($scope.zoom);
+            $scope.select($scope.zoomContainer).call($scope.zoom);
             $.each($scope.axes, function(dim, axis) {
                 axis.updateLabelAndTicks({
                     width: $scope.width,
@@ -796,7 +803,7 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
 
         $scope.destroy = function() {
             $scope.zoom.on('zoom', null);
-            $($scope.element).find('.overlay').off();
+            $($scope.element).find($scope.zoomContainer).off();
             // not part of all plots, just parameterPlot
             $($scope.element).find('.sr-plot-legend-item text').off();
             document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
@@ -1904,7 +1911,6 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 10, bottom: 50, left: 75},
                 });
                 $scope.focusPoints.push(
@@ -2803,7 +2809,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 23, bottom: 50, left: 75},
                 });
                 // override graphLine to work with multiple point sets
@@ -2958,7 +2963,6 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 23, bottom: 50, left: 75},
                 });
             };
