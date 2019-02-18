@@ -307,7 +307,10 @@ def start():
 
 # Temporary (?) hack to make testing easier: starts up the http dev server
 # under py2 and the runner daemon under py3, and if either exits then kills
-# the other. Runner daemon output = green, flask output = blue.
+# the other.
+_RUNNER_DAEMON_OUTPUT_COLOR = 2  # green
+_FLASK_DEV_OUTPUT_COLOR = 4  # blue
+
 def _color(num):
     colors = curses.tigetstr('setaf')
     if colors is None:
@@ -323,6 +326,7 @@ async def _run_cmd(color, cmd, **kwargs):
                 return
             sys.stdout.buffer.raw.write(_color(color) + data + _color(0))
 
+    kwargs['stdin'] = subprocess.DEVNULL
     kwargs['stdout'] = subprocess.PIPE
     kwargs['stderr'] = subprocess.STDOUT
     async with trio.open_nursery() as nursery:
@@ -345,13 +349,15 @@ async def _dev_main():
             nursery.cancel_scope.cancel()
 
         nursery.start_soon(
-            _run_cmd_in_env_then_quit, 'py2', 4, ['sirepo', 'service', 'http'],
+            _run_cmd_in_env_then_quit,
+            'py2', _FLASK_DEV_OUTPUT_COLOR, ['sirepo', 'service', 'http'],
         )
         # We could just run _main here, but spawning a subprocess makes sure
         # that everyone has the same config, e.g. for
         # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
         nursery.start_soon(
-            _run_cmd_in_env_then_quit, 'py3', 2, ['sirepo', 'runner', 'start'],
+            _run_cmd_in_env_then_quit,
+            'py3', _RUNNER_DAEMON_OUTPUT_COLOR, ['sirepo', 'runner', 'start'],
         )
 
 
