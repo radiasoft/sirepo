@@ -1545,7 +1545,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plotting) {
+SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -1553,16 +1553,8 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 80, bottom: 50, left: 70};
-            $scope.width = $scope.height = 0;
-            $scope.dataCleared = true;
             $scope.wantColorbar = true;
-            var colorbar, graphLine, pointer, zoom;
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
-            };
+            var colorbar, pointer;
 
             function mouseOver() {
                 /*jshint validthis: true*/
@@ -1573,105 +1565,28 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
                 }
             }
 
-            function refresh() {
-                if (! axes.x.domain) {
-                    return;
-                }
-                if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
-                        return;
-                    }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
-                    select('svg')
-                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                    axes.x.scale.range([0, $scope.width]);
-                    axes.y.scale.range([$scope.height, 0]);
-                    axes.x.grid.tickSize(-$scope.height);
-                    axes.y.grid.tickSize(-$scope.width);
-                    colorbar.barlength($scope.height)
-                        .origin([0, 0]);
-                    pointer = select('.colorbar').call(colorbar);
-                }
-                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
-                    select('.plot-viewport').attr('class', 'plot-viewport mouse-zoom');
-                    axes.y.scale.domain(axes.y.domain);
-                }
-                else {
-                    select('.plot-viewport').attr('class', 'plot-viewport mouse-move-ew');
-                }
-                resetZoom();
-                select('.plot-viewport').call(zoom);
-                $.each(axes, function(dim, axis) {
-                    axis.updateLabelAndTicks({
-                        width: $scope.width,
-                        height: $scope.height,
-                    }, select);
-                    axis.grid.ticks(axis.tickCount);
-                    select('.' + dim + '.axis.grid').call(axis.grid);
-                });
-                select('.plot-viewport').selectAll('.line').attr('d', graphLine);
-            }
-
-            function resetZoom() {
-                zoom = axes.x.createZoom($scope);
-            }
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            $scope.clearData = function() {
-                $scope.dataCleared = true;
-                axes.x.domain = null;
-            };
-
-            $scope.destroy = function() {
-                zoom.on('zoom', null);
-                $('.plot-viewport').off();
-            };
-
             $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                // can't remove the overlay or it causes a memory leak
-                select('svg').selectAll('.overlay').classed('disabled-overlay', true);
-                $.each(axes, function(dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
+                plot2dService.init2dPlot($scope, {
+                    aspectRatio: 4.0 / 7,
+                    margin: {top: 50, right: 80, bottom: 50, left: 70},
+                    zoomContainer: '.plot-viewport',
                 });
-                graphLine = d3.svg.line()
-                    .x(function(d) {
-                        return axes.x.scale(d[0]);
-                    })
-                    .y(function(d) {
-                        return axes.y.scale(d[1]);
-                    });
-                resetZoom();
+                // can't remove the overlay or it causes a memory leak
+                $scope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
             };
 
             $scope.load = function(json) {
-                $scope.dataCleared = false;
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
                 xdom[0] -= smallDiff;
                 xdom[1] += smallDiff;
-                axes.x.domain = xdom;
-                axes.x.scale.domain(xdom);
-                axes.y.domain = [json.y_range[0], json.y_range[1]];
-                axes.y.scale.domain(axes.y.domain).nice();
-                var viewport = select('.plot-viewport');
+                $scope.axes.x.domain = xdom;
+                $scope.axes.x.scale.domain(xdom);
+                $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+                var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                $.each(axes, function (dim, axis) {
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
-                });
-                select('.main-title').text(json.title);
-
                 var colorMap = plotting.colorMapFromModel($scope.modelName);
                 var colorScale = d3.scale.linear()
                     .domain(plotting.linearlySpacedArray(json.v_min, json.v_max, colorMap.length))
@@ -1711,14 +1626,14 @@ SIREPO.app.directive('impactDensityPlot', function(appState, layoutService, plot
                         path.on('mouseover', mouseOver);
                     }
                 }
-                $scope.resize();
+                $scope.updatePlot(json);
             };
 
-            $scope.resize = function() {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
+            $scope.refresh = function() {
+                colorbar.barlength($scope.height)
+                    .origin([0, 0]);
+                pointer = $scope.select('.colorbar').call(colorbar);
+                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
             };
         },
         link: function link(scope, element) {
