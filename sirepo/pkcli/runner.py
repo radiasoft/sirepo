@@ -11,6 +11,7 @@ import aenum
 import async_generator
 import collections
 import contextlib
+import curses
 import functools
 import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
@@ -22,6 +23,7 @@ from sirepo import mpi
 from sirepo import runner_client
 from sirepo import srdb
 from sirepo.template import template_common
+import subprocess
 import sys
 import trio
 
@@ -279,7 +281,7 @@ async def _handle_conn(job_tracker, lock_dict, stream):
 
 
 async def _main():
-    pkdlog("runner daemon starting up")
+    pkdlog('runner daemon starting up')
     with trio.socket.socket(family=trio.socket.AF_UNIX) as sock:
         # XX TODO: better strategy for handoff between runner instances
         # Clear out any stale socket file
@@ -305,31 +307,51 @@ def start():
 
 # Temporary (?) hack to make testing easier: starts up the http dev server
 # under py2 and the runner daemon under py3, and if either exits then kills
-# the other.
-async def _run_cmd(cmd, **kwargs):
-    async with trio.Process(cmd, **kwargs) as process:
-        await process.wait()
+# the other. Runner daemon output = green, flask output = blue.
+def _color(num):
+    colors = curses.tigetstr('setaf')
+    if colors is None:
+        return b''
+    return curses.tparm(colors, num)
+
+
+async def _run_cmd(color, cmd, **kwargs):
+    async def forward_to_stdout_with_color(stream):
+        while True:
+            data = await stream.receive_some(_CHUNK_SIZE)
+            if not data:
+                return
+            sys.stdout.buffer.raw.write(_color(color) + data + _color(0))
+
+    kwargs['stdout'] = subprocess.PIPE
+    kwargs['stderr'] = subprocess.STDOUT
+    async with trio.open_nursery() as nursery:
+        async with trio.Process(cmd, **kwargs) as process:
+            nursery.start_soon(forward_to_stdout_with_color, process.stdout)
+            await process.wait()
 
 
 async def _dev_main():
+    curses.setupterm()
+
     # To be inherited by children
     os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
     os.environ['PYTHONUNBUFFERED'] = '1'
 
     async with trio.open_nursery() as nursery:
-        async def _run_cmd_in_env_then_quit(py_env_name, cmd):
+        async def _run_cmd_in_env_then_quit(py_env_name, color, cmd):
             env = {**os.environ, 'PYENV_VERSION': py_env_name}
-            await _run_cmd(['pyenv', 'exec'] + cmd, env=env)
+            await _run_cmd(color, ['pyenv', 'exec'] + cmd, env=env)
             nursery.cancel_scope.cancel()
 
         nursery.start_soon(
-            _run_cmd_in_env_then_quit, 'py2', ['sirepo', 'service', 'http'],
+            _run_cmd_in_env_then_quit, 'py2', 4, ['sirepo', 'service', 'http'],
         )
         # We could just run _main here, but spawning a subprocess makes sure
         # that everyone has the same config, e.g. for
         # SIREPO_FEATURE_FLAG_RUNNER_DAEMON
         nursery.start_soon(
-            _run_cmd_in_env_then_quit, 'py3', ['sirepo', 'runner', 'start'],
+            _run_cmd_in_env_then_quit, 'py3', 2, ['sirepo', 'runner', 'start'],
         )
 
 
