@@ -1250,36 +1250,34 @@ def _validate_fields(data):
             _validate_enum(val, sch_field_info, sch_enums)
             _validate_number(val, sch_field_info)
 
+
 def _validate_name(data):
     """Validate and if necessary uniquify name
 
     Args:
         data (dict): what to validate
     """
-    starts_with = pkcollections.Dict()
     s = data.models.simulation
+    sim_type = data.simulationType
+    sim_id = s.simulationId
     n = s.name
+    f = s.folder
+    starts_with = pkcollections.Dict()
     for d in iterate_simulation_datafiles(
-        data.simulationType,
+        sim_type,
         lambda res, _, d: res.append(d),
-        {'simulation.folder': s.folder},
+        {'simulation.folder': f},
     ):
         n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != s.simulationId:
+        if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
             starts_with[n2] = d.models.simulation.simulationId
-    if n in starts_with:
-        _validate_name_uniquify(data, starts_with)
-
-
-
-def _validate_name_uniquify(data, starts_with):
-    """Uniquify data.models.simulation.name"""
     i = 2
-    n = data.models.simulation.name
-    n2 = n
+    max = SCHEMA_COMMON.common.constants.maxSimCopies
+    n2 = data.models.simulation.name
     while n2 in starts_with:
-        n2 = n + ' ({})'.format(i)
+        n2 = '{} {}'.format(data.models.simulation.name, i)
         i += 1
+    assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
     data.models.simulation.name = n2
 
 

@@ -144,7 +144,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             //TODO(pjm): see #1155
             // Don't request data if saving sim (data will be requested again when the save is complete)
             // var qi = requestQueue.getCurrentQI('requestQueue');
-            // if(qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
+            // if (qi && qi.params && qi.params.urlOrParams === 'saveSimulationData') {
             //     return;
             // }
             var priority = getCurrentPriority();
@@ -186,7 +186,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 if (current.getRequestPriority) {
                     return current.getRequestPriority();
                 }
-                if(current.requestPriority) {
+                if (current.requestPriority) {
                     return current.requestPriority;
                 }
                 current = current.$parent;
@@ -219,6 +219,14 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             yValues[i] = (yValues[i] - yMin) / yRange - shift;  // roots are at Y=0
         }
         return yValues;
+    }
+
+    function setupSelector(scope, element) {
+        scope.element = element[0];
+        scope.select = function(selector) {
+            var e = d3.select(scope.element);
+            return selector ? e.select(selector) : e;
+        };
     }
 
     var self = {
@@ -277,7 +285,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
             var modelDefaultMap;
             var info = SIREPO.APP_SCHEMA.model[modelName];
-            if(info) {
+            if (info) {
                 var mapInfo = info.colorMap;
                 modelDefaultMap = mapInfo ? mapInfo[SIREPO.INFO_INDEX_DEFAULT_VALUE] : null;
             }
@@ -285,11 +293,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return this.colorMapOrDefault(modelMap, modelDefaultMap);
         },
 
-        colorMapNameOrDefault: function (mapName, defaultMapName) {
+        colorMapNameOrDefault: function(mapName, defaultMapName) {
             return mapName || defaultMapName || SIREPO.PLOTTING_COLOR_MAP || SIREPO.DEFAULT_COLOR_MAP;
         },
 
-        colorMapOrDefault: function (mapName, defaultMapName) {
+        colorMapOrDefault: function(mapName, defaultMapName) {
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
@@ -309,10 +317,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         colorsFromHexString: function(color, range) {
-            if(! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
+            if (! (/^#([0-9a-f]{2}){3}$/i).test(color)) {
                 throw color + ': Invalid color string';
             }
-            return color.match((/[0-9a-f]{2}/ig)).map(function (h) {
+            return color.match((/[0-9a-f]{2}/ig)).map(function(h) {
                 return parseInt(h, 16) / (range || 1.0);
             });
         },
@@ -378,7 +386,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         // returns an array of substrings of str that fit in the given width. The provided d3Text selection
         // must be part of the document so its size can be calculated
-        fitSplit: function (str, d3Text, width) {
+        fitSplit: function(str, d3Text, width) {
             if (!str || str.length === 0) {
                 return [];
             }
@@ -398,7 +406,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return $.merge([split], self.fitSplit(str.substring(split.length), d3Text, width));
         },
 
-        formatValue: function (v, formatter, ordinateFormatter) {
+        formatValue: function(v, formatter, ordinateFormatter) {
             var fmt = formatter ? formatter : d3.format('.3f');
             var ordfmt = ordinateFormatter ? ordinateFormatter : d3.format('.3e');
             if (v < 1 || v > 1000000) {
@@ -431,8 +439,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         linkPlot: function(scope, element) {
-            scope.element = element[0];
-            scope.isAnimation = scope.modelName.indexOf('Animation') >= 0;
+            setupSelector(scope, element);
+            scope.isAnimation = appState.isAnimationModelName(scope.modelName);
             var requestData;
 
             if (scope.isClientOnly) {
@@ -448,6 +456,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.windowResize = utilities.debounce(function() {
                 scope.resize();
             }, 250);
+
+            scope.broadcastEvent = function(args) {
+                scope.$broadcast('sr-plotEvent', args);
+            };
 
             scope.$on('$destroy', function() {
                 scope.destroy();
@@ -487,6 +499,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     requestData();
                 }
             }
+            // let the parent and child scope know the plot is ready.
+            // used by parameterWithLattice
+            scope.$emit('sr-plotLinked');
+            // used by interactiveOverlay, focusCircle, popupReport
+            scope.$broadcast('sr-plotLinked');
         },
 
         linearlySpacedArray: linearlySpacedArray,
@@ -542,14 +559,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             }
         },
 
-        select: function(scope, selector) {
-            var e = d3.select(scope.element);
-            return selector ? e.select(selector) : e;
-        },
+        setupSelector: setupSelector,
 
         tickFontSize: function(node) {
             var defaultSize = 12;
-            if(! node || ! node[0] || ! node[0][0]) {
+            if (! node || ! node[0] || ! node[0][0]) {
                 return defaultSize;
             }
             if (node.style) {
@@ -672,40 +686,154 @@ SIREPO.app.directive('colorPicker', function() {
             $scope.rows = Math.ceil($scope.pickerColors.length / $scope.cols);
             $scope.range = function(n) {
                 var arr = [];
-                for(var i = 0; i < n; ++i) {
+                for (var i = 0; i < n; ++i) {
                     arr.push(i);
                 }
                 return arr;
             };
-            $scope.pcIndex = function (row, col) {
+            $scope.pcIndex = function(row, col) {
                 return $scope.cols * row + col;
             };
 
-            $scope.getPickerColor = function (row, col) {
+            $scope.getPickerColor = function(row, col) {
                 return $scope.pickerColors[$scope.pcIndex(row, col)];
             };
-            $scope.getColor = function (color) {
+            $scope.getColor = function(color) {
                 return color || $scope.color || $scope.defaultColor;
             };
 
-            $scope.bgColorStyle = function (c) {
+            $scope.bgColorStyle = function(c) {
                 return {
                     'background-color': $scope.getColor(c)
                 };
             };
 
-            $scope.setColor = function (color) {
+            $scope.setColor = function(color) {
                 $scope.color = color;
             };
         },
     };
 });
 
-SIREPO.app.service('focusPointService', function(plotting, layoutService) {
+SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities) {
 
+    this.init2dPlot = function($scope, attrs) {
+        var zoom;
+        $.extend($scope, attrs);
+        $scope.width = $scope.height = 0;
+        $scope.dataCleared = true;
+        $scope.axes = {
+            x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+            y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+        };
+
+        function init() {
+            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+            $scope.select('svg').attr('height', plotting.initialHeight($scope));
+            $.each($scope.axes, function(dim, axis) {
+                axis.init();
+                axis.grid = axis.createAxis();
+            });
+            $scope.graphLine = d3.svg.line()
+                .x(function(d) {
+                    return $scope.axes.x.scale(d[0]);
+                })
+                .y(function(d) {
+                    return $scope.axes.y.scale(d[1]);
+                });
+            resetZoom();
+        }
+
+        function refresh() {
+            if (! $scope.axes.x.domain) {
+                return;
+            }
+            if (layoutService.plotAxis.allowUpdates) {
+                var width = parseInt($scope.select().style('width')) - $scope.margin.left - $scope.margin.right;
+                if (isNaN(width)) {
+                    return;
+                }
+                $scope.width = plotting.constrainFullscreenSize($scope, width, $scope.aspectRatio);
+                $scope.height = $scope.aspectRatio * $scope.width;
+                $scope.select('svg')
+                    .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                    .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
+                $scope.axes.x.scale.range([0, $scope.width]);
+                $scope.axes.y.scale.range([$scope.height, 0]);
+                $scope.axes.x.grid.tickSize(-$scope.height);
+                $scope.axes.y.grid.tickSize(-$scope.width);
+            }
+            if (plotting.trimDomain($scope.axes.x.scale, $scope.axes.x.domain)) {
+                $scope.select('.overlay').attr('class', 'overlay mouse-zoom');
+                $scope.setYDomain();
+            }
+            else {
+                $scope.select('.overlay').attr('class', 'overlay mouse-move-ew');
+                $scope.recalculateYDomain();
+            }
+            resetZoom();
+            $scope.select('.overlay').call($scope.zoom);
+            $.each($scope.axes, function(dim, axis) {
+                axis.updateLabelAndTicks({
+                    width: $scope.width,
+                    height: $scope.height,
+                }, $scope.select);
+                axis.grid.ticks(axis.tickCount);
+                $scope.select('.' + dim + '.axis.grid').call(axis.grid);
+            });
+
+            $scope.refresh();
+        }
+
+        function resetZoom() {
+            $scope.zoom = $scope.axes.x.createZoom($scope);
+        }
+
+        $scope.clearData = function() {
+            $scope.dataCleared = true;
+            $scope.axes.x.domain = null;
+        };
+
+        $scope.destroy = function() {
+            $scope.zoom.on('zoom', null);
+            $($scope.element).find('.overlay').off();
+            // not part of all plots, just parameterPlot
+            $($scope.element).find('.sr-plot-legend-item text').off();
+            document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+        };
+
+        $scope.resize = function() {
+            if ($scope.select().empty()) {
+                return;
+            }
+            refresh();
+        };
+
+        if (! $scope.setYDomain) {
+            $scope.setYDomain = function() {
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+            };
+        }
+
+        $scope.updatePlot = function(json) {
+            $scope.dataCleared = false;
+            $.each($scope.axes, function(dim, axis) {
+                axis.parseLabelAndUnits(json[dim + '_label']);
+                $scope.select('.' + dim + '-axis-label').text(json[dim + '_label']);
+            });
+            $scope.select('.main-title').text(json.title);
+            $scope.select('.sub-title').text(json.subtitle);
+            $scope.resize();
+        };
+
+        init();
+    };
+});
+
+SIREPO.app.service('focusPointService', function(plotting) {
     var svc = this;
 
-    this.dataCoordsToMouseCoords = function(focusPoint) {
+    svc.dataCoordsToMouseCoords = function(focusPoint) {
         var mouseX, mouseY;
         if (focusPoint.config.invertAxis) {
             mouseX = focusPoint.config.yAxis.scale(focusPoint.data.y);
@@ -721,7 +849,7 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
         };
     };
 
-    this.formatFocusPointData = function(focusPoint, xLabel, yLabel, xUnits, yUnits) {
+    svc.formatFocusPointData = function(focusPoint, xLabel, yLabel, xUnits, yUnits) {
         var xl = xLabel || focusPoint.config.xLabel || 'X';
         var yl = yLabel || focusPoint.config.yLabel || 'Y';
         var xu = processUnit(xUnits || focusPoint.config.xAxis.units);
@@ -730,131 +858,95 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
             xText: formatDatum(xl, focusPoint.data.x, xu),
             yText: formatDatum(yl, focusPoint.data.y, yu),
         };
-        if(SIREPO.PLOTTING_SHOW_FWHM) {
+        if (SIREPO.PLOTTING_SHOW_FWHM) {
             fmt.fwhmText = formatFWHM(focusPoint.data.fwhm, focusPoint.config.xAxis.units);
         }
         return fmt;
     };
 
-
-    this.invokeDelegatesForFocusPoint = function(delegates, fp, delegateFn, params) {
-        var retVals = {};
-        delegates.forEach(function (fpd) {
-            if(fpd.focusPoints.indexOf(fp) >= 0) {
-                retVals[fpd.name] = fpd[delegateFn].apply(null, params);
-            }
+    svc.hideFocusPoint = function(plotScope, killFocus) {
+        plotScope.broadcastEvent({
+            name: 'hideFocusPointInfo',
+            killFocus: killFocus,
         });
-        return retVals;
+        if (plotScope.hideFocusPointText) {
+            plotScope.hideFocusPointText();
+        }
     };
 
-    this.loadFocusPoint = function(focusPoint, axisPoints, preservePoint, plotInfoDelegates) {
+    svc.loadFocusPoint = function(focusPoint, axisPoints, preservePoint, plotScope) {
         var hideAfterLoad = ! focusPoint.load(axisPoints, preservePoint);
-        if(hideAfterLoad) {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
+        if (hideAfterLoad) {
+            svc.hideFocusPoint(plotScope);
         }
     };
 
-    this.refreshFocusPoint = function(focusPoint, plotInfoDelegates) {
-        var refreshOK = focusPoint.data.isActive;
-        if (refreshOK) {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'showFocusPointInfo');
-        }
-        else {
-            this.invokeDelegatesForFocusPoint(plotInfoDelegates, focusPoint, 'hideFocusPointInfo');
+    svc.moveFocusPoint = function(plotScope, focusPoint) {
+        plotScope.broadcastEvent({
+            name: 'moveFocusPointInfo',
+            focusPoint: focusPoint,
+        });
+        if (plotScope.showFocusPointText) {
+            plotScope.showFocusPointText(focusPoint);
         }
     };
 
-    this.setupFocusPoint = function(xAxis, yAxis, invertAxis, name) {
-
-        function init() {
-            return {
-                config: {
-                    name: name,
-                    color: 'steelblue',
-                    invertAxis: invertAxis,
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                    xLabel: '',
-                    yLabel: '',
-                },
-                data: {
-                    focusIndex: -1,
-                    isActive: false,
-                },
-                load: function(axisPoints, preservePoint) {
-                    if (preservePoint && (axisPoints.length != (this.config.points || []).length)) {
-                        preservePoint = false;
-                    }
-                    this.config.points = axisPoints;
-                    if(preservePoint) {
-                        return true;
-                    }
-                    return false;
-                },
-                move: function(step) {
-                    if(! this.data.isActive) {
-                        return false;
-                    }
-                    if(this.config.invertAxis) {
-                        step = -step;
-                    }
-                    var newIndex = this.data.focusIndex + step;
-                    if(newIndex < 0 || newIndex >= this.config.points.length) {
-                        return false;
-                    }
-                    this.data.focusIndex = newIndex;
-                    return true;
-                },
-                unset: function () {
-                    this.data.focusIndex = -1;
-                    this.data.isActive = false;
-                },
-            };
-        }
-
-        return init();
+    svc.refreshFocusPoint = function(focusPoint, plotScope, isMainFocus, geometry) {
+        plotScope.broadcastEvent({
+            name: 'showFocusPointInfo',
+            focusPoint: focusPoint,
+            isMainFocus: isMainFocus,
+            geometry: geometry,
+        });
     };
 
-    // Each focus point info directive (focusCircle etc.) sets up the functions for its delegate
-    // The parent plot directive (plot2d etc.) provides the completion methods
-    // The interface property references the overlayInterface directive
-    this.setupInfoDelegate = function(name, showCompletion, hideCompletion, formatData) {
-
+    svc.setupFocusPoint = function(xAxis, yAxis, invertAxis, name) {
         return {
-            name: name,
-            focusPoints: [],
-            interface: null,
-            showFocusPointInfo: function() {
-                //srlog('Override showFocusPointInfo in directive for', name);
+            config: {
+                name: name,
+                color: 'steelblue',
+                invertAxis: invertAxis,
+                xAxis: xAxis,
+                yAxis: yAxis,
+                xLabel: '',
+                yLabel: '',
+            },
+            data: {
+                focusIndex: -1,
+                isActive: false,
+            },
+            load: function(axisPoints, preservePoint) {
+                if (preservePoint && (axisPoints.length != (this.config.points || []).length)) {
+                    preservePoint = false;
+                }
+                this.config.points = axisPoints;
+                if (preservePoint) {
+                    return true;
+                }
                 return false;
             },
-            showFocusPointInfoComplete: showCompletion || function() {
+            move: function(step) {
+                if (! this.data.isActive) {
+                    return false;
+                }
+                if (this.config.invertAxis) {
+                    step = -step;
+                }
+                var newIndex = this.data.focusIndex + step;
+                if (newIndex < 0 || newIndex >= this.config.points.length) {
+                    return false;
+                }
+                this.data.focusIndex = newIndex;
+                return true;
             },
-            moveFocusPointInfo: function() {
-                //srlog('Override moveFocusPointInfo in directive for', name);
-                return false;
+            unset: function() {
+                this.data.focusIndex = -1;
+                this.data.isActive = false;
             },
-            hideFocusPointInfo: function() {
-                //srlog('Override hideFocusPointInfo in directive for', name);
-                return false;
-            },
-            hideFocusPointInfoComplete: hideCompletion ||  function() {
-            },
-            setInfoVisible: function() {
-            },
-            isInfoVisible: function() {
-                return false;
-            },
-            doScreenChanges: function () {
-            },
-            formatFocusPointData: formatData || function(focusPoint) {
-                return svc.formatFocusPointData(focusPoint);
-            }
         };
     };
 
-    this.updateFocus = function(focusPoint, mouseX, mouseY, strategy) {
-
+    svc.updateFocus = function(focusPoint, mouseX, mouseY, strategy) {
         // lastClickX determines if the user is panning or clicking on a point
         if (! focusPoint.config.points || Math.abs(focusPoint.data.lastClickX - d3.event[focusPoint.config.invertAxis ? 'clientY' : 'clientX']) > 10) {
             return false;
@@ -902,13 +994,13 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
                 throw 'invalid focus point strategy: ' + strategy;
             }
         }
-        if(selectedPoint) {
-            return this.updateFocusData(focusPoint);
+        if (selectedPoint) {
+            return svc.updateFocusData(focusPoint);
         }
         return false;
     };
 
-    this.updateFocusData = function(focusPoint) {
+    svc.updateFocusData = function(focusPoint) {
         if (! focusPoint.data.isActive) {
             return false;
         }
@@ -1014,14 +1106,14 @@ SIREPO.app.service('focusPointService', function(plotting, layoutService) {
     }
 
     function processUnit(unit) {
-        if(! unit) {
+        if (! unit) {
             return null;
         }
         // units that are "1/<unit>" become "<unit>-1" (otherwise the "1" looks like part of the value)
         // Once laTeX is handled we won't need this kind of thing
         var isInverse = /^1\/([a-zA-Z]+)$/;
         var m = unit.match(isInverse);
-        if(m) {
+        if (m) {
             return m[1] + '-1';
         }
         return unit;
@@ -1046,7 +1138,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
         };
     };
 
-    this.plotAxis = function(margin, dimension, orientation, refresh) {
+    svc.plotAxis = function(margin, dimension, orientation, refresh) {
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
         // global value, don't allow margin updates during zoom/pad handling
@@ -1263,136 +1355,129 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
 
         return self;
     };
-
 });
 
-SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService, keypressService, $window) {
+SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressService, plotting, $timeout) {
     return {
         restrict: 'A',
         scope: {
             reportId: '<',
             focusPoints: '=',
-            hideFocusPoints: '&',
-            plotInfoDelegates: '=',
-            snapshotDelegate: '=',
             focusStrategy: '=',
         },
-        template: [
-        ].join(''),
         controller: function($scope, $element) {
+            if (! $scope.focusPoints) {
+                // interactiveOverlay only applies if focusPoints are defined on the plot
+                return;
+            }
+            plotting.setupSelector($scope, $element);
 
             // random id for this listener
             var listenerId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            var geometries = [];
+            var plotScope;
 
-            var d3self;
-            var self = this;
-            self.geometries = [];
-
-            var isTouchscreen = /Mobi|Silk/i.test($window.navigator.userAgent);
-
-            var delegates = $scope.plotInfoDelegates || [];
-            var snapshotDelegate = $scope.snapshotDelegate ||
-                focusPointService.setupInfoDelegate('snapshotDelegate-' + listenerId);
-            delegates.push(snapshotDelegate);
-            delegates.forEach(function (del) {
-                del.interface = self;
-            });
-
-            init();
-
-            self.copyToClipboard = copyToClipboard;
-
-            self.geometryForFocusPoint = function(fp) {
-                var fpIndex = $scope.focusPoints.indexOf(fp);
-                if(fpIndex < 0) {
-                    return null;
+            function copyToClipboard() {
+                if (! $scope.focusPoints || $scope.focusPoints.length === 0) {
+                    return;
                 }
-                return self.geometries[fpIndex];
-            };
+                var focusHint = plotScope.select('.focus-hint');
+                var focusText = plotScope.select('.focus-text');
+                focusText.style('display', 'none');
+                var inputField = $('<textarea>');
+                $('body').append(inputField);
 
-            self.removeKeyListener = function () {
-                keypressService.removeListener(listenerId);
-            };
+                var fmtText = '';
+                $scope.focusPoints.forEach(function(fp, fpIndex) {
+                    var fpt = plotScope.formatFocusPointData(fp);
+                    if (fpIndex === 0) {
+                        fmtText = fmtText + fpt.xText + '\n';
+                    }
+                    fmtText = fmtText + fpt.yText;
+                    if (fpt.fwhmText) {
+                        fmtText = fmtText + ', ' + fpt.fwhmText;
+                    }
+                    fmtText = fmtText + '\n';
+                });
+                inputField.val(fmtText).select();
+                try {
+                    document.execCommand('copy');
+                    focusHint.style('display', null);
+                    focusHint.text('Copied to clipboard');
+                    $timeout(function() {
+                        focusHint.style('display', 'none');
+                        focusText.style('display', null);
+                    }, 1000);
+                }
+                catch (e) {
+                }
+                inputField.remove();
+            }
 
             function init() {
-
-                if($scope.focusPoints) {
-                    for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                        self.geometries.push(setupGeometry());
-                    }
-                    snapshotDelegate.focusPoints = $scope.focusPoints;
+                if ($scope.focusPoints) {
+                    $scope.focusPoints.forEach(function(fp) {
+                        geometries.push(setupGeometry());
+                    });
                 }
+                $scope.select()
+                    .on('mousedown', onMouseDown)
+                    .on('click', onClick)
+                    .on('dblclick', copyToClipboard);
+            }
 
-                d3self = d3.selectAll($element);
-                d3self
-                    .on('mousedown', function() {
-                         if($scope.focusPoints) {
-                             for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                                 $scope.focusPoints[fpIndex].data.lastClickX = d3.event[$scope.focusPoints[fpIndex].config.invertAxis ? 'clientY' : 'clientX'];
-                             }
+            function onClick() {
+                /*jshint validthis: true*/
+                if (d3.event.defaultPrevented) {
+                    // ignore event if drag is occurring
+                    return;
+                }
+                // start listening on clicks instead of mouseover
+                keypressService.addListener(listenerId, onKeyDown, $scope.reportId);
+
+                if ($scope.focusPoints) {
+                    for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                        var fp = $scope.focusPoints[fpIndex];
+                        var geometry = geometries[fpIndex];
+                        if (! geometry) {
+                            geometry = setupGeometry();
+                            geometries[fpIndex] = geometry;
                         }
-                    })
-                    .on('click', function() {
-                        if (d3.event.defaultPrevented) {
-                            // ignore event if drag is occurring
-                            return;
-                        }
-
-                        // This is to hide the info across all "sibling" plots that this overlay does not know about
-                        // Must be defined in the parent directive (plot2d, etc.)
-                        $scope.hideFocusPoints();
-
-                        // start listening on clicks instead of mouseover
-                        keypressService.addListener(listenerId, onKeyDown, $scope.reportId);
-
-                        if($scope.focusPoints) {
-                            for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                                var fp = $scope.focusPoints[fpIndex];
-                                var geometry = self.geometries[fpIndex];
-                                if(! geometry) {
-                                    geometry = setupGeometry();
-                                    self.geometries[fpIndex] = geometry;
-                                }
-                                var axisIndex =  fp.config.invertAxis ? 1 : 0;
-                                geometry.isMainFocus = true;
-                                geometry.mouseX = d3.mouse(this)[axisIndex];
-                                geometry.mouseY = d3.mouse(this)[1 - axisIndex];
-                                if (focusPointService.updateFocus(fp, geometry.mouseX, geometry.mouseY, $scope.focusStrategy)) {
-                                    focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, fp, 'showFocusPointInfo', [geometry]);
-                                }
+                        var axisIndex =  fp.config.invertAxis ? 1 : 0;
+                        geometry.mouseX = d3.mouse(this)[axisIndex];
+                        geometry.mouseY = d3.mouse(this)[1 - axisIndex];
+                        if (focusPointService.updateFocus(fp, geometry.mouseX, geometry.mouseY, $scope.focusStrategy)) {
+                            focusPointService.refreshFocusPoint(fp, plotScope, true, geometry);
+                            if (plotScope.showFocusPointText) {
+                                plotScope.showFocusPointText(fp);
                             }
                         }
-
-                    })
-                    .on('dblclick', function() {
-                        copyToClipboard();
-                    });
+                    }
+                }
             }
 
             function onKeyDown() {
-
                 var keyCode = d3.event.keyCode;
                 var shiftFactor = d3.event.shiftKey ? 10 : 1;
 
                 // do some focusPoint-independent work outside the loop
                 if (keyCode == 27) { // escape
-                    self.removeKeyListener();
+                    removeKeyListener();
                 }
-                if(keyCode == 9) {  // tab
+                if (keyCode == 9) {  // tab
                     keypressService.enableNextListener(d3.event.shiftKey ? -1 : 1);
                     d3.event.preventDefault();
                 }
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     if (!$scope.focusPoints[fpIndex].data.isActive) {
                         return;
                     }
                     var doUpdate = false;
                     var fp = $scope.focusPoints[fpIndex];
-                    var geometry = self.geometries[fpIndex];
-                    geometry.isMainFocus = false;
+                    var geometry = geometries[fpIndex];
                     if (keyCode == 27) { // escape
                         fp.unset();
-                        focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, fp, 'hideFocusPointInfo');
+                        focusPointService.hideFocusPoint(plotScope);
                     }
                     if (keyCode == 37 || keyCode == 40) { // left & down
                         fp.move(-1 * shiftFactor);
@@ -1406,123 +1491,86 @@ SIREPO.app.directive('interactiveOverlay', function(plotting, focusPointService,
                     }
                     if (doUpdate) {
                         if (focusPointService.updateFocusData(fp)) {
-                            focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, fp, 'moveFocusPointInfo');
+                            focusPointService.moveFocusPoint(plotScope, fp);
                         }
                         else {
-                            focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, fp, 'hideFocusPointInfo');
+                            focusPointService.hideFocusPoint(plotScope);
                         }
                     }
                 }
             }
 
-            function copyToClipboard() {
-                if(! $scope.focusPoints || $scope.focusPoints.length === 0) {
-                    return;
+            function onMouseDown() {
+                if ($scope.focusPoints) {
+                    $scope.focusPoints.forEach(function(fp) {
+                        fp.data.lastClickX = d3.event[fp.config.invertAxis ? 'clientY' : 'clientX'];
+                    });
                 }
-                var focusHint = select('.focus-hint');
-                var focusText = select('.focus-text');
-                focusText.style('display', 'none');
-                var inputField = $('<textarea>');
-                $('body').append(inputField);
-
-                var fmtText = '';
-                $scope.focusPoints.forEach(function (fp, fpIndex) {
-                    var fpt = snapshotDelegate.formatFocusPointData(fp);
-                    if(fpIndex === 0) {
-                        fmtText = fmtText + fpt.xText + '\n';
-                    }
-                    fmtText = fmtText + fpt.yText;
-                    if(fpt.fwhmText) {
-                        fmtText = fmtText + ', ' + fpt.fwhmText;
-                    }
-                    fmtText = fmtText + '\n';
-                });
-                inputField.val(fmtText).select();
-                try {
-                    document.execCommand('copy');
-                    focusHint.style('display', null);
-                    focusHint.text('Copied to clipboard');
-                    setTimeout(function () {
-                        focusHint.style('display', 'none');
-                        focusText.style('display', null);
-                    }, 1000);
-                }
-                catch (e) {
-                }
-                inputField.remove();
             }
 
-            function select(selector) {
-                var e = d3.select(d3self.node().parentNode);
-                return e.select(selector);
+            function removeKeyListener() {
+                keypressService.removeListener(listenerId);
             }
 
-            function setupGeometry(isMainFocus) {
+            function setupGeometry() {
                 return {
                     mouseX: 0,
                     mouseY: 0,
-                    isMainFocus: isMainFocus || true
                 };
             }
 
-            // not all delegates may be added at init - listen for them being added
-            $scope.$on('delegate.added', function (event, delegate) {
-                delegate.interface = self;
+            init();
+
+            $scope.$on('$destroy', function(event) {
+                keypressService.removeReport($scope.reportId);
             });
 
-            $scope.$on('$destroy', function (event) {
-                keypressService.removeReport($scope.reportId);
+            $scope.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+                //TODO(pjm): shouldn't put on plot scope, but needed by popupReport
+                plotScope.copyToClipboard = copyToClipboard;
+            });
+
+            $scope.$on('sr-plotEvent', function(event, args) {
+                if (args.name == 'hideFocusPointInfo') {
+                    if (args.killFocus) {
+                        removeKeyListener();
+                    }
+                }
             });
         },
     };
 });
 
-SIREPO.app.directive('focusCircle', function(plotting, focusPointService) {
+SIREPO.app.directive('focusCircle', function(focusPointService, plotting) {
     return {
         restrict: 'A',
         scope: {
             focusPoint: '=',
-            plotInfoDelegate: '=',
+            isSoloPoint: '@',
         },
-        template: [
-            '',
-            // svg element outside a <svg> element don't work in MS Edge 38.14393
-            //'<circle r="6"></circle>',
-        ].join(''),
+        // no "template", svg element outside a <svg> element don't work in MS Edge 38.14393
         controller: function($scope, $element) {
+            plotting.setupSelector($scope, $element);
+            var defaultCircleSize = $scope.select('circle').attr('r');
 
-            var d3self;
-            if( $scope.plotInfoDelegate) {
-                $scope.plotInfoDelegate.showFocusPointInfo = showFocusCircle;
-                $scope.plotInfoDelegate.moveFocusPointInfo = moveFocusCircle;
-                $scope.plotInfoDelegate.hideFocusPointInfo = hideFocusCircle;
-                $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
+            function hideFocusCircle() {
+                $scope.select().style('display', 'none');
             }
 
-            init();
-
-            var defaultCircleSize;
-
-            function init() {
-                d3self = d3.selectAll($element);
+            function setInfoVisible(isVisible) {
+                // don't invoke hideFocusCircle() - we want the data in place
+                $scope.select('circle').style('opacity', isVisible ? 1.0 : 0.0);
             }
 
-            function showFocusCircle(geometry) {
-
-                if(! geometry) {
-                    geometry = $scope.plotInfoDelegate.interface.geometryForFocusPoint($scope.focusPoint);
-                }
-                var isMainFocus = geometry.isMainFocus;
-                d3self.style('display', null);
-                if(! focusPointService.updateFocusData($scope.focusPoint)) {
+            function showFocusCircle(isMainFocus) {
+                $scope.select().style('display', null);
+                if (! focusPointService.updateFocusData($scope.focusPoint)) {
                     hideFocusCircle();
                     return;
                 }
-                var circle = d3self.select('circle');
+                var circle = $scope.select('circle');
                 if (isMainFocus) {
-                    if (! defaultCircleSize) {
-                        defaultCircleSize = circle.attr('r');
-                    }
                     circle.attr('r', defaultCircleSize);
                 }
                 else {
@@ -1530,146 +1578,115 @@ SIREPO.app.directive('focusCircle', function(plotting, focusPointService) {
                 }
                 circle.style('stroke', $scope.focusPoint.config.color);
                 var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoint);
-                d3self.attr('transform', 'translate(' + mouseCoords.x + ',' + mouseCoords.y + ')');
-                $scope.plotInfoDelegate.showFocusPointInfoComplete($scope.focusPoint);
+                $scope.select().attr('transform', 'translate(' + mouseCoords.x + ',' + mouseCoords.y + ')');
             }
-            function moveFocusCircle() {
-                if (focusPointService.updateFocusData($scope.focusPoint)) {
-                    showFocusCircle({isMainFocus: false});
+
+            $scope.$on('sr-plotEvent', function(event, args) {
+                if (args.name == 'showFocusPointInfo') {
+                    if ($scope.isSoloPoint) {
+                        if (args.focusPoint == $scope.focusPoint) {
+                            showFocusCircle(args.isMainFocus);
+                        }
+                        else if (args.isMainFocus) {
+                            hideFocusCircle();
+                            $scope.focusPoint.unset();
+                        }
+                    }
+                    else {
+                        showFocusCircle(args.isMainFocus);
+                    }
                 }
-                else {
+                else if (args.name == 'hideFocusPointInfo') {
                     hideFocusCircle();
                 }
-            }
-            function hideFocusCircle() {
-                d3self.style('display', 'none');
-                $scope.plotInfoDelegate.hideFocusPointInfoComplete();
-            }
-
-            // don't invoke hideFocusCircle() - we want the data in place
-            function setInfoVisible(isVisible) {
-                d3self.select('circle').style('opacity', isVisible ? 1.0 : 0.0);
-            }
-
+                else if (args.name == 'moveFocusPointInfo') {
+                    if (args.focusPoint == $scope.focusPoint) {
+                        showFocusCircle();
+                    }
+                }
+                else if (args.name == 'setInfoVisible') {
+                    if (args.focusPoint == $scope.focusPoint) {
+                        setInfoVisible(args.isVisible);
+                    }
+                }
+            });
         },
     };
 });
 
-SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilities) {
+SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
     return {
         restrict: 'A',
         scope: {
             focusPoints: '=',
-            plotInfoDelegate: '=',
         },
         template: [
             '<g class="popup-group">',
-                '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
-                    '<g>',
-                        '<rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>',
-                        '<g ng-drag-handle="">',
-                            '<rect class="report-window-title-bar" x="1" y="1"></rect>',
-                            '<text class="report-window-title-icon report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
-                            '<text class="report-window-title-icon report-window-copy" y="0" dy="1.5em" dx="0.5em">',
-                                '&#xe205;',
-                            '</text>',
-                        '</g>',
-                    '</g>',
-                    '<g class="text-block">',
-                        '<text id="x-text" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                        '<g class="text-group" data-ng-repeat="fp in focusPoints">',
-                        // the space value is needed for PNG download on MSIE 11
-                            '<g data-ng-attr-id="y-text-{{$index}}">',
-                            '</g>',
-                            '<g class="fwhm-text-group">',
-                                '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
-                            '</g>',
-                        '</g>',
-                    '</g>',
+              '<g data-is-svg="true" data-ng-drag="true" data-ng-drag-data="focusPoints" data-ng-drag-success="dragDone($data, $event)">',
+                '<g>',
+                  '<rect class="report-window" rx="4px" ry="4px" x="0" y="0"></rect>',
+                  '<g ng-drag-handle="">',
+                    '<rect class="report-window-title-bar" x="1" y="1"></rect>',
+                    '<text class="report-window-title-icon report-window-close close" y="0" dy="1em" dx="-1em">&#215;</text>',
+                    '<text class="report-window-title-icon report-window-copy" y="0" dy="1.5em" dx="0.5em">',
+                      '&#xe205;',
+                    '</text>',
+                  '</g>',
                 '</g>',
+                '<g class="text-block">',
+                  '<text id="x-text" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                  '<g class="text-group" data-ng-repeat="fp in focusPoints">',
+                  // the space value is needed for PNG download on MSIE 11
+                    '<g data-ng-attr-id="y-text-{{$index}}"></g>',
+                    '<g class="fwhm-text-group">',
+                      '<text data-ng-attr-id="fwhm-text-{{$index}}" class="focus-text-popup" x="0" dx="0.5em"> </text>',
+                    '</g>',
+                  '</g>',
+                '</g>',
+              '</g>',
               // this element is used to check the size of strings for wrapping.  It cannot be hidden or the size
               // will be 0, so instead we make the text transparent
               '<text class="hidden-txt-layout" fill="none"></text>',
             '</g>',
         ].join(''),
         controller: function($scope, $element) {
-
-            // TODO(mvk): allow resize?
-
-            $scope.plotting = plotting;
-
-            $scope.$on('$destroy', function() {
-                group.select('.report-window-close')
-                    .on('click', null);
-                group.select('.report-window-copy')
-                    .on('click', null);
-                document.removeEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-            });
-
-            // ngDraggable interprets even clicks as starting a drag event - we don't want to do transforms later
-            // unless we really moved it
-            $scope.$on('draggable:move', function(event, obj) {
-                // all popups will hear this event, so confine logic to this one
-                if(obj.element[0] == dgElement[0]) {
-                    moveEventDetected = true;
-                }
-            });
-
-            $scope.dragDone = function($data, $event) {
-                didDragToNewPositon = true;
-                var xf = currentXform();
-                if(moveEventDetected) {
-                    showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty}, true);
-                }
-                moveEventDetected = false;
-            };
-
-            $scope.overlaySize = function() {
-                return {
-                    width: parseInt(d3self.attr('width')),
-                    height: parseInt(d3self.attr('height'))
-                };
-            };
+            if (! $scope.focusPoints) {
+                // popupReport only applies if focusPoints are defined on the plot
+                return;
+            }
+            plotting.setupSelector($scope, $element);
 
             var borderWidth = 1;
-            var d3self;
-            var dgElement;
             var didDragToNewPositon = false;
-            var fullscreenElement = null;
-            var fullscreenChangesPending = false;
-            var group;
             var moveEventDetected = false;
             var popupMargin = 4;
-            var rptWindow;
             var textMargin = 8;
             var titleBarHeight = 24;
+            var dgElement;
+            var group;
+            var plotScope;
 
             function closePopup() {
-                $scope.plotInfoDelegate.interface.removeKeyListener();
-                didDragToNewPositon = false;
-                hidePopup();
+                focusPointService.hideFocusPoint(plotScope, true);
             }
 
             function copyToClipboard() {
-                group.select('.report-window-copy')
+                $scope.select('.report-window-copy')
                     .transition()
                     .delay(0)
                     .duration(100)
                     .style('fill', 'white')
                     .transition()
                     .style('fill', null);
-                $scope.plotInfoDelegate.interface.copyToClipboard();
+                plotScope.copyToClipboard();
             }
 
-            function currentXform(d3Element) {
-                if(! d3Element) {
-                    d3Element = group;
-                }
+            function currentXform() {
                 var xform = {
                     tx: NaN,
                     ty: NaN
                 };
-                var reportTransform = d3Element.attr('transform');
+                var reportTransform = group.attr('transform');
                 if (reportTransform) {
                     var xlateIndex = reportTransform.indexOf('translate(');
                     if (xlateIndex >= 0) {
@@ -1683,45 +1700,14 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                 return xform;
             }
 
-            function doScreenChanges() {
-                if(! fullscreenChangesPending) {
-                    return;
-                }
-                didDragToNewPositon = false;
-                movePopup();
-                fullscreenChangesPending = false;
-            }
-
-            function fullscreenChangehandler(evt) {
-                if(isInfoVisible()) {
-                    if(! utilities.isFullscreen()) {
-                        if(fullscreenElement) {
-                            fullscreenChangesPending = true;
-                            fullscreenElement = null;
-                        }
-                    }
-                    else {
-                        var fsel = utilities.getFullScreenElement();
-                        if(fsel && fsel.contains($element[0])) {
-                            fullscreenChangesPending = true;
-                            fullscreenElement = fsel;
-                        }
-                    }
-                }
-            }
-
             function hidePopup() {
-                d3self.style('display', 'none');
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    $scope.focusPoints[fpIndex].unset();
-                }
-                $scope.plotInfoDelegate.hideFocusPointInfoComplete();
+                didDragToNewPositon = false;
+                $scope.select().style('display', 'none');
             }
 
             function init() {
-                d3self = d3.selectAll($element);
-                group = d3self.select('.popup-group');
-                rptWindow = group.select('.report-window');
+                $scope.focusPoints.allowClone = false;
+                group = $scope.select('.popup-group');
                 dgElement = angular.element(group.select('g').node());
                 group.select('.report-window-close')
                     .on('click', closePopup);
@@ -1729,28 +1715,20 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                     .on('click', copyToClipboard);
             }
 
-            function isInfoVisible() {
-                return d3self.style('display') === 'block';
-            }
-
-            // move in response to arrow keys - but if user dragged the window we assume they don't
-            // want it to track the focus point
             function movePopup() {
-                if(! didDragToNewPositon) {
+                // move in response to arrow keys - but if user dragged the window we assume they don't
+                // want it to track the focus point
+                if (didDragToNewPositon) {
+                    refreshText();
+                }
+                else {
                     // just use the first focus point
                     var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoints[0]);
                     var xf = currentXform();
-                    if(! isNaN(xf.tx) && ! isNaN(xf.ty)) {
+                    if (! isNaN(xf.tx) && ! isNaN(xf.ty)) {
                         showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
                     }
                 }
-                else {
-                    refreshText();
-                }
-            }
-
-            function popupTextSize() {
-                return group.select('.text-block').node().getBBox();
             }
 
             function popupTitleSize() {
@@ -1761,23 +1739,22 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
             }
 
             function popupWindowSize() {
-                var tw = popupTextSize().width;
-                var th = popupTextSize().height;
-                var maxWidth = parseFloat(d3self.attr('width')) - 2 * popupMargin;
-                var maxHeight = parseFloat(d3self.attr('height')) - 2 * popupMargin;
+                var bbox = group.select('.text-block').node().getBBox();
+                var maxWidth = parseFloat($scope.select().attr('width')) - 2 * popupMargin;
+                var maxHeight = parseFloat($scope.select().attr('height')) - 2 * popupMargin;
                 return {
-                    width: Math.min(maxWidth, tw + 2 * textMargin),
-                    height: Math.min(maxHeight, titleBarHeight + th + 2 * textMargin)
+                    width: Math.min(maxWidth, bbox.width + 2 * textMargin),
+                    height: Math.min(maxHeight, titleBarHeight + bbox.height + 2 * textMargin)
                 };
             }
 
             function refreshText() {
                 // format data
-                var maxWidth = parseFloat(d3self.attr('width')) - 2 * popupMargin - 2 * textMargin;
+                var maxWidth = selectAttr('width') - 2 * popupMargin - 2 * textMargin;
 
                 // all focus points share the same x value
-                var xText = $scope.plotInfoDelegate.formatFocusPointData($scope.focusPoints[0]).xText;
-                var hNode = d3self.select('.hidden-txt-layout');
+                var xText = plotScope.formatFocusPointData($scope.focusPoints[0]).xText;
+                var hNode = $scope.select('.hidden-txt-layout');
                 var tNode = group.select('#x-text')
                     .text(xText)
                     .style('fill', '#000000')
@@ -1785,13 +1762,13 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
                     .attr('dy', '1em');
                 var tSize = tNode.node().getBBox();
                 var txtY = tSize.y + tSize.height;
-                $scope.focusPoints.forEach(function (fp, fpIndex) {
+                $scope.focusPoints.forEach(function(fp, fpIndex) {
                     var color = fp.config.color;
-                    var fmtText = $scope.plotInfoDelegate.formatFocusPointData(fp);
+                    var fmtText = plotScope.formatFocusPointData(fp);
                     var fits = plotting.fitSplit(fmtText.yText, hNode, maxWidth);
                     var yGrp = group.select('#y-text-' + fpIndex);
                     yGrp.selectAll('text').remove();
-                    fits.forEach(function (str) {
+                    fits.forEach(function(str) {
                         tNode = yGrp.append('text')
                             .text(str)
                             .attr('class', 'focus-text-popup')
@@ -1816,15 +1793,19 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
 
             function refreshWindow() {
                 var size = popupWindowSize();
-                d3self.select('.report-window')
+                $scope.select('.report-window')
                     .attr('width', size.width)
                     .attr('height', size.height);
                 var tSize = popupTitleSize();
-                d3self.select('.report-window-title-bar')
+                $scope.select('.report-window-title-bar')
                     .attr('width', tSize.width)
                     .attr('height', tSize.height);
-                d3self.select('.report-window-close')
+                $scope.select('.report-window-close')
                     .attr('x', size.width);
+            }
+
+            function selectAttr(name) {
+                return parseFloat($scope.select().attr(name));
             }
 
             function setInfoVisible(pIndex, isVisible) {
@@ -1836,55 +1817,76 @@ SIREPO.app.directive('popupReport', function(plotting, focusPointService, utilit
             }
 
             function showPopup(geometry, isReposition) {
-                if(! geometry) {
-                    return true;
-                }
-                d3self.style('display', 'block');
+                $scope.select().style('display', 'block');
                 refreshText();
                 if (didDragToNewPositon && ! isReposition) {
-                    return true;
+                    return;
                 }
-                var x = geometry.mouseX;
-                var y = geometry.mouseY;
-
                 // set position and size
-                var newX = Math.max(popupMargin, x);
-                var newY = Math.max(popupMargin, y);
-
-                var reportWidth = parseFloat(d3self.attr('width'));
-                var reportHeight = parseFloat(d3self.attr('height'));
+                var newX = Math.max(popupMargin, geometry.mouseX);
+                var newY = Math.max(popupMargin, geometry.mouseY);
+                var rptWindow = group.select('.report-window');
                 var tbw = parseFloat(rptWindow.attr('width'));
                 var tbh = parseFloat(rptWindow.attr('height'));
-                var borderWidth = utilities.fontSizeFromString(rptWindow.style('stroke-width'));
 
-                newX = Math.min(reportWidth - tbw - popupMargin, newX);
-                newY = Math.min(reportHeight - tbh - popupMargin, newY);
+                newX = Math.min(selectAttr('width') - tbw - popupMargin, newX);
+                newY = Math.min(selectAttr('height') - tbh - popupMargin, newY);
                 group.attr('transform', 'translate(' + newX + ',' + newY + ')');
                 group.select('.report-window-title-bar').attr('width', tbw - 2 * borderWidth);
-                return true;
             }
 
-            // listen for going to/from fullscreen so we can reposition the popup - otherwise it can get
-            // stuck offscreen until the user interacts with the plot again
-            document.addEventListener(utilities.fullscreenListenerEvent(), fullscreenChangehandler);
-
-            $scope.focusPoints.allowClone = false;
-            if($scope.plotInfoDelegate) {
-                $scope.plotInfoDelegate.showFocusPointInfo = showPopup;
-                $scope.plotInfoDelegate.hideFocusPointInfo = hidePopup;
-                $scope.plotInfoDelegate.moveFocusPointInfo = movePopup;
-                $scope.plotInfoDelegate.setInfoVisible = setInfoVisible;
-                $scope.plotInfoDelegate.isInfoVisible = isInfoVisible;
-                $scope.plotInfoDelegate.doScreenChanges = doScreenChanges;
-            }
+            $scope.dragDone = function($data, $event) {
+                didDragToNewPositon = true;
+                var xf = currentXform();
+                if (moveEventDetected) {
+                    showPopup({mouseX: xf.tx + $event.tx, mouseY: xf.ty + $event.ty}, true);
+                }
+                moveEventDetected = false;
+            };
 
             init();
 
+            $scope.$on('sr-plotEvent', function(event, args) {
+                if (args.name == 'showFocusPointInfo') {
+                    if (args.geometry) {
+                        showPopup(args.geometry);
+                    }
+                }
+                else if (args.name == 'hideFocusPointInfo') {
+                    hidePopup();
+                }
+                else if (args.name == 'moveFocusPointInfo') {
+                    movePopup();
+                }
+                else if (args.name == 'setInfoVisible') {
+                    setInfoVisible(args.index, args.isVisible);
+                }
+            });
+
+            $scope.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+            });
+
+            $scope.$on('$destroy', function() {
+                group.select('.report-window-close')
+                    .on('click', null);
+                group.select('.report-window-copy')
+                    .on('click', null);
+            });
+
+            // ngDraggable interprets even clicks as starting a drag event - we don't want to do transforms later
+            // unless we really moved it
+            $scope.$on('draggable:move', function(event, obj) {
+                // all popups will hear this event, so confine logic to this one
+                if (obj.element[0] == dgElement[0]) {
+                    moveEventDetected = true;
+                }
+            });
         },
     };
 });
 
-SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, layoutService, $timeout) {
+SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -1893,152 +1895,31 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 10, bottom: 50, left: 75};
-            $scope.width = $scope.height = 0;
-            $scope.dataCleared = true;
-
+            var points;
             $scope.focusPoints = [];
 
-            $scope.popupDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-popup-delegate',
-                null,
-                function() {
-                    $scope.focusCircleDelegate.hideFocusPointInfo();
-                },
-                formatFocusPointData
-            );
-            $scope.snapshotDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-snapshot-delegate',
-                null,
-                null,
-                formatFocusPointData
-            );
-
-            $scope.focusCircleDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-circle-delegate',
-                null,
-                null,
-                null
-            );
-            $scope.focusCircleDelegates = [$scope.focusCircleDelegate];
-            if(! $scope.plotInfoDelegates) {
-                $scope.plotInfoDelegates = [];
-            }
-            $scope.plotInfoDelegates.push($scope.popupDelegate);
-            $scope.plotInfoDelegates.push($scope.focusCircleDelegate);
-
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-
-            var graphLine, points, zoom;
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
-            };
-
-            function formatFocusPointData(fp) {
+            $scope.formatFocusPointData = function(fp) {
                 return focusPointService.formatFocusPointData(fp);
-            }
+            };
 
-            function refresh() {
-                if (! axes.x.domain) {
-                    return;
-                }
-                if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (! points || isNaN(width)) {
-                        return;
-                    }
-                    $scope.width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.height = ASPECT_RATIO * $scope.width;
-                    select('svg')
-                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                    axes.x.scale.range([0, $scope.width]);
-                    axes.y.scale.range([$scope.height, 0]);
-                    axes.x.grid.tickSize(-$scope.height);
-                    axes.y.grid.tickSize(-$scope.width);
-                }
-                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
-                    select('.overlay').attr('class', 'overlay mouse-zoom');
-                    axes.y.scale.domain(axes.y.domain).nice();
-                }
-                else {
-                    select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    plotting.recalculateDomainFromPoints(axes.y.scale, points[0], axes.x.scale.domain());
-                }
-                resetZoom();
-                select('.overlay').call(zoom);
-                plotting.refreshConvergencePoints(select, '.plot-viewport', graphLine);
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope.plotInfoDelegates);
-                }
-                $.each(axes, function (dim, axis) {
-                    axis.updateLabelAndTicks({
-                        width: $scope.width,
-                        height: $scope.height,
-                    }, select);
-                    axis.grid.ticks(axis.tickCount);
-                    select('.' + dim + '.axis.grid').call(axis.grid);
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    aspectRatio: 4.0 / 7,
+                    margin: {top: 50, right: 10, bottom: 50, left: 75},
                 });
-
-                // need to wait until the grids have been refreshed to reposition the
-                // popup report
-                $timeout(function() {
-                    $scope.popupDelegate.doScreenChanges();
-                }, 100);
-
-            }
-
-            function resetZoom() {
-                zoom = axes.x.createZoom($scope);
-            }
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            $scope.clearData = function () {
-                $scope.dataCleared = true;
-                axes.x.domain = null;
+                $scope.focusPoints.push(
+                    focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false));
             };
 
-            $scope.destroy = function () {
-                zoom.on('zoom', null);
-                $('.overlay').off();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
-            };
-
-            $scope.init = function () {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                $.each(axes, function (dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
-                });
-                graphLine = d3.svg.line()
-                    .x(function (d) {
-                        return axes.x.scale(d[0]);
-                    })
-                    .y(function (d) {
-                        return axes.y.scale(d[1]);
-                    });
-                var focusPoint = focusPointService.setupFocusPoint(axes.x, axes.y, false);
-                $scope.focusPoints.push(focusPoint);
-                $scope.popupDelegate.focusPoints.push(focusPoint);
-                $scope.focusCircleDelegate.focusPoints.push(focusPoint);
-                resetZoom();
-            };
-
-            $scope.load = function (json) {
-                $scope.dataCleared = false;
+            $scope.load = function(json) {
                 var xPoints = json.x_points
                     ? json.x_points
                     : plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
-                if (!(axes.x.domain && axes.x.domain[0] == xdom[0] && axes.x.domain[1] == xdom[1])) {
-                    axes.x.domain = xdom;
+                if (!($scope.axes.x.domain && $scope.axes.x.domain[0] == xdom[0] && $scope.axes.x.domain[1] == xdom[1])) {
+                    $scope.axes.x.domain = xdom;
                     points = [];
-                    axes.x.scale.domain(xdom);
+                    $scope.axes.x.scale.domain(xdom);
                 }
                 if (!SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS) {
                     points = [];
@@ -2047,37 +1928,28 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
                 if (ymin > 0) {
                     ymin = 0;
                 }
-                axes.y.domain = [ymin, d3.max(json.points)];
-                axes.y.scale.domain(axes.y.domain).nice();
+                $scope.axes.y.domain = [ymin, d3.max(json.points)];
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
                 var p = d3.zip(xPoints, json.points);
-                plotting.addConvergencePoints(select, '.plot-viewport', points, p);
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', points, p);
 
-                $.each(axes, function (dim, axis) {
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
-                });
-                $scope.focusPoints.forEach(function (fp) {
-                    focusPointService.loadFocusPoint(fp, p, true, $scope.plotInfoDelegates);
+                $scope.focusPoints.forEach(function(fp) {
+                    focusPointService.loadFocusPoint(fp, p, true, $scope);
                     fp.config.xLabel = json.x_label;
                     fp.config.yLabel = json.y_label;
                 });
-                select('.main-title').text(json.title);
-                select('.sub-title').text(json.subtitle);
-                $scope.resize();
+
+                $scope.updatePlot(json);
             };
 
-            $scope.resize = function () {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
+            $scope.recalculateYDomain = function() {
+                plotting.recalculateDomainFromPoints($scope.axes.y.scale, points[0], $scope.axes.x.scale.domain());
             };
 
-            // unset focus point and hide info
-            $scope.hideFocusPoints = function() {
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    $scope.focusPoints[fpIndex].unset();
-                    focusPointService.invokeDelegatesForFocusPoint($scope.plotInfoDelegates, $scope.focusPoints[fpIndex], 'hideFocusPointInfo');
+            $scope.refresh = function() {
+                plotting.refreshConvergencePoints($scope.select, '.plot-viewport', $scope.graphLine);
+                for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                    focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope);
                 }
             };
         },
@@ -2087,7 +1959,7 @@ SIREPO.app.directive('plot2d', function(plotting, utilities, focusPointService, 
     };
 });
 
-SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPointService, layoutService, keypressService) {
+SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2113,41 +1985,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
             $scope.dataCleared = true;
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
             $scope.focusTextCloseSpace = 18;
-
             $scope.focusPoints = [];
-
-            $scope.focusCircleDelegateBottom = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-circle-delegate-bottom',
-                showFocusPointText,
-                hideFocusPointText,
-                null
-            );
-
-            $scope.focusCircleDelegateRight = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-circle-delegate-right',
-                showFocusPointText,
-                hideFocusPointText,
-                null
-            );
-
-            $scope.snapshotDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-text-delegate',
-                null,
-                null,
-                formatForSnapshot
-            );
-
-            if(! $scope.plotInfoDelegatesBottom) {
-                $scope.plotInfoDelegatesBottom = [];
-            }
-            if(! $scope.plotInfoDelegatesRight) {
-                $scope.plotInfoDelegatesRight = [];
-            }
-            $scope.plotInfoDelegatesBottom.push($scope.focusCircleDelegateBottom);
-            $scope.plotInfoDelegatesRight.push($scope.focusCircleDelegateRight);
-
-
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
             var cacheCanvas, imageData;
@@ -2188,12 +2026,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 }
             }
 
-            function centerTitle() {
-                $scope.titleCenter = centerNode(select('text.main-title').node(), $scope.titleCenter);
-            }
-            function centerSubTitle() {
-                $scope.subTitleCenter = centerNode(select('text.sub-title').node(), $scope.subTitleCenter);
-            }
             function centerNode(node, defaultCtr) {
                 // center the node over the image; if node is too large, center it over whole plot
                 if (node && ! (node.style && node.style.display == 'none')) {
@@ -2204,10 +2036,18 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     }
                     return ctr;
                 }
-                if(defaultCtr) {
+                if (defaultCtr) {
                     return defaultCtr;
                 }
                 return 0;
+            }
+
+            function centerSubTitle() {
+                $scope.subTitleCenter = centerNode(select('text.sub-title').node(), $scope.subTitleCenter);
+            }
+
+            function centerTitle() {
+                $scope.titleCenter = centerNode(select('text.main-title').node(), $scope.titleCenter);
             }
 
             function clipDomain(scale, axisName) {
@@ -2238,21 +2078,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 return canMove[0] + canMove[1];
             }
 
-            function sumRegion(isWidth, bottom, top, left, right) {
-                var points = [];
-                var max = isWidth ? right : top;
-                for (var i = 0; i <= max; i++) {
-                    points[i] = 0;
-                }
-                for (i = bottom; i <= top; i++) {
-                    for (var j = left; j <= right; j++) {
-                        var index = isWidth ? j : i;
-                        points[index] += heatmap[axes.y.values.length - 1 - i][j];
-                    }
-                }
-                return points;
-            }
-
             function drawBottomPanelCut() {
                 var row;
                 var yBottom = axes.y.indexScale(axes.y.scale.domain()[0]);
@@ -2272,7 +2097,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 var points = d3.zip(axes.x.values, row);
                 plotting.recalculateDomainFromPoints(axes.bottomY.scale, points, axes.x.scale.domain());
                 drawLineout('x', yv, points, axes.x.cutLine);
-                focusPointService.loadFocusPoint($scope.focusPointX, points, true, $scope.plotInfoDelegatesBottom);
+                focusPointService.loadFocusPoint($scope.focusPointX, points, true, $scope);
             }
 
             function drawLineout(axis, key, points, cutLine) {
@@ -2307,13 +2132,13 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                         Math.ceil(xRight - 0.5)));
                 }
                 else {
-                    points = heatmap.map(function (v, i) {
+                    points = heatmap.map(function(v, i) {
                         return [axes.y.values[axes.y.values.length - 1 - i], v[xv]];
                     });
                 }
                 plotting.recalculateDomainFromPoints(axes.rightX.scale, points, axes.y.scale.domain(), true);
                 drawLineout('y', xv, points, axes.y.cutLine);
-                focusPointService.loadFocusPoint($scope.focusPointY, points, true, $scope.plotInfoDelegatesRight);
+                focusPointService.loadFocusPoint($scope.focusPointY, points, true, $scope);
             }
 
             function exceededMaxZoom(scale, axisName) {
@@ -2322,18 +2147,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 var d = scale.domain();
                 var pixels = (axisName == 'x' ? axes.x.values : axes.y.values).length * (d[1] - d[0]) / domainSize;
                 return pixels < MIN_PIXEL_RESOLUTION;
-            }
-
-            function formatFocusPointData(fp) {
-                return focusPointService.formatFocusPointData(fp);
-            }
-
-            function formatForSnapshot(fp) {
-                return focusPointService.formatFocusPointData(
-                    fp,
-                    fp.config.xAxis.label,
-                    select('.z-axis-label').text()
-                );
             }
 
             function refresh() {
@@ -2400,8 +2213,8 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 select('.right-panel .x.axis').call(axes.rightX.svgAxis);
                 select('.x.axis.grid').call(axes.x.grid);
                 select('.y.axis.grid').call(axes.y.grid);
-                focusPointService.refreshFocusPoint($scope.focusPointX, $scope.plotInfoDelegatesBottom);
-                focusPointService.refreshFocusPoint($scope.focusPointY, $scope.plotInfoDelegatesRight);
+                focusPointService.refreshFocusPoint($scope.focusPointX, $scope);
+                focusPointService.refreshFocusPoint($scope.focusPointY, $scope);
                 prevDomain = [
                     axes.x.scale.domain(),
                     axes.y.scale.domain(),
@@ -2416,31 +2229,6 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 axes.y.zoom = axes.y.createZoom($scope);
             }
 
-            function restoreDomain(scale, oldValue) {
-                var d = scale.domain();
-                d[0] = oldValue[0];
-                d[1] = oldValue[1];
-            }
-
-            function showFocusPointText(focusPoint) {
-                select('.focus-text-close').style('display', 'block');
-
-                var focusText = select('.focus-text');
-                var fmtTxt = formatFocusPointData(focusPoint);
-                var xyfText = fmtTxt.xText + ', ' + fmtTxt.yText;
-                if(fmtTxt.fwhmText) {
-                    xyfText = xyfText + ', ' + fmtTxt.fwhmText;
-                }
-                if(focusPoint == $scope.focusPointX) {
-                    xyfText = xyfText + ' ↓';
-                }
-                if(focusPoint == $scope.focusPointY) {
-                    xyfText = xyfText + ' →';
-                }
-                select('.sub-title').style('display', 'none');
-                focusText.text(xyfText);
-                resizefocusPointText();
-            }
             function resizefocusPointText() {
                 var maxSize = 14;
                 var minSize = 9;
@@ -2458,18 +2246,31 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 newFontSize = Math.min(maxSize, newFontSize);
                 focusText.style('font-size', newFontSize + 'px');
             }
-            function hideFocusPointText() {
-                // don't hide text if other plot has focus point
-                if(! $scope.focusPointX.data.isActive && ! $scope.focusPointY.data.isActive) {
-                    select('.focus-text').text('');
-                    select('.focus-text-close').style('display', 'none');
-                    select('.sub-title').style('display', 'block');
-                }
+
+            function restoreDomain(scale, oldValue) {
+                var d = scale.domain();
+                d[0] = oldValue[0];
+                d[1] = oldValue[1];
             }
 
             function select(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
+            }
+
+            function sumRegion(isWidth, bottom, top, left, right) {
+                var points = [];
+                var max = isWidth ? right : top;
+                for (var i = 0; i <= max; i++) {
+                    points[i] = 0;
+                }
+                for (i = bottom; i <= top; i++) {
+                    for (var j = left; j <= right; j++) {
+                        var index = isWidth ? j : i;
+                        points[index] += heatmap[axes.y.values.length - 1 - i][j];
+                    }
+                }
+                return points;
             }
 
             $scope.clearData = function() {
@@ -2485,7 +2286,28 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
             };
 
+            $scope.formatFocusPointData = function(fp) {
+                return focusPointService.formatFocusPointData(
+                    fp,
+                    fp.config.xAxis.label,
+                    select('.z-axis-label').text()
+                );
+            };
+
+            $scope.hideFocusPointText = function() {
+                select('.focus-text').text('');
+                select('.focus-text-close').style('display', 'none');
+                select('.sub-title').style('display', 'block');
+            };
+
+            $scope.hideFocusPoints = function() {
+                focusPointService.hideFocusPoint($scope, true);
+                $scope.focusPointX.unset();
+                $scope.focusPointY.unset();
+            };
+
             $scope.init = function() {
+                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
                 select('svg').attr('height', plotting.initialHeight($scope));
                 axes.x.init();
                 axes.y.init();
@@ -2507,10 +2329,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                     .x(function(d) { return axes.rightX.scale(d[1]);});
 
                 $scope.focusPointX = focusPointService.setupFocusPoint(axes.x, axes.bottomY, false, $scope.modelName + '-fp-X');
-                $scope.focusCircleDelegateBottom.focusPoints.push($scope.focusPointX);
                 $scope.focusPointY = focusPointService.setupFocusPoint(axes.y, axes.rightX, true, $scope.modelName + '-fp-Y');
-                $scope.focusCircleDelegateRight.focusPoints.push($scope.focusPointY);
-
                 select('.focus-text-close')
                     .on('click', $scope.hideFocusPoints);
            };
@@ -2576,19 +2395,25 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
                 refresh();
             };
 
-            $scope.hideFocusPoints = function() {
-                keypressService.removeListenersForReport($scope.reportId);
-                $scope.focusPointX.unset();
-                $scope.focusPointY.unset();
-                var dIndex = 0;
-                for(dIndex = 0; dIndex < $scope.plotInfoDelegatesBottom.length; ++dIndex) {
-                    $scope.plotInfoDelegatesBottom[dIndex].hideFocusPointInfo();
-                }
-                for(dIndex = 0; dIndex < $scope.plotInfoDelegatesRight.length; ++dIndex) {
-                    $scope.plotInfoDelegatesRight[dIndex].hideFocusPointInfo();
-                }
-            };
+            $scope.showFocusPointText = function(focusPoint) {
+                select('.focus-text-close').style('display', 'block');
 
+                var focusText = select('.focus-text');
+                var fmtTxt = focusPointService.formatFocusPointData(focusPoint);
+                var xyfText = fmtTxt.xText + ', ' + fmtTxt.yText;
+                if (fmtTxt.fwhmText) {
+                    xyfText = xyfText + ', ' + fmtTxt.fwhmText;
+                }
+                if (focusPoint == $scope.focusPointX) {
+                    xyfText = xyfText + ' ↓';
+                }
+                if (focusPoint == $scope.focusPointY) {
+                    xyfText = xyfText + ' →';
+                }
+                select('.sub-title').style('display', 'none');
+                focusText.text(xyfText);
+                resizefocusPointText();
+            };
 
             $scope.$on(SIREPO.PLOTTING_LINE_CSV_EVENT, function(evt, axisName) {
                 var keys = Object.keys(lineOuts[axisName]);
@@ -2606,7 +2431,7 @@ SIREPO.app.directive('plot3d', function(appState, plotting, utilities, focusPoin
     };
 });
 
-SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutService) {
+SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2817,8 +2642,7 @@ SIREPO.app.directive('heatmap', function(appState, plotting, utilities, layoutSe
     };
 });
 
-//TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPointService, plotting, utilities) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -2827,178 +2651,18 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-
-            var ASPECT_RATIO = 4.0 / 7;
-            $scope.focusStrategy = 'closest';
-            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
-            $scope.wantLegend = true;
-            $scope.width = $scope.height = 0;
-            $scope.dataCleared = true;
-
-            $scope.focusPoints = [];
-            $scope.focusCircleDelegates = [];
-            $scope.popupDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-popup-delegate',
-                null,
-                function() {
-                    $scope.focusCircleDelegates.forEach(function (del) {
-                        del.hideFocusPointInfo();
-                    });
-                },
-                formatFocusPointData
-            );
-            $scope.plotInfoDelegates = [$scope.popupDelegate];
-
-            $scope.snapshotDelegate = focusPointService.setupInfoDelegate(
-                $scope.modelName + '-snapshot-delegate',
-                null,
-                null,
-                formatFocusPointData
-            );
-
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
-            };
-            var graphLine, zoom;
             var includeForDomain = [];
             var plotLabels = [];
-
-            $scope.clearData = function() {
-                $scope.dataCleared = true;
-                axes.x.domain = null;
-            };
-
-            $scope.destroy = function() {
-                zoom.on('zoom', null);
-                $($scope.element).find('.overlay').off();
-                $($scope.element).find('.sr-plot-legend-item text').off();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
-            };
-
-            $scope.getXAxis = function() {
-                return axes.x;
-            };
-
-            $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                $.each(axes, function(dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
-                });
-                graphLine = d3.svg.line()
-                    .x(function(d, i) {
-                        return axes.x.scale(axes.x.points[i]);
-                    })
-                    .y(function(d) {
-                        return axes.y.scale(d);
-                    });
-                resetZoom();
-            };
-
-            $scope.load = function(json) {
-                includeForDomain.length = 0;
-                $scope.dataCleared = false;
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                var plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
-                if (plots.length == 1 && ! json.y_label) {
-                    json.y_label = plots[0].label;
-                }
-                axes.x.points = json.x_points
-                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
-                var xdom = [json.x_range[0], json.x_range[1]];
-                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
-                if ($scope.onRefresh) {
-                    // beamline overlay always starts at position 0
-                    xdom[0] = 0;
-                }
-                axes.x.domain = xdom;
-                axes.x.scale.domain(xdom);
-                plotting.ensureDomain(json.y_range);
-                axes.y.domain = [json.y_range[0], json.y_range[1]];
-                axes.y.scale.domain(axes.y.domain).nice();
-                $.each(axes, function(dim, axis) {
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
-                });
-                select('.main-title').text(json.title);
-                select('.sub-title').text(json.subtitle);
-                var viewport = select('.plot-viewport');
-                viewport.selectAll('.line').remove();
-                createLegend(plots);
-                plots.forEach(function (plot, i) {
-                    viewport.append('path')
-                        .attr('class', 'line line-color')
-                        .style('stroke', plot.color)
-                        .datum(plot.points);
-                    // must create extra focus points here since we don't know how many to make
-                    // until load() is invoked.  Also broadcast them so the overlay can set them up
-                    var name = $scope.modelName + '-fp-' + i;
-                    if(! $scope.focusPoints[i]) {
-                        $scope.focusPoints[i] = focusPointService.setupFocusPoint(axes.x, axes.y, false, name);
-                        var fcd = focusPointService.setupInfoDelegate(
-                            $scope.modelName + '-circle-delegate-' + i,
-                            null,
-                            null,
-                            null
-                        );
-                        fcd.focusPoints.push($scope.focusPoints[i]);
-                        $scope.popupDelegate.focusPoints.push($scope.focusPoints[i]);
-                        $scope.focusCircleDelegates.push(fcd);
-                        $scope.plotInfoDelegates.push(fcd);
-                        $scope.$broadcast('delegate.added', fcd);
-                    }
-
-                    // make sure everything is visible when reloading
-                    includeDomain(i, true);
-                    setPlotVisible(i, true);
-                });
-                axes.y.plots = plots;
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    if (fpIndex < plots.length) {
-                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope.plotInfoDelegates);
-                    }
-                    else {
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope.plotInfoDelegates);
-                    }
-                }
-                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
-                $scope.margin.top = json.title
-                    ? 50
-                    : $scope.onRefresh
-                        ? 65
-                        : 20;
-                $scope.margin.bottom = 50 + 20 * plots.length;
-                $scope.resize();
-            };
-
-            $scope.resize = function() {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
-            };
+            $scope.focusPoints = [];
+            $scope.focusStrategy = 'closest';
+            $scope.wantLegend = true;
 
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
-                for(var ptIndex = 0; ptIndex < axes.x.points.length; ++ptIndex) {
+                for (var ptIndex = 0; ptIndex < $scope.axes.x.points.length; ++ptIndex) {
                     pts.push([
-                        axes.x.points[ptIndex],
-                        axes.y.plots[plotIndex].points[ptIndex]
+                        $scope.axes.x.points[ptIndex],
+                        $scope.axes.y.plots[plotIndex].points[ptIndex]
                     ]);
                 }
                 return pts;
@@ -3006,13 +2670,13 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
 
             function createLegend(plots) {
                 plotLabels.length = 0;
-                var legend = select('.sr-plot-legend');
+                var legend = $scope.select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
                 if (plots.length == 1) {
                     return;
                 }
                 var itemWidth;
-                plots.forEach(function (plot, i) {
+                plots.forEach(function(plot, i) {
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     item.append('text')
@@ -3020,7 +2684,9 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                         .attr('x', 8)
                         .attr('y', 17 + i * 20)
                         .text(vIconText(true))
-                        .on('click', getVToggleFn(i));
+                        .on('click', function() {
+                            togglePlot(i);
+                        });
                     itemWidth = item.node().getBBox().width;
                     item.append('circle')
                         .attr('r', 5)
@@ -3037,33 +2703,15 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                 });
             }
 
-
-            function formatFocusPointData(fp) {
-                var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
-                var lu = {};
-                if(yLabel) {
-                    lu = layoutService.parseLabelAndUnits(yLabel);
-                    yLabel = lu.label;
-                }
-                fp.config.yLabel = yLabel;
-                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, yLabel, null, lu.units);
-            }
-
-            function getVToggleFn(i) {
-                return function () {
-                    return togglePlot(i);
-                };
-            }
-
             function includeDomain(pIndex, doInclude) {
                 var domainIndex = includeForDomain.indexOf(pIndex);
-                if(! doInclude) {
-                    if(domainIndex >= 0) {
+                if (! doInclude) {
+                    if (domainIndex >= 0) {
                         includeForDomain.splice(domainIndex, 1);
                     }
                 }
                 else {
-                    if(domainIndex < 0) {
+                    if (domainIndex < 0) {
                         includeForDomain.push(pIndex);
                     }
                 }
@@ -3077,107 +2725,6 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
                 return d3.select(selectAll('.plot-viewport path')[0][pIndex]);
             }
 
-            function recalculateYDomain() {
-                var ydom;
-                var xdom = axes.x.scale.domain();
-                var xPoints = axes.x.points;
-                var plots = axes.y.plots;
-                for (var i = 0; i < xPoints.length; i++) {
-                    var x = xPoints[i];
-                    if (x > xdom[1] || x < xdom[0]) {
-                        continue;
-                    }
-                    for(var d in includeForDomain) {
-                        var j = includeForDomain[d];
-                        var y = plots[j].points[i];
-                        if (ydom) {
-                            if (y < ydom[0]) {
-                                ydom[0] = y;
-                            }
-                            else if (y > ydom[1]) {
-                                ydom[1] = y;
-                            }
-                        }
-                        else {
-                            ydom = [y, y];
-                        }
-                    }
-                }
-                if (ydom && ydom[0] != ydom[1]) {
-                    if (ydom[0] > 0 && axes.y.domain[0] == 0) {
-                        ydom[0] = 0;
-                    }
-                    axes.y.scale.domain(ydom).nice();
-                }
-            }
-
-            function refresh() {
-                if (! axes.x.domain) {
-                    return;
-                }
-                if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (! axes.x.points || isNaN(width)) {
-                        return;
-                    }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
-                    select('svg')
-                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-                    axes.x.scale.range([0, $scope.width]);
-                    axes.y.scale.range([$scope.height, 0]);
-                    axes.x.grid.tickSize(-$scope.height);
-                    axes.y.grid.tickSize(-$scope.width);
-                }
-                var xdom = axes.x.scale.domain();
-                var zoomWidth = xdom[1] - xdom[0];
-
-                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
-                    select('.overlay').attr('class', 'overlay mouse-zoom');
-                    var model = appState.models[$scope.modelName];
-                    if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
-                        axes.y.scale.domain(axes.y.domain).nice();
-                    }
-                    else {
-                        axes.y.scale.domain(visibleDomain()).nice();
-                    }
-                }
-                else {
-                    select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    recalculateYDomain();
-                }
-                resetZoom();
-                select('.overlay').call(zoom);
-                select('.plot-viewport').selectAll('.line').attr('d', graphLine);
-                $.each(axes, function(dim, axis) {
-                    axis.updateLabelAndTicks({
-                        width: $scope.width,
-                        height: $scope.height,
-                        isPlaying: $scope.isPlaying,
-                    }, select);
-                    axis.grid.ticks(axis.tickCount);
-                    select('.' + dim + '.axis.grid').call(axis.grid);
-                });
-
-                for(var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    focusPointService.refreshFocusPoint($scope.focusPoints[fpIndex], $scope.plotInfoDelegates);
-                }
-                if ($scope.onRefresh) {
-                    $scope.onRefresh();
-                }
-            }
-
-            function resetZoom() {
-                zoom = axes.x.createZoom($scope);
-            }
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
             function selectAll(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.selectAll(selector) : e;
@@ -3185,26 +2732,29 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
 
             function setPlotVisible(pIndex, isVisible) {
                 // disable last toggle - meaningless to show no plots
-                if(includeForDomain.length == 1 && includeForDomain[0] == pIndex) {
+                if (includeForDomain.length == 1 && includeForDomain[0] == pIndex) {
                     return;
                 }
                 plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
                 vIcon(pIndex).text(vIconText(isVisible));
 
-                if(axes.y.plots && axes.y.plots[pIndex]) {
+                if ($scope.axes.y.plots && $scope.axes.y.plots[pIndex]) {
                     includeDomain(pIndex, isVisible);
-                    if(includeForDomain.length == 1) {
+                    if (includeForDomain.length == 1) {
                         vIcon(includeForDomain[0]).style('fill', '#aaaaaa');
                     }
                     else {
                         selectAll('.sr-plot-legend .plot-visibility').style('fill', null);
                     }
-                    recalculateYDomain();
-                    refresh();
+                    $scope.recalculateYDomain();
+                    $scope.resize();
                 }
-                // let the delegates do something if needed
-                $scope.popupDelegate.setInfoVisible(pIndex, isVisible);
-                $scope.focusCircleDelegates[pIndex].setInfoVisible(isVisible);
+                $scope.broadcastEvent({
+                    name: 'setInfoVisible',
+                    isVisible: isVisible,
+                    focusPoint: $scope.focusPoints[pIndex],
+                    index: pIndex,
+                });
             }
 
             function togglePlot(pIndex) {
@@ -3223,27 +2773,180 @@ SIREPO.app.directive('parameterPlot', function(appState, layoutService, focusPoi
             // get the broadest domain from the visible plots
             function visibleDomain() {
                 var ydomMin = Math.min.apply(null,
-                    includeForDomain.map(function (index) {
-                        return Math.min.apply(null, axes.y.plots[index].points);
+                    includeForDomain.map(function(index) {
+                        return Math.min.apply(null, $scope.axes.y.plots[index].points);
                     })
                 );
                 var ydomMax = Math.max.apply(null,
-                    includeForDomain.map(function (index) {
-                        return Math.max.apply(null, axes.y.plots[index].points);
+                    includeForDomain.map(function(index) {
+                        return Math.max.apply(null, $scope.axes.y.plots[index].points);
                     })
                 );
                 return plotting.ensureDomain([ydomMin, ydomMax]);
             }
+
+            $scope.formatFocusPointData = function(fp) {
+                var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
+                var lu = {};
+                if (yLabel) {
+                    lu = layoutService.parseLabelAndUnits(yLabel);
+                    yLabel = lu.label;
+                }
+                fp.config.yLabel = yLabel;
+                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, yLabel, null, lu.units);
+            };
+
+            // interface used by parameterWithLattice
+            $scope.getXAxis = function() {
+                return $scope.axes.x;
+            };
+
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    aspectRatio: 4.0 / 7,
+                    margin: {top: 50, right: 23, bottom: 50, left: 75},
+                });
+                // override graphLine to work with multiple point sets
+                $scope.graphLine = d3.svg.line()
+                    .x(function(d, i) {
+                        return $scope.axes.x.scale($scope.axes.x.points[i]);
+                    })
+                    .y(function(d) {
+                        return $scope.axes.y.scale(d);
+                    });
+            };
+
+            $scope.load = function(json) {
+                includeForDomain.length = 0;
+                // data may contain 2 plots (y1, y2) or multiple plots (plots)
+                var plots = json.plots || [
+                    {
+                        points: json.points[0],
+                        label: json.y1_title,
+                        color: '#1f77b4',
+                    },
+                    {
+                        points: json.points[1],
+                        label: json.y2_title,
+                        color: '#ff7f0e',
+                    },
+                ];
+                if (plots.length == 1 && ! json.y_label) {
+                    json.y_label = plots[0].label;
+                }
+                $scope.axes.x.points = json.x_points
+                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                var xdom = [json.x_range[0], json.x_range[1]];
+                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
+                if ($scope.onRefresh) {
+                    // beamline overlay always starts at position 0
+                    xdom[0] = 0;
+                }
+                $scope.axes.x.domain = xdom;
+                $scope.axes.x.scale.domain(xdom);
+                plotting.ensureDomain(json.y_range);
+                $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+
+                var viewport = $scope.select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                createLegend(plots);
+                plots.forEach(function(plot, i) {
+                    viewport.append('path')
+                        .attr('class', 'line line-color')
+                        .style('stroke', plot.color)
+                        .datum(plot.points);
+                    // must create extra focus points here since we don't know how many to make
+                    var name = $scope.modelName + '-fp-' + i;
+                    if (! $scope.focusPoints[i]) {
+                        $scope.focusPoints[i] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
+                    }
+
+                    // make sure everything is visible when reloading
+                    includeDomain(i, true);
+                    setPlotVisible(i, true);
+                });
+                $scope.axes.y.plots = plots;
+                for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                    if (fpIndex < plots.length) {
+                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope);
+                    }
+                    else {
+                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
+                    }
+                }
+                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
+                $scope.margin.top = json.title
+                    ? 50
+                    : $scope.onRefresh
+                        ? 65
+                        : 20;
+                $scope.margin.bottom = 50 + 20 * plots.length;
+                $scope.updatePlot(json);
+            };
+
+            $scope.recalculateYDomain = function() {
+                var ydom;
+                var xdom = $scope.axes.x.scale.domain();
+                var xPoints = $scope.axes.x.points;
+                var plots = $scope.axes.y.plots;
+                for (var i = 0; i < xPoints.length; i++) {
+                    var x = xPoints[i];
+                    if (x > xdom[1] || x < xdom[0]) {
+                        continue;
+                    }
+                    for (var d in includeForDomain) {
+                        var j = includeForDomain[d];
+                        var y = plots[j].points[i];
+                        if (ydom) {
+                            if (y < ydom[0]) {
+                                ydom[0] = y;
+                            }
+                            else if (y > ydom[1]) {
+                                ydom[1] = y;
+                            }
+                        }
+                        else {
+                            ydom = [y, y];
+                        }
+                    }
+                }
+                if (ydom && ydom[0] != ydom[1]) {
+                    if (ydom[0] > 0 && $scope.axes.y.domain[0] == 0) {
+                        ydom[0] = 0;
+                    }
+                    $scope.axes.y.scale.domain(ydom).nice();
+                }
+            };
+
+            $scope.refresh = function() {
+                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                $scope.focusPoints.forEach(function(fp) {
+                    focusPointService.refreshFocusPoint(fp, $scope);
+                });
+                if ($scope.onRefresh) {
+                    $scope.onRefresh();
+                }
+            };
+
+            $scope.setYDomain = function() {
+                var model = appState.models[$scope.modelName];
+                if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
+                    $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+                }
+                else {
+                    $scope.axes.y.scale.domain(visibleDomain()).nice();
+                }
+            };
         },
         link: function link(scope, element) {
             plotting.linkPlot(scope, element);
-            scope.$emit('sr-plotLinked');
         },
     };
 });
 
-//TODO(pjm): consolidate plot code with plotting service
-SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
+SIREPO.app.directive('particle', function(plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -3251,24 +2954,59 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var ASPECT_RATIO = 4.0 / 7;
-            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
-            $scope.width = $scope.height = 0;
-            $scope.dataCleared = true;
+            var allPoints;
 
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    aspectRatio: 4.0 / 7,
+                    margin: {top: 50, right: 23, bottom: 50, left: 75},
+                });
             };
 
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+            $scope.load = function(json) {
+                allPoints = [];
+                var xdom = [json.x_range[0], json.x_range[1]];
+                $scope.axes.x.domain = xdom;
+                $scope.axes.x.scale.domain(xdom);
+                $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+                var viewport = $scope.select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                var isFixedX = ! Array.isArray(json.x_points[0]);
+                var i;
+                var lineClass = json.points.length > 20 ? 'line line-7' : 'line line-0';
+                var points;
+                for (i = 0; i < json.points.length; i++) {
+                    points = d3.zip(
+                        isFixedX ? json.x_points : json.x_points[i],
+                        json.points[i]);
+                    viewport.append('path').attr('class', lineClass).datum(points);
+                    allPoints.push(points);
+                }
+                if (json.lost_x && json.lost_x.length) {
+                    for (i = 0; i < json.lost_x.length; i++) {
+                        points = d3.zip(json.lost_x[i], json.lost_y[i]);
+                        viewport.append('path').attr('class', 'line line-reflected').datum(points);
+                        allPoints.push(points);
+                    }
+                    // absorbed/reflected legend
+                    $scope.select('svg')
+                        .append('circle').attr('class', 'line-absorbed').attr('r', 5).attr('cx', 8).attr('cy', 10);
+                    $scope.select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
+                        .text('Absorbed');
+                    $scope.select('svg')
+                        .append('circle').attr('class', 'line-reflected').attr('r', 5).attr('cx', 8).attr('cy', 30);
+                    $scope.select('svg')
+                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
+                        .text('Reflected');
+                }
+                $scope.updatePlot(json);
+            };
 
-            var allPoints, graphLine, zoom;
-
-            function recalculateYDomain() {
+            $scope.recalculateYDomain = function() {
                 var ydom;
-                var xdom = axes.x.scale.domain();
-
+                var xdom = $scope.axes.x.scale.domain();
                 allPoints.forEach(function(points) {
                     points.forEach(function(p) {
                         var x = p[0];
@@ -3289,144 +3027,15 @@ SIREPO.app.directive('particle', function(plotting, layoutService, utilities) {
                     });
                 });
                 if (ydom && ydom[0] != ydom[1]) {
-                    if (ydom[0] > 0 && axes.y.domain[0] == 0) {
+                    if (ydom[0] > 0 && $scope.axes.y.domain[0] == 0) {
                         ydom[0] = 0;
                     }
-                    axes.y.scale.domain(ydom).nice();
+                    $scope.axes.y.scale.domain(ydom).nice();
                 }
-            }
-
-            function refresh() {
-                if (! axes.x.domain) {
-                    return;
-                }
-                if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
-                        return;
-                    }
-                    $scope.width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.height = ASPECT_RATIO * $scope.width;
-                    select('svg')
-                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
-
-                    axes.x.scale.range([0, $scope.width]);
-                    axes.y.scale.range([$scope.height, 0]);
-                    axes.x.grid.tickSize(-$scope.height);
-                    axes.y.grid.tickSize(-$scope.width);
-                }
-                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
-                    select('.overlay').attr('class', 'overlay mouse-zoom');
-                    axes.y.scale.domain(axes.y.domain).nice();
-                }
-                else {
-                    select('.overlay').attr('class', 'overlay mouse-move-ew');
-                    recalculateYDomain();
-                }
-                resetZoom();
-                select('.overlay').call(zoom);
-                select('.plot-viewport').selectAll('.line').attr('d', graphLine);
-
-                $.each(axes, function (dim, axis) {
-                    axis.updateLabelAndTicks({
-                        width: $scope.width,
-                        height: $scope.height,
-                    }, select);
-                    axis.grid.ticks(axis.tickCount);
-                    select('.' + dim + '.axis.grid').call(axis.grid);
-                });
-            }
-
-            function resetZoom() {
-                zoom = axes.x.createZoom($scope);
-            }
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            $scope.clearData = function() {
-                $scope.dataCleared = true;
-                axes.x.domain = null;
             };
 
-            $scope.destroy = function() {
-                zoom.on('zoom', null);
-                $('.overlay').off();
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
-            };
-
-            $scope.init = function() {
-                select('svg').attr('height', plotting.initialHeight($scope));
-                $.each(axes, function (dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
-                });
-                graphLine = d3.svg.line()
-                    .x(function(d) {
-                        return axes.x.scale(d[0]);
-                    })
-                    .y(function(d) {
-                        return axes.y.scale(d[1]);
-                    });
-                resetZoom();
-            };
-
-            $scope.load = function(json) {
-                $scope.dataCleared = false;
-                allPoints = [];
-                var xdom = [json.x_range[0], json.x_range[1]];
-                axes.x.domain = xdom;
-                axes.x.scale.domain(xdom);
-                axes.y.domain = [json.y_range[0], json.y_range[1]];
-                axes.y.scale.domain(axes.y.domain).nice();
-                var viewport = select('.plot-viewport');
-                viewport.selectAll('.line').remove();
-                var isFixedX = ! Array.isArray(json.x_points[0]);
-                var i;
-                var lineClass = json.points.length > 20 ? 'line line-7' : 'line line-0';
-                var points;
-                for (i = 0; i < json.points.length; i++) {
-                    points = d3.zip(
-                        isFixedX ? json.x_points : json.x_points[i],
-                        json.points[i]);
-                    viewport.append('path').attr('class', lineClass).datum(points);
-                    allPoints.push(points);
-                }
-                if (json.lost_x && json.lost_x.length) {
-                    for (i = 0; i < json.lost_x.length; i++) {
-                        points = d3.zip(json.lost_x[i], json.lost_y[i]);
-                        viewport.append('path').attr('class', 'line line-reflected').datum(points);
-                        allPoints.push(points);
-                    }
-                    // absorbed/reflected legend
-                    select('svg')
-                        .append('circle').attr('class', 'line-absorbed').attr('r', 5).attr('cx', 8).attr('cy', 10);
-                    select('svg')
-                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 16)
-                        .text('Absorbed');
-                    select('svg')
-                        .append('circle').attr('class', 'line-reflected').attr('r', 5).attr('cx', 8).attr('cy', 30);
-                    select('svg')
-                        .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
-                        .text('Reflected');
-                }
-                $.each(axes, function (dim, axis) {
-                    axis.parseLabelAndUnits(json[dim + '_label']);
-                    select('.' + dim + '-axis-label').text(json[dim + '_label']);
-                });
-                select('.main-title').text(json.title);
-                select('.sub-title').text(json.subtitle);
-                $scope.resize();
-            };
-
-            $scope.resize = function() {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
+            $scope.refresh = function() {
+                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
             };
         },
         link: function link(scope, element) {
@@ -3470,8 +3079,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.zdir = 1;
 
             $scope.canInteract = true;
-            $scope.interactionStyle = function () {
-                if(! $scope.canInteract) {
+            $scope.interactionStyle = function() {
+                if (! $scope.canInteract) {
                     return {
                         'cursor': 'not-allowed'
                     };
@@ -3644,7 +3253,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     isPointerUp = false;
                 };
                 rw.onpointermove = function(evt) {
-                    if(isPointerUp) {
+                    if (isPointerUp) {
                         return;
                     }
                     isDragging = true;
@@ -3653,19 +3262,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     utilities.debounce(refresh, 100)();
                 };
                 rw.onpointerup = function(evt) {
-                    if(! isDragging) {
+                    if (! isDragging) {
                         // use picker to display info on objects
                     }
                     isDragging = false;
                     isPointerUp = true;
                     refresh(true);
                 };
-                rw.onwheel = function (evt) {
+                rw.onwheel = function(evt) {
                     var camPos = cam.getPosition();
 
                     // If zoom needs to be halted or limited, it can be done here.  For now track the "zoom units"
                     // for managing refreshing and resetting
-                    if(! malSized) {
+                    if (! malSized) {
                         zoomUnits += evt.deltaY;
                     }
                     utilities.debounce(
@@ -3719,9 +3328,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 orientationMarker.setMaxPixelSize(300);
 
                 // 6 grid planes indexed by dimension then side
-                for(var d = 0; d < 3; ++d) {
+                for (var d = 0; d < 3; ++d) {
                     var dpb = [];
-                    for(var s = 0; s < 1; ++s) {
+                    for (var s = 0; s < 1; ++s) {
                         var pb = coordMapper.buildPlane();
                         pb.actor.getProperty().setColor(0, 0, 0);
                         pb.actor.getProperty().setLighting(false);
@@ -3753,7 +3362,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 conductorActors = [];
                 conductorBundles = [];
 
-                if(!pointData) {
+                if (!pointData) {
                     return;
                 }
 
@@ -3771,10 +3380,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 var lcoords = [];
                 var lostCoords = [];
-                zpoints.forEach(function (z, i) {
+                zpoints.forEach(function(z, i) {
                     lcoords.push(geometry.transpose([xpoints[i], ypoints[i], zpoints[i]]));
                 });
-                pointData.lost_z.forEach(function (z, i) {
+                pointData.lost_z.forEach(function(z, i) {
                     lostCoords.push(geometry.transpose([pointData.lost_y[i], pointData.lost_z[i], pointData.lost_x[i]]));
                 });
 
@@ -3846,7 +3455,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var osYLen = Math.abs(epsP2[1] - epsP1[1]) + padding;
                 var osZLen = Math.abs(epsP2[2] - epsP1[2]) + padding;
                 var osCtr = [];
-                epsOrigin.forEach(function (o, i) {
+                epsOrigin.forEach(function(o, i) {
                     osCtr.push((o - spsOrigin[i]) / 2.0);
                 });
 
@@ -3857,8 +3466,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 ]);
                 outlineBundle.setCenter(osCtr);
 
-                for(var d = 0; d < 3; ++d) {
-                    for(var s = 0; s < 1; ++s) {
+                for (var d = 0; d < 3; ++d) {
+                    for (var s = 0; s < 1; ++s) {
                         var pb = gridPlaneBundles[d][s];
                         var gpOrigin = s == 0 ?
                             [osCtr[0] - osXLen/2.0, osCtr[1] - osYLen/2.0, osCtr[2] - osZLen/2.0] :
@@ -3908,7 +3517,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // purposes of coloring lines with the field colors
                 var numInterPoints = 50;
 
-                for(var dim in axes) {
+                for (var dim in axes) {
                     var cfg = axisCfg[dim];
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
@@ -3922,7 +3531,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 indexMaps = [];
 
                 // linearly interpolate the data
-                for(var i = 0; i < lcoords.length; ++i) {
+                for (var i = 0; i < lcoords.length; ++i) {
                     var ptsArr = lcoords[i];
 
                     var newIndexMap = {0:0};
@@ -3939,14 +3548,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         lastNearestIndex = 1;
                         var checkZ = ptsArr[nearestIndex][2];
                         while (nearestIndex < ptsArr.length && checkZ < newZ) {
-                            if(! newIndexMap[nearestIndex]) {
+                            if (! newIndexMap[nearestIndex]) {
                                 // ensures we don't skip any indices, mapping them to the nearest previously mapped value
                                 newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, 1) || 0;
                             }
                             ++nearestIndex;
                             checkZ = (ptsArr[nearestIndex] || [])[2];
                         }
-                        if(nearestIndex != lastNearestIndex) {
+                        if (nearestIndex != lastNearestIndex) {
                             lastNearestIndex = nearestIndex;
                         }
 
@@ -3956,7 +3565,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var nextP = ptsArr[hi];
                         var dzz = nextP[2] - p[2];
                         var newP = [0, 0, newZ];
-                        for(var ci = 0; ci < 2; ++ci) {
+                        for (var ci = 0; ci < 2; ++ci) {
                             newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
                         }
                         ptsArr.splice(lo + 1, 0, newP);
@@ -3997,7 +3606,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
-                for(var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
+                for (var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
                     var conductor = appState.models.conductors[cIndex];
 
                     // lengths and centers are in µm
@@ -4005,8 +3614,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var cModel = null;
                     var cColor = [0, 0, 0];
                     var cEdgeColor = [0, 0, 0];
-                    for(var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
-                        if(appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
+                    for (var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
+                        if (appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
                             cModel = appState.models.conductorTypes[ctIndex];
                             var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                             var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
@@ -4014,7 +3623,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             break;
                         }
                     }
-                    if(cModel) {
+                    if (cModel) {
                         var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(scaleWithShave);
                         var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(scaleConductor);
 
@@ -4039,7 +3648,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             };
 
             function setLinesFromPoints(bundle, points, color, includeImpact) {
-                if(! bundle) {
+                if (! bundle) {
                     return;
                 }
 
@@ -4056,12 +3665,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             pushLineData(points[i][j], points[i][k], color || colorAtIndex(indexMaps[i][j]));
                         }
                     }
-                    if(l > j) {
+                    if (l > j) {
                         k = j - 1;
                         ++numPoints;
                         pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(indexMaps[i][k]));
                     }
-                    if(includeImpact) {
+                    if (includeImpact) {
                         k = points[i].length - 1;
                         impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
                     }
@@ -4073,7 +3682,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 pd.getLines().setData(l32);
                 bundle.mapper.setInputData(pd);
 
-                if(color) {
+                if (color) {
                     bundle.mapper.setScalarVisibility(false);
                     bundle.actor.getProperty().setColor(color[0], color[1], color[2]);
                 }
@@ -4093,14 +3702,14 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     // we always have two points per line
                     dataLines.push(2);
                     dataLines.push(dataPoints.length / 3, 1 + dataPoints.length / 3);
-                    [p1, p2].forEach(function (p) {
-                        coordMapper.xform.doTransform(p).forEach(function (a) {
+                    [p1, p2].forEach(function(p) {
+                        coordMapper.xform.doTransform(p).forEach(function(a) {
                             dataPoints.push(a);
                         });
                     });
 
                     // scalar colors are unsigned chars, not floats like for every other part of vtk
-                    c.forEach(function (comp) {
+                    c.forEach(function(comp) {
                         dataColors.push(Math.floor(255*comp));
                     });
                 }
@@ -4183,7 +3792,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 sceneRect =  vpOutline.boundingRect();
 
                 // initial area of scene
-                if(! sceneArea) {
+                if (! sceneArea) {
                     sceneArea = sceneRect.area();
                 }
 
@@ -4195,7 +3804,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var a = sceneRect.area() / sceneArea;
                 malSized = a < 0.1 || a > 7.5;
                 $scope.canInteract = ! offscreen && ! malSized;
-                if($scope.canInteract) {
+                if ($scope.canInteract) {
                     lastCamPos = cam.getPosition();
                     lastCamViewUp = cam.getViewUp();
                     lastCamFP = cam.getFocalPoint();
@@ -4289,7 +3898,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 }
 
-                if(doCacheCanvas) {
+                if (doCacheCanvas) {
                     cacheCanvas();
                 }
             }
@@ -4301,8 +3910,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var minAxisDisplayLen = 50;
 
                 var b = ['z'];
-                //for(var i in b) {  // use to test inidividual axes
-                for(var i in geometry.basis) {
+                //for (var i in b) {  // use to test inidividual axes
+                for (var i in geometry.basis) {
 
                     //var dim = b[i];
                     var dim = geometry.basis[i];
@@ -4321,11 +3930,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         .sort(edgeSorter(perpScreenDim, ! isHorizontal));
                     var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
 
-                    if(! seg) {
+                    if (! seg) {
                         // all possible axis ends offscreen, so try a centerline
                         var cl = vpOutline.vpCenterLineForDimension(dim);
                         seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
-                        if(! seg) {
+                        if (! seg) {
                             // don't draw axes
                             select(axisSelector).style('opacity', 0.0);
                             select(axisLabelSelector).style('opacity', 0.0);
@@ -4346,7 +3955,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                     var newRange = Math.min(fullSeg.length(), clippedSeg.length());
                     var radAngle = Math.atan(clippedSeg.slope());
-                    if(! isHorizontal) {
+                    if (! isHorizontal) {
                         radAngle -= Math.PI / 2;
                         if (radAngle < -Math.PI / 2) {
                             radAngle += Math.PI;
@@ -4359,10 +3968,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     var limits = reverseOnScreen ? [axisCfg[dim].max, axisCfg[dim].min] : [axisCfg[dim].min, axisCfg[dim].max];
                     var newDom = [axisCfg[dim].min, axisCfg[dim].max];
                     // 1st 2, last 2 points
-                    for(var m = 0; m < allPts.length; m += 2) {
+                    for (var m = 0; m < allPts.length; m += 2) {
                         // a point may coincide with its successor
                         var d = allPts[m].dist(allPts[m+1]);
-                        if(d != 0) {
+                        if (d != 0) {
                             var j = Math.floor(m / 2);
                             var k = reverseOnScreen ? 1 - j : j;
                             var l1 = limits[j];
@@ -4381,7 +3990,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     // this places the axis tick labels on the appropriate side of the axis
                     var outsideCorner = geometry.sortInDimension(vpOutline.vpCorners(), perpScreenDim, isHorizontal)[0];
                     var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
-                    if(isHorizontal) {
+                    if (isHorizontal) {
                         axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
                     }
                     else {
@@ -4407,7 +4016,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         .style('opacity', showAxisEnds ? 1 : 0);
 
                     var tf = axes[dim].svgAxis.tickFormat();
-                    if(tf) {
+                    if (tf) {
                         select(axisSelector + '-end.low')
                             .text(axisEnds[0] + ' ' + dimLabel + ' ' + tf(reverseOnScreen ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units)
                             .attr('x', axisLeft)
@@ -4440,20 +4049,18 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         .attr('y', labelY)
                         .attr('transform', labelXform)
                         .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
-
-
                 }
             }
 
             function edgeSorter(dim, shouldReverse) {
-                return function (e1, e2) {
-                    if(! e1) {
-                        if(! e2) {
+                return function(e1, e2) {
+                    if (! e1) {
+                        if (! e2) {
                             return 0;
                         }
                         return 1;
                     }
-                    if(! e2) {
+                    if (! e2) {
                         return -1;
                     }
                     var pt1 = geometry.sortInDimension(e1.points(), dim, shouldReverse)[0];
@@ -4475,8 +4082,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 var numX = Math.max($($element).find('.x.axis .tick').length - 1, 1);
                 var numY = Math.max($($element).find('.y.axis .tick').length - 1, 1);
                 var numZ = Math.max($($element).find('.z.axis .tick').length - 1, 1);
-                for(var d = 0; d < 3; ++d) {
-                    for(var s = 0; s < 1; ++s) {
+                for (var d = 0; d < 3; ++d) {
+                    for (var s = 0; s < 1; ++s) {
                         var ps = gridPlaneBundles[d][s].source;
                         var xres = 2;
                         var yres = 2;
@@ -4530,7 +4137,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 cam.setViewUp(vu[0], vu[1], vu[2]);
             }
             function cacheCanvas() {
-                if(! snapshotCtx) {
+                if (! snapshotCtx) {
                     return;
                 }
                 var w = parseInt(canvas3d.getAttribute('width'));
@@ -4585,15 +4192,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.side = 'y';
             $scope.showSide = function(side) {
                 var dir = side === 'x' ? $scope.xdir : (side === 'y' ? $scope.ydir : $scope.zdir);
-                if( side == $scope.side ) {
+                if ( side == $scope.side ) {
                     dir *= -1;
-                    if(side === 'x') {
+                    if (side === 'x') {
                         $scope.xdir = dir;
                     }
-                    if(side === 'y') {
+                    if (side === 'y') {
                         $scope.ydir = dir;
                     }
-                    if(side === 'z') {
+                    if (side === 'z') {
                         $scope.zdir = dir;
                     }
                 }
