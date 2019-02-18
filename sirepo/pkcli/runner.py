@@ -130,7 +130,7 @@ class _JobTracker:
         self._nursery = nursery
 
     def status(self, run_dir, jhash):
-        disk_in_path = run_dir.join("in.json")
+        disk_in_path = run_dir.join('in.json')
         disk_status_path = run_dir.join('status')
         if disk_in_path.exists() and disk_status_path.exists():
             disk_in_text = pkio.read_text(disk_in_path)
@@ -210,7 +210,7 @@ _RPC_HANDLERS = {}
 
 
 def _rpc_handler(fn):
-    _RPC_HANDLERS[fn.__name__.lstrip("_")] = fn
+    _RPC_HANDLERS[fn.__name__.lstrip('_')] = fn
     return fn
 
 
