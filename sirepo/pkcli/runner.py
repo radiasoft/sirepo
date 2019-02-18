@@ -173,7 +173,7 @@ class _JobTracker:
                 env['PYENV_VERSION'] = 'py2'
                 cmd = ['pyenv', 'exec'] + cmd
                 with open(run_log_path, 'a+b') as run_log:
-                    process = trio.subprocess.Process(
+                    process = trio.Process(
                         cmd,
                         cwd=run_dir,
                         start_new_session=True,
@@ -307,7 +307,7 @@ def start():
 # under py2 and the runner daemon under py3, and if either exits then kills
 # the other.
 async def _run_cmd(cmd, **kwargs):
-    async with trio.subprocess.Process(cmd, **kwargs) as process:
+    async with trio.Process(cmd, **kwargs) as process:
         await process.wait()
 
 
