@@ -216,7 +216,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return false;
     };
 
-    self.autoSave = function(callback) {
+    self.autoSave = function(callback, errorCallback) {
         if (! self.isLoaded() ||
             lastAutoSaveData && self.deepEquals(lastAutoSaveData.models, savedModelValues)
         ) {
@@ -255,9 +255,9 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                         }
                     },
                     errorCallback: function (resp) {
-                        if ($.isFunction(callback)) {
+                        if ($.isFunction(errorCallback)) {
                             //TODO(robnagler) this should be errorCallback
-                            callback(resp);
+                            errorCallback(resp);
                         }
                     },
                     data: lastAutoSaveData
@@ -2475,9 +2475,10 @@ SIREPO.app.controller('LoggedOutController', function (requestSender) {
     self.githubUrl = requestSender.formatAuthUrl('github');
 });
 
-SIREPO.app.controller('SimulationsController', function (activeSection, appState, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $scope, $window) {
+SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {
     var self = this;
 
+    $rootScope.$broadcast('simulationUnloaded');
     var getStartedNotifyContent = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
         SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
@@ -2576,13 +2577,13 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
             });
     }
 
-    function updateSelectedItem(op) {
+    function updateSelectedItem(op, errorCallback) {
         appState.loadModels(
             self.selectedItem.simulationId,
             function() {
                 op();
                 appState.saveQuietly('simulation');
-                appState.autoSave(clearModels);
+                appState.autoSave(clearModels, errorCallback);
                 self.selectedItem = null;
             });
     }
@@ -2704,7 +2705,9 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
 
     self.renameItem = function(item) {
         self.selectedItem = item;
+        self.itemToUpdate = item;
         self.renameName = item.name;
+        self.originalName = item.name;
         $('#sr-rename-confirmation').modal('show');
     };
 
@@ -2721,6 +2724,9 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
             updateSelectedItem(function() {
                 appState.models.simulation.name = self.renameName;
                 renameSelectedItem();
+            }, function (resp) {
+                self.itemToUpdate.name = self.originalName;
+                errorService.alertText('Invalid Name: \'' + self.renameName + '\' already in use');
             });
         }
     };

@@ -95,26 +95,17 @@ def api_copyNonSessionSimulation():
 
 @api_perm.require_user
 def api_copySimulation():
-    """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
+    """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
     req = http_request.parse_json()
-    sim_type = req['simulationType']
-    name = req['name'] if 'name' in req else None
-    folder = req['folder'] if 'folder' in req else '/'
-    data = simulation_db.read_simulation_json(sim_type, sid=req['simulationId'])
-    if not name:
-        base_name = data['models']['simulation']['name']
-        names = simulation_db.iterate_simulation_datafiles(sim_type, _simulation_name)
-        count = 0
-        while True:
-            count += 1
-            name = base_name + ' (copy{})'.format(' {}'.format(count) if count > 1 else '')
-            if name in names and count < 100:
-                continue
-            break
-    data['models']['simulation']['name'] = name
-    data['models']['simulation']['folder'] = folder
-    data['models']['simulation']['isExample'] = False
-    data['models']['simulation']['outOfSessionSimulationId'] = ''
+    sim_type = req.simulationType
+    name = req.name
+    assert name, util.err(req, 'No name in request')
+    folder = req.folder if 'folder' in req else '/'
+    data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
+    data.models.simulation.name = name
+    data.models.simulation.folder = folder
+    data.models.simulation.isExample = False
+    data.models.simulation.outOfSessionSimulationId = ''
     return _save_new_and_reply(data)
 
 

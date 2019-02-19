@@ -144,8 +144,6 @@ describe('geometry', function() {
         expect(bint1.length === 2).toBeTruthy();
         expect(bint1[0].equals(geometry.point(-0.5, 0.5))).toBeTruthy();
         expect(bint1[1].equals(geometry.point(-0.5, 0.5))).toBeTruthy();
-        // expect(bint1[2].equals(geometry.point(0.5, 1.5))).toBeTruthy();
-        // expect(bint1[3].equals(geometry.point(-1.5, -0.5))).toBeTruthy();
         var p7 = geometry.point(-0.25, -0.25);
         var l1 = geometry.lineSegment(p3, p7);
         var l2 = geometry.lineSegment(p3, p4);
