@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, panelState, utilities, geometry, $location, $rootScope, $timeout, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
     var self = {};
 
@@ -23,72 +23,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
             return true;
         }
         return false;
-    };
-
-    self.loadSTL = function(file) {
-        var fileName = file.name;
-        var url = URL.createObjectURL(file);
-        //var url = 'static/' + fileName;
-        srdbg('LOADING',  url);
-        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
-        return r.setUrl(url)
-            .then(function() {
-                srdbg('LOADED STL');
-                return r;
-        }, function (err) {
-            //srdbg('BAD STL', err);
-            throw fileName + ': Invalid or missing .stl file: ' +
-            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
-        })
-            .catch(function (e) {
-                //srdbg('CAUGHT', e);
-                $rootScope.$apply(function () {
-                    errorService.alertText(e);
-                });
-            });
-    };
-
-    self.parseSTL = function(file) {
-        //srdbg('PARSING', file);
-        return self.loadSTL(file).then(function (r) {
-            return ! ! r;
-        });
-    };
-
-    self.vtkPlot = function(scope, element) {
-
-        scope.element = element[0];
-        var requestData = plotting.initAnimation(scope);
-
-        scope.windowResize = utilities.debounce(function() {
-            scope.resize();
-        }, 250);
-
-        scope.$on('$destroy', function() {
-            scope.destroy();
-            scope.element = null;
-            $($window).off('resize', scope.windowResize);
-        });
-
-        scope.$on(
-            scope.modelName + '.changed',
-            function() {
-                scope.prevFrameIndex = -1;
-                if (scope.modelChanged) {
-                    scope.modelChanged();
-                }
-                panelState.clear(scope.modelName);
-                requestData();
-            });
-        scope.isLoading = function() {
-            return panelState.isLoading(scope.modelName);
-        };
-        $($window).resize(scope.windowResize);
-
-        scope.init();
-        if (appState.isLoaded()) {
-            requestData();
-        }
     };
 
     self.coordMapper = function(transform) {
@@ -189,6 +123,113 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
         };
     };
 
+    self.isSTLFileValid = function(file) {
+        //srdbg('PARSING', file);
+        return self.loadSTLFile(file).then(function (r) {
+            return ! ! r;
+        });
+    };
+
+    self.isSTLUrlValid = function(url) {
+        //srdbg('PARSING', file);
+        return self.loadSTLURL(url).then(function (r) {
+            return ! ! r;
+        });
+    };
+
+    self.loadSTLFile = function(file) {
+        var fileName = file.name || file;
+        //var url = URL.createObjectURL(file);
+
+        var url = requestSender.formatUrl('downloadFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<filename>': self.stlFileType + '.' + fileName,
+        });
+
+        //var url = 'static/' + fileName;
+        /*
+        srdbg('LOADING',  url);
+        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
+        return r.setUrl(url)
+            .then(function() {
+                srdbg('LOADED STL');
+                return r;
+        }, function (err) {
+            //srdbg('BAD STL', err);
+            throw fileName + ': Invalid or missing .stl file: ' +
+            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
+        })
+            .catch(function (e) {
+                //srdbg('CAUGHT', e);
+                $rootScope.$apply(function () {
+                    errorService.alertText(e);
+                });
+            });
+            */
+        return self.loadSTLURL(url).then(function (r) {
+            return r;
+        });
+    };
+
+    self.loadSTLURL = function(url) {
+        srdbg('LOADING',  url);
+        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
+        return r.setUrl(url)
+            .then(function() {
+                srdbg('LOADED STL');
+                return r;
+        }, function (err) {
+            //srdbg('BAD STL', err);
+            throw url + ': Invalid or missing .stl: ' +
+            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
+        })
+            .catch(function (e) {
+                //srdbg('CAUGHT', e);
+                $rootScope.$apply(function () {
+                    errorService.alertText(e);
+                });
+            });
+    };
+
+
+    self.stlFileType = 'stl-file';
+
+    self.vtkPlot = function(scope, element) {
+
+        scope.element = element[0];
+        var requestData = plotting.initAnimation(scope);
+
+        scope.windowResize = utilities.debounce(function() {
+            scope.resize();
+        }, 250);
+
+        scope.$on('$destroy', function() {
+            scope.destroy();
+            scope.element = null;
+            $($window).off('resize', scope.windowResize);
+        });
+
+        scope.$on(
+            scope.modelName + '.changed',
+            function() {
+                scope.prevFrameIndex = -1;
+                if (scope.modelChanged) {
+                    scope.modelChanged();
+                }
+                panelState.clear(scope.modelName);
+                requestData();
+            });
+        scope.isLoading = function() {
+            return panelState.isLoading(scope.modelName);
+        };
+        $($window).resize(scope.windowResize);
+
+        scope.init();
+        if (appState.isLoaded()) {
+            requestData();
+        }
+    };
 
     // "Superclass" for representation of vtk source objects in ViewPort coordinates
     // Note this means that vpObjects are implicitly two-dimensional
@@ -800,11 +841,10 @@ SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) 
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //srdbg('STL FILE CHOOSER CTL', $element);
-            //srdbg('STL FILE CHOOSER CTL', $scope.description);
-            $scope.validate = function (filename) {
-                srdbg('VALIDAITNG STL', filename);
-                return vtkPlotting.parseSTL(filename).then(function (ok) {
+            $scope.validate = function (file) {
+                srdbg('VALIDAITNG STL', file);
+                $scope.url = URL.createObjectURL(file);
+                return vtkPlotting.isSTLUrlValid($scope.url).then(function (ok) {
                     return ok;
                 });
             };
@@ -816,7 +856,7 @@ SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) 
     };
 });
 
-SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, requestSender, $location) {
+SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, vtkPlotting, requestSender) {
     return {
         restrict: 'A',
         scope: {
@@ -857,14 +897,45 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import STL File';
             $scope.description = $scope.description || 'Select File';
+
             $scope.importStlFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }
+                newSimFromSTL(inputFile);
+            };
 
-                $scope.isUploading = true;
-                var url = $scope.fileURL;  //URL.createObjectURL(inputFile);
-                srdbg('copy from memory url', url, 'to', $location.absUrl());
+            function upload(inputFile, data) {
+                srdbg('UPLOADING', inputFile);
+                var simId = data.models.simulation.simulationId;
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': vtkPlotting.stlFileType,
+                        }),
+                    function(d) {
+                        srdbg('upload data', d);
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(simId);
+                    }, function (err) {
+                        srdbg('UPLOAD ERROR', err);
+                    });
+            }
+
+            function newSimFromSTL(inputFile) {
+                var url = $scope.fileURL;
                 var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
                 model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
                 model.folder = fileManager.getActiveFolderPath();
@@ -873,19 +944,16 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                 appState.newSimulation(
                     model,
                     function (data) {
+                        $scope.isUploading = false;
                         srdbg('new sim data', data);
-                        $('#simulation-import').modal('hide');
-                        $scope.inputFile = null;
-                        URL.revokeObjectURL($scope.fileURL);
-                        $scope.fileURL = null;
-                        requestSender.localRedirectHome(data.models.simulation.simulationId);
+                        upload(inputFile, data);
                     },
                     function (err) {
                         srdbg('new sim error', err);
                     }
                 );
+            }
 
-            };
         },
         link: function(scope, element) {
             $(element).on('show.bs.modal', function() {

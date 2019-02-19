@@ -1885,7 +1885,7 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
               '<label>{{ description }}</label>',
               '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
               '<br />',
-              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+              '<div class="text-warning" style="white-space: pre-line"><strong>{{ fileUploadError }}</strong></div>',
             '</div>',
             '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
         ].join(''),
@@ -2366,23 +2366,14 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
 
             element.bind('change', function() {
                 var file = element[0].files[0];
-                srdbg('chose file', file);
-                if(validator) {
-                    validator(file).then(function (ok) {
-                        scope.url = URL.createObjectURL(file);
-                        //srdbg(file.name, 'valid?', ok);
-                        //srdbg('setting');
-                        //scope.$apply(function () {
-                        //    modelSetter(scope, ok? file : null);
-                        //});
-                        setModel(ok? file : null);
-                    });
+                if(! validator) {
+                    setModel(file);
                     return;
                 }
-                setModel(file);
-                //scope.$apply(function () {
-                //    modelSetter(scope, file);
-                //});
+                validator(file).then(function (ok) {
+                    //scope.url = URL.createObjectURL(file);
+                    setModel(ok? file : null);
+                });
             });
         }
     };
