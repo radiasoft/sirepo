@@ -10,11 +10,11 @@ _CHUNK_SIZE = 4096
 
 
 class JobStatus(aenum.Enum):
-    MISSING = 'missing'   # no data on disk, not currently running
-    RUNNING = 'running'   # data on disk is incomplete but it's running
-    ERROR = 'error'       # data on disk exists, but job failed somehow
-    CANCELED = 'canceled' # data on disk exists, but is incomplete
-    COMPLETE = 'complete' # data on disk exists, and is fully usable
+    MISSING = 'missing'     # no data on disk, not currently running
+    RUNNING = 'running'     # data on disk is incomplete but it's running
+    ERROR = 'error'         # data on disk exists, but job failed somehow
+    CANCELED = 'canceled'   # data on disk exists, but is incomplete
+    COMPLETED = 'completed' # data on disk exists, and is fully usable
 
 
 def _rpc(request):

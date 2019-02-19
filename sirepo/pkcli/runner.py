@@ -195,7 +195,7 @@ class _JobTracker:
                     if process.returncode:
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
                     else:
-                        _write_status(runner_client.JobStatus.COMPLETE, run_dir)
+                        _write_status(runner_client.JobStatus.COMPLETED, run_dir)
             finally:
                 # _write_status is a no-op if there's already a status, so
                 # this really means "if we get here without having written a

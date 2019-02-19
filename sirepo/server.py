@@ -471,7 +471,7 @@ def api_runSimulation():
         run_dir = simulation_db.simulation_run_dir(data)
         status = runner_client.job_status(run_dir, jhash)
         already_good_status = [runner_client.JobStatus.RUNNING,
-                               runner_client.JobStatus.COMPLETE]
+                               runner_client.JobStatus.COMPLETED]
         if status not in already_good_status:
             data['simulationStatus'] = {
                 'startTime': int(time.time()),
