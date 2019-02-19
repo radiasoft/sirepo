@@ -3626,6 +3626,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 //srdbg('projected points', projPts);
                 //var density = geometry.pointDensity(eRect, projPts, 2e-8);
                 // select?
+                /*
                 var ndx = 10;
                 var ndy = 10;
                 var dx = (xmax - xmin) / ndx;
@@ -3650,6 +3651,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         densityPlaneBundles.push(dplane);
                     });
                 });
+                */
 
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;

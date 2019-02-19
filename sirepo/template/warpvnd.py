@@ -246,7 +246,6 @@ def new_simulation(data, new_simulation_data):
         c_file = new_simulation_data.conductorFile
         if c_file:
             # verify somehow?
-            # also copy file to user dir
             data.models.simulation.conductorFile = c_file
             data.models.simulationGrid.simulation_mode = '3d'
 
