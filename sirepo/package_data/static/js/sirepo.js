@@ -464,17 +464,21 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return info;
     };
 
-    self.newSimulation = function(model, op) {
-        requestSender.sendRequest(
-            'newSimulation',
-            op,
-            {
-                name: model.name,
-                folder: model.folder,
-                sourceType: model.sourceType,
-                notes: model.notes,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+    self.newSimulation = function(model, op, errOp) {
+        var data = {
+            name: model.name,
+            folder: model.folder,
+            sourceType: model.sourceType,
+            notes: model.notes,
+            simulationType: SIREPO.APP_SCHEMA.simulationType,
+        };
+        for(var key in model) {
+            if(data[key]) {
+                continue;
+            }
+            data[key] = model[key];
+        }
+        requestSender.sendRequest('newSimulation', op, data, errOp);
     };
 
     self.optFieldName = function(fieldName) {

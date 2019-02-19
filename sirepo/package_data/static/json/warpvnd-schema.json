@@ -166,12 +166,12 @@
         },
         "simulation": {
             "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
-            "conductorScale": ["Scale", "Float", 1e-9, "Scale factor (1e-9 - 10))", 1e-12, 10],
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
             "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
+            "conductor_scale": ["Scale", "Float", 1e-9, "Scale factor (1e-9 - 10)", 1e-12, 10],
             "plate_spacing": ["Plate Spacing [µm]", "Float"],
             "channel_width": ["Channel Width [µm]", "Float"],
             "channel_height": ["Channel Height [µm]", "Float", 0.08],
@@ -312,7 +312,8 @@
                 "simulation_mode",
                 "plate_spacing",
                 "channel_width",
-                "channel_height"
+                "channel_height",
+                "conductor_scale"
             ],
             "advanced": [
                 "simulation_mode",

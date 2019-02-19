@@ -1876,17 +1876,21 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
             title: '=',
             description: '=',
             fileFormats: '@',
-            validator: '&',
+            url: '=',
             inputFile: '=',
+            validator: '&',
         },
         template: [
             '<div class="form-group">',
               '<label>{{ description }}</label>',
               '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
+              '<br />',
+              '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
             '</div>',
+            '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
         ].join(''),
         controller: function($scope) {
-            srdbg('inputFile', $scope.inputFile);
+            $scope.isUploading = false;
             $scope.title = $scope.title || 'Import ZIP File';
             $scope.description = $scope.description || 'Select File';
         },
@@ -2353,20 +2357,32 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
             var model = $parse(attrs.fileModel);
             var modelSetter = model.assign;
             var validator = scope.validator ? scope.validator() : null;
-            var isValid = true;
-            //srdbg('got validator', validator);
+
+            function setModel(file) {
+                scope.$apply(function () {
+                    modelSetter(scope, file);
+                });
+            }
+
             element.bind('change', function() {
-                var filename = element[0].files[0].name;
+                var file = element[0].files[0];
+                srdbg('chose file', file);
                 if(validator) {
-                    isValid = validator(filename);
-                }
-                srdbg(filename, 'valid?', isValid);
-                if(isValid) {
-                    srdbg('setting');
-                    scope.$apply(function () {
-                        modelSetter(scope, element[0].files[0]);
+                    validator(file).then(function (ok) {
+                        scope.url = URL.createObjectURL(file);
+                        //srdbg(file.name, 'valid?', ok);
+                        //srdbg('setting');
+                        //scope.$apply(function () {
+                        //    modelSetter(scope, ok? file : null);
+                        //});
+                        setModel(ok? file : null);
                     });
+                    return;
                 }
+                setModel(file);
+                //scope.$apply(function () {
+                //    modelSetter(scope, file);
+                //});
             });
         }
     };

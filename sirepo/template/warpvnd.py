@@ -216,21 +216,6 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
-    pkdp('IMPORTING STL {}', request.files)
-    f = request.files['file']
-    filename = werkzeug.secure_filename(f.filename)
-    input_data = test_data
-
-    if 'simulationId' in request.form:
-        pkdp('SIM ID {}', request.form['simulationId'])
-        input_data = simulation_db.read_simulation_json(SIM_TYPE, sid=request.form['simulationId'])
-    pkdp('IMPORT INPUT {}', input_data)
-    #data = input_data
-    #data.models.simulation.name = f.filename
-    return input_data #data
-
-
 def lib_files(data, source_lib):
     """No lib files"""
     return []
@@ -263,6 +248,7 @@ def new_simulation(data, new_simulation_data):
             # verify somehow?
             # also copy file to user dir
             data.models.simulation.conductorFile = c_file
+            data.models.simulationGrid.simulation_mode = '3d'
 
 
 def open_data_file(run_dir, model_name, file_index=None):

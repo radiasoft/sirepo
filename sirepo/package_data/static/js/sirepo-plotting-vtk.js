@@ -25,30 +25,23 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
         return false;
     };
 
-    self.loadSTL = function(fileName) {
-        var url = 'static/' + fileName;
+    self.loadSTL = function(file) {
+        var fileName = file.name;
+        var url = URL.createObjectURL(file);
+        //var url = 'static/' + fileName;
         srdbg('LOADING',  url);
         var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
         return r.setUrl(url)
             .then(function() {
-                srdbg('PARSED STL');
+                srdbg('LOADED STL');
                 return r;
         }, function (err) {
-            srdbg('BAD STL', err);
-            //var errTxt =  fileName + ': Invalid or missing .stl file: ';
-            //var errTxt2 = err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err;
-            // format errors from the XMLHttpRequest
-            //if(err.xhr) {
-            //    errTxt = errTxt + err.xhr.status + ' (' + err.xhr.statusText + ')';
-           // }
-           // else {
-           //     errTxt = errTxt + err;
-            //}
+            //srdbg('BAD STL', err);
             throw fileName + ': Invalid or missing .stl file: ' +
             (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
         })
             .catch(function (e) {
-                srdbg('CAUGHT', e);
+                //srdbg('CAUGHT', e);
                 $rootScope.$apply(function () {
                     errorService.alertText(e);
                 });
@@ -56,12 +49,10 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, plotting, pan
     };
 
     self.parseSTL = function(file) {
-        srdbg('PARSING', file);
-        var ok = false;
-        $timeout(function () {
-            ok = ! ! self.loadSTL(file);
+        //srdbg('PARSING', file);
+        return self.loadSTL(file).then(function (r) {
+            return ! ! r;
         });
-        return ok;
     };
 
     self.vtkPlot = function(scope, element) {
@@ -793,25 +784,29 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
     };
 });
 
-SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
+SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) {
     return {
         restrict: 'A',
         scope: {
             description: '=',
+            url: '=',
+            inputFile: '=',
             model: '=',
             require: '<',
             title: '@',
         },
         template: [
-            '<div data-file-chooser="" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">',
+            '<div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">',
             '</div>',
         ].join(''),
-        controller: function($scope, $element) {
+        controller: function($scope) {
             //srdbg('STL FILE CHOOSER CTL', $element);
             //srdbg('STL FILE CHOOSER CTL', $scope.description);
             $scope.validate = function (filename) {
                 srdbg('VALIDAITNG STL', filename);
-                return vtkPlotting.parseSTL(filename);
+                return vtkPlotting.parseSTL(filename).then(function (ok) {
+                    return ok;
+                });
             };
             $scope.validationError = '';
         },
@@ -821,12 +816,12 @@ SIREPO.app.directive('stlFileChooser', function(vtkPlotting) {
     };
 });
 
-SIREPO.app.directive('stlImportDialog', function(appState, vtkPlotting) {
+SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, requestSender, $location) {
     return {
         restrict: 'A',
         scope: {
-            title: '@',
             description: '@',
+            title: '@',
         },
         template: [
             '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
@@ -840,7 +835,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, vtkPlotting) {
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
                         '<form>',
-                        '<div data-stl-file-chooser="" data-input-file="inputFile" data-title="title" data-description="description" data-require="true"></div>',
+                        '<div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
                           '<div class="col-sm-6 pull-right">',
                             '<button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
                             ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
@@ -854,48 +849,42 @@ SIREPO.app.directive('stlImportDialog', function(appState, vtkPlotting) {
         ].join(''),
         controller: function($scope) {
             $scope.inputFile = null;
-            srdbg('desc', $scope.description);
+            $scope.fileURL = null;
             $scope.isMissingImportFile = function() {
                 return ! $scope.inputFile;
             };
-
             $scope.fileUploadError = '';
             $scope.isUploading = false;
             $scope.title = $scope.title || 'Import STL File';
             $scope.description = $scope.description || 'Select File';
-            $scope.newSim = function(inputFile) {
+            $scope.importStlFile = function(inputFile) {
                 if (! inputFile) {
                     return;
                 }
+
                 $scope.isUploading = true;
+                var url = $scope.fileURL;  //URL.createObjectURL(inputFile);
+                srdbg('copy from memory url', url, 'to', $location.absUrl());
+                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.conductorFile = inputFile.name;
+                srdbg('new sim', appState.models.simulation, model);
                 appState.newSimulation(
-                    appState.models.simulation,
+                    model,
                     function (data) {
-                        
+                        srdbg('new sim data', data);
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(data.models.simulation.simulationId);
+                    },
+                    function (err) {
+                        srdbg('new sim error', err);
                     }
                 );
 
-                fileUpload.uploadFileToUrl(
-                    inputFile,
-                    {
-                        folder: fileManager.getActiveFolderPath(),
-                    },
-                    requestSender.formatUrl(
-                        'importFile',
-                        {
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                        }),
-                    function(data) {
-                        $scope.isUploading = false;
-                        if (data.error) {
-                            $scope.fileUploadError = data.error;
-                        }
-                        else {
-                            $('#simulation-import').modal('hide');
-                            $scope.inputFile = null;
-                            requestSender.localRedirectHome(data.models.simulation.simulationId);
-                        }
-                    });
             };
         },
         link: function(scope, element) {
