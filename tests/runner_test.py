@@ -19,6 +19,16 @@ def test_runner_myapp():
     os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
     os.environ['PYTHONUNBUFFERED'] = '1'
 
+    # Check if the py3 environment is set up
+    py3_env = dict(os.environ)
+    py3_env['PYENV_VERSION'] = 'py3'
+    returncode = subprocess.call(
+        ['pyenv', 'exec', 'sirepo', '--help'], env=py3_env
+    )
+    # if 'sirepo' isn't found, returncode == 127
+    if returncode != 1:
+        pytest.skip('py3 environment not configured')
+
     from sirepo import srunit
     from pykern import pkunit
     from pykern import pkio
@@ -30,8 +40,7 @@ def test_runner_myapp():
 
     pkio.unchecked_remove(srdb.runner_socket_path())
 
-    runner_env = dict(os.environ)
-    runner_env['PYENV_VERSION'] = 'py3'
+    runner_env = dict(py3_env)
     runner_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
     runner = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'runner', 'start'], env=runner_env
