@@ -11,8 +11,7 @@ import time
 import os
 import subprocess
 import sys
-pytest.importorskip('srwl_bl')
-pytest.importorskip('sdds')
+
 
 # Simple test that we can (1) run something (runSimulation), (2) get results
 # (runStatus).
