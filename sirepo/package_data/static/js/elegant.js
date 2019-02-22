@@ -2000,7 +2000,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                 if (units == '1/(2$gp$r)') {
                     return $sce.trustAsHtml(' 1/(2𝜋)');
                 }
-                if (/^[\w/]+$/.exec(units)) {
+                if (/^[\w\/]+$/.exec(units)) {
                     return $sce.trustAsHtml(' ' + units);
                 }
                 if (units) {
