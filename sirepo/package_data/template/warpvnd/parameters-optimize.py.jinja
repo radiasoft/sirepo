@@ -52,10 +52,9 @@ assert np.sum(counts_1) > 0, 'no particles deposited on conductors'
 clock = 0
 time1 = time.time()
 
-#TODO(pjm): make these optimizer variables
-target = 0.01
+target = {{ optimizer_tolerance }}
 # in seconds
-time_limit = 60
+time_limit = {{ optimizer_timeLimit }}
 
 tol = target + 1
 while (tol > target) and (clock < time_limit):

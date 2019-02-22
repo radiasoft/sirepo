@@ -147,16 +147,22 @@
             "notes": ["Notes", "Text", ""]
         },
         "optimizer": {
-            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"]
+            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
+            "tolerance": ["Tolerance", "Float", 0.01],
+            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60]
         },
         "optimizerAnimation": {
+            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
+            "y": ["Vertical Value to Plot", "OptimizationField", 1],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "optimizerField": {
             "field": ["Field", "String"],
             "minimum": ["Minimum", "Float"],
-            "maximum": ["Maximum", "Float"],
-            "initialValue": ["Initial Value", "Float"]
+            "maximum": ["Maximum", "Float"]
         },
+        "optimizerStatus": {},
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "100"]
         },
@@ -288,6 +294,28 @@
         },
         "optimizer": {
             "title": "Optimization Fields",
+            "advanced": [
+                "tolerance",
+                "timeLimit"
+            ]
+        },
+        "optimizerAnimation": {
+            "title": "Optimization Path",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "colorMap",
+                "notes"
+            ]
+        },
+        "optimizerStatus": {
+            "title": "Optimization Status",
             "advanced": []
         },
         "particleAnimation": {

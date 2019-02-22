@@ -715,10 +715,10 @@ SIREPO.app.directive('colorPicker', function() {
     };
 });
 
-SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(layoutService, panelState, plotting, utilities) {
 
     this.init2dPlot = function($scope, attrs) {
-        var zoom;
+        var colorbar, zoom;
         // default scope values
         $.extend($scope, {
             aspectRatio: 4.0 / 7,
@@ -779,7 +779,7 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
                 .classed('mouse-zoom', isFullSize)
                 .classed('mouse-move-ew', ! isFullSize);
             resetZoom();
-            $scope.select($scope.zoomContainer).call($scope.zoom);
+            $scope.select($scope.zoomContainer).call(zoom);
             $.each($scope.axes, function(dim, axis) {
                 axis.updateLabelAndTicks({
                     width: $scope.width,
@@ -788,12 +788,19 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
                 axis.grid.ticks(axis.tickCount);
                 $scope.select('.' + dim + '.axis.grid').call(axis.grid);
             });
-
+            if ($scope.wantColorbar) {
+                colorbar.barlength($scope.height)
+                    .origin([0, 0]);
+                $scope.pointer = $scope.select('.colorbar').call(colorbar);
+            }
             $scope.refresh();
         }
 
         function resetZoom() {
-            $scope.zoom = $scope.axes.x.createZoom($scope);
+            zoom = $scope.axes.x.createZoom($scope);
+            if ($scope.isZoomXY) {
+                zoom.y($scope.axes.y.scale);
+            }
         }
 
         $scope.clearData = function() {
@@ -802,7 +809,7 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
         };
 
         $scope.destroy = function() {
-            $scope.zoom.on('zoom', null);
+            zoom.on('zoom', null);
             $($scope.element).find($scope.zoomContainer).off();
             // not part of all plots, just parameterPlot
             $($scope.element).find('.sr-plot-legend-item text').off();
@@ -830,7 +837,18 @@ SIREPO.app.service('plot2dService', function(layoutService, plotting, utilities)
             });
             $scope.select('.main-title').text(json.title);
             $scope.select('.sub-title').text(json.subtitle);
-            $scope.resize();
+            if ($scope.wantColorbar) {
+                var colorMap = plotting.colorMapFromModel($scope.modelName);
+                $scope.colorScale = d3.scale.linear()
+                    .domain(plotting.linearlySpacedArray(json.v_min, json.v_max, colorMap.length))
+                    .range(colorMap);
+                colorbar = Colorbar()
+                    .scale($scope.colorScale)
+                    .thickness(30)
+                    .margin({top: 10, right: 60, bottom: 20, left: 10})
+                    .orient("vertical");
+            }
+            panelState.waitForUI($scope.resize);
         };
 
         init();
