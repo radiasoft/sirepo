@@ -110,7 +110,9 @@
             "isConductor": ["Conductor", "Boolean", "1"],
             "color": ["Color", "Color"]
         },
-        "conductorGridReport": {},
+        "conductorGridReport": {
+            "tileDomain": ["Show tiled domain", "Boolean", "0"]
+        },
         "conductorPosition": {
             "xCenter": ["Center X [µm]", "OptFloat"],
             "zCenter": ["Center Z [µm]", "OptFloat"],
@@ -232,7 +234,9 @@
         },
         "conductorGridReport": {
             "title": "Conductor Grid",
-            "advanced": []
+            "advanced": [
+                "tileDomain"
+            ]
         },
         "conductorPosition": {
             "title": "Conductor Position",
