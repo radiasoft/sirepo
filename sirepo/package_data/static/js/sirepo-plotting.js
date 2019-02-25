@@ -1872,6 +1872,10 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
             init();
 
             $scope.$on('sr-plotEvent', function(event, args) {
+                if (! group.node()) {
+                    // special handler for Internet Explorer which can't resolve group
+                    return;
+                }
                 if (args.name == 'showFocusPointInfo') {
                     if (args.geometry) {
                         showPopup(args.geometry);
