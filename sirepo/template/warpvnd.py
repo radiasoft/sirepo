@@ -86,10 +86,17 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
+    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
+        data['models']['optimizer'] = {
+            'constraints': [],
+            'enabledFields': {},
+            'fields': [],
+        }
     for m in [
             'egunCurrentAnimation',
             'fieldReport',
             'impactDensityAnimation',
+            'optimizer',
             'optimizerAnimation',
             'optimizerStatus',
             'particle3d',
@@ -100,12 +107,6 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
-        data['models']['optimizer'] = {
-            'constraints': [],
-            'enabledFields': {},
-            'fields': [],
-        }
     if 'joinEvery' in data['models']['particle3d']:
         del data['models']['particle3d']['joinEvery']
     for c in data['models']['conductorTypes']:
@@ -653,21 +654,22 @@ def _compute_delta_for_field(data, bounds, field):
         'x': _grid_delta(data, 'channel_width', 'num_x'),
         'y': _grid_delta(data, 'channel_height', 'num_y'),
     }
-    m = re.search(r'^(\w)(Center|Length)$', field)
+    m = re.search(r'^(\w)Center$', field)
     if m:
         dim = m.group(1)
-        return delta[dim]
-    _DEFAULT_SIZE = 20
+        bounds += [delta[dim], False]
+        return;
+    _DEFAULT_SIZE = data.models.optimizer.continuousFieldSteps
     res = (bounds[1] - bounds[0]) / _DEFAULT_SIZE
-    return res if res else bounds[1]
+    bounds += [res if res else bounds[1], True]
 
 
 def _generate_optimizer_file(data, v):
-    # iterate opt vars and compute [min, max, dx]
+    # iterate opt vars and compute [min, max, dx, is_continuous]
     for opt in data.models.optimizer.fields:
         m, f, container, id = _parse_optimize_field(opt.field)
         opt.bounds = [opt.minimum, opt.maximum]
-        opt.bounds.append(_compute_delta_for_field(data, opt.bounds, f))
+        _compute_delta_for_field(data, opt.bounds, f)
     v['optField'] = data.models.optimizer.fields
     v['optimizerOutputFile'] = _OPTIMIZER_OUTPUT_FILE
     v['optimizerResultFile'] = _OPTIMIZER_RESULT_FILE

@@ -149,7 +149,8 @@
         "optimizer": {
             "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
             "tolerance": ["Tolerance", "Float", 0.01],
-            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60]
+            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
+            "continuousFieldSteps": ["Continuous Field Steps", "Integer", 20, "Number of optimizer steps for non-gridded fields, ex. Current or Voltage"]
         },
         "optimizerAnimation": {
             "x": ["Horizontal Value to Plot", "OptimizationField", 0],
@@ -296,7 +297,8 @@
             "title": "Optimization Fields",
             "advanced": [
                 "tolerance",
-                "timeLimit"
+                "timeLimit",
+                "continuousFieldSteps"
             ]
         },
         "optimizerAnimation": {

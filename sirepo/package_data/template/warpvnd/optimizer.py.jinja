@@ -15,7 +15,12 @@ def wrapper(parameters, bounds, constraints, cache):
         b = bounds[i]
         if parameters[i] < b[0] or parameters[i] > b[1]:
             return _MAX_VALUE
-        parameters[i] = round(parameters[i] / b[2]) * b[2]
+        if b[3]:
+            # continuous
+            parameters[i] = round((parameters[i] - b[0]) / b[2]) * b[2] + b[0]
+        else:
+            # gridded
+            parameters[i] = round(parameters[i] / b[2]) * b[2]
     command = 'python parameters-optimize.py ' + ' '.join(map(lambda x: '{:.8E}'.format(x), parameters))
     for c in constraints:
         #TODO(pjm): use format function
@@ -23,6 +28,8 @@ def wrapper(parameters, bounds, constraints, cache):
     if command in cache:
         efficiency = cache[command]
     else:
+        print(command)
+        sys.stdout.flush()
         run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = run_warp.communicate()
         assert not error, error
@@ -49,10 +56,10 @@ def build_simplex(bounds):
     return sim
 
 
-# min, max, step size
+# min, max, step size, is_continuous
 bounds = [
 {% for opt in optField %}
-    [{{ opt.bounds[0] }}, {{ opt.bounds[1] }}, {{ opt.bounds[2] }}],
+    [{{ opt.bounds[0] }}, {{ opt.bounds[1] }}, {{ opt.bounds[2] }}, {{ opt.bounds[3] }}],
 {% endfor %}
 ]
 
