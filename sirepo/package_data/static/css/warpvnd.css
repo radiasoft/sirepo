@@ -1,7 +1,11 @@
 .warpvnd-inset-tile {
   stroke: rgb(0, 0, 0);
-  fill: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
+  stroke-width: 1px;
+  stroke-dasharray: 2;
+  fill: white;
+}
+.warpvnd-inset-tile-warning {
+  stroke: orange;
 }
 .warpvnd-plate {
   stroke: rgb(228, 176, 95);

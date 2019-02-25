@@ -591,6 +591,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
             $scope.is3dPreview = false;
+            $scope.tileOpacity = 0.6;
+            $scope.tileBoundaryThresholdPct = 0.05;
 
             $scope.zMargin = function () {
                 var xl = select('.x-axis-label');
@@ -615,6 +617,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
                 z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh),
+            };
+            var insetAxes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
             };
 
             function alignShapeOnGrid(shape) {
@@ -883,8 +889,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     });
                 });
                 d3.select(info.viewportClass).selectAll('.warpvnd-shape').remove();
-                d3.select('#tile-master').selectAll('use').remove();
-                //srdbg('updating from drawcond');
                 d3.select(info.viewportClass).selectAll('.warpvnd-shape')
                     .data(shapes)
                     .enter().append('rect')
@@ -893,14 +897,24 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if (dim == 'x') {
                     d3.select(info.viewportClass).selectAll('.warpvnd-shape').call(dragShape);
                 }
+                if(! $scope.isDomainTiled() || dim !== 'x') {
+                    return;
+                }
+                // just once per set of conductors
+                drawTiledConductors(shapes);
+            }
+
+            function drawTiledConductors(shapes) {
+                var dr = d3.select('#tile-master').selectAll('.warpvnd-shape').data(shapes);
+                dr.exit().remove();
+                dr.enter().append('rect');
+                dr.call(updateTiles);
             }
 
             function drawShapes() {
                 var typeMap = warpvndService.conductorTypeMap();
-                //srdbg('drawcond from drawShapes 1');
                 drawConductors(typeMap, 'x');
                 if (warpvndService.is3D()) {
-                    //srdbg('drawcond from drawShapes 2');
                     drawConductors(typeMap, 'y');
                 }
                 drawCarats();
@@ -1009,6 +1023,9 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     axes.x.grid.tickSize(-$scope.height);
                     axes.y.grid.tickSize(-$scope.width);
                     axes.z.grid.tickSize(-$scope.width);
+
+                    insetAxes.x.scale.range([0, $scope.tileInsetSize().width]);
+                    insetAxes.y.scale.range([$scope.tileInsetSize().height, 0]);
                 }
                 if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
                     select('.overlay').attr('class', 'overlay mouse-zoom');
@@ -1056,6 +1073,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if (! axes.y.domain || ! appState.deepEquals(axes.y.domain, newYDomain)) {
                     axes.y.domain = newYDomain;
                     axes.y.scale.domain(axes.y.domain);
+                    insetAxes.y.domain = newYDomain;
+                    insetAxes.y.scale.domain(insetAxes.y.domain);
                 }
                 if (warpvndService.is3D()) {
                     yRange = warpvndService.getYRange();
@@ -1064,6 +1083,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     if (! axes.z.domain || ! appState.deepEquals(axes.z.domain, newZDomain)) {
                         axes.z.domain = newZDomain;
                         axes.z.scale.domain(axes.z.domain);
+                        insetAxes.x.domain = newZDomain;
+                        insetAxes.x.scale.domain(insetAxes.x.domain);
                     }
                     if (select('.z-plot-viewport line.cross-hair').empty()) {
                         select('.z-plot-viewport')
@@ -1166,7 +1187,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 selection
                     .attr('class', 'warpvnd-shape')
                     .attr('id', function (d) {
-                        //srdbg('id', 'shape-' + d.dim + '-' + d.id);
                         return 'shape-' + d.dim + '-' + d.id;
                     })
                     .classed('warpvnd-shape-noncrossing', function(d) {
@@ -1216,35 +1236,33 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         ? d.conductorType.name
                         : '⚠️ Conductor does not cross a warp grid line and will be ignored';
                 });
-
-                if(! $scope.isDomainTiled()) {
-                    return;
-                }
-                updateTiles(selection);
-/*
-                srdbg('adding rect to inset', selection);
-                var tm = select('#tile-center').attr();
-                var stx = selection.attr('x');
-                srdbg('box x', stx, 'master', tm);
-                d3.select('#tile-master').append('use')
-                    .attr('href', '#' + selection.attr('id'))
-                    .attr('transform', 'scale(' + 0.5 + ')');
-                    //.attr('x', -100).attr('y', -100)
-*/
             }
 
             function updateTiles(selection) {
-                //selection.each(function (d) {
-                    //srdbg('adding rect to inset', d);
-                //});
-                //srdbg('adding rect to inset', selection.attr('id'));
-                //var tm = select('#tile-center').attr();
-                //var stx = selection.attr('x');
-                //srdbg('box x', stx, 'master', tm);
-
-                d3.select('#tile-master').append('use')
-                    .attr('href', '#' + selection.attr('id'))
-                    .attr('transform', 'scale(' + 0.5 + ')');
+                selection
+                    .attr('id', function (d) {
+                        return 'shape-inset-' + d.id;
+                    })
+                    .attr('class', 'warpvnd-shape')
+                    .classed('warpvnd-shape-voltage', function(d) {
+                        return d.conductorType.voltage > 0;
+                    })
+                    .attr('x', function(d) {
+                        return warpvndService.is3D() ? insetAxes.x.scale(d.plane - d.depth / 2.0) : 0;
+                    })
+                    .attr('y', function(d) {
+                        return insetAxes.y.scale(d.y);
+                    })
+                    .attr('width', function(d) {
+                        return warpvndService.is3D() ? Math.abs(insetAxes.x.scale(d.plane + d.depth) - insetAxes.x.scale(d.plane)) : $scope.tileInsetSize().width;
+                    })
+                    .attr('height', function(d) {
+                        return Math.abs(insetAxes.y.scale(d.y + d.height) - insetAxes.y.scale(d.y));
+                    })
+                    .attr('style', function(d) {
+                        var fstyle = d.conductorType.color ? 'fill:' + shapeColor(d.conductorType.color, 1.0) + '; ' : '';
+                        return fstyle + 'stroke: none';
+                    });
             }
 
             $scope.destroy = function() {
@@ -1307,6 +1325,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 };
             };
 
+            $scope.tileInsetOffset = function() {
+                return {
+                    x: warpvndService.is3D() ? $scope.tileInsetSize().width : 0,
+                    y: 0
+                };
+            };
+
             $scope.allInsetSize = function() {
                 return {
                     width: 3 * $scope.tileInsetSize().width,
@@ -1328,6 +1353,9 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 $.each(axes, function(dim, axis) {
                     axis.init();
                     axis.grid = axis.createAxis();
+                });
+                $.each(insetAxes, function(dim, axis) {
+                    axis.init();
                 });
                 resetZoom();
                 dragShape = d3.behavior.drag()
