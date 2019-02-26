@@ -181,7 +181,8 @@ class _JobTracker:
             try:
                 env = _subprocess_env()
                 run_log_path = run_dir.join(template_common.RUN_LOG)
-                # hack: switch back to py2 mode to run the actual command
+                # we're in py3 mode, and regular subprocesses will inherit our
+                # environment, so we have to manually switch back to py2 mode.
                 env['PYENV_VERSION'] = 'py2'
                 cmd = ['pyenv', 'exec'] + cmd
                 with open(run_log_path, 'a+b') as run_log:
