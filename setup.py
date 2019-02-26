@@ -33,7 +33,8 @@ pykern.pksetup.setup(
         # requires oauthlib<3.0.0.
         'requests-oauthlib==1.1.0',
         'uwsgi',
-    ],
+        'trio >= 0.11.0; python_version >= "3"',
+   ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',
     url='http://sirepo.com',

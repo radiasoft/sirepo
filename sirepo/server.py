@@ -16,6 +16,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
+from sirepo import runner_client
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import uri_router
@@ -421,48 +422,84 @@ def api_root(simulation_type):
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
-    # TODO(robnagler) need to have a way of listing jobs
-    # Don't bother with cache_hit check. We don't have any way of canceling
-    # if the parameters don't match so for now, always kill.
-    #TODO(robnagler) mutex required
-    if runner.job_is_processing(jid):
+    if feature_config.cfg.runner_daemon:
+        jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        # Write first, since results are write once, and we want to
-        # indicate the cancel instead of the termination error that
-        # will happen as a result of the kill.
-        simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        runner.job_kill(jid)
-        # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-        # the last frame file may not be finished, remove it
-        t = sirepo.template.import_module(data)
-        if hasattr(t, 'remove_last_frame'):
-            t.remove_last_frame(run_dir)
-    # Always true from the client's perspective
-    return http_reply.gen_json({'state': 'canceled'})
+        runner_client.cancel_job(run_dir, jhash)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
+    else:
+        # TODO(robnagler) need to have a way of listing jobs
+        # Don't bother with cache_hit check. We don't have any way of canceling
+        # if the parameters don't match so for now, always kill.
+        #TODO(robnagler) mutex required
+        if runner.job_is_processing(jid):
+            run_dir = simulation_db.simulation_run_dir(data)
+            # Write first, since results are write once, and we want to
+            # indicate the cancel instead of the termination error that
+            # will happen as a result of the kill.
+            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            runner.job_kill(jid)
+            # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+            # the last frame file may not be finished, remove it
+            t = sirepo.template.import_module(data)
+            if hasattr(t, 'remove_last_frame'):
+                t.remove_last_frame(run_dir)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
 
 
 @api_perm.require_user
 def api_runSimulation():
+    from pykern import pkjson
     data = _parse_data_input(validate=True)
-    res = _simulation_run_status(data, quiet=True)
-    if (
-        (
-            not res['state'] in _RUN_STATES
-            and (res['state'] != 'completed' or data.get('forceRun', False))
-        ) or res.get('parametersChanged', True)
-    ):
-        try:
-            _start_simulation(data)
-        except runner.Collision:
-            pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
-        res = _simulation_run_status(data)
-    return http_reply.gen_json(res)
+    # if flag is set
+    # - check status
+    # - if status is bad, rewrite the run dir (XX race condition, to fix later)
+    # - then request it be started
+    if feature_config.cfg.runner_daemon:
+        jhash = template_common.report_parameters_hash(data)
+        run_dir = simulation_db.simulation_run_dir(data)
+        status = runner_client.job_status(run_dir, jhash)
+        already_good_status = [runner_client.JobStatus.RUNNING,
+                               runner_client.JobStatus.COMPLETED]
+        if status not in already_good_status:
+            data['simulationStatus'] = {
+                'startTime': int(time.time()),
+                'state': 'pending',
+            }
+            # XX TODO: prepare in a temp directory
+            cmd, _ = simulation_db.prepare_simulation(data)
+            # XX TODO: prepare_simulation shouldn't create this file in the
+            # first place -- managing this file is runner.py's job.
+            pkio.unchecked_remove(run_dir.join('status'))
+            runner_client.start_job(run_dir, jhash, cmd)
+        res = _simulation_run_status_runner_daemon(data, quiet=True)
+        return http_reply.gen_json(res)
+    else:
+        res = _simulation_run_status(data, quiet=True)
+        if (
+            (
+                not res['state'] in _RUN_STATES
+                and (res['state'] != 'completed' or data.get('forceRun', False))
+            ) or res.get('parametersChanged', True)
+        ):
+            try:
+                _start_simulation(data)
+            except runner.Collision:
+                pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
+            res = _simulation_run_status(data)
+        return http_reply.gen_json(res)
 
 
 @api_perm.require_user
 def api_runStatus():
     data = _parse_data_input()
-    return http_reply.gen_json(_simulation_run_status(data))
+    if feature_config.cfg.runner_daemon:
+        status = _simulation_run_status_runner_daemon(data)
+    else:
+        status = _simulation_run_status(data)
+    return http_reply.gen_json(status)
 
 
 @api_perm.allow_visitor
@@ -794,6 +831,84 @@ def _simulation_name(res, path, data):
     """Iterator function to return simulation name
     """
     res.append(data['models']['simulation']['name'])
+
+
+def _simulation_run_status_runner_daemon(data, quiet=False):
+    """Look for simulation status and output
+
+    Args:
+        data (dict): request
+        quiet (bool): don't write errors to log
+
+    Returns:
+        dict: status response
+    """
+    try:
+        run_dir = simulation_db.simulation_run_dir(data)
+        jhash = template_common.report_parameters_hash(data)
+        status = runner_client.job_status(run_dir, jhash)
+        is_running = status is runner_client.JobStatus.RUNNING
+        rep = simulation_db.report_info(data)
+        res = {'state': status.value}
+        template = sirepo.template.import_module(data)
+        if not is_running:
+            if run_dir.exists():
+                if hasattr(template, 'prepare_output_file') and 'models' in data:
+                    template.prepare_output_file(rep, data)
+                res2, err = simulation_db.read_result(run_dir)
+                if err:
+                    if simulation_db.is_parallel(data):
+                        # allow parallel jobs to use template to parse errors below
+                        res['state'] = 'error'
+                    else:
+                        if hasattr(template, 'parse_error_log'):
+                            res = template.parse_error_log(rep.run_dir)
+                            if res:
+                                return res
+                        return _simulation_error(err, 'error in read_result', rep.run_dir)
+                else:
+                    res = res2
+        if simulation_db.is_parallel(data):
+            new = template.background_percent_complete(
+                rep.model_name,
+                rep.run_dir,
+                is_running,
+            )
+            new.setdefault('percentComplete', 0.0)
+            new.setdefault('frameCount', 0)
+            res.update(new)
+        res['parametersChanged'] = rep.parameters_changed
+        if res['parametersChanged']:
+            pkdlog(
+                '{}: parametersChanged=True req_hash={} cached_hash={}',
+                rep.job_id,
+                rep.req_hash,
+                rep.cached_hash,
+            )
+        #TODO(robnagler) verify serial number to see what's newer
+        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+        if is_running:
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
+            res['nextRequest'] = {
+                'report': rep.model_name,
+                'reportParametersHash': rep.cached_hash,
+                'simulationId': rep.cached_data['simulationId'],
+                'simulationType': rep.cached_data['simulationType'],
+            }
+        pkdc(
+            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
+            rep.job_id,
+            is_running,
+            res['state'],
+            rep.cache_hit,
+            rep.cached_hash,
+            rep.req_hash,
+        )
+    except Exception:
+        return _simulation_error(pkdexc(), quiet=quiet)
+    return res
 
 
 def _simulation_run_status(data, quiet=False):
