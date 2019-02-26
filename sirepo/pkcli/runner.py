@@ -142,6 +142,10 @@ class _JobTracker:
                 if disk_status == 'pending':
                     # We never write this, so it must be stale, in which case
                     # the job is no longer pending...
+                    pkdlog(
+                        'found "pending" status, treating as "error" ({})',
+                        disk_status_path,
+                    )
                     return runner_client.JobStatus.ERROR
                 return runner_client.JobStatus(disk_status)
         if run_dir in self.jobs and self.jobs[run_dir].jhash == jhash:
