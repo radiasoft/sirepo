@@ -204,6 +204,10 @@ class _JobTracker:
                     # the wrong version of the directory...
                     await process.wait()
                     if process.returncode:
+                        pkdlog(
+                            '{} {}: job failed, returncode = {}',
+                            run_dir, jhash, process.returncode,
+                        )
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
                     else:
                         _write_status(runner_client.JobStatus.COMPLETED, run_dir)
