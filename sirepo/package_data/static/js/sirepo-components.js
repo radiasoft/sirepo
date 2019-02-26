@@ -459,7 +459,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-user-folder-list="" data-model="model" data-field="field"></div>',
               '</div>',
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
-                '<div data-optimize-float="" data-model="model" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
+                '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
@@ -2466,6 +2466,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
         restrict: 'A',
         scope: {
             model: '=',
+            modelName: '=',
             field: '=',
             min: '=',
             max: '=',
@@ -2484,10 +2485,13 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
         ].join(''),
         controller: function($scope) {
             function checkField() {
-                return appState.optFieldName($scope.field);
+                return appState.optFieldName($scope.modelName, $scope.field, $scope.model);
             }
             function isChecked() {
-                return $scope.model && $scope.model[checkField()];
+                if (appState.isLoaded() && $scope.model) {
+                    return (appState.models.optimizer.enabledFields || {})[checkField()];
+                }
+                return false;
             }
             $scope.buttonName = function() {
                 return isChecked() ? 'primary' : 'default';
@@ -2496,8 +2500,14 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
                 return isChecked() ? 'check' : 'unchecked';
             };
             $scope.toggleCheck = function() {
-                $scope.model[checkField()] = ! $scope.model[checkField()];
-                panelState.findParentAttribute($scope, 'form').$setDirty();
+                var optimizer = appState.models.optimizer;
+                if (optimizer.enabledFields[checkField()]) {
+                    delete optimizer.enabledFields[checkField()];
+                }
+                else {
+                    optimizer.enabledFields[checkField()] = true;
+                }
+                appState.saveChanges('optimizer');
             };
         },
     };
@@ -2535,7 +2545,7 @@ SIREPO.app.directive('simStatusPanel', function() {
                   '<div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>',
                   '<div data-ng-show="simState.getFrameCount() > 0">{{ message(true); }}</div>',
                   '<div class="progress">',
-                    '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%">',
+                    '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() || 100 }}%">',
                     '</div>',
                   '</div>',
                 '</div>',

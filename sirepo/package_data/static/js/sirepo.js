@@ -481,8 +481,12 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         requestSender.sendRequest('newSimulation', op, data, errOp);
     };
 
-    self.optFieldName = function(fieldName) {
-        return fieldName + '_opt';
+    self.optFieldName = function(modelName, fieldName, model) {
+        var res = modelName;
+        if (model && model.id) {
+            res += '#' + model.id;
+        }
+        return res + '.' + fieldName;
     };
 
     self.parseModelField = function(name) {

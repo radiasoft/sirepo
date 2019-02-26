@@ -6,10 +6,11 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOT_3D_CONFIG = {
     'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
 };
-
+SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation'];
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="optimizerPath" data-optimizer-path-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ].join('');
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
@@ -21,8 +22,8 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="Color" data-ng-class="fieldClass">',
       '<div data-color-picker="" data-color="model.color" data-default-color="model.isConductor === \'0\' ? \'#f3d4c8\' : \'#6992ff\'"></div>',
     '</div>',
-    '<div data-ng-switch-when="FileChooser" data-ng-class="fieldClass">',
-      '<form data-stl-file-chooser="" data-require="true" data-ng-model="model[field]">',
+    '<div data-ng-switch-when="OptimizationField" data-ng-class="fieldClass">',
+      '<div data-optimization-field-picker="" field="field" data-model="model"></div>',
     '</div>',
 ].join('');
 SIREPO.appImportText = 'Import an stl file';
@@ -30,6 +31,56 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
     var self = {};
     var plateSpacing = 0;
     var rootScopeListener = null;
+
+    function addOptimizeContainerFields(optFields, containerName, modelName, optFloatFields) {
+        var idx = {};
+        appState.models[containerName].forEach(function(m) {
+            var name;
+            if (m.name) {
+                name = m.name;
+            }
+            else {
+                var conductorTypeName = self.findConductorType(m.conductorTypeId).name;
+                idx[conductorTypeName] = (idx[conductorTypeName] || 0) + 1;
+                name = conductorTypeName + ' #' + idx[conductorTypeName];
+            }
+            $.each(m, function(fieldName, value) {
+                var field = appState.optFieldName(modelName, fieldName, m);
+                if ((appState.models.optimizer.enabledFields || {})[field]) {
+                    var label = optFloatFields[appState.optFieldName(modelName, fieldName)];
+                    optFields.push({
+                        field: appState.optFieldName(modelName, fieldName, m),
+                        label: name + ' ' + label,
+                        value: m[fieldName],
+                    });
+                }
+            });
+        });
+    }
+
+    function addOptimizeModelFields(optFields) {
+        var optFloatFields = {};
+
+        // look through schema for OptFloat types which have been enabled
+        $.each(SIREPO.APP_SCHEMA.model, function(modelName, modelInfo) {
+            $.each(modelInfo, function(fieldName, fieldInfo) {
+                if (fieldInfo[1] == 'OptFloat') {
+                    var m = appState.models[modelName];
+                    var field = appState.optFieldName(modelName, fieldName);
+                    optFloatFields[field] = fieldInfo[0];
+                    if ((appState.models.optimizer.enabledFields || {})[field]) {
+                        optFields.push({
+                            field: field,
+                            label: fieldInfo[0],
+                            value: m[fieldName],
+                        });
+                    }
+                }
+            });
+        });
+        return optFloatFields;
+    }
+
 
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
@@ -52,16 +103,23 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         return model;
     }
 
-    function formatNumber(value) {
+    function formatNumber(value, decimals) {
+        decimals = decimals || 3;
         if (value) {
             if (Math.abs(value) < 1e3 && Math.abs(value) > 1e-3) {
-                return cleanNumber(value.toFixed(3));
+                return cleanNumber(value.toFixed(decimals));
             }
             else {
-                return cleanNumber(value.toExponential(2));
+                return cleanNumber(value.toExponential(decimals));
             }
         }
         return '' + value;
+    }
+
+    function gridRange(sizeField, countField) {
+        var grid = appState.models.simulationGrid;
+        var channel = grid[sizeField];
+        return plotting.linearlySpacedArray(-channel / 2, channel / 2, grid[countField] + 1);
     }
 
     function realignConductors() {
@@ -81,6 +139,14 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         return SIREPO.APP_SCHEMA.feature_config.allow_3d_mode;
     };
 
+    self.buildOptimizeFields = function() {
+        var optFields = [];
+        var optFloatFields = addOptimizeModelFields(optFields);
+        addOptimizeContainerFields(optFields, 'conductorTypes', 'box', optFloatFields);
+        addOptimizeContainerFields(optFields, 'conductors', 'conductorPosition', optFloatFields);
+        return optFields;
+    };
+
     self.conductorTypeMap = function() {
         var res = {};
         appState.models.conductorTypes.forEach(function(m) {
@@ -97,11 +163,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         return findModelById('conductorTypes', id);
     };
 
-    function gridRange(sizeField, countField) {
-        var grid = appState.models.simulationGrid;
-        var channel = grid[sizeField];
-        return plotting.linearlySpacedArray(-channel / 2, channel / 2, grid[countField] + 1);
-    }
+    self.formatNumber = formatNumber;
 
     self.getXRange = function() {
         return gridRange('channel_width', 'num_x');
@@ -333,14 +395,39 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     });
 });
 
-SIREPO.app.controller('OptimizationController', function (persistentSimulation, $scope) {
+SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, $scope) {
     var self = this;
 
     function handleStatus(data) {
+        if (data.startTime && ! data.error) {
+            appState.models.optimizerAnimation.startTime = data.startTime;
+            appState.saveQuietly('optimizerAnimation');
+            frameCache.setFrameCount(data.frameCount);
+        }
     }
 
+    self.hasOptFields = function() {
+        if (appState.isLoaded()) {
+            var optimizer = appState.applicationState().optimizer;
+            if (optimizer.fields) {
+                return optimizer.fields.length > 0;
+            }
+        }
+        return false;
+    };
+
     self.simState = persistentSimulation.initSimulationState($scope, 'optimizerAnimation', handleStatus, {
+        optimizerAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'startTime'],
     });
+
+    self.simState.notRunningMessage = function() {
+        return 'Optimization ' + self.simState.stateAsText() + ': ' + self.simState.getFrameCount() + ' runs';
+    };
+
+    self.simState.runningMessage = function() {
+        return 'Completed run: ' + self.simState.getFrameCount();
+    };
+
 });
 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
@@ -408,7 +495,7 @@ SIREPO.app.directive('appHeader', function() {
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -1422,8 +1509,12 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
         restrict: 'A',
         scope: {},
         template: [
-            '<form name="form" class="form-horizontal">',
+            '<div class="well" data-ng-show="! optFields.length">',
+            'Select fields for optimization on the <i>Source</i> tab.',
+            '</div>',
+            '<form name="form" class="form-horizontal" data-ng-show="::optFields.length">',
             '<div class="form-group form-group-sm">',
+              '<h4>Bounds</h4>',
               '<table class="table table-striped table-condensed">',
                 '<thead>',
                   '<tr>',
@@ -1443,12 +1534,12 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
                       '<div class="row" data-field-editor="\'maximum\'" data-field-size="12" data-model-name="\'optimizerField\'" data-model="optimizerField"></div>',
                     '</td>',
                     '<td style="vertical-align: middle">',
-                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteRow($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteField($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
                     '</td>',
                   '</tr>',
                   '<tr>',
                     '<td>',
-                      '<select class="input-sm form-control" data-ng-model="selected" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addField(selected)"></select>',
+                      '<select class="input-sm form-control" data-ng-model="selectedField" data-ng-options="f.field as f.label for f in unboundedOptFields" data-ng-change="addField()"></select>',
                     '</td>',
                     '<td></td>',
                     '<td></td>',
@@ -1457,10 +1548,48 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
                 '</tbody>',
               '</table>',
             '</div>',
+            '<div class="form-group form-group-sm" data-ng-show="appState.models.optimizer.fields.length">',
+              '<h4>Constraints</h4>',
+              '<table class="table table-striped table-condensed">',
+                '<thead>',
+                  '<tr>',
+                    '<th>Bounded Field</th>',
+                    '<th> </th>',
+                    '<th>Field</th>',
+                    '<th> </th>',
+                  '</tr>',
+                '</thead>',
+                '<tbody>',
+                  '<tr data-ng-repeat="constraint in appState.models.optimizer.constraints track by $index">',
+                    '<td>',
+                      '<div class="form-control-static">{{ labelForField(constraint[0]) }}</div>',
+                    '</td>',
+                    '<td style="vertical-align: middle">{{ constraint[1] }}</td>',
+                    '<td>',
+                      '<div class="form-control-static">{{ labelForField(constraint[2]) }}</div>',
+                    '</td>',
+                    '<td style="vertical-align: middle">',
+                      '<button class="btn btn-danger btn-xs" data-ng-click="deleteConstraint($index)" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                    '</td>',
+                  '</tr>',
+                  '<tr>',
+                    '<td>',
+                      '<select class="input-sm form-control" data-ng-model="selectedConstraint" data-ng-options="f.field as labelForField(f.field) for f in appState.models.optimizer.fields"></select>',
+                    '</td>',
+                    '<td>=</td>',
+                    '<td>',
+                      '<select data-ng-show="selectedConstraint" class="input-sm form-control" data-ng-model="selectedConstraint2" data-ng-options="f.field as f.label for f in ::optFields" data-ng-change="addConstraint()"></select>',
+                    '</td>',
+                    '<td style="vertical-align: middle">',
+                      '<button  data-ng-show="selectedConstraint" class="btn btn-danger btn-xs" data-ng-click="deleteSelectedConstraint()" title="Delete Row"><span class="glyphicon glyphicon-remove"></span></button>',
+                    '</td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
             '<div class="form-group form-group-sm">',
               '<div data-model-field="\'objective\'" data-model-name="\'optimizer\'"></div>',
             '</div>',
-
             '<div class="col-sm-6 pull-right" data-ng-show="hasChanges()">',
               '<button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save Changes</button> ',
               '<button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>',
@@ -1470,102 +1599,134 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
         controller: function($scope, $element) {
             $scope.form = angular.element($($element).find('form').eq(0));
             $scope.appState = appState;
-            $scope.selected = null;
-
-            function addOptimizeContainerFields(containerName, modelName, optFloatFields) {
-                var idx = {};
-                appState.models[containerName].forEach(function(m) {
-                    var name;
-                    if (m.name) {
-                        name = m.name;
-                    }
-                    else {
-                        var conductorTypeName = warpvndService.findConductorType(m.conductorTypeId).name;
-                        idx[conductorTypeName] = (idx[conductorTypeName] || 0) + 1;
-                        name = conductorTypeName + ' #' + idx[conductorTypeName];
-                    }
-                    $.each(m, function(fieldName, value) {
-                        var field = containerName + '#' + m.id + '.' + fieldName;
-
-                        if (m[appState.optFieldName(fieldName)]) {
-                            var label = optFloatFields[modelName + '.' + fieldName];
-                            $scope.optFields.push({
-                                field: field,
-                                label: name + ' ' + label,
-                                value: m[fieldName],
-                            });
-                        }
-                    });
-                });
-            }
-
-            function addOptimizeModelFields() {
-                var optFloatFields = {};
-
-                // look through schema for OptFloat types which have been enabled
-                $.each(SIREPO.APP_SCHEMA.model, function(modelName, modelInfo) {
-                    $.each(modelInfo, function(fieldName, fieldInfo) {
-                        if (fieldInfo[1] == 'OptFloat') {
-                            var field = modelName + '.' + fieldName;
-                            optFloatFields[field] = fieldInfo[0];
-                            var m = appState.models[modelName];
-                            if (m && m[appState.optFieldName(fieldName)]) {
-                                $scope.optFields.push({
-                                    field: field,
-                                    label: fieldInfo[0],
-                                    value: m[fieldName],
-                                });
-                            }
-                        }
-                    });
-                });
-                return optFloatFields;
-            }
+            $scope.selectedField = null;
+            $scope.selectedConstraint = null;
+            $scope.selectedConstraint2 = null;
 
             function buildOptimizeFields() {
-                //TODO(pjm): need to remove appState.models.optimizer.fields element if _opt has been removed
-                if (! appState.models.optimizer.fields) {
-                    appState.models.optimizer.fields = [];
-                }
-                $scope.optFields = [];
-                var optFloatFields = addOptimizeModelFields();
-                addOptimizeContainerFields('conductorTypes', 'box', optFloatFields);
-                addOptimizeContainerFields('conductors', 'conductorPosition', optFloatFields);
+                $scope.optFields = warpvndService.buildOptimizeFields();
             }
 
             function setDefaults(model) {
                 $scope.optFields.some(function(f) {
                     if (f.field == model.field) {
-                        model.minimum = model.maximum = model.initialValue = f.value;
+                        model.minimum = model.maximum = f.value;
                         return true;
                     }
                 });
             }
 
-            $scope.addField = function(field) {
+            function verifyBounds() {
+                var isField = {};
+                $scope.optFields.forEach(function(f) {
+                    isField[f.field] = true;
+                });
+                var list = [];
+                var isBoundedField = {};
+                var fields = appState.models.optimizer.fields || []
+                fields.forEach(function(f) {
+                    if (isField[f.field]) {
+                        list.push(f);
+                        isBoundedField[f.field] = true;
+                    }
+                });
+                if (fields.length != list.length) {
+                    appState.models.optimizer.fields = list;
+                }
+                return isBoundedField;
+            }
+
+            function verifyBoundsAndConstraints() {
+                if ($scope.optFields) {
+                    verifyConstraints(verifyBounds());
+                }
+            }
+
+            function verifyConstraints(isBoundedField) {
+                $scope.unboundedOptFields = [];
+                $scope.optFields.forEach(function(f) {
+                    if (! isBoundedField[f.field]) {
+                        $scope.unboundedOptFields.push(f);
+                    }
+                });
+
+                var list = [];
+                var constraints = appState.models.optimizer.constraints || [];
+                constraints.forEach(function(c) {
+                    if (isBoundedField[c[0]] && ! isBoundedField[c[2]]) {
+                        list.push(c);
+                    }
+                });
+                if (constraints.length != list.length) {
+                    appState.models.optimizer.constraints = list;
+                }
+            }
+
+            $scope.addConstraint = function() {
+                if ($scope.selectedConstraint == $scope.selectedConstraint2) {
+                    return;
+                }
+                appState.models.optimizer.constraints.push(
+                    [$scope.selectedConstraint, '=', $scope.selectedConstraint2]);
+                $scope.selectedConstraint = null;
+                $scope.selectedConstraint2 = null;
+            };
+
+            $scope.addField = function() {
                 var m = {
-                    field: field,
+                    field: $scope.selectedField,
                 };
                 appState.models.optimizer.fields.push(m);
                 setDefaults(m);
-                $scope.selected = null;
+                $scope.selectedField = null;
+                verifyBoundsAndConstraints();
             };
 
             $scope.cancelChanges = function() {
                 appState.cancelChanges('optimizer');
+                verifyBoundsAndConstraints();
                 $scope.form.$setPristine();
             };
 
-            $scope.deleteRow = function(idx) {
-                appState.models.optimizer.fields.splice(idx, 1);
+            $scope.deleteConstraint = function(idx) {
+                appState.models.optimizer.constraints.splice(idx, 1);
                 $scope.form.$setDirty();
+            };
+
+            $scope.deleteField = function(idx) {
+                var field = appState.models.optimizer.fields[idx].field;
+                appState.models.optimizer.fields.splice(idx, 1);
+                verifyBoundsAndConstraints();
+                $scope.form.$setDirty();
+            };
+
+            $scope.deleteSelectedConstraint = function() {
+                $scope.selectedConstraint = null;
+                $scope.selectedConstraint2 = null;
+            };
+
+            $scope.getBoundsFieldList = function() {
+                if (! $scope.optFields) {
+                    return null;
+                }
+                var existingFieldBounds = {};
+                appState.models.optimizer.fields.forEach(function(f) {
+                    existingFieldBounds[f.field] = true;
+                });
+                var list = [];
+                $scope.optFields.forEach(function(f) {
+                    if (! existingFieldBounds[f.field]) {
+                        list.push(f);
+                    }
+                });
+                return list;
             };
 
             $scope.hasChanges = function() {
                 if ($scope.form.$dirty) {
                     return true;
                 }
-                return appState.areFieldsDirty('optimizer.fields');
+                return appState.areFieldsDirty('optimizer.fields') || appState.areFieldsDirty('optimizer.constraints');
             };
 
             $scope.labelForField = function(field) {
@@ -1586,7 +1747,61 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
                 $scope.form.$setPristine();
             };
 
-            appState.whenModelsLoaded($scope, buildOptimizeFields);
+            appState.whenModelsLoaded($scope, function() {
+                buildOptimizeFields();
+                verifyBoundsAndConstraints();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=optimizationResults',
+        },
+        template: [
+            '<div data-ng-show="results && simState.getFrameCount() > 0">',
+              '<p><pre>{{ results }}</pre></p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('optimizerAnimation.summaryData', function(e, info) {
+                    $scope.results = '';
+                    if (appState.isLoaded() && info.fields) {
+
+                        if ($scope.simState.isStopped()) {
+                            if (info.success) {
+                                $scope.results += 'Optimization successful\n';
+                            }
+                            else {
+                                $scope.results += 'Optimization failed to converge\n';
+                            }
+                        }
+                        else {
+                            //$scope.results += 'Optimization failed to converge\n';
+                        }
+                        $scope.results += 'Best Result: ' + warpvndService.formatNumber(info.fun, 4) + '\n';
+                        var optFields = warpvndService.buildOptimizeFields();
+                        info.x.forEach(function(v, idx) {
+                            var field = info.fields[idx].field;
+                            var label = field;
+                            optFields.some(function(opt) {
+                                if (opt.field == field) {
+                                    label = opt.label;
+                                    if (label.indexOf('µ') >= 0) {
+                                        v *= 1e6;
+                                    }
+                                    return true;
+                                }
+                            });
+                            $scope.results += label + ': ' + warpvndService.formatNumber(v, 4) + '\n';
+                        });
+                    }
+                });
+            });
         },
     };
 });
@@ -1678,15 +1893,13 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            $scope.wantColorbar = true;
-            var colorbar, pointer;
 
             function mouseOver() {
                 /*jshint validthis: true*/
                 var path = d3.select(this);
                 if (! path.empty()) {
                     var density = path.datum().srDensity;
-                    pointer.pointTo(density);
+                    $scope.pointer.pointTo(density);
                 }
             }
 
@@ -1695,6 +1908,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                     aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 80, bottom: 50, left: 70},
                     zoomContainer: '.plot-viewport',
+                    wantColorbar: true,
                 });
                 // can't remove the overlay or it causes a memory leak
                 $scope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
@@ -1713,15 +1927,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                var colorMap = plotting.colorMapFromModel($scope.modelName);
-                var colorScale = d3.scale.linear()
-                    .domain(plotting.linearlySpacedArray(json.v_min, json.v_max, colorMap.length))
-                    .range(colorMap);
-                colorbar = Colorbar()
-                    .scale(colorScale)
-                    .thickness(30)
-                    .margin({top: 10, right: 60, bottom: 20, left: 10})
-                    .orient("vertical");
+                $scope.updatePlot(json);
 
                 var i;
                 for (i = 0; i < json.density_lines.length; i++) {
@@ -1747,19 +1953,155 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                         var path = viewport.append('path')
                             .attr('class', 'line')
                             .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
-                                  + (density > 0 ? colorScale(density) : 'black'))
+                                  + (density > 0 ? $scope.colorScale(density) : 'black'))
                             .datum(v);
                         path.on('mouseover', mouseOver);
                     }
+                }
+            };
+
+            $scope.refresh = function() {
+                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('optimizationFieldPicker', function(appState, warpvndService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="input-group">',
+              '<select class="form-control" data-ng-model="model[field]" data-ng-options="item.index as item.name for item in optimizationFields()"></select>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var list = null;
+
+            function buildList() {
+                var labelMap = {};
+                warpvndService.buildOptimizeFields().forEach(function(f) {
+                    labelMap[f.field] = f.label;
+                });
+                list = [];
+                appState.models.optimizer.fields.forEach(function(f, idx) {
+                    list.push({
+                        index: idx,
+                        name: labelMap[f.field] ? labelMap[f.field] : '',
+                    });
+                });
+            }
+
+            $scope.optimizationFields = function() {
+                return list;
+            };
+
+            appState.whenModelsLoaded($scope, buildList);
+            $scope.$on('optimizer.changed', buildList);
+        },
+    };
+});
+
+SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dService, warpvndService) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            var maxValue, points, sortedPoints;
+
+            function fieldLabel(field, optFields) {
+                var res = name;
+                optFields.some(function(f) {
+                    if (field == f.field) {
+                        res = f.label.replace('µ', '');
+                        return true;
+                    }
+                });
+                return res;
+            }
+
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    aspectRatio: 4.0 / 7,
+                    margin: {top: 50, right: 80, bottom: 50, left: 70},
+                    zoomContainer: '.plot-viewport',
+                    wantColorbar: true,
+                    isZoomXY: true,
+                });
+                //TODO(pjm): move to plot2dService
+                // can't remove the overlay or it causes a memory leak
+                $scope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
+            };
+
+            $scope.load = function(json) {
+                points = json.points;
+                sortedPoints = appState.clone(points).sort(function(v1, v2) {
+                    return v1[2] - v2[2];
+                });
+                maxValue = json.v_max;
+                var xdom = [json.x_range[0], json.x_range[1]];
+                var ydom = [json.y_range[0], json.y_range[1]];
+                if (appState.deepEquals(xdom, $scope.axes.x.domain)
+                    && appState.deepEquals(ydom, $scope.axes.y.domain)) {
+                }
+                else {
+                    $scope.axes.x.domain = xdom;
+                    $scope.axes.x.scale.domain(xdom);
+                    $scope.axes.y.domain = ydom;
+                    $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+                }
+                var viewport = $scope.select('.plot-viewport');
+                viewport.selectAll('.line').remove();
+                viewport.append('path').attr('class', 'line line-1').datum(json.points);
+                var optFields = warpvndService.buildOptimizeFields();
+                json.x_label = fieldLabel(json.x_field, optFields);
+                $scope.isZoomXY = json.x_field != json.y_field;
+                if ($scope.isZoomXY) {
+                    json.y_label = fieldLabel(json.y_field, optFields);
+                }
+                else {
+                    json.y_label = '';
                 }
                 $scope.updatePlot(json);
             };
 
             $scope.refresh = function() {
-                colorbar.barlength($scope.height)
-                    .origin([0, 0]);
-                pointer = $scope.select('.colorbar').call(colorbar);
-                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                var viewport = $scope.select('.plot-viewport');
+                viewport.selectAll('.line').attr('d', $scope.graphLine);
+                viewport.selectAll('.warpvnd-scatter-point').remove();
+                viewport.selectAll('.warpvnd-scatter-point')
+                    .data(sortedPoints)
+                    .enter().append('circle')
+                    .attr('class', 'warpvnd-scatter-point')
+                    .attr('r', 8)
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y())
+                    .attr('style', function(d) {
+                        var res = 'fill: ' + $scope.colorScale(d[2]);
+                        if (d[2] == maxValue) {
+                            res += '; stroke-width: 2; stroke: black';
+                        }
+                        return res;
+                    })
+                    .on('mouseover', function() {
+                        var obj = d3.select(this);
+                        if (! obj.empty()) {
+                            $scope.pointer.pointTo(obj.datum()[2]);
+                        }
+                    })
+                    .append('title').text(function(d) {
+                        return d.join(', ');
+                    });
             };
         },
         link: function link(scope, element) {
