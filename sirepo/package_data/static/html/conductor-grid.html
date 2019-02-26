@@ -6,6 +6,7 @@
 
 <div data-ng-show="! is3dPreview || ! warpvndService.is3D()">
   <p class="lead text-center" style="margin-bottom: 0"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
+  <a href="" data-ng-click="toggleTiledDomain()"><span class="glyphicon" data-ng-class="{'glyphicon-check': isDomainTiled, 'glyphicon-unchecked': ! isDomainTiled}"></span></a> <span>Show periodic domain</span>
   <div>
     <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
     <div style="-webkit-user-select: none"><svg class="sr-plot">
@@ -40,8 +41,12 @@
                   <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}"></rect>
               </svg>
             </g>
-            <g data-ng-show="isDomainTiled()">
+            <g data-ng-show="isDomainTiled">
               <svg data-ng-attr-width="{{ 3 * tileInsetSize().width }}" data-ng-attr-height="{{ 3 * tileInsetSize().height }}">
+                  <!--
+                  <text class="focus-text" x="10" y="10">X</text>
+                  <text class="focus-text" x="10" data-ng-attr-y="{{ 3 * tileInsetSize().height }}">Y</text>
+                  -->
                   <g id="tile-master" data-ng-attr-transform="translate({{ tileInsetOffset().x }}, {{ tileInsetSize().height }})">
                   <rect id="tile-center" class="warpvnd-inset-tile"  ng-attr-width="{{ tileInsetSize().width }}" ng-attr-height="{{ tileInsetSize().height }}"></rect>
                   </g>

@@ -234,9 +234,7 @@
         },
         "conductorGridReport": {
             "title": "Conductor Grid",
-            "advanced": [
-                "tileDomain"
-            ]
+            "advanced": []
         },
         "conductorPosition": {
             "title": "Conductor Position",

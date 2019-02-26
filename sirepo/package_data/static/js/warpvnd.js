@@ -189,13 +189,11 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
         var is3d = appState.models.simulationGrid.simulation_mode == '3d';
-        panelState.showField('simulationGrid', 'channel_width', isNotStl);
-        panelState.showField('simulationGrid', 'conductor_scale', ! isNotStl);
         ['channel_height', 'num_y'].forEach(function(f) {
-            panelState.showField('simulationGrid', f, is3d && isNotStl);
+            panelState.showField('simulationGrid', f, is3d);
         });
-        panelState.showField('box', 'yLength', is3d && isNotStl);
-        panelState.showField('conductorPosition', 'yCenter', is3d && isNotStl);
+        panelState.showField('box', 'yLength', is3d);
+        panelState.showField('conductorPosition', 'yCenter', is3d);
     }
 
     self.createConductorType = function(type) {
@@ -581,7 +579,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             //TODO(pjm): keep in sync with pkcli/warpvnd.py color
             var CELL_COLORS = ['red', 'green', 'blue'];
             var ASPECT_RATIO = 6.0 / 14;
-            var insetWidthPct = 0.05;
+            var insetWidthPct = 0.07;
             var insetMargin = 16.0;
 
             $scope.warpvndService = warpvndService;
@@ -897,7 +895,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if (dim == 'x') {
                     d3.select(info.viewportClass).selectAll('.warpvnd-shape').call(dragShape);
                 }
-                if(! $scope.isDomainTiled() || dim !== 'x') {
+                if(! $scope.isDomainTiled || dim !== 'x') {
                     return;
                 }
                 // just once per set of conductors
@@ -1314,7 +1312,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.tileInsetSize = function() {
                 var w = 0;
                 var h = 0;
-                if($scope.isDomainTiled()) {
+                if($scope.isDomainTiled) {
                     w = insetWidthPct * $scope.width;
                     var grid = appState.models.simulationGrid;
                     h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
@@ -1340,7 +1338,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             };
 
             $scope.tileOffset = function() {
-                return $scope.isDomainTiled() ? insetMargin + $scope.allInsetSize().height : 0;
+                return $scope.isDomainTiled ? insetMargin + $scope.allInsetSize().height : 0;
             };
 
             $scope.init = function() {
@@ -1375,9 +1373,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 replot();
             };
 
-            $scope.isDomainTiled = function() {
-                return appState.models.conductorGridReport.tileDomain === '1';
-            };
+            $scope.isDomainTiled = false;
+            //$scope.isDomainTiled = function() {
+            //    return ;
+            //};
 
            $scope.resize = function() {
                 if (select().empty()) {
@@ -1392,6 +1391,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
             };
 
+            $scope.toggleTiledDomain = function() {
+                $scope.isDomainTiled = ! $scope.isDomainTiled;
+                refresh();
+            };
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.is3dPreview = $scope.source.usesSTL();
@@ -1698,7 +1701,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                srdbg('imapce atata', json);
+                //srdbg('imapce atata', json);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
@@ -1908,10 +1911,8 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                 if(! reader) {
                     return;
                 }
-                //srdbg('loading...');
                 reader.loadData()
                     .then(function (res) {
-                        //srdbg('...done');
                         var cColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                         stlActor = vtk.Rendering.Core.vtkActor.newInstance();
                         var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
