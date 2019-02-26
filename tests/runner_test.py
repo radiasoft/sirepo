@@ -22,6 +22,7 @@ def test_runner_myapp():
     # Check if the py3 environment is set up
     py3_env = dict(os.environ)
     py3_env['PYENV_VERSION'] = 'py3'
+    del py3_env['PYTHONPATH']
     returncode = subprocess.call(
         ['pyenv', 'exec', 'sirepo', '--help'], env=py3_env
     )
