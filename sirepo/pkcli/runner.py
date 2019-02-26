@@ -190,7 +190,7 @@ class _JobTracker:
                         cmd,
                         cwd=run_dir,
                         start_new_session=True,
-                        stdin=run_log,  # XX TODO: should be subprocess.DEVNULL?
+                        stdin=subprocess.DEVNULL,
                         stdout=run_log,
                         stderr=run_log,
                         env=env,
