@@ -245,8 +245,9 @@ async def _cancel_job(job_tracker, request):
     job_info.process.terminate()
     with trio.move_on_after(_KILL_TIMEOUT_SECS):
         await job_info.finished.wait()
-    job_info.process.kill()
-    await job_info.finished.wait()
+    if job_info.returncode is None:
+        job_info.process.kill()
+        await job_info.finished.wait()
     return {}
 
 
