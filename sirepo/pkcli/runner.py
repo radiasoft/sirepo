@@ -158,11 +158,13 @@ class _JobTracker:
     async def _run_job(
             self, run_dir, jhash, cmd, *, task_status=trio.TASK_STATUS_IGNORED
     ):
-        # XX TODO: there are all kinds of race conditions here, e.g. if the
-        # same jid gets started multiple times in parallel... we need to
-        # revisit this once jids are globally unique, and possibly add
-        # features like "if there is another job running with the same
-        # user/sim/job but a different hash, then auto-cancel that other job"
+        # XX TODO: there are still some awkward race conditions here if a new
+        # job tries to start using the directory while another job is still
+        # using it. probably start_job should detect this, and either kill the
+        # existing job (if it has a different jhash + older serial), do
+        # nothing and report success (if the existing job has the same jhash),
+        # or error out (if the existing job has a different jhash + newer
+        # serial).
         with _catch_and_log_errors(Exception, 'error in run_job'):
             if run_dir in self.jobs:
                 # Right now, I don't know what happens if we reach here while
