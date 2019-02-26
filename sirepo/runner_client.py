@@ -40,10 +40,9 @@ def _rpc(request):
             if not chunk:
                 break
             response_bytes += chunk
-    response = pkjson.load_any(bytes(response_bytes))
-    if 'error_string' in response:
-        raise AssertionError(response.error_string)
-    return response
+    if response_bytes == b'':
+        raise AssertionError('runner daemon had an unknown error')
+    return pkjson.load_any(bytes(response_bytes))
 
 
 def start_job(run_dir, jhash, cmd):

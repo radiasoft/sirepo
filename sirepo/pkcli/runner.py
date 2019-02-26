@@ -255,30 +255,22 @@ async def _cancel_job(job_tracker, request):
 # have to worry about different requests for the same job racing?
 async def _handle_conn(job_tracker, lock_dict, stream):
     with _catch_and_log_errors(Exception, 'error handling request'):
-        try:
-            request_bytes = bytearray()
-            while True:
-                chunk = await stream.receive_some(_CHUNK_SIZE)
-                if not chunk:
-                    break
-                request_bytes += chunk
-            request = pkjson.load_any(request_bytes)
-            if 'run_dir' in request:
-                request.run_dir = pkio.py_path(request.run_dir)
-            pkdlog('runner request: {!r}', request)
-            handler = _RPC_HANDLERS[request.action]
-            async with lock_dict[request.run_dir]:
-                response = await handler(job_tracker, request)
-            pkdlog('runner response: {!r}', response)
-            response_bytes = pkjson.dump_bytes(response)
-        except Exception as exc:
-            await stream.send_all(
-                pkjson.dump_bytes({'error_string': repr(exc)})
-            )
-            # Let's also log the full error here
-            raise
-        else:
-            await stream.send_all(response_bytes)
+        request_bytes = bytearray()
+        while True:
+            chunk = await stream.receive_some(_CHUNK_SIZE)
+            if not chunk:
+                break
+            request_bytes += chunk
+        request = pkjson.load_any(request_bytes)
+        if 'run_dir' in request:
+            request.run_dir = pkio.py_path(request.run_dir)
+        pkdlog('runner request: {!r}', request)
+        handler = _RPC_HANDLERS[request.action]
+        async with lock_dict[request.run_dir]:
+            response = await handler(job_tracker, request)
+        pkdlog('runner response: {!r}', response)
+        response_bytes = pkjson.dump_bytes(response)
+        await stream.send_all(response_bytes)
 
 
 async def _main():
