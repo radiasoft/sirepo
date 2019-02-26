@@ -32,11 +32,12 @@ def test_runner_myapp():
     from sirepo import srunit
     from pykern import pkunit
     from pykern import pkio
+    from pykern.pkdebug import pkdlog
 
     fc = srunit.flask_client()
 
     from sirepo import srdb
-    print(srdb.runner_socket_path())
+    pkdlog(srdb.runner_socket_path())
 
     pkio.unchecked_remove(srdb.runner_socket_path())
 
@@ -56,9 +57,9 @@ def test_runner_myapp():
             {'simulationType': 'myapp',
              'search': {'simulationName': 'heightWeightReport'}},
         )
-        print(data)
+        pkdlog(data)
         data = data[0].simulation
-        print(data)
+        pkdlog(data)
         data = fc.sr_get(
             'simulationData',
             params=dict(
@@ -67,7 +68,7 @@ def test_runner_myapp():
                 simulation_type='myapp',
             ),
         )
-        print(data)
+        pkdlog(data)
         run = fc.sr_post(
             'runSimulation',
             dict(
@@ -78,13 +79,13 @@ def test_runner_myapp():
                 simulationType=data.simulationType,
             ),
         )
-        print(run)
+        pkdlog(run)
         for _ in range(10):
             run = fc.sr_post(
                 'runStatus',
                 run.nextRequest
             )
-            print(run)
+            pkdlog(run)
             if run.state == 'completed':
                 break
             time.sleep(1)
