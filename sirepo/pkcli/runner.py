@@ -170,7 +170,7 @@ class _JobTracker:
                 # writing to the new job's freshly-initialized run_dir? This
                 # will be fixed once we move away from having server.py write
                 # directly into the run_dir.
-                assert self.jobs[jhash] == jhash
+                assert self.jobs[run_dir].jhash == jhash
                 return
             try:
                 env = _subprocess_env()
