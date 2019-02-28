@@ -52,22 +52,20 @@ assert np.sum(counts_1) > 0, 'no particles deposited on conductors'
 clock = 0
 time1 = time.time()
 
-#TODO(pjm): make these optimizer variables
-target = 0.01
+target = {{ optimizer_tolerance }}
 # in seconds
-time_limit = 60
+time_limit = {{ optimizer_timeLimit }}
+end_time = time.time() + time_limit
 
 tol = target + 1
-while (tol > target) and (clock < time_limit):
+while (tol > target) and (time.time() < end_time):
     wp.step(num_steps)
     counts_2 = get_lost_counts()
     accumulated_0 = counts_1 - counts_0
     accumulated_1 = counts_2 - counts_1
     if not accumulated_1[-1]:
-        accumulated_0.fill(0)
-        accumulated_1.fill(0)
         print('WARNING: no particles accumulated on conductor')
-        break
+        continue
     print('accumulated_1: {}'.format(accumulated_1))
     collector_fraction_0 = accumulated_0[-1] / np.sum(accumulated_0)
     collector_fraction_1 = accumulated_1[-1] / np.sum(accumulated_1)
@@ -75,9 +73,6 @@ while (tol > target) and (clock < time_limit):
     print('tol, target: {}, {}'.format(tol, target))
     print('accum ratio: {}'.format(accumulated_1[0] / np.sum(accumulated_1)))
     counts_0, counts_1 = counts_1, counts_2
-    clock += time.time() - time1
-    time1 = time.time()
-    print('clock: {}'.format(clock))
 
 stats = (accumulated_0 + accumulated_1) / 2
 

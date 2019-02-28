@@ -46,7 +46,7 @@ def flask_client(cfg=None):
     if not cfg:
         cfg = {}
     wd = pkunit.work_dir()
-    cfg['SIREPO_SERVER_DB_DIR'] = str(pkio.mkdir_parent(wd.join('db')))
+    cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
     if not (server and hasattr(server.app, a)):
         with pkio.save_chdir(wd):
             pkconfig.reset_state_for_testing(cfg)

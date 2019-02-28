@@ -44,3 +44,9 @@
 .table-hover > tbody > tr.warpvnd-conductor-th {
   background-color: inherit;
 }
+.warpvnd-scatter-point {
+  stroke: rgba(99, 99, 99, 0.7);
+  stroke-width: 1;
+  fill: rgb(0, 230, 0);
+  cursor: default;
+}

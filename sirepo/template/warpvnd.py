@@ -29,13 +29,17 @@ _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
+_OPTIMIZER_OUTPUT_FILE = 'opt.out'
+_OPTIMIZER_RESULT_FILE = 'opt.json'
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
-_PARTICLE_PERIOD = 100
 _PARTICLE_FILE = 'particles.npy'
+_PARTICLE_PERIOD = 100
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
+    if report == 'optimizerAnimation':
+        return _optimizer_percent_complete(run_dir, is_running)
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
@@ -82,12 +86,19 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
+    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
+        data['models']['optimizer'] = {
+            'constraints': [],
+            'enabledFields': {},
+            'fields': [],
+        }
     for m in [
             'egunCurrentAnimation',
             'fieldReport',
             'impactDensityAnimation',
             'optimizer',
             'optimizerAnimation',
+            'optimizerStatus',
             'particle3d',
             'particleAnimation',
             'simulation',
@@ -140,7 +151,7 @@ def generate_field_comparison_report(data, run_dir):
 
 def get_animation_name(data):
     if data['modelName'] == 'optimizerAnimation':
-        return 'optimization'
+        return data['modelName']
     return 'animation'
 
 
@@ -210,6 +221,9 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
     if data['modelName'] == 'impactDensityAnimation':
         return _extract_impact_density(run_dir, model_data)
+    if data['modelName'] == 'optimizerAnimation':
+        args = template_common.parse_animation_args(data, {'': ['x', 'y']})
+        return _extract_optimization_results(run_dir, model_data, args)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -300,6 +314,15 @@ def write_parameters(data, run_dir, is_parallel):
             run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
             txt,
         )
+
+
+def _add_margin(bounds):
+    width = bounds[1] - bounds[0]
+    if width:
+        margin = width * 0.05
+    else:
+        margin = 0.05
+    return [bounds[0] - margin, bounds[1] + margin]
 
 
 def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, limit):
@@ -512,6 +535,74 @@ def _extract_impact_density(run_dir, data):
     }
 
 
+def _read_optimizer_output(run_dir):
+    # only considers unique points as steps
+    opt_file = run_dir.join(_OPTIMIZER_OUTPUT_FILE)
+    if not opt_file.exists():
+        return None, None
+    try:
+        values = np.loadtxt(str(opt_file))
+        if len(values) and len(values[0]):
+            pass
+        else:
+            return None, None
+    except TypeError:
+        return None, None
+    except ValueError:
+        return None, None
+
+    visited = {}
+    res = []
+    best_row = None
+    for v in values:
+        k = str(v)
+        if k not in visited:
+            visited[k] = True
+            res.append(v)
+            if best_row is None or v[-1] > best_row[-1]:
+                best_row = v
+    return np.array(res), best_row
+
+
+def _extract_optimization_results(run_dir, data, args):
+    x_index = int(args.x or '0')
+    y_index = int(args.y or '0')
+    res, best_row = _read_optimizer_output(run_dir)
+    fields = data.models.optimizer.fields
+    if x_index > len(fields) - 1:
+        x_index = 0
+    if y_index > len(fields) - 1:
+        y_index = 0
+    x = res[:, x_index]
+    y = res[:, y_index]
+    if x_index == y_index:
+        y = np.zeros(len(y))
+    score = res[:, -1]
+    res = np.column_stack((x, y, score))
+    summary_data = None
+    result_file = run_dir.join(_OPTIMIZER_RESULT_FILE)
+    if result_file.exists():
+        summary_data = simulation_db.read_json(result_file)
+    else:
+        best_row = best_row.tolist();
+        summary_data = {
+            'fun': best_row.pop(),
+            'x': best_row,
+        }
+    summary_data['fields'] = fields
+    return {
+        'title': '',
+        'x_range': _add_margin([min(x), max(x)]),
+        'points': res.tolist(),
+        'y_range': _add_margin([min(y), max(y)]),
+        'v_min': min(score),
+        'v_max': max(score),
+        'x_field': fields[x_index].field,
+        'y_field': fields[y_index].field,
+        'summaryData': summary_data,
+    }
+
+
 def _extract_particle(run_dir, data, limit):
     v = np.load(str(run_dir.join(_PARTICLE_FILE)))
     kept_electrons = v[0]
@@ -563,21 +654,25 @@ def _compute_delta_for_field(data, bounds, field):
         'x': _grid_delta(data, 'channel_width', 'num_x'),
         'y': _grid_delta(data, 'channel_height', 'num_y'),
     }
-    m = re.search(r'^(\w)(Center|Length)$', field)
+    m = re.search(r'^(\w)Center$', field)
     if m:
         dim = m.group(1)
-        return delta[dim]
-    _DEFAULT_SIZE = 20
-    return (bounds[1] - bounds[0]) / _DEFAULT_SIZE
+        bounds += [delta[dim], False]
+        return;
+    _DEFAULT_SIZE = data.models.optimizer.continuousFieldSteps
+    res = (bounds[1] - bounds[0]) / _DEFAULT_SIZE
+    bounds += [res if res else bounds[1], True]
 
 
 def _generate_optimizer_file(data, v):
-    # iterate opt vars and compute [min, max, dx]
+    # iterate opt vars and compute [min, max, dx, is_continuous]
     for opt in data.models.optimizer.fields:
         m, f, container, id = _parse_optimize_field(opt.field)
         opt.bounds = [opt.minimum, opt.maximum]
-        opt.bounds.append(_compute_delta_for_field(data, opt.bounds, f))
+        _compute_delta_for_field(data, opt.bounds, f)
     v['optField'] = data.models.optimizer.fields
+    v['optimizerOutputFile'] = _OPTIMIZER_OUTPUT_FILE
+    v['optimizerResultFile'] = _OPTIMIZER_RESULT_FILE
     return _render_jinja('optimizer', v)
 
 
@@ -660,6 +755,32 @@ def _non_opt_fields_to_array(model):
     return res
 
 
+def _optimizer_percent_complete(run_dir, is_running):
+    if not run_dir.exists():
+        return {
+            'percentComplete': 0,
+            'frameCount': 0,
+        }
+    res, best_row = _read_optimizer_output(run_dir)
+    if res is not None:
+        return {
+            'percentComplete': 0 if is_running else 100,
+            'frameCount': len(res),
+        }
+    if is_running:
+        return {
+            'percentComplete': 0,
+            'frameCount': 0,
+        }
+    #TODO(pjm): determine optimization error
+    return {
+        'percentComplete': 100,
+        'frameCount': 0,
+        'error': 'optimizer produced no data',
+        'state': 'error',
+    }
+
+
 def _particle_line_has_slope(curr, next, prev, i1, i2):
     return abs(
         _slope(curr[i1], curr[i2], next[i1], next[i2]) - _slope(prev[i1], prev[i2], curr[i1], curr[i2])
@@ -693,16 +814,27 @@ def _parse_optimize_field(text):
     m, f = text.split('.')
     container, id = None, None
     if re.search(r'#', m):
-        container, id = m.split('#')
+        name, id = m.split('#')
+        container = 'conductors' if name == 'conductorPosition' else 'conductorTypes'
     return m, f, container, id
 
 
 def _replace_optimize_variables(data, v):
     v['optimizeFields'] = []
+    v['optimizeConstraints'] = []
+    fields = []
     for opt in data.models.optimizer.fields:
-        v['optimizeFields'].append(opt.field)
-        value = 'opts[\'{}\']'.format(opt.field)
-        m, f, container, id = _parse_optimize_field(opt.field)
+        fields.append(opt.field)
+    for constraint in data.models.optimizer.constraints:
+        for idx in range(len(fields)):
+            if constraint[0] == fields[idx]:
+                v['optimizeConstraints'].append(idx)
+                break
+        fields.append(constraint[2])
+    for field in fields:
+        v['optimizeFields'].append(field)
+        value = 'opts[\'{}\']'.format(field)
+        m, f, container, id = _parse_optimize_field(field)
         if container:
             model = _find_by_id(data.models[container], id)
             model[f] = value
