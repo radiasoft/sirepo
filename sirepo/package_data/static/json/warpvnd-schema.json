@@ -1,14 +1,14 @@
 {
     "constants": {
         "nonZeroVoltsColor": "#6992ff",
-        "zeroVoltsColor": "#f3d4c8",
         "particleTrackColor": "#4682b4",
-        "reflectedParticleTrackColor": "#d04836"
+        "reflectedParticleTrackColor": "#d04836",
+        "zeroVoltsColor": "#f3d4c8"
     },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
-                "vtk.min.js"
+                "vtk.js"
             ]
         },
         "sirepoLibs": {
@@ -52,6 +52,10 @@
         "Boolean": [
             ["0", "No"],
             ["1", "Yes"]
+        ],
+        "ConductorType": [
+            ["box", "box"],
+            ["stl", "stl"]
         ],
         "CurrentMode": [
             ["1", "User Specified"],
@@ -101,14 +105,19 @@
             "anode_voltage": ["Anode Voltage [eV]", "OptFloat"]
         },
         "box": {
+            "_super": ["_", "model", "conductor"],
+            "type": ["Type", "ConductorType", "box"],
+            "xLength": ["Width (X) [µm]", "OptFloat"],
+            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
+            "zLength": ["Length (Z) [µm]", "OptFloat"]
+        },
+        "conductor": {
             "name": ["Name", "String"],
             "voltage": ["Voltage [eV]", "OptFloat"],
-            "xLength": ["Width (X) [µm]", "OptFloat"],
-            "zLength": ["Length (Z) [µm]", "OptFloat"],
-            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "color": ["Color", "Color"]
+            "color": ["Color", "Color"],
+            "type": ["Type", "ConductorType", "box"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -186,7 +195,13 @@
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"]
         },
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "stl": {
+            "_super": ["_", "model", "conductor"],
+            "file": ["Conductor File", "FileChooser", ""],
+            "scale": ["Conductor Scale", "Float", 1e-9],
+            "type": ["Type", "ConductorType", "stl"]
+        }
     },
     "view": {
         "anode": {
@@ -222,6 +237,17 @@
                 "zLength",
                 "xLength",
                 "yLength",
+                "isConductor",
+                "permittivity",
+                "color"
+            ]
+        },
+        "conductor": {
+            "title": "Conductor",
+            "advanced": [
+                "name",
+                "type",
+                "voltage",
                 "isConductor",
                 "permittivity",
                 "color"
@@ -364,6 +390,16 @@
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
                 "simulationGrid.particles_per_step"
+            ]
+        },
+        "stl": {
+            "title": "Imported Conductor",
+            "advanced": [
+                "name",
+                "voltage",
+                "isConductor",
+                "permittivity",
+                "color"
             ]
         }
     }
