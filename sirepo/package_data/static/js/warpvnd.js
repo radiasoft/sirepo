@@ -150,6 +150,9 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
     self.conductorTypeMap = function() {
         var res = {};
         appState.models.conductorTypes.forEach(function(m) {
+            if(! m) {
+                return;
+            }
             res[m.id] = m;
         });
         return res;
@@ -205,6 +208,51 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
 SIREPO.app.controller('SourceController', function (appState, warpvndService, panelState, vtkPlotting, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
+    var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
+        return t[SIREPO.ENUM_INDEX_VALUE];
+    });
+
+    // If this simulation was created by importing an stl file, we'll
+    // add the type here.  Details get filled in later
+    function initImportedConductor() {
+        var f = appState.models.simulation.conductorFile;
+        if(f) {
+            var iTypes = appState.models.conductorTypes.filter(function (t) {
+                return t.type === 'stl' && t.file === f;
+            });
+            if(iTypes.length) {
+                srdbg('stl conductor type already saved');
+                return;
+            }
+            vtkPlotting.loadSTLFile(f).then(function (r) {
+                var t = self.createConductorType('stl', true);
+                t.file = f;
+                t.name = f.substring(0, f.indexOf('.'));
+                t.xLength = 0;
+                t.yLength = 0;
+                t.zLength = 0;
+                t.voltage = 0;
+                //srdbg('made type', t);
+                appState.models['stl'] = t;
+                appState.saveChanges(['stl'], function () {
+                    var c = {
+                        id: appState.maxId(appState.models.conductors) + 1,
+                        conductorTypeId: t.id,
+                        zCenter: 0,
+                        xCenter: 0,
+                        yCenter: 0,
+                    };
+                    //srdbg('PUSHING COND', c);
+                    appState.models.conductors.push(c);
+                    appState.saveChanges('conductors');
+                });
+            });
+        }
+    }
+
+    function isModelConductorType(modelName) {
+        return condctorTypes.indexOf(modelName) >= 0;
+    }
 
     function updateAllFields() {
         updateSimulationMode();
@@ -242,14 +290,16 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         grid.particles_per_step = Math.min(MAX_PARTICLES_PER_STEP, grid.num_x * 10);
     }
 
-    function updatePermittivity() {
-        panelState.showField('box', 'permittivity', appState.models.box.isConductor == '0');
-        $scope.defaultColor = appState.models.box.isConductor == '0' ? '#f3d4c8' : '#6992ff';
+    function updatePermittivity(conductorType) {
+        var type = conductorType || 'box';
+        panelState.showField(type, 'permittivity', appState.models[type].isConductor == '0');
+        $scope.defaultColor = appState.models[type].isConductor == '0' ? '#f3d4c8' : '#6992ff';
     }
 
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
+        panelState.showField('simulationGrid', 'conductor_scale', ! isNotStl);
         var is3d = appState.models.simulationGrid.simulation_mode == '3d';
         ['channel_height', 'num_y'].forEach(function(f) {
             panelState.showField('simulationGrid', f, is3d);
@@ -258,12 +308,19 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         panelState.showField('conductorPosition', 'yCenter', is3d);
     }
 
-    self.createConductorType = function(type) {
+    //TODO(mvk): validate sizing
+    function conductorValidator() {
+    }
+
+    self.createConductorType = function(type, silent) {
         var model = {
             id: appState.maxId(appState.models.conductorTypes) + 1,
         };
-        appState.setModelDefaults(model, type);
-        self.editConductorType(type, model);
+        var m = appState.setModelDefaults(model, type);
+        if(! silent) {
+            self.editConductorType(type, model);
+        }
+        return m;
     };
 
     self.copyConductor = function(model) {
@@ -277,9 +334,10 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
             permittivity: model.permittivity,
             isConductor: model.isConductor,
             color: model.color,
+            type: model.type || 'box',
         };
 
-        self.editConductorType('box', modelCopy);
+        self.editConductorType(model.type || 'box', modelCopy);
     };
 
     self.deleteConductor = function() {
@@ -334,6 +392,7 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     };
 
     self.editConductorType = function(type, model) {
+        srdbg('EDITING TYPE', type, model);
         appState.models[type] = model;
         panelState.showModalEditor(type);
     };
@@ -350,7 +409,8 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     };
 
     $scope.$on('cancelChanges', function(e, name) {
-        if (name == 'box') {
+        if (isModelConductorType(name)) {
+        //if (name == 'box') {
             appState.removeModel(name);
             appState.cancelChanges('conductorTypes');
         }
@@ -361,14 +421,20 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     });
 
     $scope.$on('modelChanged', function(e, name) {
-        if (name == 'box') {
+        //srdbg('MODEL CHANGED', name);
+        //srdbg('checking model', name, model);
+        if (isModelConductorType(name)) {
+        //if (name == 'box') {
+            srdbg('modelChanged models', appState.models);
             var model = appState.models[name];
+            srdbg('checking model', name, model, appState.models.conductorTypes);
             var foundIt = appState.models.conductorTypes.some(function(m) {
                 if (m.id == model.id) {
                     return true;
                 }
             });
             if (! foundIt) {
+                srdbg('PUSHING TYPE', model);
                 appState.models.conductorTypes.push(model);
             }
             appState.removeModel(name);
@@ -385,12 +451,24 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
 
     appState.whenModelsLoaded($scope, function() {
         updateAllFields();
+        initImportedConductor();
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
-        appState.watchModelFields($scope, ['box.isConductor'], updatePermittivity);
+        SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
+            var t = i[SIREPO.INFO_INDEX_TYPE];
+            appState.watchModelFields($scope, [t + '.isConductor'], function () {
+                updatePermittivity(t);
+            });
+        });
+        //appState.watchModelFields($scope, ['box.isConductor'], function () {
+        //    updatePermittivity('box');
+        //});
+        //appState.watchModelFields($scope, ['stl.isConductor'], function () {
+        //    updatePermittivity('stl');
+        //});
         appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
     });
 });
@@ -560,7 +638,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
             source: '=controller',
         },
         template: [
-            '<table data-ng-show="appState.models.conductorTypes.length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
+            '<table data-ng-show="conductorTypes().length" style="width: 100%;  table-layout: fixed" class="table table-hover">',
               '<colgroup>',
                 '<col>',
                 '<col style="width: 12ex">',
@@ -570,7 +648,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                   '<th>Name</th>',
                 '</tr>',
               '</thead>',
-              '<tbody data-ng-repeat="conductorType in appState.models.conductorTypes track by conductorType.id">',
+              '<tbody data-ng-repeat="conductorType in conductorTypes() track by conductorType.id">',
                 '<tr>',
                   '<td colspan="2" style="padding-left: 1em; cursor: pointer; white-space: nowrap" data-ng-click="toggleConductorType(conductorType)"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="conductorType">{{ conductorType.name }}</span></div> <span class="glyphicon" data-ng-show="hasConductors(conductorType)" data-ng-class="{\'glyphicon-collapse-down\': isCollapsed(conductorType), \'glyphicon-collapse-up\': ! isCollapsed(conductorType)}"> </span></td>',
                   '<td style="text-align: right">{{ conductorType.zLength }}µm</td>',
@@ -596,6 +674,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
             var conductorsByType = {};
 
             function updateConductors() {
+                srdbg('UPDATING CONDS', appState.models.conductorTypes, appState.models.conductors);
                 conductorsByType = {};
                 if (! appState.isLoaded()) {
                     return;
@@ -606,6 +685,7 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                     }
                     conductorsByType[c.conductorTypeId].push(c);
                 });
+                srdbg('CONDS BY TYPE', conductorsByType);
                 Object.keys(conductorsByType).forEach(function(id) {
                     conductorsByType[id].sort(function(a, b) {
                         var v = a.zCenter - b.zCenter;
@@ -618,7 +698,15 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
             }
 
             $scope.conductors = function(conductorType) {
+                //srdbg('getting conds of type', conductorType);
+                if(! conductorType) {
+                    return null;
+                }
                 return conductorsByType[conductorType.id];
+            };
+            $scope.conductorTypes = function() {
+                //srdbg('getting cond types', appState.models.conductorTypes);
+                return appState.models.conductorTypes;
             };
             $scope.deleteConductor = function(conductor) {
                 $scope.source.deleteConductorPrompt(conductor);
@@ -630,7 +718,8 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                 $scope.source.editConductor(conductor.id);
             };
             $scope.editConductorType = function(conductorType) {
-                $scope.source.editConductorType('box', conductorType);
+                srdbg('EDIT' ,conductorType);
+                $scope.source.editConductorType(conductorType.type || 'box', conductorType);
             };
             $scope.formatSize = function(v) {
                 if (v) {
@@ -643,6 +732,9 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
                 return conductors ? conductors.length : false;
             };
             $scope.isCollapsed = function(conductorType) {
+                if(! conductorType) {
+                    return true;
+                }
                 return collapsed[conductorType.id];
             };
             $scope.toggleConductorType = function(conductorType) {
@@ -957,7 +1049,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             function drawConductors(typeMap, dim) {
                 var info = plotInfoForDimension(dim);
                 var shapes = [];
-                appState.models.conductors.forEach(function(conductorPosition) {
+                appState.models.conductors
+                    .filter(function (c) {
+                        srdbg('draw type', typeMap[c.id]);
+                        return typeMap[c.id].type === 'box';
+                    }).forEach(function(conductorPosition) {
                     var conductorType = typeMap[conductorPosition.conductorTypeId];
                     var w = toMicron(conductorType.zLength);
                     var h = toMicron(conductorType[info.lengthField]);
@@ -973,14 +1069,14 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         dim: dim,
                     });
                 });
-                d3.select(info.viewportClass).selectAll('.warpvnd-shape').remove();
-                d3.select(info.viewportClass).selectAll('.warpvnd-shape')
-                    .data(shapes)
-                    .enter().append('rect')
-                    .on('dblclick', editPosition)
-                    .call(updateShapeAttributes);
+                var ds = d3.select(info.viewportClass).selectAll('.warpvnd-shape')
+                    .data(shapes);
+                ds.exit().remove();
+                ds.enter().append('rect')
+                    .on('dblclick', editPosition);
+                ds.call(updateShapeAttributes);
                 if (dim == 'x') {
-                    d3.select(info.viewportClass).selectAll('.warpvnd-shape').call(dragShape);
+                    ds.call(dragShape);
                 }
                 if(! $scope.isDomainTiled || dim !== 'x') {
                     return;
@@ -998,6 +1094,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function drawShapes() {
                 var typeMap = warpvndService.conductorTypeMap();
+                srdbg('DRAW SHAPES', typeMap);
                 drawConductors(typeMap, 'x');
                 if (warpvndService.is3D()) {
                     drawConductors(typeMap, 'y');
@@ -2114,6 +2211,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
     return {
         restrict: 'A',
         scope: {
+            parentController: '=',
             reportId: '<',
         },
         template: [
@@ -2122,8 +2220,8 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
         controller: function($scope, $element) {
 
             var stlActor;
-            $scope.stlFile = appState.models.simulation.conductorFile;  //'CircularAperture_BND.stl'; //simple_lattice  //CircularAperture_MIN  //honeycomb20nm // bad
-
+            $scope.stlFile = appState.models.simulation.conductorFile;
+            srdbg('conds', appState.models);
 
             $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;
 
@@ -2153,6 +2251,10 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                     var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
                     var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
                     // model (z, x, y) --> (x, y, z)
+                    if(cModel.file) {
+                        loadConductor(conductor, cModel);
+                        return;
+                    }
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
                             xLength: xfactor * cModel.zLength,
@@ -2245,37 +2347,151 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
 
             function loadConductors() {
                 vtkPlotting.loadSTLFile($scope.stlFile).then(function (r) {
-                    loadConductorData(r);
+                    loadConductorData(r, $scope.stlFile);
+                });
+            }
+            function loadConductor(conductor, type) {
+                srdbg('loading cond', conductor, 'of type', type);
+                vtkPlotting.loadSTLFile(type.file).then(function (r) {
+                    loadConductorData(r, conductor, type);
                 });
             }
 
-            function loadConductorData(reader) {
+            function loadConductorData(reader, conductor, type) {
+                srdbg('loading data for', conductor);
                 if(! reader) {
                     return;
                 }
                 reader.loadData()
                     .then(function (res) {
+                        srdbg('XXXXX');
                         var cColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                         stlActor = vtk.Rendering.Core.vtkActor.newInstance();
                         var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
                         stlActor.setMapper(smapper);
                         var pdata = reader.getOutputData();
-                        srdbg('bounds', pdata.getBounds());
+                        var bounds = pdata.getBounds();
+                        setGridDefaults(bounds);
+                        var s = appState.models.simulationGrid.conductor_scale;
                         smapper.setInputConnection(reader.getOutputPort());
                         stlActor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                         //stlActor.getProperty().setEdgeVisibility(true);
                         stlActor.getProperty().setLighting(false);
                         fsRenderer.getRenderer().addActor(stlActor);
+
+                        //var t = $scope.parentController.createConductorType('stl', true);
+                        if(! type) {
+                            type = warpvndService.conductorTypeMap()[conductor.conductorTypeId];
+                        }
+                        //srdbg('made type', t);
+                        //t.file = file;
+                        //t.name = file.substring(0, file.indexOf('.'));
+                        // adjust lengths if necessary
+                        if(! type.xLength || ! type.yLength || ! type.zLength) {
+                            type.zLength = (s * Math.abs(bounds[5] - bounds[4]) / 2) / 1e-6;
+                            type.xLength = (s * Math.abs(bounds[3] - bounds[2]) / 2) / 1e-6;
+                            type.yLength = (s * Math.abs(bounds[1] - bounds[0]) / 2) / 1e-6;
+                            appState.saveChanges(['conductorTypes'], function () {
+                                if(! conductor.xCenter || ! conductor.yCenter || ! conductor.zCenter) {
+                                    conductor.zCenter = (s * (bounds[5] - bounds[4]) / 2) / 1e-6;
+                                    conductor.xCenter = (s * (bounds[3] - bounds[2]) / 2) / 1e-6;
+                                    conductor.yCenter = (s * (bounds[1] - bounds[0]) / 2) / 1e-6;
+                                    appState.saveChanges('conductors', reset);
+                                }
+                            });
+                        }
+                        //t.voltage = 0;
+                        //appState.models['stl'] = t;
+                        /*
+                        appState.saveChanges(['stl'], function () {
+                            srdbg('STL UPDATED');
+                            //appState.saveChanges('conductorTypes', function () {
+                                //srdbg('C TYPES UPDATED');
+                            var c = {
+                                    id: appState.maxId(appState.models.conductors) + 1,
+                                    conductorTypeId: t.id,
+                                    zCenter: (s * (bounds[5] - bounds[4]) / 2) / 1e-6,
+                                    xCenter: (s * (bounds[3] - bounds[2]) / 2) / 1e-6,
+                                    yCenter: (s * (bounds[1] - bounds[0]) / 2) / 1e-6,
+                                };
+                                srdbg('PUSHING COND', c);
+                                appState.models.conductors.push(c);
+                                appState.saveChanges('conductors', function () {
+                                    srdbg('COND UPDATED');
+                                    reset();
+                                });
+                            //});
+                        });
+                        */
+                        /*
+                        appState.models.conductors.push({
+                            id: appState.maxId(appState.models.conductors) + 1,
+                            conductorTypeId: t.id,
+                            zCenter: s * (bounds[5] - bounds[4]) / 2,
+                            xCenter: s * (bounds[3] - bounds[2]) / 2,
+                            yCenter: s * (bounds[1] - bounds[0]) / 2,
+                        });
+                        appState.saveChanges(['stl', 'conductorTypes', 'conductors'], function () {
+                            srdbg('COND T UPDATED');
+                        });
                         reset();
+                        */
                     }, function (reason) {
-                        throw $scope.stlFile + ': Error loading data from .stl file';
+                        throw $scope.stlFile + ': Error loading data from .stl file: ' + reason;
                     },
                         showLoadProgress
                 ).catch(function (e) {
-                    srdbg('CAUGHT BAD ON LOAD');
+                    srdbg('CAUGHT BAD ON LOAD', e);
                     errorService.alertText(e);
                 });
 
+            }
+
+            var minGridBounds = [0, 0, 0];
+            function setGridDefaults(bounds) {
+                srdbg('bounds', bounds);
+                for(var i = 0; i < bounds.length; i += 2) {
+                    minGridBounds[i / 2] = Math.abs(bounds[i + 1] - bounds[i]);
+                }
+                //srdbg('grid mins', minGridBounds);
+                // if scale is different than default, leave it.  Otherwise, make a reasonable guess
+                var ds = appState.fieldProperties('simulationGrid', 'conductor_scale').default;
+                var s = appState.models.simulationGrid.conductor_scale;
+                //srdbg('model scale', s, 'default', ds);
+                if(ds === s) {
+                    // adjust to accomodate smallest (??)
+                    var maxmin = Math.min.apply(null, minGridBounds);
+                    if (maxmin >= 1000) {
+                        s = 1e-12;
+                    }
+                    else if (maxmin < 1000 && maxmin >= 1) {
+                        s = 1e-9;
+                    }
+                    else if (maxmin < 1 && maxmin >= 1e-3) {
+                        s = 1e-6;
+                    }
+                    else if (maxmin < 1e-3 && maxmin >= 1e-6) {
+                        s = 1e-3;
+                    }
+                    else {
+                        s = 1;
+                    }
+                    srdbg('ADJUST SCALE TO', s);
+                    appState.models.simulationGrid.conductor_scale = s;
+                }
+                // check channel size against mins - move to validator
+                if(appState.models.simulationGrid.plate_spacing < s * minGridBounds[2]) {
+                    srdbg('plate_spacing too small:', appState.models.simulationGrid.plate_spacing, '<', s * minGridBounds[2]);
+                    //appState.models.simulationGrid.plate_spacing = s * minGridBounds[2];
+                }
+                if(appState.models.simulationGrid.channel_width < s * minGridBounds[1]) {
+                    srdbg('channel_width too small:', appState.models.simulationGrid.channel_width, '<', s * minGridBounds[1]);
+                    //appState.models.simulationGrid.channel_width = s * minGridBounds[1];
+                }
+                if(appState.models.simulationGrid.channel_height < s * minGridBounds[0]) {
+                    srdbg('channel_height too small:', appState.models.simulationGrid.channel_height, '<', s * minGridBounds[0]);
+                    //appState.models.simulationGrid.channel_height = s * minGridBounds[0];
+                }
             }
 
             function showLoadProgress() {
@@ -2284,10 +2500,10 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
 
             function refresh() {
                 removeActors();
-                if($scope.stlFile) {
-                    loadConductors();
-                    return;
-                }
+                //if($scope.stlFile) {
+                //    loadConductors();
+                //    return;
+                //}
                 var pointRanges = addConductors();
                 addPlane(pointRanges, 0, zeroVoltsColor);
                 addPlane(pointRanges, 1, voltsColor);

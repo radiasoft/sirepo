@@ -110,10 +110,14 @@ def fixup_old_data(data):
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
-    for c in data.models.conductorTypes:
+    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
+    for c in types:
+        if c is None:
+            continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
-        template_common.update_model_defaults(c, 'box', _SCHEMA)
+        #template_common.update_model_defaults(c, 'box', _SCHEMA)
+        template_common.update_model_defaults(c, c.type if 'type' in c  else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
     if 'fieldComparisonReport' not in data.models:
@@ -252,6 +256,7 @@ def models_related_to_report(data):
             res.append(_non_opt_fields_to_array(m))
     if data['report'] != 'fieldComparisonReport':
         res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
+    pkdp('models_related_to_report res {}', res)
     return res
 
 
@@ -517,6 +522,8 @@ def _extract_impact_density(run_dir, data):
     dx = plot_info['dx']
     dz = plot_info['dz']
     gated_ids = plot_info['gated_ids']
+    #conductors = plot_info.conductors
+    pkdp('PLOT_INFO {}', plot_info)
     lines = []
 
     for i in gated_ids:
@@ -697,6 +704,7 @@ def _generate_parameters_file(data):
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductors'] = _prepare_conductors(data)
+    pkdp('!AFTER PREP! {}', data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
     if not v['is3D']:
@@ -747,6 +755,7 @@ def _is_opt_field(field_name):
 def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
+        pkdp('_max_conductor_voltage COND {}', c)
         # conductor_type has been added to conductor during _prepare_conductors()
         if c.conductor_type.voltage > res:
             res = c.conductor_type.voltage
@@ -801,7 +810,11 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
 
 def _prepare_conductors(data):
     type_by_id = {}
+    #pkdp('!PREPARE! {}', data.models.conductorTypes)
     for ct in data.models.conductorTypes:
+        if ct is None:
+            continue
+        #pkdp('TYPE {}', ct)
         type_by_id[ct.id] = ct
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
@@ -809,11 +822,14 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
     for c in data.models.conductors:
+        if c.conductorTypeId not in type_by_id:
+            continue
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])
         if not _is_3D(data):
             c.yCenter = 0
+    #pkdp('!PREPARED! {}/{}', data.models.conductors, data.models.conductorTypes)
     return data.models.conductors
 
 
