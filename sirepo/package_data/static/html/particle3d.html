@@ -5,12 +5,12 @@
         <div class="row">
             <div class="col-sm-6">
               <div>
-                <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showAbsorbed, 'glyphicon-unchecked': ! showAbsorbed}"></span></a> <span data-ng-show="hasReflected">Absorbed</span>
-                  <div style="text-indent: 1em">
-                    <a href="" data-ng-click="toggleImpact()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpact, 'glyphicon-unchecked': ! showImpact}"></span></a> Impact Points
-                  </div>
+                <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showAbsorbed, 'glyphicon-unchecked': ! showAbsorbed}"></span></a> Absorbed
               </div>
               <div>
+                <a href="" data-ng-click="toggleImpact()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpact, 'glyphicon-unchecked': ! showImpact}"></span></a> Impact Points
+              </div>
+              <div data-ng-show="hasReflected">
                 <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Reflected </span>
               </div>
               <div>
