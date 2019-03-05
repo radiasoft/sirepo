@@ -74,11 +74,6 @@ def http():
         )
 
 
-def container_runner():
-    from sirepo.runner.container import serve
-    serve()
-
-
 def nginx_proxy():
     """Starts nginx in container.
 
