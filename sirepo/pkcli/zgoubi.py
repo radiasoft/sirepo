@@ -56,7 +56,7 @@ def _bunch_match_twiss(cfg_dir):
             line = lines[i]
             if re.search(r"^\s*'OBJET'", line):
                 values = lines[i + 4].split()
-                assert len(values) >= 5 and float(values[5]) == 1.0
+                assert len(values) >= 5
                 found_fit = True
                 bunch['Y0'] = float(values[0]) * 1e-2
                 bunch['T0'] = float(values[1]) * 1e-3
