@@ -515,6 +515,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
+            $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
