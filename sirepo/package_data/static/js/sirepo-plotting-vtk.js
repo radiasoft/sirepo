@@ -124,14 +124,12 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.isSTLFileValid = function(file) {
-        //srdbg('PARSING', file);
         return self.loadSTLFile(file).then(function (r) {
             return ! ! r;
         });
     };
 
     self.isSTLUrlValid = function(url) {
-        //srdbg('PARSING', file);
         return self.loadSTLURL(url).then(function (r) {
             return ! ! r;
         });
@@ -146,46 +144,21 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             '<filename>': self.stlFileType + '.' + fileName,
         });
-
-        //var url = 'static/' + fileName;
-        /*
-        srdbg('LOADING',  url);
-        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
-        return r.setUrl(url)
-            .then(function() {
-                srdbg('LOADED STL');
-                return r;
-        }, function (err) {
-            //srdbg('BAD STL', err);
-            throw fileName + ': Invalid or missing .stl file: ' +
-            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
-        })
-            .catch(function (e) {
-                //srdbg('CAUGHT', e);
-                $rootScope.$apply(function () {
-                    errorService.alertText(e);
-                });
-            });
-            */
         return self.loadSTLURL(url).then(function (r) {
             return r;
         });
     };
 
     self.loadSTLURL = function(url) {
-        srdbg('LOADING',  url);
         var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
         return r.setUrl(url)
             .then(function() {
-                srdbg('LOADED STL');
                 return r;
         }, function (err) {
-            //srdbg('BAD STL', err);
             throw url + ': Invalid or missing .stl: ' +
             (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
         })
             .catch(function (e) {
-                //srdbg('CAUGHT', e);
                 $rootScope.$apply(function () {
                     errorService.alertText(e);
                 });
@@ -490,6 +463,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         }
 
         return box;
+    };
+
+    self.vpSTL = function(stlReader, renderer) {
+        var stl = self.vpObject(stlReader, renderer);
+        return stl;
     };
 
     self.addActors = function(renderer, actorArr) {
@@ -906,7 +884,6 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
             };
 
             function upload(inputFile, data) {
-                srdbg('UPLOADING', inputFile);
                 var simId = data.models.simulation.simulationId;
                 fileUpload.uploadFileToUrl(
                     inputFile,
@@ -923,14 +900,13 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                             '<file_type>': vtkPlotting.stlFileType,
                         }),
                     function(d) {
-                        srdbg('upload data', d);
                         $('#simulation-import').modal('hide');
                         $scope.inputFile = null;
                         URL.revokeObjectURL($scope.fileURL);
                         $scope.fileURL = null;
                         requestSender.localRedirectHome(simId);
                     }, function (err) {
-                        srdbg('UPLOAD ERROR', err);
+                        //srdbg('UPLOAD ERROR', err);
                     });
             }
 
@@ -940,12 +916,10 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                 model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
                 model.folder = fileManager.getActiveFolderPath();
                 model.conductorFile = inputFile.name;
-                srdbg('new sim', appState.models.simulation, model);
                 appState.newSimulation(
                     model,
                     function (data) {
                         $scope.isUploading = false;
-                        srdbg('new sim data', data);
                         upload(inputFile, data);
                     },
                     function (err) {
