@@ -368,9 +368,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 
     // intermediate method to change from arrays to objects when defining model fields
     self.fieldProperties = function(modelName, fieldName) {
-        if(! self.models[modelName]) {
-            throw modelName + ": no such model in simulation " + SIREPO.APP_SCHEMA.simulationType;
-        }
+        // these won't exist for beamline elements
+        // if(! self.models[modelName]) {
+        //     throw modelName + ": no such model in simulation " + SIREPO.APP_SCHEMA.simulationType;
+        // }
 
         var info = self.modelInfo(modelName, fieldName)[fieldName];
         if(! info) {
