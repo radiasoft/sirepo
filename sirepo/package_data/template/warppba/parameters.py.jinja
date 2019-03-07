@@ -555,13 +555,13 @@ if {{isAnimationView}} and USE_MOVING_WINDOW :
 if write_fields:
     diag1 = FieldDiagnostic( period=diag_period, top=top, w3d=w3d, em=em,
                 comm_world=comm_world, lparallel_output=parallel_output,
-                write_dir={{outputDir}})
+                write_dir='.')
     installafterstep( diag1.write )
 if write_particles:
     diag2 = ParticleDiagnostic( period=diag_period, top=top, w3d=w3d,
             species={ species.name : species for species in listofallspecies },
             comm_world=comm_world, lparallel_output=parallel_output,
-            write_dir={{outputDir}})
+            write_dir='.')
     installafterstep( diag2.write )
 
 # ---------------------------------------------------------------------------------------
