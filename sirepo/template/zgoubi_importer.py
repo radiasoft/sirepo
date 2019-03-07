@@ -9,6 +9,7 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common, zgoubi_parser
+from sirepo.template import template_common
 import math
 import re
 
@@ -34,7 +35,10 @@ def import_file(text):
     data['models']['simulation']['activeBeamlineId'] = 1
     data['models']['simulation']['visualizationBeamlineId'] = 1
     current_id = 2
+    #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
     title, elements = zgoubi_parser.parse_file(text, 1)
+    title = re.sub(r'\s+', ' ', title)
+    title = re.sub(r'^\s+|\s+$', '', title)
     data['models']['simulation']['name'] = title if title else 'zgoubi'
     ids_and_elements = [[], []]
     for el in elements:
@@ -49,9 +53,23 @@ def import_file(text):
             if el['type'] in data['models']:
                 pkdlog('replacing existing {} model', el['type'])
             data['models'][el['type']] = el
+        template_common.update_model_defaults(el, el['type'], _SCHEMA)
+    names = {}
     for idx in range(len(ids_and_elements[0])):
         el = ids_and_elements[1][idx]
         el['_id'] = ids_and_elements[0][idx]
+        el['name'] = re.sub(r'\d+$', '', el['name'])
+        if not el['name']:
+            el['name'] = el['type'][:2]
+        if el['name'] in names:
+            count = 2
+            while True:
+                name = '{}{}'.format(el['name'], count)
+                if name not in names:
+                    el['name'] = name
+                    break
+                count += 1
+        names[el['name']] = True
         data['models']['elements'].append(el)
     elegant_common.sort_elements_and_beamlines(data)
     return data
@@ -102,9 +120,8 @@ def _validate_model(model):
     assert model['type'] in _SCHEMA['model'], \
         'element type missing from schema: {}'.format(model['type'])
     model_info = _SCHEMA['model'][model['type']]
-    if 'name' in model_info:
-        if 'name' not in model:
-            model['name'] = '{}{}'.format(model['type'][0], 1)
+    if 'name' in model_info and 'name' not in model:
+        model['name'] = ''
     for f in model:
         if f == 'label2':
             continue

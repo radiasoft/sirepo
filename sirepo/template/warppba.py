@@ -223,10 +223,9 @@ def fixup_old_data(data):
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
 
 
-def generate_parameters_file(data, run_dir=None, is_parallel=False):
+def generate_parameters_file(data, is_parallel=False):
     template_common.validate_models(data, _SCHEMA)
     v = template_common.flatten_data(data['models'], {})
-    v['outputDir'] = '"{}"'.format(run_dir) if run_dir else None
     v['isAnimationView'] = is_parallel
     v['incSteps'] = 50
     v['diagnosticPeriod'] = 50
@@ -400,7 +399,6 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         generate_parameters_file(
             data,
-            run_dir,
             is_parallel,
         ),
     )

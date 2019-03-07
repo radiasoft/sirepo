@@ -366,6 +366,27 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return res;
     };
 
+    // intermediate method to change from arrays to objects when defining model fields
+    self.fieldProperties = function(modelName, fieldName) {
+        // these won't exist for beamline elements
+        // if(! self.models[modelName]) {
+        //     throw modelName + ": no such model in simulation " + SIREPO.APP_SCHEMA.simulationType;
+        // }
+
+        var info = self.modelInfo(modelName, fieldName)[fieldName];
+        if(! info) {
+            throw fieldName + ": no such field in model " + modelName;
+        }
+        var infoNames = ['label', 'type', 'default', 'toolTip', 'min', 'max'];
+        var p = {};
+        info.forEach(function (v, i) {
+            p[i] = v;
+            p[infoNames[i]] = v;
+        });
+        return p;
+    };
+
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -707,6 +728,7 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
 SIREPO.app.service('validationService', function(utilities) {
 
     this.fieldValidators = {};
+    this.enumValidators = {};
 
     this.setFieldValidator = function(name, validatorFn, messageFn) {
         if(! this.fieldValidators[name]) {
@@ -714,6 +736,7 @@ SIREPO.app.service('validationService', function(utilities) {
         }
         this.fieldValidators[name].vFunc = validatorFn;
         this.fieldValidators[name].vMsg = messageFn;
+        return this.fieldValidators[name];
     };
     this.getFieldValidator = function(name) {
         return this.fieldValidators[name];
@@ -739,6 +762,35 @@ SIREPO.app.service('validationService', function(utilities) {
         return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
     };
 
+    // lazy creation of validator, plus special handling
+    this.getEnumValidator = function(enumName) {
+
+        var validator = this.getFieldValidator(enumName);
+        if(validator) {
+            return validator;
+        }
+        var enums = SIREPO.APP_SCHEMA.enum[enumName];
+        if(! enums) {
+            throw enumName + ':' + ' no such enum';
+        }
+        var isValid = function(name) {
+            return enums.map(function (e) {
+                return e[SIREPO.ENUM_INDEX_VALUE];
+            }).indexOf(name) >= 0;
+        };
+        var err = function(name) {
+            return name + ':' + ' no such value in ' + enumName;
+        };
+        validator = this.setFieldValidator(enumName, isValid, err);
+        validator.find = function (name) {
+            if(! validator.vFunc(name)) {
+                throw validator.vMsg(name);
+            }
+            return name;
+        };
+        return validator;
+    };
+
     this.validateFieldOfType = function(value, type) {
         if (value === undefined || value === null || value === '')  {
             // null files OK, at least sometimes
@@ -759,6 +811,9 @@ SIREPO.app.service('validationService', function(utilities) {
         }
         if (type === 'String') {
             return true;
+        }
+        if(SIREPO.APP_SCHEMA.enum[type]) {
+            return this.getEnumValidator(type).vFunc(value);
         }
         // TODO(mvk): other types here, for now just accept everything
         return true;
@@ -897,7 +952,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, validationService, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
@@ -1176,7 +1231,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         else {
             if (! template) {
-                template = '<div data-modal-editor="" data-view-name="' + modelKey + '"></div>';
+                template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + modelKey.toLowerCase() + '-editor=""' + '></div>';
             }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element

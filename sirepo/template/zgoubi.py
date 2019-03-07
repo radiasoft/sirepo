@@ -11,6 +11,8 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import io
+import locale
 import math
 import numpy as np
 import py.path
@@ -39,7 +41,7 @@ _INITIAL_PHASE_MAP = {
 
 _MODEL_UNITS = None
 
-_PHASE_SPACE_FIELD_INFO = {
+_ANIMATION_FIELD_INFO = {
     'Do1': [u'dp/p₀', 1],
     'Yo': [u'Y₀ [m]', 0.01],
     'To': [u'Y\'₀ [rad]', 0.001],
@@ -53,7 +55,11 @@ _PHASE_SPACE_FIELD_INFO = {
     'Z': ['Z [m]', 0.01],
     'P': ['Z\' [rad]', 0.001],
     'S': ['s [m]', 0.01],
-    'time': ['t', 1],
+    'time': ['t [s]', 1],
+    'RET': ['RF Phase [rad]', 1],
+    'DPR': ['dp/p [eV/c]', 1e6],
+    "ENEKI": ["Kenetic Energy [eV]", 1e6],
+    "ENERG": ["Energy [eV]", 1e6],
 }
 
 _PYZGOUBI_FIELD_MAP = {
@@ -105,11 +111,11 @@ def background_percent_complete(report, run_dir, is_running):
     if not is_running:
         data_file = run_dir.join(_ZGOUBI_DATA_FILE)
         if data_file.exists():
-            col_names, rows = read_data_file(data_file)
-            count = int(rows[-1][col_names.index('IPASS')])
+            col_names, rows = _read_data_file(data_file)
+            ipasses = _ipasses_for_data(col_names, rows)
             return {
                 'percentComplete': 100,
-                'frameCount': count + 1,
+                'frameCount': len(ipasses) + 1,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
@@ -130,7 +136,7 @@ def column_data(col, col_names, rows):
 
 
 def extract_first_twiss_row(run_dir):
-    col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
+    col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
     return col_names, rows[0]
 
 
@@ -139,6 +145,7 @@ def fixup_old_data(data):
             'bunch',
             'bunchAnimation',
             'bunchAnimation2',
+            'energyAnimation',
             'particle',
             'simulationSettings',
             'opticsReport',
@@ -161,8 +168,8 @@ def get_application_data(data):
 
 
 def get_simulation_frame(run_dir, data, model_data):
-    if re.search(r'bunchAnimation', data['modelName']):
-        return _extract_bunch_animation(run_dir, data, model_data)
+    if re.search(r'bunchAnimation', data['modelName']) or data['modelName'] == 'energyAnimation':
+        return _extract_animation(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
@@ -206,34 +213,6 @@ def prepare_output_file(report_info, data):
             save_report_data(data, report_info.run_dir)
 
 
-def read_data_file(path):
-    text = pkio.read_text(path)
-    # mode: title -> header -> data
-    mode = 'title'
-    col_names = []
-    rows = []
-    for line in text.split("\n"):
-        if mode == 'title':
-            if not re.search(r'^\@', line):
-                mode = 'header'
-            continue
-        # work-around odd header/value "! optimp.f"
-        line = re.sub(r'\!\s', '', line)
-        if mode == 'header':
-            # header row starts with '# <letter>'
-            if re.search(r'^#\s+[a-zA-Z]', line):
-                col_names = re.split('\s+', line)
-                col_names = map(lambda x: re.sub(r'\W|_', '', x), col_names[1:])
-                mode = 'data'
-        elif mode == 'data':
-            if re.search('^#', line):
-                continue
-            row = re.split('\s+', re.sub(r'^\s+', '', line))
-            rows.append(row)
-    rows.pop()
-    return col_names, rows
-
-
 def remove_last_frame(run_dir):
     pass
 
@@ -244,7 +223,7 @@ def save_report_data(data, run_dir):
         enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
         plots = []
-        col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
+        col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_TWISS_FILE))
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
@@ -272,7 +251,7 @@ def save_report_data(data, run_dir):
         }
     elif 'bunchReport' in report_name:
         report = data['models'][report_name]
-        col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
+        col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
         res = _extract_bunch_data(report, col_names, rows, '')
         summary_file = py.path.local(run_dir).join(BUNCH_SUMMARY_FILE)
         if summary_file.exists():
@@ -306,18 +285,21 @@ def _compute_range_across_frames(run_dir, data):
     res = {}
     for v in _SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = []
-    col_names, rows = read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
-    ipass_index = int(col_names.index('IPASS'))
+    for v in _SCHEMA.enum.EnergyPlotVariable:
+        res[v[0]] = []
+    col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
     for field in res:
         values = column_data(field, col_names, rows)
-        values += column_data(_initial_phase_field(field), col_names, rows)
+        initial_field = _initial_phase_field(field)
+        if initial_field in col_names:
+            values += column_data(initial_field, col_names, rows)
         if len(res[field]):
             res[field][0] = min(min(values), res[field][0])
             res[field][1] = max(max(values), res[field][1])
         else:
             res[field] = [min(values), max(values)]
     for field in res.keys():
-        factor = _PHASE_SPACE_FIELD_INFO[field][1]
+        factor = _ANIMATION_FIELD_INFO[field][1]
         res[field][0] *= factor
         res[field][1] *= factor
         res[_initial_phase_field(field)] = res[field]
@@ -328,8 +310,7 @@ def _element_value(el, field):
     converter = _MODEL_UNITS.get(el['type'], {}).get(field, None)
     return converter(el[field]) if converter else el[field]
 
-
-def _extract_bunch_animation(run_dir, data, model_data):
+def _extract_animation(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
         data,
@@ -339,27 +320,33 @@ def _extract_bunch_animation(run_dir, data, model_data):
         },
     )
     is_frame_0 = False
-    # remap frame 0 to use initial "o" values from frame 1
-    if frame_index == 0:
-        is_frame_0 = True
-        for f in ('x', 'y'):
-            v = report[f]
-            report[f] = _initial_phase_field(v)
-        frame_index = 1
-    col_names, all_rows = read_data_file(run_dir.join(_ZGOUBI_DATA_FILE))
+    # fieldRange is store on the bunchAnimation
+    model = model_data.models.bunchAnimation
+    if data['modelName'] == 'energyAnimation':
+        model.update(model_data.models.energyAnimation)
+        frame_index += 1
+    else:
+        # bunchAnimations
+        # remap frame 0 to use initial "o" values from frame 1
+        if frame_index == 0:
+            is_frame_0 = True
+            for f in ('x', 'y'):
+                report[f] = _initial_phase_field(report[f])
+            frame_index = 1
+    model.update(report)
+    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_DATA_FILE))
+    ipasses = _ipasses_for_data(col_names, all_rows)
+    ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
     for row in all_rows:
-        if int(row[ipass_index]) == frame_index:
+        if int(row[ipass_index]) == ipass:
             rows.append(row)
-    model = model_data.models.bunchAnimation
-    model.update(report)
-    return _extract_bunch_data(model, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(frame_index))
-
+    return _extract_bunch_data(model, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass))
 
 def _extract_bunch_data(report, col_names, rows, title):
-    x_info = _PHASE_SPACE_FIELD_INFO[report['x']]
-    y_info = _PHASE_SPACE_FIELD_INFO[report['y']]
+    x_info = _ANIMATION_FIELD_INFO[report['x']]
+    y_info = _ANIMATION_FIELD_INFO[report['y']]
     x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
     y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
     return template_common.heatmap([x, y], report, {
@@ -380,7 +367,18 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
         if el['type'] == 'AUTOREF':
             res += 'line.add(core.FAKE_ELEM(""" \'AUTOREF\'\n{}\n{} {} {}\n"""))\n'.format(
                 el.I, _element_value(el, 'XCE'), _element_value(el, 'YCE'), _element_value(el, 'ALE'))
+        elif el['type'] == 'CAVITE':
+            form = 'line.add(core.FAKE_ELEM(""" \'CAVITE\'\n{}\n{} {} {}\n{} {} {}\n"""))\n'
+            values = ['IOPT']
+            if el.IOPT in ('0', '1', '2', '3'):
+                values += ('L', 'h', '', 'V', 'sig_s', '')
+            elif el.IOPT == '7':
+                values += ('L', 'f_RF', '', 'V', 'sig_s', '')
+            elif el.IOPT == '10':
+                values += ('l', 'f_RF', 'ID', 'V', 'sig_s', 'IOP')
+            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
         elif el['type'] == 'YMY':
+            #TODO(pjm): looks like YMY is supported in pyzoubi?
             res += 'line.add(core.FAKE_ELEM(""" \'YMY\'\n"""))\n'
         elif el['type'] == 'SEXTUPOL':
             res += _generate_element(el, 'QUADRUPO')
@@ -411,10 +409,8 @@ def _generate_beamline_elements(report, data):
 def _generate_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
     for f in _SCHEMA.model[schema_type or el.type]:
-        if f == 'name' or f == 'order' or f == 'format':
-            continue
         #TODO(pjm): need ignore list
-        if el.type == 'CAVITE' and (f == 'l' or f == 'IOP' or f == 'f_RF'):
+        if f == 'name' or f == 'order' or f == 'format':
             continue
         res += ', {}={}'.format(_PYZGOUBI_FIELD_MAP.get(f, f), _element_value(el, f))
     res += '))\n'
@@ -534,6 +530,16 @@ def _initial_phase_field(field):
     return _INITIAL_PHASE_MAP.get(field, '{}o'.format(field))
 
 
+def _ipasses_for_data(col_names, rows):
+    res = []
+    ipass_index = col_names.index('IPASS')
+    for row in rows:
+        ipass = row[ipass_index]
+        if ipass not in res:
+            res.append(ipass)
+    return res
+
+
 def _parse_zgoubi_log(run_dir):
     path = run_dir.join(_ZGOUBI_LOG_FILE)
     if not path.exists():
@@ -557,6 +563,35 @@ def _parse_zgoubi_log(run_dir):
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
     return res
+
+
+def _read_data_file(path):
+    # mode: title -> header -> data
+    mode = 'title'
+    col_names = []
+    rows = []
+    #TODO(pjm): need pykern method for reading by line rather than bring whole datafile into memory
+    with io.open(str(path), encoding=locale.getpreferredencoding()) as f:
+        for num, line in enumerate(f):
+            if mode == 'title':
+                if not re.search(r'^\@', line):
+                    mode = 'header'
+                continue
+            # work-around odd header/value "! optimp.f" int twiss output
+            line = re.sub(r'\!\s', '', line)
+            if mode == 'header':
+                # header row starts with '# <letter>'
+                if re.search(r'^#\s+[a-zA-Z]', line):
+                    col_names = re.split('\s+', line)
+                    col_names = map(lambda x: re.sub(r'\W|_', '', x), col_names[1:])
+                    mode = 'data'
+            elif mode == 'data':
+                if re.search('^#', line):
+                    continue
+                row = re.split('\s+', re.sub(r'^\s+', '', line))
+                rows.append(row)
+    rows.pop()
+    return col_names, rows
 
 
 def _read_twiss_header(run_dir):
