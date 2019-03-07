@@ -25,11 +25,17 @@ from sirepo import srdb
 from sirepo.template import template_common
 import subprocess
 import sys
+import time
 import trio
 
 # How often threaded blocking operations should wake up and check for Trio
 # cancellation
 _CANCEL_POLL_INTERVAL = 1
+
+# Every _TMP_DIR_CLEANUP_TIME seconds, we scan through the run database, and
+# any directories that are named '*.tmp', and whose mtime is
+# >_TMP_DIR_CLEANUP_TIME in the past, are deleted.
+_TMP_DIR_CLEANUP_TIME = 24 * 60 * 60  # 24 hours
 
 _CHUNK_SIZE = 4096
 _LISTEN_QUEUE = 1000
@@ -288,6 +294,26 @@ async def _handle_conn(job_tracker, lock_dict, stream):
         await stream.send_all(response_bytes)
 
 
+def _remove_old_tmp_dirs():
+    pkdlog('scanning for stale tmp dirs')
+    count = 0
+    cutoff = time.time() - _TMP_DIR_CLEANUP_TIME
+    for dirpath, dirnames, filenames in os.walk(srdb.root()):
+        if (dirpath.endswith('.tmp')
+                and os.stat(dirpath).st_mtime < cutoff):
+            pkdlog('removing stale tmp dir: {}', dirpath)
+            pkio.unchecked_remove(dirpath)
+            count += 1
+    pkdlog('finished scanning for stale tmp dirs ({} found)', count)
+
+
+async def _tmp_dir_gc():
+    while True:
+        with _catch_and_log_errors(Exception, 'error running tmp dir gc'):
+            await trio.run_sync_in_worker_thread(_remove_old_tmp_dirs)
+            await trio.sleep(_TMP_DIR_CLEANUP_TIME)
+
+
 async def _main():
     pkdlog('runner daemon starting up')
     with trio.socket.socket(family=trio.socket.AF_UNIX) as sock:
@@ -300,6 +326,7 @@ async def _main():
         listener = trio.SocketListener(sock)
 
         async with trio.open_nursery() as nursery:
+            nursery.start_soon(_tmp_dir_gc)
             job_tracker = _JobTracker(nursery)
             lock_dict = _LockDict()
             await trio.serve_listeners(
