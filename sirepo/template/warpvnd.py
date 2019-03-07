@@ -116,8 +116,7 @@ def fixup_old_data(data):
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
-        #template_common.update_model_defaults(c, 'box', _SCHEMA)
-        template_common.update_model_defaults(c, c.type if 'type' in c  else 'box', _SCHEMA)
+        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
     if 'fieldComparisonReport' not in data.models:

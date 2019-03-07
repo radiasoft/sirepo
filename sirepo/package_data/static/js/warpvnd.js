@@ -168,6 +168,10 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
 
     self.formatNumber = formatNumber;
 
+    self.getConductorType = function(conductor) {
+        return (self.conductorTypeMap()[conductor.conductorTypeId].type) || 'box';
+    };
+
     self.getXRange = function() {
         return gridRange('channel_width', 'num_x');
     };
@@ -1079,8 +1083,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var shapes = [];
                 appState.models.conductors
                     .filter(function (c) {
-                        //srdbg('draw type', typeMap[c.id]);
-                        return typeMap[c.id].type === 'box';
+                        return warpvndService.getConductorType(c) === 'box';
                     }).forEach(function(conductorPosition) {
                     var conductorType = typeMap[conductorPosition.conductorTypeId];
                     var w = toMicron(conductorType.zLength);
@@ -2234,7 +2237,7 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
     };
 });
 
-SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG, utilities, vtkPlotting, warpvndService, $timeout) {
+SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, plotToPNG, utilities, vtkPlotting, warpvndService) {
     return {
         restrict: 'A',
         scope: {
@@ -2262,40 +2265,58 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
             var stlActors = {};
             var stlReaders = {};
 
+            // if we have stl-type conductors, we might need to rescale the grid for drawing
+            // (easier and faster than scaling the data)
+            var gridScale = 1e-6;
+            var gridFactor = 1e-6;
+            var gridOffsets = [0, 0, 0];
+            var xfactor = 1;
+
             function addConductors() {
                 var grid = appState.models.simulationGrid;
-                var domain = {
-                    width: grid.plate_spacing,
-                    height: grid.channel_width,
-                    depth: grid.channel_height,
-                };
                 var ASPECT_RATIO = 4.0 / 7;
-                var xfactor = domain.height / domain.width / ASPECT_RATIO;
                 var typeMap = warpvndService.conductorTypeMap();
-                appState.models.conductors.forEach(function(conductor) {
-                    var cModel = typeMap[conductor.conductorTypeId];
-                    if(cModel.type === 'stl') {
-                        if(! stlReaders[conductor.id]) {
-                            //srdbg('loading stl');
-                            loadConductor(conductor, cModel);
-                        }
-                        else {
-                            setupConductor(stlReaders[conductor.id], conductor, cModel);
-                        }
-                        return;
+
+                // do stl conductors first so we have a proper scale
+                appState.models.conductors.filter(function (c) {
+                    return warpvndService.getConductorType(c) === 'stl';
+                }).forEach(function (c) {
+                    var cModel = typeMap[c.conductorTypeId];
+                    gridScale = Math.min(gridScale, cModel.scale);
+                    // no need to reload data
+                    if(! stlReaders[c.id]) {
+                        loadConductor(c, cModel);
                     }
+                    else {
+                        setupConductor(stlReaders[c.id], c, cModel);
+                    }
+                });
+
+                gridFactor = 1e-6 / gridScale;
+
+                var domain = {
+                    width: gridFactor * grid.plate_spacing,
+                    height: gridFactor * grid.channel_width,
+                    depth: gridFactor * grid.channel_height,
+                };
+                srdbg('grid scale', gridScale, 'factor', gridFactor, 'domain', domain);
+                xfactor = domain.height / domain.width / ASPECT_RATIO;
+                appState.models.conductors.filter(function (c) {
+                    return warpvndService.getConductorType(c) === 'box';
+                }).forEach(function(c) {
+                    var cModel = typeMap[c.conductorTypeId];
                     var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
                     var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
                     // model (z, x, y) --> (x, y, z)
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
-                            xLength: xfactor * cModel.zLength,
-                            yLength: cModel.xLength,
-                            zLength: cModel.yLength,
+                            xLength: gridFactor * xfactor * cModel.zLength,
+                            yLength: gridFactor * cModel.xLength,
+                            zLength: gridFactor * cModel.yLength,
                             center: [
-                                xfactor * conductor.zCenter,
-                                conductor.xCenter,
-                                conductor.yCenter,
+                                gridFactor * xfactor * c.zCenter,
+                                gridFactor * c.xCenter,
+                                gridFactor * c.yCenter,
                             ],
                         }),
                         {
@@ -2303,6 +2324,12 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                             edgeVisibility: true,
                         });
                 });
+                var pr = {
+                    x: [0, xfactor * domain.width],
+                    y: [-domain.height / 2.0, domain.height / 2.0],
+                    z: [-domain.depth / 2.0, domain.depth / 2.0],
+                };
+                srdbg('point ranges', pr);
                 return {
                     x: [0, xfactor * domain.width],
                     y: [-domain.height / 2.0, domain.height / 2.0],
@@ -2377,9 +2404,55 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                 refresh();
             }
 
+            var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1];
             function loadConductor(conductor, type) {
                 //srdbg('loading cond', conductor, 'of type', type);
                 vtkPlotting.loadSTLFile(type.file).then(function (r) {
+                        var bounds = r.getOutputData().getBounds();
+                        srdbg('stl bounds', bounds);
+                        var tx = geometry.transform(SIREPO.PLOT_3D_CONFIG.coordMatrix);
+                        var boundsPts = [
+                            [bounds[0], bounds[2], bounds[4]],
+                            [bounds[0], bounds[2], bounds[5]],
+                            [bounds[0], bounds[3], bounds[4]],
+                            [bounds[0], bounds[3], bounds[5]],
+                            [bounds[1], bounds[2], bounds[4]],
+                            [bounds[1], bounds[2], bounds[5]],
+                            [bounds[1], bounds[3], bounds[4]],
+                            [bounds[1], bounds[3], bounds[5]]
+                        ];
+                        var b = [];
+                        var xb = [];
+                        boundsPts.forEach(function (c) {
+                            b.push(c);
+                            xb.push(tx.doTransform(c));
+                        });
+                        //srdbg('bounds pts', boundsPts, '->', xb);
+                        var bpts = vtk.Common.Core.vtkPoints.newInstance();
+                        var xbPts = vtk.Common.Core.vtkPoints.newInstance();
+                        bpts.setNumberOfPoints(xb.length);
+                        xbPts.setNumberOfPoints(xb.length);
+                        xb.forEach(function (c, i) {
+                            var cc = b[i];
+                            bpts.setPoint(i, cc[0], cc[1], cc[2]);
+                            xbPts.setPoint(i, c[0], c[1], c[2]);
+                        });
+                        var lx = vtk.Common.Transform.vtkLandmarkTransform.newInstance({
+                            mode: vtk.Common.Transform.vtkLandmarkTransform.Mode.RIGID_BODY
+                        });
+                        lx.setSourceLandmark(bpts);
+                        lx.setTargetLandmark(xbPts);
+                        //labMatrix = lx.getMatrix();
+                        //srdbg('landmark matrix', labMatrix);
+
+                        var pts = r.getOutputData().getPoints();
+                        var newPts = vtk.Common.Core.vtkPoints.newInstance();
+                        newPts.setNumberOfPoints(pts.getNumberOfPoints());
+
+                        for(var i = 0; i < pts.getNumberOfPoints(); ++i) {
+                            var newPt = tx.doTransform(pts.getPoint(i));
+                            newPts.setPoint(i, newPt[0], newPt[1], newPt[2]);
+                        }
                     stlReaders[conductor.id] = r;
                     loadConductorData(r, conductor, type);
                 });
@@ -2410,9 +2483,12 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                 var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
                 a.setMapper(smapper);
                 smapper.setInputConnection(reader.getOutputPort());
+                a.setUserMatrix(labMatrix);
+                //a.setScale([1, 1, xfactor]);
+                a.addPosition([0, 0, gridFactor * xfactor * (appState.models.simulationGrid.plate_spacing - type.zLength) / 2]);
                 a.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 //stlActor.getProperty().setEdgeVisibility(true);
-                a.getProperty().setLighting(false);
+                //a.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(a);
                 stlActors[conductor.id] = a;
                 reset();
@@ -2426,7 +2502,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                 removeActors();
                 var pointRanges = addConductors();
                 //srdbg('refresh', pointRanges);
-/*
+
                 addPlane(pointRanges, 0, zeroVoltsColor);
                 addPlane(pointRanges, 1, voltsColor);
                 var padding = (pointRanges.x[1] - pointRanges.x[0]) / 1000.0;
@@ -2441,7 +2517,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, plotToPNG,
                         edgeVisibility: true,
                         frontfaceCulling: true,
                     });
-*/
                 reset();
             }
 
