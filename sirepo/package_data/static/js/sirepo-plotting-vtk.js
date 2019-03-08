@@ -820,7 +820,6 @@ SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) 
         ].join(''),
         controller: function($scope) {
             $scope.validate = function (file) {
-                srdbg('VALIDAITNG STL', file);
                 $scope.url = URL.createObjectURL(file);
                 return vtkPlotting.isSTLUrlValid($scope.url).then(function (ok) {
                     return ok;

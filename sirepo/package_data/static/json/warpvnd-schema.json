@@ -105,14 +105,13 @@
             "anode_voltage": ["Anode Voltage [eV]", "OptFloat"]
         },
         "box": {
-            "_super": ["_", "model", "conductor"],
-            "type": ["Type", "ConductorType", "box"],
-            "xLength": ["Width (X) [µm]", "OptFloat"],
-            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
-            "zLength": ["Length (Z) [µm]", "OptFloat"]
+            "_super": ["_", "model", "conductor"]
         },
         "conductor": {
             "name": ["Name", "String"],
+            "xLength": ["Width (X) [µm]", "OptFloat"],
+            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
+            "zLength": ["Length (Z) [µm]", "OptFloat"],
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
@@ -204,7 +203,10 @@
             "_super": ["_", "model", "conductor"],
             "file": ["Conductor File", "FileChooser", ""],
             "scale": ["Conductor Scale", "Float", 1e-9, "Scale factor (1e-9 - 10)", 1e-12, 10],
-            "type": ["Type", "ConductorType", "stl"]
+            "type": ["Type", "ConductorType", "stl"],
+            "xLength": ["Width (X) [µm]", "Float"],
+            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
+            "zLength": ["Length (Z) [µm]", "Float"]
         }
     },
     "view": {
@@ -400,6 +402,9 @@
             "title": "Imported Conductor",
             "advanced": [
                 "name",
+                "zLength",
+                "xLength",
+                "yLength",
                 "scale",
                 "voltage",
                 "isConductor",

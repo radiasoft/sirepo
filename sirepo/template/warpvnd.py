@@ -255,7 +255,6 @@ def models_related_to_report(data):
             res.append(_non_opt_fields_to_array(m))
     if data['report'] != 'fieldComparisonReport':
         res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
-    pkdp('models_related_to_report res {}', res)
     return res
 
 
