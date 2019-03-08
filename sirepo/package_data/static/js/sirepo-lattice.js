@@ -1286,41 +1286,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     var id = items[i];
                     var item = latticeService.elementForId(id);
                     if (item.type) {
-                        //TODO(pjm): zgoubi CHANGREF is a series of transformations, need to put into zgoubi.js
-                        if (item.type == 'CHANGREF' && item.format == 'new') {
-                            var values = item.order.split(' ');
-                            item = appState.clone(item);
-                            item.XCE = 0;
-                            item.YCE = 0;
-                            item.angle = 0;
-                            for (var j = 0; j < values.length; j += 2) {
-                                var k = values[j];
-                                var v = parseFloat(values[j + 1]);
-                                if (v != 0) {
-                                    if (k == 'ZR') {
-                                        item.angle = v;
-                                        res.push(item);
-                                        item = appState.clone(item);
-                                        item.XCE = 0;
-                                        item.YCE = 0;
-                                        item.angle = 0;
-                                    }
-                                    //TODO(pjm): need to combine multiple YS and XS values?
-                                    else if (k == 'YS') {
-                                        item.YCE = v;
-                                    }
-                                    else if (k == 'XS') {
-                                        item.XCE = v;
-                                    }
-                                }
-                            }
-                            if (item.XCE || item.YCE || item.angle) {
-                                res.push(item);
-                            }
-                        }
-                        else {
-                            res.push(item);
-                        }
+                        res.push(item);
                     }
                     else {
                         explodeItems(item.items, res, id < 0);

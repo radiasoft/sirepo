@@ -12,6 +12,21 @@ import re
 
 _COMMAND_INDEX_POS = 110
 
+_CHANGREF_MAP = {
+    'XS': 'XCE',
+    'YS': 'YCE',
+    'ZR': 'ALE',
+}
+
+#TODO(pjm): remove when we have updated to latest zgoubi
+_NEW_PARTICLE_TYPES = {
+    'POSITRON': {
+        'M': 0.5109989461,
+        'Q': 1.602176487e-19,
+        'G': 1.159652181e-3,
+        'Tau': 1e99,
+    },
+}
 
 def parse_file(zgoubi_text, max_id=0):
     parser = LineParser(max_id)
@@ -53,7 +68,10 @@ def _add_command(parser, command, elements):
         return
     el = globals()[method](command)
     if el:
-        elements.append(el)
+        if type(el) == list:
+            elements += el
+        else:
+            elements.append(el)
 
 
 def _parse_command(command, command_def):
@@ -141,25 +159,32 @@ def _zgoubi_cavite(command):
     if i == '10':
         return _parse_command(command, [
             'IOPT',
-            'l f_RF ID',
+            'l f_RF *ID',
             'V sig_s IOP',
         ])
     assert False, 'unsupported CAVITE: {}'.format(i)
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
-        res = _parse_command_header(command)
-        res['format'] = 'new'
-        res['order'] = ' '.join(command[1])
-        res['XCE'] = 0
-        res['YCE'] = 0
-        res['ALE'] = 0
+        # convert new format CHANGREF to a series of old format elements
+        el = _parse_command_header(command)
+        el['XCE'] = el['YCE'] = el['ALE'] = 0
+        res = []
+        for i in range(int(len(command[1]) / 2)):
+            name = command[1][i * 2]
+            value = float(command[1][i * 2 + 1])
+            if value == 0:
+                continue
+            if name in _CHANGREF_MAP:
+                el2 = el.copy()
+                el2[_CHANGREF_MAP[name]] = value
+                res.append(el2)
+            else:
+                pkdlog('zgoubi CHANGEREF skipping: {}={}', name, value)
         return res
     res = _parse_command(command, [
         'XCE YCE ALE',
     ])
-    res['format'] = 'old'
-    res['order'] = ''
     return res
 
 def _zgoubi_drift(command):
@@ -246,9 +271,11 @@ def _zgoubi_particul(command):
         res['particleType'] = 'Other'
     else:
         res = _parse_command(command, [
-            #TODO(pjm): ensure it maps to a proper value
             'particleType',
         ])
+        if res['particleType'] in _NEW_PARTICLE_TYPES:
+            res.update(_NEW_PARTICLE_TYPES[res['particleType']])
+            res['particleType'] = 'Other'
     if 'name' in res:
         del res['name']
     res['type'] = 'particle'

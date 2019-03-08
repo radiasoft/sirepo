@@ -26,7 +26,7 @@
             "route": "/lattice/:simulationId",
             "config": {
                 "controller": "LatticeController as lattice",
-                "templateUrl": "/static/html/zgoubi-lattice.html"
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
             }
         },
         "twiss": {
@@ -66,10 +66,6 @@
             ["0", "0"],
             ["1", "1"],
             ["2", "2"]
-        ],
-        "ChangrefStyle": [
-            ["old", "Old Style: XCE, YCE, ALE"],
-            ["new", "New Style: XS, YS, ZS, XR, YR, ZR"]
         ],
         "ElementAlignment": [
             ["1", "Element Aligned"],
@@ -403,9 +399,7 @@
             "name": ["Name", "ValidatedString"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
-            "format": ["CHANGREF Style", "ChangrefStyle", "old"],
-            "order": ["Transformations", "OptionalString", "", "XS 'val', YS 'val', ZS 'val', XR 'val', YR 'val', ZR 'val' in arbitrary order"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
@@ -862,11 +856,9 @@
             "description": "Transformation to a new reference frame",
             "advanced": [
                 "name",
-                "format",
                 "XCE",
                 "YCE",
-                "ALE",
-                "order"
+                "ALE"
             ]
         },
         "DRIFT": {
