@@ -17,12 +17,9 @@ import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from pykern import pkio
 from pykern import pkjson
-import re
-import shlex
-from sirepo import mpi
 from sirepo import runner_client
 from sirepo import srdb
-from sirepo.template import template_common
+from sirepo.runner_daemon import local_process
 import subprocess
 import sys
 import time
@@ -41,11 +38,6 @@ _CHUNK_SIZE = 4096
 _LISTEN_QUEUE = 1000
 
 _KILL_TIMEOUT_SECS = 3
-#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
-# See https://github.com/radiasoft/sirepo/issues/1323
-# We also remove SIREPO_ and PYKERN vars, because we shouldn't
-# need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 @contextlib.contextmanager
@@ -111,22 +103,12 @@ def _write_status(status, run_dir):
         pkio.write_text(run_dir.join('status'), status.value)
 
 
-def _subprocess_env():
-    env = dict(os.environ)
-    for k in list(env):
-        if _EXEC_ENV_REMOVE.search(k):
-            del env[k]
-    env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
-    return env
-
-
 class _JobInfo:
     def __init__(self, run_dir, jhash, status, process):
         self.run_dir = run_dir
         self.jhash = jhash
         self.status = status
         self.process = process
-        self.finished = trio.Event()
         self.cancel_requested = False
 
 
@@ -192,98 +174,66 @@ class _JobTracker:
             run_dir, job_info.jhash,
         )
         job_info.cancel_requested = True
-        job_info.process.terminate()
-        with trio.move_on_after(_KILL_TIMEOUT_SECS):
-            await job_info.finished.wait()
-        if job_info.process.returncode is None:
-            job_info.process.kill()
-            await job_info.finished.wait()
+        await job_info.process.kill(_KILL_TIMEOUT_SECS)
 
     async def start_job(self, run_dir, jhash, cmd, tmp_dir):
-        await self._nursery.start(self._run_job, run_dir, jhash, cmd, tmp_dir)
-
-    async def _run_job(
-            self, run_dir, jhash, cmd, tmp_dir, *, task_status=trio.TASK_STATUS_IGNORED
-    ):
-        with _catch_and_log_errors(Exception, 'error in run_job'):
-            ###
-            ### Phase 1: make sure there's no-one else still using run_dir
-            ###
-            current_jhash, current_status = self.run_dir_status(run_dir)
-            if current_status is runner_client.JobStatus.RUNNING:
-                # Something's running.
-                if current_jhash == jhash:
-                    # It's already the requested job, so we have nothing to
-                    # do. Throw away the tmp_dir and move on.
-                    pkdlog(
-                        'start_job {} {}: job is already running; skipping',
-                        run_dir, jhash
-                    )
-                    pkio.unchecked_remove(tmp_dir)
-                    task_status.started()
-                    return
-                else:
-                    # It's some other job. Better kill it before doing
-                    # anything else.
-                    # XX TODO: should we check some kind of sequence number
-                    # here? I don't know how those work.
-                    pkdlog(
-                        'start_job {} {}: stale job is still running; killing it',
-                        run_dir, jhash
-                    )
-                    await self.kill_all(run_dir)
-
-            ###
-            ### Phase 2: start up the new job
-            ###
-            assert run_dir not in self.jobs
-            pkio.unchecked_remove(run_dir)
-            tmp_dir.rename(run_dir)
-
-            env = _subprocess_env()
-            run_log_path = run_dir.join(template_common.RUN_LOG)
-            # we're in py3 mode, and regular subprocesses will inherit our
-            # environment, so we have to manually switch back to py2 mode.
-            env['PYENV_VERSION'] = 'py2'
-            cmd = ['pyenv', 'exec'] + cmd
-            with open(run_log_path, 'a+b') as run_log:
-                process = trio.Process(
-                    cmd,
-                    cwd=run_dir,
-                    start_new_session=True,
-                    stdin=subprocess.DEVNULL,
-                    stdout=run_log,
-                    stderr=run_log,
-                    env=env,
+        # First make sure there's no-one else using the run_dir
+        current_jhash, current_status = self.run_dir_status(run_dir)
+        if current_status is runner_client.JobStatus.RUNNING:
+            # Something's running.
+            if current_jhash == jhash:
+                # It's already the requested job, so we have nothing to
+                # do. Throw away the tmp_dir and move on.
+                pkdlog(
+                    'start_job {} {}: job is already running; skipping',
+                    run_dir, jhash
                 )
-            job_info = _JobInfo(
-                run_dir, jhash, runner_client.JobStatus.RUNNING, process
-            )
-            self.jobs[run_dir] = job_info
-            try:
-                ###
-                ### Phase 3: new job is fully started; tell start_job it
-                ### can return, while we wait for the job to exit.
-                ###
-                task_status.started()
-                await process.wait()
+                pkio.unchecked_remove(tmp_dir)
+                return
+            else:
+                # It's some other job. Better kill it before doing
+                # anything else.
+                # XX TODO: should we check some kind of sequence number
+                # here? I don't know how those work.
+                pkdlog(
+                    'start_job {} {}: stale job is still running; killing it',
+                    run_dir, jhash
+                )
+                await self.kill_all(run_dir)
 
-                ###
-                ### Phase 4: clean up
-                ###
+        # Okay, now we have the dir to ourselves. Set up the new run_dir:
+        assert run_dir not in self.jobs
+        pkio.unchecked_remove(run_dir)
+        tmp_dir.rename(run_dir)
+        # Start the job:
+        process = await local_process.start(run_dir, cmd)
+        # And update our records so we know it's running:
+        job_info = _JobInfo(
+            run_dir, jhash, runner_client.JobStatus.RUNNING, process
+        )
+        self.jobs[run_dir] = job_info
+
+        # And finally, start a background task to watch over it.
+        self._nursery.start_soon(self._supervise_job, run_dir, jhash, job_info)
+
+    async def _supervise_job(self, run_dir, jhash, job_info):
+        with _catch_and_log_errors(Exception, 'error in _supervise_job'):
+            try:
+                returncode = await job_info.process.wait()
+
                 if job_info.cancel_requested:
                     _write_status(runner_client.JobStatus.CANCELED, run_dir)
-                elif process.returncode:
+                elif returncode:
                     pkdlog(
                         '{} {}: job failed, returncode = {}',
-                        run_dir, jhash, process.returncode,
+                        run_dir, jhash, returncode,
                     )
                     _write_status(runner_client.JobStatus.ERROR, run_dir)
                 else:
                     _write_status(runner_client.JobStatus.COMPLETED, run_dir)
             finally:
-                process.kill()  # no-op if it's already dead
-                job_info.finished.set()
+                # job should be dead by now, but let's make sure
+                await job_info.process.kill(_KILL_TIMEOUT_SECS)
                 assert self.jobs[run_dir] is job_info
                 del self.jobs[run_dir]
 
