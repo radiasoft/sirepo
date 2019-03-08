@@ -773,7 +773,7 @@ def validate_file(file_type, path):
         # undulator magnetic data file
         #TODO(pjm): add additional zip file validation
         try:
-            template_common.validate_safe_zip(str(path), '.', validate_magnet_data_file)
+            _validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
             return err.message
     elif file_type == 'sample':
@@ -1481,8 +1481,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
         # The MagnMeasZip class defined above has convenient properties we can use here
         mmz = MagnMeasZip(src_zip)
-        zindex = template_common.zip_path_for_file(mmz.z, mmz.index_file)
-        zdata = map(lambda fn: template_common.zip_path_for_file(mmz.z, fn), mmz.dat_files)
+        zindex = _zip_path_for_file(mmz.z, mmz.index_file)
+        zdata = map(lambda fn: _zip_path_for_file(mmz.z, fn), mmz.dat_files)
         # extract only the index file and the data files it lists
         mmz.z.extract(zindex, target_dir)
         for df in zdata:
@@ -1891,5 +1891,90 @@ def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
 
+def _validate_safe_zip(zip_file_name, target_dir='.', *args):
+    """Determine whether a zip file is safe to extract from
+
+    Performs the following checks:
+
+        - Each file must end up at or below the target directory
+        - Files must be 100MB or smaller
+        - If possible to determine, disallow "non-regular" and executable files
+        - Existing files cannot be overwritten
+
+    Args:
+        zip_file_name (str): name of the zip file to examine
+        target_dir (str): name of the directory to extract into (default to current directory)
+        *args: list of validator functions taking a zip file as argument and returning True or False and a string
+    Throws:
+        AssertionError if any test fails, otherwise completes silently
+    """
+    import zipfile
+    import os
+
+    def path_is_sub_path(path, dir_name):
+        real_dir = os.path.realpath(dir_name)
+        end_path = os.path.realpath(real_dir + '/' + path)
+        return end_path.startswith(real_dir)
+
+    def file_exists_in_dir(file_name, dir_name):
+        return os.path.exists(os.path.realpath(dir_name + '/' + file_name))
+
+    def file_attrs_ok(attrs):
+
+        # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
+        if attrs < 2 << 16:
+            return True
+
+        # UNIX file attributes live in the top two bytes
+        mask = attrs >> 16
+        is_file_or_dir = mask & (0o0100000 | 0o0040000) != 0
+        no_exec = mask & (0o0000100 | 0o0000010 | 0o0000001) == 0
+
+        return is_file_or_dir and no_exec
+
+    # 100MB
+    max_file_size = 100000000
+
+    zip_file = zipfile.ZipFile(zip_file_name)
+
+    for f in zip_file.namelist():
+
+        i = zip_file.getinfo(f)
+        s = i.file_size
+        attrs = i.external_attr
+
+        assert path_is_sub_path(f, target_dir), 'Cannot extract {} above target directory'.format(f)
+        assert s <= max_file_size, '{} too large ({} > {})'.format(f, str(s), str(max_file_size))
+        assert file_attrs_ok(attrs), '{} not a normal file or is executable'.format(f)
+        assert not file_exists_in_dir(f, target_dir), 'Cannot overwrite file {} in target directory {}'.format(f, target_dir)
+
+    for validator in args:
+        res, err_string = validator(zip_file)
+        assert res, '{} failed validator: {}'.format(os.path.basename(zip_file_name), err_string)
+
+
+def _zip_path_for_file(zf, file_to_find):
+    """Find the full path of the specified file within the zip.
+
+    For a zip zf containing:
+        foo1
+        foo2
+        bar/
+        bar/foo3
+
+    _zip_path_for_file(zf, 'foo3') will return 'bar/foo3'
+
+    Args:
+        zf(zipfile.ZipFile): the zip file to examine
+        file_to_find (str): name of the file to find
+
+    Returns:
+        The first path in the zip that matches the file name, or None if no match is found
+    """
+    import os
+
+    # Get the base file names from the zip (directories have a basename of '')
+    file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
+    return zf.namelist()[file_names_in_zip.index(file_to_find)]
 
 _init()

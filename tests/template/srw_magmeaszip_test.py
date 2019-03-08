@@ -31,7 +31,6 @@ def test_magnetic_measurements_zip_file():
 
 
 def test_validate_safe_zip():
-    from sirepo.template.template_common import validate_safe_zip
     from sirepo.template import srw
     from sirepo.template.srw import validate_magnet_data_file
 
@@ -39,25 +38,25 @@ def test_validate_safe_zip():
 
     # Reject a zip with no index file
     with pkunit.pkexcept(AssertionError):
-        validate_safe_zip(zip_dir + '/bad_zip_no_index.zip', zip_dir, validate_magnet_data_file)
+        srw._validate_safe_zip(zip_dir + '/bad_zip_no_index.zip', zip_dir, validate_magnet_data_file)
 
     # Reject a zip with an incomplete index file
     with pkunit.pkexcept(AssertionError):
-        validate_safe_zip(zip_dir + '/bad_zip_incomplete_index.zip', zip_dir, validate_magnet_data_file)
+        srw._validate_safe_zip(zip_dir + '/bad_zip_incomplete_index.zip', zip_dir, validate_magnet_data_file)
 
     # Reject a zip with entries in index file that are not in zip
     with pkunit.pkexcept(AssertionError):
-        validate_safe_zip(zip_dir + '/bad_zip_extra_index.zip', zip_dir, validate_magnet_data_file)
+        srw._validate_safe_zip(zip_dir + '/bad_zip_extra_index.zip', zip_dir, validate_magnet_data_file)
 
     # Reject a zip with unacceptable file types
     with pkunit.pkexcept(AssertionError):
-        validate_safe_zip(zip_dir + '/bad_zip_bad_types.zip', zip_dir, validate_magnet_data_file)
+        srw._validate_safe_zip(zip_dir + '/bad_zip_bad_types.zip', zip_dir, validate_magnet_data_file)
 
     # Finally, make sure the included measurement files are OK
     # We're not really extracting them so just send the test directory as target
-    validate_safe_zip(pkresource.filename('template/srw/magn_meas_chx.zip', srw), zip_dir, validate_magnet_data_file)
-    validate_safe_zip(pkresource.filename('template/srw/magn_meas_esm.zip', srw), zip_dir, validate_magnet_data_file)
-    validate_safe_zip(pkresource.filename('template/srw/magn_meas_fmx.zip', srw), zip_dir, validate_magnet_data_file)
-    validate_safe_zip(pkresource.filename('template/srw/magn_meas_srx.zip', srw), zip_dir, validate_magnet_data_file)
-    validate_safe_zip(pkresource.filename('template/srw/magn_meas_u20_hxn.zip', srw), zip_dir, validate_magnet_data_file)
-    validate_safe_zip(pkresource.filename('template/srw/magnetic_measurements.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magn_meas_chx.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magn_meas_esm.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magn_meas_fmx.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magn_meas_srx.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magn_meas_u20_hxn.zip', srw), zip_dir, validate_magnet_data_file)
+    srw._validate_safe_zip(pkresource.filename('template/srw/magnetic_measurements.zip', srw), zip_dir, validate_magnet_data_file)
