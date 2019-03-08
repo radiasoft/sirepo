@@ -505,34 +505,47 @@ def poll_seconds(data):
     return 2 if is_parallel(data) else 1
 
 
-def prepare_simulation(data):
+def prepare_simulation(data, tmp_dir=None):
     """Create and install files, update parameters, and generate command.
 
-    Copies files into the simulation directory (``run_dir``).
+    Copies files into the simulation directory (``run_dir``), or (if
+    specified) a ``tmp_dir``.
     Updates the parameters in ``data`` and save.
     Generate the pkcli command to pass to task runner.
 
     Args:
         data (dict): report and model parameters
+        tmp_dir (py.path.local):
     Returns:
         list, py.path: pkcli command, simulation directory
     """
-    run_dir = simulation_run_dir(data, remove_dir=True)
-    #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
-    #   probably can only do with celery.
-    pkio.mkdir_parent(run_dir)
-    write_status('pending', run_dir)
+    if tmp_dir is None:
+        # This is the legacy (pre-runner-daemon) code path
+        run_dir = simulation_run_dir(data, remove_dir=True)
+        #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
+        #   probably can only do with celery.
+        pkio.mkdir_parent(run_dir)
+        out_dir = run_dir
+        # Only done on the legacy path, because the runner daemon owns the
+        # status file.
+        write_status('pending', out_dir)
+    else:
+        # This is the runner-daemon code path -- tmp_dir is always given, as a
+        # new temporary directory we have to create.
+        run_dir = simulation_run_dir(data)
+        pkio.mkdir_parent(tmp_dir)
+        out_dir = tmp_dir
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, run_dir)
+    template_common.copy_lib_files(data, None, out_dir)
 
-    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
     template.write_parameters(
         data,
-        run_dir=run_dir,
+        run_dir=out_dir,
         is_parallel=is_p,
     )
     cmd = [

@@ -31,6 +31,7 @@ import re
 import sirepo.template
 import sys
 import time
+import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -468,12 +469,9 @@ def api_runSimulation():
                 'startTime': int(time.time()),
                 'state': 'pending',
             }
-            # XX TODO: prepare in a temp directory
-            cmd, _ = simulation_db.prepare_simulation(data)
-            # XX TODO: prepare_simulation shouldn't create this file in the
-            # first place -- managing this file is runner.py's job.
-            pkio.unchecked_remove(run_dir.join('status'))
-            runner_client.start_job(run_dir, jhash, cmd)
+            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + '.tmp'
+            cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
+            runner_client.start_job(run_dir, jhash, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:

@@ -45,12 +45,13 @@ def _rpc(request):
     return pkjson.load_any(bytes(response_bytes))
 
 
-def start_job(run_dir, jhash, cmd):
+def start_job(run_dir, jhash, cmd, tmp_dir):
     return _rpc({
         'action': 'start_job',
         'run_dir': str(run_dir),
         'jhash': jhash,
         'cmd': cmd,
+        'tmp_dir': str(tmp_dir),
     })
 
 

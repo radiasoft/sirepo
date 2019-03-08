@@ -125,108 +125,167 @@ class _JobInfo:
         self.run_dir = run_dir
         self.jhash = jhash
         self.status = status
-        self.finished = trio.Event()
         self.process = process
+        self.finished = trio.Event()
+        self.cancel_requested = False
 
 
 class _JobTracker:
     def __init__(self, nursery):
-        # XX TODO: eventually we'll need a way to stop this growing without
-        # bound, perhaps by clarifying the split in responsibilities between
-        # the on-disk simulation_db versus the in-memory status.
         self.jobs = {}
         self._nursery = nursery
 
-    def status(self, run_dir, jhash):
+    def run_dir_status(self, run_dir):
+        """Get the current status of whatever's happening in run_dir.
+
+        Returns:
+          Tuple of (jhash or None, status of that job)
+
+        """
         disk_in_path = run_dir.join('in.json')
         disk_status_path = run_dir.join('status')
         if disk_in_path.exists() and disk_status_path.exists():
+            # status should be recorded on disk XOR in memory
+            assert run_dir not in self.jobs
             disk_in_text = pkio.read_text(disk_in_path)
             disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
-            if disk_jhash == jhash:
-                disk_status = pkio.read_text(disk_status_path)
-                if disk_status == 'pending':
-                    # We never write this, so it must be stale, in which case
-                    # the job is no longer pending...
-                    pkdlog(
-                        'found "pending" status, treating as "error" ({})',
-                        disk_status_path,
-                    )
-                    return runner_client.JobStatus.ERROR
-                return runner_client.JobStatus(disk_status)
-        if run_dir in self.jobs and self.jobs[run_dir].jhash == jhash:
-            return self.jobs[run_dir].status
-        return runner_client.JobStatus.MISSING
+            disk_status = pkio.read_text(disk_status_path)
+            if disk_status == 'pending':
+                # We never write this, so it must be stale, in which case
+                # the job is no longer pending...
+                pkdlog(
+                    'found "pending" status, treating as "error" ({})',
+                    disk_status_path,
+                )
+                disk_status = runner_client.JobStatus.ERROR
+            return disk_jhash, runner_client.JobStatus(disk_status)
+        elif run_dir in self.jobs:
+            job_info = self.jobs[run_dir]
+            return job_info.jhash, job_info.status
+        else:
+            return None, runner_client.JobStatus.MISSING
 
-    async def start_job(self, run_dir, jhash, cmd):
-        await self._nursery.start(self._run_job, run_dir, jhash, cmd)
+    def job_status(self, run_dir, jhash):
+        """Get the current status of a specific job in the given run_dir.
+
+        """
+        run_dir_jhash, run_dir_status = self.run_dir_status(run_dir)
+        if run_dir_jhash == jhash:
+            return run_dir_status
+        else:
+            return runner_client.JobStatus.MISSING
+
+    async def kill_all(self, run_dir):
+        """Forcibly stop any jobs currently running in run_dir.
+
+        Assumes that you've already checked what those jobs are (perhaps by
+        calling run_dir_status), and decided they need to die.
+
+        """
+        job_info = self.jobs.get(run_dir)
+        if job_info is None:
+            return
+        if job_info.status is not runner_client.JobStatus.RUNNING:
+            return
+        pkdlog(
+            'kill_all {}: killing job with jhash {}',
+            run_dir, job_info.jhash,
+        )
+        job_info.cancel_requested = True
+        job_info.process.terminate()
+        with trio.move_on_after(_KILL_TIMEOUT_SECS):
+            await job_info.finished.wait()
+        if job_info.process.returncode is None:
+            job_info.process.kill()
+            await job_info.finished.wait()
+
+    async def start_job(self, run_dir, jhash, cmd, tmp_dir):
+        await self._nursery.start(self._run_job, run_dir, jhash, cmd, tmp_dir)
 
     async def _run_job(
-            self, run_dir, jhash, cmd, *, task_status=trio.TASK_STATUS_IGNORED
+            self, run_dir, jhash, cmd, tmp_dir, *, task_status=trio.TASK_STATUS_IGNORED
     ):
-        # XX TODO: there are still some awkward race conditions here if a new
-        # job tries to start using the directory while another job is still
-        # using it. probably start_job should detect this, and either kill the
-        # existing job (if it has a different jhash + older serial), do
-        # nothing and report success (if the existing job has the same jhash),
-        # or error out (if the existing job has a different jhash + newer
-        # serial).
         with _catch_and_log_errors(Exception, 'error in run_job'):
-            if run_dir in self.jobs:
-                # Right now, I don't know what happens if we reach here while
-                # the previous job is still running. The old job might be
-                # writing to the new job's freshly-initialized run_dir? This
-                # will be fixed once we move away from having server.py write
-                # directly into the run_dir.
-                pkdlog(
-                    'start_job {}: job is already running. old jhash {}, new jhash {}',
-                    jhash, self.jobs[run_dir].jhash
-                )
-                assert self.jobs[run_dir].jhash == jhash
-                return
-            try:
-                env = _subprocess_env()
-                run_log_path = run_dir.join(template_common.RUN_LOG)
-                # we're in py3 mode, and regular subprocesses will inherit our
-                # environment, so we have to manually switch back to py2 mode.
-                env['PYENV_VERSION'] = 'py2'
-                cmd = ['pyenv', 'exec'] + cmd
-                with open(run_log_path, 'a+b') as run_log:
-                    process = trio.Process(
-                        cmd,
-                        cwd=run_dir,
-                        start_new_session=True,
-                        stdin=subprocess.DEVNULL,
-                        stdout=run_log,
-                        stderr=run_log,
-                        env=env,
+            ###
+            ### Phase 1: make sure there's no-one else still using run_dir
+            ###
+            current_jhash, current_status = self.run_dir_status(run_dir)
+            if current_status is runner_client.JobStatus.RUNNING:
+                # Something's running.
+                if current_jhash == jhash:
+                    # It's already the requested job, so we have nothing to
+                    # do. Throw away the tmp_dir and move on.
+                    pkdlog(
+                        'start_job {} {}: job is already running; skipping',
+                        run_dir, jhash
                     )
-                self.jobs[run_dir] = _JobInfo(
-                    run_dir, jhash, runner_client.JobStatus.RUNNING, process
-                )
-                async with process:
+                    pkio.unchecked_remove(tmp_dir)
                     task_status.started()
-                    # XX more race conditions here, in case we're writing to
-                    # the wrong version of the directory...
-                    await process.wait()
-                    if process.returncode:
-                        pkdlog(
-                            '{} {}: job failed, returncode = {}',
-                            run_dir, jhash, process.returncode,
-                        )
-                        _write_status(runner_client.JobStatus.ERROR, run_dir)
-                    else:
-                        _write_status(runner_client.JobStatus.COMPLETED, run_dir)
+                    return
+                else:
+                    # It's some other job. Better kill it before doing
+                    # anything else.
+                    # XX TODO: should we check some kind of sequence number
+                    # here? I don't know how those work.
+                    pkdlog(
+                        'start_job {} {}: stale job is still running; killing it',
+                        run_dir, jhash
+                    )
+                    await self.kill_all(run_dir)
+
+            ###
+            ### Phase 2: start up the new job
+            ###
+            assert run_dir not in self.jobs
+            pkio.unchecked_remove(run_dir)
+            tmp_dir.rename(run_dir)
+
+            env = _subprocess_env()
+            run_log_path = run_dir.join(template_common.RUN_LOG)
+            # we're in py3 mode, and regular subprocesses will inherit our
+            # environment, so we have to manually switch back to py2 mode.
+            env['PYENV_VERSION'] = 'py2'
+            cmd = ['pyenv', 'exec'] + cmd
+            with open(run_log_path, 'a+b') as run_log:
+                process = trio.Process(
+                    cmd,
+                    cwd=run_dir,
+                    start_new_session=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=run_log,
+                    stderr=run_log,
+                    env=env,
+                )
+            job_info = _JobInfo(
+                run_dir, jhash, runner_client.JobStatus.RUNNING, process
+            )
+            self.jobs[run_dir] = job_info
+            try:
+                ###
+                ### Phase 3: new job is fully started; tell start_job it
+                ### can return, while we wait for the job to exit.
+                ###
+                task_status.started()
+                await process.wait()
+
+                ###
+                ### Phase 4: clean up
+                ###
+                if job_info.cancel_requested:
+                    _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                elif process.returncode:
+                    pkdlog(
+                        '{} {}: job failed, returncode = {}',
+                        run_dir, jhash, process.returncode,
+                    )
+                    _write_status(runner_client.JobStatus.ERROR, run_dir)
+                else:
+                    _write_status(runner_client.JobStatus.COMPLETED, run_dir)
             finally:
-                # _write_status is a no-op if there's already a status, so
-                # this really means "if we get here without having written a
-                # status, assume there was some error"
-                _write_status(runner_client.JobStatus.ERROR, run_dir)
-                # Make sure that we clear out the running job info and tell
-                # everyone the job is done, no matter what happened
-                job_info = self.jobs.pop(run_dir, None)
-                if job_info is not None:
-                    job_info.finished.set()
+                process.kill()  # no-op if it's already dead
+                job_info.finished.set()
+                assert self.jobs[run_dir] is job_info
+                del self.jobs[run_dir]
 
 
 _RPC_HANDLERS = {}
@@ -241,7 +300,8 @@ def _rpc_handler(fn):
 async def _start_job(job_tracker, request):
     pkdc('start_job: {}', request)
     await job_tracker.start_job(
-        request.run_dir, request.jhash, request.cmd
+        request.run_dir, request.jhash, request.cmd,
+        pkio.py_path(request.tmp_dir),
     )
     return {}
 
@@ -250,25 +310,16 @@ async def _start_job(job_tracker, request):
 async def _job_status(job_tracker, request):
     pkdc('job_status: {}', request)
     return {
-        'status': job_tracker.status(request.run_dir, request.jhash).value
+        'status': job_tracker.job_status(request.run_dir, request.jhash).value
     }
 
 
 @_rpc_handler
 async def _cancel_job(job_tracker, request):
-    if request.run_dir not in job_tracker.jobs:
+    run_dir_jhash, run_dir_status = job_tracker.run_dir_status(request.run_dir)
+    if run_dir_jhash != request.jhash:
         return {}
-    job_info = job_tracker.jobs[request.run_dir]
-    if job_info.status is not runner_client.JobStatus.RUNNING:
-        return {}
-    job_info.status = runner_client.JobStatus.CANCELED
-    _write_status(runner_client.JobStatus.CANCELED, request.run_dir)
-    job_info.process.terminate()
-    with trio.move_on_after(_KILL_TIMEOUT_SECS):
-        await job_info.finished.wait()
-    if job_info.returncode is None:
-        job_info.process.kill()
-        await job_info.finished.wait()
+    await job_tracker.kill_all(request.run_dir)
     return {}
 
 
