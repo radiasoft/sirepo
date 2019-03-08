@@ -1011,3 +1011,10 @@ li.sr-model-list-item > a {
   font-size: 1em;
   white-space: nowrap;
 }
+label .katex {
+  font-weight: 700;
+}
+.tooltip .katex {
+  font-size: 16px;
+  font-weight: normal;
+}

@@ -608,7 +608,7 @@ SIREPO.app.directive('appFooter', function() {
     };
 });
 
-SIREPO.app.directive('appHeader', function() {
+SIREPO.app.directive('appHeader', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -622,7 +622,7 @@ SIREPO.app.directive('appHeader', function() {
                 '<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'visualization\')}"><a href data-ng-click="nav.openSection(\'visualization\')"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
+                  '<li class="sim-section" data-ng-show="showOptimization()" data-ng-class="{active: nav.isActive(\'optimization\')}"><a href data-ng-click="nav.openSection(\'optimization\')"><span class="glyphicon glyphicon-time"></span> Optimization</a></li>',
                 '</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -635,6 +635,14 @@ SIREPO.app.directive('appHeader', function() {
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.showOptimization = function() {
+                if (appState.isLoaded()) {
+                    return ! $.isEmptyObject(appState.applicationState().optimizer.enabledFields);
+                }
+                return false;
+            };
+        },
     };
 });
 

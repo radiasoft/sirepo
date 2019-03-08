@@ -515,7 +515,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
-            //$scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
+            $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
@@ -2914,6 +2914,7 @@ SIREPO.app.service('keypressService', function() {
 
 SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
     var self = this;
+    var runningModels = [];
 
     function setFieldRange(controller, prefix, model, field) {
         //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
@@ -2928,9 +2929,13 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
     }
 
     self.computeFieldRanges = function(controller, name, percentComplete) {
-        if (controller.simState.isStateRunning()) {
+        if (controller.simState.isProcessing()) {
             appState.models[name].isRunning = 1;
+            if (runningModels.indexOf(name) < 0) {
+                runningModels.push(name);
+            }
         }
+        // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
@@ -2945,8 +2950,14 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
                         if (appState.models[name].isRunning) {
-                            appState.models[name].isRunning = 0;
-                            appState.saveQuietly(name);
+                            if (runningModels.length) {
+                                runningModels.forEach(function(name) {
+                                    appState.models[name].isRunning = 0;
+                                });
+                                // refresh plots with computed field ranges
+                                appState.saveChanges(runningModels);
+                                runningModels = [];
+                            }
                         }
                         controller.fieldRange = data.fieldRange;
                     }

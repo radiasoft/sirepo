@@ -49,7 +49,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('SynergiaSourceController', function (appState, latticeService, panelState, requestSender, $scope) {
+SIREPO.app.controller('SynergiaSourceController', function (appState, latticeService, panelState, requestSender, validationService, $scope) {
     var self = this;
 
     function calculateBunchParameters() {
@@ -74,11 +74,13 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
         var bunch = appState.models.bunch;
         panelState.enableField('bunch', 'beta', false);
         var def = bunch.beam_definition;
-        panelState.enableField('bunch', 'energy', def == 'energy');
-        panelState.enableField('bunch', 'momentum', def == 'momentum');
-        panelState.enableField('bunch', 'gamma', def == 'gamma');
+        var bdv = validationService.getEnumValidator('BeamDefinition');
+        ['energy', 'momentum', 'gamma'].forEach(function (f) {
+            panelState.enableField('bunch', f, def === bdv.find(f));
+        });
+        var pv = validationService.getEnumValidator('Particle');
         ['mass', 'charge'].forEach(function(f) {
-            panelState.enableField('bunch', f, bunch.particle == 'other');
+            panelState.enableField('bunch', f, bunch.particle === pv.find('other'));
         });
         var isFile = bunch.distribution == 'file';
         panelState.showRow('bunch', 'emit_x', ! isFile);

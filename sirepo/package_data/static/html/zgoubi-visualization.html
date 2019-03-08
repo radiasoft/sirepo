@@ -19,9 +19,15 @@
         <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
       </div>
     </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="3d" data-model-name="energyAnimation">
+        <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
+      </div>
+    </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
 <div data-modal-editor="" view-name="bunchAnimation" data-parent-controller="visualization"></div>
 <div data-modal-editor="" view-name="bunchAnimation2" data-parent-controller="visualization"></div>
+<div data-modal-editor="" view-name="energyAnimation" data-parent-controller="visualization"></div>
