@@ -48,7 +48,9 @@ counts_0 = np.array([0, 0])
 wp.step(num_steps)
 
 counts_1 = get_lost_counts()
-assert np.sum(counts_1) > 0, 'no particles deposited on conductors'
+#assert np.sum(counts_1) > 0, 'no particles deposited on conductors'
+if np.sum(counts_1) == 0:
+    print('WARNING: no particles deposited on conductors in initial steps')
 clock = 0
 time1 = time.time()
 
