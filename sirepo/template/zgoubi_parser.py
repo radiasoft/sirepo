@@ -255,8 +255,8 @@ def _zgoubi_mcobjet(command):
         res['DT'] = res['DY']
         res['DY'] = res['n_cutoff2_Y']
     if 'n_cutoff2_Z' in res and float(res['n_cutoff_Z']) >= 0:
-        res['DZ'] = res['DP']
-        res['DP'] = res['n_cutoff2_Z']
+        res['DP'] = res['DZ']
+        res['DZ'] = res['n_cutoff2_Z']
     del res['KOBJ']
     if 'name' in res:
         del res['name']
