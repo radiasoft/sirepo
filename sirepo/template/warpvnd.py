@@ -509,19 +509,25 @@ def _extract_field(field, data, data_file):
 
 def _extract_impact_density(run_dir, data):
     plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
+    pkdp('!PLOT INFO {}', plot_info)
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    width = 0
 
     dx = plot_info['dx']
+    dy = 0
     dz = plot_info['dz']
+
+    if _is_3D(data):
+        dy = plot_info['dy']
+        width = _meters(grid.channel_width)
+
+    pkdp('!PLOT DELTAS {}/{}/{}', dx, dy, dx)
     gated_ids = plot_info['gated_ids']
-    #conductors = plot_info.conductors
-    pkdp('PLOT_INFO {}', plot_info)
     lines = []
 
     for i in gated_ids:
@@ -544,8 +550,10 @@ def _extract_impact_density(run_dir, data):
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
         'y_range': [-radius, radius],
+        'z_range': [-width / 2., width / 2.],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
@@ -702,7 +710,6 @@ def _generate_parameters_file(data):
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductors'] = _prepare_conductors(data)
-    pkdp('!AFTER PREP! {}', data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
     if not v['is3D']:
@@ -753,7 +760,6 @@ def _is_opt_field(field_name):
 def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
-        pkdp('_max_conductor_voltage COND {}', c)
         # conductor_type has been added to conductor during _prepare_conductors()
         if c.conductor_type.voltage > res:
             res = c.conductor_type.voltage
@@ -808,11 +814,9 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
 
 def _prepare_conductors(data):
     type_by_id = {}
-    #pkdp('!PREPARE! {}', data.models.conductorTypes)
     for ct in data.models.conductorTypes:
         if ct is None:
             continue
-        #pkdp('TYPE {}', ct)
         type_by_id[ct.id] = ct
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
@@ -827,7 +831,6 @@ def _prepare_conductors(data):
             c[f] = _meters(c[f])
         if not _is_3D(data):
             c.yCenter = 0
-    #pkdp('!PREPARED! {}/{}', data.models.conductors, data.models.conductorTypes)
     return data.models.conductors
 
 

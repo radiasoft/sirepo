@@ -1,15 +1,39 @@
 
 from rswarp.diagnostics import ImpactDensity
 try:
+    print('SCRAPER {}'.format(wp.w3d))
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
-    plot_density.gate_scraped_particles()
-    plot_density.map_density()
-    for gid in plot_density.gated_ids:
-        for side in plot_density.gated_ids[gid]:
-            del plot_density.gated_ids[gid][side]['interpolation']
+    #vvv OLD vvv#
+    #plot_density.gate_scraped_particles()
+    #plot_density.map_density()
+    #for gid in plot_density.gated_ids:
+    #    for side in plot_density.gated_ids[gid]:
+    #        del plot_density.gated_ids[gid][side]['interpolation']
+    #^^^ OLD ^^^#
+    #vvv NEW vvv#
+    for i in plot_density.conductors:
+        c = plot_density.conductors[i]
+        {% if is3D %}
+        d = plot_density.generate_plot_data_for_face_3d(c)
+        for (x, y, z, s) in d:
+            #print('cond {}: S at {}, {}, {}: {}'.format(i, x, y, z, np.histogram(s, 'fd')))
+            print('cond {}: S at {}, {}, {}: {}'.format(i, x, y, z, s))
+        {% else %}
+        d = plot_density.generate_plot_data_for_face_2d(c)
+        for (x, z, s) in d:
+            print('cond {}: S at {}, {}: {}'.format(i, x, z, np.histogram(s, 'fd')))
+        {% endif %}
+    #    s = c.scraped_particles
+    #    p = c.pids
+    #     print('CONDUCTOR JINJA SCRAPED {}'.format(s))
+    #    print('CONDUCTOR JINJA PIDS {}'.format(p))
+    #^^^ NEW ^^^#
     density_results = {
         'gated_ids': plot_density.gated_ids,
         'dx': plot_density.dx,
+        {% if is3D %}
+        'dy': plot_density.dy,
+        {% endif %}
         'dz': plot_density.dz,
         'min': plot_density.cmap_normalization.vmin,
         'max': plot_density.cmap_normalization.vmax,

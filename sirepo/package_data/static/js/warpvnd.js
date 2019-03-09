@@ -2064,7 +2064,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                //srdbg('imapce atata', json);
+                srdbg('impact data', json);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
