@@ -67,6 +67,7 @@ _COOKIE_OAUTH_COMPAT_LOGIN = 'sreaocl'
 
 #TODO(robnagler) when user hits escape on displayname modal it goes away
 
+go through all the code.
 
 @api_perm.require_user
 def api_emailAuthDisplayName():
@@ -112,7 +113,7 @@ def api_emailAuthLogin():
                         if user_state.is_logged_in():
                             oauth_ok = True
                         else:
-                            cookie.set_value(_COOKIE_OAUTH_COMPAT_LOGIN, 'x')
+                            cookie.set_value(_COOKIE_OAUTH_COMPAT_LOGIN, '1')
                             # force user to login via GitHub first
                             n = '?'.join([
                                 uri_router.uri_for_api('emailAuthLogin'),

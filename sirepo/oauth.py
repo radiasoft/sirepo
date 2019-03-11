@@ -156,7 +156,11 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
 
 
 def _init(app):
-#TODO(robnagler) should this be deleted.
+    assert 0
+#TODO(robnagler)
+#    added auth_method
+#    need to figure out what method so can
+#    know how to switch methods
     global cfg
     cfg = pkconfig.init(
         github_key=pkconfig.Required(str, 'GitHub application key'),
