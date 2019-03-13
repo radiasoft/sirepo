@@ -1493,7 +1493,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
-    #pkdlog("rundir= {}, {}", run_dir, _RESOURCE_DIR)
+    pkdlog("rundir= {}, {}", run_dir, _RESOURCE_DIR)
     if run_dir and _uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
@@ -1509,10 +1509,11 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.magneticMeasurementsIndexFile = mmz.index_file
 
     # prepare the field file
-    # raise RuntimeError("{}, {}".format( data['models']['simulation']['sourceType'], run_dir))
+    #raise RuntimeError("{}, {}".format( data['models']['simulation']['sourceType'], run_dir))
     if data['models']['simulation']['sourceType'] == 'a':
-        field_file = str(_RESOURCE_DIR.join(v['arbitraryMagField_magneticFile']))
+        field_file = str(simulation_db.simulation_lib_dir('srw').join(v['arbitraryMagField_magneticFile']))
         pkdlog("rundir= {}, {}", run_dir, field_file)
+        pkdlog("lib path= {}", simulation_db.simulation_lib_dir('srw'))
         shutil.copy(field_file, str(run_dir))
 
     return template_common.render_jinja(SIM_TYPE, v)
