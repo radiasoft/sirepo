@@ -279,9 +279,10 @@
             ["2", "Halton Sequences"],
             ["3", "LPtau sequences (to be implemented)"]
         ],
+
         "SamplingMethod": [
-            ["1", "Manual"],
-            ["2", "Automatic"]
+            ["1", "Automatic"],
+            ["2", "Manual"]
         ],
         "SimulationState": [
             ["initial", "Initial State"],
@@ -1577,9 +1578,9 @@
                 ]],
                 ["Accuracy", [
                     "method",
+                    "precision",
 		    "initial position",
-		    "final position",		    
-                    "precision"
+		    "final position"		    
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
