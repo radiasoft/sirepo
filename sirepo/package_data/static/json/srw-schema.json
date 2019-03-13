@@ -294,7 +294,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["a", "Arbitrary magnetic field" ],
+            ["a", "Arbitrary Magnetic Field" ],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
