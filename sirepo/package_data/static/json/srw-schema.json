@@ -279,7 +279,6 @@
             ["2", "Halton Sequences"],
             ["3", "LPtau sequences (to be implemented)"]
         ],
-
         "SamplingMethod": [
             ["1", "Automatic"],
             ["2", "Manual"]
