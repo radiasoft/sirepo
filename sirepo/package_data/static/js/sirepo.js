@@ -73,8 +73,6 @@ SIREPO.appDefaultSimulationValues = {
     simFolder: {},
 };
 
-SIREPO.appHomeTab = 'source';
-
 SIREPO.ANIMATION_ARGS_VERSION = 'v';
 
 SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
@@ -1370,6 +1368,10 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
+    self.defaultRouteName = function() {
+        return SIREPO.APP_SCHEMA.appModes.default.localRoute;
+    };
+
     self.formatAuthUrl = function(oauthType) {
         return self.formatUrl('oauthLogin', {
             '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -1439,7 +1441,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     };
 
     self.localRedirectHome = function(simulationId) {
-        self.localRedirect(SIREPO.appHomeTab, {
+        self.localRedirect(self.defaultRouteName(), {
             ':simulationId': simulationId,
         });
     };
@@ -2439,14 +2441,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
 
     self.sectionURL = function(name) {
-        if (! name) {
-            name = SIREPO.appHomeTab;
-        }
         return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
-    };
-
-    self.simulationURL = function(simulationId) {
-        return '#' + requestSender.formatUrlLocal(SIREPO.appHomeTab, {':simulationId': simulationId});
     };
 
     self.getLocation = function() {
@@ -2475,6 +2470,14 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     self.simulationId = ids[0];
     self.userCopySimulationId = ids[1];
 
+    function localRedirect(simId) {
+        requestSender.localRedirect(
+            $route.current.params.section || requestSender.defaultRouteName(),
+            {
+                ':simulationId': simId,
+            });
+    }
+
     self.cancelButton = function() {
         requestSender.localRedirect('simulations');
     };
@@ -2483,9 +2486,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
         requestSender.sendRequest(
             'copyNonSessionSimulation',
             function(data) {
-                requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
-                    ':simulationId': data.models.simulation.simulationId,
-                });
+                localRedirect(data.models.simulation.simulationId);
             },
             {
                 simulationId: self.simulationId,
@@ -2499,9 +2500,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 
     self.openButton = function() {
-        requestSender.localRedirect($route.current.params.section || SIREPO.appHomeTab, {
-            ':simulationId': self.userCopySimulationId,
-        });
+        localRedirect(self.userCopySimulationId);
     };
 });
 

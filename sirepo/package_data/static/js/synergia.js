@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appHomeTab = 'lattice';
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation'];
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',

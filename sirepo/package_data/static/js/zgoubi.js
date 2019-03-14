@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appHomeTab = 'lattice';
 SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.appFieldEditors = [

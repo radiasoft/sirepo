@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
