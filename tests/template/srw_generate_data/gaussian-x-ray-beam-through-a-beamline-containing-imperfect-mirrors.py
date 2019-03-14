@@ -143,6 +143,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
 #---Data Folder
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
+
     ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
     ['gbm_z', 'f', 0.0, 'average longitudinal coordinate of waist [m]'],
@@ -247,7 +248,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_ry', 'f', 0.00175601622, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', 2.0, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', 2, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', 2, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
@@ -275,7 +276,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
-    ['source_type', 's', 'g', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+    ['rs_type', 's', 'g', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 
 #---Beamline optics:
     # ApM1: aperture
@@ -376,13 +377,12 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
-    source_type, mag = srwl_bl.setup_source(v)
     op = set_optics(v)
     v.si = True
     v.si_pl = 'xy'
     v.ws = True
     v.ws_pl = 'xy'
-    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
 
 
 if __name__ == '__main__':
