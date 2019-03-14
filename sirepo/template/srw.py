@@ -79,6 +79,7 @@ _FILE_TYPE_EXTENSIONS = {
     'mirror': ['dat', 'txt'],
     'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
     'undulatorTable': ['zip'],
+    'arbitraryField': ['dat', 'txt'],
 }
 
 _LOG_DIR = '__srwl_logs__'
@@ -313,7 +314,7 @@ def extract_report_data(filename, model_data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('arbitraryMagField', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -336,6 +337,16 @@ def fixup_old_data(data):
             data['models']['intensityReport']['method'] = '2'
         else:
             data['models']['intensityReport']['method'] = '0'
+    # default sourceIntensityReport.method based on source type
+    if 'method' not in data['models']['sourceIntensityReport']:
+        if _is_undulator_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '1'
+        elif _is_dipole_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'
+        elif _is_arbitrary_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'            
+        else:
+            data['models']['sourceIntensityReport']['method'] = '0'
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = pkcollections.Dict()
     if 'facility' in data['models']['simulation']:
@@ -541,7 +552,10 @@ def lib_files(data, source_lib):
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
+            pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
+    if _is_arbitrary_source(dm.simulation):
+        res.append(dm.arbitraryMagField.magneticFile)
     if _is_beamline_report(report):
         for m in dm.beamline:
             for k, v in _SCHEMA.model[m.type].items():
@@ -571,6 +585,7 @@ def models_related_to_report(data):
     res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
+        'arbitraryMagField',
     ]
     if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
@@ -613,12 +628,14 @@ def models_related_to_report(data):
 
 
 def new_simulation(data, new_simulation_data):
-    source = new_simulation_data['sourceType']
-    data['models']['simulation']['sourceType'] = source
-    if source == 'g':
+    sim = data['models']['simulation']
+    sim['sourceType'] = new_simulation_data['sourceType']
+    if _is_gaussian_source(sim):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
-    elif source == 'm':
+    elif _is_dipole_source(sim):
         data['models']['intensityReport']['method'] = "2"
+    elif _is_arbitrary_source(sim):
+        data['models']['sourceIntensityReport']['method'] = "2"
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
@@ -848,6 +865,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    pkdc('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir)
@@ -1405,7 +1423,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     data['models']['intensityReport']['magneticField'] = magnetic_field
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
     data['models']['trajectoryReport']['magneticField'] = magnetic_field
-
+    data['models']['powerDensityReport']['magneticField'] = magnetic_field
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
@@ -1498,7 +1516,6 @@ def _generate_srw_main(data, plot_reports):
     run_all = report == _RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
-        'source_type, mag = srwl_bl.setup_source(v)',
     ]
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1532,7 +1549,7 @@ def _generate_srw_main(data, plot_reports):
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
     if plot_reports or not _is_background_report(report):
-        content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
+        content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
     return '\n'.join(['    {}'.format(x) for x in content])
 
 
@@ -1619,6 +1636,10 @@ def _is_beamline_report(report):
     if not report or template_common.is_watchpoint(report) or report in ['multiElectronAnimation', _RUN_ALL_MODEL]:
         return True
     return False
+
+
+def _is_arbitrary_source(sim):
+    return sim['sourceType'] == 'a'
 
 
 def _is_dipole_source(sim):
@@ -1757,7 +1778,7 @@ def _process_image(data):
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     return pkcollections.Dict({
-        'magneticField': 2 if _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
+        'magneticField': 2 if source_type == 'a' or _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
 
 
