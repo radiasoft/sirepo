@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""SRW execution template.
+u"""SRW execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -80,7 +80,7 @@ _FILE_TYPE_EXTENSIONS = {
     'mirror': ['dat', 'txt'],
     'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
     'undulatorTable': ['zip'],
-    'arbitraryField': ['dat', 'txt']
+    'arbitraryField': ['dat', 'txt'],
 }
 
 _LOG_DIR = '__srwl_logs__'
@@ -553,7 +553,7 @@ def lib_files(data, source_lib):
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
-            print('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
+            pkdlog('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
     if _is_beamline_report(report):
         for m in dm.beamline:
@@ -864,7 +864,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    print('write_parameters file to {}'.format(run_dir))
+    pkdlog('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir)
@@ -1422,7 +1422,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
     data['models']['trajectoryReport']['magneticField'] = magnetic_field
     data['models']['powerDensityReport']['magneticField'] = magnetic_field
-    #pkdlog('magnetic_field={}',magnetic_field)
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
@@ -1493,7 +1492,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
-    pkdlog("rundir= {}, {}", run_dir, _RESOURCE_DIR)
     if run_dir and _uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
@@ -1509,11 +1507,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v.magneticMeasurementsIndexFile = mmz.index_file
 
     # prepare the field file
-    #raise RuntimeError("{}, {}".format( data['models']['simulation']['sourceType'], run_dir))
     if data['models']['simulation']['sourceType'] == 'a':
         field_file = str(simulation_db.simulation_lib_dir('srw').join(v['arbitraryMagField_magneticFile']))
-        pkdlog("rundir= {}, {}", run_dir, field_file)
-        pkdlog("lib path= {}", simulation_db.simulation_lib_dir('srw'))
         shutil.copy(field_file, str(run_dir))
 
     return template_common.render_jinja(SIM_TYPE, v)

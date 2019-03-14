@@ -289,7 +289,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
         str: source text
     """
     b = resource_dir(sim_type).join(name)
-    #pkdlog("the template is {}", b)
     return pkjinja.render_file(b + '.jinja', v)
 
 

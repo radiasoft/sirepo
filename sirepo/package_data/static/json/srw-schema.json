@@ -293,7 +293,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["a", "Arbitrary Magnetic Field" ],
+            ["a", "Arbitrary Magnetic Field"],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -1578,8 +1578,8 @@
                 ["Accuracy", [
                     "method",
                     "precision",
-		    "initial position",
-		    "final position"		    
+                    "initial position",
+                    "final position"		    
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
