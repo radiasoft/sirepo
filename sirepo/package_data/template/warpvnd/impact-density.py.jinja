@@ -15,7 +15,10 @@ try:
         'max': plot_density.cmap_normalization.vmax,
     }
 except AssertionError as e:
+    message = e.message
+    if wp.top.npslost[0] <= 0:
+        message = 'No particles made impact. Nothing to plot.'
     density_results = {
-        'error': e.message,
+        'error': message,
     }
 np.save('{{ densityFile }}', density_results)
