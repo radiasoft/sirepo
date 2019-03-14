@@ -293,6 +293,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
+            ["a", "Arbitrary Magnetic Field"],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -655,6 +656,7 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
@@ -733,6 +735,9 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
+	    "initial position": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
+	    "final position": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -817,6 +822,11 @@
             "effectiveDeflectingParameter": ["Effective Deflecting Parameter", "Float"],
             "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
+        },
+        "arbitraryMagField": {
+            "interpolationOrder": ["Interpolation Order", "Float", 1],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "epu49HEtot.dat"]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1566,8 +1576,10 @@
                     "notes"
                 ]],
                 ["Accuracy", [
-                    "magneticField",
-                    "precision"
+                    "method",
+                    "precision",
+                    "initial position",
+                    "final position"		    
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
@@ -1739,6 +1751,15 @@
                         "verticalSymmetry"
                     ]]
                 ]
+            ],
+            "advanced": []
+        },
+        "arbitraryMagField": {
+            "title": "Arbitrary Magnetic Field",
+            "basic": [
+                "longitudinalPosition",
+                "magneticFile",
+                "interpolationOrder"
             ],
             "advanced": []
         },
