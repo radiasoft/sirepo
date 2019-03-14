@@ -19,7 +19,6 @@ import glob
 import math
 import numpy as np
 import os
-import shutil
 import py.path
 import re
 import srwl_uti_smp
@@ -553,8 +552,10 @@ def lib_files(data, source_lib):
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
-            pkdlog('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
+            pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
+    if _is_arbitrary_source(dm.simulation):
+        res.append(dm.arbitraryMagField.magneticFile)
     if _is_beamline_report(report):
         for m in dm.beamline:
             for k, v in _SCHEMA.model[m.type].items():
@@ -627,13 +628,13 @@ def models_related_to_report(data):
 
 
 def new_simulation(data, new_simulation_data):
-    source = new_simulation_data['sourceType']
-    data['models']['simulation']['sourceType'] = source
-    if source == 'g':
+    sim = data['models']['simulation']
+    sim['sourceType'] = new_simulation_data['sourceType']
+    if _is_gaussian_source(sim):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
-    elif source == 'm':
+    elif _is_dipole_source(sim):
         data['models']['intensityReport']['method'] = "2"
-    elif source == 'a':
+    elif _is_arbitrary_source(sim):
         data['models']['sourceIntensityReport']['method'] = "2"
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
@@ -864,7 +865,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    pkdlog('write_parameters file to {}'.format(run_dir))
+    pkdc('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir)
@@ -1277,7 +1278,8 @@ def _fixup_electron_beam(data):
 def _generate_beamline_optics(report, models, last_id):
     if not _is_beamline_report(report):
         return '    pass', ''
-    if not last_id:
+    has_beamline_elements = len(models.beamline) > 0
+    if has_beamline_elements and not last_id:
         last_id = models.beamline[-1].id
     names = []
     items = []
@@ -1330,7 +1332,7 @@ def _generate_beamline_optics(report, models, last_id):
         'items': items,
         'names': names,
         'postPropagation': models.postPropagation,
-        'wantPostPropagation': int(last_id) == int(models.beamline[-1].id),
+        'wantPostPropagation': has_beamline_elements and (int(last_id) == int(models.beamline[-1].id)),
         'maxNameSize': max_name_size,
         'nameMap': {
             'apertureShape': 'ap_shape',
@@ -1505,12 +1507,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             mmz.z.extract(df, target_dir)
         v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + '/' + mmz.index_dir
         v.magneticMeasurementsIndexFile = mmz.index_file
-
-    # prepare the field file
-    if data['models']['simulation']['sourceType'] == 'a':
-        field_file = str(simulation_db.simulation_lib_dir('srw').join(v['arbitraryMagField_magneticFile']))
-        shutil.copy(field_file, str(run_dir))
-
     return template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -1520,7 +1516,6 @@ def _generate_srw_main(data, plot_reports):
     run_all = report == _RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
-        #'source_type, mag = srwl_bl.setup_source(v)',
     ]
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1643,6 +1638,10 @@ def _is_beamline_report(report):
     return False
 
 
+def _is_arbitrary_source(sim):
+    return sim['sourceType'] == 'a'
+
+
 def _is_dipole_source(sim):
     return sim['sourceType'] == 'm'
 
@@ -1666,8 +1665,6 @@ def _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type):
 def _is_undulator_source(sim):
     return sim['sourceType'] in ['u', 't']
 
-def _is_arbitrary_source(sim):
-    return sim['sourceType'] in ['a']
 
 def _is_user_defined_model(ebeam):
     if 'isReadOnly' in ebeam and ebeam['isReadOnly']:

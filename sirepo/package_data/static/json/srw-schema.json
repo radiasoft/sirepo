@@ -736,8 +736,8 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
-	    "initial position": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
-	    "final position": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
+	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
+	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -826,7 +826,7 @@
         "arbitraryMagField": {
             "interpolationOrder": ["Interpolation Order", "Float", 1],
             "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
-            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "epu49HEtot.dat"]
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "ivu21_srx_g6_2c.dat"]
         },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
@@ -1578,8 +1578,8 @@
                 ["Accuracy", [
                     "method",
                     "precision",
-                    "initial position",
-                    "final position"		    
+                    "initialPosition",
+                    "finalPosition"		    
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
