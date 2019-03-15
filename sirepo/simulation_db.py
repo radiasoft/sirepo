@@ -80,6 +80,9 @@ _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
+#: Special field to direct pseudo-subclassing of schema objects
+_SCHEMA_SUPERCLASS_FIELD = '_super'
+
 #: Status file name
 _STATUS_FILE = 'status'
 
@@ -258,6 +261,7 @@ def get_schema(sim_type):
         if item not in schema:
             schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
+        _merge_subclasses(schema, item)
     validate_schema(schema)
     return schema
 
@@ -1025,6 +1029,25 @@ def _merge_dicts(base, derived, depth=-1):
         except TypeError:
             # The value in question is not itself a dict, move on
             pass
+
+
+def _merge_subclasses(schema, item):
+    for m in schema[item]:
+        has_super = False
+        s = schema[item][m]
+        try:
+            has_super = _SCHEMA_SUPERCLASS_FIELD in s
+        except TypeError:
+            # Ignore non-indexable types
+            continue
+        if has_super:
+            i = s[_SCHEMA_SUPERCLASS_FIELD]
+            s_item = i[1]
+            s_class = i[2]
+            assert s_item in schema, util.err(s_item, 'No such field in schema')
+            assert s_item == item, util.err(s_item, 'Superclass must be in same section of schema {}', item)
+            assert s_class in schema[s_item], util.err(s_class, 'No such superclass')
+            _merge_dicts(schema[item][s_class], s)
 
 
 def _pkg_relative_path_static(file_dir, file_name):
