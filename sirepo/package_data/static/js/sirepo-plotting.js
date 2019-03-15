@@ -3190,6 +3190,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var numPoints = 0;
             var pointData = {};
             var fieldData = {};
+            var impactData = [];
             var xmin = 0.0;  var xmax = 1.0;
             var ymin = 0.0;  var ymax = 1.0;
             var zmin = 0.0;  var zmax = 1.0;
@@ -3248,7 +3249,17 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                                 }
                                 panelState.setError($scope.modelName, null);
                                 fieldData = data;
-                                $scope.load();
+                                frameCache.getFrame('impactDensityAnimation', 0, false, function(index, data) {
+                                    if ($scope.element) {
+                                        if (data.error) {
+                                            panelState.setError($scope.modelName, data.error);
+                                            return;
+                                        }
+                                        panelState.setError($scope.modelName, null);
+                                        impactData = data;
+                                        $scope.load();
+                                    }
+                                });
                             }
                         });
                     }
@@ -3631,6 +3642,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
 
                 // short term add planes with density colors - vtk should be able to do this
+                /*
                 var eRect = geometry.rect(
                     geometry.point(ymin, xmin),
                     geometry.point(ymax, xmax)
@@ -3645,35 +3657,113 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var p = ls[ls.length -1];
                         return geometry.point(p[1], p[0]);
                 });
-                //srdbg('projected points', projPts);
-                //var density = geometry.pointDensity(eRect, projPts, 2e-8);
-                // select?
-                /*
-                var ndx = 10;
-                var ndy = 10;
-                var dx = (xmax - xmin) / ndx;
-                var dy = (ymax - ymin) / ndy;
-                var dz = 0.01 * Math.abs(zmax - zmin);
-                var density = geometry.pointDensity(eRect, projPts, ndx, ndy);
-                var dmin = 0;
-                var dmax = plotting.max2d(density);
-                srdbg('density', density, dmin, dmax);
-                var dColorScale = plotting.colorScale(dmin, dmax, plotting.COLOR_MAP[plotting.colorMapNameOrDefault('coolwarm')]);
-                density.forEach(function (col, i) {
-                    col.forEach(function (d, j) {
-                        var c = vtk.Common.Core.vtkMath.hex2float(dColorScale(d));
-                        //srdbg(i, j, d, 'color', c);
-                        var dplane = coordMapper.buildPlane();
-                        coordMapper.setPlane(dplane,
-                            [xmin + i * dx, ymin + j * dy, zmax + dz],
-                            [xmin + i * dx, ymin + (j + 1) * dy, zmax + dz],
-                            [xmin + (i + 1) * dx, ymin + j * dy, zmax + dz]
-                        );
-                        dplane.actor.getProperty().setColor(c[0], c[1], c[2]);
-                        densityPlaneBundles.push(dplane);
+                */
+
+                // loop over conductors
+                // arr[0][0] + k * sk + l * sl
+                impactData['density'].forEach(function (c, ci) {
+                    // loop over faces
+                    c.forEach(function (f, fi) {
+                        //srdbg('face data', f);
+                        var o = [f.x.startVal, f.y.startVal, f.z.startVal].map(toMicron);
+                        var sk = [f.x.slopek, f.y.slopek, f.z.slopek].map(toMicron);
+                        var sl = [f.x.slopel, f.y.slopel, f.z.slopel].map(toMicron);
+                        var d = f.dArr;
+                        var nk = d.length;
+                        var nl = d[0].length;
+                        srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
+                        var smin = plotting.min2d(d);
+                        var smax = plotting.max2d(d);
+                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, 'impactDensityAnimation');
+                        var p1 = [
+                            o[0] + (nk - 1) * sk[0],
+                            o[1] + (nk - 1) * sk[1],
+                            o[2] + (nk - 1) * sk[2]
+                        ];
+                        var p2 = [
+                            o[0] + (nl - 1) * sl[0],
+                            o[1] + (nl - 1) * sl[1],
+                            o[2] + (nl - 1) * sl[2]
+                        ];
+                        //var p = coordMapper.buildPlane(o, p1, p2);
+                        var p = coordMapper.buildActorBundle();
+                        p.mapper.setScalarVisibility(true);
+                        p.mapper.setScalarModeToUseCellData();
+                        var dataPoints = [];
+                        var dataColors = [];
+                        var dataPolys = [];
+                        var cells = vtk.Common.Core.vtkCellArray.newInstance();
+                        var cdata = [];
+                        for(var k = 0; k < nk; ++k) {
+                            for(var l = 0; l < nl; ++l) {
+                                var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k][l])).map(function (cc) {
+                                    return Math.floor(255*cc);
+                                });
+                                if(k < nk - 1 && l < nl -1) {
+                                    var cell = vtk.Common.DataModel.vtkCell.newInstance();
+                                    var pts = vtk.Common.Core.vtkPoints.newInstance();
+                                    var ptsd = [];
+                                    pts.setNumberOfPoints(4);
+                                    for(var ii = 0; ii < 2; ++ii) {
+                                        for(var jj = 0; jj < 2; ++jj) {
+                                            var dk = k + ii;
+                                            var dl = l + jj;
+                                            for(var j = 0; j < 3; ++j) {
+                                                ptsd.push(coordAtIndex(o[j], sk[j], sl[j], dk, dl));
+                                            }
+                                        }
+                                    }
+                                    pts.setData(ptsd);
+                                    cell.initialize(4, [0, 1, 2, 3], pts);
+                                    cdata.push(cell);
+                                    dataPolys.push(4);
+                                    dataPolys.push(l + nl * k, l + nl * (k + 1), l + 1 + nl * (k + 1), l + 1 + nl * k);
+                                    for(var j = 0; j < 3; ++j) {
+                                        dataColors.push(color[j]);
+                                    }
+
+                                }
+                                //dataPolys.push(2);
+                                //dataPolys.push(dataPoints.length / 3, 1 + dataPoints.length / 3);
+                                for(var j = 0; j < 3; ++j) {
+                                    dataPoints.push(coordAtIndex(o[j], sk[j], sl[j], k, l));
+                                    //dataColors.push(color[j]);
+                                }
+
+                           }
+                        }
+                        cells.setData(cdata);
+                        var lpi = nk * nl - 1;
+                        //srdbg('last pt', dataPoints[lpi - 2], dataPoints[lpi - 1], dataPoints[lpi]);
+                        var p32 = window.Float32Array.from(dataPoints);
+                        var pp32 = window.Uint32Array.from(dataPolys);
+                        //srdbg('data polys', dataPolys);
+                        var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                        var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                            numberOfComponents: 3,
+                            values: dataColors,
+                            dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                        });
+                        //pd.getPoints().setData(p32, 3);
+                        //pd.getPolys().setData(pp32);
+                        pd.setPolys(cells);
+                        //srdbg('pd pts', pd.getPoints(), 'num', pd.getPoints().getNumberOfPoints(), 'num cells', pd.getNumberOfCells(), 'num colors', dataColors.length / 3);
+                        srdbg('pd polys', pd.getPolys(), pd.getPolys().getNumberOfCells());
+                        //var cd = pd.getCellData();
+                        //srdbg('cell data', cd, pd.getNumberOfValues());
+                        p.mapper.setInputData(pd);
+                        pd.getCellData().setScalars(carr);
+                        srdbg('sc', pd.getCellData().getArrays());
+                        //srdbg('src', p.source, 'map', p.mapper);
+                        //srdbg('pd', pd);
+                        densityPlaneBundles.push(p);
                     });
                 });
-                */
+
+
+                function coordAtIndex(startVal, sk, sl, k, l) {
+                    return startVal + k * sk + l * sl;
+                }
 
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
@@ -3687,6 +3777,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 function scaleConductor(a) {
                     return a / cFactor;
+                }
+
+                function toMicron(v) {
+                    return v * 1e-6;
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other

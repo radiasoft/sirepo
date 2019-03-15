@@ -523,7 +523,7 @@ def _extract_impact_density(run_dir, data):
     dz = plot_info['dz']
 
     if _is_3D(data):
-        dy = plot_info['dy']
+        dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
     pkdp('!PLOT DELTAS {}/{}/{}', dx, dy, dx)
@@ -554,6 +554,7 @@ def _extract_impact_density(run_dir, data):
         'y_label': 'x [m]',
         'x_label': 'z [m]',
         'z_label': 'y [m]',
+        'density': plot_info['density'],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],

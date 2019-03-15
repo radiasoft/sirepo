@@ -94,10 +94,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             },
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
+                var b = actorBundle(src);
                 if(labOrigin && labP1 && labP2) {
-                    this.setPlane(src, labOrigin, labP1, labP2);
+                    this.setPlane(b, labOrigin, labP1, labP2);
                 }
-                return actorBundle(src);
+                return b;
             },
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
