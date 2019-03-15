@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appHomeTab = 'lattice';
 SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.appFieldEditors = [
@@ -82,28 +81,17 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     self.advancedNames = [];
     self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SEXTUPOL', 'YMY'];
 
-    function computeBendAngle(bend) {
-    }
-
-    function processChangrefFormat() {
-        var model = appState.models.CHANGREF;
-        ['XCE', 'YCE', 'ALE'].forEach(function(f) {
-            panelState.showField('CHANGREF', f, model.format == 'old');
-        });
-        panelState.showField('CHANGREF', 'order', model.format == 'new');
-    }
-
     function updateElementAttributes(item) {
-        if (item.type == 'BEND') {
+        if ('KPOS' in item) {
             item.angle = 0;
             delete item.travelLength;
             item.e1 = item.W_E;
             item.e2 = item.W_S;
-            var computedAngle = 2 * Math.asin((item.B1 * item.l * 100)/(2 * appState.models.bunch.rigidity));
+            var field = item.B1 || item.B_1;
+            var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
             item.travelLength = latticeService.arcLength(computedAngle, item.l);
 
             if (item.KPOS == '2') {
-                // misaligned
                 //TODO(pjm): support misalignment YCE, ALE
             }
             else if (item.KPOS == '3') {
@@ -116,11 +104,9 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
                 }
             }
         }
-        else if (item.type == 'CHANGREF') {
-            item.angle = 0;
-            if (item.format == 'old') {
-                item.angle = - item.ALE;
-            }
+
+        if (item.type == 'CHANGREF') {
+            item.angle = - item.ALE;
         }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
@@ -133,18 +119,11 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
         }
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'CHANGREF') {
-            processChangrefFormat();
-        }
-    };
-
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
 
     appState.whenModelsLoaded($scope, function() {
-        appState.watchModelFields($scope, ['CHANGREF.format'], processChangrefFormat);
 
         if (! appState.models.simulation.isInitialized) {
             appState.models.elements.map(updateElementAttributes);

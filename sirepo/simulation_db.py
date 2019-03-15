@@ -80,7 +80,7 @@ _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
 
-#: Special field to direct copying fields from another
+#: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = '_super'
 
 #: Status file name

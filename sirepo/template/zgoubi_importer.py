@@ -24,55 +24,78 @@ _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'd
 
 def import_file(text):
     data = simulation_db.default_data(_SIM_TYPE)
-    beamline = []
-    data['models']['beamlines'] = [
-        {
-            'name': 'BL1',
-            'id': 1,
-            'items': beamline,
-        },
-    ]
-    data['models']['simulation']['activeBeamlineId'] = 1
-    data['models']['simulation']['visualizationBeamlineId'] = 1
-    current_id = 2
     #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
     title, elements = zgoubi_parser.parse_file(text, 1)
     title = re.sub(r'\s+', ' ', title)
     title = re.sub(r'^\s+|\s+$', '', title)
     data['models']['simulation']['name'] = title if title else 'zgoubi'
-    ids_and_elements = [[], []]
+    info = _validate_and_dedup_elements(data, elements)
+    _validate_element_names(data, info)
+    elegant_common.sort_elements_and_beamlines(data)
+    return data
+
+
+def _validate_and_dedup_elements(data, elements):
+    beamline = []
+    current_id = 1
+    data['models']['beamlines'] = [
+        {
+            'name': 'BL1',
+            'id': current_id,
+            'items': beamline,
+        },
+    ]
+    data['models']['simulation']['activeBeamlineId'] = current_id
+    data['models']['simulation']['visualizationBeamlineId'] = current_id
+    info = {
+        'ids': [],
+        'names': [],
+        'elements': [],
+    }
     for el in elements:
         _validate_model(el)
         if 'name' in el:
-            if el not in ids_and_elements[1]:
+            name = el['name']
+            #TODO(pjm): don't de-duplicate certain types
+            if el['type'] != 'MARKER':
+                del el['name']
+            if el not in info['elements']:
                 current_id += 1
-                ids_and_elements[0].append(current_id)
-                ids_and_elements[1].append(el)
-            beamline.append(ids_and_elements[0][ids_and_elements[1].index(el)])
+                info['ids'].append(current_id)
+                info['names'].append(name)
+                info['elements'].append(el)
+            beamline.append(info['ids'][info['elements'].index(el)])
         else:
             if el['type'] in data['models']:
                 pkdlog('replacing existing {} model', el['type'])
+            template_common.update_model_defaults(el, el['type'], _SCHEMA)
             data['models'][el['type']] = el
-        template_common.update_model_defaults(el, el['type'], _SCHEMA)
+    return info
+
+
+def _validate_element_names(data, info):
     names = {}
-    for idx in range(len(ids_and_elements[0])):
-        el = ids_and_elements[1][idx]
-        el['_id'] = ids_and_elements[0][idx]
-        el['name'] = re.sub(r'\d+$', '', el['name'])
-        if not el['name']:
-            el['name'] = el['type'][:2]
-        if el['name'] in names:
+    for idx in range(len(info['ids'])):
+        el = info['elements'][idx]
+        template_common.update_model_defaults(el, el['type'], _SCHEMA)
+        el['_id'] = info['ids'][idx]
+        name = info['names'][idx]
+        name = re.sub(r'\\', '_', name)
+        name = re.sub(r'\d+$', '', name)
+        name = re.sub(r'(\_|\#)$', '', name)
+        if not name:
+            name = el['type'][:2]
+        if name in names:
             count = 2
             while True:
-                name = '{}{}'.format(el['name'], count)
-                if name not in names:
-                    el['name'] = name
+                name2 = '{}{}'.format(name, count)
+                if name2 not in names:
+                    name = name2
                     break
                 count += 1
-        names[el['name']] = True
+        el['name'] = name
+        names[name] = True
         data['models']['elements'].append(el)
-    elegant_common.sort_elements_and_beamlines(data)
-    return data
 
 
 def _validate_field(model, field, model_info):
@@ -95,19 +118,6 @@ def _validate_field(model, field, model_info):
         #TODO(pjm): need special handling, may be in #00|00|00 format
         if not re.search(r'\#', model[field]):
             model[field] = str(float(model[field]) * 0.01)
-    elif model['type'] == 'CHANGREF' and field == 'order' and model['format'] == 'new':
-        res = ''
-        model['order'] = re.sub(r'\s+$', '', model['order'])
-        k = ''
-        for v in model['order'].split(' '):
-            if re.search(r'^[XYZ]', v):
-                k = v
-            else:
-                if k[1] == 'R':
-                    res += '{} {} '.format(k, float(v) * math.pi / 180.0)
-                else:
-                    res += '{} {} '.format(k, float(v) * 0.01)
-        model['order'] = re.sub(r'\s+$', '', res)
     elif field_type in _SCHEMA['enum']:
         for v in _SCHEMA['enum'][field_type]:
             if v[0] == model[field]:
