@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 import contextlib
 import docker
 import functools
+from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import re
 import requests
 import shlex
@@ -51,6 +52,7 @@ async def _clear_container(name):
     except docker.errors.NotFound:
         pass
     else:
+        pkdlog('found stale container {}; removing', name)
         await trio.run_sync_in_worker_thread(old_container.remove)
 
 
