@@ -19,15 +19,11 @@ from pykern import pkio
 from pykern import pkjson
 from sirepo import runner_client
 from sirepo import srdb
-from sirepo.runner_daemon import local_process
+from sirepo.runner_daemon import local_process, docker_process
 import subprocess
 import sys
 import time
 import trio
-
-# How often threaded blocking operations should wake up and check for Trio
-# cancellation
-_CANCEL_POLL_INTERVAL = 1
 
 # Every _TMP_DIR_CLEANUP_TIME seconds, we scan through the run database, and
 # any directories that are named '*.tmp', and whose mtime is
@@ -79,20 +75,6 @@ class _LockDict:
             else:
                 # no-one is waiting, so mark the lock unheld
                 del self._waiters[key]
-
-
-# Helper to call container.wait in a async/cancellation-friendly way
-async def _container_wait(container):
-    while True:
-        try:
-            return await trio.run_sync_in_worker_thread(
-                functools.partial(container.wait, timeout=_CANCEL_POLL_INTERVAL)
-            )
-        # ReadTimeout is what the documentation says this raises.
-        # ConnectionError is what it actually raises.
-        # We'll catch both just to be safe.
-        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
-            pass
 
 
 # Cut down version of simulation_db.write_result
