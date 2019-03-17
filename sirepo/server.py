@@ -426,7 +426,7 @@ def api_runCancel():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        runner_client.cancel_job(run_dir, jhash)
+        runner_client.cancel_report_job(run_dir, jhash)
         # Always true from the client's perspective
         return http_reply.gen_json({'state': 'canceled'})
     else:
@@ -461,7 +461,7 @@ def api_runSimulation():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        status = runner_client.job_status(run_dir, jhash)
+        status = runner_client.report_job_status(run_dir, jhash)
         already_good_status = [runner_client.JobStatus.RUNNING,
                                runner_client.JobStatus.COMPLETED]
         if status not in already_good_status:
@@ -475,7 +475,7 @@ def api_runSimulation():
                 backend = 'docker'
             else:
                 backend = 'local'
-            runner_client.start_job(run_dir, jhash, backend, cmd, tmp_dir)
+            runner_client.start_report_job(run_dir, jhash, backend, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:
@@ -848,7 +848,7 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = runner_client.job_status(run_dir, jhash)
+        status = runner_client.report_job_status(run_dir, jhash)
         is_running = status is runner_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}

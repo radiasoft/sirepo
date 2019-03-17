@@ -45,9 +45,9 @@ def _rpc(request):
     return pkjson.load_any(bytes(response_bytes))
 
 
-def start_job(run_dir, jhash, backend, cmd, tmp_dir):
+def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
     return _rpc({
-        'action': 'start_job',
+        'action': 'start_report_job',
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
@@ -56,14 +56,14 @@ def start_job(run_dir, jhash, backend, cmd, tmp_dir):
     })
 
 
-def job_status(run_dir, jhash):
+def report_job_status(run_dir, jhash):
     result = _rpc({
-        'action': 'job_status', 'run_dir': str(run_dir), 'jhash': jhash,
+        'action': 'report_job_status', 'run_dir': str(run_dir), 'jhash': jhash,
     })
     return JobStatus(result.status)
 
 
-def cancel_job(run_dir, jhash):
+def cancel_report_job(run_dir, jhash):
     return _rpc({
-        'action': 'cancel_job', 'run_dir': str(run_dir), 'jhash': jhash,
+        'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
     })

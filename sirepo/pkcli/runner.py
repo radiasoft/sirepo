@@ -70,7 +70,7 @@ class _LockDict:
             self._waiters[key] = trio.hazmat.ParkingLot()
         else:
             # lock is held; wait for someone to pass it to us
-            await self._waiters[keys].park()
+            await self._waiters[key].park()
         try:
             yield
         finally:
@@ -102,7 +102,7 @@ class _JobInfo:
 
 class _JobTracker:
     def __init__(self, nursery):
-        self.jobs = {}
+        self.report_jobs = {}
         self.locks = _LockDict()
         self._nursery = nursery
 
@@ -117,7 +117,7 @@ class _JobTracker:
         disk_status_path = run_dir.join('status')
         if disk_in_path.exists() and disk_status_path.exists():
             # status should be recorded on disk XOR in memory
-            assert run_dir not in self.jobs
+            assert run_dir not in self.report_jobs
             disk_in_text = pkio.read_text(disk_in_path)
             disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
             disk_status = pkio.read_text(disk_status_path)
@@ -130,13 +130,13 @@ class _JobTracker:
                 )
                 disk_status = runner_client.JobStatus.ERROR
             return disk_jhash, runner_client.JobStatus(disk_status)
-        elif run_dir in self.jobs:
-            job_info = self.jobs[run_dir]
+        elif run_dir in self.report_jobs:
+            job_info = self.report_jobs[run_dir]
             return job_info.jhash, job_info.status
         else:
             return None, runner_client.JobStatus.MISSING
 
-    def job_status(self, run_dir, jhash):
+    def report_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir.
 
         """
@@ -153,7 +153,7 @@ class _JobTracker:
         calling run_dir_status), and decided they need to die.
 
         """
-        job_info = self.jobs.get(run_dir)
+        job_info = self.report_jobs.get(run_dir)
         if job_info is None:
             return
         if job_info.status is not runner_client.JobStatus.RUNNING:
@@ -165,7 +165,7 @@ class _JobTracker:
         job_info.cancel_requested = True
         await job_info.process.kill(_KILL_TIMEOUT_SECS)
 
-    async def start_job(self, run_dir, jhash, backend, cmd, tmp_dir):
+    async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
         current_jhash, current_status = self.run_dir_status(run_dir)
         if current_status is runner_client.JobStatus.RUNNING:
@@ -191,22 +191,24 @@ class _JobTracker:
                 await self.kill_all(run_dir)
 
         # Okay, now we have the dir to ourselves. Set up the new run_dir:
-        assert run_dir not in self.jobs
+        assert run_dir not in self.report_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
         # Start the job:
         process = await _BACKENDS[backend].start(run_dir, cmd)
         # And update our records so we know it's running:
         job_info = _JobInfo(
-            run_dir, jhash, runner_client.JobStatus.RUNNING, process
+            run_dir, jhash, runner_client.JobStatus.RUNNING, process,
         )
-        self.jobs[run_dir] = job_info
+        self.report_jobs[run_dir] = job_info
 
         # And finally, start a background task to watch over it.
-        self._nursery.start_soon(self._supervise_job, run_dir, jhash, job_info)
+        self._nursery.start_soon(
+            self._supervise_report_job, run_dir, jhash, job_info,
+        )
 
-    async def _supervise_job(self, run_dir, jhash, job_info):
-        with _catch_and_log_errors(Exception, 'error in _supervise_job'):
+    async def _supervise_report_job(self, run_dir, jhash, job_info):
+        with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
             # Make sure returncode is defined in the finally block, even if
             # wait() somehow crashes
             returncode = None
@@ -215,8 +217,8 @@ class _JobTracker:
             finally:
                 async with self.locks[run_dir]:
                     # Clear up our in-memory status
-                    assert self.jobs[run_dir] is job_info
-                    del self.jobs[run_dir]
+                    assert self.report_jobs[run_dir] is job_info
+                    del self.report_jobs[run_dir]
                     # Write status to disk
                     if job_info.cancel_requested:
                         _write_status(runner_client.JobStatus.CANCELED, run_dir)
@@ -239,9 +241,9 @@ def _rpc_handler(fn):
 
 
 @_rpc_handler
-async def _start_job(job_tracker, request):
-    pkdc('start_job: {}', request)
-    await job_tracker.start_job(
+async def _start_report_job(job_tracker, request):
+    pkdc('start_report_job: {}', request)
+    await job_tracker.start_report_job(
         request.run_dir, request.jhash,
         request.backend,
         request.cmd, pkio.py_path(request.tmp_dir),
@@ -250,15 +252,15 @@ async def _start_job(job_tracker, request):
 
 
 @_rpc_handler
-async def _job_status(job_tracker, request):
-    pkdc('job_status: {}', request)
+async def _report_job_status(job_tracker, request):
+    pkdc('report_job_status: {}', request)
     return {
-        'status': job_tracker.job_status(request.run_dir, request.jhash).value
+        'status': job_tracker.report_job_status(request.run_dir, request.jhash).value
     }
 
 
 @_rpc_handler
-async def _cancel_job(job_tracker, request):
+async def _cancel_report_job(job_tracker, request):
     run_dir_jhash, run_dir_status = job_tracker.run_dir_status(request.run_dir)
     if run_dir_jhash != request.jhash:
         return {}
