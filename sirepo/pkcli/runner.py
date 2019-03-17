@@ -104,6 +104,7 @@ class _JobInfo:
 class _JobTracker:
     def __init__(self, nursery):
         self.jobs = {}
+        self.locks = _LockDict()
         self._nursery = nursery
 
     def run_dir_status(self, run_dir):
@@ -207,24 +208,29 @@ class _JobTracker:
 
     async def _supervise_job(self, run_dir, jhash, job_info):
         with _catch_and_log_errors(Exception, 'error in _supervise_job'):
+            # Make sure returncode is defined in the finally block, even if
+            # wait() somehow crashes
+            returncode = None
             try:
                 returncode = await job_info.process.wait()
-
-                if job_info.cancel_requested:
-                    _write_status(runner_client.JobStatus.CANCELED, run_dir)
-                elif returncode:
-                    pkdlog(
-                        '{} {}: job failed, returncode = {}',
-                        run_dir, jhash, returncode,
-                    )
-                    _write_status(runner_client.JobStatus.ERROR, run_dir)
-                else:
-                    _write_status(runner_client.JobStatus.COMPLETED, run_dir)
             finally:
-                # job should be dead by now, but let's make sure
-                await job_info.process.kill(_KILL_TIMEOUT_SECS)
-                assert self.jobs[run_dir] is job_info
-                del self.jobs[run_dir]
+                async with self.locks[run_dir]:
+                    # Should be a no-op, but let's make certain
+                    await job_info.process.kill()
+                    # Clear up our in-memory status
+                    assert self.jobs[run_dir] is job_info
+                    del self.jobs[run_dir]
+                    # Write status to disk
+                    if job_info.cancel_requested:
+                        _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                    elif returncode == 0:
+                        _write_status(runner_client.JobStatus.COMPLETED, run_dir)
+                    else:
+                        pkdlog(
+                            '{} {}: job failed, returncode = {}',
+                            run_dir, jhash, returncode,
+                        )
+                        _write_status(runner_client.JobStatus.ERROR, run_dir)
 
 
 _RPC_HANDLERS = {}
@@ -264,7 +270,7 @@ async def _cancel_job(job_tracker, request):
 
 # XX should we just always acquire a per-job lock here, to make sure we never
 # have to worry about different requests for the same job racing?
-async def _handle_conn(job_tracker, lock_dict, stream):
+async def _handle_conn(job_tracker, stream):
     with _catch_and_log_errors(Exception, 'error handling request'):
         request_bytes = bytearray()
         while True:
@@ -277,7 +283,7 @@ async def _handle_conn(job_tracker, lock_dict, stream):
             request.run_dir = pkio.py_path(request.run_dir)
         pkdlog('runner request: {!r}', request)
         handler = _RPC_HANDLERS[request.action]
-        async with lock_dict[request.run_dir]:
+        async with job_tracker.locks[request.run_dir]:
             response = await handler(job_tracker, request)
         pkdlog('runner response: {!r}', response)
         response_bytes = pkjson.dump_bytes(response)
@@ -318,9 +324,8 @@ async def _main():
         async with trio.open_nursery() as nursery:
             nursery.start_soon(_tmp_dir_gc)
             job_tracker = _JobTracker(nursery)
-            lock_dict = _LockDict()
             await trio.serve_listeners(
-                functools.partial(_handle_conn, job_tracker, lock_dict),
+                functools.partial(_handle_conn, job_tracker),
                 [listener]
             )
 
