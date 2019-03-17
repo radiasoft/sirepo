@@ -17,7 +17,6 @@ import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from pykern import pkio
 from pykern import pkjson
-from sirepo import feature_config
 from sirepo import runner_client
 from sirepo import srdb
 from sirepo.runner_daemon import local_process, docker_process
@@ -37,10 +36,10 @@ _LISTEN_QUEUE = 1000
 _KILL_TIMEOUT_SECS = 3
 
 
-if feature_config.cfg.runner_daemon_docker:
-    _BACKEND_MOD = docker_process
-else:
-    _BACKEND_MOD = local_process
+_BACKENDS = {
+    'local': local_process,
+    'docker': docker_process,
+}
 
 
 @contextlib.contextmanager
@@ -166,7 +165,7 @@ class _JobTracker:
         job_info.cancel_requested = True
         await job_info.process.kill(_KILL_TIMEOUT_SECS)
 
-    async def start_job(self, run_dir, jhash, cmd, tmp_dir):
+    async def start_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
         current_jhash, current_status = self.run_dir_status(run_dir)
         if current_status is runner_client.JobStatus.RUNNING:
@@ -175,7 +174,7 @@ class _JobTracker:
                 # It's already the requested job, so we have nothing to
                 # do. Throw away the tmp_dir and move on.
                 pkdlog(
-                    'start_job {} {}: job is already running; skipping',
+                    '{} {}: job is already running; skipping',
                     run_dir, jhash
                 )
                 pkio.unchecked_remove(tmp_dir)
@@ -186,7 +185,7 @@ class _JobTracker:
                 # XX TODO: should we check some kind of sequence number
                 # here? I don't know how those work.
                 pkdlog(
-                    'start_job {} {}: stale job is still running; killing it',
+                    '{} {}: stale job is still running; killing it',
                     run_dir, jhash
                 )
                 await self.kill_all(run_dir)
@@ -196,7 +195,7 @@ class _JobTracker:
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
         # Start the job:
-        process = await _BACKEND_MOD.start(run_dir, cmd)
+        process = await _BACKENDS[backend].start(run_dir, cmd)
         # And update our records so we know it's running:
         job_info = _JobInfo(
             run_dir, jhash, runner_client.JobStatus.RUNNING, process
@@ -215,8 +214,6 @@ class _JobTracker:
                 returncode = await job_info.process.wait()
             finally:
                 async with self.locks[run_dir]:
-                    # Should be a no-op, but let's make certain
-                    await job_info.process.kill()
                     # Clear up our in-memory status
                     assert self.jobs[run_dir] is job_info
                     del self.jobs[run_dir]
@@ -245,8 +242,9 @@ def _rpc_handler(fn):
 async def _start_job(job_tracker, request):
     pkdc('start_job: {}', request)
     await job_tracker.start_job(
-        request.run_dir, request.jhash, request.cmd,
-        pkio.py_path(request.tmp_dir),
+        request.run_dir, request.jhash,
+        request.backend,
+        request.cmd, pkio.py_path(request.tmp_dir),
     )
     return {}
 
