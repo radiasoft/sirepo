@@ -17,6 +17,7 @@ import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from pykern import pkio
 from pykern import pkjson
+from sirepo import feature_config
 from sirepo import runner_client
 from sirepo import srdb
 from sirepo.runner_daemon import local_process, docker_process
@@ -34,6 +35,12 @@ _CHUNK_SIZE = 4096
 _LISTEN_QUEUE = 1000
 
 _KILL_TIMEOUT_SECS = 3
+
+
+if feature_config.cfg.runner_daemon_docker:
+    _BACKEND_MOD = docker_process
+else:
+    _BACKEND_MOD = local_process
 
 
 @contextlib.contextmanager
@@ -188,7 +195,7 @@ class _JobTracker:
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
         # Start the job:
-        process = await local_process.start(run_dir, cmd)
+        process = await _BACKEND_MOD.start(run_dir, cmd)
         # And update our records so we know it's running:
         job_info = _JobInfo(
             run_dir, jhash, runner_client.JobStatus.RUNNING, process

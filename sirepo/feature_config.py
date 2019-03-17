@@ -58,6 +58,7 @@ def _codes(want_all=None):
 cfg = pkconfig.init(
     api_modules=((), tuple, 'optional api modules, e.g. bluesky'),
     runner_daemon=(False, bool, 'use the runner daemon'),
+    runner_daemon_docker=(False, bool, 'use runner daemon docker backend'),
     #TODO(robnagler) make sim_type config
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
