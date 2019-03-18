@@ -1,0 +1,18 @@
+{
+    "models": {
+        "fitter": {
+            "equation": "a * cos(b * x**2. + c) * exp(-x)",
+            "parameters": ["a", "b", "c"],
+            "variable": "x"
+        },
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": "1",
+            "name": "EPICS 00"
+        }
+    },
+    "report": "fitReport",
+    "simulationType": "webcon",
+    "version": "20190319"
+}
