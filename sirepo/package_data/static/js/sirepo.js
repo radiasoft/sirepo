@@ -778,7 +778,7 @@ SIREPO.app.service('validationService', function(utilities) {
         var isValid = function(name) {
             return enums.map(function (e) {
                 return e[SIREPO.ENUM_INDEX_VALUE];
-            }).indexOf(name) >= 0;
+            }).indexOf('' + name) >= 0;
         };
         var err = function(name) {
             return name + ':' + ' no such value in ' + enumName;
