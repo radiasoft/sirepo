@@ -175,7 +175,8 @@
                 ["viridis", "viridis"],
                 ["afmhot", "afmhot"],
                 ["coolwarm", "coolwarm"],
-                ["jet", "jet"]
+                ["jet", "jet"],
+                ["contrast", "high contrast"]
             ]
         },
         "localRoutes": {
