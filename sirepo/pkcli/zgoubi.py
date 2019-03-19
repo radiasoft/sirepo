@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
@@ -47,16 +47,17 @@ def _bunch_match_twiss(cfg_dir):
         col_names, row = template.extract_first_twiss_row(cfg_dir)
         for f in _TWISS_TO_BUNCH_FIELD.keys():
             v = template.column_data(f, col_names, [row])[0]
+            if (f == 'btx' or f == 'bty') and v <= 0:
+                pkdlog('invalid calculated twiss parameter: {} <= 0', f)
+                v = 1.0
             bunch[_TWISS_TO_BUNCH_FIELD[f]] = v
-            if f == 'btx' or f == 'bty':
-                assert v > 0, 'invalid twiss parameter: {} <= 0'.format(f)
         found_fit = False
         lines = pkio.read_text(_ZGOUBI_FIT_FILE).split('\n')
         for i in xrange(len(lines)):
             line = lines[i]
             if re.search(r"^\s*'OBJET'", line):
                 values = lines[i + 4].split()
-                assert len(values) >= 5 and float(values[5]) == 1.0
+                assert len(values) >= 5
                 found_fit = True
                 bunch['Y0'] = float(values[0]) * 1e-2
                 bunch['T0'] = float(values[1]) * 1e-3

@@ -48,6 +48,10 @@
             "longName": "Warp VND",
             "shortName": "Warp VND"
         },
+        "webcon": {
+            "longName": "Webcon",
+            "shortName": "Webcon"
+        },
         "zgoubi": {
             "longName": "ZGOUBI",
             "shortName": "ZGOUBI"

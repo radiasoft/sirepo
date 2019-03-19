@@ -2,7 +2,7 @@
 line.add(core.OBJET5(
     BORO={{ bunch_rigidity }},
     PY=0.001, PT=0.01, PZ= 0.001, PP=0.01, PX=0.001, PD=0.0001,
-    DR=1,
+    DR={{ bunch_D0 }},
 ))
 line.add(core.FAKE_ELEM("""
 'PARTICUL'

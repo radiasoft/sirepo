@@ -6,6 +6,9 @@
         <div data-ng-if="source.srwService.isElectronBeam()" class="col-sm-12">
           <div data-basic-editor-panel="" data-view-name="electronBeam"></div>
         </div>
+        <div data-ng-if="source.srwService.isArbitraryMagField()" class="col-sm-12">
+          <div data-basic-editor-panel="" data-view-name="arbitraryMagField"></div>
+        </div>
         <div data-ng-if="source.srwService.isIdealizedUndulator()" class="col-sm-12">
           <div data-basic-editor-panel="" data-view-name="undulator"></div>
         </div>
@@ -32,7 +35,7 @@
     <div data-ng-if="source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-request-priority="3" data-model-name="powerDensityReport" data-panel-title="{{ source.srwService.getReportTitle('powerDensityReport') }}"></div>
     </div>
-    <div data-ng-if="source.srwService.isTabulatedUndulator() || source.srwService.isIdealizedUndulator()" class="clearfix hidden-xl"></div>
+    <div data-ng-if="source.srwService.isTabulatedUndulator() || source.srwService.isIdealizedUndulator() || source.srwService.isArbitraryMagField()" class="clearfix hidden-xl"></div>
     <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isElectronBeam()" class="col-md-6 col-xl-4">
       <div data-report-panel="3d" data-request-priority="4" data-model-name="sourceIntensityReport" data-panel-title="{{ source.srwService.getReportTitle('sourceIntensityReport') }}"></div>
     </div>

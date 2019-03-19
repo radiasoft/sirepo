@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.appHomeTab = 'lattice';
 SIREPO.USER_MANUAL_URL = 'https://zgoubi.sourceforge.io/ZGOUBI_DOCS/Zgoubi.pdf';
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.appFieldEditors = [
@@ -82,28 +81,17 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     self.advancedNames = [];
     self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SEXTUPOL', 'YMY'];
 
-    function computeBendAngle(bend) {
-    }
-
-    function processChangrefFormat() {
-        var model = appState.models.CHANGREF;
-        ['XCE', 'YCE', 'ALE'].forEach(function(f) {
-            panelState.showField('CHANGREF', f, model.format == 'old');
-        });
-        panelState.showField('CHANGREF', 'order', model.format == 'new');
-    }
-
     function updateElementAttributes(item) {
-        if (item.type == 'BEND') {
+        if ('KPOS' in item) {
             item.angle = 0;
             delete item.travelLength;
             item.e1 = item.W_E;
             item.e2 = item.W_S;
-            var computedAngle = 2 * Math.asin((item.B1 * item.l * 100)/(2 * appState.models.bunch.rigidity));
+            var field = item.B1 || item.B_1;
+            var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
             item.travelLength = latticeService.arcLength(computedAngle, item.l);
 
             if (item.KPOS == '2') {
-                // misaligned
                 //TODO(pjm): support misalignment YCE, ALE
             }
             else if (item.KPOS == '3') {
@@ -116,11 +104,9 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
                 }
             }
         }
-        else if (item.type == 'CHANGREF') {
-            item.angle = 0;
-            if (item.format == 'old') {
-                item.angle = - item.ALE;
-            }
+
+        if (item.type == 'CHANGREF') {
+            item.angle = - item.ALE;
         }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
@@ -133,18 +119,11 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
         }
     }
 
-    self.handleModalShown = function(name) {
-        if (name == 'CHANGREF') {
-            processChangrefFormat();
-        }
-    };
-
     self.titleForName = function(name) {
         return SIREPO.APP_SCHEMA.view[name].description;
     };
 
     appState.whenModelsLoaded($scope, function() {
-        appState.watchModelFields($scope, ['CHANGREF.format'], processChangrefFormat);
 
         if (! appState.models.simulation.isInitialized) {
             appState.models.elements.map(updateElementAttributes);
@@ -164,6 +143,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
 SIREPO.app.controller('SourceController', function(appState, latticeService, panelState, $scope) {
     var self = this;
     var TWISS_FIELDS = ['alpha_Y', 'beta_Y', 'alpha_Z', 'beta_Z', 'DY', 'DT', 'DZ', 'DP', 'Y0', 'T0'];
+    var rigidity;
 
     function processBunchTwiss() {
         var bunch = appState.models.bunch;
@@ -191,6 +171,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         appState.watchModelFields($scope, ['bunch.match_twiss_parameters'], processBunchTwiss);
         appState.watchModelFields($scope, ['particle.particleType'], processParticleType);
         processParticleType();
+        rigidity = appState.models.bunch.rigidity;
     });
 
     $scope.$on('bunchReport1.summaryData', function(e, info) {
@@ -202,6 +183,14 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
                 });
                 appState.saveQuietly('bunch');
             }
+        }
+    });
+
+    $scope.$on('bunch.changed', function() {
+        // reset the lattice if rigidity changes
+        if (appState.models.bunch.rigidity != rigidity) {
+            appState.models.simulation.isInitialized = false;
+            appState.saveQuietly('simulation');
         }
     });
 
@@ -220,11 +209,14 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     function handleStatus(data) {
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
-            ['bunchAnimation', 'bunchAnimation2'].forEach(function(m) {
+            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
+            if (data.frameCount) {
+                frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
+            }
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -234,7 +226,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.handleModalShown = function(name) {
-        if (name.indexOf('bunchAnimation') >= 0) {
+        if (name.indexOf('Animation') >= 0) {
             plotRangeService.processPlotRange(self, name);
         }
     };
@@ -246,6 +238,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
         bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
         bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+        energyAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
     });
 
     self.simState.errorMessage = function() {
@@ -261,13 +254,50 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         $scope.$on('simulation.changed', function(e, name) {
             $rootScope.$broadcast('activeBeamlineChanged');
         });
-        appState.watchModelFields($scope, ['bunchAnimation.plotRangeType'], function() {
-            plotRangeService.processPlotRange(self, 'bunchAnimation');
-        });
-        appState.watchModelFields($scope, ['bunchAnimation2.plotRangeType'], function() {
-            plotRangeService.processPlotRange(self, 'bunchAnimation2');
+        ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
+            appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
+                plotRangeService.processPlotRange(self, m);
+            });
         });
     });
+});
+
+SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processFields() {
+                var cavite = appState.models.CAVITE;
+                if (! cavite) {
+                    return;
+                }
+                var option = cavite.IOPT;
+                // fields by option:
+                // 1: L, h, V
+                // 2: L, h, V, sig_s
+                // 3: V, sig_s
+                // 7: f_RF, V, sig_s
+                // 10: l, f_RF, ID, V, sig_s, IOP
+                panelState.showField('CAVITE', 'L', option == 1 || option == 2);
+                panelState.showField('CAVITE', 'h', option == 1 || option == 2);
+                panelState.showField('CAVITE', 'V', option > 0);
+                panelState.showField('CAVITE', 'sig_s', option > 1);
+                panelState.showField('CAVITE', 'f_RF', option == 7 || option == 10);
+                panelState.showField('CAVITE', 'l', option == 10);
+                panelState.showField('CAVITE', 'ID', option == 10);
+                panelState.showField('CAVITE', 'IOP', option == 10);
+                if (option != 10) {
+                    cavite.l = 0;
+                }
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['CAVITE.IOPT'], processFields);
+                processFields();
+            });
+        },
+    };
 });
 
 SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {

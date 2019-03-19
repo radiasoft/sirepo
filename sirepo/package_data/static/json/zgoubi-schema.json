@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -26,7 +31,7 @@
             "route": "/lattice/:simulationId",
             "config": {
                 "controller": "LatticeController as lattice",
-                "templateUrl": "/static/html/zgoubi-lattice.html"
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
             }
         },
         "twiss": {
@@ -53,9 +58,12 @@
             ["1", "Yes"]
         ],
         "CaviteFormat": [
-            ["1", "Synchrotron RF cavity"],
-            ["2", "Synchrotron RF cavity with no SCALING"],
-            ["10", "Fixed frequency RF"]
+            ["0", "Element inactive"],
+            ["1", "Synchrotron RF cavity (1)"],
+            ["2", "Synchrotron RF cavity with no SCALING (2)"],
+            ["3", "Accleration without synchrotron motion (3)"],
+            ["7", "Fixed frequency RF, quasi- or isochronous acceleration (7)"],
+            ["10", "Fixed frequency RF (10)"]
         ],
         "CaviteMatrixOption": [
             ["-2", "-2"],
@@ -63,10 +71,6 @@
             ["0", "0"],
             ["1", "1"],
             ["2", "2"]
-        ],
-        "ChangrefStyle": [
-            ["old", "Old Style: XCE, YCE, ALE"],
-            ["new", "New Style: XS, YS, ZS, XR, YR, ZR"]
         ],
         "ElementAlignment": [
             ["1", "Element Aligned"],
@@ -76,6 +80,13 @@
             ["1", "Element Aligned"],
             ["2", "Element Misaligned"],
             ["3", "Adjust Entrance and Exit Frame"]
+        ],
+        "EnergyPlotVariable": [
+            ["time", "t"],
+            ["ENEKI", "Kenetic Energy"],
+            ["ENERG", "Energy"],
+            ["RET", "Synchrotron RF Phase (phi-ph_s)"],
+            ["DPR", "Synchrotron dp/p"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -226,7 +237,7 @@
             "M": ["Mass [MeV/c²]", "Float", 938.27203],
             "Q": ["Charge [C]", "Float", 1.602176487e-19],
             "G": ["Gyromagnetic Factor", "Float", 1.79284735],
-            "Tau": ["COM Lifetime [s]", "Float", 1e99]
+            "Tau": ["COM Life-time [s]", "Float", 1e99]
         },
         "bunch": {
             "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
@@ -297,6 +308,19 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
+        "energyAnimation": {
+            "x": ["Coordinate", "EnergyPlotVariable", "ENERG"],
+            "y": ["Coordinate", "EnergyPlotVariable", "time"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "notes": ["Notes", "Text", ""]
+        },
         "opticsReport": {
             "y1": ["Y1 Value", "OpticsParameter", "x"],
             "y2": ["Y2 Value", "OpticsOptionalParameter", "y"],
@@ -309,7 +333,8 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "npass": ["Number of Runs", "Integer", 10, "", 1]
+            "npass": ["Number of Runs", "Integer", 10, "", 1],
+            "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
@@ -366,21 +391,20 @@
         "CAVITE": {
             "name": ["Name", "ValidatedString"],
             "IOPT": ["Cavite Format", "CaviteFormat", "10", "IOPT"],
-            "L": ["Reference Closed Orbit Length [m]", "Float", 0.0, "L"],
+            "L": ["Reference Closed Orbit Length [m]", "Float", 0.0, "$\\mathcal L$"],
             "h": ["Harmonic Number", "Float", 0, "h"],
-            "f_RF": ["RF Frequency [Hz]", "Float", 0.0, "$f_RF$"],
-            "V": ["RF Peak Voltage [V]", "Float", 0.0, "V"],
-            "sig_s": ["Synchronous Phase [rad]", "Float", 0.0, "$\\Phi$"],
-            "l": ["Length [m]", "Float", 0.0, "L"],
-            "IOP": ["Matrix Options", "CaviteMatrixOption", "0", "IOP"]
+            "f_RF": ["RF Frequency [Hz]", "Float", 0.0, "$f_{RF}$"],
+            "V": ["RF Peak Voltage [V]", "Float", 0.0, "$\\hat V$"],
+            "sig_s": ["Synchronous Phase [rad]", "Float", 0.0, "$\\Phi_s$"],
+            "l": ["Cavite Length [m]", "Float", 0.0, "L"],
+            "IOP": ["Matrix Options", "CaviteMatrixOption", "0", "IOP"],
+            "ID": ["Damp Option", "Integer", 0, "ID"]
         },
         "CHANGREF": {
             "name": ["Name", "ValidatedString"],
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
-            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
-            "format": ["CHANGREF Style", "ChangrefStyle", "old"],
-            "order": ["Transformations", "OptionalString", "", "XS 'val', YS 'val', ZS 'val', XR 'val', YR 'val', ZR 'val' in arbitrary order"]
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
@@ -675,6 +699,38 @@
                 "notes"
             ]
         },
+        "energyAnimation": {
+            "title": "Energy",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y"
+                        ]]
+                    ],
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "opticsReport": {
             "title": "Optics",
             "advanced": [
@@ -689,7 +745,8 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
-                "simulationSettings.npass"
+                "simulationSettings.npass",
+                "simulationSettings.ip"
             ],
             "advanced": []
         },
@@ -791,10 +848,11 @@
                 "IOPT",
                 "L",
                 "h",
+                "l",
                 "f_RF",
+                "ID",
                 "V",
                 "sig_s",
-                "l",
                 "IOP"
             ]
         },
@@ -803,11 +861,9 @@
             "description": "Transformation to a new reference frame",
             "advanced": [
                 "name",
-                "format",
                 "XCE",
                 "YCE",
-                "ALE",
-                "order"
+                "ALE"
             ]
         },
         "DRIFT": {

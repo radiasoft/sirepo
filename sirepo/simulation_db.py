@@ -15,6 +15,7 @@ from sirepo import cookie
 from sirepo import feature_config
 from sirepo import util
 from sirepo.template import template_common
+from sirepo.schema import validate_fields, validate_name, validate_schema
 import copy
 import datetime
 import errno
@@ -78,6 +79,9 @@ _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = {}
+
+#: Special field to direct pseudo-subclassing of schema objects
+_SCHEMA_SUPERCLASS_FIELD = '_super'
 
 #: Status file name
 _STATUS_FILE = 'status'
@@ -257,7 +261,8 @@ def get_schema(sim_type):
         if item not in schema:
             schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
-    _validate_schema(schema)
+        _merge_subclasses(schema, item)
+    validate_schema(schema)
     return schema
 
 
@@ -741,7 +746,7 @@ def save_simulation_json(data, do_validate=True):
             pass
         if need_validate and do_validate:
             _validate_name(data)
-            _validate_fields(data)
+            validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
@@ -1039,6 +1044,25 @@ def _merge_dicts(base, derived, depth=-1):
             pass
 
 
+def _merge_subclasses(schema, item):
+    for m in schema[item]:
+        has_super = False
+        s = schema[item][m]
+        try:
+            has_super = _SCHEMA_SUPERCLASS_FIELD in s
+        except TypeError:
+            # Ignore non-indexable types
+            continue
+        if has_super:
+            i = s[_SCHEMA_SUPERCLASS_FIELD]
+            s_item = i[1]
+            s_class = i[2]
+            assert s_item in schema, util.err(s_item, 'No such field in schema')
+            assert s_item == item, util.err(s_item, 'Superclass must be in same section of schema {}', item)
+            assert s_class in schema[s_item], util.err(s_class, 'No such superclass')
+            _merge_dicts(schema[item][s_class], s)
+
+
 def _pkg_relative_path_static(file_dir, file_name):
     """Path to a file under /static, relative to the package_data directory
 
@@ -1181,80 +1205,6 @@ def _user_dir_create():
     return uid
 
 
-def _validate_enum(val, sch_field_info, sch_enums):
-    """Ensure the value of an enum field is one listed in the schema
-
-    Args:
-        val: enum value to validate
-        sch_field_info ([str]): field info array from schema
-        sch_enums (pkcollections.Dict): enum section of the schema
-    """
-    type = sch_field_info[1]
-    if not type in sch_enums:
-        return
-    if str(val) not in map(lambda enum: str(enum[0]), sch_enums[type]):
-        raise AssertionError(util.err(sch_enums[type], '{} enum value {} not in schema', type, val))
-
-
-def _is_enum(sch_field_info, sch_enums):
-    return
-
-
-def _validate_cookie_def(c_def):
-    """Validate the cookie definitions in the schema
-
-    Validations performed:
-        cannot contain delimiters we use on the client side
-        values must match the valType if provided
-        timeout must be numeric if provided
-
-    Args:
-        data (pkcollections.Dict): cookie definition object from the schema
-    """
-    c_delims = '|:;='
-    c_delim_re = re.compile('[{}]'.format(c_delims))
-    if c_delim_re.search(str(c_def.name) + str(c_def.value)):
-        raise AssertionError(util.err(c_def, 'cookie name/value cannot include delimiters {}', c_delims))
-    if 'valType' in c_def:
-        if c_def.valType == 'b':
-            pkconfig.parse_bool(c_def.value)
-        if c_def.valType == 'n':
-            float(c_def.value)
-    if 'timeout' in c_def:
-        float(c_def.timeout)
-
-
-def _validate_fields(data):
-    """Validate the values of the fields in model data
-
-    Validations performed:
-        enums (see _validate_enum)
-        numeric values (see _validate_number)
-        notifications
-        cookie definitions (see _validate_cookie_def)
-
-    Args:
-        data (pkcollections.Dict): model data
-    """
-    schema = get_schema(data.simulationType)
-    sch_models = schema.model
-    sch_enums = schema.enum
-    for model_name in data.models:
-        if model_name not in sch_models:
-            continue
-        sch_model = sch_models[model_name]
-        model_data = data.models[model_name]
-        for field_name in model_data:
-            if field_name not in sch_model:
-                continue
-            val = model_data[field_name]
-            if val == '':
-                continue
-            sch_field_info = sch_model[field_name]
-            _validate_enum(val, sch_field_info, sch_enums)
-            _validate_number(val, sch_field_info)
-
-
 def _validate_name(data):
     """Validate and if necessary uniquify name
 
@@ -1283,73 +1233,6 @@ def _validate_name(data):
         i += 1
     assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
     data.models.simulation.name = n2
-
-
-def _validate_number(val, sch_field_info):
-    """Ensure the value of a numeric field falls within the supplied limits (if any)
-
-    Args:
-        val: numeric value to validate
-        sch_field_info ([str]): field info array from schema
-    """
-    if len(sch_field_info) <= 4:
-        return
-    try:
-        fv = float(val)
-        fmin = float(sch_field_info[4])
-    # Currently the values in enum arrays at the indices below are sometimes
-    # used for other purposes, so we return rather than fail for non-numeric values
-    except ValueError:
-        return
-    if fv < fmin:
-        raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
-    if len(sch_field_info) > 5:
-        try:
-            fmax = float(sch_field_info[5])
-        except ValueError:
-            return
-        if fv > fmax:
-            raise AssertionError(util.err(sch_field_info, 'numeric value {} out of range', val))
-
-
-def _validate_schema(schema):
-    """Validate the schema
-
-    Validations performed:
-        Values of default data (if any)
-        Existence of dynamic modules
-        Enums keyed by string value
-
-    Args:
-        schema (pkcollections.Dict): app schema
-    """
-    sch_models = schema.model
-    sch_enums = schema.enum
-    sch_ntfy = schema.notifications
-    sch_cookies = schema.cookies
-    for name in sch_enums:
-        for values in sch_enums[name]:
-            if not isinstance(values[0], pkconfig.STRING_TYPES):
-                raise AssertionError(util.err(name, 'enum values must be keyed by a string value: {}', type(values[0])))
-    for model_name in sch_models:
-        sch_model = sch_models[model_name]
-        for field_name in sch_model:
-            sch_field_info = sch_model[field_name]
-            if len(sch_field_info) <= 2:
-                continue
-            field_default = sch_field_info[2]
-            if field_default == '' or field_default is None:
-                continue
-            _validate_enum(field_default, sch_field_info, sch_enums)
-            _validate_number(field_default, sch_field_info)
-    for n in sch_ntfy:
-        if 'cookie' not in sch_ntfy[n] or sch_ntfy[n].cookie not in sch_cookies:
-            raise AssertionError(util.err(sch_ntfy[n], 'notification must reference a cookie in the schema'))
-    for sc in sch_cookies:
-        _validate_cookie_def(sch_cookies[sc])
-    for type in schema.dynamicModules:
-        for src in schema.dynamicModules[type]:
-            pkresource.filename(src[1:])
 
 
 _init()

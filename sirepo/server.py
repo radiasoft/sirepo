@@ -304,8 +304,9 @@ def api_importArchive():
 
     data = sirepo.importer.do_form(flask.request.form)
     return javascript_redirect(
-        '/{}#/source/{}'.format(
+        '/{}#/{}/{}'.format(
             data.simulationType,
+            simulation_db.get_schema(data.simulationType).appModes.default.localRoute,
             data.models.simulation.simulationId,
         ),
     )

@@ -18,41 +18,33 @@ import sys
 def test_runner_myapp():
     os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
     os.environ['PYTHONUNBUFFERED'] = '1'
+    py3_env = _assert_py3()
 
-    # Check if the py3 environment is set up
-    py3_env = dict(os.environ)
-    py3_env['PYENV_VERSION'] = 'py3'
-    # 'setup.py test' puts py2 stuff on PYTHONPATH, which breaks our py3
-    if 'PYTHONPATH' in py3_env:
-        del py3_env['PYTHONPATH']
-    returncode = subprocess.call(
-        ['pyenv', 'exec', 'sirepo', '--help'], env=py3_env
-    )
-    # if 'sirepo' isn't found, returncode == 127
-    if returncode != 1:
-        pytest.skip('py3 environment not configured')
-
-    from sirepo import srunit
-    from pykern import pkunit
     from pykern import pkio
-    from pykern.pkdebug import pkdlog
+    from pykern import pkunit
+    from pykern.pkdebug import pkdc, pkdp
+    from sirepo import srunit
 
     fc = srunit.flask_client()
 
     from sirepo import srdb
-    pkdlog(srdb.runner_socket_path())
+    pkdc(srdb.runner_socket_path())
 
     pkio.unchecked_remove(srdb.runner_socket_path())
 
     runner_env = dict(py3_env)
     runner_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
     runner = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'runner', 'start'], env=runner_env
+        ['pyenv', 'exec', 'sirepo', 'runner', 'start'],
+        env=runner_env,
     )
     try:
-        # Wait for the server to have started up
-        while not srdb.runner_socket_path().exists():
+        for _ in range(30):
+            if srdb.runner_socket_path().exists():
+                break
             time.sleep(0.1)
+        else:
+            pkunit.pkfail('runner daemon did not start up')
 
         fc.get('/myapp')
         data = fc.sr_post(
@@ -60,9 +52,9 @@ def test_runner_myapp():
             {'simulationType': 'myapp',
              'search': {'simulationName': 'heightWeightReport'}},
         )
-        pkdlog(data)
+        pkdc(data)
         data = data[0].simulation
-        pkdlog(data)
+        pkdc(data)
         data = fc.sr_get(
             'simulationData',
             params=dict(
@@ -71,7 +63,7 @@ def test_runner_myapp():
                 simulation_type='myapp',
             ),
         )
-        pkdlog(data)
+        pkdc(data)
         run = fc.sr_post(
             'runSimulation',
             dict(
@@ -82,13 +74,13 @@ def test_runner_myapp():
                 simulationType=data.simulationType,
             ),
         )
-        pkdlog(run)
+        pkdc(run)
         for _ in range(10):
             run = fc.sr_post(
                 'runStatus',
                 run.nextRequest
             )
-            pkdlog(run)
+            pkdc(run)
             if run.state == 'completed':
                 break
             time.sleep(1)
@@ -99,3 +91,49 @@ def test_runner_myapp():
     finally:
         runner.terminate()
         runner.wait()
+
+
+def _assert_py3():
+    """Check if the py3 environment is set up properly"""
+    res = dict()
+    for k, v in os.environ.items():
+        if ('PYENV' in k or 'PYTHON' in k):
+            continue
+        if k in ('PATH', 'LD_LIBRARY_PATH'):
+            v2 = []
+            for x in v.split(':'):
+                if x and 'py2' not in x:
+                    v2.append(x)
+            v = ':'.join(v2)
+        res[k] = v
+    res['PYENV_VERSION'] = 'py3'
+
+    try:
+        out = subprocess.check_output(
+            ['pyenv', 'which', 'sirepo'],
+            env=res,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        out = e.output
+    from pykern import pkunit
+
+    pkunit.pkok(
+        '/py3/bin/sirepo' in out,
+        'expecting sirepo in a py3: {}',
+        out,
+    )
+    try:
+        out = subprocess.check_output(
+            ['pyenv', 'exec', 'sirepo', 'runner', '--help'],
+            env=res,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        out = e.output
+    pkunit.pkok(
+        'runner daemon' in out,
+        '"runner daemon" not in help: {}',
+        out,
+    )
+    return res

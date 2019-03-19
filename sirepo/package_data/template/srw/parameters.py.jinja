@@ -78,6 +78,12 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
 
 {% endif %}
+{% if simulation_sourceType == 'a' %}
+    ['mag_ior','f', {{arbitraryMagField_interpolationOrder}}, 'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
+    ['mag_zc','f', {{arbitraryMagField_longitudinalPosition}}, 'center longitudinal position [m]'],
+    ['mag_fn','s', '{{arbitraryMagField_magneticFile}}', 'input 3D magnetic field file name'],
+{% endif %}
+
 {% if simulation_sourceType == 'g' %}
     ['gbm_x', 'f', {{gaussianBeam_waistX}}, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', {{gaussianBeam_waistY}}, 'average vertical coordinates of waist [m]'],
@@ -163,7 +169,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['pw_meth', 'i', {{powerDensityReport_method}}, 'power density computation method (1- "near field", 2- "far field")'],
     ['pw_zst', 'f', 0., 'initial longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
     ['pw_zfi', 'f', 0., 'final longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
-    ['pw_mag', 'i', 1, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
+    ['pw_mag', 'i', {{powerDensityReport_magneticField}}, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
     ['pw_fn', 's', '{{powerDensityReportFilename}}', 'file name for saving calculated power density distribution'],
     ['pw_pl', 's', '', 'plot the resulting power density distribution in a graph: ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
@@ -184,7 +190,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_ry', 'f', {{simulation_verticalRange}}, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', {{simulation_verticalPointCount}}, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', {{simulation_sampleFactor}}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', {{sourceIntensityReport_precision}}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', {{initialIntensityReport_fieldUnits}}, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', {{initialIntensityReport_polarization}}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
@@ -212,7 +218,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
-    ['source_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+    ['rs_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}
 #---Multipole
     ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
