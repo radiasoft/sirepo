@@ -876,7 +876,6 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
                 run_dir,
                 jhash,
                 'background_percent_complete',
-                rep.model_name,
                 is_running,
             )
             new.setdefault('percentComplete', 0.0)
