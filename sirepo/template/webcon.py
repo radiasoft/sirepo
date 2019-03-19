@@ -22,15 +22,13 @@ import re
 
 SIM_TYPE = 'webcon'
 
-_BEAM_DATA_FILE = 'beam_data.npy'
+_BEAM_DATA_FILE = 'beam_data.txt'
 _EXAMPLE_FOLDERS = pkcollections.Dict({
     'EPICS 00': '/Examples'
 })
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 WANT_BROWSER_FRAME_CACHE = False
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
     if not is_running:
@@ -55,11 +53,12 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'folder' not in data['models']['simulation']:
-        if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
-            data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
+    if 'folder' not in data.models.simulation:
+        if data.models.simulation.name in _EXAMPLE_FOLDERS:
+            data.models.simulation.folder = _EXAMPLE_FOLDERS[data.models.simulation.name]
         else:
-            data['models']['simulation']['folder'] = '/'
+            data.models.simulation.folder = '/'
+
 
 def get_data_file(run_dir, model, frame, options=None):
     f = run_dir.join(_BEAM_DATA_FILE)
@@ -68,10 +67,6 @@ def get_data_file(run_dir, model, frame, options=None):
 
 def get_animation_name(data):
     return 'animation'
-
-
-def get_data_file(run_dir, model, frame, options=None):
-    assert False, 'not implemented'
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -138,7 +133,6 @@ def write_parameters(data, run_dir, is_parallel):
         _generate_parameters_file(data),
     )
 
-# for validation of user input
 
 def _analysis_data_file(data):
     return template_common.lib_file_name('analysisData', 'file', data.models.analysisData.file)
@@ -189,6 +183,7 @@ def _label(col_info, idx):
         return '{} [{}]'.format(name, units)
     return name
 
+
 def validate_sympy(str):
     try:
         sp.sympify(str)
@@ -196,29 +191,30 @@ def validate_sympy(str):
     except:
         return False
 
-def fit_to_function(data):
+
+def fit_to_function(x, y, equation, var, params):
 
     # must sanitize input - sympy uses eval
     # 'a + b * x + c * x**2'
     # 'a * cos(b * x**2. + c) * exp(-x)'
     # 'a + b * sin(x + c)'
-    eq_str = data.equation
-    eq_ind_v = data.variable
-    eq_fit_p = data.params
+    #eq_str = data.models.fitter.equation
+    #eq_ind_v = data.models.fitter.variable
+    #eq_fit_p = data.models.fitter.params
 
-    xv = data.xVals
-    yv = data.yVals
+    #xv = data.xVals
+    #yv = data.yVals
 
-    sym_curve = sp.sympify(eq_str)
-    sym_str = eq_ind_v
-    for p in eq_fit_p:
+    sym_curve = sp.sympify(equation)
+    sym_str = var
+    for p in params:
         sym_str = sym_str + ' ' + p
     #pkdp(sym_str)
 
     syms = sp.symbols(sym_str)
     sym_curve_l = sp.lambdify(syms, sym_curve, 'numpy')
 
-    p_vals, pcov = curve_fit(sym_curve_l, xv, yv, maxfev=500000)
+    p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
     p_subs = []
     for sidx, p in enumerate(p_vals, 1):
         s = syms[sidx]
@@ -226,39 +222,57 @@ def fit_to_function(data):
         p_subs.append((s, p))
     y_fit = sym_curve.subs(p_subs)
 
-    y_fit_l = sp.lambdify(eq_ind_v, y_fit, 'numpy')
+    y_fit_l = sp.lambdify(var, y_fit, 'numpy')
 
     #pkdp('fitted {}', y_fit)
     #pkdp('best params:')
     #for pix, p in enumerate(eq_fit_p):
     #    pkdp('{}: {}', p, p_vals[pix])
 
-    return {
-        'xVals': xv,
-        'yVals': y_fit_l(xv),
-        'fits': p_vals
-    }
+    return (y_fit_l(x), p_vals)
+    #return {
+    #    'xVals': xv,
+    #    'yVals': y_fit_l(xv),
+    #    'fits': p_vals
+    #}
 
-def _extract_fit(run_dir, data, col1 = 0, col2 = 1):
-    beam_data = np.loadtxt(str(run_dir.join(_BEAM_DATA_FILE)))
-    if 'error' in beam_data:
-        return beam_data
+def extract_fit(data):
+    fit_in = _analysis_data_file(data)
+    col1 = int(data.models.fitReport.x)
+    col2 = int(data.models.fitReport.y)
+    #pkdp('!EXTRACT FIT col1 {} col2 {}', col1, col2)
 
-    beam_cols = np.transpose(beam_data)
-    num_rows = len(beam_data)
-    num_cols = len(beam_cols)
-    assert col1 >= 0 and col1 < num_cols and col2 >= 0 and col2 < num_cols and col1 != col2
+    #pkdp('!EXTRACT FIT {} {}', data, fit_in)
+    #beam_data = np.loadtxt(fit_in)
+    x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
+    #fit_cols = np.transpose(fit_data)
+    #pkdp('!EXTRACT FIT FOR COLS {}', fit_cols)
+    #num_rows = len(fit_data)
+    #num_cols = len(fit_cols)
+    #pkdp('!EXTRACT FIT FOR ROWS {} COLS {}', num_rows, num_cols)
 
-    data['xVals'] = beam_cols[col1]
-    data['yVals'] = beam_cols[col2]
-    fit = fit_to_function(data)
+    #x_vals = fit_cols[0]
+    #y_vals = fit_cols[1]
+    eq_str = data.models.fitter.equation
+    eq_ind_v = data.models.fitter.variable
+    eq_fit_p = data.models.fitter.parameters
+    #pkdp('!EXTRACT FIT eq {} var {} params {}', eq_str, eq_ind_v, eq_fit_p)
+    fit_y, param_vals = fit_to_function(x_vals, y_vals, eq_str, eq_ind_v, eq_fit_p)
+    fit_data = np.transpose([x_vals, fit_y])
+    fit_file = template_common.lib_file_name('analysisFit', 'file', data.models.analysisData.file)
+    pkdp('!EXTRACT FIT param vals {} to file {}', param_vals, fit_file)
+    np.savetxt(fit_file, fit_data, header='x,y', delimiter=',')
 
     return {
         'title': 'Best Fit',
-        'xVals': fit.xVals,
-        'yVals': fit.yVals,
-        'fits': fit.fits
+        'fits': param_vals
     }
+    #return {
+    #    'title': 'Best Fit',
+    ##    'xVals': fit.xVals,
+    ##    'yVals': fit.yVals,
+     #   'fits': fit.fits
+    #}
 
 
 def _safe_index(values, idx):

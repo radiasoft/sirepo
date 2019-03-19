@@ -22,22 +22,7 @@
                 "controller": "AnalysisController as analysis",
                 "templateUrl": "/static/html/webcon-analysis.html"
             }
-        },
-       "source": {
-            "config": {
-                "controller": "WebconSourceController as source",
-                "templateUrl": "/static/html/webcon-source.html"
-            }
         }
-    },
-    "model": {
-        "fitter": {
-            "equation": ["Equation to Fit", "Equation"],
-            "parameters": ["Fit Parameters", "EquationVariables", ""],
-            "variable": ["Independent Variable", "EquationVariables", ""]
-        }
-    },
-    "view": {
     },
     "model": {
         "analysisData": {
@@ -49,6 +34,15 @@
             "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
+        },
+        "fitter": {
+            "equation": ["Equation to Fit", "Equation"],
+            "parameters": ["Fit Parameters", "EquationVariables", ""],
+            "variable": ["Independent Variable", "EquationVariables", ""]
+        },
+        "fitReport": {
+            "x": ["X", "AnalysisParameter", "0"],
+            "y": ["Y", "AnalysisParameter", "1"]
         }
     },
     "view": {
@@ -80,8 +74,10 @@
         },
         "fitReport": {
             "title": "Best Fit",
-            "model": "fitter",
-            "advanced": []
+            "advanced": [
+                "x",
+                "y"
+            ]
         }
 
     }

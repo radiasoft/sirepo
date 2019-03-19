@@ -54,7 +54,7 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
 
     appState.whenModelsLoaded($scope, function() {
         appState.watchModelFields($scope, ['fitter.equation', 'fitter.variables'], function() {
-            self.validateEquation();
+            self.validateEquation(appState.models.fitter.equation);
         });
         $scope.$on('analysisData.changed', function() {
             frameCache.setFrameCount(0);
@@ -158,11 +158,8 @@ SIREPO.app.directive('equation', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            srdbg('eq', $scope.model);
-
             $scope.validate = function () {
                 //$scope.controller.validateEquation($scope.model.equation);
-
             };
 
         },
