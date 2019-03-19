@@ -36,7 +36,7 @@ async def _container_wait(container):
     while True:
         try:
             return await trio.run_sync_in_worker_thread(
-                functools.partial(container.wait, timeout=_CANCEL_POLL_INTERVAL)
+                functools.partial(container.wait, timeout=_CANCEL_POLL_INTERVAL),
             )
         # ReadTimeout is what the documentation says this raises.
         # ConnectionError is what it actually raises.
@@ -48,7 +48,7 @@ async def _container_wait(container):
 async def _clear_container(name):
     try:
         old_container = await trio.run_sync_in_worker_thread(
-            _DOCKER.containers.get, name
+            _DOCKER.containers.get, name,
         )
     except docker.errors.NotFound:
         pass

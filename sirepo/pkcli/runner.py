@@ -177,7 +177,7 @@ class _JobTracker:
                 # do. Throw away the tmp_dir and move on.
                 pkdlog(
                     '{} {}: job is already running; skipping',
-                    run_dir, jhash
+                    run_dir, jhash,
                 )
                 pkio.unchecked_remove(tmp_dir)
                 return
@@ -188,7 +188,7 @@ class _JobTracker:
                 # here? I don't know how those work.
                 pkdlog(
                     '{} {}: stale job is still running; killing it',
-                    run_dir, jhash
+                    run_dir, jhash,
                 )
                 await self.kill_all(run_dir)
 
@@ -304,7 +304,7 @@ async def _start_report_job(job_tracker, request):
 async def _report_job_status(job_tracker, request):
     pkdc('report_job_status: {}', request)
     return {
-        'status': job_tracker.report_job_status(request.run_dir, request.jhash).value
+        'status': job_tracker.report_job_status(request.run_dir, request.jhash).value,
     }
 
 
@@ -385,7 +385,7 @@ async def _main():
             job_tracker = _JobTracker(nursery)
             await trio.serve_listeners(
                 functools.partial(_handle_conn, job_tracker),
-                [listener]
+                [listener],
             )
 
 
