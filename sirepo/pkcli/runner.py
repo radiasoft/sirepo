@@ -263,7 +263,6 @@ class _JobTracker:
         result = await _BACKENDS[backend_info.backend].run_extract_job(
             run_dir, cmd, backend_info.info,
         )
-        pkdp(result)
 
         if result.stderr:
             pkdlog(
