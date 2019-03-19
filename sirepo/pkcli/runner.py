@@ -15,6 +15,7 @@ import curses
 import functools
 import os
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
 from sirepo import runner_client
@@ -35,7 +36,7 @@ _LISTEN_QUEUE = 1000
 
 _KILL_TIMEOUT_SECS = 3
 
-_BACKEND_INFO_FILENAME = 'backend.json'
+_BACKEND_INFO_BASENAME = 'backend.json'
 
 _BACKENDS = {
     'local': local_process,
@@ -207,7 +208,7 @@ class _JobTracker:
                 'backend': backend,
                 'info': report_job.backend_info,
             },
-            filename=run_dir.join(_BACKEND_INFO_FILENAME),
+            filename=run_dir.join(_BACKEND_INFO_BASENAME),
         )
 
         # And finally, start a background task to watch over it.
@@ -250,7 +251,12 @@ class _JobTracker:
                    run_dir, jhash)
             return {}
         # figure out which backend and any backend-specific info
-        backend_info = pkjson.load_any(run_dir.join(_BACKEND_INFO_FILENAME))
+        backend_info_file = run_dir.join(_BACKEND_INFO_BASENAME)
+        if backend_info_file.exists():
+            backend_info = pkjson.load_any(backend_info_file)
+        else:
+            # Legacy run_dir
+            backend_info = pkcollections.Dict(backend='local', info={})
 
         # run the job
         cmd = ['sirepo', 'extract', subcmd, *args]
