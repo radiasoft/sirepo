@@ -108,6 +108,10 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 
     function addRoute(routeName, isDefault) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
+        if (! routeInfo.config) {
+            // the route isn't configured for the current app
+            return;
+        }
         localRoutes[routeName] = routeInfo.route;
         var cfg = routeInfo.config;
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;

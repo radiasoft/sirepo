@@ -1,15 +1,12 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "analysis"
+        }
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": ["webcon.js"]
-        }
-    },
-    "localRoutes": {
-        "source": {
-            "config": {
-                "controller": "WebconSourceController as source",
-                "templateUrl": "/static/html/webcon-source.html"
-            }
         }
     },
     "enum": {
@@ -17,6 +14,21 @@
             ["linear", "Linear"],
             ["gaussian", "Gaussian"]
         ]
+    },
+    "localRoutes": {
+         "analysis": {
+            "route": "/analysis/:simulationId",
+            "config": {
+                "controller": "AnalysisController as analysis",
+                "templateUrl": "/static/html/webcon-analysis.html"
+            }
+        },
+       "source": {
+            "config": {
+                "controller": "WebconSourceController as source",
+                "templateUrl": "/static/html/webcon-source.html"
+            }
+        }
     },
     "model": {
         "fitter": {
@@ -26,6 +38,37 @@
         }
     },
     "view": {
+    },
+    "model": {
+        "analysisData": {
+            "file": ["Archive Data File", "InputFile"]
+        },
+        "analysisAnimation": {
+            "x": ["X Value", "AnalysisParameter", "0"],
+            "y1": ["Y1 Value", "AnalysisParameter", "1"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
+            "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
+            "notes": ["Notes", "Text", ""]
+        }
+    },
+    "view": {
+        "analysisData": {
+            "title": "Archive Data File",
+            "basic": [
+                "file"
+            ],
+            "advanced": []
+        },
+        "analysisAnimation": {
+            "title": "Analysis Plot",
+            "advanced": [
+                "x",
+                "y1",
+                "y2",
+                "y3",
+                "notes"
+            ]
+        },
         "fitter": {
             "title": "Fitter",
             "basic": [
@@ -40,5 +83,6 @@
             "model": "fitter",
             "advanced": []
         }
+
     }
 }
