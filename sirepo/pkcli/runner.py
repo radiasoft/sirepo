@@ -35,6 +35,7 @@ _LISTEN_QUEUE = 1000
 
 _KILL_TIMEOUT_SECS = 3
 
+_BACKEND_INFO_FILENAME = 'backend.json'
 
 _BACKENDS = {
     'local': local_process,
@@ -92,11 +93,11 @@ def _write_status(status, run_dir):
 
 
 class _JobInfo:
-    def __init__(self, run_dir, jhash, status, process):
+    def __init__(self, run_dir, jhash, status, report_job):
         self.run_dir = run_dir
         self.jhash = jhash
         self.status = status
-        self.process = process
+        self.report_job = report_job
         self.cancel_requested = False
 
 
@@ -163,7 +164,7 @@ class _JobTracker:
             run_dir, job_info.jhash,
         )
         job_info.cancel_requested = True
-        await job_info.process.kill(_KILL_TIMEOUT_SECS)
+        await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
 
     async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
@@ -195,12 +196,19 @@ class _JobTracker:
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
         # Start the job:
-        process = await _BACKENDS[backend].start(run_dir, cmd)
+        report_job = await _BACKENDS[backend].start_report_job(run_dir, cmd)
         # And update our records so we know it's running:
         job_info = _JobInfo(
-            run_dir, jhash, runner_client.JobStatus.RUNNING, process,
+            run_dir, jhash, runner_client.JobStatus.RUNNING, report_job,
         )
         self.report_jobs[run_dir] = job_info
+        pkjson.dump_pretty(
+            {
+                'backend': backend,
+                'info': report_job.backend_info,
+            },
+            filename=run_dir.join(_BACKEND_INFO_FILENAME),
+        )
 
         # And finally, start a background task to watch over it.
         self._nursery.start_soon(
@@ -213,7 +221,7 @@ class _JobTracker:
             # wait() somehow crashes
             returncode = None
             try:
-                returncode = await job_info.process.wait()
+                returncode = await job_info.report_job.wait()
             finally:
                 async with self.locks[run_dir]:
                     # Clear up our in-memory status
@@ -230,6 +238,33 @@ class _JobTracker:
                             run_dir, jhash, returncode,
                         )
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
+
+    async def run_extract_job(self, run_dir, jhash, cmd):
+        status = self.report_job_status(run_dir, jhash)
+        if status is runner_client.JobStatus.MISSING:
+            pkdlog('{} {}: report is missing; skipping extract job',
+                   run_dir, jhash)
+            return {}
+        # figure out which backend and any backend-specific info
+        backend_info = pkjson.load_any(run_dir.join(_BACKEND_INFO_FILENAME))
+
+        # run the job
+        result = await _BACKENDS[backend_info.backend].run_extract_job(
+            run_dir,
+            cmd,
+            backend_info.info,
+        )
+
+        if trio_process.returncode != 0 or stderr:
+            pkdlog(
+                'failed: {} {}: return code {}, stdout:\n{}\nstderr:\n{}',
+                run_dir, cmd, result.returncode,
+                result.stdout.decode('latin1'),
+                result.stderr.decode('latin1'),
+            )
+            raise AssertionError
+
+        return pkjson.load_any(result.stdout)
 
 
 _RPC_HANDLERS = {}
@@ -266,6 +301,15 @@ async def _cancel_report_job(job_tracker, request):
         return {}
     await job_tracker.kill_all(request.run_dir)
     return {}
+
+
+@_rpc_handler
+async def _run_extract_job(job_tracker, request):
+    return await job_tracker.run_extract_job(
+        request.run_dir,
+        request.jhash,
+        request.cmd,
+    )
 
 
 # XX should we just always acquire a per-job lock here, to make sure we never

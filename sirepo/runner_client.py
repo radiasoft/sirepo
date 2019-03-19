@@ -67,3 +67,12 @@ def cancel_report_job(run_dir, jhash):
     return _rpc({
         'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
     })
+
+
+def run_extract_job(run_dir, jhash, cmd):
+    return _rpc({
+        'action': 'run_extract_job',
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+        'cmd': cmd,
+    })

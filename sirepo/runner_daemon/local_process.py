@@ -28,7 +28,7 @@ def _subprocess_env():
     return env
 
 
-async def start(run_dir, cmd):
+async def start_report_job(run_dir, cmd):
     env = _subprocess_env()
     run_log_path = run_dir.join(template_common.RUN_LOG)
     # we're in py3 mode, and regular subprocesses will inherit our
@@ -45,10 +45,13 @@ async def start(run_dir, cmd):
             stderr=run_log,
             env=env,
         )
-    return _LocalProcess(trio_process)
+    return _LocalReportJob(trio_process)
 
 
-class _LocalProcess:
+class _LocalReportJob:
+    # No backend-specific per-process info
+    backend_info = {}
+
     def __init__(self, trio_process):
         self._trio_process = trio_process
 
@@ -63,3 +66,48 @@ class _LocalProcess:
     async def wait(self):
         await self._trio_process.wait()
         return self._trio_process.returncode
+
+
+async def run_extract_job(run_dir, cmd, backend_info):
+    env = _subprocess_env()
+    # we're in py3 mode, and regular subprocesses will inherit our
+    # environment, so we have to manually switch back to py2 mode.
+    env['PYENV_VERSION'] = 'py2'
+    cmd = ['pyenv', 'exec'] + cmd
+
+    # When the next version of Trio is released, we'll be able to replace all
+    # this with a call to trio.run_process(...)
+    trio_process = trio.Process(
+        cmd,
+        cwd=run_dir,
+        start_new_session=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
+    try:
+        async def collect(stream, out_array):
+            while True:
+                data = await trio_process.stdout.receive_some(4096)
+                if not data:
+                    break
+                out_array += data
+
+        stdout = bytearray()
+        stderr = bytearray()
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(collect, trio_process.stdout, stdout)
+            nursery.start_soon(collect, trio_process.stderr, stderr)
+            await trio_process.wait()
+    finally:
+        trio_process.kill()
+        await trio_process.aclose()
+
+    return pkcollections.Dict(
+        returncode=trio_process.returncode,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+    return stdout.decode('utf-8')
