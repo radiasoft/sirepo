@@ -230,6 +230,9 @@ class _JobTracker:
                     # Write status to disk
                     if job_info.cancel_requested:
                         _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                        await self.run_extract_job(
+                            run_dir, jhash, 'remove_last_frame', [],
+                        )
                     elif returncode == 0:
                         _write_status(runner_client.JobStatus.COMPLETED, run_dir)
                     else:
@@ -239,7 +242,8 @@ class _JobTracker:
                         )
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
 
-    async def run_extract_job(self, run_dir, jhash, cmd):
+    async def run_extract_job(self, run_dir, jhash, subcmd, args):
+        pkdlog('{} {}: {} {}', run_dir, jhash, subcmd, args)
         status = self.report_job_status(run_dir, jhash)
         if status is runner_client.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
@@ -249,18 +253,23 @@ class _JobTracker:
         backend_info = pkjson.load_any(run_dir.join(_BACKEND_INFO_FILENAME))
 
         # run the job
+        cmd = ['sirepo', 'extract', subcmd, *args]
         result = await _BACKENDS[backend_info.backend].run_extract_job(
-            run_dir,
-            cmd,
-            backend_info.info,
+            run_dir, cmd, backend_info.info,
         )
+        pkdp(result)
 
-        if trio_process.returncode != 0 or stderr:
+        if result.stderr:
             pkdlog(
-                'failed: {} {}: return code {}, stdout:\n{}\nstderr:\n{}',
-                run_dir, cmd, result.returncode,
-                result.stdout.decode('latin1'),
-                result.stderr.decode('latin1'),
+                '{} {}: got output on stderr:\n{}',
+                run_dir, jhash,
+                result.stderr.decode('utf-8', errors='ignore'),
+            )
+
+        if result.returncode != 0:
+            pkdlog(
+                '{} {}: failed with return code {}, stdout:\n{}',
+                run_dir, cmd, result.returncode, result.stdout.decode('latin1'),
             )
             raise AssertionError
 
@@ -308,7 +317,8 @@ async def _run_extract_job(job_tracker, request):
     return await job_tracker.run_extract_job(
         request.run_dir,
         request.jhash,
-        request.cmd,
+        request.subcmd,
+        request.args,
     )
 
 

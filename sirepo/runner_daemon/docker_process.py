@@ -6,15 +6,15 @@ u"""sirepo package
 """
 from __future__ import absolute_import, division, print_function
 
+from pykern import pkcollections
+from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo.template import template_common
 import contextlib
 import docker
 import functools
-from pykern import pkcollections
-from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import re
 import requests
 import shlex
-from sirepo.template import template_common
 import trio
 
 # How often threaded blocking operations should wake up and check for Trio
@@ -126,14 +126,14 @@ async def run_extract_job(run_dir, cmd, backend_info):
     container = await _make_container(run_dir, quoted_bash_cmd, 'extract')
     try:
         result = await _container_wait(container)
-        stdout = trio.run_sync_in_worker_thread(
+        stdout = await trio.run_sync_in_worker_thread(
             functools.partial(
                 container.logs,
                 stdout=True,
                 stderr=False,
             )
         )
-        stderr = trio.run_sync_in_worker_thread(
+        stderr = await trio.run_sync_in_worker_thread(
             functools.partial(
                 container.logs,
                 stdout=False,

@@ -69,10 +69,11 @@ def cancel_report_job(run_dir, jhash):
     })
 
 
-def run_extract_job(run_dir, jhash, cmd):
+def run_extract_job(run_dir, jhash, subcmd, *args):
     return _rpc({
         'action': 'run_extract_job',
         'run_dir': str(run_dir),
         'jhash': jhash,
-        'cmd': cmd,
+        'subcmd': subcmd,
+        'args': [pkjson.dump_pretty(arg) for arg in args],
     })

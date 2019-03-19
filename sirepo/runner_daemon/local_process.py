@@ -6,10 +6,11 @@ u"""sirepo package
 """
 from __future__ import absolute_import, division, print_function
 
-import os
-import re
+from pykern import pkcollections
 from sirepo import mpi
 from sirepo.template import template_common
+import os
+import re
 import subprocess
 import trio
 
@@ -89,7 +90,7 @@ async def run_extract_job(run_dir, cmd, backend_info):
     try:
         async def collect(stream, out_array):
             while True:
-                data = await trio_process.stdout.receive_some(4096)
+                data = await stream.receive_some(4096)
                 if not data:
                     break
                 out_array += data
