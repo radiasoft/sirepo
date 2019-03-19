@@ -479,14 +479,14 @@ def prepare_for_client(data):
     return data
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     if data['report'] == 'twissReport' or 'bunchReport' in data['report']:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            output_file = report_info.run_dir.join(_report_output_filename(data['report']))
+            output_file = run_dir.join(_report_output_filename(data['report']))
             if output_file.exists():
-                save_report_data(data, report_info.run_dir)
+                save_report_data(data, run_dir)
 
 
 def python_source_for_model(data, model):

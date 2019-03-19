@@ -954,7 +954,7 @@ def _simulation_run_status(data, quiet=False):
             is_running = False
             if rep.run_dir.exists():
                 if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep, data)
+                    template.prepare_output_file(rep.run_dir, data)
                 res2, err = simulation_db.read_result(rep.run_dir)
                 if err:
                     if simulation_db.is_parallel(data):

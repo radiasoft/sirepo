@@ -52,11 +52,10 @@ def background_percent_complete(is_running):
 # XX FIXME: can we avoid passing the whole data dict through here?
 @_extract_cmd
 def result(data):
-    rep = simulation_db.report_info(data)
     template = sirepo.template.import_module(data)
 
     if hasattr(template, 'prepare_output_file') and 'models' in data:
-        template.prepare_output_file(rep, data)
+        template.prepare_output_file(_run_dir(), data)
     # Basically this returns (state dict, None), or else (None, stderr string)
     res, err = simulation_db.read_result(_run_dir())
     if err and hasattr(template, 'parse_error_log'):

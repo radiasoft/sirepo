@@ -678,17 +678,17 @@ def prepare_for_save(data):
     return data
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     if data['report'] in ('brillianceReport', 'mirrorReport'):
         return
     #TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
-    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
-        output_file = report_info.run_dir.join(get_filename_for_model(data['report']))
+        output_file = run_dir.join(get_filename_for_model(data['report']))
         if output_file.exists():
             res = extract_report_data(str(output_file), data)
-            simulation_db.write_result(res, run_dir=report_info.run_dir)
+            simulation_db.write_result(res, run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
