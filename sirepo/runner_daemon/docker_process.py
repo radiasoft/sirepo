@@ -7,6 +7,7 @@ u"""sirepo package
 from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections
+from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo.template import template_common
 import contextlib
@@ -15,6 +16,7 @@ import functools
 import re
 import requests
 import shlex
+import shutil
 import trio
 
 # How often threaded blocking operations should wake up and check for Trio
@@ -58,7 +60,7 @@ async def _clear_container(name):
 
 
 # Helper w/ shared logic for start_report_job and run_extract_job
-async def _make_container(run_dir, quoted_bash_cmd, job_type):
+async def _make_container(run_dir, working_dir, quoted_bash_cmd, job_type):
     # We can't just pass the cmd directly to docker because we have to detour
     # through bash to set up our environment. But we do assume that it's
     # sufficiently well-behaved that shlex.quote will work.
@@ -77,9 +79,12 @@ async def _make_container(run_dir, quoted_bash_cmd, job_type):
             _DOCKER.containers.run,
             'radiasoft/sirepo',
             docker_cmd,
-            working_dir=str(run_dir),
+            # Mount the host's working_dir at run_dir inside the container
             # {host path: {'bind': container path, 'mode': 'rw'}}
-            volumes={str(run_dir): {'bind': str(run_dir), 'mode': 'rw'}},
+            volumes={str(working_dir): {'bind': str(run_dir), 'mode': 'rw'}},
+            # This path is interpreted inside the container, so it really uses
+            # working_dir as the working dir:
+            working_dir=str(run_dir),
             name=name,
             detach=True,
             init=True,
@@ -93,18 +98,22 @@ async def start_report_job(run_dir, cmd):
     quoted_outpath = shlex.quote(str(run_log_path))
     quoted_bash_cmd = f'{quoted_cmd} >{quoted_outpath} 2>&1'
 
-    container = await _make_container(run_dir, quoted_bash_cmd, 'report')
+    # Use a separate working dir, to make sure that the server isn't accessing
+    # the working dir manually
+    working_dir = run_dir + '-working-dir'
+    pkio.unchecked_remove(working_dir)
+    assert not working_dir.exists()
+    shutil.copytree(str(run_dir), str(working_dir))
 
-    return _DockerReportJob(container)
+    container = await _make_container(run_dir, working_dir, quoted_bash_cmd, 'report')
+
+    return _DockerReportJob(container, {'working_dir': str(working_dir)})
 
 
 class _DockerReportJob:
-    # no backend-specific per-process info.... yet
-    # later will have output dir, host, or whatever we need
-    backend_info = {}
-
-    def __init__(self, container):
+    def __init__(self, container, backend_info):
         self._container = container
+        self.backend_info = backend_info
 
     async def kill(self, grace_period):
         with contextlib.suppress(docker.errors.NotFound):
@@ -123,7 +132,10 @@ async def run_extract_job(run_dir, cmd, backend_info):
     quoted_bash_cmd = ' '.join(shlex.quote(c) for c in cmd)
     # We never run more than one extract job at a time in a given run_dir, so
     # no need to give them unique names.
-    container = await _make_container(run_dir, quoted_bash_cmd, 'extract')
+    working_dir = pkio.py_path(backend_info.working_dir)
+    container = await _make_container(
+        run_dir, working_dir, quoted_bash_cmd, 'extract',
+    )
     try:
         result = await _container_wait(container)
         stdout = await trio.run_sync_in_worker_thread(
