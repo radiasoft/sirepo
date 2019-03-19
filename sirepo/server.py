@@ -471,7 +471,6 @@ def api_runSimulation():
             }
             # XX TODO: prepare in a temp directory
             cmd, _ = simulation_db.prepare_simulation(data)
-            pkdp('!API_RUN {}', cmd)
             # XX TODO: prepare_simulation shouldn't create this file in the
             # first place -- managing this file is runner.py's job.
             pkio.unchecked_remove(run_dir.join('status'))

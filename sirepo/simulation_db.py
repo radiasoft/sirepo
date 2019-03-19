@@ -546,7 +546,6 @@ def prepare_simulation(data):
         'run-background' if is_p else 'run',
         str(run_dir),
     ]
-    pkdp('!PREP CMD {}', cmd)
     return cmd, run_dir
 
 
@@ -945,7 +944,6 @@ def write_status(status, run_dir):
 
 
 def _create_example_and_lib_files(simulation_type):
-    pkdp('!EXAMPLES {}', simulation_type)
     d = simulation_dir(simulation_type)
     pkio.mkdir_parent(d)
     for s in examples(simulation_type):
