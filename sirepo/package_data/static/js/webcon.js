@@ -12,20 +12,28 @@ SIREPO.appFieldEditors = [
       '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
     '</div>',
     '<div data-ng-switch-when="Equation" class="col-sm-7">',
-      '<div data-equation="equation" data-model="model" data-field="field" data-parent-controller="source"></div>',
+      '<div data-equation="equation" data-model="model" data-field="field"></div>',
+      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
     '</div>',
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
-      '<div data-equation-variables="" data-model="model" data-field="field"></div>',
+      '<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
+      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+      //'<div data-equation-variables="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
 
 
-SIREPO.app.factory('webconService', function(appState) {
+SIREPO.app.factory('webconService', function(appState, validationService) {
     var self = {};
+    validationService.setFieldValidator('equation', self.validateEquation);
     self.analysisParameters = null;
 
     self.setAnalysisParameters = function(columnInfo) {
         self.analysisParameters = columnInfo;
+    };
+
+    self.validateEquation = function (fitModel) {
+        srdbg('validate', fitModel);
     };
 
     return self;
@@ -47,15 +55,7 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
         return appState.isLoaded() && appState.applicationState().analysisData.file;
     };
 
-    self.validateEquation = function(eq) {
-        srdbg('VALIDATING', eq);
-    };
-
-
     appState.whenModelsLoaded($scope, function() {
-        appState.watchModelFields($scope, ['fitter.equation', 'fitter.variables'], function() {
-            self.validateEquation(appState.models.fitter.equation);
-        });
         $scope.$on('analysisData.changed', function() {
             frameCache.setFrameCount(0);
             if (appState.models.analysisData.file) {
@@ -145,44 +145,55 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('equation', function(appState) {
+SIREPO.app.directive('equation', function(appState, webconService) {
     return {
         scope: {
-            controller: '=parentController',
             model: '=',
             field: '='
         },
         template: [
             '<div>',
-                '<input type="text" data-ng-model="model[field]" data-ng-change="validate()" class="form-control" required>',
+                '<input type="text" data-ng-model="model[field]" class="form-control" required>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
-            $scope.validate = function () {
+        controller: function ($scope) {
+            srdbg('eq val eq', $scope.model);
+            $scope.webconservice = webconService;
+
+            this.tmp = $scope.model;
+            //$scope.validate = function () {
+            //    srdbg('val eq', $scope.model);
                 //$scope.controller.validateEquation($scope.model.equation);
-            };
+            //};
 
         },
     };
 });
 
-SIREPO.app.directive('equationVariables', function() {
+SIREPO.app.directive('equationVariables', function(webconService) {
     return {
         restrict: 'A',
-        scope: {
-            equation: '<',
-            field: '=',
-            model: '=',
+        require: ['ngModel', '^equation'],
+        //scope: {
+        //    equation: '<',
+        //    field: '=',
+        //    model: '=',
+        //},
+        //template: [
+        //    '<div>',
+        //        '<input type="text" data-ng-model="model[field]" data-ng-change="validate()" class="form-control" required />',
+        //    '</div>'
+        //].join(''),
+        link: function(scope, element, attrs, ngModel) {
+            srdbg('ngmocel', ngModel, scope);
         },
-        template: [
-            '<div>',
-                '<input type="text" data-ng-model="model[field]" class="form-control" required />',
-            '</div>'
-        ].join(''),
         controller: function($scope) {
+            //srdbg('eq', $scope.model);
             var opsRegEx = /[\+\-\*/\^\(\)]/;
             var reserved = ['sin', 'cos', 'tan', 'abs'];
             $scope.values = null;
+            $scope.webconservice = webconService;
+
             $scope.didChange = function() {
                 $scope.field = $scope.values.join(', ');
             };
@@ -192,6 +203,10 @@ SIREPO.app.directive('equationVariables', function() {
                 }
                 return $scope.values;
             };
+            $scope.validate = function () {
+                srdbg('val eq');
+                //$scope.controller.validateEquation($scope.model.equation);
+            };
         },
     };
 });
@@ -199,19 +214,23 @@ SIREPO.app.directive('equationVariables', function() {
 
 SIREPO.app.directive('fitReport', function(appState) {
     return {
-        //scope: {
-        //    controller: '=parentController',
-        //    model: '=',
-        //},
+        scope: {
+            controller: '=parentController',
+        },
         template: [
-            '<div class="col-md-6 col-xl-4">',
-                '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fitterReport"></div>',
-                //'<div data-equation="" data-model="model" data-field="field"></div>',
-            '</div>',
+            '<div data-basic-editor-panel="" data-view-name="fitter" data-parent-controller="controller"></div>',
+            '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport"></div>',
         ].join(''),
         controller: function($scope) {
-            srdbg('scope', $scope);
-            //srdbg('model/field', $scope.model, $scope.field);
+
+            $scope.$on('fitter.changed', function() {
+                appState.saveChanges('fitReport', function () {
+                });
+            });
+            $scope.$on('fitReport.changed', function() {
+                srdbg('FR', appState.models);
+            });
+
         },
     };
 });

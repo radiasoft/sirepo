@@ -41,6 +41,7 @@
             "variable": ["Independent Variable", "EquationVariables", ""]
         },
         "fitReport": {
+            "parameterValues": ["_", "EquationVariables", ""],
             "x": ["X", "AnalysisParameter", "0"],
             "y": ["Y", "AnalysisParameter", "1"]
         }
