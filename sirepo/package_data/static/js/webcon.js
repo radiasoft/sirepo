@@ -16,9 +16,9 @@ SIREPO.appFieldEditors = [
       '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
     '</div>',
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
-      '<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
-      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-      //'<div data-equation-variables="" data-model="model" data-field="field"></div>',
+      //'<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
+      //'<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+      '<div data-equation-variables="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
 
@@ -173,20 +173,20 @@ SIREPO.app.directive('equation', function(appState, webconService) {
 SIREPO.app.directive('equationVariables', function(webconService) {
     return {
         restrict: 'A',
-        require: ['ngModel', '^equation'],
-        //scope: {
-        //    equation: '<',
-        //    field: '=',
-        //    model: '=',
-        //},
-        //template: [
-        //    '<div>',
-        //        '<input type="text" data-ng-model="model[field]" data-ng-change="validate()" class="form-control" required />',
-        //    '</div>'
-        //].join(''),
-        link: function(scope, element, attrs, ngModel) {
-            srdbg('ngmocel', ngModel, scope);
+        //require: ['ngModel', '^equation'],
+        scope: {
+            equation: '<',
+            field: '=',
+            model: '=',
         },
+        template: [
+            '<div>',
+                '<input type="text" data-ng-model="model[field]" data-ng-change="validate()" class="form-control" required />',
+            '</div>'
+        ].join(''),
+        //link: function(scope, element, attrs, ngModel) {
+        //    srdbg('ngmocel', ngModel, scope);
+        //},
         controller: function($scope) {
             //srdbg('eq', $scope.model);
             var opsRegEx = /[\+\-\*/\^\(\)]/;
