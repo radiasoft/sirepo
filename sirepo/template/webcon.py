@@ -53,12 +53,6 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'folder' not in data.models.simulation:
-        if data.models.simulation.name in _EXAMPLE_FOLDERS:
-            data.models.simulation.folder = _EXAMPLE_FOLDERS[data.models.simulation.name]
-        else:
-            data.models.simulation.folder = '/'
-
 
 def get_data_file(run_dir, model, frame, options=None):
     f = run_dir.join(_BEAM_DATA_FILE)
