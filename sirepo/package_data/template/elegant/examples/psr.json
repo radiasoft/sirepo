@@ -1142,7 +1142,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 23,
-            "folder": "/",
+            "folder": "/Examples",
             "isExample": false,
             "name": "Los Alamos Proton Storage Ring",
             "outOfSessionSimulationId": "",

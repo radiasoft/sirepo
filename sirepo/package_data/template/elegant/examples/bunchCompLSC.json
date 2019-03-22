@@ -3932,7 +3932,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 28,
-            "folder": "/",
+            "folder": "/Examples",
             "isExample": true,
             "name": "bunchCompLSC - lattice",
             "simulationId": "nTNJoEbQ",
