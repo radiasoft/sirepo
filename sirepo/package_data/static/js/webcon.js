@@ -17,7 +17,7 @@ SIREPO.appFieldEditors = [
     '</div>',
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
       //'<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
-      //'<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
       '<div data-equation-variables="" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
@@ -53,6 +53,10 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
 
     self.hasFile = function() {
         return appState.isLoaded() && appState.applicationState().analysisData.file;
+    };
+
+    self.isFitterConfigured = function() {
+        return appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -173,7 +177,6 @@ SIREPO.app.directive('equation', function(appState, webconService) {
 SIREPO.app.directive('equationVariables', function(webconService) {
     return {
         restrict: 'A',
-        //require: ['ngModel', '^equation'],
         scope: {
             equation: '<',
             field: '=',
@@ -188,7 +191,6 @@ SIREPO.app.directive('equationVariables', function(webconService) {
         //    srdbg('ngmocel', ngModel, scope);
         //},
         controller: function($scope) {
-            //srdbg('eq', $scope.model);
             var opsRegEx = /[\+\-\*/\^\(\)]/;
             var reserved = ['sin', 'cos', 'tan', 'abs'];
             $scope.values = null;
@@ -219,7 +221,7 @@ SIREPO.app.directive('fitReport', function(appState) {
         },
         template: [
             '<div data-basic-editor-panel="" data-view-name="fitter" data-parent-controller="controller"></div>',
-            '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport"></div>',
+            '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport"></div>',
         ].join(''),
         controller: function($scope) {
 

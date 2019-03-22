@@ -23,9 +23,6 @@ import re
 SIM_TYPE = 'webcon'
 
 _BEAM_DATA_FILE = 'beam_data.txt'
-_EXAMPLE_FOLDERS = pkcollections.Dict({
-    'EPICS 00': '/Examples'
-})
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 WANT_BROWSER_FRAME_CACHE = False
@@ -84,6 +81,7 @@ def get_fit(data):
     plots = [{
         'points': (y_vals * col_info['scale'][1]).tolist(),
         'label': 'data',
+        'style': 'scatter',
     }, {
         'points': (fit_y * col_info['scale'][1]).tolist(),
         'label': 'fit',
