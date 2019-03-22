@@ -1169,7 +1169,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 19,
-            "folder": "/Examples",
+            "folder": "/",
             "isExample": true,
             "name": "Compact Storage Ring",
             "simulationId": "enU56RuU",

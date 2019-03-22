@@ -216,7 +216,6 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
-    template_common.organize_example(data)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):

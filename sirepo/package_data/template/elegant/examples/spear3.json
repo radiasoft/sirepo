@@ -2133,7 +2133,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 61,
-            "folder": "/Examples",
+            "folder": "/",
             "isExample": true,
             "name": "SPEAR3",
             "outOfSessionSimulationId": "VF5LOjAg",

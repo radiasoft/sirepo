@@ -2533,7 +2533,7 @@
         "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 20,
-            "folder": "/Examples",
+            "folder": "/",
             "isExample": true,
             "name": "bunchComp - fourDipoleCSR",
             "simulationId": "6GB6G1QL",
