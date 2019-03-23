@@ -22,7 +22,6 @@ import re
 
 SIM_TYPE = 'webcon'
 
-_BEAM_DATA_FILE = 'beam_data.txt'
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 WANT_BROWSER_FRAME_CACHE = False
@@ -52,8 +51,7 @@ def fixup_old_data(data):
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
 
 def get_data_file(run_dir, model, frame, options=None):
-    f = run_dir.join(_BEAM_DATA_FILE)
-    return f.basename, f.read(), 'text/csv'
+    assert False, 'not implemented'
 
 
 def get_animation_name(data):
@@ -64,7 +62,6 @@ def get_fit(data):
     fit_in = _analysis_data_file(data)
     col1 = int(data.models.fitReport.x)
     col2 = int(data.models.fitReport.y)
-    pkdp('!FIT DATA COLS {}, {}', col1, col2)
 
     x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
     col_info = _column_info(fit_in)
@@ -126,6 +123,7 @@ def get_simulation_frame(run_dir, data, model_data):
         plots.append({
             'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
             'label': _label(col_info, idx),
+            'style': 'scatter',
         })
     return template_common.parameter_plot(x, plots, data, {
         'title': '',

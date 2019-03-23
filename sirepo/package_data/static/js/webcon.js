@@ -3,7 +3,6 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
       '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
@@ -18,7 +17,7 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
       //'<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
       '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-      '<div data-equation-variables="" data-model="model" data-field="field"></div>',
+      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form"></div>',
     '</div>',
 ].join('');
 
@@ -161,7 +160,6 @@ SIREPO.app.directive('equation', function(appState, webconService) {
             '</div>',
         ].join(''),
         controller: function ($scope) {
-            srdbg('eq val eq', $scope.model);
             $scope.webconservice = webconService;
 
             this.tmp = $scope.model;
@@ -180,6 +178,7 @@ SIREPO.app.directive('equationVariables', function(webconService) {
         scope: {
             equation: '<',
             field: '=',
+            form: '=',
             model: '=',
         },
         template: [
@@ -191,23 +190,38 @@ SIREPO.app.directive('equationVariables', function(webconService) {
         //    srdbg('ngmocel', ngModel, scope);
         //},
         controller: function($scope) {
+
             var opsRegEx = /[\+\-\*/\^\(\)]/;
             var reserved = ['sin', 'cos', 'tan', 'abs'];
+
             $scope.values = null;
             $scope.webconservice = webconService;
 
             $scope.didChange = function() {
-                $scope.field = $scope.values.join(', ');
+                $scope.model[$scope.field] = $scope.values.join(', ');
             };
             $scope.parseValues = function() {
-                if ($scope.field && ! $scope.values) {
-                    $scope.values = $scope.field.split(/\s*,\s*/);
+                var f = $scope.model[$scope.field];
+                srdbg('pares', f);
+                if (f && ! $scope.values) {
+                    $scope.values = f.split(/\s*,\s*/);
                 }
                 return $scope.values;
             };
             $scope.validate = function () {
-                srdbg('val eq');
-                //$scope.controller.validateEquation($scope.model.equation);
+                var isValid = true;
+                var eqn = $scope.model.equation;
+                srdbg('v', eqn, $scope.values);
+                if(! eqn) {
+                   $scope.form.$valid = false;
+                   return;
+                }
+                $scope.parseValues();
+                $scope.values.forEach(function (val) {
+                    srdbg('checking', val, 'at', eqn.indexOf(val));
+                    isValid = isValid && eqn.indexOf(val) >= 0;
+                });
+                $scope.form.$valid = isValid;
             };
         },
     };
