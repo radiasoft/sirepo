@@ -245,7 +245,8 @@ def parameter_plot(x, plots, model, plot_fields=None):
 
 
 def organize_example(data):
-    if data.models.simulation.isExample:
+    pkdp('EXAMPR? {}', data)
+    if 'isExample' in data.models.simulation and data.models.simulation.isExample:
         if data.models.simulation.folder == '/':
             data.models.simulation.folder = '/Examples'
 

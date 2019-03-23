@@ -221,6 +221,7 @@ def fixup_old_data(data):
         data['models']['simulation']['folder'] = '/'
     for m in ('beamAnimation', 'fieldAnimation', 'particleAnimation'):
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    template_common.organize_example(data)
 
 
 def generate_parameters_file(data, is_parallel=False):

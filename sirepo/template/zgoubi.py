@@ -156,6 +156,7 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    template_common.organize_example(data)
 
 
 def get_animation_name(data):

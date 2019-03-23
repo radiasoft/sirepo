@@ -157,6 +157,7 @@ def fixup_old_data(data):
         beam['longitudinalFile1d'] = ''
         beam['longitudinalFile2d'] = ''
         beam['cstFile'] = ''
+    template_common.organize_example(data)
 
 
 def get_animation_name(data):

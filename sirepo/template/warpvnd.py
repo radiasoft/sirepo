@@ -126,6 +126,7 @@ def fixup_old_data(data):
             'zCell2': int(grid['num_z'] * 2. / 3),
             'zCell3': int(grid['num_z'] * 4. / 5),
         }
+    template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir):
