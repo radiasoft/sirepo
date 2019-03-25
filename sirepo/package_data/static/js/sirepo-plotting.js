@@ -2676,7 +2676,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
     return {
         restrict: 'A',
         scope: {
-            join: '<',
             modelName: '@',
             reportId: '<',
         },

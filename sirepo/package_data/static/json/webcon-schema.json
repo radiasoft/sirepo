@@ -37,11 +37,11 @@
         },
         "fitter": {
             "equation": ["Equation to Fit", "Equation"],
-            "parameters": ["Fit Parameters", "EquationVariables", ""],
+            "parameters": ["Fit Parameters", "EquationParameters", ""],
             "variable": ["Independent Variable", "EquationVariables", ""]
         },
         "fitReport": {
-            "parameterValues": ["_", "EquationVariables", ""],
+            "parameterValues": ["_", "EquationParameters", ""],
             "x": ["X", "AnalysisParameter", "0"],
             "y": ["Y", "AnalysisParameter", "1"]
         }

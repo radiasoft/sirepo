@@ -15,9 +15,10 @@ SIREPO.appFieldEditors = [
       '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
     '</div>',
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
-      //'<input data-equation-variables="" data-ng-model="model[field]" data-equation="equation" class="form-control" data-lpignore="true" required />',
-      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
-      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form"></div>',
+      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
+    '</div>',
+    '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
+      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
     '</div>',
 ].join('');
 
@@ -172,61 +173,86 @@ SIREPO.app.directive('equation', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('equationVariables', function(webconService) {
+SIREPO.app.directive('equationVariables', function() {
     return {
         restrict: 'A',
         scope: {
-            equation: '<',
             field: '=',
             form: '=',
+            isVariable: '<',
             model: '=',
         },
         template: [
             '<div>',
-                '<input type="text" data-ng-model="model[field]" data-ng-change="validate()" class="form-control" required />',
-            '</div>'
+                '<input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
-        //link: function(scope, element, attrs, ngModel) {
-        //    srdbg('ngmocel', ngModel, scope);
-        //},
-        controller: function($scope) {
-
-            var opsRegEx = /[\+\-\*/\^\(\)]/;
+        controller: function($scope, $element) {
+            var opsRegEx = /[\+\-\*/\^\(\)\%]/;
             var reserved = ['sin', 'cos', 'tan', 'abs'];
 
-            $scope.values = null;
-            $scope.webconservice = webconService;
-
-            $scope.didChange = function() {
-                $scope.model[$scope.field] = $scope.values.join(', ');
-            };
-            $scope.parseValues = function() {
-                var f = $scope.model[$scope.field];
-                srdbg('pares', f);
-                if (f && ! $scope.values) {
-                    $scope.values = f.split(/\s*,\s*/);
-                }
-                return $scope.values;
-            };
-            $scope.validate = function () {
-                var isValid = true;
-                var eqn = $scope.model.equation;
-                srdbg('v', eqn, $scope.values);
-                if(! eqn) {
-                   $scope.form.$valid = false;
-                   return;
-                }
-                $scope.parseValues();
-                $scope.values.forEach(function (val) {
-                    srdbg('checking', val, 'at', eqn.indexOf(val));
-                    isValid = isValid && eqn.indexOf(val) >= 0;
-                });
-                $scope.form.$valid = isValid;
-            };
+            $scope.equation = $scope.model.equation;
         },
     };
 });
 
+SIREPO.app.directive('validVariableOrParam', function(utilities) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+         link: function(scope, element, attrs, ngModel) {
+
+            function tokens(unique) {
+                var t = (ngModel.$viewValue || '').split(/\s*,\s*/);
+                if(unique) {
+                    return utilities.unique(t);
+                }
+                return t;
+            }
+
+            function isUnique (val, arr) {
+                var i = arr.indexOf(val);
+                if(i < 0) {
+                    throw val + ': Value not in array';
+                }
+                return i === arr.lastIndexOf(val);
+            }
+
+            function validateParam(p) {
+                scope.warningText = '';
+                if(! /^[a-zA-Z]+$/.test(p)) {
+                    scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
+                    return false;
+                }
+                if(! scope.isVariable && p === scope.model.variable) {
+                    scope.warningText = p + ' is an independent variable';
+                    return false;
+                }
+                if(scope.model.equation.indexOf(p) < 0) {
+                    scope.warningText = p + ' does not appear in the equation';
+                    return false;
+                }
+                if(! isUnique(p, tokens())) {
+                    scope.warningText = p + ' is duplicated';
+                    return false;
+                }
+
+                return true;
+            }
+
+            ngModel.$validators.validTokens = (function (v) {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/)
+                    .filter(function (p) {
+                        return p.length > 0;
+                    })
+                    .reduce(function (valid, p) {
+                        return valid && validateParam(p);
+                    }, true);
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('fitReport', function(appState) {
     return {
