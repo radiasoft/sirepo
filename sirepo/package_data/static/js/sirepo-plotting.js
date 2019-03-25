@@ -2672,7 +2672,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -2680,11 +2680,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             reportId: '<',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var includeForDomain = [];
             var plotLabels = [];
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
+            $scope.latexTitle = '';
             $scope.wantLegend = true;
 
             function build2dPointsForPlot(plotIndex) {
@@ -2920,6 +2921,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                     }
                 }
+
+                $($element).find('.latex-title').eq(0).html(mathRendering.mathAsHTML(json.latex_label, {displayMode: true}));
+
                 //TODO(pjm): onRefresh indicates an embedded header, needs improvement
                 $scope.margin.top = json.title
                     ? 50

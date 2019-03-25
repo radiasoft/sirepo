@@ -66,38 +66,34 @@ def get_fit(data):
     x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
     col_info = _column_info(fit_in)
 
-    fit_y, param_vals = _fit_to_equation(
+    fit_y, param_vals, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
         data.models.fitter.equation,
         data.models.fitter.variable,
         data.models.fitter.parameters
     )
-    #data.models.fitter.parameterValues = param_vals.tolist()
+    data.models.fitReport.parameterValues = param_vals.tolist()
 
-    plots = [{
-        'points': (y_vals * col_info['scale'][1]).tolist(),
-        'label': 'data',
-        'style': 'scatter',
-    }, {
-        'points': (fit_y * col_info['scale'][1]).tolist(),
-        'label': 'fit',
-    }]
+    plots = [
+        {
+            'points': (y_vals * col_info['scale'][1]).tolist(),
+            'label': 'data',
+            'style': 'scatter',
+        },
+        {
+            'points': (fit_y * col_info['scale'][1]).tolist(),
+            'label': 'fit',
+        }
+    ]
 
     return template_common.parameter_plot(x_vals.tolist(), plots, data, {
         'title': '',
         'y_label': _label(col_info, 1),
         'x_label': _label(col_info, 0),
-        'pVals': param_vals.tolist()
+        'p_vals': param_vals.tolist(),
+        'latex_label': '$y = ' + latex_label + '$'
     })
-    #return {
-    #    'plot': plot,
-    #    'pVals': param_vals.tolist()
-    #}
-    #return {
-    #    'title': 'Best Fit',
-    #    'fits': param_vals.tolist()
-    #}
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -237,14 +233,18 @@ def _fit_to_equation(x, y, equation, var, params):
 
     p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
     p_subs = []
+    p_rounded = []
     for sidx, p in enumerate(p_vals, 1):
         s = syms[sidx]
         p_subs.append((s, p))
+        p_rounded.append((s, np.round(p, 3)))
     y_fit = sym_curve.subs(p_subs)
+    y_fit_rounded = sym_curve.subs(p_rounded)
 
     y_fit_l = sp.lambdify(var, y_fit, 'numpy')
 
-    return (y_fit_l(x), p_vals)
+    return (y_fit_l(x), p_vals, sp.latex(y_fit_rounded))
+
 
 def _safe_index(values, idx):
     idx = int(idx)

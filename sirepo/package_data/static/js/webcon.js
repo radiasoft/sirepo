@@ -203,12 +203,8 @@ SIREPO.app.directive('validVariableOrParam', function(utilities) {
         require: 'ngModel',
          link: function(scope, element, attrs, ngModel) {
 
-            function tokens(unique) {
-                var t = (ngModel.$viewValue || '').split(/\s*,\s*/);
-                if(unique) {
-                    return utilities.unique(t);
-                }
-                return t;
+            function tokens() {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/);
             }
 
             function isUnique (val, arr) {
@@ -254,23 +250,31 @@ SIREPO.app.directive('validVariableOrParam', function(utilities) {
     };
 });
 
-SIREPO.app.directive('fitReport', function(appState) {
+SIREPO.app.directive('fitReport', function(appState, mathRendering) {
     return {
         scope: {
             controller: '=parentController',
         },
         template: [
             '<div data-basic-editor-panel="" data-view-name="fitter" data-parent-controller="controller"></div>',
-            '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport"></div>',
+            '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport">',
+            '</div>',
         ].join(''),
         controller: function($scope) {
+
+            $scope.latexLabel = function() {
+
+            };
 
             $scope.$on('fitter.changed', function() {
                 appState.saveChanges('fitReport', function () {
                 });
             });
             $scope.$on('fitReport.changed', function() {
-                srdbg('FR', appState.models);
+                var focusText = $('.focus-hint');
+                var str = '';
+                //srdbg('FR', appState.models, $scope, focusText);
+
             });
 
         },
