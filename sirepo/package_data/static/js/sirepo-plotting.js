@@ -2683,6 +2683,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         controller: function($scope, $element) {
             var includeForDomain = [];
             var plotLabels = [];
+            var childPlots = {};
+
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
             $scope.latexTitle = '';
@@ -2708,6 +2710,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 var itemWidth;
                 plots.forEach(function(plot, i) {
+                    if(plot._parent) {
+                        return;
+                    }
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     item.append('text')
@@ -2790,6 +2795,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function togglePlot(pIndex) {
                 setPlotVisible(pIndex, isPlotVisible(pIndex));
+                (childPlots[pIndex] || []).forEach(function (i) {
+                    setPlotVisible(i, isPlotVisible(i));
+                });
             }
 
             function vIcon(pIndex) {
@@ -2883,6 +2891,19 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
+                    var strokeWidth = 2.0;
+                    if(plot._parent) {
+                        strokeWidth = 1.0;
+                        var parent = plots.filter(function (p, j) {
+                            return j !== i && p.label === plot._parent;
+                        })[0];
+                        if(parent) {
+                            var pIndex = plots.indexOf(parent);
+                            var cp = childPlots[pIndex] || [];
+                            cp.push(i);
+                            childPlots[pIndex] = cp;
+                        }
+                    }
                     if(plot.style === 'scatter') {
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
@@ -2899,6 +2920,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         viewport.append('path')
                             .attr('class', 'param-plot line line-color')
                             .style('stroke', plot.color)
+                            .style('stroke-width', strokeWidth)
                             .datum(plot.points);
                     }
                     // must create extra focus points here since we don't know how many to make

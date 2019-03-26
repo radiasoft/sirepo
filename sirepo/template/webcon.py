@@ -66,7 +66,7 @@ def get_fit(data):
     x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
     col_info = _column_info(fit_in)
 
-    fit_y, param_vals, latex_label = _fit_to_equation(
+    fit_y, fit_y_min, fit_y_max, param_vals, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
         data.models.fitter.equation,
@@ -74,6 +74,7 @@ def get_fit(data):
         data.models.fitter.parameters
     )
     data.models.fitReport.parameterValues = param_vals.tolist()
+
 
     plots = [
         {
@@ -84,6 +85,16 @@ def get_fit(data):
         {
             'points': (fit_y * col_info['scale'][1]).tolist(),
             'label': 'fit',
+        },
+        {
+            'points': (fit_y_min * col_info['scale'][1]).tolist(),
+            'label': '',
+            '_parent': 'fit'
+        },
+        {
+            'points': (fit_y_max * col_info['scale'][1]).tolist(),
+            'label': '',
+            '_parent': 'fit'
         }
     ]
 
@@ -231,24 +242,39 @@ def _fit_to_equation(x, y, equation, var, params):
     syms = sp.symbols(sym_str)
     sym_curve_l = sp.lambdify(syms, sym_curve, 'numpy')
 
+    # feed a uniform x distribution to the function?  or sort?
+    #x_uniform = np.linspace(np.min(x), np.max(x), 100)
+
     p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
     sigma = np.sqrt(np.diagonal(pcov))
-    bound_upper = sym_curve_l(x, *(p_vals + sigma))
-    bound_lower = sym_curve_l(x, *(p_vals - sigma))
-
 
     p_subs = []
+    p_subs_min = []
+    p_subs_max = []
     p_rounded = []
+
+    # exclude the symbol of the variable when subbing
     for sidx, p in enumerate(p_vals, 1):
+        sig = sigma[sidx - 1]
+        p_min = p - 2 * sig
+        p_max = p + 2 * sig
         s = syms[sidx]
         p_subs.append((s, p))
+        p_subs_min.append((s, p_min))
+        p_subs_max.append((s, p_max))
         p_rounded.append((s, np.round(p, 3)))
     y_fit = sym_curve.subs(p_subs)
+    y_fit_min = sym_curve.subs(p_subs_min)
+    y_fit_max = sym_curve.subs(p_subs_max)
+
+    # used for the laTeX label - rounding should take size of uncertainty into account
     y_fit_rounded = sym_curve.subs(p_rounded)
 
     y_fit_l = sp.lambdify(var, y_fit, 'numpy')
+    y_fit_min_l = sp.lambdify(var, y_fit_min, 'numpy')
+    y_fit_max_l = sp.lambdify(var, y_fit_max, 'numpy')
 
-    return (y_fit_l(x), p_vals, sp.latex(y_fit_rounded))
+    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sp.latex(y_fit_rounded)
 
 
 def _safe_index(values, idx):

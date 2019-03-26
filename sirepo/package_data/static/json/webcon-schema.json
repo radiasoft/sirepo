@@ -13,6 +13,10 @@
         "EquationPresets": [
             ["linear", "Linear"],
             ["gaussian", "Gaussian"]
+        ],
+        "PlotStyles": [
+            ["line", "Line"],
+            ["scatter", "Scatter"]
         ]
     },
     "localRoutes": {
@@ -41,7 +45,8 @@
             "variable": ["Independent Variable", "EquationVariables", ""]
         },
         "fitReport": {
-            "parameterValues": ["_", "EquationParameters", ""],
+            "parameterSigmas": ["_", "String", ""],
+            "parameterValues": ["_", "String", ""],
             "x": ["X", "AnalysisParameter", "0"],
             "y": ["Y", "AnalysisParameter", "1"]
         }
