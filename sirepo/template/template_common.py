@@ -252,6 +252,12 @@ def parameter_plot(x, plots, model, plot_fields=None):
     return res
 
 
+def organize_example(data):
+    if 'isExample' in data.models.simulation and data.models.simulation.isExample:
+        if data.models.simulation.folder == '/':
+            data.models.simulation.folder = '/Examples'
+
+
 def parse_animation_args(data, key_map):
     """Parse animation args according to key_map
 

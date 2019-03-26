@@ -4,10 +4,6 @@
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
     }
-    .popover {
-      max-width: none;
-      width: 100%;
-    }
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
@@ -121,6 +117,10 @@
       background-color: white;
     }
 
+    .sr-beamline-popover {
+      max-width: none;
+      width: 100%;
+    }
     .sr-beamline-element-title {
       font-size: 16px;
       font-weight: 700;
