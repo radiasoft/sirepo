@@ -8,6 +8,7 @@ u"""Operations run inside the report directory to extract data.
 from pykern import pkio
 from pykern import pkjson
 from sirepo import simulation_db
+from sirepo.template import template_common
 import functools
 import sirepo
 import sys
@@ -17,8 +18,8 @@ import sys
 # json to stdout.
 def _extract_cmd(fn):
     @functools.wraps(fn)
-    def wrapper(*args):
-        result = fn(*[pkjson.load_any(arg) for arg in args])
+    def wrapper(arg):
+        result = fn(*pkjson.load_any(arg))
         encoded = pkjson.dump_pretty(result)
         sys.stdout.write(encoded)
     return wrapper
@@ -30,7 +31,9 @@ def _run_dir():
 
 
 def _params():
-    return pkjson.load_any(_run_dir().join('in.json'))
+    return simulation_db.read_json(
+        template_common.INPUT_BASE_NAME, run_dir=_run_dir(),
+    )
 
 
 @_extract_cmd

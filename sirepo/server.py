@@ -470,13 +470,9 @@ def api_runSimulation():
                 'startTime': int(time.time()),
                 'state': 'pending',
             }
-            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + '.tmp'
+            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            if feature_config.cfg.runner_daemon_docker:
-                backend = 'docker'
-            else:
-                backend = 'local'
-            runner_client.start_report_job(run_dir, jhash, backend, cmd, tmp_dir)
+            runner_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:
@@ -1076,4 +1072,5 @@ cfg = pkconfig.init(
     db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    backend=('local', str, 'Select runner daemon backend (e.g. "local", "docker")'),
 )

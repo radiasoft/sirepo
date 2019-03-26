@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""sirepo package
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import mpi
 from sirepo.template import template_common
 import contextlib
 import docker
@@ -47,14 +48,11 @@ async def _container_wait(container):
             pass
 
 
-async def _clear_container(name):
-    try:
+async def _container_clear(name):
+    with contextlib.suppress(docker.errors.NotFound):
         old_container = await trio.run_sync_in_worker_thread(
             _DOCKER.containers.get, name,
         )
-    except docker.errors.NotFound:
-        pass
-    else:
         pkdlog('found stale container {}; removing', name)
         await trio.run_sync_in_worker_thread(old_container.remove)
 
@@ -65,15 +63,12 @@ async def _make_container(run_dir, working_dir, quoted_bash_cmd, job_type):
     # through bash to set up our environment. But we do assume that it's
     # sufficiently well-behaved that shlex.quote will work.
     docker_cmd = [
-        '/bin/bash',
-        '-c',
-        '. ~/.bashrc && ' + quoted_bash_cmd,
+        '/bin/bash', '-lc', quoted_bash_cmd,
     ]
-
+    extra_env = {'SIREPO_MPI_CORES': str(mpi.cfg.cores)}
     name = _container_name(run_dir, job_type)
-
-    await _clear_container(name)
-
+    await _container_clear(name)
+    # XX TODO: limits on cpu, disk, networking
     return await trio.run_sync_in_worker_thread(
         functools.partial(
             _DOCKER.containers.run,
@@ -85,6 +80,7 @@ async def _make_container(run_dir, working_dir, quoted_bash_cmd, job_type):
             # This path is interpreted inside the container, so it really uses
             # working_dir as the working dir:
             working_dir=str(run_dir),
+            environment=extra_env,
             name=name,
             detach=True,
             init=True,

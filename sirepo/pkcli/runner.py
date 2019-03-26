@@ -26,17 +26,12 @@ import sys
 import time
 import trio
 
-# Every _TMP_DIR_CLEANUP_TIME seconds, we scan through the run database, and
-# any directories that are named '*.tmp', and whose mtime is
-# >_TMP_DIR_CLEANUP_TIME in the past, are deleted.
-_TMP_DIR_CLEANUP_TIME = 24 * 60 * 60  # 24 hours
-
 _CHUNK_SIZE = 4096
 _LISTEN_QUEUE = 1000
 
 _KILL_TIMEOUT_SECS = 3
 
-_BACKEND_INFO_BASENAME = 'backend.json'
+_RUNNER_INFO_BASENAME = 'runner-info.json'
 
 _BACKENDS = {
     'local': local_process,
@@ -161,8 +156,8 @@ class _JobTracker:
         if job_info.status is not runner_client.JobStatus.RUNNING:
             return
         pkdlog(
-            'kill_all {}: killing job with jhash {}',
-            run_dir, job_info.jhash,
+            'kill_all: killing job with jhash {} in {}',
+            job_info.jhash, run_dir,
         )
         job_info.cancel_requested = True
         await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
@@ -176,8 +171,8 @@ class _JobTracker:
                 # It's already the requested job, so we have nothing to
                 # do. Throw away the tmp_dir and move on.
                 pkdlog(
-                    '{} {}: job is already running; skipping',
-                    run_dir, jhash,
+                    'job is already running; skipping (run_dir={}, jhash={}, tmp_dir={})',
+                    run_dir, jhash, tmp_dir,
                 )
                 pkio.unchecked_remove(tmp_dir)
                 return
@@ -187,7 +182,7 @@ class _JobTracker:
                 # XX TODO: should we check some kind of sequence number
                 # here? I don't know how those work.
                 pkdlog(
-                    '{} {}: stale job is still running; killing it',
+                    'stale job is still running; killing it (run_dir={}, jhash={})',
                     run_dir, jhash,
                 )
                 await self.kill_all(run_dir)
@@ -205,10 +200,11 @@ class _JobTracker:
         self.report_jobs[run_dir] = job_info
         pkjson.dump_pretty(
             {
+                'version': 1,
                 'backend': backend,
-                'info': report_job.backend_info,
+                'backend_info': report_job.backend_info,
             },
-            filename=run_dir.join(_BACKEND_INFO_BASENAME),
+            filename=run_dir.join(_RUNNER_INFO_BASENAME),
         )
 
         # And finally, start a background task to watch over it.
@@ -232,7 +228,7 @@ class _JobTracker:
                     if job_info.cancel_requested:
                         _write_status(runner_client.JobStatus.CANCELED, run_dir)
                         await self.run_extract_job(
-                            run_dir, jhash, 'remove_last_frame', [],
+                            run_dir, jhash, 'remove_last_frame', '[]',
                         )
                     elif returncode == 0:
                         _write_status(runner_client.JobStatus.COMPLETED, run_dir)
@@ -243,38 +239,44 @@ class _JobTracker:
                         )
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
 
-    async def run_extract_job(self, run_dir, jhash, subcmd, args):
-        pkdlog('{} {}: {} {}', run_dir, jhash, subcmd, args)
+    async def run_extract_job(self, run_dir, jhash, subcmd, arg):
+        pkdlog('{} {}: {} {}', run_dir, jhash, subcmd, arg)
         status = self.report_job_status(run_dir, jhash)
         if status is runner_client.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
                    run_dir, jhash)
             return {}
         # figure out which backend and any backend-specific info
-        backend_info_file = run_dir.join(_BACKEND_INFO_BASENAME)
-        if backend_info_file.exists():
-            backend_info = pkjson.load_any(backend_info_file)
+        runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
+        if runner_info_file.exists():
+            runner_info = pkjson.load_any(runner_info_file)
         else:
             # Legacy run_dir
-            backend_info = pkcollections.Dict(backend='local', info={})
+            runner_info = pkcollections.Dict(
+                version=1, backend='local', backend_info={},
+            )
+        assert runner_info.version == 1
 
         # run the job
-        cmd = ['sirepo', 'extract', subcmd, *args]
-        result = await _BACKENDS[backend_info.backend].run_extract_job(
-            run_dir, cmd, backend_info.info,
+        cmd = ['sirepo', 'extract', subcmd, arg]
+        result = await _BACKENDS[runner_info.backend].run_extract_job(
+            run_dir, cmd, runner_info.backend_info,
         )
 
         if result.stderr:
             pkdlog(
-                '{} {}: got output on stderr:\n{}',
+                'got output on stderr ({} {}):\n{}',
                 run_dir, jhash,
                 result.stderr.decode('utf-8', errors='ignore'),
             )
 
         if result.returncode != 0:
             pkdlog(
-                '{} {}: failed with return code {}, stdout:\n{}',
-                run_dir, cmd, result.returncode, result.stdout.decode('latin1'),
+                'failed with return code {} ({} {}), stdout:\n{}',
+                result.returncode,
+                run_dir,
+                cmd,
+                result.stdout.decode('utf-8', errors='ignore'),
             )
             raise AssertionError
 
@@ -310,10 +312,9 @@ async def _report_job_status(job_tracker, request):
 
 @_rpc_handler
 async def _cancel_report_job(job_tracker, request):
-    run_dir_jhash, run_dir_status = job_tracker.run_dir_status(request.run_dir)
-    if run_dir_jhash != request.jhash:
-        return {}
-    await job_tracker.kill_all(request.run_dir)
+    jhash, status = job_tracker.run_dir_status(request.run_dir)
+    if jhash == request.jhash:
+        await job_tracker.kill_all(request.run_dir)
     return {}
 
 
@@ -323,7 +324,7 @@ async def _run_extract_job(job_tracker, request):
         request.run_dir,
         request.jhash,
         request.subcmd,
-        request.args,
+        request.arg,
     )
 
 
@@ -352,9 +353,9 @@ async def _handle_conn(job_tracker, stream):
 def _remove_old_tmp_dirs():
     pkdlog('scanning for stale tmp dirs')
     count = 0
-    cutoff = time.time() - _TMP_DIR_CLEANUP_TIME
+    cutoff = time.time() - srdb.TMP_DIR_CLEANUP_TIME
     for dirpath, dirnames, filenames in os.walk(srdb.root()):
-        if (dirpath.endswith('.tmp')
+        if (dirpath.endswith(srdb.TMP_DIR_SUFFIX)
                 and os.stat(dirpath).st_mtime < cutoff):
             pkdlog('removing stale tmp dir: {}', dirpath)
             pkio.unchecked_remove(dirpath)
@@ -366,7 +367,7 @@ async def _tmp_dir_gc():
     while True:
         with _catch_and_log_errors(Exception, 'error running tmp dir gc'):
             await trio.run_sync_in_worker_thread(_remove_old_tmp_dirs)
-            await trio.sleep(_TMP_DIR_CLEANUP_TIME)
+            await trio.sleep(srdb.TMP_DIR_CLEANUP_TIME)
 
 
 async def _main():

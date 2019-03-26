@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""sirepo package
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -46,15 +46,16 @@ async def start_report_job(run_dir, cmd):
             stderr=run_log,
             env=env,
         )
-    return _LocalReportJob(trio_process)
+    # We don't use the pid for anything, but by putting it in the backend_info
+    # we make sure it's available on disk in case someone is trying to debug
+    # stuff by hand later.
+    return _LocalReportJob(trio_process, {'pid': trio_process.pid})
 
 
 class _LocalReportJob:
-    # No backend-specific per-process info
-    backend_info = {}
-
-    def __init__(self, trio_process):
+    def __init__(self, trio_process, backend_info):
         self._trio_process = trio_process
+        self.backend_info = backend_info
 
     async def kill(self, grace_period):
         # Everything here is a no-op if the process is already dead

@@ -75,5 +75,5 @@ def run_extract_job(run_dir, jhash, subcmd, *args):
         'run_dir': str(run_dir),
         'jhash': jhash,
         'subcmd': subcmd,
-        'args': [pkjson.dump_pretty(arg) for arg in args],
+        'arg': pkjson.dump_pretty(args),
     })
