@@ -232,6 +232,11 @@ def _fit_to_equation(x, y, equation, var, params):
     sym_curve_l = sp.lambdify(syms, sym_curve, 'numpy')
 
     p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
+    sigma = np.sqrt(np.diagonal(pcov))
+    bound_upper = sym_curve_l(x, *(p_vals + sigma))
+    bound_lower = sym_curve_l(x, *(p_vals - sigma))
+
+
     p_subs = []
     p_rounded = []
     for sidx, p in enumerate(p_vals, 1):
