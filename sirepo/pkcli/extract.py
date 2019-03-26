@@ -30,7 +30,7 @@ def _run_dir():
     return pkio.py_path('.')
 
 
-def _params():
+def _input_params():
     return simulation_db.read_json(
         template_common.INPUT_BASE_NAME, run_dir=_run_dir(),
     )
@@ -38,14 +38,14 @@ def _params():
 
 @_extract_cmd
 def remove_last_frame():
-    template = sirepo.template.import_module(_params())
+    template = sirepo.template.import_module(_input_params())
     if hasattr(template, 'remove_last_frame'):
         template.remove_last_frame(_run_dir())
 
 
 @_extract_cmd
 def background_percent_complete(is_running):
-    params = _params()
+    params = _input_params()
     template = sirepo.template.import_module(params)
     return template.background_percent_complete(
         params.report, _run_dir(), is_running,
@@ -70,6 +70,6 @@ def result(data):
 
 @_extract_cmd
 def get_simulation_frame(frame_data):
-    params = _params()
+    params = _input_params()
     template = sirepo.template.import_module(params)
     return template.get_simulation_frame(_run_dir(), frame_data, params)
