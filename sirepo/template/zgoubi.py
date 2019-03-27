@@ -204,13 +204,13 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, report_info.run_dir)
+            save_report_data(data, run_dir)
 
 
 def remove_last_frame(run_dir):
