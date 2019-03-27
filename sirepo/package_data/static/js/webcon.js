@@ -163,12 +163,19 @@ SIREPO.app.directive('equation', function(appState, webconService) {
         controller: function ($scope) {
             $scope.webconservice = webconService;
 
-            this.tmp = $scope.model;
-            //$scope.validate = function () {
-            //    srdbg('val eq', $scope.model);
-                //$scope.controller.validateEquation($scope.model.equation);
-            //};
+            srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
 
+            function tokenizeEquation() {
+                var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
+                var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
+                    .filter(function (t) {
+                        return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
+                });
+                //tokens = tokens.filter(function (t) {
+                //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
+                //});
+                return tokens;
+            }
         },
     };
 });
@@ -189,7 +196,6 @@ SIREPO.app.directive('equationVariables', function() {
             '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
         controller: function($scope, $element) {
-            var opsRegEx = /[\+\-\*/\^\(\)\%]/;
             var reserved = ['sin', 'cos', 'tan', 'abs'];
 
             $scope.equation = $scope.model.equation;
@@ -262,10 +268,6 @@ SIREPO.app.directive('fitReport', function(appState, mathRendering) {
         ].join(''),
         controller: function($scope) {
 
-            $scope.latexLabel = function() {
-
-            };
-
             $scope.$on('fitter.changed', function() {
                 appState.saveChanges('fitReport', function () {
                 });
@@ -273,8 +275,6 @@ SIREPO.app.directive('fitReport', function(appState, mathRendering) {
             $scope.$on('fitReport.changed', function() {
                 var focusText = $('.focus-hint');
                 var str = '';
-                //srdbg('FR', appState.models, $scope, focusText);
-
             });
 
         },
