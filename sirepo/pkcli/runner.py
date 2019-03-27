@@ -240,7 +240,7 @@ class _JobTracker:
                         _write_status(runner_client.JobStatus.ERROR, run_dir)
 
     async def run_extract_job(self, run_dir, jhash, subcmd, arg):
-        pkdlog('{} {}: {} {}', run_dir, jhash, subcmd, arg)
+        pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
         status = self.report_job_status(run_dir, jhash)
         if status is runner_client.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
@@ -275,7 +275,7 @@ class _JobTracker:
                 'failed with return code {} ({} {}), stdout:\n{}',
                 result.returncode,
                 run_dir,
-                cmd,
+                subcmd,
                 result.stdout.decode('utf-8', errors='ignore'),
             )
             raise AssertionError
@@ -341,11 +341,11 @@ async def _handle_conn(job_tracker, stream):
         request = pkjson.load_any(request_bytes)
         if 'run_dir' in request:
             request.run_dir = pkio.py_path(request.run_dir)
-        pkdlog('runner request: {!r}', request)
+        pkdc('runner request: {!r}', request)
         handler = _RPC_HANDLERS[request.action]
         async with job_tracker.locks[request.run_dir]:
             response = await handler(job_tracker, request)
-        pkdlog('runner response: {!r}', response)
+        pkdc('runner response: {!r}', response)
         response_bytes = pkjson.dump_bytes(response)
         await stream.send_all(response_bytes)
 
