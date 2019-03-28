@@ -15,7 +15,7 @@ import re
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
+_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
 _DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
 _MRAD_FIELDS = ['AUTOREF.ALE']
 #TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
@@ -117,7 +117,14 @@ def _validate_field(model, field, model_info):
     elif field == 'XPAS':
         #TODO(pjm): need special handling, may be in #00|00|00 format
         if not re.search(r'\#', model[field]):
-            model[field] = str(float(model[field]) * 0.01)
+            v = float(model[field])
+            if v > 1e10:
+                # old step size format
+                m = re.search(r'^0*(\d+)\.0*(\d+)', model[field])
+                assert m, 'XPAS failed to parse step size: {}'.format(model[field])
+                model[field] = '#{}|{}|{}'.format(m.group(2), m.group(1), m.group(2))
+            else:
+                model[field] = str(v * 0.01)
     elif field_type in _SCHEMA['enum']:
         for v in _SCHEMA['enum'][field_type]:
             if v[0] == model[field]:

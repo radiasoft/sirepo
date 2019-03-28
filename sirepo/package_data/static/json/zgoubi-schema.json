@@ -53,9 +53,9 @@
         "AutorefFormat": [
             ["4", "Equivalent to CHANGREF"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
+        "BunchMethod": [
+            ["MCOBJET3", "Random Distribution"],
+            ["OBJET2.1", "Specific Coordinates"]
         ],
         "CaviteFormat": [
             ["0", "Element inactive"],
@@ -86,7 +86,11 @@
             ["ENEKI", "Kenetic Energy"],
             ["ENERG", "Energy"],
             ["RET", "Synchrotron RF Phase (phi-ph_s)"],
-            ["DPR", "Synchrotron dp/p"]
+            ["DPR", "Synchrotron dp/p"],
+            ["IPASS", "Turn Number"],
+            ["SX", "Spin X"],
+            ["SY", "Spin Y"],
+            ["SZ", "Spin Z"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -130,6 +134,12 @@
             ["Length", "Length"],
             ["Deviation", "Deviation"]
         ],
+        "ScalingFamily": [
+            ["none", "None"],
+            ["BEND", "BEND"],
+            ["MULTIPOL", "MULTIPOL"],
+            ["QUADRUPO", "QUADRUPO"]
+        ],
         "OpticsOptionalParameter": [
             ["none", "None"],
             ["x", "x [m]"],
@@ -164,6 +174,31 @@
             ["S", "|S|"],
             ["Length", "Length"],
             ["Deviation", "Deviation"]
+        ],
+        "ParticleSelector": [
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"]
+        ],
+        "ParticleOptionalSelector": [
+            ["all", "All"],
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"]
         ],
         "ParticleType": [
             ["ELECTRON", "Electron"],
@@ -240,8 +275,11 @@
             "Tau": ["COM Life-time [s]", "Float", 1e99]
         },
         "bunch": {
+            "method": ["Bunch Method", "BunchMethod", "MCOBJET3"],
             "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
+            "particleCount2": ["Number of Particles", "Integer", 1, "IMAX", 1, 10],
+            "particleSelector": ["Particle Number", "ParticleSelector", "1"],
             "KY": ["Probability Y", "ProbabilityDensity", "2"],
             "KT": ["Probability Y'", "ProbabilityDensity", "2"],
             "KZ": ["Probability Z", "ProbabilityDensity", "2"],
@@ -279,6 +317,8 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "T"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -292,6 +332,8 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "P"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -312,6 +354,8 @@
             "x": ["Coordinate", "EnergyPlotVariable", "ENERG"],
             "y": ["Coordinate", "EnergyPlotVariable", "time"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
@@ -319,6 +363,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "opticsReport": {
@@ -328,13 +373,25 @@
             "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
+        "particleCoordinate": {
+            "Y": ["Y [m]", "Float", 0.0],
+            "T": ["Y' [rad]", "Float", 0.0],
+            "Z": ["Z [m]", "Float", 0.0],
+            "P": ["Z' [rad]", "Float", 0.0],
+            "X": ["X [m]", "Float", 0.0],
+            "D": ["D ($B\\rho/\\text{BORO}$)", "Float", 1.0]
+        },
         "simulationStatus": {},
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
             "npass": ["Number of Runs", "Integer", 10, "", 1],
-            "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
+            "ip": ["Diagnostic Interval", "Integer", 1, "", 1],
+            "spntrk": ["Compute Spin Tracking", "Boolean", "0"],
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
@@ -412,7 +469,7 @@
         },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
-            "plt": ["Save Particle Data", "Boolean", "1"]
+            "plt": ["Save Particle Data", "Boolean", "0"]
         },
         "MULTIPOL": {
             "name": ["Name", "ValidatedString"],
@@ -505,6 +562,20 @@
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
+        "SCALING": {
+            "name": ["Name", "ValidatedString"],
+            "IOPT": ["Active", "Boolean", "1"],
+            "NAMEF1": ["Family Name", "ScalingFamily", "none"],
+            "SCL1": ["Scale", "Float", 1.0],
+            "NAMEF2": ["Family Name", "ScalingFamily", "none"],
+            "SCL2": ["Scale", "Float", 1.0],
+            "NAMEF3": ["Family Name", "ScalingFamily", "none"],
+            "SCL3": ["Scale", "Float", 1.0],
+            "NAMEF4": ["Family Name", "ScalingFamily", "none"],
+            "SCL4": ["Scale", "Float", 1.0],
+            "NAMEF5": ["Family Name", "ScalingFamily", "none"],
+            "SCL5": ["Scale", "Float", 1.0]
+        },
         "SEXTUPOL": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"],
@@ -553,11 +624,12 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "particleCount",
-                    "match_twiss_parameters",
-                    "simulation.visualizationBeamlineId"
+                    "method"
                 ]],
                 ["Distribution", [
+                    "particleCount",
+                    "match_twiss_parameters",
+                    "simulation.visualizationBeamlineId",
                     [
                         ["Probability Density", [
                             "KY",
@@ -611,6 +683,16 @@
                             "DP"
                         ]]
                     ]
+                ]],
+                ["Coordinates", [
+                    "particleCount2",
+                    "particleSelector",
+                    "particleCoordinate.Y",
+                    "particleCoordinate.T",
+                    "particleCoordinate.Z",
+                    "particleCoordinate.P",
+                    "particleCoordinate.X",
+                    "particleCoordinate.D"
                 ]]
             ],
             "advanced": []
@@ -632,6 +714,8 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
                     "colorMap",
                     "notes"
@@ -664,6 +748,8 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
                     "colorMap",
                     "notes"
@@ -700,7 +786,7 @@
             ]
         },
         "energyAnimation": {
-            "title": "Energy",
+            "title": "Energy and Spin",
             "advanced": [
                 ["Main", [
                     [
@@ -712,7 +798,10 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],
@@ -745,8 +834,20 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
-                "simulationSettings.npass",
-                "simulationSettings.ip"
+                "npass",
+                "ip",
+                "spntrk",
+                [
+                    ["X", [
+                        "S_X"
+                    ]],
+                    ["Y", [
+                        "S_Y"
+                    ]],
+                    ["Z", [
+                        "S_Z"
+                    ]]
+                ]
             ],
             "advanced": []
         },
@@ -1015,6 +1116,24 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "SCALING": {
+            "title": "SCALING",
+            "description": "Power supplies and R.F. function generator",
+            "advanced": [
+                "name",
+                "IOPT",
+                "NAMEF1",
+                "SCL1",
+                "NAMEF2",
+                "SCL2",
+                "NAMEF3",
+                "SCL3",
+                "NAMEF4",
+                "SCL4",
+                "NAMEF5",
+                "SCL5"
             ]
         },
         "SEXTUPOL": {
