@@ -2673,7 +2673,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     aspectRatio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
                 }
                 else {
-                    aspectRatio = json.aspectRatio || 1.0;
+                    aspectRatio = json.aspect_ratio || 1.0;
                 }
                 heatmap = appState.clone(json.z_matrix).reverse();
                 select('.main-title').text(json.title);

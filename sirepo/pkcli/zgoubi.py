@@ -73,14 +73,24 @@ def _bunch_match_twiss(cfg_dir):
 def run_background(cfg_dir):
     res = {}
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    try:
-        _bunch_match_twiss(cfg_dir)
-        _run_zgoubi(cfg_dir)
-    except Exception as e:
-        res = {
-            'error': str(e),
-        }
+    if _estimated_output_file_size(data) > 5e7:
+        res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
+    else:
+        try:
+            _bunch_match_twiss(cfg_dir)
+            _run_zgoubi(cfg_dir)
+        except Exception as e:
+            res['error'] = str(e)
     simulation_db.write_result(res)
+
+
+def _estimated_output_file_size(data):
+    bunch = data.models.bunch
+    count = bunch.particleCount
+    if bunch.method == 'OBJET2.1':
+        count = bunch.particleCount2
+    settings = data.models.simulationSettings
+    return 1000 * settings.npass / (settings.ip or 1) * float(count)
 
 
 def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):

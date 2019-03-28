@@ -123,11 +123,13 @@ def background_percent_complete(report, run_dir, is_running):
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
-    return {
+    res = {
         'percentComplete': 0,
         'frameCount': 0,
-        'error': errors,
     }
+    if errors:
+        res['errors'] = errors
+    return res
 
 
 def column_data(col, col_names, rows):
