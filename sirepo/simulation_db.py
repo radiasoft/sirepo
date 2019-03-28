@@ -14,7 +14,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
 from sirepo import feature_config
 from sirepo import srschema
-from sirepo import template
 from sirepo import util
 from sirepo.template import template_common
 import copy
