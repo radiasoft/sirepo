@@ -148,6 +148,8 @@
             }
         },
         "zgoubi": {
+            "codeURL": "/zgoubi",
+            "codeTitle": "Zgoubi",
             "infoPanelTitle": "ZGOUBI",
             "mediaConfig": {
                 "title": "Zgoubi Sirepo",

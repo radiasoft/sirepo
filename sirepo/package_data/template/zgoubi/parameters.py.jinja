@@ -1,4 +1,12 @@
 
+{% if simulationSettings_spntrk == '1' %}
+line.add(core.FAKE_ELEM("""
+'SPNTRK'
+4.1
+{{ simulationSettings_S_X }} {{ simulationSettings_S_Y }} {{ simulationSettings_S_Z }}
+"""))
+{% endif %}
+
 {{ beamlineElements -}}
 line.add(core.FAKE_ELEM("""
 'FAISTORE'

@@ -57,9 +57,13 @@ _ANIMATION_FIELD_INFO = {
     'S': ['s [m]', 0.01],
     'time': ['t [s]', 1],
     'RET': ['RF Phase [rad]', 1],
-    'DPR': ['dp/p [eV/c]', 1e6],
-    "ENEKI": ["Kenetic Energy [eV]", 1e6],
-    "ENERG": ["Energy [eV]", 1e6],
+    'DPR': ['dp/p', 1e6],
+    'ENEKI': ['Kenetic Energy [eV]', 1e6],
+    'ENERG': ['Energy [eV]', 1e6],
+    'IPASS': ['Turn Number', 1],
+    'SX': ['Spin X', 1],
+    'SY': ['Spin Y', 1],
+    'SZ': ['Spin Z', 1],
 }
 
 _PYZGOUBI_FIELD_MAP = {
@@ -119,11 +123,13 @@ def background_percent_complete(report, run_dir, is_running):
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
-    return {
+    res = {
         'percentComplete': 0,
         'frameCount': 0,
-        'error': errors,
     }
+    if errors:
+        res['errors'] = errors
+    return res
 
 
 def column_data(col, col_names, rows):
@@ -147,6 +153,7 @@ def fixup_old_data(data):
             'bunchAnimation2',
             'energyAnimation',
             'particle',
+            'particleCoordinate',
             'simulationSettings',
             'opticsReport',
             'twissReport',
@@ -156,6 +163,8 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if 'coordinates' not in data.models.bunch:
+        data.models.bunch.coordinates = []
 
 
 def get_animation_name(data):
@@ -204,13 +213,13 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, report_info.run_dir)
+            save_report_data(data, run_dir)
 
 
 def remove_last_frame(run_dir):
@@ -310,13 +319,15 @@ def _element_value(el, field):
     converter = _MODEL_UNITS.get(el['type'], {}).get(field, None)
     return converter(el[field]) if converter else el[field]
 
+
 def _extract_animation(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
         data,
         {
             '1': ['x', 'y', 'histogramBins', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            '2': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'startTime'],
         },
     )
     is_frame_0 = False
@@ -339,10 +350,26 @@ def _extract_animation(run_dir, data, model_data):
     ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
+    let_index = int(col_names.index('LET'))
+    let_search = "'{}'".format(report['particleNumber'])
+
+    count = 0
     for row in all_rows:
-        if int(row[ipass_index]) == ipass:
+        if report['showAllFrames'] == '1':
+            if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
+                if row[let_index] != let_search:
+                    continue
             rows.append(row)
-    return _extract_bunch_data(model, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass))
+        elif int(row[ipass_index]) == ipass:
+            rows.append(row)
+    if report['showAllFrames'] == '1':
+        title = 'All Frames'
+        if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
+            title += ', Particle {}'.format(report['particleNumber'])
+    else:
+        title = 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass)
+    return _extract_bunch_data(model, col_names, rows, title)
+
 
 def _extract_bunch_data(report, col_names, rows, title):
     x_info = _ANIMATION_FIELD_INFO[report['x']]
@@ -382,6 +409,18 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             res += 'line.add(core.FAKE_ELEM(""" \'YMY\'\n"""))\n'
         elif el['type'] == 'SEXTUPOL':
             res += _generate_element(el, 'QUADRUPO')
+        elif el['type'] == 'SCALING':
+            form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
+            _MAX_SCALING_FAMILY = 5
+            count = 0
+            scale_values = ''
+            for idx in range(1, _MAX_SCALING_FAMILY + 1):
+                # NAMEF1, SCL1
+                if el['NAMEF{}'.format(idx)] != 'none':
+                    count += 1
+                    scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
+            if el.IOPT == '1' and count > 0:
+                res += form.format(el.IOPT, count, scale_values)
         else:
             assert el['type'] in _MODEL_UNITS, 'Unsupported element: {}'.format(el['type'])
             res += _generate_element(el)
@@ -422,11 +461,10 @@ def _generate_parameters_file(data):
     report = data.report if 'report' in data else ''
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
+    v['bunchCoordinates'] = data.models.bunch.coordinates
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-    # if 'opticsReport' in report:
-    #     return res + template_common.render_jinja(SIM_TYPE, v, 'optics.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
@@ -570,15 +608,16 @@ def _read_data_file(path):
     mode = 'title'
     col_names = []
     rows = []
-    #TODO(pjm): need pykern method for reading by line rather than bring whole datafile into memory
-    with io.open(str(path), encoding=locale.getpreferredencoding()) as f:
-        for num, line in enumerate(f):
+    with pkio.open_text(str(path)) as f:
+        for line in f:
             if mode == 'title':
                 if not re.search(r'^\@', line):
                     mode = 'header'
                 continue
             # work-around odd header/value "! optimp.f" int twiss output
             line = re.sub(r'\!\s', '', line)
+            # remove space from quoted values
+            line = re.sub(r"'(\S*)\s*'", r"'\1'", line)
             if mode == 'header':
                 # header row starts with '# <letter>'
                 if re.search(r'^#\s+[a-zA-Z]', line):

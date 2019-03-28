@@ -19,6 +19,15 @@ _DEFAULT_ROOT = 'run'
 #: Configured root either by server_set_root or cfg
 _root = None
 
+#: Any directory in the database whose name ends with this suffix will be
+#: automatically removed after some time.
+TMP_DIR_SUFFIX = '.tmp'
+
+#: Every TMP_DIR_CLEANUP_TIME seconds, we scan through the run database, and
+#: any directories that are named '*.tmp', and whose mtime is
+#: >TMP_DIR_CLEANUP_TIME in the past, are deleted.
+TMP_DIR_CLEANUP_TIME = 24 * 60 * 60  # 24 hours
+
 
 def root():
     if not _root:
