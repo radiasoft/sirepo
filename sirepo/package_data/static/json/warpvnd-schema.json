@@ -49,10 +49,6 @@
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "ConductorType": [
             ["box", "box"],
             ["stl", "stl"]

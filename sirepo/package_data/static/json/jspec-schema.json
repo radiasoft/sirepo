@@ -20,10 +20,6 @@
         }
     },
     "enum": {
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "ElectronBeamShape": [
             ["dc_uniform", "Cylindrical"],
             ["bunched_gaussian", "Gaussian"],

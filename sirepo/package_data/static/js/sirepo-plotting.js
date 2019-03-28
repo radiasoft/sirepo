@@ -90,6 +90,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             if (SIREPO.SINGLE_FRAME_ANIMATION && SIREPO.SINGLE_FRAME_ANIMATION.indexOf(scope.modelName) >= 0) {
                 return false;
             }
+            if (appState.isLoaded() && appState.models[scope.modelName].showAllFrames == '1') {
+                return false;
+            }
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
         };
         scope.isFirstFrame = function() {
@@ -1384,6 +1387,32 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
     };
 });
 
+SIREPO.app.directive('columnForAspectRatio', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@columnForAspectRatio',
+        },
+        transclude: true,
+        template: [
+            '<div class="{{ columnClass() }}">',
+              '<div data-ng-transclude=""></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.columnClass = function() {
+                if (appState.isLoaded()) {
+                    var ratio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
+                    if (ratio <= 0.5) {
+                        return 'col-md-12 col-xl-8';
+                    }
+                }
+                return 'col-md-6 col-xl-4';
+            };
+        }
+    };
+});
+
 SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressService, plotting, $timeout) {
     return {
         restrict: 'A',
@@ -2553,12 +2582,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 $.each(axes, function(dim, axis) {
                     axis.updateLabelAndTicks($scope.canvasSize, select);
                 });
-                if (layoutService.plotAxis.allowUpdates) {
-                    colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
-                    // must remove the element to reset the margins
+                if (showColorBar()) {
+                    if (layoutService.plotAxis.allowUpdates) {
+                        colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
+                        // must remove the element to reset the margins
+                        select('svg.colorbar').remove();
+                        pointer = select('.colorbar').call(colorbar);
+                        $scope.margin.right = colorbarSize();
+                    }
+                }
+                else {
                     select('svg.colorbar').remove();
-                    pointer = select('.colorbar').call(colorbar);
-                    $scope.margin.right = colorbarSize();
+                    $scope.margin.right = 20;
                 }
             }
 
@@ -2584,6 +2619,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     },
                     heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
+            }
+
+            function showColorBar() {
+                if (appState.isLoaded()) {
+                    return appState.models[$scope.modelName].colorMap != 'contrast';
+                }
+                return false;
             }
 
             $scope.clearData = function() {
@@ -2627,7 +2669,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                aspectRatio = json.aspect_ratio || 1.0;
+                if (appState.isLoaded() && appState.applicationState()[$scope.modelName] && appState.applicationState()[$scope.modelName].aspectRatio) {
+                    aspectRatio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
+                }
+                else {
+                    aspectRatio = json.aspectRatio || 1.0;
+                }
                 heatmap = appState.clone(json.z_matrix).reverse();
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);

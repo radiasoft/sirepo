@@ -182,10 +182,6 @@
             ["eqtsymmetric", "eqtsymmetric"],
             ["user", "user"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "Driver:dr_dtMinBelowAction": [
             ["0", "0"],
             ["1", "1"]
