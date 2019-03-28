@@ -352,14 +352,16 @@
             }
         ],
         "energyAnimation": {
-            "colorMap": "coolwarm",
+            "aspectRatio": "1.333333",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 400,
             "horizontalOffset": 0.27875643990950716,
             "horizontalSize": 0.5574069786776144,
             "isRunning": 0,
             "notes": "",
             "plotRangeType": "fit",
+            "showAllFrames": "1",
             "startTime": 1551896884,
             "verticalOffset": 14875931.755,
             "verticalSize": 10634400.09,
