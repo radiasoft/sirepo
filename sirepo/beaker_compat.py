@@ -25,7 +25,7 @@ def update_session_from_cookie_header(header):
     """
     maps = _init_maps()
     try:
-        cookie = session.SignedCookie(cfg.secret, input=header)
+        cookie = SignedCookie(cfg.secret, input=header)
         if not cfg.key in cookie:
             return None
         identifier = cookie[cfg.key].value
