@@ -345,6 +345,10 @@
       stroke: steelblue;
       stroke-width: 1px;
     }
+    .sr-plot .scatter-point {
+      fill: steelblue;
+      stroke: none;
+    }
     .sr-plot path.line-0 {
       stroke-width: 1.5px;
     }

@@ -81,6 +81,7 @@ def get_simulation_frame(run_dir, data, model_data):
         plots.append({
             'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
             'label': _label(col_info, idx),
+            'style': 'scatter',
         })
     return template_common.parameter_plot(x, plots, data, {
         'title': '',

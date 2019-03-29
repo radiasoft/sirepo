@@ -2926,12 +2926,29 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
+                viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
-                    viewport.append('path')
-                        .attr('class', 'line line-color')
-                        .style('stroke', plot.color)
-                        .datum(plot.points);
+                    var strokeWidth = 2.0;
+                    if(plot.style === 'scatter') {
+                        var pg = viewport.append('g')
+                            .attr('class', 'param-plot');
+                            pg.selectAll('.scatter-point')
+                                .data(plot.points)
+                                .enter()
+                                    .append('circle')
+                                    .attr('cx', $scope.graphLine.x())
+                                    .attr('cy', $scope.graphLine.y())
+                                    .attr('r', 2)
+                                    .attr('class', 'scatter-point line-color')
+                    }
+                    else {
+                        viewport.append('path')
+                            .attr('class', 'param-plot line line-color')
+                            .style('stroke', plot.color)
+                            .style('stroke-width', strokeWidth)
+                            .datum(plot.points);
+                    }
                     // must create extra focus points here since we don't know how many to make
                     var name = $scope.modelName + '-fp-' + i;
                     if (! $scope.focusPoints[i]) {
@@ -2998,6 +3015,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.refresh = function() {
                 $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y());
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
                 });
