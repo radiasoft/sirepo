@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp
+from rslinac import solver
 from sirepo import simulation_db
 from sirepo.template import template_common, hellweg_dump_reader
 import math
@@ -98,17 +99,16 @@ def extract_beam_report(report, run_dir, frame):
 
 
 def extract_parameter_report(report, run_dir):
-    from rslinac.solver import BeamSolver
-    solver = BeamSolver(
+    beam_solver = solver.BeamSolver(
         os.path.join(str(run_dir), HELLWEG_INI_FILE),
         os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
-    solver.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
+    beam_solver.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
     y1_var, y2_var = report.reportType.split('-')
     x_field = 'z'
-    x = solver.get_structure_parameters(_parameter_index(x_field))
-    y1 = solver.get_structure_parameters(_parameter_index(y1_var))
+    x = beam_solver.get_structure_parameters(_parameter_index(x_field))
+    y1 = beam_solver.get_structure_parameters(_parameter_index(y1_var))
     y1_extent = [np.min(y1), np.max(y1)]
-    y2 = solver.get_structure_parameters(_parameter_index(y2_var))
+    y2 = beam_solver.get_structure_parameters(_parameter_index(y2_var))
     y2_extent = [np.min(y2), np.max(y2)]
     return {
         'title': _enum_text('ParameterReportType', report.reportType),
@@ -231,7 +231,7 @@ def models_related_to_report(data):
 
 def python_source_for_model(data, model):
     return '''
-from rslinac.solver import BeamSolver
+from rslinac import solver
 
 {}
 
@@ -241,9 +241,9 @@ with open('input.txt', 'w') as f:
 with open('defaults.ini', 'w') as f:
     f.write(ini_file)
 
-solver = BeamSolver('defaults.ini', 'input.txt')
-solver.solve()
-solver.save_output('output.txt')
+beam_solver = solver.BeamSolver('defaults.ini', 'input.txt')
+beam_solver.solve()
+beam_solver.save_output('output.txt')
     '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
 
 
