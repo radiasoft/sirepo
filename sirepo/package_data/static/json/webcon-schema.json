@@ -29,6 +29,17 @@
             "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
+        },
+         "fitter": {
+            "equation": ["Equation to Fit", "Equation"],
+            "parameters": ["Fit Parameters", "EquationParameters", ""],
+            "variable": ["Independent Variable", "EquationVariables", ""]
+        },
+        "fitReport": {
+            "parameterSigmas": ["_", "String", ""],
+            "parameterValues": ["_", "String", ""],
+            "x": ["X", "AnalysisParameter", "0"],
+            "y": ["Y", "AnalysisParameter", "1"]
         }
     },
     "view": {
@@ -47,6 +58,22 @@
                 "y2",
                 "y3",
                 "notes"
+            ]
+        },
+        "fitter": {
+            "title": "Fitter",
+            "basic": [
+                "equation",
+                "variable",
+                "parameters"
+            ],
+            "advanced": []
+        },
+        "fitReport": {
+            "title": "Best Fit",
+            "advanced": [
+                "x",
+                "y"
             ]
         }
     }
