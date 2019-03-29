@@ -663,7 +663,12 @@ def _import_bunch(lattice, data):
     from synergia.foundation import pconstants
     if not lattice.has_reference_particle():
         # create a default reference particle, proton,energy=1.5
-        lattice.set_reference_particle(foundation.Reference_particle(pconstants.proton_charge, foundation.Four_momentum(pconstants.mp, 1.5)))
+        lattice.set_reference_particle(
+            foundation.Reference_particle(
+                pconstants.proton_charge,
+                foundation.Four_momentum(pconstants.mp, 1.5)
+            )
+        )
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'

@@ -99,16 +99,16 @@ def extract_beam_report(report, run_dir, frame):
 
 
 def extract_parameter_report(report, run_dir):
-    beam_solver = solver.BeamSolver(
+    s = solver.BeamSolver(
         os.path.join(str(run_dir), HELLWEG_INI_FILE),
         os.path.join(str(run_dir), HELLWEG_INPUT_FILE))
-    beam_solver.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
+    s.load_bin(os.path.join(str(run_dir), HELLWEG_DUMP_FILE))
     y1_var, y2_var = report.reportType.split('-')
     x_field = 'z'
-    x = beam_solver.get_structure_parameters(_parameter_index(x_field))
-    y1 = beam_solver.get_structure_parameters(_parameter_index(y1_var))
+    x = s.get_structure_parameters(_parameter_index(x_field))
+    y1 = s.get_structure_parameters(_parameter_index(y1_var))
     y1_extent = [np.min(y1), np.max(y1)]
-    y2 = beam_solver.get_structure_parameters(_parameter_index(y2_var))
+    y2 = s.get_structure_parameters(_parameter_index(y2_var))
     y2_extent = [np.min(y2), np.max(y2)]
     return {
         'title': _enum_text('ParameterReportType', report.reportType),
@@ -241,9 +241,9 @@ with open('input.txt', 'w') as f:
 with open('defaults.ini', 'w') as f:
     f.write(ini_file)
 
-beam_solver = solver.BeamSolver('defaults.ini', 'input.txt')
-beam_solver.solve()
-beam_solver.save_output('output.txt')
+s = solver.BeamSolver('defaults.ini', 'input.txt')
+s.solve()
+s.save_output('output.txt')
     '''.format(_generate_parameters_file(data, is_parallel=len(data.models.beamline)))
 
 
