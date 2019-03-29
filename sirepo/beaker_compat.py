@@ -7,7 +7,7 @@ u"""Backward compatibility for old Beaker sessions.
 """
 from __future__ import absolute_import, division, print_function
 
-from beaker import session
+from beaker.session import SignedCookie
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkconfig
 import beaker
