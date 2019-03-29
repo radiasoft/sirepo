@@ -13,9 +13,9 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import cookie
 from sirepo import feature_config
+from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
-from sirepo.schema import validate_fields, validate_name, validate_schema
 import copy
 import datetime
 import errno
@@ -262,7 +262,7 @@ def get_schema(sim_type):
             schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
         _merge_subclasses(schema, item)
-    validate_schema(schema)
+    srschema.validate(schema)
     return schema
 
 
@@ -733,7 +733,8 @@ def save_simulation_json(data, do_validate=True):
         pass
     data = fixup_old_data(data)[0]
     s = data.models.simulation
-    fn = sim_data_file(data.simulationType, s.simulationId)
+    sim_type = data.simulationType
+    fn = sim_data_file(sim_type, s.simulationId)
     with _global_lock:
         need_validate = True
         try:
@@ -745,8 +746,16 @@ def save_simulation_json(data, do_validate=True):
         except Exception:
             pass
         if need_validate and do_validate:
-            _validate_name(data)
-            validate_fields(data, get_schema(data.simulationType))
+            srschema.validate_name(
+                data,
+                iterate_simulation_datafiles(
+                    sim_type,
+                    lambda res, _, d: res.append(d),
+                    {'simulation.folder': s.folder},
+                ),
+                SCHEMA_COMMON.common.constants.maxSimCopies
+            )
+            srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
@@ -1203,36 +1212,6 @@ def _user_dir_create():
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
-
-
-def _validate_name(data):
-    """Validate and if necessary uniquify name
-
-    Args:
-        data (dict): what to validate
-    """
-    s = data.models.simulation
-    sim_type = data.simulationType
-    sim_id = s.simulationId
-    n = s.name
-    f = s.folder
-    starts_with = pkcollections.Dict()
-    for d in iterate_simulation_datafiles(
-        sim_type,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': f},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
-            starts_with[n2] = d.models.simulation.simulationId
-    i = 2
-    max = SCHEMA_COMMON.common.constants.maxSimCopies
-    n2 = data.models.simulation.name
-    while n2 in starts_with:
-        n2 = '{} {}'.format(data.models.simulation.name, i)
-        i += 1
-    assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
-    data.models.simulation.name = n2
 
 
 _init()
