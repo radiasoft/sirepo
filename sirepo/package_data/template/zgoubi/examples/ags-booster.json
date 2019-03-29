@@ -597,7 +597,7 @@
             "n_cutoff_X": 3,
             "n_cutoff_Y": 3,
             "n_cutoff_Z": 3,
-            "particleCount": "1000",
+            "particleCount": 1000,
             "rigidity": 1000,
             "type": "bunch"
         },

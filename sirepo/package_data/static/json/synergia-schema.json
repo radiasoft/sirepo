@@ -153,10 +153,6 @@
             ["zpstd", "zp standard deviation"],
             ["none", "None"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BunchDistribution": [
             ["lattice", "Computed From Beamline"],
             ["standard-gaussian", "Standard - Gaussian"],

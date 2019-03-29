@@ -61,10 +61,6 @@
             ["4", "Synchrotron"],
             ["6", "Exact Synchrotron"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BoundSource": [
             ["0", "No Filter"],
             ["2", "Aperture"]

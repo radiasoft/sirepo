@@ -631,6 +631,8 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
                 content: function() {
                     return $('#srw-' + scope.item.type + '-editor');
                 },
+                // adds sr-beamline-popover class to standard template
+                template: '<div class="popover sr-beamline-popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>'
             }).on('show.bs.popover', function() {
                 $('.srw-beamline-element-label').not(el).popover('hide');
                 beamlineService.setActiveItem(scope.item);

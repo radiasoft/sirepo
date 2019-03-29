@@ -49,10 +49,6 @@
         "ELEGANT_ME_EV": 0.51099906
     },
     "enum": {
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BunchInputSource": [
             ["sdds_beam", "SDDS Input File"],
             ["bunched_beam", "Twiss Parameters"]
