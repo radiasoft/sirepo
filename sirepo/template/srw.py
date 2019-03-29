@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
-from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
 from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
@@ -21,6 +20,7 @@ import numpy as np
 import os
 import py.path
 import re
+import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
 import srwlib
@@ -965,8 +965,8 @@ def _compute_crystal_init(model):
             xrh = crystal_parameters['xrh']
             xih = crystal_parameters['xih']
         elif re.search('(SRW)', material_raw):
-            dc = srwl_uti_cryst_pl_sp(millerIndices, material)
-            xr0, xi0, xrh, xih = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+            dc = srwl_uti_cryst.srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwl_uti_cryst.srwl_uti_cryst_pol_f(energy, millerIndices, material)
         else:
             dc = xr0 = xi0 = xrh = xih = None
 
@@ -1821,8 +1821,8 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             y_resize = float(width_pixels) / float(y_range[2])
         pkdlog('Size before: {}  Dimensions: {}, Resize: [{}, {}]', ar2d.size, ar2d.shape, y_resize, x_resize)
         try:
-            from scipy.ndimage import zoom
-            ar2d = zoom(ar2d, [y_resize, x_resize], order=1)
+            from scipy import ndimage
+            ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
             # Remove for #670, this may be required for certain reports?
             # if scale == 'linear':
             #     ar2d[np.where(ar2d < 0.)] = 0.0
