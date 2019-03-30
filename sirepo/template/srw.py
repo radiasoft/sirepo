@@ -11,7 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
-from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
 import glob
@@ -1787,11 +1786,11 @@ def _process_undulator_definition(model):
     try:
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
-            und = SRWLMagFldU([SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
+            und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
             model['undulator_parameter'] = und.get_K()
         elif model['undulator_definition'] == 'K':
             # Convert K to B:
-            und = SRWLMagFldU([], float(model['undulator_period']))
+            und = srwlib. SRWLMagFldU([], float(model['undulator_period']))
             model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
         return model
     except Exception:
