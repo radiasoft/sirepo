@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.schema import get_enums
 from sirepo.template import template_common, elegant_common, elegant_lattice_importer
+from synergia import foundation
 import glob
 import h5py
 import math
@@ -394,10 +395,9 @@ def _build_beamline_map(data):
 
 
 def _calc_bunch_parameters(bunch):
-    from synergia.foundation import Four_momentum
     bunch_def = bunch.beam_definition
     bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
-    mom = Four_momentum(bunch.mass)
+    mom = foundation.Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
         if bunch_def == bunch_enums.energy:
@@ -660,10 +660,15 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    from synergia.foundation import pconstants
     if not lattice.has_reference_particle():
         # create a default reference particle, proton,energy=1.5
-        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
+        lattice.set_reference_particle(
+            foundation.Reference_particle(
+                pconstants.proton_charge,
+                foundation.Four_momentum(pconstants.mp, 1.5)
+            )
+        )
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'
