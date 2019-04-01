@@ -2950,7 +2950,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                     }
                     viewport.append('path')
-                        .attr('class', 'line line-color')
+                        .attr('class', 'param-plot line line-color')
                         .style('stroke', plot.color)
                         .datum(plot.points);
                     // must create extra focus points here since we don't know how many to make
