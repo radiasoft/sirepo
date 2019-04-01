@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 
-import scipy
 import sympy
 import csv
 import math
@@ -224,6 +223,8 @@ def _column_info(path):
 
 
 def _fit_to_equation(x, y, equation, var, params):
+
+    import scipy.optimize
 
     # TODO: must sanitize input - sympy uses eval
     sym_curve = sympy.sympify(equation)

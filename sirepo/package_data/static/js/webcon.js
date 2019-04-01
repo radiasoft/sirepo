@@ -197,6 +197,59 @@ SIREPO.app.directive('equationVariables', function() {
     };
 });
 
+SIREPO.app.directive('validVariableOrParam', function(utilities) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+         link: function(scope, element, attrs, ngModel) {
+
+            function tokens() {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/);
+            }
+
+            function isUnique (val, arr) {
+                var i = arr.indexOf(val);
+                if(i < 0) {
+                    throw val + ': Value not in array';
+                }
+                return i === arr.lastIndexOf(val);
+            }
+
+            function validateParam(p) {
+                scope.warningText = '';
+                if(! /^[a-zA-Z]+$/.test(p)) {
+                    scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
+                    return false;
+                }
+                if(! scope.isVariable && p === scope.model.variable) {
+                    scope.warningText = p + ' is an independent variable';
+                    return false;
+                }
+                if(scope.model.equation.indexOf(p) < 0) {
+                    scope.warningText = p + ' does not appear in the equation';
+                    return false;
+                }
+                if(! isUnique(p, tokens())) {
+                    scope.warningText = p + ' is duplicated';
+                    return false;
+                }
+
+                return true;
+            }
+
+            ngModel.$validators.validTokens = (function (v) {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/)
+                    .filter(function (p) {
+                        return p.length > 0;
+                    })
+                    .reduce(function (valid, p) {
+                        return valid && validateParam(p);
+                    }, true);
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('fitReport', function(appState, mathRendering) {
     return {
         scope: {
