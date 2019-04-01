@@ -136,6 +136,7 @@ def fixup_old_data(data):
                 field_def = _SCHEMA['model'][m][f]
                 if len(field_def) > 4 and model[f] < field_def[4]:
                     model[f] = field_def[2]
+    template_common.organize_example(data)
 
 
 def get_animation_name(data):

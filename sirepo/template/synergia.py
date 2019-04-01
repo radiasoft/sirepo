@@ -119,6 +119,7 @@ def fixup_old_data(data):
             elif i == 3:
                 model['x'] = 'z'
                 model['y'] = 'zp'
+    template_common.organize_example(data)
 
 
 def format_float(v):
