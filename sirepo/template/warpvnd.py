@@ -508,7 +508,7 @@ def _extract_field(field, data, data_file):
 
 def _extract_impact_density(run_dir, data):
     plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
-    pkdp('!PLOT INFO {}', plot_info)
+    #pkdp('!PLOT INFO {}', plot_info)
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
@@ -525,7 +525,7 @@ def _extract_impact_density(run_dir, data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
-    pkdp('!PLOT DELTAS {}/{}/{}', dx, dy, dx)
+    #pkdp('!PLOT DELTAS {}/{}/{}', dx, dy, dx)
     gated_ids = plot_info['gated_ids']
     lines = []
 

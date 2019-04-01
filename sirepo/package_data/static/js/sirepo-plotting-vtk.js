@@ -923,7 +923,7 @@ SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUplo
                         upload(inputFile, data);
                     },
                     function (err) {
-                        srdbg('new sim error', err);
+                        //srdbg('new sim error', err);
                     }
                 );
             }

@@ -479,7 +479,6 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
 
     $scope.$on('modelChanged', function(e, name) {
        if (isModelConductorType(name)) {
-           srdbg('SAVING TYPE');
             var model = appState.models[name];
             var foundIt = appState.models.conductorTypes.some(function(m) {
                 if (m.id == model.id) {
@@ -496,7 +495,6 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
             appState.saveChanges('conductorTypes');
         }
         else if (name == 'conductorPosition') {
-            srdbg('SAVING CONDS');
             appState.removeModel(name);
             appState.saveChanges('conductors');
         }
@@ -752,14 +750,12 @@ SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
             }
 
             $scope.conductors = function(conductorType) {
-                //srdbg('getting conds of type', conductorType);
                 if(! conductorType) {
                     return null;
                 }
                 return conductorsByType[conductorType.id];
             };
             $scope.conductorTypes = function() {
-                //srdbg('getting cond types', appState.models.conductorTypes);
                 return appState.models.conductorTypes;
             };
             $scope.deleteConductor = function(conductor) {
@@ -1536,7 +1532,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             $scope.plotHeight = function() {
                 var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom + zPanelHeight();
-                //srdbg('plot height', ph);
                 return ph;
             };
 
@@ -2383,7 +2378,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     height: gridFactor * grid.channel_width,
                     depth: gridFactor * grid.channel_height,
                 };
-                //srdbg('grid scale', gridScale, 'factor', gridFactor, 'domain', domain);
                 xfactor = domain.height / domain.width / ASPECT_RATIO;
                 appState.models.conductors.filter(function (c) {
                     return warpvndService.getConductorType(c) === 'box';
@@ -2408,11 +2402,11 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                             edgeVisibility: true,
                         });
                 });
-                var pr = {
-                    x: [0, xfactor * domain.width],
-                    y: [-domain.height / 2.0, domain.height / 2.0],
-                    z: [-domain.depth / 2.0, domain.depth / 2.0],
-                };
+                //var pr = {
+                //    x: [0, xfactor * domain.width],
+                //    y: [-domain.height / 2.0, domain.height / 2.0],
+                //    z: [-domain.depth / 2.0, domain.depth / 2.0],
+                //};
                 //srdbg('point ranges', pr);
                 return {
                     x: [0, xfactor * domain.width],
@@ -2541,7 +2535,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function showLoadProgress() {
-                srdbg('...still loading...');
+                //srdbg('...still loading...');
             }
 
             function refresh() {

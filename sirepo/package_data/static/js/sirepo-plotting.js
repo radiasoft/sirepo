@@ -3720,7 +3720,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var d = f.dArr;
                         var nk = d.length;
                         var nl = d[0].length;
-                        srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
+                        //srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
                         var smin = plotting.min2d(d);
                         var smax = plotting.max2d(d);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, 'impactDensityAnimation');
@@ -3797,12 +3797,12 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         //pd.getPolys().setData(pp32);
                         pd.setPolys(cells);
                         //srdbg('pd pts', pd.getPoints(), 'num', pd.getPoints().getNumberOfPoints(), 'num cells', pd.getNumberOfCells(), 'num colors', dataColors.length / 3);
-                        srdbg('pd polys', pd.getPolys(), pd.getPolys().getNumberOfCells());
+                        //srdbg('pd polys', pd.getPolys(), pd.getPolys().getNumberOfCells());
                         //var cd = pd.getCellData();
                         //srdbg('cell data', cd, pd.getNumberOfValues());
                         p.mapper.setInputData(pd);
                         pd.getCellData().setScalars(carr);
-                        srdbg('sc', pd.getCellData().getArrays());
+                        //srdbg('sc', pd.getCellData().getArrays());
                         //srdbg('src', p.source, 'map', p.mapper);
                         //srdbg('pd', pd);
                         densityPlaneBundles.push(p);
