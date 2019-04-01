@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkconfig
-import beaker
+import beaker.session
 import flask
 import pickle
 
