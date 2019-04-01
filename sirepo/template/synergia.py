@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.schema import get_enums
+from sirepo.srschema import get_enums
 from sirepo.template import template_common, elegant_common, elegant_lattice_importer
 from synergia import foundation
 import glob
