@@ -148,6 +148,7 @@
             }
         },
         "zgoubi": {
+            "url": "/static/html/landing-page-zgoubi.html",
             "codeURL": "/zgoubi",
             "codeTitle": "Zgoubi",
             "infoPanelTitle": "ZGOUBI",

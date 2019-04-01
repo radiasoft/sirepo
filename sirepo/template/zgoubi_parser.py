@@ -48,7 +48,7 @@ def parse_file(zgoubi_text, max_id=0):
         if keyword:
             if current_command:
                 _add_command(parser, current_command, elements)
-            if keyword == 'END':
+            if keyword == 'END' or keyword == 'FIN':
                 current_command = None
                 break
             line = _strip_command_index(line)
@@ -140,26 +140,27 @@ def _zgoubi_bend(command):
 
 
 def _zgoubi_cavite(command):
-    i = command[1][0]
-    if i == '0' or i == '1':
+    iopt = re.sub(r'\..*$', '', command[1][0])
+    command[1][0] = iopt
+    if iopt == '0' or iopt == '1':
         return _parse_command(command, [
             'IOPT',
             'L h',
             'V',
         ])
-    if i == '2' or i == '3':
+    if iopt == '2' or iopt == '3':
         return _parse_command(command, [
             'IOPT',
             'L h',
             'V sig_s',
         ])
-    if i == '7':
+    if iopt == '7':
         return _parse_command(command, [
             'IOPT',
             'L f_RF',
             'V sig_s',
         ])
-    if i == '10':
+    if iopt == '10':
         return _parse_command(command, [
             'IOPT',
             'l f_RF *ID',

@@ -7,10 +7,9 @@ u"""Backward compatibility for old Beaker sessions.
 """
 from __future__ import absolute_import, division, print_function
 
-from beaker.session import SignedCookie
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkconfig
-import beaker
+import beaker.session
 import flask
 import pickle
 
@@ -25,7 +24,7 @@ def update_session_from_cookie_header(header):
     """
     maps = _init_maps()
     try:
-        cookie = SignedCookie(cfg.secret, input=header)
+        cookie = beaker.session.SignedCookie(cfg.secret, input=header)
         if not cfg.key in cookie:
             return None
         identifier = cookie[cfg.key].value

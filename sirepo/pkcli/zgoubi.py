@@ -36,6 +36,21 @@ def run(cfg_dir):
     template.save_report_data(data, py.path.local(cfg_dir))
 
 
+def run_background(cfg_dir):
+    res = {}
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if _estimated_output_file_size(data) > 5e7:
+        res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
+    else:
+        try:
+            _bunch_match_twiss(cfg_dir)
+            _run_zgoubi(cfg_dir)
+            res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
+        except Exception as e:
+            res['error'] = str(e)
+    simulation_db.write_result(res)
+
+
 def _bunch_match_twiss(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     bunch = data.models.bunch
@@ -68,20 +83,6 @@ def _bunch_match_twiss(cfg_dir):
         # rewrite the original report with original parameters
         template.write_parameters(data, py.path.local(cfg_dir), False)
     return data
-
-
-def run_background(cfg_dir):
-    res = {}
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if _estimated_output_file_size(data) > 5e7:
-        res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
-    else:
-        try:
-            _bunch_match_twiss(cfg_dir)
-            _run_zgoubi(cfg_dir)
-        except Exception as e:
-            res['error'] = str(e)
-    simulation_db.write_result(res)
 
 
 def _estimated_output_file_size(data):

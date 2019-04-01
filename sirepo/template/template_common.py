@@ -77,7 +77,7 @@ def compute_plot_color_and_range(plots):
     y_range = None
     for i in range(len(plots)):
         plot = plots[i]
-        plot['color'] = _PLOT_LINE_COLOR[i]
+        plot['color'] = _PLOT_LINE_COLOR[i % len(_PLOT_LINE_COLOR)]
         vmin = min(plot['points'])
         vmax = max(plot['points'])
         if y_range:
@@ -87,6 +87,13 @@ def compute_plot_color_and_range(plots):
                 y_range[1] = vmax
         else:
             y_range = [vmin, vmax]
+    # color child plots the same as parent
+    for c in [p for p in plots if '_parent' in p]:
+        p_label = plot['_parent']
+        for p in plots:
+            if p['label'] == p_label:
+                c['color'] = p['color']
+                break
     return y_range
 
 

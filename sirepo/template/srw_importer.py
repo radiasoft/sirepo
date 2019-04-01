@@ -13,12 +13,12 @@ from pykern import pkresource
 from pykern import pkrunpy
 from pykern import pkcollections
 from pykern.pkdebug import pkdlog, pkdexc
-from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 import ast
 import inspect
 import py
 import py.path
 import re
+import srwl_bl
 import traceback
 
 try:
@@ -40,7 +40,7 @@ class SRWParser(object):
         if arguments:
             import shlex
             arguments = shlex.split(arguments)
-        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
+        self.var_param = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
         self.get_files()
         if self.initial_lib_dir:
             self.replace_mirror_files()
@@ -583,7 +583,7 @@ def _name(user_filename):
 
 def _parsed_dict(v, op):
     import sirepo.template.srw
-    std_options = Struct(**_list2dict(srwl_uti_std_options()))
+    std_options = Struct(**_list2dict(srwl_bl.srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)
 

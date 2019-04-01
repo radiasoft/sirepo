@@ -10,6 +10,16 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="AnalysisOptionalParameter" class="col-sm-5">',
       '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
     '</div>',
+    '<div data-ng-switch-when="Equation" class="col-sm-7">',
+      '<div data-equation="equation" data-model="model" data-field="field"></div>',
+      '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
+    '</div>',
+    '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
+      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="true"></div>',
+    '</div>',
+    '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
+      '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.factory('webconService', function(appState) {
@@ -37,6 +47,10 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
 
     self.hasFile = function() {
         return appState.isLoaded() && appState.applicationState().analysisData.file;
+    };
+
+    self.isFitterConfigured = function() {
+        return appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -126,5 +140,138 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '</app-header-right-sim-list>',
             '</div>',
 	].join(''),
+    };
+});
+
+SIREPO.app.directive('equation', function(appState, webconService) {
+    return {
+        scope: {
+            model: '=',
+            field: '='
+        },
+        template: [
+            '<div>',
+                '<input type="text" data-ng-model="model[field]" class="form-control" required>',
+            '</div>',
+        ].join(''),
+        controller: function ($scope) {
+            $scope.webconservice = webconService;
+
+            //srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
+
+            // function tokenizeEquation() {
+            //     var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
+            //TODO(pjm): jshint doesn't like the regular expression for some reason
+            //     var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
+            //         .filter(function (t) {
+            //             return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
+            //     });
+            //     //tokens = tokens.filter(function (t) {
+            //     //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
+            //     //});
+            //     return tokens;
+            // }
+        },
+    };
+});
+
+SIREPO.app.directive('equationVariables', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '=',
+            form: '=',
+            isVariable: '<',
+            model: '=',
+        },
+        template: [
+            '<div>',
+                '<input type="text" data-ng-model="model[field]" data-valid-variable-or-param="" class="form-control" required />',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var reserved = ['sin', 'cos', 'tan', 'abs'];
+
+            $scope.equation = $scope.model.equation;
+        },
+    };
+});
+
+SIREPO.app.directive('validVariableOrParam', function(utilities) {
+    return {
+        restrict: 'A',
+        require: 'ngModel',
+         link: function(scope, element, attrs, ngModel) {
+
+            function tokens() {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/);
+            }
+
+            function isUnique (val, arr) {
+                var i = arr.indexOf(val);
+                if(i < 0) {
+                    throw val + ': Value not in array';
+                }
+                return i === arr.lastIndexOf(val);
+            }
+
+            function validateParam(p) {
+                scope.warningText = '';
+                if(! /^[a-zA-Z]+$/.test(p)) {
+                    scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
+                    return false;
+                }
+                if(! scope.isVariable && p === scope.model.variable) {
+                    scope.warningText = p + ' is an independent variable';
+                    return false;
+                }
+                if(scope.model.equation.indexOf(p) < 0) {
+                    scope.warningText = p + ' does not appear in the equation';
+                    return false;
+                }
+                if(! isUnique(p, tokens())) {
+                    scope.warningText = p + ' is duplicated';
+                    return false;
+                }
+
+                return true;
+            }
+
+            ngModel.$validators.validTokens = (function (v) {
+                return (ngModel.$viewValue || '').split(/\s*,\s*/)
+                    .filter(function (p) {
+                        return p.length > 0;
+                    })
+                    .reduce(function (valid, p) {
+                        return valid && validateParam(p);
+                    }, true);
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('fitReport', function(appState, mathRendering) {
+    return {
+        scope: {
+            controller: '=parentController',
+        },
+        template: [
+            '<div data-basic-editor-panel="" data-view-name="fitter" data-parent-controller="controller"></div>',
+            '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.$on('fitter.changed', function() {
+                appState.saveChanges('fitReport', function () {
+                });
+            });
+            $scope.$on('fitReport.changed', function() {
+                var focusText = $('.focus-hint');
+                var str = '';
+            });
+
+        },
     };
 });
