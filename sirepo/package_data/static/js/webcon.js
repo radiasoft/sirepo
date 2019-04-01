@@ -159,17 +159,18 @@ SIREPO.app.directive('equation', function(appState, webconService) {
 
             //srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
 
-            function tokenizeEquation() {
-                var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
-                var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
-                    .filter(function (t) {
-                        return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
-                });
-                //tokens = tokens.filter(function (t) {
-                //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
-                //});
-                return tokens;
-            }
+            // function tokenizeEquation() {
+            //     var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
+            //TODO(pjm): jshint doesn't like the regular expression for some reason
+            //     var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
+            //         .filter(function (t) {
+            //             return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
+            //     });
+            //     //tokens = tokens.filter(function (t) {
+            //     //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
+            //     //});
+            //     return tokens;
+            // }
         },
     };
 });
