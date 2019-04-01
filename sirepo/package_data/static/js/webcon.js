@@ -23,17 +23,12 @@ SIREPO.appFieldEditors = [
 ].join('');
 
 
-SIREPO.app.factory('webconService', function(appState, validationService) {
+SIREPO.app.factory('webconService', function(appState) {
     var self = {};
-    validationService.setFieldValidator('equation', self.validateEquation);
     self.analysisParameters = null;
 
     self.setAnalysisParameters = function(columnInfo) {
         self.analysisParameters = columnInfo;
-    };
-
-    self.validateEquation = function (fitModel) {
-        srdbg('validate', fitModel);
     };
 
     return self;

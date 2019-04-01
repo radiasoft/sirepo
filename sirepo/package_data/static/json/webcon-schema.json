@@ -9,18 +9,9 @@
             "js": ["webcon.js"]
         }
     },
-    "enum": {
-        "EquationPresets": [
-            ["linear", "Linear"],
-            ["gaussian", "Gaussian"]
-        ],
-        "PlotStyles": [
-            ["line", "Line"],
-            ["scatter", "Scatter"]
-        ]
-    },
+    "enum": {},
     "localRoutes": {
-         "analysis": {
+        "analysis": {
             "route": "/analysis/:simulationId",
             "config": {
                 "controller": "AnalysisController as analysis",

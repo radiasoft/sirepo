@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 u"""Webcon execution template.
 
-
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
@@ -10,8 +9,6 @@ from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
-from scipy.optimize import curve_fit
-import sympy as sp
 from sirepo import simulation_db
 from sirepo.template import template_common
 
@@ -52,6 +49,7 @@ def fixup_old_data(data):
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     template_common.organize_example(data)
+
 
 def get_data_file(run_dir, model, frame, options=None):
     assert False, 'not implemented'
