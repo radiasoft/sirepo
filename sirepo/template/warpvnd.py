@@ -504,8 +504,14 @@ def _extract_impact_density(run_dir, data):
     radius = _meters(grid['channel_width'] / 2.)
 
     dx = plot_info['dx']
+    dy = 0
     dz = plot_info['dz']
-    gated_ids = plot_info['gated_ids']
+
+    if _is_3D(data):
+        dy = 0 #plot_info['dy']
+        width = _meters(grid.channel_width)
+
+    gated_ids = plot_info['gated_ids'] if 'gated_ids' in plot_info else []
     lines = []
 
     for i in gated_ids:
@@ -528,8 +534,11 @@ def _extract_impact_density(run_dir, data):
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
         'y_range': [-radius, radius],
+        'z_range': [-width / 2., width / 2.],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
+        'density': plot_info['density'],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
@@ -796,6 +805,8 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
 def _prepare_conductors(data):
     type_by_id = {}
     for ct in data.models.conductorTypes:
+        if ct is None:
+            continue
         type_by_id[ct.id] = ct
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
@@ -803,6 +814,8 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
     for c in data.models.conductors:
+        if c.conductorTypeId not in type_by_id:
+            continue
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])

@@ -1,19 +1,82 @@
 
 from rswarp.diagnostics import ImpactDensity
+
+# use the function arr[0][0] + k * sk + l * sl (loop over k then l) to
+# get the original array value
+def _linear_fit_2d(arr):
+    rel_tol = 1e-6
+    sk = (arr[len(arr) - 1][0] - arr[0][0]) / (len(arr) - 1)
+    sl = (arr[0][len(arr[0]) - 1] - arr[0][0]) / (len(arr[0]) - 1)
+    # test
+    for k in range(len(arr)):
+        for l in range(len(arr[k])):
+            cfn = arr[0][0] + k * sk + l * sl
+            diff = abs(arr[k][l] - cfn) / arr[k][l]
+            if diff > rel_tol:
+                print('OOPS! array: {} vs fn: {}; diff {}'.format(arr[k][l], cfn, diff))
+    return sk, sl
+
 try:
+    #print('SCRAPER {}'.format(wp.w3d))
+    i_data = []
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
-    plot_density.gate_scraped_particles()
-    plot_density.map_density()
-    for gid in plot_density.gated_ids:
-        for side in plot_density.gated_ids[gid]:
-            del plot_density.gated_ids[gid][side]['interpolation']
-    density_results = {
-        'gated_ids': plot_density.gated_ids,
-        'dx': plot_density.dx,
-        'dz': plot_density.dz,
-        'min': plot_density.cmap_normalization.vmin,
-        'max': plot_density.cmap_normalization.vmax,
-    }
+
+    if not hasattr(plot_density, 'conductors'):
+        plot_density.gate_scraped_particles()
+        plot_density.map_density()
+        for gid in plot_density.gated_ids:
+            for side in plot_density.gated_ids[gid]:
+                del plot_density.gated_ids[gid][side]['interpolation']
+
+        density_results = {
+            'gated_ids': plot_density.gated_ids,
+            'dx': plot_density.dx,
+            'dz': plot_density.dz,
+            'min': plot_density.cmap_normalization.vmin,
+            'max': plot_density.cmap_normalization.vmax,
+        }
+    else:
+        rel_tol = 1e-6
+        i_data = []
+        coord_keys = ['x', 'y', 'z']
+        for i in plot_density.conductors:
+            c_data = []
+            c = plot_density.conductors[i]
+            {% if is3D %}
+            d = plot_density.generate_plot_data_for_faces_3d(c)
+            for (x, y, z, s) in d:
+                f_data = {
+                    'dArr': s.tolist()
+                }
+                print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
+                for cx, coord in enumerate((x, y, z)):
+                    sk, sl = _linear_fit_2d(coord)
+                    f_data[coord_keys[cx]] = {
+                        'startVal': coord[0][0],
+                        'slopek': sk,
+                        'slopel': sl
+                    }
+                c_data.append(f_data)
+            i_data.append(c_data)
+            {% else %}
+            d = plot_density.generate_plot_data_for_faces_2d(c)
+            for (x, z, s) in d:
+                #print('cond {}: S at {}, {}: {}'.format(i, x, z, np.histogram(s, 'fd')))
+                print('cond {}: S at x {} ({}), z {} ({}): {}'.format(i, x, len(x), z, len(z), s))
+            {% endif %}
+            s = c.scraped_particles
+            p = c.pids
+
+        density_results = {
+            'dx': plot_density.dx,
+            {% if is3D %}
+             'dy': plot_density.dy,
+             'density': i_data,
+            {% endif %}
+            'dz': plot_density.dz,
+            'min': plot_density.cmap_normalization.vmin,
+            'max': plot_density.cmap_normalization.vmax,
+        }
 except AssertionError as e:
     message = e.message
     if wp.top.npslost[0] <= 0:
