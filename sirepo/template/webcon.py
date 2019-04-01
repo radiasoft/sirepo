@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from scipy.optimize import curve_fit
-import sympy as sp
+import sympy
 from sirepo import simulation_db
 from sirepo.template import template_common
 import csv
@@ -171,7 +171,7 @@ def validate_file(file_type, path):
 
 def validate_sympy(str):
     try:
-        sp.sympify(str)
+        sympy.sympify(str)
         return True
     except:
         return False
@@ -225,11 +225,11 @@ def _column_info(path):
 def _fit_to_equation(x, y, equation, var, params):
 
     # TODO: must sanitize input - sympy uses eval
-    sym_curve = sp.sympify(equation)
+    sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
 
-    syms = sp.symbols(sym_str)
-    sym_curve_l = sp.lambdify(syms, sym_curve, 'numpy')
+    syms = sympy.symbols(sym_str)
+    sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
 
     # feed a uniform x distribution to the function?  or sort?
     #x_uniform = np.linspace(np.min(x), np.max(x), 100)
@@ -259,11 +259,11 @@ def _fit_to_equation(x, y, equation, var, params):
     # used for the laTeX label - rounding should take size of uncertainty into account
     y_fit_rounded = sym_curve.subs(p_rounded)
 
-    y_fit_l = sp.lambdify(var, y_fit, 'numpy')
-    y_fit_min_l = sp.lambdify(var, y_fit_min, 'numpy')
-    y_fit_max_l = sp.lambdify(var, y_fit_max, 'numpy')
+    y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
+    y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
+    y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
-    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sp.latex(y_fit_rounded)
+    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sympy.latex(y_fit_rounded)
 
 
 def _generate_parameters_file(data):
