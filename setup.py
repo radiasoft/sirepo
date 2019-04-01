@@ -34,6 +34,7 @@ pykern.pksetup.setup(
         'requests-oauthlib==1.1.0',
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',
+        'docker; python_version >= "3"',
    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',

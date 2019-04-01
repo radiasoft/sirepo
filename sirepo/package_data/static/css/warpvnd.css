@@ -57,5 +57,5 @@
   stroke: rgba(99, 99, 99, 0.7);
   stroke-width: 1;
   fill: rgb(0, 230, 0);
-  cursor: default;
+  cursor: pointer;
 }

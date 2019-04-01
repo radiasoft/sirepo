@@ -81,7 +81,6 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         return optFloatFields;
     }
 
-
     function cleanNumber(v) {
         v = v.replace(/\.0+(\D+)/, '$1');
         v = v.replace(/(\.\d)0+(\D+)/, '$1$2');
@@ -2166,7 +2165,7 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var maxValue, points, sortedPoints;
+            var maxValue, optimizerFields, optimizerInfo, optimizerPoints, points, sortedPoints;
 
             function fieldLabel(field, optFields) {
                 var res = name;
@@ -2179,10 +2178,41 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
                 return res;
             }
 
+            function tableRowHTML(label, value) {
+                return '<tr>'
+                    + '<td class="text-right" style="padding-right: 1ex"><b>' + label + '</b></td>'
+                    + '<td class="text-right">' + value + '</td>'
+                    + '</tr>';
+            }
+
+            function popupHTML(point) {
+                var info = optimizerInfo[point[2]];
+                var fields = optimizerPoints[point[2]];
+                var optFields = warpvndService.buildOptimizeFields();
+                return '<table>'
+                    + optimizerFields.map(function(f, idx) {
+                        return tableRowHTML(fieldLabel(f, optFields), fields[idx]);
+                    }).join('')
+                    + tableRowHTML('Steps', info[0])
+                    + tableRowHTML('Time [s]', parseInt(info[1]))
+                    + tableRowHTML('Tolerance', info[2].toExponential(3))
+                    + tableRowHTML('Result', info[3])
+                    + '</table>';
+            }
+
+            function resultForPoint(point) {
+                return optimizerInfo[point[2]][3];
+            }
+
+            $scope.destroy = function() {
+                $('.warpvnd-scatter-point').popover('hide');
+                $('.warpvnd-scatter-point').off();
+            };
+
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
-                    margin: {top: 50, right: 80, bottom: 50, left: 70},
+                    margin: {top: 20, right: 80, bottom: 50, left: 70},
                     zoomContainer: '.plot-viewport',
                     wantColorbar: true,
                     isZoomXY: true,
@@ -2193,17 +2223,32 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
             };
 
             $scope.load = function(json) {
-                points = json.points;
+                optimizerFields = json.fields;
+                optimizerInfo = json.optimizerInfo;
+                optimizerPoints = json.optimizerPoints;
+                // points is an array of [x, y, index]
+                points = d3.zip(
+                    optimizerPoints.map(function(v) {
+                        return v[json.x_index];
+                    }),
+                    optimizerPoints.map(function(v) {
+                        return v[json.y_index];
+                    }),
+                    optimizerPoints.map(function(v, idx) {
+                        return idx;
+                    }));
                 sortedPoints = appState.clone(points).sort(function(v1, v2) {
-                    return v1[2] - v2[2];
+                    return resultForPoint(v1) - resultForPoint(v2);
                 });
                 maxValue = json.v_max;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var ydom = [json.y_range[0], json.y_range[1]];
                 if (appState.deepEquals(xdom, $scope.axes.x.domain)
                     && appState.deepEquals(ydom, $scope.axes.y.domain)) {
+                    // domain is unchanged, don't change current zoom
                 }
                 else {
+                    // reset scaling
                     $scope.axes.x.domain = xdom;
                     $scope.axes.x.scale.domain(xdom);
                     $scope.axes.y.domain = ydom;
@@ -2211,7 +2256,7 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
                 }
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
-                viewport.append('path').attr('class', 'line line-1').datum(json.points);
+                viewport.append('path').attr('class', 'line line-1').datum(points);
                 var optFields = warpvndService.buildOptimizeFields();
                 json.x_label = fieldLabel(json.x_field, optFields);
                 $scope.isZoomXY = json.x_field != json.y_field;
@@ -2227,29 +2272,46 @@ SIREPO.app.directive('optimizerPathPlot', function(appState, plotting, plot2dSer
             $scope.refresh = function() {
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').attr('d', $scope.graphLine);
-                viewport.selectAll('.warpvnd-scatter-point').remove();
+                $('.warpvnd-scatter-point').popover('hide');
                 viewport.selectAll('.warpvnd-scatter-point')
                     .data(sortedPoints)
                     .enter().append('circle')
                     .attr('class', 'warpvnd-scatter-point')
                     .attr('r', 8)
+                    .on('mouseover', function() {
+                        var obj = d3.select(this);
+                        if (! obj.empty()) {
+                            $scope.pointer.pointTo(resultForPoint(obj.datum()));
+                        }
+                    })
+                    .on('click', function() {
+                        var obj = d3.select(this);
+                        $(this).popover({
+                            trigger: 'manual',
+                            html: true,
+                            placement: 'bottom',
+                            container: 'div.panel-body',
+                            content: function() {
+                                return popupHTML(obj.datum());
+                            },
+                        });
+                        $('.warpvnd-scatter-point').not($(this)).popover('hide');
+                        $(this).popover('toggle');
+                    });
+                viewport.selectAll('.warpvnd-scatter-point')
                     .attr('cx', $scope.graphLine.x())
                     .attr('cy', $scope.graphLine.y())
                     .attr('style', function(d) {
-                        var res = 'fill: ' + $scope.colorScale(d[2]);
-                        if (d[2] == maxValue) {
+                        var result = resultForPoint(d);
+                        var res = 'fill: ' + $scope.colorScale(result);
+                        if (result == maxValue) {
                             res += '; stroke-width: 2; stroke: black';
                         }
                         return res;
                     })
-                    .on('mouseover', function() {
-                        var obj = d3.select(this);
-                        if (! obj.empty()) {
-                            $scope.pointer.pointTo(obj.datum()[2]);
-                        }
-                    })
-                    .append('title').text(function(d) {
-                        return d.join(', ');
+                    // position circles on top of all other svg elements
+                    .each(function() {
+                        this.parentNode.appendChild(this);
                     });
             };
         },

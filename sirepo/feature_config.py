@@ -11,10 +11,10 @@ from pykern import pkcollections
 import copy
 
 #: Codes on beta and prod
-_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
+_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia', 'zgoubi')
 
 #: Codes on dev and alpha
-_ALPHA_CODES = ('myapp', 'adm', 'zgoubi', 'flash')
+_ALPHA_CODES = ('myapp', 'adm', 'flash', 'webcon')
 
 
 #: All possible codes

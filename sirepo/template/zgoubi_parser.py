@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template.line_parser import LineParser
+import copy
 import re
 
 _COMMAND_INDEX_POS = 110
@@ -47,7 +48,7 @@ def parse_file(zgoubi_text, max_id=0):
         if keyword:
             if current_command:
                 _add_command(parser, current_command, elements)
-            if keyword == 'END':
+            if keyword == 'END' or keyword == 'FIN':
                 current_command = None
                 break
             line = _strip_command_index(line)
@@ -122,6 +123,7 @@ def _zgoubi_autoref(command):
         'XCE YCE ALE',
     ])
 
+
 def _zgoubi_bend(command):
     res = _parse_command(command, [
         'IL',
@@ -136,33 +138,36 @@ def _zgoubi_bend(command):
     assert res['KPOS'] in ('1', '2', '3'), '{}: BEND KPOS not yet supported'.format(res['KPOS'])
     return res
 
+
 def _zgoubi_cavite(command):
-    i = command[1][0]
-    if i == '0' or i == '1':
+    iopt = re.sub(r'\..*$', '', command[1][0])
+    command[1][0] = iopt
+    if iopt == '0' or iopt == '1':
         return _parse_command(command, [
             'IOPT',
             'L h',
             'V',
         ])
-    if i == '2' or i == '3':
+    if iopt == '2' or iopt == '3':
         return _parse_command(command, [
             'IOPT',
             'L h',
             'V sig_s',
         ])
-    if i == '7':
+    if iopt == '7':
         return _parse_command(command, [
             'IOPT',
             'L f_RF',
             'V sig_s',
         ])
-    if i == '10':
+    if iopt == '10':
         return _parse_command(command, [
             'IOPT',
             'l f_RF *ID',
             'V sig_s IOP',
         ])
     assert False, 'unsupported CAVITE: {}'.format(i)
+
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
@@ -187,20 +192,24 @@ def _zgoubi_changref(command):
     ])
     return res
 
+
 def _zgoubi_drift(command):
     return _parse_command(command, [
         'l',
     ])
+
 
 def _zgoubi_esl(command):
     res = _zgoubi_drift(command)
     res['type'] = 'DRIFT'
     return res
 
+
 def _zgoubi_marker(command):
     res = _parse_command_header(command)
     res['plt'] = '0'
     return res
+
 
 def _zgoubi_multipol(command):
     res = _parse_command(command, [
@@ -217,23 +226,32 @@ def _zgoubi_multipol(command):
     assert res['KPOS'] in ('1', '2', '3'), '{}: MULTIPOL KPOS not yet supported'.format(res['KPOS'])
     return res
 
+
 def _zgoubi_objet(command):
-    kobj = command[2][0]
-    # assert kobj == '5' or kobj == '5.1', '{}: only OBJET 5 and 5.1 is supported for now'.format(kobj)
-    # command_def = [
-    #     'BORO',
-    #     'KOBJ',
-    #     'dY dT dZ dP dS dD',
-    #     'YR TR ZR PR SR DR',
-    # ]
-    # if kobj == '5.1':
-    #     command_def.append('alpha_Y beta_Y alpha_Z beta_Z alpha_S beta_S D_Y Dprime_Y D_Z Dprime_Z')
     res = _parse_command(command, [
         'rigidity',
+        'KOBJ'
     ])
+    kobj = res['KOBJ']
+    del res['KOBJ']
     if 'name' in res:
         del res['name']
     res['type'] = 'bunch'
+    if kobj == '2' or kobj == '2.1':
+        coordinates = []
+        for i in range(4, len(command) - 1):
+            coord = _parse_command_line({}, command[i], 'Y T Z P X D')
+            for k in coord:
+                coord[k] = float(coord[k])
+                if kobj == '2':
+                    if k in ('Y', 'Z', 'S'):
+                        coord[k] *= 1e-2
+                    elif k in ('T', 'P'):
+                        coord[k] *= 1e-3
+            coordinates.append(coord)
+        res.particleCount2 = len(coordinates)
+        res.method = 'OBJET2.1'
+        res.coordinates = coordinates
     return res
 
 
@@ -262,6 +280,7 @@ def _zgoubi_mcobjet(command):
         del res['name']
     res['type'] = 'bunch'
     return res
+
 
 def _zgoubi_particul(command):
     if re.search(r'^[\-\.0-9]+', command[1][0]):
@@ -294,8 +313,27 @@ def _zgoubi_quadrupo(command):
         'KPOS XCE YCE ALE',
     ])
 
+
+def _zgoubi_scaling(command):
+    command2 = copy.deepcopy(command)
+    pattern = [
+        'IOPT NFAM',
+    ]
+    res = _parse_command(command, pattern)
+    for idx in range(1, int(res['NFAM']) + 1):
+        pattern.append('NAMEF{}'.format(idx))
+        pattern.append('ignore'.format(idx))
+        pattern.append('SCL{}'.format(idx))
+        pattern.append('ignore'.format(idx))
+    res = _parse_command(command2, pattern)
+    del res['NFAM']
+    del res['ignore']
+    return res
+
+
 def _zgoubi_sextupol(command):
     return _zgoubi_quadrupo(command)
+
 
 def _zgoubi_ymy(command):
     return _parse_command_header(command)

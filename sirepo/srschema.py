@@ -52,14 +52,13 @@ def validate_fields(data, schema):
             _validate_number(val, sch_field_info)
 
 
-def validate_name(data, data_files):
+def validate_name(data, data_files, max_copies):
     """Validate and if necessary uniquify name
 
     Args:
         data (dict): what to validate
         data_files(list): simulation files already in the folder
     """
-    from sirepo.simulation_db import SCHEMA_COMMON
     s = data.models.simulation
     sim_id = s.simulationId
     n = s.name
@@ -70,17 +69,15 @@ def validate_name(data, data_files):
         if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
             starts_with[n2] = d.models.simulation.simulationId
     i = 2
-    max = SCHEMA_COMMON.common.constants.maxSimCopies
     n2 = data.models.simulation.name
     while n2 in starts_with:
         n2 = '{} {}'.format(data.models.simulation.name, i)
         i += 1
-    assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
+    assert i - 1 <= max_copies, util.err(n, 'Too many copies: {} > {}', i - 1, max_copies)
     data.models.simulation.name = n2
 
 
-
-def validate_schema(schema):
+def validate(schema):
     """Validate the schema
 
     Validations performed:

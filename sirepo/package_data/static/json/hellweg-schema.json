@@ -53,10 +53,6 @@
             ["th-ath", "Azmuthal Phase Space (theta, theta')"],
             ["phi-w", "Longitudinal Phase Space (phi, W)"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "EnergyDistributionType": [
             ["uniform", "Uniform"],
             ["gaussian", "Gaussian"]

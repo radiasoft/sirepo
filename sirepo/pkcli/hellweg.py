@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc
-from rslinac.solver import BeamSolver
+from rslinac import solver
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
@@ -42,7 +42,7 @@ def _run_hellweg(cfg_dir):
         exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
         pkio.write_text(template.HELLWEG_INPUT_FILE, input_file)
         pkio.write_text(template.HELLWEG_INI_FILE, ini_file)
-        solver = BeamSolver(template.HELLWEG_INI_FILE, template.HELLWEG_INPUT_FILE)
-        solver.solve()
-        solver.save_output(template.HELLWEG_SUMMARY_FILE)
-        solver.dump_bin(template.HELLWEG_DUMP_FILE)
+        s = solver.BeamSolver(template.HELLWEG_INI_FILE, template.HELLWEG_INPUT_FILE)
+        s.solve()
+        s.save_output(template.HELLWEG_SUMMARY_FILE)
+        s.dump_bin(template.HELLWEG_DUMP_FILE)

@@ -108,6 +108,10 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 
     function addRoute(routeName, isDefault) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
+        if (! routeInfo.config) {
+            // the route isn't configured for the current app
+            return;
+        }
         localRoutes[routeName] = routeInfo.route;
         var cfg = routeInfo.config;
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
@@ -777,7 +781,7 @@ SIREPO.app.service('validationService', function(utilities) {
         var isValid = function(name) {
             return enums.map(function (e) {
                 return e[SIREPO.ENUM_INDEX_VALUE];
-            }).indexOf(name) >= 0;
+            }).indexOf('' + name) >= 0;
         };
         var err = function(name) {
             return name + ':' + ' no such value in ' + enumName;

@@ -15,6 +15,8 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         coolwarm: colorsFromString('3b4cc03c4ec23d50c33e51c53f53c64055c84257c94358cb445acc455cce465ecf485fd14961d24a63d34b64d54c66d64e68d84f69d9506bda516ddb536edd5470de5572df5673e05875e15977e35a78e45b7ae55d7ce65e7de75f7fe86180e96282ea6384eb6485ec6687ed6788ee688aef6a8bef6b8df06c8ff16e90f26f92f37093f37295f47396f57597f67699f6779af7799cf87a9df87b9ff97da0f97ea1fa80a3fa81a4fb82a6fb84a7fc85a8fc86a9fc88abfd89acfd8badfd8caffe8db0fe8fb1fe90b2fe92b4fe93b5fe94b6ff96b7ff97b8ff98b9ff9abbff9bbcff9dbdff9ebeff9fbfffa1c0ffa2c1ffa3c2fea5c3fea6c4fea7c5fea9c6fdaac7fdabc8fdadc9fdaec9fcafcafcb1cbfcb2ccfbb3cdfbb5cdfab6cefab7cff9b9d0f9bad0f8bbd1f8bcd2f7bed2f6bfd3f6c0d4f5c1d4f4c3d5f4c4d5f3c5d6f2c6d6f1c7d7f0c9d7f0cad8efcbd8eeccd9edcdd9eccedaebcfdaead1dae9d2dbe8d3dbe7d4dbe6d5dbe5d6dce4d7dce3d8dce2d9dce1dadce0dbdcdedcdddddddcdcdedcdbdfdbd9e0dbd8e1dad6e2dad5e3d9d3e4d9d2e5d8d1e6d7cfe7d7cee8d6cce9d5cbead5c9ead4c8ebd3c6ecd3c5edd2c3edd1c2eed0c0efcfbfefcebdf0cdbbf1cdbaf1ccb8f2cbb7f2cab5f2c9b4f3c8b2f3c7b1f4c6aff4c5adf5c4acf5c2aaf5c1a9f5c0a7f6bfa6f6bea4f6bda2f7bca1f7ba9ff7b99ef7b89cf7b79bf7b599f7b497f7b396f7b194f7b093f7af91f7ad90f7ac8ef7aa8cf7a98bf7a889f7a688f6a586f6a385f6a283f5a081f59f80f59d7ef59c7df49a7bf4987af39778f39577f39475f29274f29072f18f71f18d6ff08b6ef08a6cef886bee8669ee8468ed8366ec8165ec7f63eb7d62ea7b60e97a5fe9785de8765ce7745be67259e57058e46e56e36c55e36b54e26952e16751e0654fdf634ede614ddd5f4bdc5d4ada5a49d95847d85646d75445d65244d55042d44e41d24b40d1493fd0473dcf453ccd423bcc403acb3e38ca3b37c83836c73635c53334c43032c32e31c12b30c0282fbe242ebd1f2dbb1b2cba162bb8122ab70d28b50927b40426'),
         jet: colorsFromString('00008000008400008900008d00009200009600009b00009f0000a40000a80000ad0000b20000b60000bb0000bf0000c40000c80000cd0000d10000d60000da0000df0000e30000e80000ed0000f10000f60000fa0000ff0000ff0000ff0000ff0000ff0004ff0008ff000cff0010ff0014ff0018ff001cff0020ff0024ff0028ff002cff0030ff0034ff0038ff003cff0040ff0044ff0048ff004cff0050ff0054ff0058ff005cff0060ff0064ff0068ff006cff0070ff0074ff0078ff007cff0080ff0084ff0088ff008cff0090ff0094ff0098ff009cff00a0ff00a4ff00a8ff00acff00b0ff00b4ff00b8ff00bcff00c0ff00c4ff00c8ff00ccff00d0ff00d4ff00d8ff00dcfe00e0fb00e4f802e8f406ecf109f0ee0cf4eb0ff8e713fce416ffe119ffde1cffdb1fffd723ffd426ffd129ffce2cffca30ffc733ffc436ffc139ffbe3cffba40ffb743ffb446ffb149ffad4dffaa50ffa753ffa456ffa05aff9d5dff9a60ff9763ff9466ff906aff8d6dff8a70ff8773ff8377ff807aff7d7dff7a80ff7783ff7387ff708aff6d8dff6a90ff6694ff6397ff609aff5d9dff5aa0ff56a4ff53a7ff50aaff4dadff49b1ff46b4ff43b7ff40baff3cbeff39c1ff36c4ff33c7ff30caff2cceff29d1ff26d4ff23d7ff1fdbff1cdeff19e1ff16e4ff13e7ff0febff0ceeff09f1fc06f4f802f8f500fbf100feed00ffea00ffe600ffe200ffde00ffdb00ffd700ffd300ffd000ffcc00ffc800ffc400ffc100ffbd00ffb900ffb600ffb200ffae00ffab00ffa700ffa300ff9f00ff9c00ff9800ff9400ff9100ff8d00ff8900ff8600ff8200ff7e00ff7a00ff7700ff7300ff6f00ff6c00ff6800ff6400ff6000ff5d00ff5900ff5500ff5200ff4e00ff4a00ff4700ff4300ff3f00ff3b00ff3800ff3400ff3000ff2d00ff2900ff2500ff2200ff1e00ff1a00ff1600ff1300fa0f00f60b00f10800ed0400e80000e40000df0000da0000d60000d10000cd0000c80000c40000bf0000bb0000b60000b20000ad0000a80000a400009f00009b00009600009200008d0000890000840000800000'),
         viridis: colorsFromString('44015444025645045745055946075a46085c460a5d460b5e470d60470e6147106347116447136548146748166848176948186a481a6c481b6d481c6e481d6f481f70482071482173482374482475482576482677482878482979472a7a472c7a472d7b472e7c472f7d46307e46327e46337f463480453581453781453882443983443a83443b84433d84433e85423f854240864241864142874144874045884046883f47883f48893e49893e4a893e4c8a3d4d8a3d4e8a3c4f8a3c508b3b518b3b528b3a538b3a548c39558c39568c38588c38598c375a8c375b8d365c8d365d8d355e8d355f8d34608d34618d33628d33638d32648e32658e31668e31678e31688e30698e306a8e2f6b8e2f6c8e2e6d8e2e6e8e2e6f8e2d708e2d718e2c718e2c728e2c738e2b748e2b758e2a768e2a778e2a788e29798e297a8e297b8e287c8e287d8e277e8e277f8e27808e26818e26828e26828e25838e25848e25858e24868e24878e23888e23898e238a8d228b8d228c8d228d8d218e8d218f8d21908d21918c20928c20928c20938c1f948c1f958b1f968b1f978b1f988b1f998a1f9a8a1e9b8a1e9c891e9d891f9e891f9f881fa0881fa1881fa1871fa28720a38620a48621a58521a68522a78522a88423a98324aa8325ab8225ac8226ad8127ad8128ae8029af7f2ab07f2cb17e2db27d2eb37c2fb47c31b57b32b67a34b67935b77937b87838b9773aba763bbb753dbc743fbc7340bd7242be7144bf7046c06f48c16e4ac16d4cc26c4ec36b50c46a52c56954c56856c66758c7655ac8645cc8635ec96260ca6063cb5f65cb5e67cc5c69cd5b6ccd5a6ece5870cf5773d05675d05477d1537ad1517cd2507fd34e81d34d84d44b86d54989d5488bd6468ed64590d74393d74195d84098d83e9bd93c9dd93ba0da39a2da37a5db36a8db34aadc32addc30b0dd2fb2dd2db5de2bb8de29bade28bddf26c0df25c2df23c5e021c8e020cae11fcde11dd0e11cd2e21bd5e21ad8e219dae319dde318dfe318e2e418e5e419e7e419eae51aece51befe51cf1e51df4e61ef6e620f8e621fbe723fde725'),
+        // String.repeat() not available in all browsers
+        contrast: colorsFromString('000000' + Array(255).join('ffffff')),
     };
 
     function colorsFromString(s) {
@@ -86,6 +88,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         };
         scope.hasManyFrames = function() {
             if (SIREPO.SINGLE_FRAME_ANIMATION && SIREPO.SINGLE_FRAME_ANIMATION.indexOf(scope.modelName) >= 0) {
+                return false;
+            }
+            if (appState.isLoaded() && appState.models[scope.modelName].showAllFrames == '1') {
                 return false;
             }
             return frameCache.isLoaded() && frameCache.getFrameCount(scope.modelName) > 1;
@@ -1386,6 +1391,32 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
     };
 });
 
+SIREPO.app.directive('columnForAspectRatio', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@columnForAspectRatio',
+        },
+        transclude: true,
+        template: [
+            '<div class="{{ columnClass() }}">',
+              '<div data-ng-transclude=""></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.columnClass = function() {
+                if (appState.isLoaded()) {
+                    var ratio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
+                    if (ratio <= 0.5) {
+                        return 'col-md-12 col-xl-8';
+                    }
+                }
+                return 'col-md-6 col-xl-4';
+            };
+        }
+    };
+});
+
 SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressService, plotting, $timeout) {
     return {
         restrict: 'A',
@@ -2555,12 +2586,18 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 $.each(axes, function(dim, axis) {
                     axis.updateLabelAndTicks($scope.canvasSize, select);
                 });
-                if (layoutService.plotAxis.allowUpdates) {
-                    colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
-                    // must remove the element to reset the margins
+                if (showColorBar()) {
+                    if (layoutService.plotAxis.allowUpdates) {
+                        colorbar.barlength($scope.canvasSize.height).origin([$scope.canvasSize.width + $scope.margin.right, 0]);
+                        // must remove the element to reset the margins
+                        select('svg.colorbar').remove();
+                        pointer = select('.colorbar').call(colorbar);
+                        $scope.margin.right = colorbarSize();
+                    }
+                }
+                else {
                     select('svg.colorbar').remove();
-                    pointer = select('.colorbar').call(colorbar);
-                    $scope.margin.right = colorbarSize();
+                    $scope.margin.right = 20;
                 }
             }
 
@@ -2586,6 +2623,13 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     },
                     heatmap, cacheCanvas, imageData, $scope.modelName);
                 colorbar.scale(colorScale);
+            }
+
+            function showColorBar() {
+                if (appState.isLoaded()) {
+                    return appState.models[$scope.modelName].colorMap != 'contrast';
+                }
+                return false;
             }
 
             $scope.clearData = function() {
@@ -2629,7 +2673,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                aspectRatio = json.aspect_ratio || 1.0;
+                if (appState.isLoaded() && appState.applicationState()[$scope.modelName] && appState.applicationState()[$scope.modelName].aspectRatio) {
+                    aspectRatio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
+                }
+                else {
+                    aspectRatio = json.aspect_ratio || 1.0;
+                }
                 heatmap = appState.clone(json.z_matrix).reverse();
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);

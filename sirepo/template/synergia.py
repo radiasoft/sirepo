@@ -9,8 +9,9 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.schema import get_enums
+from sirepo.srschema import get_enums
 from sirepo.template import template_common, elegant_common, elegant_lattice_importer
+from synergia import foundation
 import glob
 import h5py
 import math
@@ -118,6 +119,7 @@ def fixup_old_data(data):
             elif i == 3:
                 model['x'] = 'z'
                 model['y'] = 'zp'
+    template_common.organize_example(data)
 
 
 def format_float(v):
@@ -265,13 +267,13 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, report_info.run_dir)
+            save_report_data(data, run_dir)
 
 
 def remove_last_frame(run_dir):
@@ -394,10 +396,9 @@ def _build_beamline_map(data):
 
 
 def _calc_bunch_parameters(bunch):
-    from synergia.foundation import Four_momentum
     bunch_def = bunch.beam_definition
     bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
-    mom = Four_momentum(bunch.mass)
+    mom = foundation.Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
         if bunch_def == bunch_enums.energy:
@@ -660,10 +661,15 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    from synergia.foundation import pconstants
     if not lattice.has_reference_particle():
         # create a default reference particle, proton,energy=1.5
-        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
+        lattice.set_reference_particle(
+            foundation.Reference_particle(
+                pconstants.proton_charge,
+                foundation.Four_momentum(pconstants.mp, 1.5)
+            )
+        )
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'

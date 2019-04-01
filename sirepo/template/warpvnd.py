@@ -30,6 +30,7 @@ _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.npy'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
+_OPTIMIZER_STATUS_FILE = 'opt-run.out'
 _OPTIMIZER_OUTPUT_FILE = 'opt.out'
 _OPTIMIZER_RESULT_FILE = 'opt.json'
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
@@ -130,8 +131,7 @@ def fixup_old_data(data):
             'zCell2': int(grid.num_z * 2. / 3),
             'zCell3': int(grid.num_z * 4. / 5),
         }
-    if 'conductorFile' not in data.models.simulation:
-        data.models.simulation.conductorFile = ''
+    template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir):
@@ -286,9 +286,8 @@ def open_data_file(run_dir, model_name, file_index=None):
     return res
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     if data['report'] == 'fieldComparisonReport':
-        run_dir = report_info.run_dir
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -560,6 +559,7 @@ def _extract_impact_density(run_dir, data):
         'v_max': plot_info['max'],
     }
 
+_OPT_RESULT_INDEX = 3
 
 def _read_optimizer_output(run_dir):
     # only considers unique points as steps
@@ -577,34 +577,33 @@ def _read_optimizer_output(run_dir):
     except ValueError:
         return None, None
 
-    visited = {}
     res = []
     best_row = None
+    # steps, time, tolerance, result, p1, ... pn
     for v in values:
-        k = str(v)
-        if k not in visited:
-            visited[k] = True
-            res.append(v)
-            if best_row is None or v[-1] > best_row[-1]:
-                best_row = v
+        res.append(v)
+        if best_row is None or v[_OPT_RESULT_INDEX] > best_row[_OPT_RESULT_INDEX]:
+            best_row = v
     return np.array(res), best_row
 
 
 def _extract_optimization_results(run_dir, data, args):
     x_index = int(args.x or '0')
     y_index = int(args.y or '0')
+    # steps, time, tolerance, result, p1, ... pn
     res, best_row = _read_optimizer_output(run_dir)
+    field_info = res[:,:4]
+    field_values = res[:,4:]
     fields = data.models.optimizer.fields
     if x_index > len(fields) - 1:
         x_index = 0
     if y_index > len(fields) - 1:
         y_index = 0
-    x = res[:, x_index]
-    y = res[:, y_index]
+    x = field_values[:, x_index]
+    y = field_values[:, y_index]
     if x_index == y_index:
         y = np.zeros(len(y))
-    score = res[:, -1]
-    res = np.column_stack((x, y, score))
+    score = field_info[:, _OPT_RESULT_INDEX]
     summary_data = None
     result_file = run_dir.join(_OPTIMIZER_RESULT_FILE)
     if result_file.exists():
@@ -612,20 +611,24 @@ def _extract_optimization_results(run_dir, data, args):
     else:
         best_row = best_row.tolist();
         summary_data = {
-            'fun': best_row.pop(),
-            'x': best_row,
+            'fun': best_row[3],
+            'x': best_row[4:],
         }
     summary_data['fields'] = fields
     return {
         'title': '',
-        'x_range': _add_margin([min(x), max(x)]),
-        'points': res.tolist(),
-        'y_range': _add_margin([min(y), max(y)]),
         'v_min': min(score),
         'v_max': max(score),
+        'x_range': _add_margin([min(x), max(x)]),
+        'y_range': _add_margin([min(y), max(y)]),
         'x_field': fields[x_index].field,
         'y_field': fields[y_index].field,
         'summaryData': summary_data,
+        'optimizerPoints': field_values.tolist(),
+        'optimizerInfo': field_info.tolist(),
+        'x_index': x_index,
+        'y_index': y_index,
+        'fields': map(lambda x: x.field, fields),
     }
 
 
@@ -697,6 +700,7 @@ def _generate_optimizer_file(data, v):
         opt.bounds = [opt.minimum, opt.maximum]
         _compute_delta_for_field(data, opt.bounds, f)
     v['optField'] = data.models.optimizer.fields
+    v['optimizerStatusFile'] = _OPTIMIZER_STATUS_FILE
     v['optimizerOutputFile'] = _OPTIMIZER_OUTPUT_FILE
     v['optimizerResultFile'] = _OPTIMIZER_RESULT_FILE
     return _render_jinja('optimizer', v)

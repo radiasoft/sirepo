@@ -76,10 +76,6 @@
             ["t", "Twiss"],
             ["m", "Moments"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BrightnessComponent": [
             ["k-tuning", "K Tuning"],
             ["spectral-detuning", "Spectral Detuning"]
@@ -1579,7 +1575,7 @@
                     "method",
                     "precision",
                     "initialPosition",
-                    "finalPosition"		    
+                    "finalPosition"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
