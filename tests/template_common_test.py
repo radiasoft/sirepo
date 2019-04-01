@@ -10,9 +10,9 @@ import zipfile
 
 from pykern import pkresource
 from pykern import pkunit
-from sirepo.template import srw
 
 def test_validate_safe_zip():
+    from sirepo.template import srw
 
     zip_dir = str(pkunit.data_dir() + '/zip_dir')
 

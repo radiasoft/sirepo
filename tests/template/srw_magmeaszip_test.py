@@ -9,11 +9,11 @@ from pykern import pkio
 from pykern import pkresource
 from pykern import pkunit
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
-from sirepo.template import srw
 import pytest
 pytest.importorskip('srwl_bl')
 
 def test_magnetic_measurements_zip_file():
+    from sirepo.template import srw
     m = srw.MagnMeasZip(pkresource.filename('template/srw/magnetic_measurements.zip', srw))
     assert m.index_dir == ''
     assert m.index_file == 'ivu21_srx_sum.txt'
@@ -30,7 +30,7 @@ def test_magnetic_measurements_zip_file():
 
 
 def test_validate_safe_zip():
-
+    from sirepo.template import srw
     zip_dir = str(pkunit.data_dir() + '/zip_dir')
 
     # Reject a zip with no index file
