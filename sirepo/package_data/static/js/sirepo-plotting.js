@@ -2730,6 +2730,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         controller: function($scope) {
             var includeForDomain = [];
             var plotLabels = [];
+            var childPlots = {};
+
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
             $scope.wantLegend = true;
@@ -2754,6 +2756,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 var itemWidth;
                 plots.forEach(function(plot, i) {
+                    if(plot._parent) {
+                        return;
+                    }
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     item.append('text')
@@ -2799,7 +2804,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function plotPath(pIndex) {
-                return d3.select(selectAll('.plot-viewport path')[0][pIndex]);
+                return d3.select(selectAll('.plot-viewport .param-plot')[0][pIndex]);
             }
 
             function selectAll(selector) {
@@ -2836,6 +2841,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function togglePlot(pIndex) {
                 setPlotVisible(pIndex, isPlotVisible(pIndex));
+                (childPlots[pIndex] || []).forEach(function (i) {
+                    setPlotVisible(i, isPlotVisible(i));
+                });
             }
 
             function vIcon(pIndex) {
@@ -2928,8 +2936,21 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
+                    var strokeWidth = 2.0;
+                    if(plot._parent) {
+                        strokeWidth = 1.0;
+                        var parent = plots.filter(function (p, j) {
+                            return j !== i && p.label === plot._parent;
+                        })[0];
+                        if(parent) {
+                            var pIndex = plots.indexOf(parent);
+                            var cp = childPlots[pIndex] || [];
+                            cp.push(i);
+                            childPlots[pIndex] = cp;
+                        }
+                    }
                     viewport.append('path')
-                        .attr('class', 'line line-color')
+                        .attr('class', 'param-plot line line-color')
                         .style('stroke', plot.color)
                         .datum(plot.points);
                     // must create extra focus points here since we don't know how many to make

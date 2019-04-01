@@ -14,6 +14,13 @@ import sirepo.template.webcon as template
 
 _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 
+def run(cfg_dir):
+    with pkio.save_chdir(cfg_dir):
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        if data['report'] == 'fitReport':
+            res = template.get_fit(data)
+        simulation_db.write_result(res)
+
 def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         simulation_db.write_result({})
