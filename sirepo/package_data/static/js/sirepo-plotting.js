@@ -2951,25 +2951,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             childPlots[pIndex] = cp;
                         }
                     }
-                    if(plot.style === 'scatter') {
-                        var pg = viewport.append('g')
-                            .attr('class', 'param-plot');
-                            pg.selectAll('.scatter-point')
-                                .data(plot.points)
-                                .enter()
-                                    .append('circle')
-                                    .attr('cx', $scope.graphLine.x())
-                                    .attr('cy', $scope.graphLine.y())
-                                    .attr('r', 2)
-                                    .attr('class', 'scatter-point line-color')
-                    }
-                    else {
-                        viewport.append('path')
-                            .attr('class', 'param-plot line line-color')
-                            .style('stroke', plot.color)
-                            .style('stroke-width', strokeWidth)
-                            .datum(plot.points);
-                    }
+                    viewport.append('path')
+                        .attr('class', 'param-plot line line-color')
+                        .style('stroke', plot.color)
+                        .datum(plot.points);
                     // must create extra focus points here since we don't know how many to make
                     var name = $scope.modelName + '-fp-' + i;
                     if (! $scope.focusPoints[i]) {

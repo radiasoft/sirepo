@@ -78,6 +78,7 @@ def fixup_old_data(data):
                 m.overrideSize = '0'
                 m.horizontalSize = m.verticalSize = 10
                 m.horizontalOffset = m.verticalOffset = 0
+    template_common.organize_example(data)
 
 
 def get_application_data(data):

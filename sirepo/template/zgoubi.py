@@ -113,13 +113,18 @@ _TWISS_SUMMARY_LABELS = {
 def background_percent_complete(report, run_dir, is_running):
     errors = ''
     if not is_running:
-        data_file = run_dir.join(_ZGOUBI_DATA_FILE)
-        if data_file.exists():
-            col_names, rows = _read_data_file(data_file)
-            ipasses = _ipasses_for_data(col_names, rows)
+        out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
+        count = 0
+        if out_file.exists():
+            out = simulation_db.read_json(out_file)
+            if 'frame_count' in out:
+                count = out.frame_count
+        if not count:
+            count = read_frame_count(run_dir)
+        if count:
             return {
                 'percentComplete': 100,
-                'frameCount': len(ipasses) + 1,
+                'frameCount': count,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
@@ -220,6 +225,15 @@ def prepare_output_file(run_dir, data):
         if fn.exists():
             fn.remove()
             save_report_data(data, run_dir)
+
+
+def read_frame_count(run_dir):
+    data_file = run_dir.join(_ZGOUBI_DATA_FILE)
+    if data_file.exists():
+        col_names, rows = _read_data_file(data_file)
+        ipasses = _ipasses_for_data(col_names, rows)
+        return len(ipasses) + 1
+    return 0
 
 
 def remove_last_frame(run_dir):
