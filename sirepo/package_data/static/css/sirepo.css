@@ -1022,3 +1022,6 @@ label .katex {
   font-size: 16px;
   font-weight: normal;
 }
+.latex-title .katex {
+    font-size: 18px;
+}
