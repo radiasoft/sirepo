@@ -9,10 +9,11 @@ from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
-from scipy.optimize import curve_fit
-import sympy
 from sirepo import simulation_db
 from sirepo.template import template_common
+
+import scipy
+import sympy
 import csv
 import math
 import numpy as np
@@ -234,7 +235,7 @@ def _fit_to_equation(x, y, equation, var, params):
     # feed a uniform x distribution to the function?  or sort?
     #x_uniform = np.linspace(np.min(x), np.max(x), 100)
 
-    p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
+    p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
     sigma = np.sqrt(np.diagonal(pcov))
 
     p_subs = []
