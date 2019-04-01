@@ -157,7 +157,7 @@ SIREPO.app.directive('equation', function(appState, webconService) {
         controller: function ($scope) {
             $scope.webconservice = webconService;
 
-            srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
+            //srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
 
             function tokenizeEquation() {
                 var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
