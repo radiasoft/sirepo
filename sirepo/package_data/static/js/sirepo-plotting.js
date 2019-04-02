@@ -3192,6 +3192,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
             $scope.showImpact = true;
+            $scope.showImpactDensity = false;
             $scope.showConductors = true;
 
             // these are in screen/vtk coords, not lab coords
@@ -3711,24 +3712,24 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
                 (impactData['density'] || []).forEach(function (c, ci) {
+                    //if(ci !== 3) {return}
                     // loop over faces
                     c.forEach(function (f, fi) {
+                        //if(fi !== 2) {return}
                         //srdbg('face data', f);
-                        var o = [f.x.startVal, f.y.startVal, f.z.startVal].map(toMicron);
-                        var sk = [f.x.slopek, f.y.slopek, f.z.slopek].map(toMicron);
-                        var sl = [f.x.slopel, f.y.slopel, f.z.slopel].map(toMicron);
+                        var o = [f.x.startVal, f.y.startVal, f.z.startVal].map(toNano);
+                        var sk = [f.x.slopek, f.y.slopek, f.z.slopek].map(toNano);
+                        var sl = [f.x.slopel, f.y.slopel, f.z.slopel].map(toNano);
                         var d = f.dArr;
                         var nk = d.length;
                         var nl = d[0].length;
                         var numPoints = nk * nl;
                         var numCells = (nk - 1) * (nl - 1);
-                        srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
+                        //srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
                         var smin = plotting.min2d(d);
                         var smax = plotting.max2d(d);
+                        //srdbg('min/max', smin, smax);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, 'impactDensityAnimation');
-
-                        //var s2c = vtk.Filters.General.
-
 
                         var p1 = [
                             o[0] + (nk - 1) * sk[0],
@@ -3740,78 +3741,27 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                             o[1] + (nl - 1) * sl[1],
                             o[2] + (nl - 1) * sl[2]
                         ];
-                        //var p = coordMapper.buildPlane(o, p1, p2);
-                        var p = coordMapper.buildActorBundle();
-                        p.mapper.setScalarVisibility(true);
-                        p.mapper.setScalarModeToUseCellData();
+                        var p = coordMapper.buildPlane(o, p1, p2);
+                        p.source.setXResolution(nl - 1);
+                        p.source.setYResolution(nk - 1);
+                        p.actor.getProperty().setLighting(false);
 
-                        var dataPoints = [];
                         var dataColors = [];
-                        var dataPolys = [];
-                        var cells = vtk.Common.Core.vtkCellArray.newInstance();
-                        var cdata = [];
-                        for(var k = 0; k < nk; ++k) {
-                            for(var l = 0; l < nl; ++l) {
+                        for(var k = 0; k < nk - 1; ++k) {
+                            for(var l = 0; l < nl - 1; ++l) {
                                 var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k][l])).map(function (cc) {
                                     return Math.floor(255*cc);
                                 });
-                                if(k < nk - 1 && l < nl -1) {
-                                    var cell = vtk.Common.DataModel.vtkCell.newInstance();
-                                    var pts = vtk.Common.Core.vtkPoints.newInstance();
-                                    var ptsd = [];
-                                    pts.setNumberOfPoints(4);
-                                    for(var ii = 0; ii < 2; ++ii) {
-                                        for(var jj = 0; jj < 2; ++jj) {
-                                            var dk = k + ii;
-                                            var dl = l + jj;
-                                            for(var j = 0; j < 3; ++j) {
-                                                ptsd.push(coordAtIndex(o[j], sk[j], sl[j], dk, dl));
-                                            }
-                                        }
-                                    }
-                                    pts.setData(ptsd);
-                                    cell.initialize(4, [0, 1, 2, 3], pts);
-                                    cdata.push(cell);
-                                    dataPolys.push(4);
-                                    dataPolys.push(l + nl * k, l + nl * (k + 1), l + 1 + nl * (k + 1), l + 1 + nl * k);
-                                    for(var j = 0; j < 3; ++j) {
-                                        dataColors.push(color[j]);
-                                    }
-
-                                }
-                                //dataPolys.push(2);
-                                //dataPolys.push(dataPoints.length / 3, 1 + dataPoints.length / 3);
-                                for(var j = 0; j < 3; ++j) {
-                                    dataPoints.push(coordAtIndex(o[j], sk[j], sl[j], k, l));
-                                    //dataColors.push(color[j]);
-                                }
-
+                                dataColors.push(color[0], color[1], color[2]);
                            }
                         }
-                        cells.setData(cdata);
-                        var lpi = nk * nl - 1;
-                        //srdbg('last pt', dataPoints[lpi - 2], dataPoints[lpi - 1], dataPoints[lpi]);
-                        var p32 = window.Float32Array.from(dataPoints);
-                        var pp32 = window.Uint32Array.from(dataPolys);
-                        //srdbg('data polys', dataPolys);
-                        var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                         var carr = vtk.Common.Core.vtkDataArray.newInstance({
                             numberOfComponents: 3,
                             values: dataColors,
                             dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                         });
-                        //pd.getPoints().setData(p32, 3);
-                        //pd.getPolys().setData(pp32);
-                        pd.setPolys(cells);
-                        //srdbg('pd pts', pd.getPoints(), 'num', pd.getPoints().getNumberOfPoints(), 'num cells', pd.getNumberOfCells(), 'num colors', dataColors.length / 3);
-                        srdbg('pd polys', pd.getPolys(), pd.getPolys().getNumberOfCells());
-                        //var cd = pd.getCellData();
-                        //srdbg('cell data', cd, pd.getNumberOfValues());
-                        p.mapper.setInputData(pd);
-                        pd.getCellData().setScalars(carr);
-                        srdbg('sc', pd.getCellData().getArrays());
-                        //srdbg('src', p.source, 'map', p.mapper);
-                        //srdbg('pd', pd);
+                        p.source.getOutputData().getCellData().setScalars(carr);
+
                         densityPlaneBundles.push(p);
                     });
                 });
@@ -3832,6 +3782,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
                 function toMicron(v) {
                     return v * 1e-6;
+                }
+
+                function toNano(v) {
+                    return v * 1e-9;
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
@@ -4006,11 +3960,19 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.addActor(renderer, reflectedLineBundle.actor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
+                vtkPlotting.addActors(renderer, densityPlaneBundles.map(function (b) {
+                    return b.actor;
+                }));
 
+                vtkPlotting.showActor(renderWindow, startPlaneBundle.actor, ! $scope.showImpactDensity);
+                vtkPlotting.showActor(renderWindow, endPlaneBundle.actor, ! $scope.showImpactDensity);
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, densityPlaneBundles.map(function (b) {
+                    return b.actor;
+                }), $scope.showImpactDensity, 1.0);
 
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
@@ -4414,6 +4376,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+            };
+            $scope.toggleImpactDensity = function() {
+                $scope.showImpactDensity = ! $scope.showImpactDensity;
+                $scope.showConductors = ! $scope.showImpactDensity;
+                refresh();
             };
 
 

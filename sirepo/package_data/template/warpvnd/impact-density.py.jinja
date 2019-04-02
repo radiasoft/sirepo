@@ -8,12 +8,12 @@ def _linear_fit_2d(arr):
     sk = (arr[len(arr) - 1][0] - arr[0][0]) / (len(arr) - 1)
     sl = (arr[0][len(arr[0]) - 1] - arr[0][0]) / (len(arr[0]) - 1)
     # test
-    for k in range(len(arr)):
-        for l in range(len(arr[k])):
-            cfn = arr[0][0] + k * sk + l * sl
-            diff = abs(arr[k][l] - cfn) / arr[k][l]
-            if diff > rel_tol:
-                print('OOPS! array: {} vs fn: {}; diff {}'.format(arr[k][l], cfn, diff))
+    #for k in range(len(arr)):
+    #    for l in range(len(arr[k])):
+    #        cfn = arr[0][0] + k * sk + l * sl
+    #        diff = abs(arr[k][l] - cfn) / arr[k][l]
+    #        if diff > rel_tol:
+    #            print('OOPS! array: {} vs fn: {}; diff {}'.format(arr[k][l], cfn, diff))
     return sk, sl
 
 try:
@@ -36,7 +36,6 @@ try:
             'max': plot_density.cmap_normalization.vmax,
         }
     else:
-        rel_tol = 1e-6
         i_data = []
         coord_keys = ['x', 'y', 'z']
         for i in plot_density.conductors:
@@ -48,7 +47,7 @@ try:
                 f_data = {
                     'dArr': s.tolist()
                 }
-                print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
+                #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
                 for cx, coord in enumerate((x, y, z)):
                     sk, sl = _linear_fit_2d(coord)
                     f_data[coord_keys[cx]] = {
@@ -60,9 +59,8 @@ try:
             i_data.append(c_data)
             {% else %}
             d = plot_density.generate_plot_data_for_faces_2d(c)
-            for (x, z, s) in d:
-                #print('cond {}: S at {}, {}: {}'.format(i, x, z, np.histogram(s, 'fd')))
-                print('cond {}: S at x {} ({}), z {} ({}): {}'.format(i, x, len(x), z, len(z), s))
+            #for (x, z, s) in d:
+            #    print('cond {}: S at x {} ({}), z {} ({}): {}'.format(i, x, len(x), z, len(z), s))
             {% endif %}
             s = c.scraped_particles
             p = c.pids
