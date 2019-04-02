@@ -2960,7 +2960,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                     .attr('cx', $scope.graphLine.x())
                                     .attr('cy', $scope.graphLine.y())
                                     .attr('r', 2)
-                                    .attr('class', 'scatter-point line-color')
+                                    .attr('class', 'scatter-point line-color');
                     }
                     else {
                         viewport.append('path')
@@ -3001,7 +3001,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                     }
                 }
-                
+
                 $($element).find('.latex-title').eq(0).html(mathRendering.mathAsHTML(json.latex_label, {displayMode: true}));
 
                 //TODO(pjm): onRefresh indicates an embedded header, needs improvement
