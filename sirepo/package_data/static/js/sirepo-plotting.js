@@ -3720,10 +3720,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var d = f.dArr;
                         var nk = d.length;
                         var nl = d[0].length;
+                        var numPoints = nk * nl;
+                        var numCells = (nk - 1) * (nl - 1);
                         srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
                         var smin = plotting.min2d(d);
                         var smax = plotting.max2d(d);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, 'impactDensityAnimation');
+
+                        //var s2c = vtk.Filters.General.
+
+
                         var p1 = [
                             o[0] + (nk - 1) * sk[0],
                             o[1] + (nk - 1) * sk[1],
@@ -3738,6 +3744,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         var p = coordMapper.buildActorBundle();
                         p.mapper.setScalarVisibility(true);
                         p.mapper.setScalarModeToUseCellData();
+
                         var dataPoints = [];
                         var dataColors = [];
                         var dataPolys = [];
