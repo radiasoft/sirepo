@@ -2730,7 +2730,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -2738,13 +2738,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var includeForDomain = [];
             var plotLabels = [];
             var childPlots = {};
 
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
+            $scope.latexTitle = '';
             $scope.wantLegend = true;
 
             function build2dPointsForPlot(plotIndex) {
@@ -2945,9 +2946,29 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
+                viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
                     var strokeWidth = 2.0;
+                    if(plot.style === 'scatter') {
+                        var pg = viewport.append('g')
+                            .attr('class', 'param-plot');
+                            pg.selectAll('.scatter-point')
+                                .data(plot.points)
+                                .enter()
+                                    .append('circle')
+                                    .attr('cx', $scope.graphLine.x())
+                                    .attr('cy', $scope.graphLine.y())
+                                    .attr('r', 2)
+                                    .attr('class', 'scatter-point line-color')
+                    }
+                    else {
+                        viewport.append('path')
+                            .attr('class', 'param-plot line line-color')
+                            .style('stroke', plot.color)
+                            .style('stroke-width', strokeWidth)
+                            .datum(plot.points);
+                    }
                     if(plot._parent) {
                         strokeWidth = 1.0;
                         var parent = plots.filter(function (p, j) {
@@ -2960,10 +2981,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             childPlots[pIndex] = cp;
                         }
                     }
-                    viewport.append('path')
-                        .attr('class', 'param-plot line line-color')
-                        .style('stroke', plot.color)
-                        .datum(plot.points);
                     // must create extra focus points here since we don't know how many to make
                     var name = $scope.modelName + '-fp-' + i;
                     if (! $scope.focusPoints[i]) {
@@ -2984,6 +3001,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                     }
                 }
+                
+                $($element).find('.latex-title').eq(0).html(mathRendering.mathAsHTML(json.latex_label, {displayMode: true}));
+
                 //TODO(pjm): onRefresh indicates an embedded header, needs improvement
                 $scope.margin.top = json.title
                     ? 50
@@ -3030,6 +3050,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.refresh = function() {
                 $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y());
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
                 });
