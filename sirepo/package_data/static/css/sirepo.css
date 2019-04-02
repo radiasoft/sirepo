@@ -451,7 +451,7 @@
       cursor: n-resize;
     }
     .sr-plot rect.mouse-move-s {
-      cursor: sr-resize;
+      cursor: s-resize;
     }
     .sr-plot .z-axis-label {
       line-height: 160%;
