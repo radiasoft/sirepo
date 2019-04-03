@@ -502,6 +502,7 @@ def _extract_impact_density(run_dir, data):
     plate_spacing = _meters(grid['plate_spacing'])
     beam = data['models']['beam']
     radius = _meters(grid['channel_width'] / 2.)
+    width = 0
 
     dx = plot_info['dx']
     dy = 0
@@ -538,7 +539,7 @@ def _extract_impact_density(run_dir, data):
         'y_label': 'x [m]',
         'x_label': 'z [m]',
         'z_label': 'y [m]',
-        'density': plot_info['density'],
+        'density': plot_info['density'] if 'density' in plot_info else [],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],

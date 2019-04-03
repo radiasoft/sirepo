@@ -1786,7 +1786,11 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 }
             }
 
-            $scope.init = function() {
+            function toNano(v) {
+                return v * 1e-9;
+            }
+
+           $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 80, bottom: 50, left: 70},
@@ -1798,6 +1802,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
+                srdbg('json', json);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
@@ -1840,6 +1845,30 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                         path.on('mouseover', mouseOver);
                     }
                 }
+
+                // loop over conductors
+                // arr[0]+ k * sk
+                (json['density'] || []).forEach(function (c, ci) {
+                    //if(ci !== 3) {return}
+                    // loop over "faces"
+                    c.forEach(function (f, fi) {
+                        //if(fi !== 2) {return}
+                        //srdbg('face data', f);
+                        var o = [f.x.startVal, f.z.startVal].map(toNano);
+                        var sk = [f.x.slopek, f.z.slopek].map(toNano);
+                        var d = f.dArr;
+                        var nk = d.length;
+                        var numPoints = nk
+                        var numCells = nk - 1;
+                        var smin = Math.min.apply(null, d);
+                        var smax = Math.max.apply(null, d);
+                        //srdbg('min/max', smin, smax);
+                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
+                        for(var k = 0; k < nk; ++k) {
+                            var color = fcs(d[k]);
+                        }
+                    });
+                });
             };
 
             $scope.refresh = function() {
