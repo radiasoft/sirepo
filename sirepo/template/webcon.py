@@ -51,12 +51,12 @@ def fixup_old_data(data):
     template_common.organize_example(data)
 
 
-def get_data_file(run_dir, model, frame, options=None):
-    assert False, 'not implemented'
-
-
 def get_animation_name(data):
     return 'animation'
+
+
+def get_data_file(run_dir, model, frame, options=None):
+    assert False, 'not implemented'
 
 
 def get_fit(data):
@@ -339,17 +339,19 @@ def validate_sympy(str):
 
 def _fit_to_equation(x, y, equation, var, params):
 
+    import scipy.optimize
+
     # TODO: must sanitize input - sympy uses eval
-    sym_curve = sp.sympify(equation)
+    sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
 
-    syms = sp.symbols(sym_str)
-    sym_curve_l = sp.lambdify(syms, sym_curve, 'numpy')
+    syms = sympy.symbols(sym_str)
+    sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
 
     # feed a uniform x distribution to the function?  or sort?
     #x_uniform = np.linspace(np.min(x), np.max(x), 100)
 
-    p_vals, pcov = curve_fit(sym_curve_l, x, y, maxfev=500000)
+    p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
     sigma = np.sqrt(np.diagonal(pcov))
 
     p_subs = []
@@ -374,11 +376,11 @@ def _fit_to_equation(x, y, equation, var, params):
     # used for the laTeX label - rounding should take size of uncertainty into account
     y_fit_rounded = sym_curve.subs(p_rounded)
 
-    y_fit_l = sp.lambdify(var, y_fit, 'numpy')
-    y_fit_min_l = sp.lambdify(var, y_fit_min, 'numpy')
-    y_fit_max_l = sp.lambdify(var, y_fit_max, 'numpy')
+    y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
+    y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
+    y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
-    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sp.latex(y_fit_rounded)
+    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sympy.latex(y_fit_rounded)
 
 
 def _safe_index(values, idx):
