@@ -206,11 +206,11 @@ def _extract_meshed_plot(run_dir, data):
         'y_label': 'y [m]',
         'title': '{}'.format(field),
         'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_index + 1),
-        'aspect_ratio': aspect_ratio,
+        'aspectRatio': aspect_ratio,
         'z_matrix': grid.tolist(),
         'amr_grid': amr_grid,
         'summaryData': {
-            'aspect_ratio': aspect_ratio,
+            'aspectRatio': aspect_ratio,
         },
     }
 

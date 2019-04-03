@@ -88,7 +88,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -343,7 +343,7 @@ def fixup_old_data(data):
         elif _is_dipole_source(data['models']['simulation']):
             data['models']['sourceIntensityReport']['method'] = '2'
         elif _is_arbitrary_source(data['models']['simulation']):
-            data['models']['sourceIntensityReport']['method'] = '2'            
+            data['models']['sourceIntensityReport']['method'] = '2'
         else:
             data['models']['sourceIntensityReport']['method'] = '0'
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:

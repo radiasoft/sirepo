@@ -326,6 +326,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
@@ -341,6 +342,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
@@ -717,6 +719,7 @@
                     "showAllFrames",
                     "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],
@@ -751,6 +754,7 @@
                     "showAllFrames",
                     "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],

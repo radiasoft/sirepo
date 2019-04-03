@@ -488,7 +488,7 @@ def _extract_field(field, data, data_file):
         'x_label': 'z [m]',
         'y_label': 'x [m]',
         'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'aspect_ratio': 6.0 / 14,
+        'aspectRatio': 6.0 / 14,
         'z_matrix': values.tolist(),
     }
 

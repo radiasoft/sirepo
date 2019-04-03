@@ -1833,7 +1833,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         controller: function($scope) {
 
             //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY'];
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'aspectRatio'];
             var multiElectronAnimation = null;
             $scope.frameCount = 1;
 
