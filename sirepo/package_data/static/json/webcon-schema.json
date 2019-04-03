@@ -9,7 +9,6 @@
             "js": ["webcon.js"]
         }
     },
-    "enum": {},
     "localRoutes": {
         "analysis": {
             "route": "/analysis/:simulationId",
@@ -19,6 +18,7 @@
             }
         }
     },
+    "enum": {},
     "model": {
         "analysisData": {
             "file": ["Archive Data File", "InputFile"]
@@ -30,7 +30,7 @@
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
-        "fitter": {
+         "fitter": {
             "equation": ["Equation to Fit", "Equation"],
             "parameters": ["Fit Parameters", "EquationParameters", ""],
             "variable": ["Independent Variable", "EquationVariables", ""]

@@ -2734,8 +2734,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
     return {
         restrict: 'A',
         scope: {
-            modelName: '@',
             reportId: '<',
+            modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
@@ -3053,7 +3053,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
                     .attr('cx', $scope.graphLine.x())
                     .attr('cy', $scope.graphLine.y());
-
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
                 });

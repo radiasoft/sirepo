@@ -19,11 +19,11 @@ import numpy as np
 import os.path
 import re
 
+WANT_BROWSER_FRAME_CACHE = False
+
 SIM_TYPE = 'webcon'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
-
-WANT_BROWSER_FRAME_CACHE = False
 
 def background_percent_complete(report, run_dir, is_running):
     if not is_running:
@@ -331,7 +331,7 @@ def _label(col_info, idx):
 
 def validate_sympy(str):
     try:
-        sp.sympify(str)
+        sympy.sympify(str)
         return True
     except:
         return False

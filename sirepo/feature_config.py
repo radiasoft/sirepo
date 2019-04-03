@@ -16,6 +16,7 @@ _NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd',
 #: Codes on dev and alpha
 _ALPHA_CODES = ('myapp', 'adm', 'flash', 'webcon')
 
+
 #: All possible codes
 _ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES
 

@@ -22,7 +22,6 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
-
 SIREPO.app.factory('webconService', function(appState) {
     var self = {};
     self.analysisParameters = null;
