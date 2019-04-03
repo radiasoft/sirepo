@@ -1768,7 +1768,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
+SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geometry) {
     return {
         restrict: 'A',
         scope: {
@@ -1794,6 +1794,14 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 return v * 1e-9;
             }
 
+            function linarr(start, slope, num) {
+                var l = [];
+                for(var i = 0; i < num; ++i) {
+                    l.push(start + i * slope);
+                }
+                return l;
+            }
+
            $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
@@ -1806,7 +1814,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                srdbg('json', json);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
@@ -1853,43 +1860,76 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 // loop over conductors
                 // arr[0] + k * sk
                 (json['density'] || []).forEach(function (c, ci) {
-                    //if(ci !== 3) {return}
                     // loop over "faces"
                     c.forEach(function (f, fi) {
-                        //if(fi !== 2) {return}
-                        //srdbg('face data', f);
                         var o = [f.x.startVal, f.z.startVal].map(toNano);
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
-                        var d = f.dArr;
-                        var nk = d.length;
-                        var smin = Math.min.apply(null, d);
-                        var smax = Math.max.apply(null, d);
-                        srdbg('z on x axis:', $scope.axes.x.scale(o[1]), '-', $scope.axes.x.scale(o[1] + sk[1] * nk));
-                        srdbg('x on y axis:', $scope.axes.y.scale(o[0]), '-', $scope.axes.x.scale(o[0] + sk[0] * nk));
+                        var den = f.dArr;
+                        var nk = den.length;
+                        var indexes = den.map(function (d, i) {
+                            return den.slice(0, i+1).reduce(function (sum, dd) {
+                                return sum + dd;
+                            }, 0)
+                        });
+                        srdbg('indexes', indexes);
+                        var xc = indexes.map(function (i) {
+                            return o[0] + sk[0] * i;
+                        });
+                        var zc = indexes.map(function (i) {
+                            return o[1] + sk[1] * i;
+                        });
+                        //var coords = geometry.transpose([linarr(o[1], sk[1], nk), linarr(o[0], sk[0], nk)]);
+                        var coords = geometry.transpose([zc, xc]);
+                        //srdbg('coords', coords);
+                        var smin = 0;  //Math.min.apply(null, den);
+                        var smax = Math.max.apply(null, den);
                         //srdbg('min/max', smin, smax);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
-                        for(var k = 0; k < nk; ++k) {
-                            var x = o[0] + k * sk[0];
-                            var z = o[1] + k * sk[1];
-                            var color = fcs(d[k]);
-                            //if(k % 500 === 0) {
-                            //    srdbg('cond', ci, 'face', fi, 'color', color, 'at z/x', z, x, 'plot x/y', $scope.axes.x.scale(z), $scope.axes.y.scale(x));
-                            //}
-                            /*
-                            viewport.append('circle')
-                                    .attr('cx', $scope.axes.x.scale(z))
-                                    .attr('cy', $scope.axes.y.scale(x))
-                                    .attr('r', 1)
+                        var path = viewport.append('path')
+                            .attr('class', 'line')
+                            .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
+                                  + (density > 0 ? $scope.colorScale(density) : 'black'))
+                            .datum(v);
+                        path.on('mouseover', mouseOver);
+
+                        var pg = viewport.append('g')
+                            .attr('class', 'param-plot');
+                            pg.selectAll('.line')
+                                .data(coords)
+                                .enter()
+                                    .append('path')
+                                    .attr('class', 'line')
+                                    .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
+                                  + (den[i] > 0 ? fcs(den[i]) : 'black'))
+                                .datum(function (d) {
+                                    return [d[0]]
+                                });
+
+                        /*
+                        var pg = viewport.append('g')
+                            .attr('class', 'param-plot');
+                            pg.selectAll('.scatter-point')
+                                .data(coords)
+                                .enter()
+                                    .append('circle')
+                                    .attr('cx', $scope.graphLine.x())
+                                    .attr('cy', $scope.graphLine.y())
+                                    .attr('r', 2)
                                     .attr('class', 'scatter-point')
-                                    .attr('fill', color);
-                            */
-                        }
+                                    .style('fill', function (d, i) {
+                                        return fcs(den[i]);
+                                    });
+                         */
                     });
                 });
             };
 
             $scope.refresh = function() {
                 //$scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                //srdbg('z on x axis:', $scope.axes.x.scale(0));
+                $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y());
             };
         },
         link: function link(scope, element) {
