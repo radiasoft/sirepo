@@ -63,7 +63,7 @@ def _generate_field_report(data, values, res):
             'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
         }
     return {
-        'aspect_ratio': 6.0 / 14,
+        'aspectRatio': 6.0 / 14,
         'x_range': [0, plate_spacing, len(values[0])],
         'y_range': [- radius, radius, len(values)],
         'x_label': 'z [m]',

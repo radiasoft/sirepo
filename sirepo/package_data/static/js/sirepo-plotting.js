@@ -420,6 +420,16 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return fmt(v);
         },
 
+        getAspectRatio: function(modelName, json) {
+            if (appState.isLoaded() && appState.applicationState()[modelName]) {
+                var ratioEnum = appState.applicationState()[modelName].aspectRatio;
+                if (ratioEnum) {
+                    return parseFloat(ratioEnum);
+                }
+            }
+            return json.aspectRatio || 1.0;
+        },
+
         initialHeight: function(scope) {
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
@@ -2037,7 +2047,10 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.pad = 10;
             $scope.noLabelPad = -18;
             // will be set to the correct size in resize()
-            $scope.canvasSize = 0;
+            $scope.canvasSize = {
+                width: 0,
+                height: 0,
+            };
             $scope.titleCenter = 0;
             $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
@@ -2048,6 +2061,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
             var cacheCanvas, imageData;
+            var aspectRatio = 1.0;
             var axes = {
                 x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
                 y: layoutService.plotAxis($scope.margin, 'y', 'right', refresh),
@@ -2089,8 +2103,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 // center the node over the image; if node is too large, center it over whole plot
                 if (node && ! (node.style && node.style.display == 'none')) {
                     var width = node.getBBox().width;
-                    var ctr = $scope.canvasSize / 2;
-                    if (width > $scope.canvasSize) {
+                    var ctr = $scope.canvasSize.width / 2;
+                    if (width > $scope.canvasSize.width) {
                         ctr += $scope.rightPanelWidth / 2;
                     }
                     return ctr;
@@ -2188,7 +2202,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         Math.floor(axes.y.indexScale(axes.y.scale.domain()[0])),
                         Math.ceil(axes.y.indexScale(axes.y.scale.domain()[1])),
                         Math.floor(xLeft + 0.5),
-                        Math.ceil(xRight - 0.5)));
+                        Math.ceil(xRight - 0.5))).reverse();
                 }
                 else {
                     points = heatmap.map(function(v, i) {
@@ -2217,13 +2231,14 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     if (! heatmap || isNaN(width)){
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, 1);
-                    var canvasSize = 2 * width / 3;
-                    $scope.canvasSize = canvasSize;
-                    $scope.bottomPanelHeight = 2 * canvasSize / 5 + $scope.pad + $scope.margin.bottom;
-                    $scope.rightPanelWidth = canvasSize / 2 + $scope.pad + $scope.margin.right;
-                    axes.x.scale.range([0, canvasSize]);
-                    axes.y.scale.range([canvasSize, 0]);
+                    width = plotting.constrainFullscreenSize($scope, width, aspectRatio);
+                    var panelSize = 2 * width / 3;
+                    $scope.canvasSize.width = panelSize;
+                    $scope.canvasSize.height = panelSize * aspectRatio;
+                    $scope.bottomPanelHeight = 2 * panelSize / 5 + $scope.pad + $scope.margin.bottom;
+                    $scope.rightPanelWidth = panelSize / 2 + $scope.pad + $scope.margin.right;
+                    axes.x.scale.range([0, $scope.canvasSize.width]);
+                    axes.y.scale.range([$scope.canvasSize.height, 0]);
                     axes.bottomY.scale.range([$scope.bottomPanelHeight - $scope.pad - $scope.margin.bottom - 1, 0]);
                     axes.rightX.scale.range([0, $scope.rightPanelWidth - $scope.pad - $scope.margin.right]);
                 }
@@ -2237,33 +2252,33 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 else {
                     select('rect.mouse-rect-xy').attr('class', 'mouse-rect-xy mouse-zoom');
                 }
-                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize, $scope.canvasSize, axes.x.values, axes.y.values, canvas, cacheCanvas, true);
+                plotting.drawImage(axes.x.scale, axes.y.scale, $scope.canvasSize.width, $scope.canvasSize.height, axes.x.values, axes.y.values, canvas, cacheCanvas, true);
                 drawBottomPanelCut();
                 drawRightPanelCut();
 
                 axes.x.updateLabelAndTicks({
                     height: $scope.bottomPanelHeight,
-                    width: $scope.canvasSize,
+                    width: $scope.canvasSize.width,
                 }, select, '.bottom-panel ');
                 axes.y.updateLabelAndTicks({
                     width: $scope.rightPanelWidth,
-                    height: $scope.canvasSize,
+                    height: $scope.canvasSize.height,
                 }, select, '.right-panel ');
                 axes.bottomY.updateLabelAndTicks({
                     height: $scope.bottomPanelHeight,
-                    width: $scope.canvasSize,
+                    width: $scope.canvasSize.width,
                     isPlaying: $scope.isPlaying,
                 }, select, '.bottom-panel ');
                 axes.rightX.updateLabelAndTicks({
                     width: $scope.rightPanelWidth - $scope.margin.right,
-                    height: $scope.canvasSize,
+                    height: $scope.canvasSize.height,
                 }, select, '.right-panel ');
 
                 if (layoutService.plotAxis.allowUpdates) {
                     axes.x.grid.ticks(axes.x.tickCount);
                     axes.y.grid.ticks(axes.y.tickCount);
-                    axes.x.grid.tickSize(- $scope.canvasSize - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
-                    axes.y.grid.tickSize(- $scope.canvasSize - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
+                    axes.x.grid.tickSize(- $scope.canvasSize.height - $scope.bottomPanelHeight + $scope.margin.bottom); // tickLine == gridline
+                    axes.y.grid.tickSize(- $scope.canvasSize.width - $scope.rightPanelWidth + $scope.margin.right); // tickLine == gridline
                 }
                 resetZoom();
                 select('.mouse-rect-xy').call(xyZoom);
@@ -2298,7 +2313,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 var newFontSize = currentFontSize;
 
                 var textWidth = focusText.node().getComputedTextLength();
-                var pct = ($scope.canvasSize - $scope.focusTextCloseSpace) / textWidth;
+                var pct = ($scope.canvasSize.width - $scope.focusTextCloseSpace) / textWidth;
 
                 newFontSize *= pct;
                 newFontSize = Math.max(minSize, newFontSize);
@@ -2396,6 +2411,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.load = function(json) {
                 prevDomain = null;
                 $scope.dataCleared = false;
+                aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = appState.clone(json.z_matrix).reverse();
                 var newFullDomain = [
                     [json.x_range[0], json.x_range[1]],
@@ -2669,12 +2685,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             $scope.load = function(json) {
                 $scope.dataCleared = false;
-                if (appState.isLoaded() && appState.applicationState()[$scope.modelName] && appState.applicationState()[$scope.modelName].aspectRatio) {
-                    aspectRatio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
-                }
-                else {
-                    aspectRatio = json.aspect_ratio || 1.0;
-                }
+                aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = appState.clone(json.z_matrix).reverse();
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
@@ -2719,7 +2730,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
     };
 });
 
-SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, plotting, plot2dService) {
+SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layoutService, mathRendering, plotting, plot2dService) {
     return {
         restrict: 'A',
         scope: {
@@ -2727,13 +2738,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
+        controller: function($scope, $element) {
             var includeForDomain = [];
             var plotLabels = [];
             var childPlots = {};
 
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
+            $scope.latexTitle = '';
             $scope.wantLegend = true;
 
             function build2dPointsForPlot(plotIndex) {
@@ -2934,9 +2946,29 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
+                viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
                     var strokeWidth = 2.0;
+                    if(plot.style === 'scatter') {
+                        var pg = viewport.append('g')
+                            .attr('class', 'param-plot');
+                            pg.selectAll('.scatter-point')
+                                .data(plot.points)
+                                .enter()
+                                    .append('circle')
+                                    .attr('cx', $scope.graphLine.x())
+                                    .attr('cy', $scope.graphLine.y())
+                                    .attr('r', 2)
+                                    .attr('class', 'scatter-point line-color');
+                    }
+                    else {
+                        viewport.append('path')
+                            .attr('class', 'param-plot line line-color')
+                            .style('stroke', plot.color)
+                            .style('stroke-width', strokeWidth)
+                            .datum(plot.points);
+                    }
                     if(plot._parent) {
                         strokeWidth = 1.0;
                         var parent = plots.filter(function (p, j) {
@@ -2949,10 +2981,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             childPlots[pIndex] = cp;
                         }
                     }
-                    viewport.append('path')
-                        .attr('class', 'param-plot line line-color')
-                        .style('stroke', plot.color)
-                        .datum(plot.points);
                     // must create extra focus points here since we don't know how many to make
                     var name = $scope.modelName + '-fp-' + i;
                     if (! $scope.focusPoints[i]) {
@@ -2973,6 +3001,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                     }
                 }
+
+                $($element).find('.latex-title').eq(0).html(mathRendering.mathAsHTML(json.latex_label, {displayMode: true}));
+
                 //TODO(pjm): onRefresh indicates an embedded header, needs improvement
                 $scope.margin.top = json.title
                     ? 50
@@ -3019,6 +3050,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.refresh = function() {
                 $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y());
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
                 });

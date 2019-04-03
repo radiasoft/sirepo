@@ -558,6 +558,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "intensityReport": {
@@ -628,6 +629,7 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
         },
@@ -659,6 +661,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "propagationParameters": {
@@ -743,6 +746,7 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "sphericalMirror": {
@@ -835,6 +839,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "zonePlate": {
@@ -1272,7 +1277,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1405,7 +1411,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1457,7 +1464,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1582,7 +1590,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1783,7 +1792,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
