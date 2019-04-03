@@ -1786,6 +1786,10 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 }
             }
 
+            function toMicron(v) {
+                return v * 1e-6;
+            }
+
             function toNano(v) {
                 return v * 1e-9;
             }
@@ -1847,7 +1851,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 }
 
                 // loop over conductors
-                // arr[0]+ k * sk
+                // arr[0] + k * sk
                 (json['density'] || []).forEach(function (c, ci) {
                     //if(ci !== 3) {return}
                     // loop over "faces"
@@ -1858,21 +1862,34 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var d = f.dArr;
                         var nk = d.length;
-                        var numPoints = nk
-                        var numCells = nk - 1;
                         var smin = Math.min.apply(null, d);
                         var smax = Math.max.apply(null, d);
+                        srdbg('z on x axis:', $scope.axes.x.scale(o[1]), '-', $scope.axes.x.scale(o[1] + sk[1] * nk));
+                        srdbg('x on y axis:', $scope.axes.y.scale(o[0]), '-', $scope.axes.x.scale(o[0] + sk[0] * nk));
                         //srdbg('min/max', smin, smax);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
                         for(var k = 0; k < nk; ++k) {
+                            var x = o[0] + k * sk[0];
+                            var z = o[1] + k * sk[1];
                             var color = fcs(d[k]);
+                            //if(k % 500 === 0) {
+                            //    srdbg('cond', ci, 'face', fi, 'color', color, 'at z/x', z, x, 'plot x/y', $scope.axes.x.scale(z), $scope.axes.y.scale(x));
+                            //}
+                            /*
+                            viewport.append('circle')
+                                    .attr('cx', $scope.axes.x.scale(z))
+                                    .attr('cy', $scope.axes.y.scale(x))
+                                    .attr('r', 1)
+                                    .attr('class', 'scatter-point')
+                                    .attr('fill', color);
+                            */
                         }
                     });
                 });
             };
 
             $scope.refresh = function() {
-                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                //$scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
             };
         },
         link: function link(scope, element) {

@@ -76,7 +76,7 @@ try:
                 f_data = {
                     'dArr': s.tolist()
                 }
-                print('cond {}: S at x {} ({}), z {} ({}): {}'.format(i, x, len(x), z, len(z), s))
+                #print('cond {}: S at x {} ({}), z {} ({}): {}'.format(i, x, len(x), z, len(z), s))
                 for cx, coord in enumerate((x, z)):
                     sk = _linear_fit_1d(coord)
                     f_data[coord_keys[cx]] = {
@@ -90,7 +90,7 @@ try:
         density_results = {
             'dx': plot_density.dx,
             {% if is3D %}
-             'dy': plot_density.dy,
+            'dy': plot_density.dy,
             {% endif %}
             'dz': plot_density.dz,
             'density': i_data,
