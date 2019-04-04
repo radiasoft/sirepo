@@ -73,11 +73,12 @@ try:
             coord_keys = ['x', 'z']
             d = plot_density.generate_plot_data_for_faces_2d(c)
             for (x, z, s) in d:
-                h = np.histogram(s)[0]
+                h = np.histogram(s, bins=20)[0]
                 f_data = {
                     'dArr': h.tolist()
                 }
-                print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
+                #print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
+                print('cond {}: S hist {}'.format(i, h))
                 for cx, coord in enumerate((x, z)):
                     sk = _linear_fit_1d(coord)
                     f_data[coord_keys[cx]] = {

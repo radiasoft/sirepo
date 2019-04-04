@@ -1782,6 +1782,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 var path = d3.select(this);
                 if (! path.empty()) {
                     var density = path.datum().srDensity;
+                    srdbg('DEN', density);
                     $scope.pointer.pointTo(density);
                 }
             }
@@ -1792,14 +1793,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
 
             function toNano(v) {
                 return v * 1e-9;
-            }
-
-            function linarr(start, slope, num) {
-                var l = [];
-                for(var i = 0; i < num; ++i) {
-                    l.push(start + i * slope);
-                }
-                return l;
             }
 
            $scope.init = function() {
@@ -1860,6 +1853,8 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 // loop over conductors
                 // arr[0] + k * sk
                 (json['density'] || []).forEach(function (c, ci) {
+                    var pg = viewport.append('g')
+                        .attr('class', 'density-plot');
                     // loop over "faces"
                     c.forEach(function (f, fi) {
                         var o = [f.x.startVal, f.z.startVal].map(toNano);
@@ -1871,43 +1866,39 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                                 return sum + dd;
                             }, 0)
                         });
-                        srdbg('indexes', indexes);
+                        indexes.splice(0,0,0);
+                        //srdbg('indexes', indexes);
                         var xc = indexes.map(function (i) {
                             return o[0] + sk[0] * i;
                         });
                         var zc = indexes.map(function (i) {
                             return o[1] + sk[1] * i;
                         });
-                        //var coords = geometry.transpose([linarr(o[1], sk[1], nk), linarr(o[0], sk[0], nk)]);
                         var coords = geometry.transpose([zc, xc]);
-                        //srdbg('coords', coords);
                         var smin = 0;  //Math.min.apply(null, den);
                         var smax = Math.max.apply(null, den);
-                        //srdbg('min/max', smin, smax);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
-                        var path = viewport.append('path')
-                            .attr('class', 'line')
-                            .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
-                                  + (density > 0 ? $scope.colorScale(density) : 'black'))
-                            .datum(v);
-                        path.on('mouseover', mouseOver);
 
-                        var pg = viewport.append('g')
-                            .attr('class', 'param-plot');
-                            pg.selectAll('.line')
-                                .data(coords)
-                                .enter()
-                                    .append('path')
-                                    .attr('class', 'line')
-                                    .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: '
-                                  + (den[i] > 0 ? fcs(den[i]) : 'black'))
-                                .datum(function (d) {
-                                    return [d[0]]
-                                });
+                        coords.forEach(function (c, i) {
+                            if(i === coords.length - 1) {
+                                return;
+                            }
+                            var p0 = c;
+                            var p1 = coords[i+1];
+                            var v = [[p0[0], p0[1]], [p1[0], p1[1]]];
+                            v.srDensity = den[i];
+                            var path = pg.append('path')
+                                .attr('class', 'line')
+                                .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: ' +
+                                        (den[i] > 0 ? fcs(den[i]) : 'black')
+                                )
+                                .datum(v);
+                            path.on('mouseover', mouseOver);
+                        });
 
                         /*
                         var pg = viewport.append('g')
-                            .attr('class', 'param-plot');
+                            .attr('class', 'density-plot');
                             pg.selectAll('.scatter-point')
                                 .data(coords)
                                 .enter()
@@ -1925,11 +1916,10 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
             };
 
             $scope.refresh = function() {
-                //$scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
-                //srdbg('z on x axis:', $scope.axes.x.scale(0));
-                $scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
-                    .attr('cx', $scope.graphLine.x())
-                    .attr('cy', $scope.graphLine.y());
+                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                //$scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
+                    //.attr('cx', $scope.graphLine.x())
+                    //.attr('cy', $scope.graphLine.y());
             };
         },
         link: function link(scope, element) {
