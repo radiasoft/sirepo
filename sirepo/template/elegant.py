@@ -1006,6 +1006,11 @@ def _is_ignore_error_text(text):
     return re.search(r'^warn.* does not have a parameter', text, re.IGNORECASE)
 
 
+def _is_numeric(el_type, value):
+    return el_type in ('RPNValue', 'RPNBoolean', 'Integer', 'Float') \
+        and re.search(r'^[\-\+0-9eE\.]+$', value)
+
+
 def _iterate_model_fields(data, state, callback):
     for model_type in ['commands', 'elements']:
         for m in data['models'][model_type]:
@@ -1076,6 +1081,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
+                el_type = element_schema[1]
                 if model['type'] == 'SCRIPT' and field_name == 'command':
                     for f in ('commandFile', 'commandInputFile'):
                         if f in model and model[f]:
@@ -1083,16 +1089,17 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                             value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
                     if model['commandFile']:
                         value = './' + value
-                if element_schema[1] == 'RPNValue':
+                if el_type == 'RPNValue':
                     value = _format_rpn_value(value)
-                if element_schema[1].startswith('InputFile'):
+                if el_type.startswith('InputFile'):
                     value = template_common.lib_file_name(model['type'], field_name, value)
-                    if element_schema[1] == 'InputFileXY':
+                    if el_type == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
-                elif element_schema[1] == 'OutputFile':
+                elif el_type == 'OutputFile':
                     value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
-                #TODO(pjm): don't quote numeric constants
-                state['lattice'] += '{}="{}",'.format(field_name, value)
+                if not _is_numeric(el_type, value):
+                    value = '"{}"'.format(value)
+                state['lattice'] += '{}={},'.format(field_name, value)
     else:
         state['field_index'] = 0
         if state['lattice']:
