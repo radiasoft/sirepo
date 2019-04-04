@@ -1782,7 +1782,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 var path = d3.select(this);
                 if (! path.empty()) {
                     var density = path.datum().srDensity;
-                    srdbg('DEN', density);
+                    srdbg('density', density);
                     $scope.pointer.pointTo(density);
                 }
             }
@@ -1861,23 +1861,44 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
                         var nk = den.length;
-                        var indexes = den.map(function (d, i) {
+                        /*** histo **/
+/*
+                        var indices = den.map(function (d, i) {
                             return den.slice(0, i+1).reduce(function (sum, dd) {
                                 return sum + dd;
                             }, 0)
                         });
-                        indexes.splice(0,0,0);
-                        //srdbg('indexes', indexes);
-                        var xc = indexes.map(function (i) {
+                        indices.splice(0,0,0);
+                        */
+                        /*** ***/
+
+                        /*** aves ***/
+                        var nPts = f.n;
+                        var binWidth = Math.floor(nPts / nk);
+                        var indices = [];
+                        for(var j = 0; j < nk; ++j) {
+                            indices.push(j * binWidth);
+                        }
+                        indices.push(nPts - 1);
+
+                        /*** raw densities ***/
+                        /*
+                        var indices = [];
+                        for(var j = 0; j < nk; ++j) {indices.push(j);}
+                        */
+                        /******/
+                        var xc = indices.map(function (i) {
                             return o[0] + sk[0] * i;
                         });
-                        var zc = indexes.map(function (i) {
+                        var zc = indices.map(function (i) {
                             return o[1] + sk[1] * i;
                         });
                         var coords = geometry.transpose([zc, xc]);
-                        var smin = 0;  //Math.min.apply(null, den);
+                        var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
                         var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
+
+                        /*** lines ***/
 
                         coords.forEach(function (c, i) {
                             if(i === coords.length - 1) {
@@ -1896,6 +1917,8 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             path.on('mouseover', mouseOver);
                         });
 
+
+                        /*** dots ***/
                         /*
                         var pg = viewport.append('g')
                             .attr('class', 'density-plot');
@@ -1910,16 +1933,18 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                                     .style('fill', function (d, i) {
                                         return fcs(den[i]);
                                     });
-                         */
+                                    */
                     });
                 });
             };
 
             $scope.refresh = function() {
+                /*** lines ***/
                 $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                /*** dots ***/
                 //$scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
-                    //.attr('cx', $scope.graphLine.x())
-                    //.attr('cy', $scope.graphLine.y());
+                //    .attr('cx', $scope.graphLine.x())
+                //    .attr('cy', $scope.graphLine.y());
             };
         },
         link: function link(scope, element) {

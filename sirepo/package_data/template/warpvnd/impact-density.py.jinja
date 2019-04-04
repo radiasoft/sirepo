@@ -1,5 +1,6 @@
 
 from rswarp.diagnostics import ImpactDensity
+import math
 
 # use the function arr[0][0] + k * sk + l * sl (loop over k then l) to
 # get the original array value
@@ -72,13 +73,29 @@ try:
             {% else %}
             coord_keys = ['x', 'z']
             d = plot_density.generate_plot_data_for_faces_2d(c)
+            n_bins = 20
             for (x, z, s) in d:
                 h = np.histogram(s, bins=20)[0]
+                e = np.histogram(s, bins=20)[1]
+                #f_data = {
+                #    'dArr': h.tolist(),
+                #    'n': len(x)
+                #}
+                s_aves = []
+                bin_size = int(math.floor(len(x) / n_bins))
+                for b in range(n_bins):
+                    i1 = b * bin_size
+                    i2 = (b + 1) * bin_size
+                    print('bin {} from {} to {}'.format(b, i1, i2))
+                    s_aves.append(np.mean(s[i1:i2]))
                 f_data = {
-                    'dArr': h.tolist()
+                    'dArr': s_aves,
+                    'hist': h.tolist(),
+                    'n': len(x)
                 }
+                #print('cond {}: S aves {}'.format(i, s_aves))
                 #print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
-                print('cond {}: S hist {}'.format(i, h))
+                #print('cond {}: S hist {} edges {}'.format(i, h, e))
                 for cx, coord in enumerate((x, z)):
                     sk = _linear_fit_1d(coord)
                     f_data[coord_keys[cx]] = {
