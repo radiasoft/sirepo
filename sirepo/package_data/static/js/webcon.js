@@ -11,7 +11,7 @@ SIREPO.appFieldEditors = [
       '<div data-analysis-parameter="" data-model="model" data-field="field" data-is-optional="true"></div>',
     '</div>',
     '<div data-ng-switch-when="Equation" class="col-sm-7">',
-      '<div data-equation="equation" data-model="model" data-field="field"></div>',
+      '<div data-equation="equation" data-model="model" data-field="field" data-form="form"></div>',
       '<div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>',
     '</div>',
     '<div data-ng-switch-when="EquationVariables" class="col-sm-7">',
@@ -147,11 +147,12 @@ SIREPO.app.directive('equation', function(appState, webconService) {
     return {
         scope: {
             model: '=',
-            field: '='
+            field: '=',
+            form: '=',
         },
         template: [
             '<div>',
-                '<input type="text" data-ng-model="model[field]" class="form-control" required>',
+                '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
             '</div>',
         ].join(''),
         controller: function ($scope) {
@@ -171,6 +172,12 @@ SIREPO.app.directive('equation', function(appState, webconService) {
             //     //});
             //     return tokens;
             // }
+
+            $scope.validateAll = function() {
+                $scope.form.$$controls.forEach(function (c) {
+                    c.$validate();
+                });
+            };
         },
     };
 });
@@ -191,18 +198,19 @@ SIREPO.app.directive('equationVariables', function() {
             '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
         controller: function($scope, $element) {
-            var reserved = ['sin', 'cos', 'tan', 'abs'];
-
             $scope.equation = $scope.model.equation;
         },
     };
 });
 
-SIREPO.app.directive('validVariableOrParam', function(utilities) {
+SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     return {
         restrict: 'A',
         require: 'ngModel',
          link: function(scope, element, attrs, ngModel) {
+
+            // set dirty on load to catch invalid variables that might have been saved
+            ngModel.$setDirty();
 
             function tokens() {
                 return (ngModel.$viewValue || '').split(/\s*,\s*/);
@@ -239,7 +247,7 @@ SIREPO.app.directive('validVariableOrParam', function(utilities) {
             }
 
             ngModel.$validators.validTokens = (function (v) {
-                return (ngModel.$viewValue || '').split(/\s*,\s*/)
+                return tokens()
                     .filter(function (p) {
                         return p.length > 0;
                     })
@@ -251,7 +259,7 @@ SIREPO.app.directive('validVariableOrParam', function(utilities) {
     };
 });
 
-SIREPO.app.directive('fitReport', function(appState, mathRendering) {
+SIREPO.app.directive('fitReport', function(appState) {
     return {
         scope: {
             controller: '=parentController',
@@ -268,6 +276,7 @@ SIREPO.app.directive('fitReport', function(appState, mathRendering) {
                 });
             });
             $scope.$on('fitReport.changed', function() {
+                //TODO(mvk): focus text to display fits and std devs
                 var focusText = $('.focus-hint');
                 var str = '';
             });
