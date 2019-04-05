@@ -22,6 +22,7 @@ pykern.pksetup.setup(
         'celery==3.1.23',
         'cryptography',
         'flower==0.8.4',
+        'futures',
         'kombu==3.0.35',
         'numconv',
         'numpy',
