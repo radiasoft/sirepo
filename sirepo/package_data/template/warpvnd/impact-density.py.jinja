@@ -58,10 +58,15 @@ try:
             coord_keys = ['x', 'y', 'z']
             d = plot_density.generate_plot_data_for_faces_3d(c)
             for (x, y, z, s) in d:
+                h = np.histogram(s, bins=20)[0]
+                e = np.histogram(s, bins=20)[1]
+                s_aves = []
                 f_data = {
-                    'dArr': s.tolist()
+                    'dArr': s.tolist(),
+                    'n': len(x)
                 }
                 #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
+                print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
                 for cx, coord in enumerate((x, y, z)):
                     sk, sl = _linear_fit_2d(coord)
                     f_data[coord_keys[cx]] = {
@@ -81,12 +86,26 @@ try:
                 #    'dArr': h.tolist(),
                 #    'n': len(x)
                 #}
+                s_aves_k = []
+                s_aves_l = []
                 s_aves = []
-                bin_size = int(math.floor(len(x) / n_bins))
+                bin_size_k = int(math.floor(len(x) / n_bins))
+                bin_size_l = int(math.floor(len(x[0]) / n_bins))
                 for b in range(n_bins):
-                    i1 = b * bin_size
-                    i2 = (b + 1) * bin_size
-                    print('bin {} from {} to {}'.format(b, i1, i2))
+                    k1 = b * bin_size
+                    k2 = (b + 1) * bin_size
+                    s_aves_k.append(np.mean(s[k1:k2][l1:l2], axis=(0, 1)))
+                    for bb in range(n_bins):
+                        l1 = bb * bin_size
+                        l2 = (bb + 1) * bin_size
+                        #print('bin {} from {} to {}'.format(b, i1, i2))
+
+                bin_size_k = int(math.floor(len(x) / n_bins))
+                bin_size_l = int(math.floor(len(x[0) / n_bins))
+                for b in range(n_bins):
+                    k1 = b * bin_size
+                    k2 = (b + 1) * bin_size
+                    #print('bin {} from {} to {}'.format(b, i1, i2))
                     s_aves.append(np.mean(s[i1:i2]))
                 f_data = {
                     'dArr': s_aves,

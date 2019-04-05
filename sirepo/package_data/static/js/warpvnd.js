@@ -1782,7 +1782,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 var path = d3.select(this);
                 if (! path.empty()) {
                     var density = path.datum().srDensity;
-                    srdbg('density', density);
+                    //srdbg('density', density);
                     $scope.pointer.pointTo(density);
                 }
             }
@@ -1861,6 +1861,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
                         var nk = den.length;
+                        //srdbg('got stuff startx', f.x.startVal, 'startz', f.z.startVal, 'density', den, 'nk', nk);
                         /*** histo **/
 /*
                         var indices = den.map(function (d, i) {
@@ -1880,7 +1881,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             indices.push(j * binWidth);
                         }
                         indices.push(nPts - 1);
-
+                        //srdbg('indices', indices);
                         /*** raw densities ***/
                         /*
                         var indices = [];
@@ -1894,12 +1895,13 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             return o[1] + sk[1] * i;
                         });
                         var coords = geometry.transpose([zc, xc]);
+                        //srdbg('coords', coords);
                         var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
                         var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
                         /*** lines ***/
-
+/*
                         coords.forEach(function (c, i) {
                             if(i === coords.length - 1) {
                                 return;
@@ -1916,7 +1918,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                                 .datum(v);
                             path.on('mouseover', mouseOver);
                         });
-
+*/
 
                         /*** dots ***/
                         /*

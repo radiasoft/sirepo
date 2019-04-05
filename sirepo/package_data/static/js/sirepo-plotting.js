@@ -3179,7 +3179,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
 //TODO(mvk): This directive should move to sirepo-plotting-vtk
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry, plotToPNG, $timeout) {
+SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, $timeout) {
 
     return {
         restrict: 'A',
@@ -3226,6 +3226,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
             $scope.showImpact = true;
+            $scope.enableImpactDensity = true;
             $scope.showImpactDensity = false;
             $scope.showConductors = true;
 
@@ -3743,14 +3744,83 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
                 }
 
+                mapImpactDensity();
+
+                function coordAtIndex(startVal, sk, sl, k, l) {
+                    return startVal + k * sk + l * sl;
+                }
+
+                function scaleWithShave(a) {
+                    var shave = 0.01;
+                    return (1.0 - shave) * a / cFactor;
+                }
+
+                function scaleConductor(a) {
+                    return a / cFactor;
+                }
+
+                function toMicron(v) {
+                    return v * 1e-6;
+                }
+
+                // build conductors -- make them a tiny bit small so the edges do not bleed into each other
+                for (var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
+                    var conductor = appState.models.conductors[cIndex];
+
+                    // lengths and centers are in µm
+                    var cFactor = 1000000.0;
+                    var cModel = null;
+                    var cColor = [0, 0, 0];
+                    var cEdgeColor = [0, 0, 0];
+                    for (var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
+                        if (appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
+                            cModel = appState.models.conductorTypes[ctIndex];
+                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
+                            cColor = cModel.voltage == 0 ? zColor : vColor;
+                            break;
+                        }
+                    }
+                    if (cModel) {
+                        var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(scaleWithShave);
+                        var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(scaleConductor);
+
+                        var bb = coordMapper.buildBox(bl, bc);
+                        conductorBundles.push(bb);
+                        bb.actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                        bb.actor.getProperty().setEdgeVisibility(true);
+                        bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
+                        bb.actor.getProperty().setLighting(false);
+                        bb.actor.getProperty().setOpacity(0.80);
+                        conductorActors.push(bb.actor);
+                    }
+                }
+
+                // do an initial render
+                renderWindow.render();
+
+                // wait to initialize after the render so the world to viewport transforms are ready
+                vpOutline.initializeWorld();
+
+                refresh(true);
+            };
+
+            function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
                 (impactData['density'] || []).forEach(function (c, ci) {
+                    if(! $scope.enableImpactDensity) {
+                        return;
+                    }
                     //if(ci !== 3) {return}
                     // loop over faces
                     c.forEach(function (f, fi) {
                         //if(fi !== 2) {return}
                         //srdbg('face data', f);
+                        if(! f.y) {
+                            $scope.enableImpactDensity = false;
+                            return;
+                        }
                         var o = [f.x.startVal, f.y.startVal, f.z.startVal].map(toNano);
                         var sk = [f.x.slopek, f.y.slopek, f.z.slopek].map(toNano);
                         var sl = [f.x.slopel, f.y.slopel, f.z.slopel].map(toNano);
@@ -3800,69 +3870,10 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     });
                 });
 
-
-                function coordAtIndex(startVal, sk, sl, k, l) {
-                    return startVal + k * sk + l * sl;
-                }
-
-                function scaleWithShave(a) {
-                    var shave = 0.01;
-                    return (1.0 - shave) * a / cFactor;
-                }
-
-                function scaleConductor(a) {
-                    return a / cFactor;
-                }
-
-                function toMicron(v) {
-                    return v * 1e-6;
-                }
-
                 function toNano(v) {
                     return v * 1e-9;
                 }
-
-                // build conductors -- make them a tiny bit small so the edges do not bleed into each other
-                for (var cIndex = 0; cIndex < appState.models.conductors.length; ++cIndex) {
-                    var conductor = appState.models.conductors[cIndex];
-
-                    // lengths and centers are in µm
-                    var cFactor = 1000000.0;
-                    var cModel = null;
-                    var cColor = [0, 0, 0];
-                    var cEdgeColor = [0, 0, 0];
-                    for (var ctIndex = 0; ctIndex < appState.models.conductorTypes.length; ++ctIndex) {
-                        if (appState.models.conductorTypes[ctIndex].id == conductor.conductorTypeId) {
-                            cModel = appState.models.conductorTypes[ctIndex];
-                            var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-                            var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
-                            cColor = cModel.voltage == 0 ? zColor : vColor;
-                            break;
-                        }
-                    }
-                    if (cModel) {
-                        var bl = [cModel.xLength, cModel.yLength, cModel.zLength].map(scaleWithShave);
-                        var bc = [conductor.xCenter, conductor.yCenter, conductor.zCenter].map(scaleConductor);
-
-                        var bb = coordMapper.buildBox(bl, bc);
-                        conductorBundles.push(bb);
-                        bb.actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
-                        bb.actor.getProperty().setEdgeVisibility(true);
-                        bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
-                        bb.actor.getProperty().setLighting(false);
-                        bb.actor.getProperty().setOpacity(0.80);
-                        conductorActors.push(bb.actor);
-                    }
-                }
-
-                // do an initial render
-                renderWindow.render();
-
-                // wait to initialize after the render so the world to viewport transforms are ready
-                vpOutline.initializeWorld();
-
-                refresh(true);
-            };
+            }
 
             function setLinesFromPoints(bundle, points, color, includeImpact) {
                 if (! bundle) {
@@ -3931,6 +3942,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     });
                 }
             }
+
             function indexValPriorTo(map, startIndex, spacing) {
                 var k = startIndex - spacing;
                 var prevVal = map[k];
@@ -3940,6 +3952,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 }
                 return prevVal;
             }
+
             function colorAtIndex(index) {
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
