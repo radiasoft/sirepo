@@ -207,10 +207,12 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     return {
         restrict: 'A',
         require: 'ngModel',
-         link: function(scope, element, attrs, ngModel) {
+        link: function(scope, element, attrs, ngModel) {
 
             // set dirty on load to catch invalid variables that might have been saved
-            ngModel.$setDirty();
+            if(! ngModel.$valid) {
+                ngModel.$setDirty();
+            }
 
             function tokens() {
                 return (ngModel.$viewValue || '').split(/\s*,\s*/);
@@ -269,17 +271,26 @@ SIREPO.app.directive('fitReport', function(appState) {
             '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport">',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
+
+            function roundTo3Places(f) {
+                return Math.round(f * 1000) / 1000;
+            }
 
             $scope.$on('fitter.changed', function() {
-                appState.saveChanges('fitReport', function () {
-                });
+                appState.saveChanges('fitReport');
             });
-            $scope.$on('fitReport.changed', function() {
-                //TODO(mvk): focus text to display fits and std devs
-                var focusText = $('.focus-hint');
+            $scope.$on('fitReport.summaryData', function (e, data) {
                 var str = '';
+                var pNames = (appState.models.fitter.parameters || '').split(/\s*,\s*/);
+                var pVals = data.p_vals.map(roundTo3Places);
+                var pErrs = data.p_errs.map(roundTo3Places);
+                pNames.forEach(function (p, i) {
+                    str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i] + ';  ';
+                });
+                $($element).find('.focus-hint').text(str);
             });
+
 
         },
     };

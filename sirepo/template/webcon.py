@@ -69,15 +69,13 @@ def get_fit(data):
     x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
     col_info = _column_info(fit_in)
 
-    fit_y, fit_y_min, fit_y_max, param_vals, latex_label = _fit_to_equation(
+    fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
         data.models.fitter.equation,
         data.models.fitter.variable,
         data.models.fitter.parameters
     )
-    data.models.fitReport.parameterValues = param_vals.tolist()
-
 
     plots = [
         {
@@ -105,8 +103,11 @@ def get_fit(data):
         'title': '',
         'y_label': _label(col_info, 1),
         'x_label': _label(col_info, 0),
-        'p_vals': param_vals.tolist(),
-        'latex_label': '$y = ' + latex_label + '$'
+        'summaryData': {
+            'p_vals': param_vals.tolist(),
+            'p_errs': param_sigmas.tolist(),
+        },
+        'latex_label': latex_label
     })
 
 
@@ -267,7 +268,8 @@ def _fit_to_equation(x, y, equation, var, params):
     y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
     y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
-    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sympy.latex(y_fit_rounded)
+    latex_label = sympy.latex(y_fit_rounded, mode='inline')
+    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sigma, latex_label
 
 
 def _generate_parameters_file(data):
