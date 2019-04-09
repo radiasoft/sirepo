@@ -469,16 +469,8 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.newSimulation = function(model, op) {
-        requestSender.sendRequest(
-            'newSimulation',
-            op,
-            {
-                name: model.name,
-                folder: model.folder,
-                sourceType: model.sourceType,
-                notes: model.notes,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+        model.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        requestSender.sendRequest('newSimulation', op, model);
     };
 
     self.optFieldName = function(modelName, fieldName, model) {
