@@ -48,6 +48,10 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if data.models.simulation.flashType == 'CapLaser':
+        io_model = data.models.IO
+        io_model.plot_var_5 = 'magz'
+        io_model.plot_var_6 = 'depo'
 
 
 def get_animation_name(data):
@@ -211,6 +215,8 @@ _DEFAULT_VALUES = {
             'plot_var_2': 'pres',
             'plot_var_3': 'tele',
             'plot_var_4': 'tion',
+            'plot_var_5': 'magz',
+            'plot_var_6': 'depo',
             'plotFileIntervalTime': 1e-10,
             'io_writeMscalarIntegrals': '1',
         },

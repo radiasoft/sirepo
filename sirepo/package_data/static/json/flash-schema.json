@@ -509,6 +509,7 @@
         "simulation": {
             "flashType": ["Simulation Type", "flashType", "RTFlame"]
         },
+        "simulationStatus": {},
         "gridEvolutionAnimation": {
             "y1": ["Y1 Value", "GridEvolutionColumn", "x-momentum"],
             "y2": ["Y2 Value", "GridEvolutionOptionalColumn", "y-momentum"],
@@ -1316,6 +1317,10 @@
                 "name",
                 "flashType"
             ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
         },
         "Grid": {
             "title": "Grid",
