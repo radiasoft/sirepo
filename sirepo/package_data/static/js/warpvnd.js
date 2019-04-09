@@ -1782,7 +1782,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 var path = d3.select(this);
                 if (! path.empty()) {
                     var density = path.datum().srDensity;
-                    //srdbg('density', density);
                     $scope.pointer.pointTo(density);
                 }
             }
@@ -1795,7 +1794,9 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 return v * 1e-9;
             }
 
-           $scope.init = function() {
+            $scope.has3dData = false;
+
+            $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
                     margin: {top: 50, right: 80, bottom: 50, left: 70},
@@ -1805,7 +1806,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 // can't remove the overlay or it causes a memory leak
                 $scope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
             };
-
             $scope.load = function(json) {
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
@@ -1851,7 +1851,8 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 }
 
                 // loop over conductors
-                // arr[0] + k * sk
+                // arr[0] + k * sk for 2d
+                // arr[0][0] + k * sk + l * sl for 3d (later)
                 (json['density'] || []).forEach(function (c, ci) {
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
@@ -1861,18 +1862,12 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
                         var nk = den.length;
-                        //srdbg('got stuff startx', f.x.startVal, 'startz', f.z.startVal, 'density', den, 'nk', nk);
-                        /*** histo **/
-/*
-                        var indices = den.map(function (d, i) {
-                            return den.slice(0, i+1).reduce(function (sum, dd) {
-                                return sum + dd;
-                            }, 0)
-                        });
-                        indices.splice(0,0,0);
-                        */
-                        /*** ***/
-
+                        var nl = den[0].length;
+                        if(nl) {
+                            // for now don't display 2d impact density if the data is 3d
+                            $scope.has3dData = true;
+                            return;
+                        }
                         /*** aves ***/
                         var nPts = f.n;
                         var binWidth = Math.floor(nPts / nk);
@@ -1881,13 +1876,15 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             indices.push(j * binWidth);
                         }
                         indices.push(nPts - 1);
-                        //srdbg('indices', indices);
+
                         /*** raw densities ***/
                         /*
                         var indices = [];
                         for(var j = 0; j < nk; ++j) {indices.push(j);}
                         */
                         /******/
+
+                        //srdbg('indices', indices);
                         var xc = indices.map(function (i) {
                             return o[0] + sk[0] * i;
                         });
@@ -1900,8 +1897,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
-                        /*** lines ***/
-/*
                         coords.forEach(function (c, i) {
                             if(i === coords.length - 1) {
                                 return;
@@ -1918,35 +1913,12 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                                 .datum(v);
                             path.on('mouseover', mouseOver);
                         });
-*/
-
-                        /*** dots ***/
-                        /*
-                        var pg = viewport.append('g')
-                            .attr('class', 'density-plot');
-                            pg.selectAll('.scatter-point')
-                                .data(coords)
-                                .enter()
-                                    .append('circle')
-                                    .attr('cx', $scope.graphLine.x())
-                                    .attr('cy', $scope.graphLine.y())
-                                    .attr('r', 2)
-                                    .attr('class', 'scatter-point')
-                                    .style('fill', function (d, i) {
-                                        return fcs(den[i]);
-                                    });
-                                    */
                     });
                 });
             };
 
             $scope.refresh = function() {
-                /*** lines ***/
                 $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
-                /*** dots ***/
-                //$scope.select('.plot-viewport').selectAll('.scatter-point').attr('d', $scope.graphLine)
-                //    .attr('cx', $scope.graphLine.x())
-                //    .attr('cy', $scope.graphLine.y());
             };
         },
         link: function link(scope, element) {
