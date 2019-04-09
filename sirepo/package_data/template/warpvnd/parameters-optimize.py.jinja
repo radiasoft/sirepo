@@ -3,6 +3,17 @@
 wp.top.lprntpara = False
 wp.top.lpsplots = False
 
+def write_output_line(output):
+    print('sr-opt: ' + ' '.join(map(lambda x: '{}={}'.format(x, output[x]), output.keys())))
+
+output = {
+    'steps': 0,
+    'time': 0,
+    'tolerance': 0,
+    'result': 0,
+}
+write_output_line(output)
+
 wp.top.verbosity = 0 # Reduce solver verbosity
 solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
 solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
@@ -43,27 +54,16 @@ def get_lost_counts():
     return np.array([plate_count, conductor_count])
 
 
-def write_output_line(output):
-    print('sr-opt: ' + ' '.join(map(lambda x: '{}={}'.format(x, output[x]), output.keys())))
-
-
 #------
 
 tolerance = {{ optimizer_tolerance }}
 time_limit = {{ optimizer_timeLimit }}
-num_steps = {{ simulationGrid_num_steps }}
+num_steps = {{ optimizer_initialSteps }}
 start_time = time.time()
 end_time = start_time + time_limit
 
 prev_result = 0
 prev_counts = np.array([0, 0])
-
-output = {
-    'steps': 0,
-    'time': 0,
-    'tolerance': 0,
-    'result': 0,
-}
 
 while time.time() < end_time:
     wp.step(num_steps)
@@ -80,6 +80,7 @@ while time.time() < end_time:
             break
     else:
         write_output_line(output)
+    num_steps = {{ optimizer_optimizerSteps }}
     prev_counts = counts
     prev_result = output['result']
 

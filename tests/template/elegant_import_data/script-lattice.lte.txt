@@ -1,7 +1,7 @@
-"D": DRIF,l="1"
-"LINAC": RFCA,change_p0="1",end1_focus="1",end2_focus="1",freq="2856e6",l="3",phase="90.0",volt="40.e6"
-"S1": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam1.sdds -merge %o",no_new_particles="0",use_csh="0"
-"S2": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam2.sdds -merge %o",no_new_particles="0",use_csh="0"
-"S3": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam3.sdds -merge %o",no_new_particles="0",use_csh="0"
-"S4": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam4.sdds -merge %o",no_new_particles="0",use_csh="0"
+"D": DRIF,l=1
+"LINAC": RFCA,change_p0=1,end1_focus=1,end2_focus=1,freq=2856e6,l=3,phase=90.0,volt=40.e6
+"S1": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam1.sdds -merge %o",no_new_particles=0,use_csh=0
+"S2": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam2.sdds -merge %o",no_new_particles=0,use_csh=0
+"S3": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam3.sdds -merge %o",no_new_particles=0,use_csh=0
+"S4": SCRIPT,command="sddscombine %i SCRIPT-commandInputFile.beam4.sdds -merge %o",no_new_particles=0,use_csh=0
 "BL": LINE=(LINAC,D,S1,D,LINAC,D,S2,D,LINAC,D,S3,D,LINAC,D,S4,D,LINAC)

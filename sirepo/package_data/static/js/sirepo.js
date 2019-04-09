@@ -1889,6 +1889,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             return state.isStatePending() || state.isStateRunning();
         };
 
+        state.isStateCanceled = function() {
+            return simulationStatus().state == 'canceled';
+        };
+
         state.isStateError = function() {
             return simulationStatus().state == 'error';
         };

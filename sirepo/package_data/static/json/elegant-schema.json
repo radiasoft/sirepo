@@ -492,6 +492,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "parameterTable": {
@@ -4048,6 +4049,7 @@
                     ],
                     "framesPerSecond",
                     "histogramBins",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],

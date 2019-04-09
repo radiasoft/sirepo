@@ -22,6 +22,7 @@ pykern.pksetup.setup(
         'celery==3.1.23',
         'cryptography',
         'flower==0.8.4',
+        'futures',
         'kombu==3.0.35',
         'numconv',
         'numpy',
@@ -32,6 +33,7 @@ pykern.pksetup.setup(
         # requests-oauthlib-1.2.0 forces oauthlib-3.0.0 but Flask-OAuthlib
         # requires oauthlib<3.0.0.
         'requests-oauthlib==1.1.0',
+        'sympy',
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',
         'docker; python_version >= "3"',

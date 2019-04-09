@@ -2747,7 +2747,7 @@ SIREPO.app.service('mathRendering', function() {
         return $('<div />').text(text).html();
     }
 
-    this.mathAsHTML = function(text) {
+    this.mathAsHTML = function(text, options) {
         if (! this.textContainsMath(text)) {
             return encodeHTML(text);
         }
@@ -2767,7 +2767,7 @@ SIREPO.app.service('mathRendering', function() {
                 // should never get here
                 throw 'invalid math expression';
             }
-            parts.push(katex.renderToString(text.slice(0, i + 1)));
+            parts.push(katex.renderToString(text.slice(0, i + 1), options));
             text = text.slice(i + 2);
             i = text.search(RE);
         }

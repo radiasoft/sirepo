@@ -11,6 +11,8 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+
+import sympy
 import csv
 import math
 import numpy as np
@@ -59,6 +61,55 @@ def get_data_file(run_dir, model, frame, options=None):
     assert False, 'not implemented'
 
 
+def get_fit(data):
+    fit_in = _analysis_data_file(data)
+    col1 = int(data.models.fitReport.x)
+    col2 = int(data.models.fitReport.y)
+
+    x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
+    col_info = _column_info(fit_in)
+
+    fit_y, fit_y_min, fit_y_max, param_vals, latex_label = _fit_to_equation(
+        x_vals,
+        y_vals,
+        data.models.fitter.equation,
+        data.models.fitter.variable,
+        data.models.fitter.parameters
+    )
+    data.models.fitReport.parameterValues = param_vals.tolist()
+
+
+    plots = [
+        {
+            'points': (y_vals * col_info['scale'][1]).tolist(),
+            'label': 'data',
+            'style': 'scatter',
+        },
+        {
+            'points': (fit_y * col_info['scale'][1]).tolist(),
+            'label': 'fit',
+        },
+        {
+            'points': (fit_y_min * col_info['scale'][1]).tolist(),
+            'label': '',
+            '_parent': 'fit'
+        },
+        {
+            'points': (fit_y_max * col_info['scale'][1]).tolist(),
+            'label': '',
+            '_parent': 'fit'
+        }
+    ]
+
+    return template_common.parameter_plot(x_vals.tolist(), plots, data, {
+        'title': '',
+        'y_label': _label(col_info, 1),
+        'x_label': _label(col_info, 0),
+        'p_vals': param_vals.tolist(),
+        'latex_label': '$y = ' + latex_label + '$'
+    })
+
+
 def get_simulation_frame(run_dir, data, model_data):
     path = str(run_dir.join(_analysis_data_file(model_data)))
     plot_data = np.genfromtxt(path, delimiter=',', names=True)
@@ -82,6 +133,7 @@ def get_simulation_frame(run_dir, data, model_data):
         plots.append({
             'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
             'label': _label(col_info, idx),
+            'style': 'scatter',
         })
     return template_common.parameter_plot(x, plots, data, {
         'title': '',
@@ -102,6 +154,8 @@ def models_related_to_report(data):
     r = data['report']
     if r == get_animation_name(data):
         return []
+    if r == 'fitReport':
+        return [r, 'fitter']
     return [
         r,
     ]
@@ -115,6 +169,14 @@ def validate_file(file_type, path):
     if not _column_info(path):
         return 'Invalid CSV header row'
     return None
+
+
+def validate_sympy(str):
+    try:
+        sympy.sympify(str)
+        return True
+    except:
+        return False
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -160,6 +222,52 @@ def _column_info(path):
         res['units'].append(units)
         res['scale'].append(scale)
     return res
+
+
+def _fit_to_equation(x, y, equation, var, params):
+
+    import scipy.optimize
+
+    # TODO: must sanitize input - sympy uses eval
+    sym_curve = sympy.sympify(equation)
+    sym_str = var + ' ' + ' '.join(params)
+
+    syms = sympy.symbols(sym_str)
+    sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
+
+    # feed a uniform x distribution to the function?  or sort?
+    #x_uniform = np.linspace(np.min(x), np.max(x), 100)
+
+    p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
+    sigma = np.sqrt(np.diagonal(pcov))
+
+    p_subs = []
+    p_subs_min = []
+    p_subs_max = []
+    p_rounded = []
+
+    # exclude the symbol of the variable when subbing
+    for sidx, p in enumerate(p_vals, 1):
+        sig = sigma[sidx - 1]
+        p_min = p - 2 * sig
+        p_max = p + 2 * sig
+        s = syms[sidx]
+        p_subs.append((s, p))
+        p_subs_min.append((s, p_min))
+        p_subs_max.append((s, p_max))
+        p_rounded.append((s, np.round(p, 3)))
+    y_fit = sym_curve.subs(p_subs)
+    y_fit_min = sym_curve.subs(p_subs_min)
+    y_fit_max = sym_curve.subs(p_subs_max)
+
+    # used for the laTeX label - rounding should take size of uncertainty into account
+    y_fit_rounded = sym_curve.subs(p_rounded)
+
+    y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
+    y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
+    y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
+
+    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sympy.latex(y_fit_rounded)
 
 
 def _generate_parameters_file(data):

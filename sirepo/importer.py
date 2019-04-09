@@ -69,6 +69,7 @@ def read_zip(stream, template=None):
     from sirepo import simulation_db
     from sirepo.template import template_common
     import py.path
+    import re
     import zipfile
 
     tmp = simulation_db.tmp_dir()
@@ -85,6 +86,8 @@ def read_zip(stream, template=None):
                 if not template:
                     import sirepo.template
                     template = sirepo.template.import_module(data.simulationType)
+                continue
+            if re.match('__MACOSX', i.filename):
                 continue
             #TODO(robnagler) ignore identical files hash
             assert not b in zipped, \
