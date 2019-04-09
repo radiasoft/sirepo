@@ -283,10 +283,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return fwhm;
         },
 
-        colorMapFromModel: function(modelName) {
+        colorMapFromModel: function(modelName, fieldName) {
 
             var model = appState.models[modelName];
-            var modelMap = model ? model.colorMap : null;
+            var modelMap = model ? (model[fieldName] || model.colorMap) : null;
 
             var modelDefaultMap;
             var info = SIREPO.APP_SCHEMA.model[modelName];
@@ -306,7 +306,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
-        colorScaleForPlot: function(plotRange, modelName) {
+        colorScaleForPlot: function(plotRange, modelName, fieldName) {
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
@@ -314,7 +314,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 zMin = m.colorMin;
                 zMax = m.colorMax;
             }
-            var colorMap = this.colorMapFromModel(modelName);
+            var colorMap = this.colorMapFromModel(modelName, fieldName);
             return d3.scale.linear()
                 .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
                 .range(colorMap)
@@ -3833,7 +3833,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         var smin = plotting.min2d(d);
                         var smax = plotting.max2d(d);
                         //srdbg('min/max', smin, smax);
-                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, 'impactDensityAnimation');
+                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
 
                         var p1 = [
                             o[0] + (nk - 1) * sk[0],

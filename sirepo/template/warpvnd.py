@@ -35,7 +35,7 @@ _OPTIMIZER_RESULT_FILE = 'opt.json'
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.npy'
 _PARTICLE_PERIOD = 100
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):

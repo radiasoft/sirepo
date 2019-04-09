@@ -174,7 +174,8 @@
         },
         "particle3d": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Field Color Map", "ColorMap", "viridis"],
+            "impactColorMap": ["Impact Color Map", "ColorMap", "coolwarm"]
         },
         "simulation": {
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
@@ -352,7 +353,8 @@
             "title": "Particle Trace 3D",
             "advanced": [
                 "renderCount",
-                "colorMap"
+                "colorMap",
+                "impactColorMap"
             ]
         },
         "simulationGrid": {
