@@ -3,20 +3,36 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-
+SIREPO.appDefaultSimulationValues.simulation.flashType = 'RTFlame';
 SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['gridEvolutionAnimation'];
 
-SIREPO.app.controller('PhysicsController', function () {
-    var self = this;
+SIREPO.app.factory('flashService', function(appState) {
+    var self = {};
+
+    self.isFlashType = function(simType) {
+        if (appState.isLoaded()) {
+            return simType == appState.models.simulation.flashType;
+        }
+    };
+
+    return self;
 });
 
-SIREPO.app.controller('SourceController', function () {
+
+SIREPO.app.controller('PhysicsController', function (flashService) {
     var self = this;
+    self.flashService = flashService;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, persistentSimulation, $scope, $window) {
+SIREPO.app.controller('SourceController', function (flashService) {
     var self = this;
+    self.flashService = flashService;
+});
+
+SIREPO.app.controller('VisualizationController', function (appState, flashService, frameCache, persistentSimulation, $scope, $window) {
+    var self = this;
+    self.flashService = flashService;
     self.plotClass = 'col-md-6 col-xl-4';
 
     function handleStatus(data) {

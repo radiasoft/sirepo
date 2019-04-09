@@ -27,6 +27,10 @@
         }
     },
     "enum": {
+        "flashType": [
+            ["CapLaser", "CapLaser"],
+            ["RTFlame", "RTFlame"]
+        ],
         "physics:Gravity:Constant:gdirec": [
             ["x", "x"],
             ["y", "y"],
@@ -36,6 +40,64 @@
             ["isolated", "isolated"],
             ["periodic", "periodic"],
             ["dirichlet", "dirichlet"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdBoundEntry": [
+            ["grbd_manual", "grbd_manual"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdFlMode": [
+            ["fl_none", "fl_none"],
+            ["fl_harmonic", "fl_harmonic"],
+            ["fl_minmax", "fl_minmax"],
+            ["fl_larsen", "fl_larsen"],
+            ["fl_levermorepomraning1981", "fl_levermorepomraning1981"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdXlBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdXrBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdYlBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdYrBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdZlBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
+        ],
+        "physics:RadTrans:MGD:rt_mgdZrBoundaryType": [
+            ["reflecting", "reflecting"],
+            ["vacuum", "vacuum"],
+            ["dirichlet", "dirichlet"],
+            ["neumann", "neumann"],
+            ["outflow", "outflow"],
+            ["outstream", "outstream"]
         ],
         "GridEvolutionColumn": [
             ["mass", "mass"],
@@ -85,29 +147,31 @@
             ["15", "15"],
             ["20", "20"]
         ],
-        "LaserTorsionAxis": [
-            [" ", "none"],
-            ["x", "x"],
-            ["y", "y"],
-            ["z", "z"]
+        "Multispecies:eos_fillEosType": [
+            ["-none-", "-none-"],
+            ["eos_gam", "eos_gam"],
+            ["eos_tab", "eos_tab"]
         ],
-        "LaserGridType": [
-            [" ", "none"],
-            ["rectangular2D", "rectangular2D"],
-            ["square2D", "square2D"],
-            ["delta2D", "delta2D"],
-            ["radial2D", "radial2D"],
-            ["statistical2D", "statistical2D"],
-            ["regular1D", "regular1D"],
-            ["statistical1D", "statistical1D"]
+        "Multispecies:eos_fillSubType": [
+            ["-none-", "-none-"],
+            ["ionmix", "ionmix"],
+            ["ionmix4", "ionmix4"],
+            ["ionmix6", "ionmix6"],
+            ["propaceos", "propaceos"],
+            ["opacplot", "opacplot"]
         ],
-        "LaserCrossSectionFunctionType": [
-            [" ", "none"],
-            ["uniform", "uniform"],
-            ["gaussian1D", "gaussian1D"],
-            ["gaussian2D", "gaussian2D"],
-            ["gaussianInverse1D", "gaussianInverse1D"],
-            ["gaussianInverse2D", "gaussianInverse2D"]
+        "Multispecies:eos_wallEosType": [
+            ["-none-", "-none-"],
+            ["eos_gam", "eos_gam"],
+            ["eos_tab", "eos_tab"]
+        ],
+        "Multispecies:eos_wallSubType": [
+            ["-none-", "-none-"],
+            ["ionmix", "ionmix"],
+            ["ionmix4", "ionmix4"],
+            ["ionmix6", "ionmix6"],
+            ["propaceos", "propaceos"],
+            ["opacplot", "opacplot"]
         ],
         "RiemannSolver": [
             ["HHLD", "HLLD"],
@@ -125,6 +189,27 @@
             ["minmod", "minmod"],
             ["hybrid", "hybrid"],
             ["limited", "limited"]
+        ],
+        "Simulation:magnetoHD:CapLaser:sim_eosFill": [
+            ["eos_tab", "eos_tab"],
+            ["eos_gam", "eos_gam"]
+        ],
+        "Simulation:magnetoHD:CapLaser:sim_eosWall": [
+            ["eos_tab", "eos_tab"],
+            ["eos_gam", "eos_gam"]
+        ],
+        "physics:Diffuse:diff_eleFlMode": [
+            ["fl_none", "fl_none"],
+            ["fl_harmonic", "fl_harmonic"],
+            ["fl_minmax", "fl_minmax"],
+            ["fl_larsen", "fl_larsen"],
+            ["fl_levermorepomraning1981", "fl_levermorepomraning1981"]
+        ],
+        "physics:Diffuse:diff_ionFlMode": [
+            ["fl_none", "fl_none"],
+            ["fl_harmonic", "fl_harmonic"],
+            ["fl_minmax", "fl_minmax"],
+            ["fl_larsen", "fl_larsen"]
         ],
         "VariableName": [
             ["dens", "dens"],
@@ -164,15 +249,7 @@
             ["outstream", "outstream"],
             ["reflecting", "reflecting"],
             ["vacuum", "vacuum"]
-        ],
-        "MGDBoundaryType": [
-            ["dirichlet", "dirichlet"],
-            ["neumann", "neumann"],
-            ["outflow", "outflow"],
-            ["outstream", "outstream"],
-            ["reflecting", "reflecting"],
-            ["vacuum", "vacuum"]
-        ],
+         ],
         "GridBoundaryType": [
             ["periodic", "periodic"],
             ["reflect", "reflect"],
@@ -193,28 +270,6 @@
             ["231", "231"],
             ["312", "312"],
             ["321", "321"]
-        ],
-        "Grid:GridSolvers:HYPRE:gr_hyprePCType": [
-            ["HYPRE_NONE", "HYPRE_NONE"],
-            ["HYPRE_ILU", "HYPRE_ILU"],
-            ["HYPRE_AMG", "HYPRE_AMG"],
-            ["HYPRE_PARASAILS", "HYPRE_PARASAILS"],
-            ["hypre_ilu", "hypre_ilu"],
-            ["hypre_amg", "hypre_amg"],
-            ["hypre_parasails", "hypre_parasails"],
-            ["hypre_none", "hypre_none"]
-        ],
-        "Grid:GridSolvers:HYPRE:gr_hypreSolverType": [
-            ["HYPRE_PCG", "HYPRE_PCG"],
-            ["HYPRE_AMG", "HYPRE_AMG"],
-            ["HYPRE_GMRES", "HYPRE_GMRES"],
-            ["HYPRE_BICGSTAB", "HYPRE_BICGSTAB"],
-            ["HYPRE_SPLIT", "HYPRE_SPLIT"],
-            ["hypre_pcg", "hypre_pcg"],
-            ["hypre_amg", "hypre_amg"],
-            ["hypre_gmres", "hypre_gmres"],
-            ["hypre_bicgstab", "hypre_bicgstab"],
-            ["hypre_split", "hypre_split"]
         ],
         "Grid:bndPriorityOne": [
             ["1", "1"],
@@ -291,56 +346,77 @@
             ["4", "4"],
             ["5", "5"]
         ],
-        "Multispecies:eos_fillEosType": [
-            ["-none-", "-none-"],
-            ["eos_gam", "eos_gam"],
-            ["eos_tab", "eos_tab"]
+        "physics:materialProperties:Opacity:Multispecies:op_fillAbsorb": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
         ],
-        "Multispecies:eos_fillSubType": [
-            ["-none-", "-none-"],
+        "physics:materialProperties:Opacity:Multispecies:op_fillEmiss": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
+        ],
+        "physics:materialProperties:Opacity:Multispecies:op_fillFileType": [
             ["ionmix", "ionmix"],
             ["ionmix4", "ionmix4"],
-            ["ionmix6", "ionmix6"],
-            ["propaceos", "propaceos"],
-            ["opacplot", "opacplot"]
+            ["NOT SPECIFIED", "NOT SPECIFIED"]
         ],
-        "Multispecies:eos_wallEosType": [
-            ["-none-", "-none-"],
-            ["eos_gam", "eos_gam"],
-            ["eos_tab", "eos_tab"]
+        "physics:materialProperties:Opacity:Multispecies:op_fillTrans": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
         ],
-        "Multispecies:eos_wallSubType": [
-            ["-none-", "-none-"],
+        "physics:materialProperties:Opacity:Multispecies:op_wallAbsorb": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
+        ],
+        "physics:materialProperties:Opacity:Multispecies:op_wallEmiss": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
+        ],
+        "physics:materialProperties:Opacity:Multispecies:op_wallFileType": [
             ["ionmix", "ionmix"],
             ["ionmix4", "ionmix4"],
-            ["ionmix6", "ionmix6"],
-            ["propaceos", "propaceos"],
-            ["opacplot", "opacplot"]
+            ["NOT SPECIFIED", "NOT SPECIFIED"]
         ],
-        "Simulation:CapExample:sim_eosFill": [
-            ["eos_tab", "eos_tab"],
-            ["eos_gam", "eos_gam"]
+        "physics:materialProperties:Opacity:Multispecies:op_wallTrans": [
+            ["op_undefined", "op_undefined"],
+            ["op_constant", "op_constant"],
+            ["op_constcm2g", "op_constcm2g"],
+            ["op_tabpa", "op_tabpa"],
+            ["op_tabpe", "op_tabpe"],
+            ["op_tabro", "op_tabro"]
         ],
-        "Simulation:CapExample:sim_eosWall": [
-            ["eos_tab", "eos_tab"],
-            ["eos_gam", "eos_gam"]
+        "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder": [
+            ["1", "1"],
+            ["2", "2"]
         ],
-        "Simulation:CapExample:sim_initGeom": [
-            ["slab", "slab"],
-            ["sphere", "sphere"]
-        ],
-        "physics:Diffuse:diff_eleFlMode": [
-            ["fl_none", "fl_none"],
-            ["fl_harmonic", "fl_harmonic"],
-            ["fl_minmax", "fl_minmax"],
-            ["fl_larsen", "fl_larsen"],
-            ["fl_levermorepomraning1981", "fl_levermorepomraning1981"]
-        ],
-        "physics:Diffuse:diff_ionFlMode": [
-            ["fl_none", "fl_none"],
-            ["fl_harmonic", "fl_harmonic"],
-            ["fl_minmax", "fl_minmax"],
-            ["fl_larsen", "fl_larsen"]
+        "physics:sourceTerms:EnergyDeposition:Laser:ed_gridType_1": [
+            ["rectangular2D", "rectangular2D"],
+            ["square2D", "square2D"],
+            ["delta2D", "delta2D"],
+            ["radial2D", "radial2D"],
+            ["statistical2D", "statistical2D"],
+            ["regular1D", "regular1D"],
+            ["statistical1D", "statistical1D"],
+            [" ", " "]
         ],
         "physics:Hydro:unsplit:hy_3Torder": [
             ["-1", "-1"],
@@ -427,93 +503,22 @@
             ["2", "2"],
             ["3", "3"],
             ["4", "4"]
-        ],
-        "physics:RadTrans:MGD:rt_mgdBoundEntry": [
-            ["grbd_manual", "grbd_manual"]
-        ],
-        "physics:RadTrans:MGD:rt_mgdFlMode": [
-            ["fl_none", "fl_none"],
-            ["fl_harmonic", "fl_harmonic"],
-            ["fl_minmax", "fl_minmax"],
-            ["fl_larsen", "fl_larsen"],
-            ["fl_levermorepomraning1981", "fl_levermorepomraning1981"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_fillAbsorb": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_fillEmiss": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_fillFileType": [
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["NOT SPECIFIED", "NOT SPECIFIED"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_fillTrans": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_wallAbsorb": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_wallEmiss": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_wallFileType": [
-            ["ionmix", "ionmix"],
-            ["ionmix4", "ionmix4"],
-            ["NOT SPECIFIED", "NOT SPECIFIED"]
-        ],
-        "physics:materialProperties:Opacity:Multispecies:op_wallTrans": [
-            ["op_undefined", "op_undefined"],
-            ["op_constant", "op_constant"],
-            ["op_constcm2g", "op_constcm2g"],
-            ["op_tabpa", "op_tabpa"],
-            ["op_tabpe", "op_tabpe"],
-            ["op_tabro", "op_tabro"]
-        ],
-        "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder": [
-            ["1", "1"],
-            ["2", "2"]
         ]
     },
     "model": {
-        "SimulationSettings": {
+        "simulation": {
+            "flashType": ["Simulation Type", "flashType", "RTFlame"]
         },
         "gridEvolutionAnimation": {
-            "y1": ["Y1 Value", "GridEvolutionColumn", "mass"],
-            "y2": ["Y2 Value", "GridEvolutionOptionalColumn", "x-momentum"],
-            "y3": ["Y3 Value", "GridEvolutionOptionalColumn", "y-momentum"],
+            "y1": ["Y1 Value", "GridEvolutionColumn", "x-momentum"],
+            "y2": ["Y2 Value", "GridEvolutionOptionalColumn", "y-momentum"],
+            "y3": ["Y3 Value", "GridEvolutionOptionalColumn", "E_kinetic"],
             "notes": ["Notes", "Text", ""]
         },
         "varAnimation": {
-            "var": ["Variable Name", "VariableName", "depo"],
+            "var": ["Variable Name", "VariableName", "dens"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "notes": ["Notes", "Text", ""]
         },
         "Driver": {
@@ -580,38 +585,6 @@
             "zmax": ["Z Maximum [cm]", "Float", 1.0, "physical domain lower bound in x dir"],
             "zmin": ["Z Minimum [cm]", "Float", 0.0, "physical domain lower bound in z dir"],
             "zr_boundary_type": ["Z Upper Boundary Type", "GridBoundaryType", "periodic", "upper boundary condition in z dir"]
-        },
-        "Grid:GridParticles": {
-            "gr_ptNumToReduce": ["gr_ptNumToReduce", "Integer", 10, "integer  if particles are to be removed at runtime, how many"],
-            "gr_ptRemove": ["gr_ptRemove", "Boolean", "0", "boolean.  This is a switch which determines the action if the number"],
-            "gr_ptRemoveAlgo": ["gr_ptRemoveAlgo", "Integer", 2, "integer  The algorithm used in determining which particles to remove"],
-            "keepLostParticles": ["keepLostParticles", "Boolean", "0"]
-        },
-        "Grid:GridParticles:GridParticlesMove": {
-            "gr_ptMaxPerProcBlockFactor": ["gr_ptMaxPerProcBlockFactor", "Float", 0.7, "When the effective max_particles_per_blk is lowered on a processor\nbecause refinement criteria based on the number of particles PER\nPROCESSOR are used, then the new effective max_particles_per_blk is set\nto (gr_ptMaxPerProcBlockFactor * pt_maxPerProc). In addition, when the\neffective min_particles_per_blk is lowered on a processor because\nrefinement criteria based on the number of particles PER PROCESSOR are\nused, then the new effective min_particles_per_blk is set to (0.5^NDIM *\ngr_ptMaxPerProcBlockFactor * pt_maxPerProc).", 0.0, 1.0],
-            "gr_ptMaxPerProcBlockNoFuzz": ["gr_ptMaxPerProcBlockNoFuzz", "Integer", 3, "A safety margin for estimating the size of basically unpredictable\nchanges of the number of blocks on a processor when remeshing happens.", 0],
-            "gr_ptMaxPerProcLowerThresh": ["gr_ptMaxPerProcLowerThresh", "Float", 0.0625, "A threshold. When the number of particles on a processor gets above\n(ptMaxPerProcLowerThresh * number of blocks on the processor), the\neffective min_particles_per_blk for blocks on this processor may be\nlowered.", 0.0, 1.0],
-            "gr_ptMaxPerProcUpperThresh": ["gr_ptMaxPerProcUpperThresh", "Float", 0.25, "A threshold. When the number of particles on a processor gets above\n(ptMaxPerProcUpperThresh * number of blocks on the processor), the\neffective max_particles_per_blk for blocks on this processor may be\nlowered.", 0.0, 1.0],
-            "gr_ptRefineOnPtMaxPerProc": ["gr_ptRefineOnPtMaxPerProc", "Boolean", "0", "controls whether refinement criteria based on the number of particles\nPER PROCESSOR are used. These work by strengthening refinement criteria\nrequested through the max_particles_per_blk and min_particles_per_blk\nRPs.  Requires RP refine_on_particle_count to be TRUE."],
-            "gr_ptSieveCheckFreq": ["gr_ptSieveCheckFreq", "Integer", 1, "integer the frequency for checking the convergence of the"]
-        },
-        "Grid:GridSolvers:HYPRE": {
-            "gr_hypreAbsTol": ["gr_hypreAbsTol", "Float", 0.0, "If > 0.0, directly sets a_tol (absolute tolerance) for the HYPRE\niterative solver. Convergence criteria:  <C*r,r>  <= max( a_tol^2,\nr_tol^2 * <C*b,b> ). Note: default for a_tol is 0.0, so relative\nresidual criteria is used unless user specifies a_tol, or sets r_tol =\n0.0, which means absolute tol only is checked. See also\ngr_hypreSolverAutoAbsTolFact, for another way of setting a_tol.\nCurrently only used when gr_hypreSolverType is \"HYPRE_PCG\"."],
-            "gr_hypreAnisoDiffusion": ["gr_hypreAnisoDiffusion", "Boolean", "0", "If TRUE, we use HYPRE to advance the solution of an anisotropic\ndiffusion problem.  This mode is meant to be used for anisotropic\nthermal conduction in the presence of magnetic fields, hence it is\nprobably only useful for MHD setups.  If FALSE, only isotropic diffusion\nproblems are solved with HYPRE (available for both hydro and MHD).\nANISOTRTOPIC DIFFUSION IS NOT YET PROPERLY IMPLEMENTED, AND NOT\nIMPLEMENTED AT ALL FOR AMR."],
-            "gr_hypreCfTol": ["gr_hypreCfTol", "Float", 0.0, "If > 0.0, enable in the iterative HYPRE solver an pptional test to see\nif adequate progress is being made. The average convergence factor is\nrecorded and compared against the tolerance 'cf_tol'. The weighting\nfactor is intended to pay more attention to the test when an accurate\nestimate for average convergence factor is available. Currently only\nused when gr_hypreSolverType is \"HYPRE_PCG\". Example suggested values:\nsomething like 0.5, 0.8, 0.9, 0.95, 0.99."],
-            "gr_hypreFloor": ["gr_hypreFloor", "Float", 1e-12, "floor value for using HYPRE to advance diffusion."],
-            "gr_hypreInfoLevel": ["gr_hypreInfoLevel", "Integer", 1, ": Flag to output solver specific information such as Relative Residue,\nnum-iterations."],
-            "gr_hypreMaxIter": ["gr_hypreMaxIter", "Integer", 500, "Max iterations of linear solver."],
-            "gr_hyprePCType": ["gr_hyprePCType", "Grid:GridSolvers:HYPRE:gr_hyprePCType", "HYPRE_AMG"],
-            "gr_hyprePrintSolveInfo": ["gr_hyprePrintSolveInfo", "Boolean", "0", ": Flag to output solver specific information such as Relative Residue,\nnum-iterations."],
-            "gr_hypreRecomputeResidual": ["gr_hypreRecomputeResidual", "Boolean", "0", "If TRUE, don't trust the convergence test until we've recomputed the\nresidual from scratch.  This is expensive in the usual case where an the\nnorm is the energy norm. This calculation is coded on the assumption\nthat the accuracy of the residual r is only a concern for problems where\nCG takes many iterations. Currently only used when gr_hypreSolverType is\n\"HYPRE_PCG\"."],
-            "gr_hypreRecomputeResidualP": ["gr_hypreRecomputeResidualP", "Integer", -1, "If > 0, recompute the residual every gr_hypreRecomputeResidualP\niterations. Currently only used when gr_hypreSolverType is \"HYPRE_PCG\"."],
-            "gr_hypreRelChange": ["gr_hypreRelChange", "Boolean", "0", "At user request, don't treat an approximation of the solution x in the\nHYPRE iterative solver  as converged unless x didn't change much in the\nlast iteration. Currently only used when gr_hypreSolverType is\n\"HYPRE_PCG\"."],
-            "gr_hypreRelTol": ["gr_hypreRelTol", "Float", 1e-08, "Relative tolerence r_tol of HYPRE linear solver."],
-            "gr_hypreSolverAutoAbsTolFact": ["gr_hypreSolverAutoAbsTolFact", "Float", 0.0, "If not 0.0, automatically set a_tol (absolute tolerance) for the HYPRE\niterative solver. If also gr_hypreAbsTol > 0, then the maximum of\ngr_hypreAbsTol and the automatically determined value is taken. See\ndescription of gr_hypreAbsTol for the use if a_tool in the HYPRE solver.\nIf gr_hypreSolverAutoAbsTolFact > 0, then set f =\ngr_hypreSolverAutoAbsTolFact. If gr_hypreSolverAutoAbsTolFact < 0, then\nset f = |gr_hypreSolverAutoAbsTolFact|*gr_hypreRelTol. In either case,\nthe automatically determined value for a_tol is\nf*sqrt(<Cest*bfloor,bfloor>). Here <Cest*bfloor,bfloor> is a rough\nestimate of the smallest possible value of the inverse of the diagonal\npart of the matrix C representing the preconditioner. In that estimate,\nbfloor is a vector that represents a worst-case tolerable error in b\n(the RHS of the equation to be solved, A*x=b). Currently, bfloor is set\nto a vector whose every element is set to gr_hypreFloor. If\ngr_hypreAbsTol > 0 in addition to gr_hypreSolverAutoAbsTolFact .ne. 0.0,\nthen the maximum of gr_hypreAbsTol and the automatically determined\nvalue is taken. Currently only used when gr_hypreSolverType is\n\"HYPRE_PCG\"."],
-            "gr_hypreSolverType": ["gr_hypreSolverType", "Grid:GridSolvers:HYPRE:gr_hypreSolverType", "HYPRE_PCG", ": Type of HYPRE solver to be used."],
-            "gr_hypreUse2Norm": ["gr_hypreUse2Norm", "Boolean", "0", "whether to use L2 norm for exit condition in iterative solver (instead\nof L1 norm). Currently only used when gr_hypreSolverType is \"HYPRE_PCG\"."],
-            "gr_hypreUseFloor": ["gr_hypreUseFloor", "Boolean", "1", "whether to apply gr_hypreFloor to floor results from HYPRE. Should\nprobably be TRUE when using HYPRE to advance diffusion, FALSE otherwise.\nHowever, flooring will always be turned off when using the HYPRE\nimplementation of Grid_solvePoisson, independent of the value of the\ngr_hypreUseFloor runtime parameter."]
         },
         "Grid:paramesh": {
             "convertToConsvdInMeshInterp": ["convertToConsvdInMeshInterp", "Boolean", "1", "indicates if appropriate variables are converted to conserved form\nduring propagation within the interpolation routines invoked by\nParamesh. This applies to interpolation (both \"prolongation\" and\n\"restriction\") in the course of refinement, derefinement, or guardcell\nfilling. This is the newer way of ensuring that solution variables are\ninterpolated in the correct form. It avoids unnecessary conversions back\nand force and should replace the old mechanism enabled by runtime\nparameter \"convertToConsvdForMeshCalls\". However, it is only available\nwith PARAMESH 3 or later."],
@@ -700,8 +673,8 @@
         },
         "Grid:paramesh:paramesh4": {
             "enableMaskedGCFill": ["enableMaskedGCFill", "Boolean", "0", "When enableMaskedGCFill is FALSE, Grid_fillGuardCells is forced to\nalways ignore optional mask arguments when present in calls. This is the\ndefault behavior. Set enableMaskedGCFill TRUE to enable masked guard\ncell filling."],
-            "gr_sanitizeDataMode": ["gr_sanitizeDataMode", "Grid:paramesh:paramesh4:gr_sanitizeDataMode", "1", "What to do when gr_sanitizeDataAfterInterp is called to check for\nacceptable values in the dens, ener, and eint cell-centered variables\nafter a Grid operation may have resulted in grid interpolation. 0: Do\nnothing. 1: Check (if variable is not masked out) and report (see\nsanitizeVerbosity). 2: Check (ignoring variable mask) and report (see\nsanitizeVerbosity). 3: Check (if variable is not masked out) and fix\n(apply floor value). 4: Check (if variable is not masked out) and abort\nif cell is found below floor value."],
-            "gr_sanitizeVerbosity": ["gr_sanitizeVerbosity", "Grid:paramesh:paramesh4:gr_sanitizeVerbosity", "5", "How to write information about unacceptable values in the dens, ener,\nand eint cell-centered variables if gr_sanitizeDataAfterInterp finds\nvalue that are below the acceptable floor. This reporting is in addition\nto other actions selected with gr_sanitizeDataMode=3 or 4. 0: Be quiet.\n1: Only write a log file message per block if unacceptable value found\non MASTER_PE. 4: As 1, and each proc writes a line to standard output\nfor each block with bad values. 5: As 4, and each proc writes lines\nshowing the values in all cells of the block (in 1D/2D) 5: or a 2D slice\n(in 3D)."]
+            "gr_sanitizeDataMode": ["gr_sanitizeDataMode", "Grid:paramesh:paramesh4:gr_sanitizeDataMode", 1, "What to do when gr_sanitizeDataAfterInterp is called to check for\nacceptable values in the dens, ener, and eint cell-centered variables\nafter a Grid operation may have resulted in grid interpolation. 0: Do\nnothing. 1: Check (if variable is not masked out) and report (see\nsanitizeVerbosity). 2: Check (ignoring variable mask) and report (see\nsanitizeVerbosity). 3: Check (if variable is not masked out) and fix\n(apply floor value). 4: Check (if variable is not masked out) and abort\nif cell is found below floor value."],
+            "gr_sanitizeVerbosity": ["gr_sanitizeVerbosity", "Grid:paramesh:paramesh4:gr_sanitizeVerbosity", 5, "How to write information about unacceptable values in the dens, ener,\nand eint cell-centered variables if gr_sanitizeDataAfterInterp finds\nvalue that are below the acceptable floor. This reporting is in addition\nto other actions selected with gr_sanitizeDataMode=3 or 4. 0: Be quiet.\n1: Only write a log file message per block if unacceptable value found\non MASTER_PE. 4: As 1, and each proc writes a line to standard output\nfor each block with bad values. 5: As 4, and each proc writes lines\nshowing the values in all cells of the block (in 1D/2D) or a 2D slice\n(in 3D)."]
         },
         "Grid:paramesh:paramesh4:Paramesh4dev": {
             "gr_pmrpAdvanceAllLevels": ["gr_pmrpAdvanceAllLevels", "Boolean", "0", "sets value for PARAMESH runtime parameter advance_all_levels"],
@@ -843,11 +816,6 @@
             "wall_clock_checkpoint": ["wall_clock_checkpoint", "Float", 43200.0, "Checkpoint after XX seconds (wallclock time) This is useful to ensure\nthat the job outputs a restart file before a queue window closes."],
             "wr_integrals_freq": ["wr_integrals_freq", "Integer", 1, "Number of timesteps between writing to flash.dat"]
         },
-        "IO:hdf5:parallel:PM_argonne": {
-            "packMeshChkReadHDF5": ["packMeshChkReadHDF5", "Boolean", "0"],
-            "packMeshChkWriteHDF5": ["packMeshChkWriteHDF5", "Boolean", "0"],
-            "packMeshPlotWriteHDF5": ["packMeshPlotWriteHDF5", "Boolean", "1", "If true, this specifies that we pack the"]
-        },
         "Multispecies": {
             "eos_fillEosType": ["Fill EOS Type", "Multispecies:eos_fillEosType", "-none-"],
             "eos_fillGroupName": ["eos_fillGroupName", "String", "-none-"],
@@ -912,24 +880,81 @@
             "op_fillLowTemp": ["op_fillLowTemp", "Float", 0.0],
             "op_wallLowTemp": ["op_wallLowTemp", "Float", 0.0]
         },
-        "Particles": {
-            "useParticles": ["useParticles", "Boolean", "0", "Whether to advance particles [TRUE] or not [FALSE]"]
+        "Simulation:magnetoHD:CapLaser": {
+            "sim_condWall": ["sim_condWall", "Float", 195000.0, "Wall conductivity at the gas/wall interface"],
+            "sim_eosFill": ["Fill EOS Type", "Simulation:magnetoHD:CapLaser:sim_eosFill", "eos_gam"],
+            "sim_eosWall": ["Wall EOS Type", "Simulation:magnetoHD:CapLaser:sim_eosWall", "eos_tab"],
+            "sim_peakField": ["sim_peakField", "Float", 2400.0, "peak field in gauss at capillary wall"],
+            "sim_period": ["sim_period", "Float", 3e-07, "circuit period in seconds"],
+            "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07],
+            "sim_rhoWall": ["Wall Initial Density", "Float", 2.7],
+            "sim_teleFill": ["Fill Electron Temp.", "Float", 290.11375],
+            "sim_teleWall": ["Wall Electron Temp.", "Float", 290.11375],
+            "sim_tionFill": ["Fill Ion Temp.", "Float", 290.11375],
+            "sim_tionWall": ["Wall Ion Temp.", "Float", 290.11375],
+            "sim_tradFill": ["Fill Radiation Temp.", "Float", 290.11375],
+            "sim_tradWall": ["Wall Radiation Temp.", "Float", 290.11375],
+            "sim_zminWall": ["Wall Minimum Zbar", "Float", 0.0]
         },
-        "PhysicalConstants": {
-            "pc_unitsBase": ["pc_unitsBase", "String", "CGS", "Base Unit system for Physical Constants -- can be \"CGS\" or \"MKS\""]
+        "physics:materialProperties:Opacity": {
+            "useOpacity": ["Use Opacity", "Boolean", "1", "flags whether the Opacity unit is being used at all"]
         },
-        "Simulation:CapExample": {
-            "sim_eosFill": ["Fill EOS Type", "Simulation:CapExample:sim_eosFill", "eos_gam", "fill EOS type"],
-            "sim_eosWall": ["Wall EOS Type", "Simulation:CapExample:sim_eosWall", "eos_tab", "fill EOS type"],
-            "sim_rhoFill": ["Fill Initial Density", "Float", 2.655e-07, "Initial fill density"],
-            "sim_rhoWall": ["Wall Initial Density", "Float", 2.7, "Initial wall density"],
-            "sim_teleFill": ["Fill Electron Temp.", "Float", 290.11375, "Initial fill electron temperature"],
-            "sim_teleWall": ["Wall Electron Temp.", "Float", 290.11375, "Initial wall electron temperature"],
-            "sim_tionFill": ["Fill Ion Temp.", "Float", 290.11375, "Initial fill ion temperature"],
-            "sim_tionWall": ["Wall Ion Temp.", "Float", 290.11375, "Initial wall ion temperature"],
-            "sim_tradFill": ["Fill Radiation Temp.", "Float", 290.11375, "Initial fill radiation temperature"],
-            "sim_tradWall": ["Wall Radiation Temp.", "Float", 290.11375, "Initial wall radiation temperature"],
-            "sim_zminWall": ["Wall Minimum Zbar", "Float", 0.0, "wall minimum zbar allowed"]
+        "physics:materialProperties:Opacity:Multispecies": {
+            "op_fillAbsorb": ["Fill Absorb", "physics:materialProperties:Opacity:Multispecies:op_fillAbsorb", "op_undefined"],
+            "op_fillAbsorbConstant": ["op_fillAbsorbConstant", "Float", -1.0],
+            "op_fillEmiss": ["Fill Emiss", "physics:materialProperties:Opacity:Multispecies:op_fillEmiss", "op_undefined"],
+            "op_fillEmissConstant": ["op_fillEmissConstant", "Float", -1.0],
+            "op_fillFileName": ["Fill Filename", "String", "NOT SPECIFIED"],
+            "op_fillFileType": ["Fill File Type", "physics:materialProperties:Opacity:Multispecies:op_fillFileType", "NOT SPECIFIED"],
+            "op_fillTrans": ["Fill Trans", "physics:materialProperties:Opacity:Multispecies:op_fillTrans", "op_undefined"],
+            "op_fillTransConstant": ["op_fillTransConstant", "Float", -1.0],
+            "op_wallAbsorb": ["Wall Absorb", "physics:materialProperties:Opacity:Multispecies:op_wallAbsorb", "op_undefined"],
+            "op_wallAbsorbConstant": ["op_wallAbsorbConstant", "Float", -1.0],
+            "op_wallEmiss": ["Wall Emiss", "physics:materialProperties:Opacity:Multispecies:op_wallEmiss", "op_undefined"],
+            "op_wallEmissConstant": ["op_wallEmissConstant", "Float", -1.0],
+            "op_wallFileName": ["Wall Filename", "String", "NOT SPECIFIED"],
+            "op_wallFileType": ["Wall File Type", "physics:materialProperties:Opacity:Multispecies:op_wallFileType", "NOT SPECIFIED"],
+            "op_wallTrans": ["Wall Trans", "physics:materialProperties:Opacity:Multispecies:op_wallTrans", "op_undefined"],
+            "op_wallTransConstant": ["op_wallTransConstant", "Float", -1.0],
+            "opacity_ignoreLowTemp": ["opacity_ignoreLowTemp", "Boolean", "1", "control parameter indicating if the low temperature capability should be\nignored"],
+            "opacity_writeOpacityInfo": ["opacity_writeOpacityInfo", "Boolean", "0", "control parameter indicating if detailed info of the opacity unit should\nbe written out"]
+        },
+        "physics:Diffuse": {
+            "diff_eleFlCoef": ["Flux Limiter Coefficient", "Float", 1.0, "Electron conduction flux limiter coefficient"],
+            "diff_eleFlMode": ["diff_eleFlMode", "physics:Diffuse:diff_eleFlMode", "fl_none", "Electron conduction flux limiter mode"],
+            "diff_eleXlBoundaryType": ["X Left Boundary", "DiffuseBoundaryType", "outflow", "Electron conduction bcTypes."],
+            "diff_eleXrBoundaryType": ["X Right Boundary", "DiffuseBoundaryType", "outflow"],
+            "diff_eleYlBoundaryType": ["Y Left Boundary", "DiffuseBoundaryType", "outflow"],
+            "diff_eleYrBoundaryType": ["Y Right Boundary", "DiffuseBoundaryType", "outflow"],
+            "diff_eleZlBoundaryType": ["Z Left Boundary", "DiffuseBoundaryType", "outflow"],
+            "diff_eleZrBoundaryType": ["Z Right Boundary", "DiffuseBoundaryType", "outflow"],
+            "diff_ionFlCoef": ["diff_ionFlCoef", "Float", 1.0, "Ion conduction flux limiter coefficient"],
+            "diff_ionFlMode": ["diff_ionFlMode", "physics:Diffuse:diff_ionFlMode", "fl_none", "Ion conduction flux limiter mode"],
+            "diff_ionXlBoundaryType": ["diff_ionXlBoundaryType", "DiffuseBoundaryType", "outflow", "Ion conduction bcTypes."],
+            "diff_ionXrBoundaryType": ["diff_ionXrBoundaryType", "DiffuseBoundaryType", "outflow"],
+            "diff_ionYlBoundaryType": ["diff_ionYlBoundaryType", "DiffuseBoundaryType", "outflow"],
+            "diff_ionYrBoundaryType": ["diff_ionYrBoundaryType", "DiffuseBoundaryType", "outflow"],
+            "diff_ionZlBoundaryType": ["diff_ionZlBoundaryType", "DiffuseBoundaryType", "outflow"],
+            "diff_ionZrBoundaryType": ["diff_ionZrBoundaryType", "DiffuseBoundaryType", "outflow"],
+            "diff_scaleFactThermSaTempDiff": ["diff_scaleFactThermSaTempDiff", "Float", 1.0, "Factor applied to the temperature difference (or internal energy\ndifference) that is computed by the standalone thermal Diffusion\nimplementation."],
+            "diff_scaleFactThermSaTime": ["diff_scaleFactThermSaTime", "Float", 1.0, "Factor applied to the time step for which the standalone thermal\nDiffusion implementation computes the temperature (or internal energy)\nincrease or decrease."],
+            "diff_useEleCond": ["Use Ele Conduction", "Boolean", "0"],
+            "diff_useIonCond": ["Use Ion Conduction", "Boolean", "0"],
+            "diffusion_cutoff_density": ["diffusion_cutoff_density", "Float", 1e-30, "density below which we no longer diffuse"],
+            "dt_diff_factor": ["Timestep Factor", "Float", 0.8, "factor that scales the timestep returned by Diffuse_computeDt"],
+            "useDiffuse": ["Use Diffusive Effects", "Boolean", "1", "whether any method of the Diffuse unit should contribute to fluxes"],
+            "useDiffuseComputeDtSpecies": ["useDiffuseComputeDtSpecies", "Boolean", "1", "flags whether Diffuse_computeDt considers species mass diffusion"],
+            "useDiffuseComputeDtTherm": ["useDiffuseComputeDtTherm", "Boolean", "1", "flags whether Diffuse_computeDt considers thermal conduction"],
+            "useDiffuseComputeDtVisc": ["useDiffuseComputeDtVisc", "Boolean", "1", "flags whether Diffuse_computeDt considers viscosity"],
+            "useDiffuseComputeDtmagnetic": ["useDiffuseComputeDtmagnetic", "Boolean", "1"],
+            "useDiffuseSpecies": ["useDiffuseSpecies", "Boolean", "1", "whether Diffuse_species [TO BE IMPLEMENTED] should contribute to fluxes"],
+            "useDiffuseTherm": ["useDiffuseTherm", "Boolean", "1", "whether Diffuse_therm should contribute to fluxes"],
+            "useDiffuseVisc": ["useDiffuseVisc", "Boolean", "1", "whether Diffuse_visc should contribute to fluxes"]
+        },
+        "physics:Diffuse:Unsplit": {
+            "diff_ionThetaImplct": ["diff_ionThetaImplct", "Float", 0.5, "", 0.0, 1.0],
+            "diff_thetaImplct": ["Implicitness Factor", "Float", 0.5, "", 0.0, 1.0],
+            "diff_updEint": ["diff_updEint", "Boolean", "0"]
         },
         "Simulation:RTFlame": {
             "dens_unburned": ["Unburned Density [g/cc]", "Float", 100000000.0, "dens_unburned"],
@@ -956,97 +981,206 @@
             "vel_pert_amp": ["vel_pert_amp", "Float", 0.0],
             "vel_pert_wavelength1": ["vel_pert_wavelength1", "Float", 1.0]
         },
-        "diagnostics:ProtonEmission": {
-            "useProtonEmission": ["useProtonEmission", "Constant", "FALSE", "flag indicating whether to use the ProtonEmission unit"]
+        "physics:RadTrans": {
+            "rt_dtFactor": ["Time Step Coefficient", "Float", 0.1, "Coefficient for RadTrans time step", 0.0],
+            "useRadTrans": ["Use Radiative Transfer", "Boolean", "1", "flag to indicate whether radiative transfer is in use"]
         },
-        "diagnostics:ProtonImaging": {
-            "useProtonImaging": ["useProtonImaging", "Constant", "FALSE", "flag indicating whether to use the ProtonImaging unit"]
+        "physics:RadTrans:MGD": {
+            "rt_computeDt": ["rt_computeDt", "Boolean", "0", "When true, attempt to compute a time step associated with MGD"],
+            "rt_groupBarrier": ["rt_groupBarrier", "Boolean", "0", "Option to time group load imbalance"],
+            "rt_mgdBoundEntry": ["rt_mgdBoundEntry", "physics:RadTrans:MGD:rt_mgdBoundEntry", "grbd_manual", "How the group bounds will be input"],
+            "rt_mgdBounds_1": ["Boundary 1", "Float", -1.0, "These parameters store the group boundaries for manual entry"],
+            "rt_mgdBounds_10": ["rt_mgdBounds_10", "Float", -1.0],
+            "rt_mgdBounds_100": ["rt_mgdBounds_100", "Float", -1.0],
+            "rt_mgdBounds_101": ["rt_mgdBounds_101", "Float", -1.0],
+            "rt_mgdBounds_11": ["rt_mgdBounds_11", "Float", -1.0],
+            "rt_mgdBounds_12": ["rt_mgdBounds_12", "Float", -1.0],
+            "rt_mgdBounds_13": ["rt_mgdBounds_13", "Float", -1.0],
+            "rt_mgdBounds_14": ["rt_mgdBounds_14", "Float", -1.0],
+            "rt_mgdBounds_15": ["rt_mgdBounds_15", "Float", -1.0],
+            "rt_mgdBounds_16": ["rt_mgdBounds_16", "Float", -1.0],
+            "rt_mgdBounds_17": ["rt_mgdBounds_17", "Float", -1.0],
+            "rt_mgdBounds_18": ["rt_mgdBounds_18", "Float", -1.0],
+            "rt_mgdBounds_19": ["rt_mgdBounds_19", "Float", -1.0],
+            "rt_mgdBounds_2": ["Boundary 2", "Float", -1.0],
+            "rt_mgdBounds_20": ["rt_mgdBounds_20", "Float", -1.0],
+            "rt_mgdBounds_21": ["rt_mgdBounds_21", "Float", -1.0],
+            "rt_mgdBounds_22": ["rt_mgdBounds_22", "Float", -1.0],
+            "rt_mgdBounds_23": ["rt_mgdBounds_23", "Float", -1.0],
+            "rt_mgdBounds_24": ["rt_mgdBounds_24", "Float", -1.0],
+            "rt_mgdBounds_25": ["rt_mgdBounds_25", "Float", -1.0],
+            "rt_mgdBounds_26": ["rt_mgdBounds_26", "Float", -1.0],
+            "rt_mgdBounds_27": ["rt_mgdBounds_27", "Float", -1.0],
+            "rt_mgdBounds_28": ["rt_mgdBounds_28", "Float", -1.0],
+            "rt_mgdBounds_29": ["rt_mgdBounds_29", "Float", -1.0],
+            "rt_mgdBounds_3": ["Boundary 3", "Float", -1.0],
+            "rt_mgdBounds_30": ["rt_mgdBounds_30", "Float", -1.0],
+            "rt_mgdBounds_31": ["rt_mgdBounds_31", "Float", -1.0],
+            "rt_mgdBounds_32": ["rt_mgdBounds_32", "Float", -1.0],
+            "rt_mgdBounds_33": ["rt_mgdBounds_33", "Float", -1.0],
+            "rt_mgdBounds_34": ["rt_mgdBounds_34", "Float", -1.0],
+            "rt_mgdBounds_35": ["rt_mgdBounds_35", "Float", -1.0],
+            "rt_mgdBounds_36": ["rt_mgdBounds_36", "Float", -1.0],
+            "rt_mgdBounds_37": ["rt_mgdBounds_37", "Float", -1.0],
+            "rt_mgdBounds_38": ["rt_mgdBounds_38", "Float", -1.0],
+            "rt_mgdBounds_39": ["rt_mgdBounds_39", "Float", -1.0],
+            "rt_mgdBounds_4": ["Boundary 4", "Float", -1.0],
+            "rt_mgdBounds_40": ["rt_mgdBounds_40", "Float", -1.0],
+            "rt_mgdBounds_41": ["rt_mgdBounds_41", "Float", -1.0],
+            "rt_mgdBounds_42": ["rt_mgdBounds_42", "Float", -1.0],
+            "rt_mgdBounds_43": ["rt_mgdBounds_43", "Float", -1.0],
+            "rt_mgdBounds_44": ["rt_mgdBounds_44", "Float", -1.0],
+            "rt_mgdBounds_45": ["rt_mgdBounds_45", "Float", -1.0],
+            "rt_mgdBounds_46": ["rt_mgdBounds_46", "Float", -1.0],
+            "rt_mgdBounds_47": ["rt_mgdBounds_47", "Float", -1.0],
+            "rt_mgdBounds_48": ["rt_mgdBounds_48", "Float", -1.0],
+            "rt_mgdBounds_49": ["rt_mgdBounds_49", "Float", -1.0],
+            "rt_mgdBounds_5": ["Boundary 5", "Float", -1.0],
+            "rt_mgdBounds_50": ["rt_mgdBounds_50", "Float", -1.0],
+            "rt_mgdBounds_51": ["rt_mgdBounds_51", "Float", -1.0],
+            "rt_mgdBounds_52": ["rt_mgdBounds_52", "Float", -1.0],
+            "rt_mgdBounds_53": ["rt_mgdBounds_53", "Float", -1.0],
+            "rt_mgdBounds_54": ["rt_mgdBounds_54", "Float", -1.0],
+            "rt_mgdBounds_55": ["rt_mgdBounds_55", "Float", -1.0],
+            "rt_mgdBounds_56": ["rt_mgdBounds_56", "Float", -1.0],
+            "rt_mgdBounds_57": ["rt_mgdBounds_57", "Float", -1.0],
+            "rt_mgdBounds_58": ["rt_mgdBounds_58", "Float", -1.0],
+            "rt_mgdBounds_59": ["rt_mgdBounds_59", "Float", -1.0],
+            "rt_mgdBounds_6": ["Boundary 6", "Float", -1.0],
+            "rt_mgdBounds_60": ["rt_mgdBounds_60", "Float", -1.0],
+            "rt_mgdBounds_61": ["rt_mgdBounds_61", "Float", -1.0],
+            "rt_mgdBounds_62": ["rt_mgdBounds_62", "Float", -1.0],
+            "rt_mgdBounds_63": ["rt_mgdBounds_63", "Float", -1.0],
+            "rt_mgdBounds_64": ["rt_mgdBounds_64", "Float", -1.0],
+            "rt_mgdBounds_65": ["rt_mgdBounds_65", "Float", -1.0],
+            "rt_mgdBounds_66": ["rt_mgdBounds_66", "Float", -1.0],
+            "rt_mgdBounds_67": ["rt_mgdBounds_67", "Float", -1.0],
+            "rt_mgdBounds_68": ["rt_mgdBounds_68", "Float", -1.0],
+            "rt_mgdBounds_69": ["rt_mgdBounds_69", "Float", -1.0],
+            "rt_mgdBounds_7": ["Boundary 7", "Float", -1.0],
+            "rt_mgdBounds_70": ["rt_mgdBounds_70", "Float", -1.0],
+            "rt_mgdBounds_71": ["rt_mgdBounds_71", "Float", -1.0],
+            "rt_mgdBounds_72": ["rt_mgdBounds_72", "Float", -1.0],
+            "rt_mgdBounds_73": ["rt_mgdBounds_73", "Float", -1.0],
+            "rt_mgdBounds_74": ["rt_mgdBounds_74", "Float", -1.0],
+            "rt_mgdBounds_75": ["rt_mgdBounds_75", "Float", -1.0],
+            "rt_mgdBounds_76": ["rt_mgdBounds_76", "Float", -1.0],
+            "rt_mgdBounds_77": ["rt_mgdBounds_77", "Float", -1.0],
+            "rt_mgdBounds_78": ["rt_mgdBounds_78", "Float", -1.0],
+            "rt_mgdBounds_79": ["rt_mgdBounds_79", "Float", -1.0],
+            "rt_mgdBounds_8": ["Boundary 8", "Float", -1.0],
+            "rt_mgdBounds_80": ["rt_mgdBounds_80", "Float", -1.0],
+            "rt_mgdBounds_81": ["rt_mgdBounds_81", "Float", -1.0],
+            "rt_mgdBounds_82": ["rt_mgdBounds_82", "Float", -1.0],
+            "rt_mgdBounds_83": ["rt_mgdBounds_83", "Float", -1.0],
+            "rt_mgdBounds_84": ["rt_mgdBounds_84", "Float", -1.0],
+            "rt_mgdBounds_85": ["rt_mgdBounds_85", "Float", -1.0],
+            "rt_mgdBounds_86": ["rt_mgdBounds_86", "Float", -1.0],
+            "rt_mgdBounds_87": ["rt_mgdBounds_87", "Float", -1.0],
+            "rt_mgdBounds_88": ["rt_mgdBounds_88", "Float", -1.0],
+            "rt_mgdBounds_89": ["rt_mgdBounds_89", "Float", -1.0],
+            "rt_mgdBounds_9": ["rt_mgdBounds_9", "Float", -1.0],
+            "rt_mgdBounds_90": ["rt_mgdBounds_90", "Float", -1.0],
+            "rt_mgdBounds_91": ["rt_mgdBounds_91", "Float", -1.0],
+            "rt_mgdBounds_92": ["rt_mgdBounds_92", "Float", -1.0],
+            "rt_mgdBounds_93": ["rt_mgdBounds_93", "Float", -1.0],
+            "rt_mgdBounds_94": ["rt_mgdBounds_94", "Float", -1.0],
+            "rt_mgdBounds_95": ["rt_mgdBounds_95", "Float", -1.0],
+            "rt_mgdBounds_96": ["rt_mgdBounds_96", "Float", -1.0],
+            "rt_mgdBounds_97": ["rt_mgdBounds_97", "Float", -1.0],
+            "rt_mgdBounds_98": ["rt_mgdBounds_98", "Float", -1.0],
+            "rt_mgdBounds_99": ["rt_mgdBounds_99", "Float", -1.0],
+            "rt_mgdFlCoef": ["MGD Flux Limiter Coefficient", "Float", 1.0],
+            "rt_mgdFlMode": ["MGD Glux Limiter Mode", "physics:RadTrans:MGD:rt_mgdFlMode", "fl_none", "MGD flux limiter mode"],
+            "rt_mgdNumGroups": ["Number of Groups", "Integer", 0, "Number of groups in the MGD calculation"],
+            "rt_mgdXlBoundaryTemp": ["rt_mgdXlBoundaryTemp", "Float", -1.0, "Boundary radiation temperature for MGD, in kelvin"],
+            "rt_mgdXlBoundaryType": ["X MGD Left Boundary", "physics:RadTrans:MGD:rt_mgdXlBoundaryType", "reflecting", "MGD bcTypes."],
+            "rt_mgdXrBoundaryTemp": ["rt_mgdXrBoundaryTemp", "Float", -1.0],
+            "rt_mgdXrBoundaryType": ["X MGD Right Boundary", "physics:RadTrans:MGD:rt_mgdXrBoundaryType", "reflecting"],
+            "rt_mgdYlBoundaryTemp": ["rt_mgdYlBoundaryTemp", "Float", -1.0],
+            "rt_mgdYlBoundaryType": ["Y MGD Left Boundary", "physics:RadTrans:MGD:rt_mgdYlBoundaryType", "reflecting"],
+            "rt_mgdYrBoundaryTemp": ["rt_mgdYrBoundaryTemp", "Float", -1.0],
+            "rt_mgdYrBoundaryType": ["Y MGD Right Boundary", "physics:RadTrans:MGD:rt_mgdYrBoundaryType", "reflecting"],
+            "rt_mgdZlBoundaryTemp": ["rt_mgdZlBoundaryTemp", "Float", -1.0],
+            "rt_mgdZlBoundaryType": ["Z MGD Left Boundary", "physics:RadTrans:MGD:rt_mgdZlBoundaryType", "reflecting"],
+            "rt_mgdZrBoundaryTemp": ["rt_mgdZrBoundaryTemp", "Float", -1.0],
+            "rt_mgdZrBoundaryType": ["Z MGD Right Boundary", "physics:RadTrans:MGD:rt_mgdZrBoundaryType", "reflecting"],
+            "rt_mgdthetaImplct": ["rt_mgdthetaImplct", "Float", 1.0, "Implicitness factor of the solver.", 0.0, 1.0],
+            "rt_tempChangeRelTol": ["rt_tempChangeRelTol", "Float", 1000.0, "Tolerance for maximum relative temperature change in a cell in a time\nstep. Currently only applied to electron temperature by ExpRelax\nimplementation.", 0.0],
+            "rt_timeGroups": ["rt_timeGroups", "Boolean", "0", "Option to time individual groups (cannot be used with meshCopyCount > 1)"],
+            "rt_useMGD": ["Use Multigroup Radiation Diffusion", "Boolean", "0"]
         },
-        "diagnostics:ThomsonScattering": {
-            "useThomsonScattering": ["useThomsonScattering", "Constant", "FALSE", "flag indicating whether to use the ThomsonScattering unit"]
-        },
-        "monitors:Logfile": {
-            "log_file": ["log_file", "String", "flash.log", "Name of log file to create"],
-            "run_comment": ["run_comment", "String", "FLASH 3 run", "Comment for run"],
-            "run_number": ["run_number", "String", "1", "Identification number for run"]
-        },
-        "monitors:Timers:MPINative": {
-            "eachProcWritesSummary": ["eachProcWritesSummary", "Boolean", "0", "Should each process write its summary to its own file?  If true, each\nprocess will write its summary to a file named timer_summary_<processor\nid>"],
-            "writeStatSummary": ["writeStatSummary", "Boolean", "1", "Should timers write the max/min/avg values for timers?"]
-        },
-        "physics:Cosmology": {
-            "useCosmology": ["useCosmology", "Constant", "FALSE", "whether to use the Cosmology implementation or not"]
-        },
-        "physics:Diffuse": {
-            "diff_eleFlCoef": ["diff_eleFlCoef", "Float", 1.0, "Electron conduction flux limiter coefficient"],
-            "diff_eleFlMode": ["diff_eleFlMode", "physics:Diffuse:diff_eleFlMode", "fl_none", "Electron conduction flux limiter mode"],
-            "diff_eleXlBoundaryType": ["X Lower Electron Boundary Type", "DiffuseBoundaryType", "outflow", "Electron conduction bcTypes."],
-            "diff_eleXrBoundaryType": ["X Upper Electron Boundary Type", "DiffuseBoundaryType", "outflow"],
-            "diff_eleYlBoundaryType": ["Y Lower Electron Boundary Type", "DiffuseBoundaryType", "outflow"],
-            "diff_eleYrBoundaryType": ["Y Upper Electron Boundary Type", "DiffuseBoundaryType", "outflow"],
-            "diff_eleZlBoundaryType": ["Z Lower Electron Boundary Type", "DiffuseBoundaryType", "outflow"],
-            "diff_eleZrBoundaryType": ["Z Upper Electron Boundary Type", "DiffuseBoundaryType", "outflow"],
-            "diff_ionFlCoef": ["diff_ionFlCoef", "Float", 1.0, "Ion conduction flux limiter coefficient"],
-            "diff_ionFlMode": ["diff_ionFlMode", "physics:Diffuse:diff_ionFlMode", "fl_none", "Ion conduction flux limiter mode"],
-            "diff_ionXlBoundaryType": ["diff_ionXlBoundaryType", "DiffuseBoundaryType", "outflow", "Ion conduction bcTypes."],
-            "diff_ionXrBoundaryType": ["diff_ionXrBoundaryType", "DiffuseBoundaryType", "outflow"],
-            "diff_ionYlBoundaryType": ["diff_ionYlBoundaryType", "DiffuseBoundaryType", "outflow"],
-            "diff_ionYrBoundaryType": ["diff_ionYrBoundaryType", "DiffuseBoundaryType", "outflow"],
-            "diff_ionZlBoundaryType": ["diff_ionZlBoundaryType", "DiffuseBoundaryType", "outflow"],
-            "diff_ionZrBoundaryType": ["diff_ionZrBoundaryType", "DiffuseBoundaryType", "outflow"],
-            "diff_scaleFactThermSaTempDiff": ["diff_scaleFactThermSaTempDiff", "Float", 1.0, "Factor applied to the temperature difference (or internalz energy\ndifference) that is computed by the standalone thermal Diffusion\nimplementation."],
-            "diff_scaleFactThermSaTime": ["diff_scaleFactThermSaTime", "Float", 1.0, "Factor applied to the time step for which the standalone thermal\nDiffusion implementation computes the temperature (or internal energy)\nincrease or decrease."],
-            "diff_useEleCond": ["diff_useEleCond", "Boolean", "0"],
-            "diff_useIonCond": ["diff_useIonCond", "Boolean", "0"],
-            "diffusion_cutoff_density": ["diffusion_cutoff_density", "Float", 1e-30, "density below which we no longer diffuse"],
-            "dt_diff_factor": ["dt_diff_factor", "Float", 0.8, "factor that scales the timestep returned by Diffuse_computeDt"],
-            "useDiffuse": ["useDiffuse", "Boolean", "1", "whether any method of the Diffuse unit should contribute to fluxes"],
-            "useDiffuseComputeDtSpecies": ["useDiffuseComputeDtSpecies", "Boolean", "1", "flags whether Diffuse_computeDt considers species mass diffusion"],
-            "useDiffuseComputeDtTherm": ["useDiffuseComputeDtTherm", "Boolean", "1", "flags whether Diffuse_computeDt considers thermal conduction"],
-            "useDiffuseComputeDtVisc": ["useDiffuseComputeDtVisc", "Boolean", "1", "flags whether Diffuse_computeDt considers viscosity"],
-            "useDiffuseComputeDtmagnetic": ["useDiffuseComputeDtmagnetic", "Boolean", "1"],
-            "useDiffuseSpecies": ["useDiffuseSpecies", "Boolean", "1", "whether Diffuse_species [TO BE IMPLEMENTED] should contribute to fluxes"],
-            "useDiffuseTherm": ["useDiffuseTherm", "Boolean", "1", "whether Diffuse_therm should contribute to fluxes"],
-            "useDiffuseVisc": ["useDiffuseVisc", "Boolean", "1", "whether Diffuse_visc should contribute to fluxes"]
-        },
-        "physics:Diffuse:Unsplit": {
-            "diff_ionThetaImplct": ["diff_ionThetaImplct", "Float", 0.5, "", 0.0, 1.0],
-            "diff_thetaImplct": ["diff_thetaImplct", "Float", 0.5, "", 0.0, 1.0],
-            "diff_updEint": ["diff_updEint", "Boolean", "0"]
-        },
-        "physics:Eos": {
-            "eintSwitch": ["eintSwitch", "Float", 0.0, "a rarely used switch which ensures that internal energy calculations\nmaintain sufficient precision. Important only if energyTotal is\ndominated by energyKinetic. If (energyInternal <\neintSwitch*energyKinetic) then some routines (Eos/Helmholtz,\nHydro/hy_updateSoln) will NOT calculate energyInternal by subtraction,\nbut rather through direct calculation."],
-            "eos_entrEleScaleChoice": ["eos_entrEleScaleChoice", "Integer", 6, "selects a scale variant for representing electron entropy. See code in\neos_idealGamma for the meaning of the various choices. The choice that\ncorresponds most closely to the Sackur-Tetrode equation in physical\nunits should be 3, closely followed by 2.", 1, 8],
-            "eos_logLevel": ["eos_logLevel", "Integer", 700, "Control verbosity of messages from the Eos unit. See Eos.h for relevant\nEOS_LOGLEVEL_* definitions.", 0],
-            "eos_singleSpeciesZ": ["eos_singleSpeciesZ", "Float", 1.0, "Proton number for the gas (available ONLY for Eos with single species)", 0.0],
-            "threadEosWithinBlock": ["threadEosWithinBlock", "Boolean", "0"]
+        "physics:sourceTerms:EnergyDeposition:Laser": {
+            "ed_RungeKuttaMethod": ["ed_RungeKuttaMethod", "String", "CashKarp45", "Specifies the Runge Kutta method to be used for ray tracing."],
+            "ed_cellStepTolerance": ["ed_cellStepTolerance", "Float", 1e-06, "The allowed cell fractional error (unit = cell edge) for a ray path step"],
+            "ed_cellTimeEnergyDeposition": ["ed_cellTimeEnergyDeposition", "Boolean", "0", "If true, calculates cell energy deposition based only on time spent in\ncell"],
+            "ed_cellWallThicknessFactor": ["ed_cellWallThicknessFactor", "Float", 1e-06, "Fraction of the shortest cell edge defining the cell wall thickness"],
+            "ed_computeGradNeleX": ["ed_computeGradNeleX", "Boolean", "1", "Should the x-component of the number of electrons gradient be computed?"],
+            "ed_computeGradNeleY": ["ed_computeGradNeleY", "Boolean", "1", "Should the y-component of the number of electrons gradient be computed?"],
+            "ed_computeGradNeleZ": ["ed_computeGradNeleZ", "Boolean", "1", "Should the z-component of the number of electrons gradient be computed?"],
+            "ed_crossSectionFunctionType_1": ["Cross Section Function Type", "String", " ", "Function type which sets the irradiance pattern for beam 1"],
+            "ed_cubicInterpolationZeroDerv": ["ed_cubicInterpolationZeroDerv", "Boolean", "0", "Set all cubic interpolation vertex derivatives = 0 (default\nmonotonicity)?"],
+            "ed_depoReuseMaxSteps": ["ed_depoReuseMaxSteps", "Integer", -1, "Maximum number of time steps for which a computed energy deposition rate\n(stored in the ed_depoVar variable) can be reused. If 0, the rate can\nstill be reused in the same timestep; this can make a difference when a\nsplit Driver implementation is used which calls EnergyDeposition more\nthan once per time step. Set to -1 to completely disable reuse of depo\nrate.", -1],
+            "ed_depoVarName": ["ed_depoVarName", "String", "depo", "Name of the variable used for storing the computed deposition rate for\nreuse; the default is \"depo\". Note that \"depo\" can refer to either\nDEPO_VAR or DEPO_MSCALAR in the Flash code, depending on whether a\nVARIABLE or a MASS_SCALAR statement is used to declare the variable.\nFurther note that if a VARIABLE statement is used, it can be combined\nwith either TYPE: PER_MASS or TYPE: PER_VOLUME to get difference\nvariants of reuse."],
+            "ed_enforcePositiveNele": ["ed_enforcePositiveNele", "Boolean", "1", "Rescale the number of electrons gradient such that it is always >= 0?"],
+            "ed_enforcePositiveTele": ["ed_enforcePositiveTele", "Boolean", "1", "Rescale the electron temperature gradient such that it is always >= 0?"],
+            "ed_gaussianCenterMajor_1": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 1"],
+            "ed_gaussianCenterMinor_1": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 1"],
+            "ed_gaussianExponent_1": ["Gaussian Exponent", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 1"],
+            "ed_gaussianRadiusMajor_1": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 1"],
+            "ed_gaussianRadiusMinor_1": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 1"],
+            "ed_gradOrder": ["ed_gradOrder", "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder", 2, "Gradient order. 1 = no gradient, 2 = first order differencing"],
+            "ed_gridDeltaSemiAxisMajor_1": ["ed_gridDeltaSemiAxisMajor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 1"],
+            "ed_gridDeltaSemiAxisMinor_1": ["ed_gridDeltaSemiAxisMinor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 1"],
+            "ed_gridType_1": ["Type of Beam Grid", "physics:sourceTerms:EnergyDeposition:Laser:ed_gridType_1", " ", "The type of beam grid 1"],
+            "ed_gridnAngularTics_1": ["ed_gridnAngularTics_1", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 1"],
+            "ed_gridnRadialTics_1": ["ed_gridnRadialTics_1", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 1"],
+            "ed_gridnSemiAxisMajorTics_1": ["ed_gridnSemiAxisMajorTics_1", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 1"],
+            "ed_gridnSemiAxisMinorTics_1": ["ed_gridnSemiAxisMinorTics_1", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 1"],
+            "ed_ignoreBoundaryCondition_1": ["ed_ignoreBoundaryCondition_1", "Boolean", "0", "Option to ignore domain boundary conditions for beam 1"],
+            "ed_initialRaySpeed_1": ["ed_initialRaySpeed_1", "Float", 1.0, "The initial ray speed [in units of c] for beam 1"],
+            "ed_irradVarName": ["ed_irradVarName", "String", "lase", "Name of the variable used for storing the computed laser radiation field\nenergy density; the default is \"lase\". Note that \"lase\" should refer to\nLASE_VAR in the Flash code, and a VARIABLE statement should be used to\ndeclare the variable. Further note that the VARIABLE statement should\ndeclare TYPE: PER_VOLUME."],
+            "ed_laser3Din2D": ["ed_laser3Din2D", "Boolean", "0", "Use the 3D rays in a 2D cylindrical grid ray tracing?"],
+            "ed_laser3Din2DwedgeAngle": ["ed_laser3Din2DwedgeAngle", "Float", 0.0, "Wedge angle (degrees, must be < 180) for laser 3D in 2D simulations"],
+            "ed_lensSemiAxisMajor_1": ["Lens Semi Axis Major", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 1"],
+            "ed_lensX_1": ["Lens X", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 1"],
+            "ed_lensY_1": ["Lens Y", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 1"],
+            "ed_lensZ_1": ["Lens Z", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 1"],
+            "ed_maxRayCount": ["Max Ray Count", "Integer", 100, "Maximum number of rays per processor"],
+            "ed_numberOfBeams": ["Number of Beams", "Integer", -1, "Total number of laser beams"],
+            "ed_numberOfPulses": ["Number of Pulses", "Integer", -1, "Total number of laser pulses"],
+            "ed_numberOfRays_1": ["Number of Rays", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 1"],
+            "ed_numberOfSections_1": ["Number of Sections", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 1"],
+            "ed_powerStepTolerance": ["ed_powerStepTolerance", "Float", 1e-06, "The allowed power fractional error (unit = current power) for a ray path\nstep"],
+            "ed_power_1_1": ["Laser Pulse Section 1", "Float", -1.0, "The power (W) for laser pulse 1 section 1"],
+            "ed_power_1_2": ["Laser Pulse Section 2", "Float", -1.0, "The power (W) for laser pulse 1 section 2"],
+            "ed_power_1_3": ["Laser Pulse Section 3", "Float", -1.0, "The power (W) for laser pulse 1 section 3"],
+            "ed_power_1_4": ["Laser Pulse Section 4", "Float", -1.0, "The power (W) for laser pulse 1 section 4"],
+            "ed_printBeams": ["ed_printBeams", "Boolean", "0", "Print details about each beam?"],
+            "ed_printMain": ["ed_printMain", "Boolean", "0", "Print details about the main laser energy depoition run?"],
+            "ed_printPulses": ["ed_printPulses", "Boolean", "0", "Print details about each pulse?"],
+            "ed_printRays": ["ed_printRays", "Boolean", "0", "Print details about each ray initially generated?"],
+            "ed_pulseNumber_1": ["Pulse Number", "Integer", -9007199254740991, "The pulse number to use for beam 1"],
+            "ed_rayDeterminism": ["ed_rayDeterminism", "Boolean", "0", "If true, the Grid Unit will use the Sieve Algorithm to move the ray\nparticle."],
+            "ed_rayZeroPower": ["ed_rayZeroPower", "Float", 1e-06, "Below this value (erg/s), the ray is considered to have zero power"],
+            "ed_saveOutOfDomainRays": ["ed_saveOutOfDomainRays", "Boolean", "0", "Should the rays exiting the domain be saved (for diagnostics) ?"],
+            "ed_semiAxisMajorTorsionAngle_1": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 1"],
+            "ed_semiAxisMajorTorsionAxis_1": ["Major Semiaxis Torsion Axis", "String", " ", "{x,y,z} axis to use for rotating major semiaxis for beam1"],
+            "ed_targetSemiAxisMajor_1": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 1"],
+            "ed_targetSemiAxisMinor_1": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 1"],
+            "ed_targetX_1": ["Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 1"],
+            "ed_targetY_1": ["ed_targetY_1", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 1"],
+            "ed_targetZ_1": ["ed_targetZ_1", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 1"],
+            "ed_time_1_1": ["Laser Pulse Section 1", "Float", -1.0, "The time (s)  for laser pulse 1 section 1"],
+            "ed_time_1_2": ["Laser Pulse Section 2", "Float", -1.0, "The time (s)  for laser pulse 1 section 2"],
+            "ed_time_1_3": ["Laser Pulse Section 3", "Float", -1.0, "The time (s)  for laser pulse 1 section 3"],
+            "ed_time_1_4": ["Laser Pulse Section 4", "Float", -1.0, "The time (s)  for laser pulse 1 section 4"],
+            "ed_wavelength_1": ["Wavelength", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 1"],
+            "threadRayTrace": ["threadRayTrace", "Boolean", "0", "Use threading when tracing the rays through each block?"],
+            "useEnergyDeposition": ["useEnergyDeposition", "Boolean", "1", "Use Laser energy deposition?"]
         },
         "physics:Eos:Tabulated:Hdf5TableRead": {
             "eos_useLogTables": ["eos_useLogTables", "Boolean", "1"]
-        },
-        "physics:Eos:multiTemp": {
-            "eint1Switch": ["eint1Switch", "Float", -1.0, "OBSOLETE - a switch which tries to ensure that internal energy\ncalculations for component 1 in a multiple-temperature setup maintain\nsufficient precision. Important only if total energy for this component\nis dominated by bulk kinetic energy. A value of -1 means to use the\nvalue of eintSwitch for eint1Switch."],
-            "eint2Switch": ["eint2Switch", "Float", -1.0, "OBSOLETE - a switch which tries to ensure that internal energy\ncalculations for component 2 in a multiple-temperature setup maintain\nsufficient precision. See eint1Switch. A value of -1 means to use the\nvalue of eintSwitch for eint2Switch."],
-            "eint3Switch": ["eint3Switch", "Float", -1.0, "OBSOLETE - a switch which tries to ensure that internal energy\ncalculations for component 3 in a multiple-temperature setup maintain\nsufficient precision. See eint1Switch. A value of -1 means to use the\nvalue of eintSwitch for eint3Switch."],
-            "eos_combinedTempRule": ["eos_combinedTempRule", "Integer", -10, "Valid Values: -10, 0 to 3\ndetermines for multiTemp Eos implementations what a call to Eos will\nreturn in the EOS_TEMP part of eosData, when Eos is called in a mode for\nwhich EOS_TEMP is an output and different component temperatures can be\nreturned. 1 for ion temperature EOS_TEMPION; 2 for electron temperature\nEOS_TEMPELE; 3 for radiation temperature EOS_TEMPRAD; 0 for the\ntemperature that would result in the same specific internal energy as\ngiven if all components where equilibrated at the same temperature,\nwhich may be expensive to compute; -10 for undefined, i.e., we do not\ncare what is returned. Currently only implemented for Multitype Eos."],
-            "eos_smallEele": ["eos_smallEele", "Float", 0.0, "a floor value used for the electron component of internal energy in the\nEos unit"],
-            "eos_smallEion": ["eos_smallEion", "Float", 0.0, "a floor value used for the ion component of internal energy by the Eos\nunit"],
-            "eos_smallErad": ["eos_smallErad", "Float", 0.0, "a floor value used for the radiation component of internal energy in the\nEos unit"]
-        },
-        "physics:Eos:multiTemp:Gamma": {
-            "eos_forceConstantInput": ["eos_forceConstantInput", "Boolean", "0", "Helmholtz routines can allow input EINT or PRES to change on output to\npreserve equilibrium.  This switch forces a constant input of EINT or\nPRES"],
-            "eos_maxNewton": ["eos_maxNewton", "Integer", 50, "maximum number of Newton-Raphson iterations to try."],
-            "eos_singleSpeciesA": ["eos_singleSpeciesA", "Float", 1.00794, "Nucleon number for the gas (for Eos tracking matter as single species)", 0.0],
-            "eos_tolerance": ["eos_tolerance", "Float", 1e-08, "tolerance for the Newton-Raphson iterations"],
-            "gamma": ["gamma", "Float", 1.6666666666666667, "Ratio of specific heats for gas", 0.0],
-            "gammaEle": ["gammaEle", "Float", 1.6666666666666667, "Ratio of specific heats for electron component", 0.0],
-            "gammaIon": ["gammaIon", "Float", 1.6666666666666667, "Ratio of specific heats for ion component", 0.0],
-            "gammaRad": ["gammaRad", "Float", 1.3333333333333333, "Ratio of specific heats for radiation component", 0.0]
-        },
-        "physics:Eos:multiTemp:Multitype": {
-            "eos_largeT": ["eos_largeT", "Float", 100000000000000.0, "default upper bracket bound and used to fake temperature if it tries to\ngo too high. Used in some Helmholtz and Multitype implementations of\nEos."],
-            "eos_maxFactorDown": ["eos_maxFactorDown", "Float", 0.6309573],
-            "eos_maxFactorUp": ["eos_maxFactorUp", "Float", 1.5848932]
         },
         "physics:Gravity": {
             "grav_boundary_type": ["Boundary Condition", "physics:Gravity:grav_boundary_type", "isolated", "Type of gravitational boundary condition if a Poisson solve is used for\nGravity; string-valued version of grav_boundary. Accepts: \"isolated\",\n\"periodic\", \"dirichlet\", and maybe others, depending on the Poisson\nsolver used. This is declared in the stub level of the Gravity unit to\nallow the Grid unit to refer to this runtime parameter even when no\nGravity implementation is included. (grav_boundary_type)"],
@@ -1110,617 +1244,22 @@
             "use_upwindTVD": ["use_upwindTVD", "Boolean", "0", "Turn on/off upwinding TVD slopes"],
             "wenoMethod": ["wenoMethod", "String", "WENO5"]
         },
-        "physics:Hydro:unsplit:multiTemp": {
-            "hy_3TMode": ["hy_3TMode", "physics:Hydro:unsplit:multiTemp:hy_3TMode", "ragelike", "Indictates the 3T model to use"],
-            "hy_3Ttry_B": ["hy_3Ttry_B", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_B", 0, "How to deal with component energy \"work\" term"],
-            "hy_3Ttry_B_rad": ["hy_3Ttry_B_rad", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_B_rad", -1, "How to deal with \"work\" term for radiation, i.e. for Erad, -1 means same\nas hy_3Ttry_B"],
-            "hy_3Ttry_D": ["hy_3Ttry_D", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_D", "2.0", "How to consolidate energies. Values: 0. Do not, 1. Trust Eele, discard\nEion, 1.5 Trust Eele, discard Eion, 2. Trust combined Eint, recalibrate\nboth components."],
-            "hy_3Ttry_E": ["hy_3Ttry_E", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_E", 1, "How to recalibrate component energy (if D2)"],
-            "hy_3Ttry_F": ["hy_3Ttry_F", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_F", 2, "What to consolidate/recalibrate (if E2)"],
-            "hy_3Ttry_G": ["hy_3Ttry_G", "physics:Hydro:unsplit:multiTemp:hy_3Ttry_G", 4, "What to use for component P (if B1)"],
-            "hy_eosModeAfter": ["hy_eosModeAfter", "physics:Hydro:unsplit:multiTemp:hy_eosModeAfter", "dens_ie_gather", "Eos mode to apply at the end of a state advance, before Hydro returns.\nThis is currently ONLY used with multiTemp, and ignored otherwise! Some\nmeaningful choices are (1): == eosMode (traditional), (2):\n\"dens_ie_sele_gather\" for MODE_DENS_EI_SELE_GATHER."]
-        },
-        "physics:IncompNS": {
-            "useIncompNS": ["useIncompNS", "Constant", "FALSE", "Should the IncompNS unit be used?"]
-        },
-        "physics:RadTrans": {
-            "rt_dtFactor": ["rt_dtFactor", "Float", 0.1, "Coefficient for RadTrans time step", 0.0],
-            "useRadTrans": ["useRadTrans", "Boolean", "1", "flag to indicate whether radiative transfer is in use"]
-        },
-        "physics:RadTrans:MGD": {
-            "rt_computeDt": ["rt_computeDt", "Boolean", "0", "When true, attempt to compute a time step associated with MGD"],
-            "rt_groupBarrier": ["rt_groupBarrier", "Boolean", "0", "Option to time group load imbalance"],
-            "rt_mgdBoundEntry": ["rt_mgdBoundEntry", "physics:RadTrans:MGD:rt_mgdBoundEntry", "grbd_manual", "How the group bounds will be input"],
-            "rt_mgdBounds_1": ["rt_mgdBounds_1", "Float", -1.0, "These parameters store the group boundaries for manual entry"],
-            "rt_mgdBounds_10": ["rt_mgdBounds_10", "Float", -1.0],
-            "rt_mgdBounds_100": ["rt_mgdBounds_100", "Float", -1.0],
-            "rt_mgdBounds_101": ["rt_mgdBounds_101", "Float", -1.0],
-            "rt_mgdBounds_11": ["rt_mgdBounds_11", "Float", -1.0],
-            "rt_mgdBounds_12": ["rt_mgdBounds_12", "Float", -1.0],
-            "rt_mgdBounds_13": ["rt_mgdBounds_13", "Float", -1.0],
-            "rt_mgdBounds_14": ["rt_mgdBounds_14", "Float", -1.0],
-            "rt_mgdBounds_15": ["rt_mgdBounds_15", "Float", -1.0],
-            "rt_mgdBounds_16": ["rt_mgdBounds_16", "Float", -1.0],
-            "rt_mgdBounds_17": ["rt_mgdBounds_17", "Float", -1.0],
-            "rt_mgdBounds_18": ["rt_mgdBounds_18", "Float", -1.0],
-            "rt_mgdBounds_19": ["rt_mgdBounds_19", "Float", -1.0],
-            "rt_mgdBounds_2": ["rt_mgdBounds_2", "Float", -1.0],
-            "rt_mgdBounds_20": ["rt_mgdBounds_20", "Float", -1.0],
-            "rt_mgdBounds_21": ["rt_mgdBounds_21", "Float", -1.0],
-            "rt_mgdBounds_22": ["rt_mgdBounds_22", "Float", -1.0],
-            "rt_mgdBounds_23": ["rt_mgdBounds_23", "Float", -1.0],
-            "rt_mgdBounds_24": ["rt_mgdBounds_24", "Float", -1.0],
-            "rt_mgdBounds_25": ["rt_mgdBounds_25", "Float", -1.0],
-            "rt_mgdBounds_26": ["rt_mgdBounds_26", "Float", -1.0],
-            "rt_mgdBounds_27": ["rt_mgdBounds_27", "Float", -1.0],
-            "rt_mgdBounds_28": ["rt_mgdBounds_28", "Float", -1.0],
-            "rt_mgdBounds_29": ["rt_mgdBounds_29", "Float", -1.0],
-            "rt_mgdBounds_3": ["rt_mgdBounds_3", "Float", -1.0],
-            "rt_mgdBounds_30": ["rt_mgdBounds_30", "Float", -1.0],
-            "rt_mgdBounds_31": ["rt_mgdBounds_31", "Float", -1.0],
-            "rt_mgdBounds_32": ["rt_mgdBounds_32", "Float", -1.0],
-            "rt_mgdBounds_33": ["rt_mgdBounds_33", "Float", -1.0],
-            "rt_mgdBounds_34": ["rt_mgdBounds_34", "Float", -1.0],
-            "rt_mgdBounds_35": ["rt_mgdBounds_35", "Float", -1.0],
-            "rt_mgdBounds_36": ["rt_mgdBounds_36", "Float", -1.0],
-            "rt_mgdBounds_37": ["rt_mgdBounds_37", "Float", -1.0],
-            "rt_mgdBounds_38": ["rt_mgdBounds_38", "Float", -1.0],
-            "rt_mgdBounds_39": ["rt_mgdBounds_39", "Float", -1.0],
-            "rt_mgdBounds_4": ["rt_mgdBounds_4", "Float", -1.0],
-            "rt_mgdBounds_40": ["rt_mgdBounds_40", "Float", -1.0],
-            "rt_mgdBounds_41": ["rt_mgdBounds_41", "Float", -1.0],
-            "rt_mgdBounds_42": ["rt_mgdBounds_42", "Float", -1.0],
-            "rt_mgdBounds_43": ["rt_mgdBounds_43", "Float", -1.0],
-            "rt_mgdBounds_44": ["rt_mgdBounds_44", "Float", -1.0],
-            "rt_mgdBounds_45": ["rt_mgdBounds_45", "Float", -1.0],
-            "rt_mgdBounds_46": ["rt_mgdBounds_46", "Float", -1.0],
-            "rt_mgdBounds_47": ["rt_mgdBounds_47", "Float", -1.0],
-            "rt_mgdBounds_48": ["rt_mgdBounds_48", "Float", -1.0],
-            "rt_mgdBounds_49": ["rt_mgdBounds_49", "Float", -1.0],
-            "rt_mgdBounds_5": ["rt_mgdBounds_5", "Float", -1.0],
-            "rt_mgdBounds_50": ["rt_mgdBounds_50", "Float", -1.0],
-            "rt_mgdBounds_51": ["rt_mgdBounds_51", "Float", -1.0],
-            "rt_mgdBounds_52": ["rt_mgdBounds_52", "Float", -1.0],
-            "rt_mgdBounds_53": ["rt_mgdBounds_53", "Float", -1.0],
-            "rt_mgdBounds_54": ["rt_mgdBounds_54", "Float", -1.0],
-            "rt_mgdBounds_55": ["rt_mgdBounds_55", "Float", -1.0],
-            "rt_mgdBounds_56": ["rt_mgdBounds_56", "Float", -1.0],
-            "rt_mgdBounds_57": ["rt_mgdBounds_57", "Float", -1.0],
-            "rt_mgdBounds_58": ["rt_mgdBounds_58", "Float", -1.0],
-            "rt_mgdBounds_59": ["rt_mgdBounds_59", "Float", -1.0],
-            "rt_mgdBounds_6": ["rt_mgdBounds_6", "Float", -1.0],
-            "rt_mgdBounds_60": ["rt_mgdBounds_60", "Float", -1.0],
-            "rt_mgdBounds_61": ["rt_mgdBounds_61", "Float", -1.0],
-            "rt_mgdBounds_62": ["rt_mgdBounds_62", "Float", -1.0],
-            "rt_mgdBounds_63": ["rt_mgdBounds_63", "Float", -1.0],
-            "rt_mgdBounds_64": ["rt_mgdBounds_64", "Float", -1.0],
-            "rt_mgdBounds_65": ["rt_mgdBounds_65", "Float", -1.0],
-            "rt_mgdBounds_66": ["rt_mgdBounds_66", "Float", -1.0],
-            "rt_mgdBounds_67": ["rt_mgdBounds_67", "Float", -1.0],
-            "rt_mgdBounds_68": ["rt_mgdBounds_68", "Float", -1.0],
-            "rt_mgdBounds_69": ["rt_mgdBounds_69", "Float", -1.0],
-            "rt_mgdBounds_7": ["rt_mgdBounds_7", "Float", -1.0],
-            "rt_mgdBounds_70": ["rt_mgdBounds_70", "Float", -1.0],
-            "rt_mgdBounds_71": ["rt_mgdBounds_71", "Float", -1.0],
-            "rt_mgdBounds_72": ["rt_mgdBounds_72", "Float", -1.0],
-            "rt_mgdBounds_73": ["rt_mgdBounds_73", "Float", -1.0],
-            "rt_mgdBounds_74": ["rt_mgdBounds_74", "Float", -1.0],
-            "rt_mgdBounds_75": ["rt_mgdBounds_75", "Float", -1.0],
-            "rt_mgdBounds_76": ["rt_mgdBounds_76", "Float", -1.0],
-            "rt_mgdBounds_77": ["rt_mgdBounds_77", "Float", -1.0],
-            "rt_mgdBounds_78": ["rt_mgdBounds_78", "Float", -1.0],
-            "rt_mgdBounds_79": ["rt_mgdBounds_79", "Float", -1.0],
-            "rt_mgdBounds_8": ["rt_mgdBounds_8", "Float", -1.0],
-            "rt_mgdBounds_80": ["rt_mgdBounds_80", "Float", -1.0],
-            "rt_mgdBounds_81": ["rt_mgdBounds_81", "Float", -1.0],
-            "rt_mgdBounds_82": ["rt_mgdBounds_82", "Float", -1.0],
-            "rt_mgdBounds_83": ["rt_mgdBounds_83", "Float", -1.0],
-            "rt_mgdBounds_84": ["rt_mgdBounds_84", "Float", -1.0],
-            "rt_mgdBounds_85": ["rt_mgdBounds_85", "Float", -1.0],
-            "rt_mgdBounds_86": ["rt_mgdBounds_86", "Float", -1.0],
-            "rt_mgdBounds_87": ["rt_mgdBounds_87", "Float", -1.0],
-            "rt_mgdBounds_88": ["rt_mgdBounds_88", "Float", -1.0],
-            "rt_mgdBounds_89": ["rt_mgdBounds_89", "Float", -1.0],
-            "rt_mgdBounds_9": ["rt_mgdBounds_9", "Float", -1.0],
-            "rt_mgdBounds_90": ["rt_mgdBounds_90", "Float", -1.0],
-            "rt_mgdBounds_91": ["rt_mgdBounds_91", "Float", -1.0],
-            "rt_mgdBounds_92": ["rt_mgdBounds_92", "Float", -1.0],
-            "rt_mgdBounds_93": ["rt_mgdBounds_93", "Float", -1.0],
-            "rt_mgdBounds_94": ["rt_mgdBounds_94", "Float", -1.0],
-            "rt_mgdBounds_95": ["rt_mgdBounds_95", "Float", -1.0],
-            "rt_mgdBounds_96": ["rt_mgdBounds_96", "Float", -1.0],
-            "rt_mgdBounds_97": ["rt_mgdBounds_97", "Float", -1.0],
-            "rt_mgdBounds_98": ["rt_mgdBounds_98", "Float", -1.0],
-            "rt_mgdBounds_99": ["rt_mgdBounds_99", "Float", -1.0],
-            "rt_mgdFlCoef": ["rt_mgdFlCoef", "Float", 1.0, "MGD flux limiter coefficient"],
-            "rt_mgdFlMode": ["rt_mgdFlMode", "physics:RadTrans:MGD:rt_mgdFlMode", "fl_none", "MGD flux limiter mode"],
-            "rt_mgdNumGroups": ["rt_mgdNumGroups", "Integer", 0, "Number of groups in the MGD calculation"],
-            "rt_mgdXlBoundaryTemp": ["rt_mgdXlBoundaryTemp", "Float", -1.0, "Boundary radiation temperature for MGD, in kelvin"],
-            "rt_mgdXlBoundaryType": ["X Lower Boundary Type", "MGDBoundaryType", "reflecting", "MGD bcTypes."],
-            "rt_mgdXrBoundaryTemp": ["rt_mgdXrBoundaryTemp", "Float", -1.0],
-            "rt_mgdXrBoundaryType": ["X Upper Boundary Type", "MGDBoundaryType", "reflecting"],
-            "rt_mgdYlBoundaryTemp": ["rt_mgdYlBoundaryTemp", "Float", -1.0],
-            "rt_mgdYlBoundaryType": ["Y Lower Boundary Type", "MGDBoundaryType", "reflecting"],
-            "rt_mgdYrBoundaryTemp": ["rt_mgdYrBoundaryTemp", "Float", -1.0],
-            "rt_mgdYrBoundaryType": ["Y Upper Boundary Type", "MGDBoundaryType", "reflecting"],
-            "rt_mgdZlBoundaryTemp": ["rt_mgdZlBoundaryTemp", "Float", -1.0],
-            "rt_mgdZlBoundaryType": ["Z Lower Boundary Type", "MGDBoundaryType", "reflecting"],
-            "rt_mgdZrBoundaryTemp": ["rt_mgdZrBoundaryTemp", "Float", -1.0],
-            "rt_mgdZrBoundaryType": ["Z Upper Boundary Type", "MGDBoundaryType", "reflecting"],
-            "rt_mgdthetaImplct": ["rt_mgdthetaImplct", "Float", 1.0, "Implicitness factor of the solver.", 0.0, 1.0],
-            "rt_tempChangeRelTol": ["rt_tempChangeRelTol", "Float", 1000.0, "Tolerance for maximum relative temperature change in a cell in a time\nstep. Currently only applied to electron temperature by ExpRelax\nimplementation.", 0.0],
-            "rt_timeGroups": ["rt_timeGroups", "Boolean", "0", "Option to time individual groups (cannot be used with meshCopyCount > 1)"],
-            "rt_useMGD": ["rt_useMGD", "Boolean", "0", "use multigroup radiation diffusion"]
-        },
-        "physics:TreeRay": {
-            "useTreeRay": ["useTreeRay", "Boolean", "0", "Whether TreeRay calculations should be performed."]
-        },
-        "physics:materialProperties:Conductivity": {
-            "useConductivity": ["useConductivity", "Boolean", "1", "flags whether the conductivity material property is being used"]
-        },
-        "physics:materialProperties:MagneticResistivity": {
-            "useMagneticResistivity": ["useMagneticResistivity", "Constant", "FALSE", "flags whether the magnetic resistivity material property is being used"]
-        },
-        "physics:materialProperties:MassDiffusivity": {
-            "useMassDiffusivity": ["useMassDiffusivity", "Constant", "FALSE", "-- allows the mass diffusivity to be turned off at runtime, even if the\nunit is included in the simulation"]
-        },
-        "physics:materialProperties:Opacity": {
-            "useOpacity": ["useOpacity", "Boolean", "1", "flags whether the Opacity unit is being used at all"]
-        },
-        "physics:materialProperties:Opacity:Multispecies": {
-            "op_fillAbsorb": ["Fill Absorb", "physics:materialProperties:Opacity:Multispecies:op_fillAbsorb", "op_undefined"],
-            "op_fillAbsorbConstant": ["op_fillAbsorbConstant", "Float", -1.0],
-            "op_fillEmiss": ["Fill Emiss", "physics:materialProperties:Opacity:Multispecies:op_fillEmiss", "op_undefined"],
-            "op_fillEmissConstant": ["op_fillEmissConstant", "Float", -1.0],
-            "op_fillFileName": ["Fill File Name", "String", "NOT SPECIFIED"],
-            "op_fillFileType": ["Fill File Type", "physics:materialProperties:Opacity:Multispecies:op_fillFileType", "NOT SPECIFIED"],
-            "op_fillTrans": ["Fill Trans", "physics:materialProperties:Opacity:Multispecies:op_fillTrans", "op_undefined"],
-            "op_fillTransConstant": ["op_fillTransConstant", "Float", -1.0],
-            "op_wallAbsorb": ["Wall Absorb", "physics:materialProperties:Opacity:Multispecies:op_wallAbsorb", "op_undefined"],
-            "op_wallAbsorbConstant": ["op_wallAbsorbConstant", "Float", -1.0],
-            "op_wallEmiss": ["Wall Emiss", "physics:materialProperties:Opacity:Multispecies:op_wallEmiss", "op_undefined"],
-            "op_wallEmissConstant": ["op_wallEmissConstant", "Float", -1.0],
-            "op_wallFileName": ["Wall File Name", "String", "NOT SPECIFIED"],
-            "op_wallFileType": ["Wall File Type", "physics:materialProperties:Opacity:Multispecies:op_wallFileType", "NOT SPECIFIED"],
-            "op_wallTrans": ["Wall Trans", "physics:materialProperties:Opacity:Multispecies:op_wallTrans", "op_undefined"],
-            "op_wallTransConstant": ["op_wallTransConstant", "Float", -1.0],
-            "opacity_ignoreLowTemp": ["opacity_ignoreLowTemp", "Boolean", "1", "control parameter indicating if the low temperature capability should be\nignored"],
-            "opacity_writeOpacityInfo": ["opacity_writeOpacityInfo", "Boolean", "0", "control parameter indicating if detailed info of the opacity unit should\nbe written out"]
-        },
-        "physics:materialProperties:Opacity:Multispecies:method:Integrate": {
-            "opacity_RombergAccuracy": ["opacity_RombergAccuracy", "Float", 1e-06],
-            "opacity_maxQuadratureRoots": ["opacity_maxQuadratureRoots", "Integer", 50],
-            "opacity_printQuadratureData": ["opacity_printQuadratureData", "Boolean", "1"],
-            "opacity_useQuadrature": ["opacity_useQuadrature", "Boolean", "0"],
-            "opacity_useRomberg": ["opacity_useRomberg", "Boolean", "1"]
-        },
-        "physics:materialProperties:Opacity:Multispecies:method:LowTemp": {
-            "opacity_ignoreKleinNishina": ["opacity_ignoreKleinNishina", "Boolean", "0"]
-        },
-        "physics:materialProperties:Opacity:Multispecies:method:Tabulated": {
-            "op_tableEnergyTolerance": ["op_tableEnergyTolerance", "Float", 0.0001, "allowed difference between table/FLASH group structure"],
-            "opacity_useLogTables": ["opacity_useLogTables", "Boolean", "1", "control parameter indicating use of logarithmic opacities"]
-        },
-        "physics:materialProperties:Viscosity": {
-            "useViscosity": ["useViscosity", "Constant", "FALSE", "flags whether the viscosity material property is being used"]
-        },
-        "physics:sourceTerms:Burn": {
-            "useBurn": ["useBurn", "Boolean", "0", "shall I burn?"]
-        },
-        "physics:sourceTerms:Cool": {
-            "useCool": ["useCool", "Boolean", "0", "Runtime control for turning off cooling"]
-        },
-        "physics:sourceTerms:Deleptonize": {
-            "useDeleptonize": ["useDeleptonize", "Boolean", "0", "runtime control for turning the deleptonization on or off"]
-        },
-        "physics:sourceTerms:EnergyDeposition:Laser": {
-            "ed_RungeKuttaMethod": ["ed_RungeKuttaMethod", "String", "CashKarp45", "Specifies the Runge Kutta method to be used for ray tracing."],
-            "ed_cellStepTolerance": ["ed_cellStepTolerance", "Float", 1e-06, "The allowed cell fractional error (unit = cell edge) for a ray path step"],
-            "ed_cellWallThicknessFactor": ["ed_cellWallThicknessFactor", "Float", 1e-06, "Fraction of the shortest cell edge defining the cell wall thickness"],
-            "ed_computeGradNeleX": ["ed_computeGradNeleX", "Boolean", "1", "Should the x-component of the number of electrons gradient be computed?"],
-            "ed_computeGradNeleY": ["ed_computeGradNeleY", "Boolean", "1", "Should the y-component of the number of electrons gradient be computed?"],
-            "ed_computeGradNeleZ": ["ed_computeGradNeleZ", "Boolean", "1", "Should the z-component of the number of electrons gradient be computed?"],
-            "ed_crossSectionFunctionType_1": ["ed_crossSectionFunctionType_1", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 1"],
-            "ed_crossSectionFunctionType_2": ["ed_crossSectionFunctionType_2", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 2"],
-            "ed_crossSectionFunctionType_3": ["ed_crossSectionFunctionType_3", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 3"],
-            "ed_crossSectionFunctionType_4": ["ed_crossSectionFunctionType_4", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 4"],
-            "ed_crossSectionFunctionType_5": ["ed_crossSectionFunctionType_5", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 5"],
-            "ed_crossSectionFunctionType_6": ["ed_crossSectionFunctionType_6", "LaserCrossSectionFunctionType", " ", "Function type which sets the irradiance pattern for beam 6"],
-            "ed_cubicInterpolationZeroDerv": ["ed_cubicInterpolationZeroDerv", "Boolean", "0", "Set all cubic interpolation vertex derivatives = 0 (default\nmonotonicity)?"],
-            "ed_depoReuseMaxSteps": ["ed_depoReuseMaxSteps", "Integer", -1, "Maximum number of time steps for which a computed energy deposition rate\n(stored in the ed_depoVar variable) can be reused. If 0, the rate can\nstill be reused in the same timestep; this can make a difference when a\nsplit Driver implementation is used which calls EnergyDeposition more\nthan once per time step. Set to -1 to completely disable reuse of depo\nrate.", -1],
-            "ed_depoVarName": ["ed_depoVarName", "String", "depo", "Name of the variable used for storing the computed deposition rate for\nreuse; the default is \"depo\". Note that \"depo\" can refer to either\nDEPO_VAR or DEPO_MSCALAR in the Flash code, depending on whether a\nVARIABLE or a MASS_SCALAR statement is used to declare the variable.\nFurther note that if a VARIABLE statement is used, it can be combined\nwith either TYPE: PER_MASS or TYPE: PER_VOLUME to get difference\nvariants of reuse."],
-            "ed_enforcePositiveNele": ["ed_enforcePositiveNele", "Boolean", "1", "Rescale the number of electrons gradient such that it is always >= 0?"],
-            "ed_enforcePositiveTele": ["ed_enforcePositiveTele", "Boolean", "1", "Rescale the electron temperature gradient such that it is always >= 0?"],
-            "ed_gaussianCenterMajor_1": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 1"],
-            "ed_gaussianCenterMajor_2": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 2"],
-            "ed_gaussianCenterMajor_3": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 3"],
-            "ed_gaussianCenterMajor_4": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 4"],
-            "ed_gaussianCenterMajor_5": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 5"],
-            "ed_gaussianCenterMajor_6": ["Major Gaussian Center", "Float", 0.0, "The gaussian center location along the major semiaxis for beam 6"],
-            "ed_gaussianCenterMinor_1": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 1"],
-            "ed_gaussianCenterMinor_2": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 2"],
-            "ed_gaussianCenterMinor_3": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 3"],
-            "ed_gaussianCenterMinor_4": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 4"],
-            "ed_gaussianCenterMinor_5": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 5"],
-            "ed_gaussianCenterMinor_6": ["Minor Gaussian Center", "Float", 0.0, "The gaussian center location along the minor semiaxis for beam 6"],
-            "ed_gaussianExponent_1": ["ed_gaussianExponent_1", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 1"],
-            "ed_gaussianExponent_2": ["ed_gaussianExponent_2", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 2"],
-            "ed_gaussianExponent_3": ["ed_gaussianExponent_3", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 3"],
-            "ed_gaussianExponent_4": ["ed_gaussianExponent_4", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 4"],
-            "ed_gaussianExponent_5": ["ed_gaussianExponent_5", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 5"],
-            "ed_gaussianExponent_6": ["ed_gaussianExponent_6", "Float", -1.7976931348623157e+308, "The gaussian exponent for beam 6"],
-            "ed_gaussianRadiusMajor_1": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 1"],
-            "ed_gaussianRadiusMajor_2": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 2"],
-            "ed_gaussianRadiusMajor_3": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 3"],
-            "ed_gaussianRadiusMajor_4": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 4"],
-            "ed_gaussianRadiusMajor_5": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 5"],
-            "ed_gaussianRadiusMajor_6": ["Major Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the major semiaxis for beam 6"],
-            "ed_gaussianRadiusMinor_1": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 1"],
-            "ed_gaussianRadiusMinor_2": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 2"],
-            "ed_gaussianRadiusMinor_3": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 3"],
-            "ed_gaussianRadiusMinor_4": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 4"],
-            "ed_gaussianRadiusMinor_5": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 5"],
-            "ed_gaussianRadiusMinor_6": ["Minor Gaussian Radius", "Float", -1.7976931348623157e+308, "The gaussian e-folding length along the minor semiaxis for beam 6"],
-            "ed_gradOrder": ["ed_gradOrder", "physics:sourceTerms:EnergyDeposition:Laser:ed_gradOrder", 2, "Gradient order. 1 = no gradient, 2 = first order differencing"],
-            "ed_gridDeltaSemiAxisMajor_1": ["ed_gridDeltaSemiAxisMajor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 1"],
-            "ed_gridDeltaSemiAxisMajor_2": ["ed_gridDeltaSemiAxisMajor_2", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 2"],
-            "ed_gridDeltaSemiAxisMajor_3": ["ed_gridDeltaSemiAxisMajor_3", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 3"],
-            "ed_gridDeltaSemiAxisMajor_4": ["ed_gridDeltaSemiAxisMajor_4", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 4"],
-            "ed_gridDeltaSemiAxisMajor_5": ["ed_gridDeltaSemiAxisMajor_5", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 5"],
-            "ed_gridDeltaSemiAxisMajor_6": ["ed_gridDeltaSemiAxisMajor_6", "Float", -1.7976931348623157e+308, "The tic spacing for the major semiaxis for delta defined grids 6"],
-            "ed_gridDeltaSemiAxisMinor_1": ["ed_gridDeltaSemiAxisMinor_1", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 1"],
-            "ed_gridDeltaSemiAxisMinor_2": ["ed_gridDeltaSemiAxisMinor_2", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 2"],
-            "ed_gridDeltaSemiAxisMinor_3": ["ed_gridDeltaSemiAxisMinor_3", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 3"],
-            "ed_gridDeltaSemiAxisMinor_4": ["ed_gridDeltaSemiAxisMinor_4", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 4"],
-            "ed_gridDeltaSemiAxisMinor_5": ["ed_gridDeltaSemiAxisMinor_5", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 5"],
-            "ed_gridDeltaSemiAxisMinor_6": ["ed_gridDeltaSemiAxisMinor_6", "Float", -1.7976931348623157e+308, "The tic spacing for the minor semiaxis for delta defined grids 6"],
-            "ed_gridType_1": ["ed_gridType_1", "LaserGridType", " ", "The type of beam grid 1"],
-            "ed_gridType_2": ["ed_gridType_2", "LaserGridType", " ", "The type of beam grid 2"],
-            "ed_gridType_3": ["ed_gridType_3", "LaserGridType", " ", "The type of beam grid 3"],
-            "ed_gridType_4": ["ed_gridType_4", "LaserGridType", " ", "The type of beam grid 4"],
-            "ed_gridType_5": ["ed_gridType_5", "LaserGridType", " ", "The type of beam grid 5"],
-            "ed_gridType_6": ["ed_gridType_6", "LaserGridType", " ", "The type of beam grid 6"],
-            "ed_gridnAngularTics_1": ["ed_gridnAngularTics_1", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 1"],
-            "ed_gridnAngularTics_2": ["ed_gridnAngularTics_2", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 2"],
-            "ed_gridnAngularTics_3": ["ed_gridnAngularTics_3", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 3"],
-            "ed_gridnAngularTics_4": ["ed_gridnAngularTics_4", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 4"],
-            "ed_gridnAngularTics_5": ["ed_gridnAngularTics_5", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 5"],
-            "ed_gridnAngularTics_6": ["ed_gridnAngularTics_6", "Integer", -9007199254740991, "The number of angular ray positions for radial type grids 6"],
-            "ed_gridnRadialTics_1": ["ed_gridnRadialTics_1", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 1"],
-            "ed_gridnRadialTics_2": ["ed_gridnRadialTics_2", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 2"],
-            "ed_gridnRadialTics_3": ["ed_gridnRadialTics_3", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 3"],
-            "ed_gridnRadialTics_4": ["ed_gridnRadialTics_4", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 4"],
-            "ed_gridnRadialTics_5": ["ed_gridnRadialTics_5", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 5"],
-            "ed_gridnRadialTics_6": ["ed_gridnRadialTics_6", "Integer", -9007199254740991, "The number of radial ray positions for radial type grids 6"],
-            "ed_gridnSemiAxisMajorTics_1": ["ed_gridnSemiAxisMajorTics_1", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 1"],
-            "ed_gridnSemiAxisMajorTics_2": ["ed_gridnSemiAxisMajorTics_2", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 2"],
-            "ed_gridnSemiAxisMajorTics_3": ["ed_gridnSemiAxisMajorTics_3", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 3"],
-            "ed_gridnSemiAxisMajorTics_4": ["ed_gridnSemiAxisMajorTics_4", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 4"],
-            "ed_gridnSemiAxisMajorTics_5": ["ed_gridnSemiAxisMajorTics_5", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 5"],
-            "ed_gridnSemiAxisMajorTics_6": ["ed_gridnSemiAxisMajorTics_6", "Integer", -9007199254740991, "Number of major semiaxis ray positions for rectangular type grids 6"],
-            "ed_gridnSemiAxisMinorTics_1": ["ed_gridnSemiAxisMinorTics_1", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 1"],
-            "ed_gridnSemiAxisMinorTics_2": ["ed_gridnSemiAxisMinorTics_2", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 2"],
-            "ed_gridnSemiAxisMinorTics_3": ["ed_gridnSemiAxisMinorTics_3", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 3"],
-            "ed_gridnSemiAxisMinorTics_4": ["ed_gridnSemiAxisMinorTics_4", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 4"],
-            "ed_gridnSemiAxisMinorTics_5": ["ed_gridnSemiAxisMinorTics_5", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 5"],
-            "ed_gridnSemiAxisMinorTics_6": ["ed_gridnSemiAxisMinorTics_6", "Integer", -9007199254740991, "Number of minor semiaxis ray positions for rectangular type grids 6"],
-            "ed_ignoreBoundaryCondition_1": ["ed_ignoreBoundaryCondition_1", "Boolean", "0", "Option to ignore domain boundary conditions for beam 1"],
-            "ed_ignoreBoundaryCondition_2": ["ed_ignoreBoundaryCondition_2", "Boolean", "0", "Option to ignore domain boundary conditions for beam 2"],
-            "ed_ignoreBoundaryCondition_3": ["ed_ignoreBoundaryCondition_3", "Boolean", "0", "Option to ignore domain boundary conditions for beam 3"],
-            "ed_ignoreBoundaryCondition_4": ["ed_ignoreBoundaryCondition_4", "Boolean", "0", "Option to ignore domain boundary conditions for beam 4"],
-            "ed_ignoreBoundaryCondition_5": ["ed_ignoreBoundaryCondition_5", "Boolean", "0", "Option to ignore domain boundary conditions for beam 5"],
-            "ed_ignoreBoundaryCondition_6": ["ed_ignoreBoundaryCondition_6", "Boolean", "0", "Option to ignore domain boundary conditions for beam 6"],
-            "ed_initialRaySpeed_1": ["ed_initialRaySpeed_1", "Float", 1.0, "The initial ray speed [in units of c] for beam 1"],
-            "ed_initialRaySpeed_2": ["ed_initialRaySpeed_2", "Float", 1.0, "The initial ray speed [in units of c] for beam 2"],
-            "ed_initialRaySpeed_3": ["ed_initialRaySpeed_3", "Float", 1.0, "The initial ray speed [in units of c] for beam 3"],
-            "ed_initialRaySpeed_4": ["ed_initialRaySpeed_4", "Float", 1.0, "The initial ray speed [in units of c] for beam 4"],
-            "ed_initialRaySpeed_5": ["ed_initialRaySpeed_5", "Float", 1.0, "The initial ray speed [in units of c] for beam 5"],
-            "ed_initialRaySpeed_6": ["ed_initialRaySpeed_6", "Float", 1.0, "The initial ray speed [in units of c] for beam 6"],
-            "ed_irradVarName": ["ed_irradVarName", "String", "lase", "Name of the variable used for storing the computed laser radiation field\nenergy density; the default is \"lase\". Note that \"lase\" should refer to\nLASE_VAR in the Flash code, and a VARIABLE statement should be used to\ndeclare the variable. Further note that the VARIABLE statement should\ndeclare TYPE: PER_VOLUME."],
-            "ed_laser3Din2D": ["ed_laser3Din2D", "Boolean", "0", "Use the 3D rays in a 2D cylindrical grid ray tracing?"],
-            "ed_laser3Din2DwedgeAngle": ["ed_laser3Din2DwedgeAngle", "Float", 0.0, "Wedge angle (degrees, must be < 180) for laser 3D in 2D simulations"],
-            "ed_lensSemiAxisMajor_1": ["ed_lensSemiAxisMajor_1", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 1"],
-            "ed_lensSemiAxisMajor_2": ["ed_lensSemiAxisMajor_2", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 2"],
-            "ed_lensSemiAxisMajor_3": ["ed_lensSemiAxisMajor_3", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 3"],
-            "ed_lensSemiAxisMajor_4": ["ed_lensSemiAxisMajor_4", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 4"],
-            "ed_lensSemiAxisMajor_5": ["ed_lensSemiAxisMajor_5", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 5"],
-            "ed_lensSemiAxisMajor_6": ["ed_lensSemiAxisMajor_6", "Float", -1.7976931348623157e+308, "Lens major elliptical semiaxis length for beam 6"],
-            "ed_lensX_1": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 1"],
-            "ed_lensX_2": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 2"],
-            "ed_lensX_3": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 3"],
-            "ed_lensX_4": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 4"],
-            "ed_lensX_5": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 5"],
-            "ed_lensX_6": ["X Lens", "Float", -1.7976931348623157e+308, "The x coordinate of the lens for beam 6"],
-            "ed_lensY_1": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 1"],
-            "ed_lensY_2": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 2"],
-            "ed_lensY_3": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 3"],
-            "ed_lensY_4": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 4"],
-            "ed_lensY_5": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 5"],
-            "ed_lensY_6": ["Y Lens", "Float", -1.7976931348623157e+308, "The y coordinate of the lens for beam 6"],
-            "ed_lensZ_1": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 1"],
-            "ed_lensZ_2": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 2"],
-            "ed_lensZ_3": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 3"],
-            "ed_lensZ_4": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 4"],
-            "ed_lensZ_5": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 5"],
-            "ed_lensZ_6": ["Z Lens", "Float", -1.7976931348623157e+308, "The z coordinate of the lens for beam 6"],
-            "ed_maxRayCount": ["ed_maxRayCount", "Integer", 100, "Maximum number of rays per processor"],
-            "ed_numberOfBeams": ["ed_numberOfBeams", "Integer", -1, "Total number of laser beams"],
-            "ed_numberOfPulses": ["ed_numberOfPulses", "Integer", -1, "Total number of laser pulses"],
-            "ed_numberOfRays_1": ["ed_numberOfRays_1", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 1"],
-            "ed_numberOfRays_2": ["ed_numberOfRays_2", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 2"],
-            "ed_numberOfRays_3": ["ed_numberOfRays_3", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 3"],
-            "ed_numberOfRays_4": ["ed_numberOfRays_4", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 4"],
-            "ed_numberOfRays_5": ["ed_numberOfRays_5", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 5"],
-            "ed_numberOfRays_6": ["ed_numberOfRays_6", "Integer", -9007199254740991, "The number of rays to launch per timestep for beam 6"],
-            "ed_numberOfSections_1": ["ed_numberOfSections_1", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 1"],
-            "ed_numberOfSections_2": ["ed_numberOfSections_2", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 2"],
-            "ed_numberOfSections_3": ["ed_numberOfSections_3", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 3"],
-            "ed_numberOfSections_4": ["ed_numberOfSections_4", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 4"],
-            "ed_numberOfSections_5": ["ed_numberOfSections_5", "Integer", -1, "The number of time/power pairs (sections) for laser pulse 5"],
-            "ed_powerStepTolerance": ["ed_powerStepTolerance", "Float", 1e-06, "The allowed power fractional error (unit = current power) for a ray path\nstep"],
-            "ed_power_1_1": ["Power Section 1", "Float", -1.0, "The power (W) for laser pulse 1 section 1"],
-            "ed_power_1_10": ["Power Section 10", "Float", -1.0, "The power (W) for laser pulse 1 section 10"],
-            "ed_power_1_11": ["Power Section 11", "Float", -1.0, "The power (W) for laser pulse 1 section 11"],
-            "ed_power_1_12": ["Power Section 12", "Float", -1.0, "The power (W) for laser pulse 1 section 12"],
-            "ed_power_1_13": ["Power Section 13", "Float", -1.0, "The power (W) for laser pulse 1 section 13"],
-            "ed_power_1_14": ["Power Section 14", "Float", -1.0, "The power (W) for laser pulse 1 section 14"],
-            "ed_power_1_15": ["Power Section 15", "Float", -1.0, "The power (W) for laser pulse 1 section 15"],
-            "ed_power_1_16": ["Power Section 16", "Float", -1.0, "The power (W) for laser pulse 1 section 16"],
-            "ed_power_1_17": ["Power Section 17", "Float", -1.0, "The power (W) for laser pulse 1 section 17"],
-            "ed_power_1_18": ["Power Section 18", "Float", -1.0, "The power (W) for laser pulse 1 section 18"],
-            "ed_power_1_19": ["Power Section 19", "Float", -1.0, "The power (W) for laser pulse 1 section 19"],
-            "ed_power_1_2": ["Power Section 2", "Float", -1.0, "The power (W) for laser pulse 1 section 2"],
-            "ed_power_1_20": ["Power Section 20", "Float", -1.0, "The power (W) for laser pulse 1 section 20"],
-            "ed_power_1_3": ["Power Section 3", "Float", -1.0, "The power (W) for laser pulse 1 section 3"],
-            "ed_power_1_4": ["Power Section 4", "Float", -1.0, "The power (W) for laser pulse 1 section 4"],
-            "ed_power_1_5": ["Power Section 5", "Float", -1.0, "The power (W) for laser pulse 1 section 5"],
-            "ed_power_1_6": ["Power Section 6", "Float", -1.0, "The power (W) for laser pulse 1 section 6"],
-            "ed_power_1_7": ["Power Section 7", "Float", -1.0, "The power (W) for laser pulse 1 section 7"],
-            "ed_power_1_8": ["Power Section 8", "Float", -1.0, "The power (W) for laser pulse 1 section 8"],
-            "ed_power_1_9": ["Power Section 9", "Float", -1.0, "The power (W) for laser pulse 1 section 9"],
-            "ed_power_2_1": ["ed_power_2_1", "Float", -1.0, "The power (W) for laser pulse 2 section 1"],
-            "ed_power_2_10": ["ed_power_2_10", "Float", -1.0, "The power (W) for laser pulse 2 section 10"],
-            "ed_power_2_11": ["ed_power_2_11", "Float", -1.0, "The power (W) for laser pulse 2 section 11"],
-            "ed_power_2_12": ["ed_power_2_12", "Float", -1.0, "The power (W) for laser pulse 2 section 12"],
-            "ed_power_2_13": ["ed_power_2_13", "Float", -1.0, "The power (W) for laser pulse 2 section 13"],
-            "ed_power_2_14": ["ed_power_2_14", "Float", -1.0, "The power (W) for laser pulse 2 section 14"],
-            "ed_power_2_15": ["ed_power_2_15", "Float", -1.0, "The power (W) for laser pulse 2 section 15"],
-            "ed_power_2_16": ["ed_power_2_16", "Float", -1.0, "The power (W) for laser pulse 2 section 16"],
-            "ed_power_2_17": ["ed_power_2_17", "Float", -1.0, "The power (W) for laser pulse 2 section 17"],
-            "ed_power_2_18": ["ed_power_2_18", "Float", -1.0, "The power (W) for laser pulse 2 section 18"],
-            "ed_power_2_19": ["ed_power_2_19", "Float", -1.0, "The power (W) for laser pulse 2 section 19"],
-            "ed_power_2_2": ["ed_power_2_2", "Float", -1.0, "The power (W) for laser pulse 2 section 2"],
-            "ed_power_2_20": ["ed_power_2_20", "Float", -1.0, "The power (W) for laser pulse 2 section 20"],
-            "ed_power_2_3": ["ed_power_2_3", "Float", -1.0, "The power (W) for laser pulse 2 section 3"],
-            "ed_power_2_4": ["ed_power_2_4", "Float", -1.0, "The power (W) for laser pulse 2 section 4"],
-            "ed_power_2_5": ["ed_power_2_5", "Float", -1.0, "The power (W) for laser pulse 2 section 5"],
-            "ed_power_2_6": ["ed_power_2_6", "Float", -1.0, "The power (W) for laser pulse 2 section 6"],
-            "ed_power_2_7": ["ed_power_2_7", "Float", -1.0, "The power (W) for laser pulse 2 section 7"],
-            "ed_power_2_8": ["ed_power_2_8", "Float", -1.0, "The power (W) for laser pulse 2 section 8"],
-            "ed_power_2_9": ["ed_power_2_9", "Float", -1.0, "The power (W) for laser pulse 2 section 9"],
-            "ed_power_3_1": ["ed_power_3_1", "Float", -1.0, "The power (W) for laser pulse 3 section 1"],
-            "ed_power_3_10": ["ed_power_3_10", "Float", -1.0, "The power (W) for laser pulse 3 section 10"],
-            "ed_power_3_11": ["ed_power_3_11", "Float", -1.0, "The power (W) for laser pulse 3 section 11"],
-            "ed_power_3_12": ["ed_power_3_12", "Float", -1.0, "The power (W) for laser pulse 3 section 12"],
-            "ed_power_3_13": ["ed_power_3_13", "Float", -1.0, "The power (W) for laser pulse 3 section 13"],
-            "ed_power_3_14": ["ed_power_3_14", "Float", -1.0, "The power (W) for laser pulse 3 section 14"],
-            "ed_power_3_15": ["ed_power_3_15", "Float", -1.0, "The power (W) for laser pulse 3 section 15"],
-            "ed_power_3_16": ["ed_power_3_16", "Float", -1.0, "The power (W) for laser pulse 3 section 16"],
-            "ed_power_3_17": ["ed_power_3_17", "Float", -1.0, "The power (W) for laser pulse 3 section 17"],
-            "ed_power_3_18": ["ed_power_3_18", "Float", -1.0, "The power (W) for laser pulse 3 section 18"],
-            "ed_power_3_19": ["ed_power_3_19", "Float", -1.0, "The power (W) for laser pulse 3 section 19"],
-            "ed_power_3_2": ["ed_power_3_2", "Float", -1.0, "The power (W) for laser pulse 3 section 2"],
-            "ed_power_3_20": ["ed_power_3_20", "Float", -1.0, "The power (W) for laser pulse 3 section 20"],
-            "ed_power_3_3": ["ed_power_3_3", "Float", -1.0, "The power (W) for laser pulse 3 section 3"],
-            "ed_power_3_4": ["ed_power_3_4", "Float", -1.0, "The power (W) for laser pulse 3 section 4"],
-            "ed_power_3_5": ["ed_power_3_5", "Float", -1.0, "The power (W) for laser pulse 3 section 5"],
-            "ed_power_3_6": ["ed_power_3_6", "Float", -1.0, "The power (W) for laser pulse 3 section 6"],
-            "ed_power_3_7": ["ed_power_3_7", "Float", -1.0, "The power (W) for laser pulse 3 section 7"],
-            "ed_power_3_8": ["ed_power_3_8", "Float", -1.0, "The power (W) for laser pulse 3 section 8"],
-            "ed_power_3_9": ["ed_power_3_9", "Float", -1.0, "The power (W) for laser pulse 3 section 9"],
-            "ed_power_4_1": ["ed_power_4_1", "Float", -1.0, "The power (W) for laser pulse 4 section 1"],
-            "ed_power_4_10": ["ed_power_4_10", "Float", -1.0, "The power (W) for laser pulse 4 section 10"],
-            "ed_power_4_11": ["ed_power_4_11", "Float", -1.0, "The power (W) for laser pulse 4 section 11"],
-            "ed_power_4_12": ["ed_power_4_12", "Float", -1.0, "The power (W) for laser pulse 4 section 12"],
-            "ed_power_4_13": ["ed_power_4_13", "Float", -1.0, "The power (W) for laser pulse 4 section 13"],
-            "ed_power_4_14": ["ed_power_4_14", "Float", -1.0, "The power (W) for laser pulse 4 section 14"],
-            "ed_power_4_15": ["ed_power_4_15", "Float", -1.0, "The power (W) for laser pulse 4 section 15"],
-            "ed_power_4_16": ["ed_power_4_16", "Float", -1.0, "The power (W) for laser pulse 4 section 16"],
-            "ed_power_4_17": ["ed_power_4_17", "Float", -1.0, "The power (W) for laser pulse 4 section 17"],
-            "ed_power_4_18": ["ed_power_4_18", "Float", -1.0, "The power (W) for laser pulse 4 section 18"],
-            "ed_power_4_19": ["ed_power_4_19", "Float", -1.0, "The power (W) for laser pulse 4 section 19"],
-            "ed_power_4_2": ["ed_power_4_2", "Float", -1.0, "The power (W) for laser pulse 4 section 2"],
-            "ed_power_4_20": ["ed_power_4_20", "Float", -1.0, "The power (W) for laser pulse 4 section 20"],
-            "ed_power_4_3": ["ed_power_4_3", "Float", -1.0, "The power (W) for laser pulse 4 section 3"],
-            "ed_power_4_4": ["ed_power_4_4", "Float", -1.0, "The power (W) for laser pulse 4 section 4"],
-            "ed_power_4_5": ["ed_power_4_5", "Float", -1.0, "The power (W) for laser pulse 4 section 5"],
-            "ed_power_4_6": ["ed_power_4_6", "Float", -1.0, "The power (W) for laser pulse 4 section 6"],
-            "ed_power_4_7": ["ed_power_4_7", "Float", -1.0, "The power (W) for laser pulse 4 section 7"],
-            "ed_power_4_8": ["ed_power_4_8", "Float", -1.0, "The power (W) for laser pulse 4 section 8"],
-            "ed_power_4_9": ["ed_power_4_9", "Float", -1.0, "The power (W) for laser pulse 4 section 9"],
-            "ed_power_5_1": ["ed_power_5_1", "Float", -1.0, "The power (W) for laser pulse 5 section 1"],
-            "ed_power_5_10": ["ed_power_5_10", "Float", -1.0, "The power (W) for laser pulse 5 section 10"],
-            "ed_power_5_11": ["ed_power_5_11", "Float", -1.0, "The power (W) for laser pulse 5 section 11"],
-            "ed_power_5_12": ["ed_power_5_12", "Float", -1.0, "The power (W) for laser pulse 5 section 12"],
-            "ed_power_5_13": ["ed_power_5_13", "Float", -1.0, "The power (W) for laser pulse 5 section 13"],
-            "ed_power_5_14": ["ed_power_5_14", "Float", -1.0, "The power (W) for laser pulse 5 section 14"],
-            "ed_power_5_15": ["ed_power_5_15", "Float", -1.0, "The power (W) for laser pulse 5 section 15"],
-            "ed_power_5_16": ["ed_power_5_16", "Float", -1.0, "The power (W) for laser pulse 5 section 16"],
-            "ed_power_5_17": ["ed_power_5_17", "Float", -1.0, "The power (W) for laser pulse 5 section 17"],
-            "ed_power_5_18": ["ed_power_5_18", "Float", -1.0, "The power (W) for laser pulse 5 section 18"],
-            "ed_power_5_19": ["ed_power_5_19", "Float", -1.0, "The power (W) for laser pulse 5 section 19"],
-            "ed_power_5_2": ["ed_power_5_2", "Float", -1.0, "The power (W) for laser pulse 5 section 2"],
-            "ed_power_5_20": ["ed_power_5_20", "Float", -1.0, "The power (W) for laser pulse 5 section 20"],
-            "ed_power_5_3": ["ed_power_5_3", "Float", -1.0, "The power (W) for laser pulse 5 section 3"],
-            "ed_power_5_4": ["ed_power_5_4", "Float", -1.0, "The power (W) for laser pulse 5 section 4"],
-            "ed_power_5_5": ["ed_power_5_5", "Float", -1.0, "The power (W) for laser pulse 5 section 5"],
-            "ed_power_5_6": ["ed_power_5_6", "Float", -1.0, "The power (W) for laser pulse 5 section 6"],
-            "ed_power_5_7": ["ed_power_5_7", "Float", -1.0, "The power (W) for laser pulse 5 section 7"],
-            "ed_power_5_8": ["ed_power_5_8", "Float", -1.0, "The power (W) for laser pulse 5 section 8"],
-            "ed_power_5_9": ["ed_power_5_9", "Float", -1.0, "The power (W) for laser pulse 5 section 9"],
-            "ed_printBeams": ["ed_printBeams", "Boolean", "0", "Print details about each beam?"],
-            "ed_printMain": ["ed_printMain", "Boolean", "0", "Print details about the main laser energy depoition run?"],
-            "ed_printPulses": ["ed_printPulses", "Boolean", "0", "Print details about each pulse?"],
-            "ed_printRays": ["ed_printRays", "Boolean", "0", "Print details about each ray initially generated?"],
-            "ed_pulseNumber_1": ["ed_pulseNumber_1", "Integer", -9007199254740991, "The pulse number to use for beam 1"],
-            "ed_pulseNumber_2": ["ed_pulseNumber_2", "Integer", -9007199254740991, "The pulse number to use for beam 2"],
-            "ed_pulseNumber_3": ["ed_pulseNumber_3", "Integer", -9007199254740991, "The pulse number to use for beam 3"],
-            "ed_pulseNumber_4": ["ed_pulseNumber_4", "Integer", -9007199254740991, "The pulse number to use for beam 4"],
-            "ed_pulseNumber_5": ["ed_pulseNumber_5", "Integer", -9007199254740991, "The pulse number to use for beam 5"],
-            "ed_pulseNumber_6": ["ed_pulseNumber_6", "Integer", -9007199254740991, "The pulse number to use for beam 6"],
-            "ed_rayDeterminism": ["ed_rayDeterminism", "Boolean", "0", "If true, the Grid Unit will use the Sieve Algorithm to move the ray\nparticle."],
-            "ed_rayZeroPower": ["ed_rayZeroPower", "Float", 1e-06, "Below this value (erg/s), the ray is considered to have zero power"],
-            "ed_saveOutOfDomainRays": ["ed_saveOutOfDomainRays", "Boolean", "0", "Should the rays exiting the domain be saved (for diagnostics) ?"],
-            "ed_semiAxisMajorTorsionAngle_1": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 1"],
-            "ed_semiAxisMajorTorsionAngle_2": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 2"],
-            "ed_semiAxisMajorTorsionAngle_3": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 3"],
-            "ed_semiAxisMajorTorsionAngle_4": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 4"],
-            "ed_semiAxisMajorTorsionAngle_5": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 5"],
-            "ed_semiAxisMajorTorsionAngle_6": ["Major Semiaxis Torsion Angle", "Float", -1.7976931348623157e+308, "Major semiaxis/{x,y,z} axis rotation angle (in degrees) for beam 6"],
-            "ed_semiAxisMajorTorsionAxis_1": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam1"],
-            "ed_semiAxisMajorTorsionAxis_2": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam2"],
-            "ed_semiAxisMajorTorsionAxis_3": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam3"],
-            "ed_semiAxisMajorTorsionAxis_4": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam4"],
-            "ed_semiAxisMajorTorsionAxis_5": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam5"],
-            "ed_semiAxisMajorTorsionAxis_6": ["Major Semiaxis Torsion Axis", "LaserTorsionAxis", " ", "{x,y,z} axis to use for rotating major semiaxis for beam6"],
-            "ed_targetSemiAxisMajor_1": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 1"],
-            "ed_targetSemiAxisMajor_2": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 2"],
-            "ed_targetSemiAxisMajor_3": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 3"],
-            "ed_targetSemiAxisMajor_4": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 4"],
-            "ed_targetSemiAxisMajor_5": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 5"],
-            "ed_targetSemiAxisMajor_6": ["Major Target Semiaxis", "Float", -1.7976931348623157e+308, "Target major elliptical semiaxis length for beam 6"],
-            "ed_targetSemiAxisMinor_1": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 1"],
-            "ed_targetSemiAxisMinor_2": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 2"],
-            "ed_targetSemiAxisMinor_3": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 3"],
-            "ed_targetSemiAxisMinor_4": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 4"],
-            "ed_targetSemiAxisMinor_5": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 5"],
-            "ed_targetSemiAxisMinor_6": ["Minor Target Semiaxis", "Float", -1.7976931348623157e+308, "Target minor elliptical semiaxis length for beam 6"],
-            "ed_targetX_1": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 1"],
-            "ed_targetX_2": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 2"],
-            "ed_targetX_3": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 3"],
-            "ed_targetX_4": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 4"],
-            "ed_targetX_5": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 5"],
-            "ed_targetX_6": ["X Target", "Float", -1.7976931348623157e+308, "The x coordinate of the target for beam 6"],
-            "ed_targetY_1": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 1"],
-            "ed_targetY_2": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 2"],
-            "ed_targetY_3": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 3"],
-            "ed_targetY_4": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 4"],
-            "ed_targetY_5": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 5"],
-            "ed_targetY_6": ["Y Target", "Float", -1.7976931348623157e+308, "The y coordinate of the target for beam 6"],
-            "ed_targetZ_1": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 1"],
-            "ed_targetZ_2": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 2"],
-            "ed_targetZ_3": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 3"],
-            "ed_targetZ_4": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 4"],
-            "ed_targetZ_5": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 5"],
-            "ed_targetZ_6": ["Z Target", "Float", -1.7976931348623157e+308, "The z coordinate of the target for beam 6"],
-            "ed_time_1_1": ["Time Section 1", "Float", -1.0, "The time (s)  for laser pulse 1 section 1"],
-            "ed_time_1_10": ["Time Section 10", "Float", -1.0, "The time (s)  for laser pulse 1 section 10"],
-            "ed_time_1_11": ["Time Section 11", "Float", -1.0, "The time (s)  for laser pulse 1 section 11"],
-            "ed_time_1_12": ["Time Section 12", "Float", -1.0, "The time (s)  for laser pulse 1 section 12"],
-            "ed_time_1_13": ["Time Section 13", "Float", -1.0, "The time (s)  for laser pulse 1 section 13"],
-            "ed_time_1_14": ["Time Section 14", "Float", -1.0, "The time (s)  for laser pulse 1 section 14"],
-            "ed_time_1_15": ["Time Section 15", "Float", -1.0, "The time (s)  for laser pulse 1 section 15"],
-            "ed_time_1_16": ["Time Section 16", "Float", -1.0, "The time (s)  for laser pulse 1 section 16"],
-            "ed_time_1_17": ["Time Section 17", "Float", -1.0, "The time (s)  for laser pulse 1 section 17"],
-            "ed_time_1_18": ["Time Section 18", "Float", -1.0, "The time (s)  for laser pulse 1 section 18"],
-            "ed_time_1_19": ["Time Section 19", "Float", -1.0, "The time (s)  for laser pulse 1 section 19"],
-            "ed_time_1_2": ["Time Section 2", "Float", -1.0, "The time (s)  for laser pulse 1 section 2"],
-            "ed_time_1_20": ["Time Section 20", "Float", -1.0, "The time (s)  for laser pulse 1 section 20"],
-            "ed_time_1_3": ["Time Section 3", "Float", -1.0, "The time (s)  for laser pulse 1 section 3"],
-            "ed_time_1_4": ["Time Section 4", "Float", -1.0, "The time (s)  for laser pulse 1 section 4"],
-            "ed_time_1_5": ["Time Section 5", "Float", -1.0, "The time (s)  for laser pulse 1 section 5"],
-            "ed_time_1_6": ["Time Section 6", "Float", -1.0, "The time (s)  for laser pulse 1 section 6"],
-            "ed_time_1_7": ["Time Section 7", "Float", -1.0, "The time (s)  for laser pulse 1 section 7"],
-            "ed_time_1_8": ["Time Section 8", "Float", -1.0, "The time (s)  for laser pulse 1 section 8"],
-            "ed_time_1_9": ["Time Section 9", "Float", -1.0, "The time (s)  for laser pulse 1 section 9"],
-            "ed_time_2_1": ["ed_time_2_1", "Float", -1.0, "The time (s)  for laser pulse 2 section 1"],
-            "ed_time_2_10": ["ed_time_2_10", "Float", -1.0, "The time (s)  for laser pulse 2 section 10"],
-            "ed_time_2_11": ["ed_time_2_11", "Float", -1.0, "The time (s)  for laser pulse 2 section 11"],
-            "ed_time_2_12": ["ed_time_2_12", "Float", -1.0, "The time (s)  for laser pulse 2 section 12"],
-            "ed_time_2_13": ["ed_time_2_13", "Float", -1.0, "The time (s)  for laser pulse 2 section 13"],
-            "ed_time_2_14": ["ed_time_2_14", "Float", -1.0, "The time (s)  for laser pulse 2 section 14"],
-            "ed_time_2_15": ["ed_time_2_15", "Float", -1.0, "The time (s)  for laser pulse 2 section 15"],
-            "ed_time_2_16": ["ed_time_2_16", "Float", -1.0, "The time (s)  for laser pulse 2 section 16"],
-            "ed_time_2_17": ["ed_time_2_17", "Float", -1.0, "The time (s)  for laser pulse 2 section 17"],
-            "ed_time_2_18": ["ed_time_2_18", "Float", -1.0, "The time (s)  for laser pulse 2 section 18"],
-            "ed_time_2_19": ["ed_time_2_19", "Float", -1.0, "The time (s)  for laser pulse 2 section 19"],
-            "ed_time_2_2": ["ed_time_2_2", "Float", -1.0, "The time (s)  for laser pulse 2 section 2"],
-            "ed_time_2_20": ["ed_time_2_20", "Float", -1.0, "The time (s)  for laser pulse 2 section 20"],
-            "ed_time_2_3": ["ed_time_2_3", "Float", -1.0, "The time (s)  for laser pulse 2 section 3"],
-            "ed_time_2_4": ["ed_time_2_4", "Float", -1.0, "The time (s)  for laser pulse 2 section 4"],
-            "ed_time_2_5": ["ed_time_2_5", "Float", -1.0, "The time (s)  for laser pulse 2 section 5"],
-            "ed_time_2_6": ["ed_time_2_6", "Float", -1.0, "The time (s)  for laser pulse 2 section 6"],
-            "ed_time_2_7": ["ed_time_2_7", "Float", -1.0, "The time (s)  for laser pulse 2 section 7"],
-            "ed_time_2_8": ["ed_time_2_8", "Float", -1.0, "The time (s)  for laser pulse 2 section 8"],
-            "ed_time_2_9": ["ed_time_2_9", "Float", -1.0, "The time (s)  for laser pulse 2 section 9"],
-            "ed_time_3_1": ["ed_time_3_1", "Float", -1.0, "The time (s)  for laser pulse 3 section 1"],
-            "ed_time_3_10": ["ed_time_3_10", "Float", -1.0, "The time (s)  for laser pulse 3 section 10"],
-            "ed_time_3_11": ["ed_time_3_11", "Float", -1.0, "The time (s)  for laser pulse 3 section 11"],
-            "ed_time_3_12": ["ed_time_3_12", "Float", -1.0, "The time (s)  for laser pulse 3 section 12"],
-            "ed_time_3_13": ["ed_time_3_13", "Float", -1.0, "The time (s)  for laser pulse 3 section 13"],
-            "ed_time_3_14": ["ed_time_3_14", "Float", -1.0, "The time (s)  for laser pulse 3 section 14"],
-            "ed_time_3_15": ["ed_time_3_15", "Float", -1.0, "The time (s)  for laser pulse 3 section 15"],
-            "ed_time_3_16": ["ed_time_3_16", "Float", -1.0, "The time (s)  for laser pulse 3 section 16"],
-            "ed_time_3_17": ["ed_time_3_17", "Float", -1.0, "The time (s)  for laser pulse 3 section 17"],
-            "ed_time_3_18": ["ed_time_3_18", "Float", -1.0, "The time (s)  for laser pulse 3 section 18"],
-            "ed_time_3_19": ["ed_time_3_19", "Float", -1.0, "The time (s)  for laser pulse 3 section 19"],
-            "ed_time_3_2": ["ed_time_3_2", "Float", -1.0, "The time (s)  for laser pulse 3 section 2"],
-            "ed_time_3_20": ["ed_time_3_20", "Float", -1.0, "The time (s)  for laser pulse 3 section 20"],
-            "ed_time_3_3": ["ed_time_3_3", "Float", -1.0, "The time (s)  for laser pulse 3 section 3"],
-            "ed_time_3_4": ["ed_time_3_4", "Float", -1.0, "The time (s)  for laser pulse 3 section 4"],
-            "ed_time_3_5": ["ed_time_3_5", "Float", -1.0, "The time (s)  for laser pulse 3 section 5"],
-            "ed_time_3_6": ["ed_time_3_6", "Float", -1.0, "The time (s)  for laser pulse 3 section 6"],
-            "ed_time_3_7": ["ed_time_3_7", "Float", -1.0, "The time (s)  for laser pulse 3 section 7"],
-            "ed_time_3_8": ["ed_time_3_8", "Float", -1.0, "The time (s)  for laser pulse 3 section 8"],
-            "ed_time_3_9": ["ed_time_3_9", "Float", -1.0, "The time (s)  for laser pulse 3 section 9"],
-            "ed_time_4_1": ["ed_time_4_1", "Float", -1.0, "The time (s)  for laser pulse 4 section 1"],
-            "ed_time_4_10": ["ed_time_4_10", "Float", -1.0, "The time (s)  for laser pulse 4 section 10"],
-            "ed_time_4_11": ["ed_time_4_11", "Float", -1.0, "The time (s)  for laser pulse 4 section 11"],
-            "ed_time_4_12": ["ed_time_4_12", "Float", -1.0, "The time (s)  for laser pulse 4 section 12"],
-            "ed_time_4_13": ["ed_time_4_13", "Float", -1.0, "The time (s)  for laser pulse 4 section 13"],
-            "ed_time_4_14": ["ed_time_4_14", "Float", -1.0, "The time (s)  for laser pulse 4 section 14"],
-            "ed_time_4_15": ["ed_time_4_15", "Float", -1.0, "The time (s)  for laser pulse 4 section 15"],
-            "ed_time_4_16": ["ed_time_4_16", "Float", -1.0, "The time (s)  for laser pulse 4 section 16"],
-            "ed_time_4_17": ["ed_time_4_17", "Float", -1.0, "The time (s)  for laser pulse 4 section 17"],
-            "ed_time_4_18": ["ed_time_4_18", "Float", -1.0, "The time (s)  for laser pulse 4 section 18"],
-            "ed_time_4_19": ["ed_time_4_19", "Float", -1.0, "The time (s)  for laser pulse 4 section 19"],
-            "ed_time_4_2": ["ed_time_4_2", "Float", -1.0, "The time (s)  for laser pulse 4 section 2"],
-            "ed_time_4_20": ["ed_time_4_20", "Float", -1.0, "The time (s)  for laser pulse 4 section 20"],
-            "ed_time_4_3": ["ed_time_4_3", "Float", -1.0, "The time (s)  for laser pulse 4 section 3"],
-            "ed_time_4_4": ["ed_time_4_4", "Float", -1.0, "The time (s)  for laser pulse 4 section 4"],
-            "ed_time_4_5": ["ed_time_4_5", "Float", -1.0, "The time (s)  for laser pulse 4 section 5"],
-            "ed_time_4_6": ["ed_time_4_6", "Float", -1.0, "The time (s)  for laser pulse 4 section 6"],
-            "ed_time_4_7": ["ed_time_4_7", "Float", -1.0, "The time (s)  for laser pulse 4 section 7"],
-            "ed_time_4_8": ["ed_time_4_8", "Float", -1.0, "The time (s)  for laser pulse 4 section 8"],
-            "ed_time_4_9": ["ed_time_4_9", "Float", -1.0, "The time (s)  for laser pulse 4 section 9"],
-            "ed_time_5_1": ["ed_time_5_1", "Float", -1.0, "The time (s)  for laser pulse 5 section 1"],
-            "ed_time_5_10": ["ed_time_5_10", "Float", -1.0, "The time (s)  for laser pulse 5 section 10"],
-            "ed_time_5_11": ["ed_time_5_11", "Float", -1.0, "The time (s)  for laser pulse 5 section 11"],
-            "ed_time_5_12": ["ed_time_5_12", "Float", -1.0, "The time (s)  for laser pulse 5 section 12"],
-            "ed_time_5_13": ["ed_time_5_13", "Float", -1.0, "The time (s)  for laser pulse 5 section 13"],
-            "ed_time_5_14": ["ed_time_5_14", "Float", -1.0, "The time (s)  for laser pulse 5 section 14"],
-            "ed_time_5_15": ["ed_time_5_15", "Float", -1.0, "The time (s)  for laser pulse 5 section 15"],
-            "ed_time_5_16": ["ed_time_5_16", "Float", -1.0, "The time (s)  for laser pulse 5 section 16"],
-            "ed_time_5_17": ["ed_time_5_17", "Float", -1.0, "The time (s)  for laser pulse 5 section 17"],
-            "ed_time_5_18": ["ed_time_5_18", "Float", -1.0, "The time (s)  for laser pulse 5 section 18"],
-            "ed_time_5_19": ["ed_time_5_19", "Float", -1.0, "The time (s)  for laser pulse 5 section 19"],
-            "ed_time_5_2": ["ed_time_5_2", "Float", -1.0, "The time (s)  for laser pulse 5 section 2"],
-            "ed_time_5_20": ["ed_time_5_20", "Float", -1.0, "The time (s)  for laser pulse 5 section 20"],
-            "ed_time_5_3": ["ed_time_5_3", "Float", -1.0, "The time (s)  for laser pulse 5 section 3"],
-            "ed_time_5_4": ["ed_time_5_4", "Float", -1.0, "The time (s)  for laser pulse 5 section 4"],
-            "ed_time_5_5": ["ed_time_5_5", "Float", -1.0, "The time (s)  for laser pulse 5 section 5"],
-            "ed_time_5_6": ["ed_time_5_6", "Float", -1.0, "The time (s)  for laser pulse 5 section 6"],
-            "ed_time_5_7": ["ed_time_5_7", "Float", -1.0, "The time (s)  for laser pulse 5 section 7"],
-            "ed_time_5_8": ["ed_time_5_8", "Float", -1.0, "The time (s)  for laser pulse 5 section 8"],
-            "ed_time_5_9": ["ed_time_5_9", "Float", -1.0, "The time (s)  for laser pulse 5 section 9"],
-            "ed_wavelength_1": ["ed_wavelength_1", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 1"],
-            "ed_wavelength_2": ["ed_wavelength_2", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 2"],
-            "ed_wavelength_3": ["ed_wavelength_3", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 3"],
-            "ed_wavelength_4": ["ed_wavelength_4", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 4"],
-            "ed_wavelength_5": ["ed_wavelength_5", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 5"],
-            "ed_wavelength_6": ["ed_wavelength_6", "Float", -1.7976931348623157e+308, "The wave length [in microns] of beam 6"],
-            "threadRayTrace": ["threadRayTrace", "Boolean", "0", "Use threading when tracing the rays through each block?"],
-            "useEnergyDeposition": ["useEnergyDeposition", "Boolean", "1", "Use Laser energy deposition?"]
+        "physics:Hydro:unsplit:MHD_StaggeredMesh": {
+            "E_modification": ["E_modification", "Boolean", "1", "Switch for modified electric fields calculation from flux"],
+            "E_upwind": ["E_upwind", "Boolean", "0", "Switch for upwind update for induction equations"],
+            "ForceHydroLimit": ["ForceHydroLimit", "Boolean", "0", "Switch to force B=0 limit, i.e., the solver will not update B fields"],
+            "conserveAngField": ["conserveAngField", "Boolean", "0", "Turn on/off alternate formulation for toroidal induction"],
+            "energyFix": ["energyFix", "Boolean", "0", "Switch for an energy correction for CT scheme"],
+            "hallVelocity": ["hallVelocity", "Boolean", "0", "Switch to use u_ele = u - J/(ne qe)"],
+            "hy_bier1TA": ["hy_bier1TA", "Float", -1.0, "Atomic number to use for 1T Biermann Battery term"],
+            "hy_bier1TZ": ["hy_bier1TZ", "Float", -1.0, "Ionization number to use for 1T Biermann Battery term"],
+            "hy_biermannCoef": ["hy_biermannCoef", "Float", 1.0, "Coefficient of Biermann Battery flux"],
+            "hy_biermannSource": ["hy_biermannSource", "Boolean", "0", "Switch to implement battery term as an external source"],
+            "killdivb": ["killdivb", "Boolean", "1", "Switch for maintaing solenoidal field"],
+            "killdivb8w": ["killdivb8w", "Boolean", "0", "Switch for maintaing solenoidal field using Powell's 8wave"],
+            "prolMethod": ["prolMethod", "String", "INJECTION_PROL", "Injection or Balsara's method in prolongation"],
+            "use_Biermann": ["use_Biermann", "Boolean", "0", "Switch to add the Battery term for B-field generation"],
+            "use_Biermann1T": ["use_Biermann1T", "Boolean", "0", "Switch to add the 1T Battery term for B-field generation"]
         },
         "physics:sourceTerms:EnergyDeposition:Laser:LaserIO": {
             "ed_laserIOMaxNumberOfPositions": ["ed_laserIOMaxNumberOfPositions", "Integer", -1, "Maximum number of positions to store for each IO ray"],
@@ -1746,35 +1285,10 @@
             "fl_fsConstFlameSpeed": ["Constant Flame Speed", "Float", 1.0, "fl_fsConstFlameSpeed"],
             "fl_fsConstFlameWidth": ["Constant Flame Width", "Float", 1.0, "fl_fsConstFlameWidth"]
         },
-        "physics:sourceTerms:Heat": {
-            "useHeat": ["useHeat", "Boolean", "0", "runtime control for turning the heat on or off"]
-        },
-        "physics:sourceTerms:Heatexchange": {
-            "hx_logLevel": ["hx_logLevel", "Integer", 700, "controls the level of logging for some conditions. See Heatexchange.h\nfor relevant HX_LOGLEVEL_* definitions.", 0],
-            "useHeatexchange": ["useHeatexchange", "Boolean", "1"]
-        },
         "physics:sourceTerms:Heatexchange:Spitzer": {
             "hx_dtFactor": ["hx_dtFactor", "Float", 0.5, "", 0.0],
             "hx_ieTimeCoef": ["hx_ieTimeCoef", "Float", 1.0, "Constant coefficient for scaling ion/ele coupling time", 0.0],
             "hx_relTol": ["hx_relTol", "Float", -1.0, "relative tolerance for temperature errors introduced by HeatExchange.\nThis runtime parameter affects the time step computed by\nHeatexchange_computeDt. Basically, if the max (abs) temperature\nadjustment that would be introduced in any nonzero component in any cell\nis less than hx_relTol, then the time step limit is relaxed. Set to a\nnegative value to inherite the value of runtime parameter eos_tolerance."]
-        },
-        "physics:sourceTerms:Ionize": {
-            "useIonize": ["useIonize", "Boolean", "0", "Whether Ionize calculations should be performed."]
-        },
-        "physics:sourceTerms:Polytrope": {
-            "usePolytrope": ["usePolytrope", "Boolean", "0", "Runtime switch for turning the polytropic eos on/off"]
-        },
-        "physics:sourceTerms:PrimordialChemistry": {
-            "usePrimordialChemistry": ["usePrimordialChemistry", "Boolean", "0"]
-        },
-        "physics:sourceTerms:Stir": {
-            "useStir": ["useStir", "Constant", "FALSE", "Runtime switch for turning stirring on/off"]
-        },
-        "physics:sourceTerms:Turb": {
-            "useTurb": ["useTurb", "Boolean", "1", "flags whether the Turbulence unit is being used"]
-        },
-        "physics:utilities:PlasmaState": {
-            "usePlasmaState": ["usePlasmaState", "Constant", "FALSE", "flags whether the PlasmaState unit is being used at all"]
         }
     },
     "view": {
@@ -1796,11 +1310,19 @@
                 "notes"
             ]
         },
+        "simulation": {
+            "title": "FLASH Simulation",
+            "advanced": [
+                "name",
+                "flashType"
+            ]
+        },
         "Grid": {
             "title": "Grid",
             "basic": [
                 ["Main", [
                     "geometry",
+                    "eosModeInit",
                     "eosMode",
                     [
                         ["X", [
@@ -1854,53 +1376,6 @@
             ],
             "advanced": [
                 "eosMode"
-            ]
-        },
-        "SimulationSettings": {
-            "title": "Simulation Settings",
-            "basic": [
-                ["FLASHCap", [
-                    "Simulation:CapExample.sim_zminWall",
-                    [
-                        ["Fill", [
-                            "Simulation:CapExample.sim_eosFill",
-                            "Simulation:CapExample.sim_rhoFill",
-                            "Simulation:CapExample.sim_teleFill",
-                            "Simulation:CapExample.sim_tionFill",
-                            "Simulation:CapExample.sim_tradFill"
-                        ]],
-                        ["Wall", [
-                            "Simulation:CapExample.sim_eosWall",
-                            "Simulation:CapExample.sim_rhoWall",
-                            "Simulation:CapExample.sim_teleWall",
-                            "Simulation:CapExample.sim_tionWall",
-                            "Simulation:CapExample.sim_tradWall"
-                        ]]
-                    ]
-                ]],
-                ["Multispecies", [
-                    [
-                        ["Fill", [
-                            "Multispecies.ms_fillA",
-                            "Multispecies.ms_fillZ",
-                            "Multispecies.eos_fillEosType",
-                            "Multispecies.eos_fillSubType",
-                            "Multispecies.eos_fillTableFile",
-                            "Multispecies.ms_fillZMin"
-                        ]],
-                        ["Wall", [
-                            "Multispecies.ms_wallA",
-                            "Multispecies.ms_wallZ",
-                            "Multispecies.eos_wallEosType",
-                            "Multispecies.eos_wallSubType",
-                            "Multispecies.eos_wallTableFile",
-                            "Multispecies.ms_wallZMin"
-                        ]]
-                    ]
-                ]]
-            ],
-            "advanced": [
-                "Simulation:CapExample.sim_eosFill"
             ]
         },
         "physics:RadTrans": {
@@ -1987,6 +1462,89 @@
             "advanced": [
                 "useDiffuse"
             ]
+         },
+        "Driver": {
+            "title": "Simulation Driver",
+            "basic": [
+                "tmax",
+                "dtinit",
+                "IO.plotFileIntervalTime"
+            ],
+            "advanced": [
+                "allowDtSTSDominate"
+            ]
+        },
+        "Simulation:magnetoHD:CapLaser": {
+            "title": "CapLaser Settings",
+            "basic": [
+                ["Main", [
+                    "sim_zminWall",
+                    [
+                        ["Fill", [
+                            "sim_eosFill",
+                            "sim_rhoFill",
+                            "sim_teleFill",
+                            "sim_tionFill",
+                            "sim_tradFill"
+                        ]],
+                        ["Wall", [
+                            "sim_eosWall",
+                            "sim_rhoWall",
+                            "sim_teleWall",
+                            "sim_tionWall",
+                            "sim_tradWall"
+                        ]]
+                    ]
+                ]],
+                ["Multispecies", [
+                    [
+                        ["Fill", [
+                            "Multispecies.ms_fillA",
+                            "Multispecies.ms_fillZ",
+                            "Multispecies.eos_fillEosType",
+                            "Multispecies.eos_fillSubType",
+                            "Multispecies.eos_fillTableFile",
+                            "Multispecies.ms_fillZMin"
+                        ]],
+                        ["Wall", [
+                            "Multispecies.ms_wallA",
+                            "Multispecies.ms_wallZ",
+                            "Multispecies.eos_wallEosType",
+                            "Multispecies.eos_wallSubType",
+                            "Multispecies.eos_wallTableFile",
+                            "Multispecies.ms_wallZMin"
+                        ]]
+                    ]
+                ]]
+            ],
+            "advanced": [
+                "sim_eosFill"
+            ]
+        },
+        "Simulation:RTFlame": {
+            "title": "RTFlame Settings",
+            "basic": [
+                "flame_initial_position",
+                "dens_unburned",
+                "temp_unburned",
+                [
+                    ["Amplitude [cm]", [
+                        "spert_ampl1",
+                        "spert_ampl2"
+                    ]],
+                    ["Wavelength [cm]", [
+                        "spert_wl1",
+                        "spert_wl2"
+                    ]],
+                    ["Phase [rad]", [
+                        "spert_phase1",
+                        "spert_phase2"
+                    ]]
+                ]
+            ],
+            "advanced": [
+                "dens_unburned"
+            ]
         },
         "physics:materialProperties": {
             "title": "Material Properties",
@@ -2054,7 +1612,6 @@
                         ]]
                     ],
                     "ed_lensSemiAxisMajor_1",
-
                     "ed_crossSectionFunctionType_1",
                     "ed_numberOfRays_1",
                     "ed_pulseNumber_1",
@@ -2079,42 +1636,6 @@
             ],
             "advanced": [
                 "useEnergyDeposition"
-            ]
-        },
-        "Driver": {
-            "title": "Simulation Driver",
-            "basic": [
-                "tmax",
-                "dtinit",
-                "IO.plotFileIntervalTime"
-            ],
-            "advanced": [
-                "allowDtSTSDominate"
-            ]
-        },
-        "Simulation:RTFlame": {
-            "title": "RTFlame Settings",
-            "basic": [
-                "flame_initial_position",
-                "dens_unburned",
-                "temp_unburned",
-                [
-                    ["Amplitude [cm]", [
-                        "spert_ampl1",
-                        "spert_ampl2"
-                    ]],
-                    ["Wavelength [cm]", [
-                        "spert_wl1",
-                        "spert_wl2"
-                    ]],
-                    ["Phase [rad]", [
-                        "spert_phase1",
-                        "spert_phase2"
-                    ]]
-                ]
-            ],
-            "advanced": [
-                "dens_unburned"
             ]
         },
         "physics:sourceTerms:Flame": {
