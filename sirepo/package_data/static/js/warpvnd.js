@@ -46,7 +46,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
             }
             $.each(m, function(fieldName, value) {
                 var field = appState.optFieldName(modelName, fieldName, m);
-                if ((appState.models.optimizer.enabledFields || {})[field]) {
+                if (appState.models.optimizer.enabledFields[field]) {
                     var label = optFloatFields[appState.optFieldName(modelName, fieldName)];
                     optFields.push({
                         field: appState.optFieldName(modelName, fieldName, m),
@@ -68,7 +68,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
                     var m = appState.models[modelName];
                     var field = appState.optFieldName(modelName, fieldName);
                     optFloatFields[field] = fieldInfo[0];
-                    if ((appState.models.optimizer.enabledFields || {})[field]) {
+                    if (appState.models.optimizer.enabledFields[field]) {
                         optFields.push({
                             field: field,
                             label: fieldInfo[0],
@@ -256,7 +256,7 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
                 appState.models.simulationGrid.plate_spacing = Math.max(appState.models.simulationGrid.plate_spacing, t.zLength);
                 appState.models.simulationGrid.channel_height = Math.max(appState.models.simulationGrid.channel_height, t.xLength);
                 appState.models.simulationGrid.channel_width = Math.max(appState.models.simulationGrid.channel_width, t.yLength);
-                appState.models['stl'] = t;
+                appState.models.stl = t;
                 appState.saveChanges(['stl', 'simulationGrid'], function () {
                     var c = {
                         id: appState.maxId(appState.models.conductors) + 1,
@@ -300,21 +300,7 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
 
     //TODO(mvk): validate sizing
     function plateSpacingValidator() {
-        var iTypes = importedConductorTypes();
-        if(! iTypes.length) {
-            return true;
-        }
-        var isValid = true;
-        iTypes.forEach(function (type) {
-            var cond = appState.models.conductors.filter(function (c) {
-                c.conductorTypeId === type.id;
-            })[0];
-            if(! cond) {
-                return;
-            }
-            isValid = isValid && appState.models.simulationGrid.plate_spacing > type.zLength;
-        });
-        return isValid;
+        return true;
     }
 
     function setFieldState() {
@@ -1613,11 +1599,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             };
 
             $scope.isDomainTiled = false;
-            //$scope.isDomainTiled = function() {
-            //    return ;
-            //};
 
-           $scope.resize = function() {
+            $scope.resize = function() {
                 if (select().empty()) {
                     return;
                 }
@@ -1775,14 +1758,13 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
                 });
                 var list = [];
                 var isBoundedField = {};
-                var fields = appState.models.optimizer.fields || []
-                fields.forEach(function(f) {
+                appState.models.optimizer.fields.forEach(function(f) {
                     if (isField[f.field]) {
                         list.push(f);
                         isBoundedField[f.field] = true;
                     }
                 });
-                if (fields.length != list.length) {
+                if (appState.models.optimizer.fields.length != list.length) {
                     appState.models.optimizer.fields = list;
                 }
                 return isBoundedField;
@@ -1803,13 +1785,12 @@ SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndS
                 });
 
                 var list = [];
-                var constraints = appState.models.optimizer.constraints || [];
-                constraints.forEach(function(c) {
+                appState.models.optimizer.constraints.forEach(function(c) {
                     if (isBoundedField[c[0]] && ! isBoundedField[c[2]]) {
                         list.push(c);
                     }
                 });
-                if (constraints.length != list.length) {
+                if (appState.models.optimizer.constraints.length != list.length) {
                     appState.models.optimizer.constraints = list;
                 }
             }
@@ -2111,7 +2092,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                //srdbg('impact data', json);
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
                 var smallDiff = (xdom[1] - xdom[0]) / 200.0;
@@ -2496,12 +2476,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                             edgeVisibility: true,
                         });
                 });
-                //var pr = {
-                //    x: [0, xfactor * domain.width],
-                //    y: [-domain.height / 2.0, domain.height / 2.0],
-                //    z: [-domain.depth / 2.0, domain.depth / 2.0],
-                //};
-                //srdbg('point ranges', pr);
                 return {
                     x: [0, xfactor * domain.width],
                     y: [-domain.height / 2.0, domain.height / 2.0],
@@ -2597,7 +2571,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     },
                         showLoadProgress
                 ).catch(function (e) {
-                    //srdbg('CAUGHT BAD ON LOAD', e);
                     $scope.parentController.isWaitingForSTL = false;
                     errorService.alertText(e);
                 });
@@ -2606,11 +2579,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             function setupConductor(reader, conductor, type) {
                 var bounds = reader.getOutputData().getBounds();
-                //srdbg('stl bounds', bounds);
                 var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
                 var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
                 var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
-                //srdbg('offsets', xOffset, yOffset);
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                 var a = vtk.Rendering.Core.vtkActor.newInstance();
                 var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
@@ -2635,7 +2606,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             function refresh() {
                 removeActors();
                 var pointRanges = addConductors();
-                //srdbg('refresh', pointRanges);
 
                 addPlane(pointRanges, 0, zeroVoltsColor);
                 addPlane(pointRanges, 1, voltsColor);

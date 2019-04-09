@@ -2390,7 +2390,6 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
                     return;
                 }
                 validator(file).then(function (ok) {
-                    //scope.url = URL.createObjectURL(file);
                     setModel(ok? file : null);
                 });
             });
@@ -2487,7 +2486,7 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
             }
             function isChecked() {
                 if (appState.isLoaded() && $scope.model) {
-                    return (appState.models.optimizer.enabledFields || {})[checkField()];
+                    return appState.models.optimizer.enabledFields[checkField()];
                 }
                 return false;
             }

@@ -19,7 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
-import werkzeug
+
 
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
@@ -467,7 +467,6 @@ def _extract_field(field, data, data_file):
 
 def _extract_impact_density(run_dir, data):
     plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
-    #pkdp('!PLOT INFO {}', plot_info)
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
@@ -477,14 +476,7 @@ def _extract_impact_density(run_dir, data):
     width = 0
 
     dx = plot_info['dx']
-    dy = 0
     dz = plot_info['dz']
-
-    if _is_3D(data):
-        dy = 0 #plot_info['dy']
-        width = _meters(grid.channel_width)
-
-    #pkdp('!PLOT DELTAS {}/{}/{}', dx, dy, dx)
     gated_ids = plot_info['gated_ids']
     lines = []
 
@@ -508,11 +500,8 @@ def _extract_impact_density(run_dir, data):
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
         'y_range': [-radius, radius],
-        'z_range': [-width / 2., width / 2.],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
-        'z_label': 'y [m]',
-        'density': plot_info['density'],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],

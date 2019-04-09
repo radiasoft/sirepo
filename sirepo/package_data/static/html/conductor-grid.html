@@ -43,10 +43,6 @@
             </g>
             <g data-ng-show="isDomainTiled">
               <svg data-ng-attr-width="{{ 3 * tileInsetSize().width }}" data-ng-attr-height="{{ 3 * tileInsetSize().height }}">
-                  <!--
-                  <text class="focus-text" x="10" y="10">X</text>
-                  <text class="focus-text" x="10" data-ng-attr-y="{{ 3 * tileInsetSize().height }}">Y</text>
-                  -->
                   <g id="tile-master" data-ng-attr-transform="translate({{ tileInsetOffset().x }}, {{ tileInsetSize().height }})">
                   <rect id="tile-center" class="warpvnd-inset-tile"  ng-attr-width="{{ tileInsetSize().width }}" ng-attr-height="{{ tileInsetSize().height }}"></rect>
                   </g>
@@ -61,6 +57,5 @@
   </div>
 </div>
 <div data-ng-if="warpvndService.is3D() && is3dPreview">
- <!--<div style="background-color: rgba(0, 0, 0, 0.5); position: absolute; width: {{ width }}px; height: {{ height }}px;" class="lead" data-ng-show="source.isWaitoingForSTL"><img src="/static/img/sirepo_animated.gif" /></div>-->
  <div data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
 </div>
