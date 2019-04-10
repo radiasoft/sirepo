@@ -812,6 +812,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
             $scope.is3dPreview = false;
+            $scope.isDomainTiled = appState.models.conductorGridReport.tileDomain;
             $scope.tileOpacity = 0.6;
             $scope.tileBoundaryThresholdPct = 0.05;
             $scope.conductorNearBoundary = false;
@@ -1117,17 +1118,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             dim: dim,
                         });
                         var grid = appState.models.simulationGrid;
-                        var y0 = - toMicron(grid[info.heightField]) / 2;
-                        var y1 = toMicron(grid[info.heightField]) / 2;
-                        var dy1 = y - y0;
-                        var dy2 = y1 - (y + h);
-                        var t = 0.05 * (y1 - y0);
-                        //srdbg(dim, 'bottom', y0, 'y', y, 'y+h', y+h, 'top', y1, 'dy1', dy1, 'dy2', dy2, 't', t);
-                        //srdbg(dim, 'near bottom?', dy1 < t, 'near top?', dy2 < t);
-                        //$scope.conductorNearBoundary = $scope.conductorNearBoundary || dy1 < t || dy2 < t;
-                        //var ny = y - appState.models.simulationGrid.channel_height < thresholds.y || y + h > appState.models.simulationGrid.channel_height;
-                        //$scope.conductorNearBoundary = $scope.conductorNearBoundary || ny;
-                        //srdbg(cpi, 'COND NeAR?', ny, y, thresholds.y);
+                        var dy = toMicron(grid[info.heightField]);
+                        var y0 = -dy / 2;
+                        var y1 = dy / 2;
+                        var dy1 = y1 - y;
+                        var dy2 = (y - h) - y0;
+                        var t = 0.05 * dy;
+                        $scope.conductorNearBoundary = $scope.conductorNearBoundary || dy1 < t || dy2 < t;
                     });
                 var ds = d3.select(info.viewportClass).selectAll('.warpvnd-shape')
                     .data(shapes);
@@ -1153,6 +1150,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawShapes() {
+                $scope.conductorNearBoundary = false;
                 var typeMap = warpvndService.conductorTypeMap();
                 drawConductors(typeMap, 'x');
                 if (warpvndService.is3D()) {
@@ -1506,6 +1504,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     });
             }
 
+            $scope.allInsetSize = function() {
+                return {
+                    width: 3 * $scope.tileInsetSize().width,
+                    height: 3 * $scope.tileInsetSize().height,
+                };
+            };
+
             $scope.destroy = function() {
                 if (zoom) {
                     zoom.on('zoom', null);
@@ -1542,47 +1547,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
             };
 
-            $scope.plotHeight = function() {
-                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom + zPanelHeight();
-                return ph;
-            };
-
-            $scope.plotOffset = function() {
-                return $scope.height + $scope.tileOffset();
-            };
-
-            $scope.tileInsetSize = function() {
-                var w = 0;
-                var h = 0;
-                if($scope.isDomainTiled) {
-                    w = insetWidthPct * $scope.width;
-                    var grid = appState.models.simulationGrid;
-                    h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
-                }
-                return {
-                    width: w,
-                    height: h
-                };
-            };
-
-            $scope.tileInsetOffset = function() {
-                return {
-                    x: warpvndService.is3D() ? $scope.tileInsetSize().width : 0,
-                    y: 0
-                };
-            };
-
-            $scope.allInsetSize = function() {
-                return {
-                    width: 3 * $scope.tileInsetSize().width,
-                    height: 3 * $scope.tileInsetSize().height,
-                };
-            };
-
-            $scope.tileOffset = function() {
-                return $scope.isDomainTiled ? insetMargin + $scope.allInsetSize().height : 0;
-            };
-
             $scope.init = function() {
                 if (! appState.isLoaded()) {
                     appState.whenModelsLoaded($scope, $scope.init);
@@ -1615,13 +1579,46 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 replot();
             };
 
-            $scope.isDomainTiled = false;
+           $scope.plotHeight = function() {
+                var ph = $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom + zPanelHeight();
+                return ph;
+            };
+
+            $scope.plotOffset = function() {
+                return $scope.height + $scope.tileOffset();
+            };
+
 
             $scope.resize = function() {
                 if (select().empty()) {
                     return;
                 }
                 refresh();
+            };
+
+            $scope.tileInsetSize = function() {
+                var w = 0;
+                var h = 0;
+                if($scope.isDomainTiled) {
+                    w = insetWidthPct * $scope.width;
+                    var grid = appState.models.simulationGrid;
+                    h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
+                }
+                return {
+                    width: w,
+                    height: h
+                };
+            };
+
+            $scope.tileInsetOffset = function() {
+                return {
+                    x: warpvndService.is3D() ? $scope.tileInsetSize().width : 0,
+                    y: 0
+                };
+            };
+
+            $scope.tileOffset = function() {
+                return $scope.isDomainTiled ? insetMargin + $scope.allInsetSize().height : 0;
             };
 
             $scope.toggle3dPreview = function() {
@@ -1632,7 +1629,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             $scope.toggleTiledDomain = function() {
                 $scope.isDomainTiled = ! $scope.isDomainTiled;
-                refresh();
+                appState.models.conductorGridReport.tileDomain = $scope.isDomainTiled ? 1 : 0;
+                //appState.saveQuietly('conductorGridReport');
+                appState.saveChanges($scope.modelName);
+                //refresh();
             };
 
             appState.whenModelsLoaded($scope, function() {

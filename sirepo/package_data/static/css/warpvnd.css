@@ -5,7 +5,7 @@
   fill: white;
 }
 .warpvnd-inset-tile-warning {
-  stroke: orange;
+  stroke: red;
 }
 .warpvnd-plate {
   stroke: rgb(228, 176, 95);
