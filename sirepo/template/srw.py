@@ -1548,7 +1548,18 @@ def _generate_srw_main(data, plot_reports):
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
     if plot_reports or not _is_background_report(report):
-        content.append('srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)')
+        #TODO(pjm): work-around for #1593
+        content.append('mag = None')
+        content.append("if v.rs_type == 'm':")
+        for line in (
+                'mag = srwlib.SRWLMagFldC()',
+                'mag.arXc.append(0)',
+                'mag.arYc.append(0)',
+                'mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))',
+                'mag.arZc.append(v.mp_zc)',
+        ):
+            content.append('    {}'.format(line))
+        content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
     return '\n'.join(['    {}'.format(x) for x in content])
 
 

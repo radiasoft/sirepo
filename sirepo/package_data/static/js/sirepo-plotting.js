@@ -2953,7 +2953,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
-                    var strokeWidth = 2.0;
+                    var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
@@ -2974,7 +2974,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .datum(plot.points);
                     }
                     if(plot._parent) {
-                        strokeWidth = 1.0;
                         var parent = plots.filter(function (p, j) {
                             return j !== i && p.label === plot._parent;
                         })[0];

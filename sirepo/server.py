@@ -368,6 +368,7 @@ def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.default_data(sim_type)
+    #TODO(pjm): update fields from schema values across new_simulation_data values
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
     if 'notes' in new_simulation_data:
