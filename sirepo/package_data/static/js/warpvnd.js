@@ -812,7 +812,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.isClientOnly = true;
             $scope.source = panelState.findParentAttribute($scope, 'source');
             $scope.is3dPreview = false;
-            $scope.isDomainTiled = appState.models.conductorGridReport.tileDomain;
             $scope.tileOpacity = 0.6;
             $scope.tileBoundaryThresholdPct = 0.05;
             $scope.conductorNearBoundary = false;
@@ -1629,10 +1628,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             $scope.toggleTiledDomain = function() {
                 $scope.isDomainTiled = ! $scope.isDomainTiled;
-                appState.models.conductorGridReport.tileDomain = $scope.isDomainTiled ? 1 : 0;
-                //appState.saveQuietly('conductorGridReport');
-                appState.saveChanges($scope.modelName);
-                //refresh();
+                refresh();
             };
 
             appState.whenModelsLoaded($scope, function() {
