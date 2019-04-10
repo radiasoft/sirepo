@@ -814,6 +814,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.is3dPreview = false;
             $scope.tileOpacity = 0.6;
             $scope.tileBoundaryThresholdPct = 0.05;
+            $scope.conductorNearBoundary = false;
 
             $scope.zMargin = function () {
                 var xl = select('.x-axis-label');
@@ -1092,26 +1093,42 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function drawConductors(typeMap, dim) {
                 var info = plotInfoForDimension(dim);
+                //srdbg('grid', appState.models.simulationGrid, info);
                 var shapes = [];
                 appState.models.conductors
                     .filter(function (c) {
                         return warpvndService.getConductorType(c) === 'box';
-                    }).forEach(function(conductorPosition) {
-                    var conductorType = typeMap[conductorPosition.conductorTypeId];
-                    var w = toMicron(conductorType.zLength);
-                    var h = toMicron(conductorType[info.lengthField]);
-                    shapes.push({
-                        x: toMicron(conductorPosition.zCenter) - w / 2,
-                        y: toMicron(conductorPosition[info.centerField]) + h / 2,
-                        plane: toMicron(conductorPosition.yCenter),
-                        width: w,
-                        height: h,
-                        depth: toMicron(conductorType.yLength),
-                        id: conductorPosition.id,
-                        conductorType: conductorType,
-                        dim: dim,
+                    }).forEach(function(conductorPosition, cpi) {
+                        var conductorType = typeMap[conductorPosition.conductorTypeId];
+                        var w = toMicron(conductorType.zLength);
+                        var h = toMicron(conductorType[info.lengthField]);
+                        var d = toMicron(conductorType.yLength);
+                        var x = toMicron(conductorPosition.zCenter) - w / 2;
+                        var y = toMicron(conductorPosition[info.centerField]) + h / 2;
+                        shapes.push({
+                            x: x,
+                            y: y,
+                            plane: toMicron(conductorPosition.yCenter),
+                            width: w,
+                            height: h,
+                            depth: d,
+                            id: conductorPosition.id,
+                            conductorType: conductorType,
+                            dim: dim,
+                        });
+                        var grid = appState.models.simulationGrid;
+                        var y0 = - toMicron(grid[info.heightField]) / 2;
+                        var y1 = toMicron(grid[info.heightField]) / 2;
+                        var dy1 = y - y0;
+                        var dy2 = y1 - (y + h);
+                        var t = 0.05 * (y1 - y0);
+                        //srdbg(dim, 'bottom', y0, 'y', y, 'y+h', y+h, 'top', y1, 'dy1', dy1, 'dy2', dy2, 't', t);
+                        //srdbg(dim, 'near bottom?', dy1 < t, 'near top?', dy2 < t);
+                        //$scope.conductorNearBoundary = $scope.conductorNearBoundary || dy1 < t || dy2 < t;
+                        //var ny = y - appState.models.simulationGrid.channel_height < thresholds.y || y + h > appState.models.simulationGrid.channel_height;
+                        //$scope.conductorNearBoundary = $scope.conductorNearBoundary || ny;
+                        //srdbg(cpi, 'COND NeAR?', ny, y, thresholds.y);
                     });
-                });
                 var ds = d3.select(info.viewportClass).selectAll('.warpvnd-shape')
                     .data(shapes);
                 ds.exit().remove();
