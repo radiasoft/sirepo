@@ -19,6 +19,8 @@ def run(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         if data['report'] == 'fitReport':
             res = template.get_fit(data)
+        if data['report'] == 'fftReport':
+            res = template.get_fft(data)
         simulation_db.write_result(res)
 
 def run_background(cfg_dir):

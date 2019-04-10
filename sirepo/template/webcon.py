@@ -61,6 +61,45 @@ def get_data_file(run_dir, model, frame, options=None):
     assert False, 'not implemented'
 
 
+def get_fft(data):
+
+    import scipy.fftpack
+
+    fft_in = _analysis_data_file(data)
+    # take from fit report in short term
+    col1 = int(data.models.fitReport.x)
+    col2 = int(data.models.fitReport.y)
+
+    t_vals, y_vals = np.loadtxt(fft_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
+    col_info = _column_info(fft_in)
+
+    fft_out = scipy.fftpack.fft(y_vals)
+    N = len(t_vals)
+    T = np.mean(np.diff(t_vals))
+    w = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
+    y = 2.0 / N * np.abs(fft_out[0:N // 2])
+
+    plots = [
+        {
+            'points': (y * col_info['scale'][1]).tolist(),
+            'label': 'fft',
+        },
+    ]
+
+    #TODO(mvk): figure out appropriate label from input
+    return template_common.parameter_plot(w.tolist(), plots, data, {
+        'title': '',
+        'y_label': _label(col_info, 1),
+        'x_label': 'freq[s-1]',
+        #'x_label': _label(col_info, 0) + '^-1',
+        #'summaryData': {
+        #    'p_vals': param_vals.tolist(),
+        #    'p_errs': param_sigmas.tolist(),
+        #},
+        #'latex_label': latex_label
+    })
+
+
 def get_fit(data):
     fit_in = _analysis_data_file(data)
     col1 = int(data.models.fitReport.x)

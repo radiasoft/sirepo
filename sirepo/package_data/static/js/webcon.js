@@ -261,6 +261,20 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
+SIREPO.app.directive('fftReport', function(appState) {
+    return {
+        scope: {
+            controller: '=parentController',
+        },
+        template: [
+            '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fftReport">',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+        },
+    };
+});
+
 SIREPO.app.directive('fitReport', function(appState) {
     return {
         scope: {
@@ -279,6 +293,7 @@ SIREPO.app.directive('fitReport', function(appState) {
 
             $scope.$on('fitter.changed', function() {
                 appState.saveChanges('fitReport');
+                appState.saveChanges('fftReport');
             });
             $scope.$on('fitReport.summaryData', function (e, data) {
                 var str = '';
