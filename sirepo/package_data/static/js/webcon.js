@@ -50,7 +50,7 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
     };
 
     self.isFitterConfigured = function() {
-        return appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
+        return true;  //appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -261,7 +261,7 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('fftReport', function(appState) {
+SIREPO.app.directive('fftReport', function(appState, panelState, plotting) {
     return {
         scope: {
             controller: '=parentController',
@@ -271,6 +271,19 @@ SIREPO.app.directive('fftReport', function(appState) {
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+
+            $scope.$on('fftReport.summaryData', function (e, data) {
+                var str = '';
+                data.freqs.forEach(function (wi, i) {
+                    if(str == '') {
+                        str = 'Found frequncies: ';
+                    }
+                    var w = wi[1];
+                    str = str + w + 's-1';
+                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
+                });
+                $($element).find('.focus-hint').text(str);
+            });
         },
     };
 });
@@ -293,7 +306,6 @@ SIREPO.app.directive('fitReport', function(appState) {
 
             $scope.$on('fitter.changed', function() {
                 appState.saveChanges('fitReport');
-                appState.saveChanges('fftReport');
             });
             $scope.$on('fitReport.summaryData', function (e, data) {
                 var str = '';
@@ -301,7 +313,8 @@ SIREPO.app.directive('fitReport', function(appState) {
                 var pVals = data.p_vals.map(roundTo3Places);
                 var pErrs = data.p_errs.map(roundTo3Places);
                 pNames.forEach(function (p, i) {
-                    str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i] + ';  ';
+                    str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i];
+                    str = str + (i < pNames.length - 1 ? '; ' : '');
                 });
                 $($element).find('.focus-hint').text(str);
             });
