@@ -2698,7 +2698,7 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('mathRendering', function() {
     // Renders math expressions in a plain text string using KaTeX.
     // The math expressions must be tightly bound by $, ex. $E = mc^2$
-    var RE = /\$[\w\\](.*\S)?\$/;
+    var RE = /\$[\-\w\\](.*\S)?\$/;
 
     function encodeHTML(text) {
         return $('<div />').text(text).html();
