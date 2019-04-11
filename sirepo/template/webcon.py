@@ -74,10 +74,17 @@ def get_fft(data):
     col_info = _column_info(fft_in)
 
     fft_out = scipy.fftpack.fft(y_vals)
+
     N = len(t_vals)
     T = np.mean(np.diff(t_vals))
     w = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
     y = 2.0 / N * np.abs(fft_out[0:N // 2])
+
+    freqs = scipy.fftpack.fftfreq(len(y_vals))
+    pkdp('!FREQQS {}', freqs)
+    for coef, freq in zip(fft_out, freqs):
+        if coef:
+            pkdp('{c:>6} * exp(2 pi i t * {f})', c=coef, f=freq)
 
     plots = [
         {
@@ -86,11 +93,11 @@ def get_fft(data):
         },
     ]
 
-    #TODO(mvk): figure out appropriate label from input
+    #TODO(mvk): figure out appropriate labels from input
     return template_common.parameter_plot(w.tolist(), plots, data, {
         'title': '',
         'y_label': _label(col_info, 1),
-        'x_label': 'freq[s-1]',
+        'x_label': 'f[s-1]',
         #'x_label': _label(col_info, 0) + '^-1',
         #'summaryData': {
         #    'p_vals': param_vals.tolist(),
