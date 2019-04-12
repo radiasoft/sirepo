@@ -50,7 +50,7 @@ SIREPO.app.controller('AnalysisController', function (appState, frameCache, pane
     };
 
     self.isFitterConfigured = function() {
-        return true;  //appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
+        return appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
     };
 
     appState.whenModelsLoaded($scope, function() {
