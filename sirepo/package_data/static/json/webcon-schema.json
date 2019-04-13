@@ -1,0 +1,80 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "analysis"
+        }
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": ["webcon.js"]
+        }
+    },
+    "localRoutes": {
+        "analysis": {
+            "route": "/analysis/:simulationId",
+            "config": {
+                "controller": "AnalysisController as analysis",
+                "templateUrl": "/static/html/webcon-analysis.html"
+            }
+        }
+    },
+    "enum": {},
+    "model": {
+        "analysisData": {
+            "file": ["Archive Data File", "InputFile"]
+        },
+        "analysisAnimation": {
+            "x": ["X Value", "AnalysisParameter", "0"],
+            "y1": ["Y1 Value", "AnalysisParameter", "1"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
+            "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
+            "notes": ["Notes", "Text", ""]
+        },
+         "fitter": {
+            "equation": ["Equation to Fit", "Equation"],
+            "parameters": ["Fit Parameters", "EquationParameters", ""],
+            "variable": ["Independent Variable", "EquationVariables", ""]
+        },
+        "fitReport": {
+            "parameterSigmas": ["_", "String", ""],
+            "parameterValues": ["_", "String", ""],
+            "x": ["X", "AnalysisParameter", "0"],
+            "y": ["Y", "AnalysisParameter", "1"]
+        }
+    },
+    "view": {
+        "analysisData": {
+            "title": "Archive Data File",
+            "basic": [
+                "file"
+            ],
+            "advanced": []
+        },
+        "analysisAnimation": {
+            "title": "Analysis Plot",
+            "advanced": [
+                "x",
+                "y1",
+                "y2",
+                "y3",
+                "notes"
+            ]
+        },
+        "fitter": {
+            "title": "Fitter",
+            "basic": [
+                "equation",
+                "variable",
+                "parameters"
+            ],
+            "advanced": []
+        },
+        "fitReport": {
+            "title": "Best Fit",
+            "advanced": [
+                "x",
+                "y"
+            ]
+        }
+    }
+}

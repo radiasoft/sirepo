@@ -9,7 +9,9 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
+from sirepo.srschema import get_enums
 from sirepo.template import template_common, elegant_common, elegant_lattice_importer
+from synergia import foundation
 import glob
 import h5py
 import math
@@ -117,6 +119,7 @@ def fixup_old_data(data):
             elif i == 3:
                 model['x'] = 'z'
                 model['y'] = 'zp'
+    template_common.organize_example(data)
 
 
 def format_float(v):
@@ -264,13 +267,13 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, report_info.run_dir)
+            save_report_data(data, run_dir)
 
 
 def remove_last_frame(run_dir):
@@ -393,23 +396,23 @@ def _build_beamline_map(data):
 
 
 def _calc_bunch_parameters(bunch):
-    from synergia.foundation import Four_momentum
-    bunch_def = bunch['beam_definition']
-    mom = Four_momentum(bunch['mass'])
+    bunch_def = bunch.beam_definition
+    bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
+    mom = foundation.Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
-        if bunch_def == 'energy':
-            mom.set_total_energy(bunch['energy'])
-        elif bunch_def == 'momentum':
-            mom.set_momentum(bunch['momentum'])
-        elif bunch_def == 'gamma':
-            mom.set_gamma(bunch['gamma'])
+        if bunch_def == bunch_enums.energy:
+            mom.set_total_energy(bunch.energy)
+        elif bunch_def == bunch_enums.momentum:
+            mom.set_momentum(bunch.momentum)
+        elif bunch_def == bunch_enums.gamma:
+            mom.set_gamma(bunch.gamma)
         else:
             assert False, 'invalid bunch def: {}'.format(bunch_def)
-        bunch['gamma'] = format_float(mom.get_gamma())
-        bunch['energy'] = format_float(mom.get_total_energy())
-        bunch['momentum'] = format_float(mom.get_momentum())
-        bunch['beta'] = format_float(mom.get_beta())
+        bunch.gamma = format_float(mom.get_gamma())
+        bunch.energy = format_float(mom.get_total_energy())
+        bunch.momentum = format_float(mom.get_momentum())
+        bunch.beta = format_float(mom.get_beta())
     except Exception as e:
         bunch[bunch_def] = ''
     return {
@@ -420,32 +423,34 @@ def _calc_bunch_parameters(bunch):
 def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
     particle = bunch.particle
-    if particle == 'other':
+    particle_enums = get_enums(_SCHEMA, 'Particle')
+    if particle == particle_enums.other:
         return
     mass = 0
     charge = 0
-    if particle == 'proton':
+    if particle == particle_enums.proton:
         mass = pconstants.mp
         charge = pconstants.proton_charge
-    elif particle == 'antiproton':
-        mass = pconstants.mp
-        charge = pconstants.antiproton_charge
-    elif particle == 'electron':
+    # No antiprotons yet - commented out to avoid assertion error
+    #elif particle == particle_enums.antiproton:
+    #    mass = pconstants.mp
+    #    charge = pconstants.antiproton_charge
+    elif particle == particle_enums.electron:
         mass = pconstants.me
         charge = pconstants.electron_charge
-    elif particle == 'positron':
+    elif particle == particle_enums.positron:
         mass = pconstants.me
         charge = pconstants.positron_charge
-    elif particle == 'negmuon':
+    elif particle == particle_enums.negmuon:
         mass = pconstants.mmu
         charge = pconstants.muon_charge
-    elif particle == 'posmuon':
+    elif particle == particle_enums.posmuon:
         mass = pconstants.mmu
         charge = pconstants.antimuon_charge
     else:
         assert False, 'unknown particle: {}'.format(particle)
-    bunch['mass'] = mass
-    bunch['charge'] = charge
+    bunch.mass = mass
+    bunch.charge = charge
 
 
 def _compute_range_across_files(run_dir, data):
@@ -656,10 +661,15 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    from synergia.foundation import pconstants
     if not lattice.has_reference_particle():
         # create a default reference particle, proton,energy=1.5
-        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
+        lattice.set_reference_particle(
+            foundation.Reference_particle(
+                pconstants.proton_charge,
+                foundation.Four_momentum(pconstants.mp, 1.5)
+            )
+        )
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'

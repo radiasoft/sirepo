@@ -644,18 +644,19 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 }
             }
             else {
-                m = appState.models[modelKey] = appState.setModelDefaults({
+                m = appState.models[modelKey] = {
                     xFile: info.filename,
                     y1File: info.filename,
                     x: info.plottableColumns[0],
                     xFileId: info.id,
                     startTime: startTime,
-                }, 'elementAnimation');
+                };
                 // Only display the first outputFile
                 if (i > 0 && ! panelState.isHidden(modelKey)) {
                     panelState.toggleHidden(modelKey);
                 }
             }
+            appState.setModelDefaults(m, 'elementAnimation');
             m.valueList = {
                 x: info.plottableColumns,
                 y1: info.plottableColumns,

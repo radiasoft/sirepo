@@ -4,10 +4,6 @@
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
     }
-    .popover {
-      max-width: none;
-      width: 100%;
-    }
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
@@ -121,6 +117,10 @@
       background-color: white;
     }
 
+    .sr-beamline-popover {
+      max-width: none;
+      width: 100%;
+    }
     .sr-beamline-element-title {
       font-size: 16px;
       font-weight: 700;
@@ -345,6 +345,10 @@
       stroke: steelblue;
       stroke-width: 1px;
     }
+    .sr-plot .scatter-point {
+      fill: steelblue;
+      stroke: none;
+    }
     .sr-plot path.line-0 {
       stroke-width: 1.5px;
     }
@@ -451,7 +455,7 @@
       cursor: n-resize;
     }
     .sr-plot rect.mouse-move-s {
-      cursor: sr-resize;
+      cursor: s-resize;
     }
     .sr-plot .z-axis-label {
       line-height: 160%;
@@ -1022,4 +1026,14 @@ li.sr-model-list-item > a {
 .katex {
   font-size: 1em;
   white-space: nowrap;
+}
+label .katex {
+  font-weight: 700;
+}
+.tooltip .katex {
+  font-size: 16px;
+  font-weight: normal;
+}
+.latex-title .katex {
+    font-size: 18px;
 }

@@ -48,5 +48,17 @@
   stroke: rgba(99, 99, 99, 0.7);
   stroke-width: 1;
   fill: rgb(0, 230, 0);
-  cursor: default;
+  cursor: pointer;
+}
+.warpvnd-opt-point {
+  stroke: rgba(99, 99, 99, 0.7);
+  stroke-width: 2;
+  fill: white;
+}
+.warpvnd-well {
+  margin-bottom: 0;
+  margin-top: 10px;
+  padding: 9px;
+  white-space: pre;
+  background-color: white;
 }

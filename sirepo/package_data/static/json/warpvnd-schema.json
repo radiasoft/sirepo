@@ -1,9 +1,9 @@
 {
     "constants": {
         "nonZeroVoltsColor": "#6992ff",
-        "zeroVoltsColor": "#f3d4c8",
         "particleTrackColor": "#4682b4",
-        "reflectedParticleTrackColor": "#d04836"
+        "reflectedParticleTrackColor": "#d04836",
+        "zeroVoltsColor": "#f3d4c8"
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -49,9 +49,9 @@
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
+        "ConductorType": [
+            ["box", "box"],
+            ["stl", "stl"]
         ],
         "CurrentMode": [
             ["1", "User Specified"],
@@ -101,14 +101,19 @@
             "anode_voltage": ["Anode Voltage [eV]", "OptFloat"]
         },
         "box": {
+            "_super": ["_", "model", "conductor"],
+            "type": ["Type", "ConductorType", "box"],
+            "xLength": ["Width (X) [µm]", "OptFloat"],
+            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
+            "zLength": ["Length (Z) [µm]", "OptFloat"]
+        },
+        "conductor": {
             "name": ["Name", "String"],
             "voltage": ["Voltage [eV]", "OptFloat"],
-            "xLength": ["Width (X) [µm]", "OptFloat"],
-            "zLength": ["Length (Z) [µm]", "OptFloat"],
-            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "color": ["Color", "Color"]
+            "color": ["Color", "Color"],
+            "type": ["Type", "ConductorType", "box"]
         },
         "conductorGridReport": {},
         "conductorPosition": {
@@ -148,9 +153,11 @@
         },
         "optimizer": {
             "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
-            "tolerance": ["Tolerance", "Float", 0.01],
+            "tolerance": ["Tolerance", "Float", 0.001],
             "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
-            "continuousFieldSteps": ["Continuous Field Steps", "Integer", 20, "Number of optimizer steps for non-gridded fields, ex. Current or Voltage"]
+            "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
+            "initialSteps": ["Initial Simulation Steps", "Integer", 500],
+            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250]
         },
         "optimizerAnimation": {
             "x": ["Horizontal Value to Plot", "OptimizationField", 0],
@@ -186,7 +193,13 @@
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"]
         },
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "stl": {
+            "_super": ["_", "model", "conductor"],
+            "file": ["Conductor File", "FileChooser", ""],
+            "scale": ["Conductor Scale", "Float", 1e-9],
+            "type": ["Type", "ConductorType", "stl"]
+        }
     },
     "view": {
         "anode": {
@@ -222,6 +235,17 @@
                 "zLength",
                 "xLength",
                 "yLength",
+                "isConductor",
+                "permittivity",
+                "color"
+            ]
+        },
+        "conductor": {
+            "title": "Conductor",
+            "advanced": [
+                "name",
+                "type",
+                "voltage",
                 "isConductor",
                 "permittivity",
                 "color"
@@ -298,7 +322,9 @@
             "advanced": [
                 "tolerance",
                 "timeLimit",
-                "continuousFieldSteps"
+                "continuousFieldSteps",
+                "initialSteps",
+                "optimizerSteps"
             ]
         },
         "optimizerAnimation": {
@@ -364,6 +390,16 @@
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
                 "simulationGrid.particles_per_step"
+            ]
+        },
+        "stl": {
+            "title": "Imported Conductor",
+            "advanced": [
+                "name",
+                "voltage",
+                "isConductor",
+                "permittivity",
+                "color"
             ]
         }
     }

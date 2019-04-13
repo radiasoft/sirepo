@@ -525,6 +525,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             if (! $scope.info) {
                 throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
             }
+            $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
             // wait until the switch gets fully evaluated, then set event handlers for input fields
             // to disable keypress listener set by plots
@@ -1316,58 +1317,56 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
     return {
         restrict: 'A',
         template: [
-            '<button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="colorMapStyle(model[field])"></span> {{ plotting.colorMapNameOrDefault(model[field], reportDefaultMap) }} <span class="caret"></span></button>',
+            '<button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"><span class="sr-color-map-indicator" data-ng-style="itemStyle[model[field]]"></span> {{ colorMapDescription(model[field]) }} <span class="caret"></span></button>',
             '<ul class="dropdown-menu sr-button-menu">',
-                '<li data-ng-repeat="item in enum[info[1]]" class="sr-button-menu">',
+                '<li data-ng-repeat="item in items" class="sr-button-menu">',
                     '<button class="btn btn-block"  data-ng-class="{\'sr-button-menu-selected\': isSelectedMap(item[0]), \'sr-button-menu-unselected\': ! isSelectedMap(item[0])}" data-ng-click="setColorMap(item[0])">',
-                        '<span class="sr-color-map-indicator" data-ng-style="colorMapStyle(item[0])"></span> {{item[1]}} <span data-ng-if="isDefaultMap(item[0])" class="glyphicon glyphicon-star-empty"></span><span data-ng-if="isSelectedMap(item[0])" class="glyphicon glyphicon-ok"></span>',
+                        '<span class="sr-color-map-indicator" data-ng-style="itemStyle[item[0]]"></span> {{item[1]}} <span data-ng-if="isDefaultMap(item[0])" class="glyphicon glyphicon-star-empty"></span><span data-ng-if="isSelectedMap(item[0])" class="glyphicon glyphicon-ok"></span>',
                     '</button>',
                 '</li>',
             '</ul>',
         ].join(''),
         controller: function($scope) {
+            var defaultMapName, enumName;
 
-            $scope.enum = SIREPO.APP_SCHEMA.enum;
-            $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
-            $scope.reportDefaultMap = $scope.info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
-            if (!$scope.info) {
-                throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+            function init() {
+                var info = appState.modelInfo($scope.modelName)[$scope.field];
+                if (! info) {
+                    throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                }
+                enumName = info[SIREPO.INFO_INDEX_TYPE];
+                defaultMapName = info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
+                $scope.items = SIREPO.APP_SCHEMA.enum[enumName];
+                $scope.itemStyle = {};
+                $scope.items.forEach(function(item) {
+                    var mapName = item[0];
+                    var map = plotting.colorMapOrDefault(mapName, defaultMapName);
+                    $scope.itemStyle[mapName] = {
+                        'background': 'linear-gradient(to right, ' + map.join(',') + ')',
+                    };
+                });
             }
-            $scope.isSelectedValue = function(value) {
-                return $scope.model[$scope.field] == value;
+
+            $scope.colorMapDescription = function(mapName) {
+                return appState.enumDescription(enumName, mapName || defaultMapName);
             };
+
+            $scope.isDefaultMap = function(mapName) {
+                return mapName == defaultMapName;
+            };
+
             $scope.isSelectedMap = function(mapName) {
-                if($scope.model && $scope.model[$scope.field]) {
-                    return $scope.isSelectedValue(mapName);
+                if ($scope.model && $scope.model[$scope.field]) {
+                    return $scope.model[$scope.field] == mapName;
                 }
                 return $scope.isDefaultMap(mapName);
             };
-            $scope.isDefaultMap = function(mapName) {
-                return plotting.colorMapNameOrDefault(mapName, $scope.reportDefaultMap) === plotting.colorMapNameOrDefault(null, $scope.reportDefaultMap);
-            };
+
             $scope.setColorMap = function(mapName) {
                 $scope.model[$scope.field] = mapName;
             };
 
-            $scope.plotting = plotting;
-            $scope.colorMapStyle = function(mapName) {
-
-                var map = plotting.colorMapOrDefault(mapName, $scope.reportDefaultMap);
-                if (! map) {
-                    return {};
-                }
-
-                var css = 'linear-gradient(to right, ' + map[0];
-                for(var i = 1; i < map.length; ++i) {
-                    css += ', ';
-                    css += map[i];
-                }
-                css += ')';
-                return {
-                    'background': css,
-                };
-
-            };
+            init();
         },
     };
 });
@@ -2817,13 +2816,13 @@ SIREPO.app.service('fileUpload', function($http) {
 SIREPO.app.service('mathRendering', function() {
     // Renders math expressions in a plain text string using KaTeX.
     // The math expressions must be tightly bound by $, ex. $E = mc^2$
-    var RE = /\$[\w\\](.*\S)?\$/;
+    var RE = /\$[\-\w\\](.*\S)?\$/;
 
     function encodeHTML(text) {
         return $('<div />').text(text).html();
     }
 
-    this.mathAsHTML = function(text) {
+    this.mathAsHTML = function(text, options) {
         if (! this.textContainsMath(text)) {
             return encodeHTML(text);
         }
@@ -2843,7 +2842,7 @@ SIREPO.app.service('mathRendering', function() {
                 // should never get here
                 throw 'invalid math expression';
             }
-            parts.push(katex.renderToString(text.slice(0, i + 1)));
+            parts.push(katex.renderToString(text.slice(0, i + 1), options));
             text = text.slice(i + 2);
             i = text.search(RE);
         }
@@ -2988,6 +2987,7 @@ SIREPO.app.service('keypressService', function() {
 
 SIREPO.app.service('plotRangeService', function(appState, panelState, requestSender) {
     var self = this;
+    var runningModels = [];
 
     function setFieldRange(controller, prefix, model, field) {
         //TODO(pjm): special case for jspec, needs to get migrated to jspec.js
@@ -3002,9 +3002,13 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
     }
 
     self.computeFieldRanges = function(controller, name, percentComplete) {
-        if (controller.simState.isStateRunning()) {
+        if (controller.simState.isProcessing()) {
             appState.models[name].isRunning = 1;
+            if (runningModels.indexOf(name) < 0) {
+                runningModels.push(name);
+            }
         }
+        // this assumes all models share same range parameters
         if (percentComplete == 100 && ! controller.isComputingRanges) {
             controller.fieldRange = null;
             controller.isComputingRanges = true;
@@ -3019,8 +3023,14 @@ SIREPO.app.service('plotRangeService', function(appState, panelState, requestSen
                     controller.isComputingRanges = false;
                     if (appState.isLoaded() && data.fieldRange) {
                         if (appState.models[name].isRunning) {
-                            appState.models[name].isRunning = 0;
-                            appState.saveQuietly(name);
+                            if (runningModels.length) {
+                                runningModels.forEach(function(name) {
+                                    appState.models[name].isRunning = 0;
+                                });
+                                // refresh plots with computed field ranges
+                                appState.saveChanges(runningModels);
+                                runningModels = [];
+                            }
                         }
                         controller.fieldRange = data.fieldRange;
                     }

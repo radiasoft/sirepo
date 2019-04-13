@@ -31,6 +31,7 @@ import re
 import sirepo.template
 import sys
 import time
+import uuid
 import werkzeug
 import werkzeug.exceptions
 
@@ -301,8 +302,9 @@ def api_importArchive():
 
     data = sirepo.importer.do_form(flask.request.form)
     return javascript_redirect(
-        '/{}#/source/{}'.format(
+        '/{}#/{}/{}'.format(
             data.simulationType,
+            simulation_db.get_schema(data.simulationType).appModes.default.localRoute,
             data.models.simulation.simulationId,
         ),
     )
@@ -364,6 +366,7 @@ def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.default_data(sim_type)
+    #TODO(pjm): update fields from schema values across new_simulation_data values
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
     if 'notes' in new_simulation_data:
@@ -423,7 +426,7 @@ def api_runCancel():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        runner_client.cancel_job(run_dir, jhash)
+        runner_client.cancel_report_job(run_dir, jhash)
         # Always true from the client's perspective
         return http_reply.gen_json({'state': 'canceled'})
     else:
@@ -458,7 +461,7 @@ def api_runSimulation():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        status = runner_client.job_status(run_dir, jhash)
+        status = runner_client.report_job_status(run_dir, jhash)
         already_good_status = [runner_client.JobStatus.RUNNING,
                                runner_client.JobStatus.COMPLETED]
         if status not in already_good_status:
@@ -466,12 +469,9 @@ def api_runSimulation():
                 'startTime': int(time.time()),
                 'state': 'pending',
             }
-            # XX TODO: prepare in a temp directory
-            cmd, _ = simulation_db.prepare_simulation(data)
-            # XX TODO: prepare_simulation shouldn't create this file in the
-            # first place -- managing this file is runner.py's job.
-            pkio.unchecked_remove(run_dir.join('status'))
-            runner_client.start_job(run_dir, jhash, cmd)
+            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
+            cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
+            runner_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:
@@ -558,7 +558,17 @@ def api_simulationFrame(frame_id):
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    frame = template.get_simulation_frame(run_dir, data, model_data)
+    if feature_config.cfg.runner_daemon:
+        # XX TODO: it would be better if the frontend passed the jhash to this
+        # call. Since it doesn't, we have to read it out of the run_dir, which
+        # creates a race condition -- we might return a frame from a different
+        # version of the report than the one the frontend expects.
+        jhash = template_common.report_parameters_hash(model_data)
+        frame = runner_client.run_extract_job(
+            run_dir, jhash, 'get_simulation_frame', data,
+        )
+    else:
+        frame = template.get_simulation_frame(run_dir, data, model_data)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
@@ -832,32 +842,23 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = runner_client.job_status(run_dir, jhash)
+        status = runner_client.report_job_status(run_dir, jhash)
         is_running = status is runner_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
-        template = sirepo.template.import_module(data)
+
         if not is_running:
-            if run_dir.exists():
-                if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep, data)
-                res2, err = simulation_db.read_result(run_dir)
+            if status is not runner_client.JobStatus.MISSING:
+                res, err = runner_client.run_extract_job(
+                    run_dir, jhash, 'result', data,
+                )
                 if err:
-                    if simulation_db.is_parallel(data):
-                        # allow parallel jobs to use template to parse errors below
-                        res['state'] = 'error'
-                    else:
-                        if hasattr(template, 'parse_error_log'):
-                            res = template.parse_error_log(rep.run_dir)
-                            if res:
-                                return res
-                        return _simulation_error(err, 'error in read_result', rep.run_dir)
-                else:
-                    res = res2
+                    return _simulation_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
-            new = template.background_percent_complete(
-                rep.model_name,
-                rep.run_dir,
+            new = runner_client.run_extract_job(
+                run_dir,
+                jhash,
+                'background_percent_complete',
                 is_running,
             )
             new.setdefault('percentComplete', 0.0)
@@ -936,7 +937,7 @@ def _simulation_run_status(data, quiet=False):
             is_running = False
             if rep.run_dir.exists():
                 if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep, data)
+                    template.prepare_output_file(rep.run_dir, data)
                 res2, err = simulation_db.read_result(rep.run_dir)
                 if err:
                     if simulation_db.is_parallel(data):
@@ -1058,4 +1059,5 @@ cfg = pkconfig.init(
     db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    backend=('local', str, 'Select runner daemon backend (e.g. "local", "docker")'),
 )

@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -147,10 +152,6 @@
             ["zpmean", "zp mean"],
             ["zpstd", "zp standard deviation"],
             ["none", "None"]
-        ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
         ],
         "BunchDistribution": [
             ["lattice", "Computed From Beamline"],

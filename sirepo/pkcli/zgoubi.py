@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
@@ -36,6 +36,21 @@ def run(cfg_dir):
     template.save_report_data(data, py.path.local(cfg_dir))
 
 
+def run_background(cfg_dir):
+    res = {}
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    if _estimated_output_file_size(data) > 5e7:
+        res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
+    else:
+        try:
+            _bunch_match_twiss(cfg_dir)
+            _run_zgoubi(cfg_dir)
+            res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
+        except Exception as e:
+            res['error'] = str(e)
+    simulation_db.write_result(res)
+
+
 def _bunch_match_twiss(cfg_dir):
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
     bunch = data.models.bunch
@@ -47,16 +62,17 @@ def _bunch_match_twiss(cfg_dir):
         col_names, row = template.extract_first_twiss_row(cfg_dir)
         for f in _TWISS_TO_BUNCH_FIELD.keys():
             v = template.column_data(f, col_names, [row])[0]
+            if (f == 'btx' or f == 'bty') and v <= 0:
+                pkdlog('invalid calculated twiss parameter: {} <= 0', f)
+                v = 1.0
             bunch[_TWISS_TO_BUNCH_FIELD[f]] = v
-            if f == 'btx' or f == 'bty':
-                assert v > 0, 'invalid twiss parameter: {} <= 0'.format(f)
         found_fit = False
         lines = pkio.read_text(_ZGOUBI_FIT_FILE).split('\n')
         for i in xrange(len(lines)):
             line = lines[i]
             if re.search(r"^\s*'OBJET'", line):
                 values = lines[i + 4].split()
-                assert len(values) >= 5 and float(values[5]) == 1.0
+                assert len(values) >= 5
                 found_fit = True
                 bunch['Y0'] = float(values[0]) * 1e-2
                 bunch['T0'] = float(values[1]) * 1e-3
@@ -69,17 +85,13 @@ def _bunch_match_twiss(cfg_dir):
     return data
 
 
-def run_background(cfg_dir):
-    res = {}
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    try:
-        _bunch_match_twiss(cfg_dir)
-        _run_zgoubi(cfg_dir)
-    except Exception as e:
-        res = {
-            'error': str(e),
-        }
-    simulation_db.write_result(res)
+def _estimated_output_file_size(data):
+    bunch = data.models.bunch
+    count = bunch.particleCount
+    if bunch.method == 'OBJET2.1':
+        count = bunch.particleCount2
+    settings = data.models.simulationSettings
+    return 1000 * settings.npass / (settings.ip or 1) * float(count)
 
 
 def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):

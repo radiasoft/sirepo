@@ -22,6 +22,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
       '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
     '</div>',
+    '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
+    '</div>',
     '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
       '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
     '</div>',
@@ -93,7 +96,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.isElectronBeam = function() {
-        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole();
+        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole() || self.isArbitraryMagField();
     };
 
     self.isGaussianBeam = function() {
@@ -102,6 +105,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     self.isIdealizedUndulator = function() {
         return isSelected('u');
+    };
+
+    self.isArbitraryMagField = function() {
+        return isSelected('a');
     };
 
     self.isMultipole = function() {
@@ -1826,7 +1833,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         controller: function($scope) {
 
             //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY'];
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'aspectRatio'];
             var multiElectronAnimation = null;
             $scope.frameCount = 1;
 
