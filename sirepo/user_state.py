@@ -12,14 +12,13 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
-from sirepo import user_db
 import flask
 
 #: what routeName to return in the event user is logged out in require_user
 LOGGED_OUT_ROUTE_NAME = 'loggedOut'
 
-_AUTH_METHOD_ANONYMOUS_VALUE = 'a'
-_AUTH_METHOD_ANONYMOUS_NAME = 'anonymous'
+_AUTH_METHOD_ANONYMOUS_COOKIE_VALUE = 'a'
+_AUTH_METHOD_ANONYMOUS_MODULE_NAME = 'anonymous'
 
 #: login_state values in cookie
 _ANONYMOUS_DEPRECATED = 'a'
@@ -31,7 +30,7 @@ _ANONYMOUS_LOGIN_QUERY = 'anonymous'
 
 #: map so SIREPO.userState in user-state.js
 _LOGIN_SESSION_MAP = pkcollections.Dict({
-    _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_NAME,
+    _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_MODULE_NAME,
     _LOGGED_IN: 'logged_in',
     _LOGGED_OUT: 'logged_out',
 })
@@ -42,7 +41,7 @@ _COOKIE_LOGIN_SESSION = 'srusl'
 #: key for auth method for login state
 _COOKIE_AUTH_METHOD = 'srusa'
 
-#: key for login state
+#: oauth._COOKIE_STATE migrated to  _COOKIE_AUTH_METHOD and _COOKIE_LOGIN_SESSION
 _COOKIE_SESSION_DEPRECATED = 'sros'
 
 #: formerly used in the cookie but no longer so is removed below
@@ -50,12 +49,6 @@ _REMOVED_COOKIE_NAME = 'sron'
 
 #: registered module
 login_module = None
-
-
-def all_uids():
-    if login_module:
-        return user_db.all_uids(login_module.UserModel)
-    return []
 
 
 @api_perm.allow_visitor
@@ -76,11 +69,11 @@ def api_logout(simulation_type):
 @api_perm.allow_visitor
 def api_userState():
     migrate_cookie_keys()
-    a = cookie.unchecked_get_value(_COOKIE_AUTH_METHOD, _AUTH_METHOD_ANONYMOUS_VALUE)
+    a = cookie.unchecked_get_value(_COOKIE_AUTH_METHOD, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
     s = cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION, _LOGGED_OUT)
     v = pkcollections.Dict(
         user_state = pkcollections.Dict(
-            authMethod=_AUTH_METHOD_ANONYMOUS_NAME
+            authMethod=_AUTH_METHOD_ANONYMOUS_MODULE_NAME,
             displayName=None,
             loginSession=_LOGIN_SESSION_MAP[s],
             userName=None,
@@ -90,6 +83,7 @@ def api_userState():
     if login_module:
         v.user_state.authMethod = login_module.AUTH_METHOD
         if pkconfig.channel_in('dev'):
+            # useful for testing/debugging
             v.user_state.uid  = cookie.unchecked_get_user()
         if a == login_module.AUTH_METHOD_COOKIE_VALUE and s == _LOGGED_IN:
             u = login_module.UserModel.search_by(uid=cookie.get_user())
@@ -115,7 +109,7 @@ def init_beaker_compat():
 
 def is_anonymous_session():
     migrate_cookie_keys()
-    return cookie.get_value(_COOKIE_AUTH_METHOD)
+    return cookie.get_value(_COOKIE_AUTH_METHOD) == _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE
 
 
 def is_logged_in():
@@ -132,7 +126,7 @@ def login_as_user(user, module):
 def logout_as_anonymous():
     migrate_cookie_keys()
     cookie.clear_user()
-    _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_VALUE)
+    _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
 
 
 def logout_as_user(module):
@@ -145,6 +139,32 @@ def migrate_cookie_keys():
         return
     # cookie_name is no longer used so clean up
     cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
+    if not cookie.has_sentinel():
+        # not initialized
+        return
+    if not cookie.has_key(_COOKIE_SESSION_DEPRECATED):
+        _update_session(
+            _LOGGED_IN if cookie.has_user_value() else _LOGGED_OUT,
+            _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE,
+        )
+        return
+    os = cookie.unchecked_remove(_COOKIE_SESSION_DEPRECATED)
+    if os == _AUTH_METHOD_ANONYMOUS_MODULE_NAME:
+        _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
+
+eoauth_anonymous
+anonymous login module needs to be there.
+
+
+_LOGIN_SESSION_MAP = pkcollections.Dict({
+    _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_MODULE_NAME,
+    _LOGGED_IN: 'logged_in',
+    _LOGGED_OUT: 'logged_out',
+})
+
+    if no cookie whatsoever
+
+set auth method and
     to do
 
 def register_login_module():
@@ -194,6 +214,6 @@ def _beaker_compat_map_keys(key_map):
     key_map['value'] = dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
 
 
-def _update_session(login_state, module):
+def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
-    cookie.set_value(_COOKIE_AUTH_METHOD, module.AUTH_METHOD_COOKIE_VALUE)
+    cookie.set_value(_COOKIE_AUTH_METHOD, auth_method)

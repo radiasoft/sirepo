@@ -149,19 +149,27 @@ def api_emailAuthorized(simulation_type, token):
     with user_db.thread_lock:
         u = EmailAuth.search_by(token=token)
         if not u or u.expires < datetime.datetime.utcnow():
-            # if the auth is invalid, but the user is already logged in (ie. following an old link from an email)
-            # keep the user logged in and proceed to the app
+            # if the auth is invalid, but the user is already logged
+            # in (ie. following an old link from an email) keep the
+            # user logged in and proceed to the app
             if _user_with_email_is_logged_in():
                 return flask.redirect('/{}'.format(sim_type))
             if not u:
                 pkdlog('login with invalid token: {}', token)
             else:
-                pkdlog('login with expired token: {}, email: {}', token, u.unverified_email)
+                pkdlog(
+                    'login with expired token: {}, email: {}',
+                    token,
+                    u.unverified_email,
+                )
+            s = simulation_db.get_schema(sim_type)
             #TODO(pjm): need uri_router method for this?
-            return server.javascript_redirect('/{}#{}'.format(
-                sim_type,
-                simulation_db.get_schema(sim_type).localRoutes.authorizationFailed.route,
-            ))
+            return server.javascript_redirect(
+                '/{}#{}'.format(
+                    sim_type,
+                    s.localRoutes.authorizationFailed.route,
+                ),
+            )
         if cfg.oauth_compat:
             # user is logged in so clear compatibility login
             cookie.unchecked_remove(_COOKIE_OAUTH_COMPAT_LOGIN)

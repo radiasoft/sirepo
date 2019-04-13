@@ -10,7 +10,6 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import adm
-from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply

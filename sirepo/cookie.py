@@ -109,6 +109,9 @@ def set_log_user(uid):
 def set_user(uid):
     assert uid
     set_value(_COOKIE_USER, uid)
+
+set user state auth_method
+
     set_log_user(uid)
 
 
@@ -181,7 +184,6 @@ class _State(dict):
                 'private_key must be 32 characters and encoded with urlsafe_b64encode'
             self.crypto = cryptography.fernet.Fernet(cfg.private_key)
         return self.crypto
-
 
     def _decrypt(self, value):
         return self._crypto().decrypt(base64.urlsafe_b64decode(value))

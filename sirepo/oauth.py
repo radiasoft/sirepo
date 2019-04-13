@@ -23,9 +23,6 @@ import flask_oauthlib.client
 import sqlalchemy
 
 
-#: GitHub/OAuth allows anonymous users
-ALLOW_ANONYMOUS_SESSION = True
-
 #: How do we authenticate
 AUTH_METHOD = 'github'
 
@@ -90,8 +87,6 @@ def api_oauthAuthorized(oauth_type):
 @api_perm.allow_cookieless_set_user
 def api_oauthLogin(simulation_type, oauth_type):
     """Redirects to an OAUTH request for the specified oauth_type ('github').
-
-    If oauth_type is 'anonymous', the current session is cleared.
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     return compat_login(oauth_type, '/{}'.format(sim_type))
@@ -156,11 +151,14 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
 
 
 def _init(app):
+
     assert 0
-#TODO(robnagler)
-#    added auth_method
-#    need to figure out what method so can
-#    know how to switch methods
+TODO(robnagler)
+    added auth_method
+    need to figure out what method so can
+    know how to switch methods
+
+
     global cfg
     cfg = pkconfig.init(
         github_key=pkconfig.Required(str, 'GitHub application key'),

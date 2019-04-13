@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkinspect
 import aenum
 
+
 #: decorator sets this attribute with an APIPerm
 ATTR = 'api_perm'
 
@@ -20,7 +21,7 @@ class APIPerm(aenum.Flag):
     ALLOW_COOKIELESS_SET_USER = aenum.auto()
     #: anybody can view this page, even without cookies
     ALLOW_VISITOR = aenum.auto()
-    #: a cookie has to have been returned, which contains a user
+    #: a cookie has to have been returned, which might contain a user
     REQUIRE_COOKIE_SENTINEL = aenum.auto()
     #: a user will be created if necessary and auth may be necessary
     REQUIRE_USER = aenum.auto()
