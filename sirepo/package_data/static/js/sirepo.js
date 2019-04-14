@@ -1432,13 +1432,6 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         return SIREPO.APP_SCHEMA.appModes.default.localRoute;
     };
 
-    self.formatAuthUrl = function(oauthType) {
-        return self.formatUrl('oauthLogin', {
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<oauth_type>': oauthType,
-        }) + '?next=' + $location.url();
-    };
-
     self.formatUrlLocal = function(routeName, params) {
         return formatUrl(localRoutes, routeName, params);
     };
