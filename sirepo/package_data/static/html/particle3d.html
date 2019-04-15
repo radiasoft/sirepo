@@ -14,7 +14,7 @@
                 <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Reflected </span>
               </div>
               <div>
-                <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showConductors, 'glyphicon-unchecked': ! showConductors}"></span></a> Conductors
+                <a data-ng-show="hasConductors" href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showConductors, 'glyphicon-unchecked': ! showConductors}"></span></a><span data-ng-show="hasConductors"> Conductors</span>
               </div>
             </div>
             <div class="col-sm-6">

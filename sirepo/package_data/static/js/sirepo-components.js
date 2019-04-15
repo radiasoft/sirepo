@@ -1867,6 +1867,34 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
     };
 });
 
+SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            title: '=',
+            description: '=',
+            fileFormats: '@',
+            url: '=',
+            inputFile: '=',
+            validator: '&',
+        },
+        template: [
+            '<div class="form-group">',
+              '<label>{{ description }}</label>',
+              '<input id="file-select" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
+              '<br />',
+              '<div class="text-warning" style="white-space: pre-line"><strong>{{ fileUploadError }}</strong></div>',
+            '</div>',
+            '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import ZIP File';
+            $scope.description = $scope.description || 'Select File';
+        },
+    };
+});
+
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
@@ -1886,6 +1914,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
+                    '<form data-file-loader="" data-file-formats="fileFormats" data-description="description">',
                       '<form name="importForm">',
                         '<div class="form-group">',
                           '<label>{{ description }}</label>',
@@ -2346,9 +2375,22 @@ SIREPO.app.directive('fileModel', ['$parse', function ($parse) {
         link: function(scope, element, attrs) {
             var model = $parse(attrs.fileModel);
             var modelSetter = model.assign;
+            var validator = scope.validator ? scope.validator() : null;
+
+            function setModel(file) {
+                scope.$apply(function () {
+                    modelSetter(scope, file);
+                });
+            }
+
             element.bind('change', function() {
-                scope.$apply(function() {
-                    modelSetter(scope, element[0].files[0]);
+                var file = element[0].files[0];
+                if(! validator) {
+                    setModel(file);
+                    return;
+                }
+                validator(file).then(function (ok) {
+                    setModel(ok? file : null);
                 });
             });
         }
