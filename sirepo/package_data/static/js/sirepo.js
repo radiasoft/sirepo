@@ -209,7 +209,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 }
                 for (var i = 0; i < fieldsByModel[m].length; i++) {
                     var f = fieldsByModel[m][i];
-                    if (models[m][f] != savedModelValues[m][f]) {
+                    if (! self.deepEquals(models[m][f], savedModelValues[m][f])) {
                         return true;
                     }
                 }
