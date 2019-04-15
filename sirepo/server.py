@@ -614,6 +614,7 @@ def api_simulationSchema():
 def api_srwLight():
     return _render_root_page('light', pkcollections.Dict())
 
+
 @api_perm.allow_visitor
 def api_srUnit():
     v = getattr(app, SRUNIT_TEST_IN_REQUEST)

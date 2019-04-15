@@ -36,7 +36,7 @@ def all_uids(user_class):
 
 
 def init(app, callback):
-    global _db, UserDbBase
+    global _db, UserDbBase, UserBase, User
 
     with thread_lock:
         if not _db:
@@ -47,8 +47,8 @@ def init(app, callback):
             )
             _db = SQLAlchemy(app, session_options=dict(autoflush=True))
 
-            class UserDbBase(object):
 
+            class UserDbBase(object):
                 def __init__(self, **kwargs):
                     for k, v in kwargs.items():
                         setattr(self, k, v)
@@ -62,6 +62,27 @@ def init(app, callback):
                     with thread_lock:
                         return cls.query.filter_by(**kwargs).first()
 
+            class User(UserDbBase, _db.Model):
+                __tablename__ = 'user_t'
+                uid = _db.Column(_db.String(8), primary_key=True)
+                created = _db.Column(_db.DateTime(), nullable=False)
+                display_name = _db.Column(_db.String(100))
+
+
+            class UserBase(UserDbBase):
+                @classmethod
+                def create_user(cls, **kwargs):
+                    self = cls(**kwargs)
+                    if not kwargs.get('uid'):
+                        kwargs[uid] = simulation_db.user_create()
+                        u = User(
+                            uid=self.uid,
+                            created=datetime.now(),
+                            display_name=None,
+                        )
+                        _db.session.add(u)
+                    return self
+
                 def login(self):
                     with thread_lock:
                         session_uid = cookie.unchecked_get_user()
@@ -70,12 +91,17 @@ def init(app, callback):
                             # user database, if not, copy over simulations
                             # from anonymous to this user.
                             if not self.search_by(uid=session_uid):
-                                simulation_db.move_user_simulations(self.uid)
+                                simulation_db.move_user_simulations(
+                                    session_uid,
+                                    self.uid,
+                                )
                         cookie.set_user(self.uid)
+
 
         callback(_db, UserDbBase)
         # only creates tables that don't already exist
         _db.create_all()
+
 
 def _db_filename(app):
     return app.sirepo_db_dir.join(_USER_DB_FILE)

@@ -18,13 +18,13 @@ from sirepo import server
 from sirepo import simulation_db
 from sirepo import uri_router
 from sirepo import user_db
-from sirepo import user_state
 from sirepo import util
 import datetime
 import flask
 import flask_mail
 import pyisemail
 import re
+import sirepo.auth
 import sirepo.template
 import sqlalchemy
 try:
@@ -35,7 +35,7 @@ except ImportError:
     from urllib.parse import urlencode
 
 
-#: EmailAuth users most always be non-anonymous
+#: AuthEmail users most always be non-anonymous
 ALLOW_ANONYMOUS_SESSION = False
 
 #: Tell GUI how to authenticate (before schema is loaded)
@@ -69,23 +69,11 @@ _COOKIE_OAUTH_COMPAT_LOGIN = 'sreaocl'
 
 go through all the code.
 
-@api_perm.require_user
-def api_emailAuthDisplayName():
-    data = http_request.parse_json(assert_sim_type=False)
-    dn = _parse_display_name(data)
-    uid = cookie.get_user()
-    assert user_state.is_logged_in(), \
-        'user is not logged in, uid={}'.format(uid)
-    with user_db.thread_lock:
-        user = EmailAuth.search_by(uid=uid)
-        user.display_name = dn
-        user.save()
-    return http_reply.gen_json_ok()
-
-
-# You have to be an anonymous or logged in user at this point
 @api_perm.require_cookie_sentinel
 def api_emailAuthLogin():
+    """Login the user from the form.
+    User can be l
+    """
     email = flask.request.args.get('email', None)
     if email:
         # see oauth_compat case below
@@ -97,14 +85,14 @@ def api_emailAuthLogin():
     email = _parse_email(data)
     sim_type = sirepo.template.assert_sim_type(data.simulationType)
     with user_db.thread_lock:
-        u = EmailAuth.search_by(unverified_email=email)
+        u = AuthEmail.search_by(unverified_email=email)
         if u:
             # might be different uid, but don't care for now, just logout
             user_state.logout_as_user(this_module)
         else:
             uid = cookie.unchecked_get_user()
-            if uid and not user_state.is_anonymous_session():
-                u = EmailAuth.search_by(uid=uid)
+            if uid:
+                u = AuthEmail.search_by(uid=uid)
                 oauth_ok = False
                 if not u and cfg.oauth_compat:
                     u = oauth.UserModel.search_by(uid=uid)
@@ -124,9 +112,7 @@ def api_emailAuthLogin():
                     # was logged in as different user so clear and get new user
                     user_state.logout_as_anonymous()
                     uid = None
-            if not uid:
-                uid = simulation_db.user_create()
-            u = EmailAuth(uid=uid, unverified_email=email)
+            u = AuthEmail.create_user(uid=uid, unverified_email=email)
         token = u.create_token()
         u.save()
     return _send_login_email(
@@ -147,7 +133,7 @@ def api_emailAuthorized(simulation_type, token):
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
-        u = EmailAuth.search_by(token=token)
+        u = AuthEmail.search_by(token=token)
         if not u or u.expires < datetime.datetime.utcnow():
             # if the auth is invalid, but the user is already logged
             # in (ie. following an old link from an email) keep the
@@ -176,8 +162,8 @@ def api_emailAuthorized(simulation_type, token):
         # delete old record if there was one. This would happen
         # if there was a email change.
         u.query.filter(
-            EmailAuth.user_name == u.unverified_email,
-            EmailAuth.unverified_email != u.unverified_email,
+            AuthEmail.user_name == u.unverified_email,
+            AuthEmail.unverified_email != u.unverified_email,
         ).delete()
         u.user_name = u.unverified_email
         u.token = None
@@ -199,20 +185,6 @@ def init_apis(app):
         from sirepo import oauth
 
         oauth.init_module(app)
-
-
-def require_user():
-    """user_state helper function
-
-    If oauth_compat is on and _COOKIE_OAUTH_COMPAT is set, then
-    don't have a user and throw an exception to force a login.
-    """
-    if cfg.oauth_compat and cookie.has_key(_COOKIE_OAUTH_COMPAT_LOGIN):
-        return (
-            user_state.LOGGED_OUT_ROUTE_NAME,
-            'oauth_compat mode: force login with email_auth'.format(cookie.get_user())
-        )
-    return None
 
 
 def _init(app):
@@ -240,8 +212,8 @@ def _init(app):
 
 
 def _init_email_auth_model(db, base):
-    """Creates EmailAuth class bound to dynamic `db` variable"""
-    global EmailAuth, UserModel
+    """Creates AuthEmail class bound to dynamic `db` variable"""
+    global AuthEmail, UserModel
 
     # Primary key is unverified_email.
     # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
@@ -250,10 +222,10 @@ def _init_email_auth_model(db, base):
     # display_name is prompted after first login
 
 ### subclass model passed into _init_email_auth_model
-    class EmailAuth(base, db.Model):
+    class AuthEmail(base, db.Model):
         EMAIL_SIZE = 255
         TOKEN_SIZE = 16
-        __tablename__ = 'email_auth_t'
+        __tablename__ = 'auth_email_t'
         unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
         uid = db.Column(db.String(8))
         user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
@@ -268,8 +240,8 @@ def _init_email_auth_model(db, base):
             return token
 
 
-    UserModel = EmailAuth
-    return EmailAuth.__tablename__
+    UserModel = AuthEmail
+    return AuthEmail.__tablename__
 
 
 def _parse_display_name(data):
@@ -311,7 +283,7 @@ This link will expire in {} minutes and can only be used once.
 
 def _user_with_email_is_logged_in():
     if user_state.is_logged_in():
-        user = EmailAuth.search_by(uid=cookie.get_user())
+        user = AuthEmail.search_by(uid=cookie.get_user())
         if user and user.user_name and user.user_name == user.unverified_email:
             return True
     return False

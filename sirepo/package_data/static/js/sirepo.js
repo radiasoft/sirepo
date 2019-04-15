@@ -953,12 +953,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 SIREPO.app.factory('loginService', function(requestSender, notificationService, $location) {
     var self = {};
     var loginNotification = null;
-    self.isEmailAuth = SIREPO.userState && SIREPO.userState.authMethod == 'email';
-    self.authMethodName = self.isEmailAuth ? 'email' : 'GitHub';
 
-    self.allowAnonymous = function() {
-        return self.isEmailAuth ? 0 : 1;
-    };
+authMethod is in user state
 
     self.enableNotification = function(isEnabled) {
         if (loginNotification) {
@@ -972,17 +968,23 @@ SIREPO.app.factory('loginService', function(requestSender, notificationService, 
         }
     };
 
-    self.formatAuthUrl = function() {
-        return requestSender.formatUrl('oauthLogin', {
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<oauth_type>': SIREPO.userState.authMethod,
-        });
-    };
+should be github url; returned in user_state
+//    self.formatAuthUrl = function() {
+//        return requestSender.formatUrl('oauthLogin', {
+//            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+//            '<oauth_type>': SIREPO.userState.authMethod,
+//        });
+//    };
 
-    self.formatLogoutUrl = function(wantAnonymous) {
-        return requestSender.formatUrl('logout', {
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-        }) + (self.allowAnonymous && wantAnonymous ? '?anonymous=1' : '');
+
+// another logout url
+    self.formatLogoutUrl = function() {
+        return requestSender.formatUrl(
+            'logout',
+            {
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            },
+        );
     };
 
     self.initNotification = function() {
@@ -2584,10 +2586,9 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 
 SIREPO.app.controller('LoggedOutController', function (requestSender, loginService, panelState) {
     var self = this;
-    self.anonymousUrl = loginService.allowAnonymous() ? loginService.formatLogoutUrl(true) : null;
     self.loginService = loginService;
     panelState.waitForUI(function() {
-        $('#sr-email-login').modal('show');
+        $('#sr-login').modal('show');
     });
 
 });

@@ -29,7 +29,7 @@ _PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
 _FUNC_PREFIX = 'api_'
 
 #: modules that must be initialized. server must be first
-_REQUIRED_MODULES = ('server', 'user_state')
+_REQUIRED_MODULES = ('server', 'auth')
 
 #: Where to route when no routes match (root)
 _default_route = None

@@ -395,10 +395,16 @@ def lib_dir_from_sim_dir(sim_dir):
     return sim_dir.join(_REL_LIB_DIR)
 
 
-def move_user_simulations(to_uid):
-    """Moves all non-example simulations for the current session into the target user's dir.
+def move_user_simulations(from_uid, to_uid):
+    """Moves all non-example simulations `from_uid` into `to_uid`.
+
+    Only moves non-example simulations. Doesn't delete the from_uid.
+
+    Args:
+        from_uid (str): source user
+        to_uid (str): dest user
+
     """
-    from_uid = cookie.get_user()
     with _global_lock:
         for path in glob.glob(
                 str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),

@@ -11,7 +11,7 @@ class MockOAuthClient(object):
 
     def __init__(self, monkeypatch):
         from pykern import pkcollections
-        from sirepo import oauth
+        from sirepo import auth.github
 
         self.values = pkcollections.Dict(
             access_token='xyzzy',
@@ -35,8 +35,8 @@ class MockOAuthClient(object):
         self.values.state = state
         return flask.redirect(
             'https://github.com/login/oauth/oauthorize?response_type=code&client_id={}&redirect_uri={}&state={}'.format(
-                oauth.cfg.github_key,
-                oauth.cfg.github_callback_uri,
+                auth.github.cfg.key,
+                auth.github.cfg.callback_uri,
                 state,
             ),
             code=302,

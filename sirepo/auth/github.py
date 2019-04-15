@@ -49,6 +49,7 @@ def api_oauthAuthorized(oauth_type):
 
     Tracks oauth users in a database.
     """
+    _assert_oauth_type(oauth_type)
     with user_db.thread_lock:
         oc = _oauth_client(oauth_type)
         resp = oc.authorized_response()
@@ -72,7 +73,7 @@ def api_oauthAuthorized(oauth_type):
                 from sirepo import simulation_db
                 simulation_db.user_create()
             # first time logging in to oauth so create oauth record
-            u = User(
+            u = UserModel(
                 display_name=data['name'],
                 oauth_id=data['id'],
                 oauth_type=oauth_type,
@@ -88,11 +89,13 @@ def api_oauthAuthorized(oauth_type):
 def api_oauthLogin(simulation_type, oauth_type):
     """Redirects to an OAUTH request for the specified oauth_type ('github').
     """
+    _assert_oauth_type(oauth_type)
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     return compat_login(oauth_type, '/{}'.format(sim_type))
 
 
 def compat_login(oauth_type, oauth_next):
+    _assert_oauth_type(oauth_type)
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_NEXT, oauth_next)
@@ -127,11 +130,6 @@ def init_module(app):
     uri_router.register_api_module()
 
 
-def require_user():
-    """user_state helper function"""
-    # no special lookup
-    return None
-
 class _FlaskSession(dict, flask.sessions.SessionMixin):
     pass
 
@@ -142,7 +140,7 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
     Without this class, Flask creates a NullSession which can't
     be written to. Flask assumes the session needs to be persisted
     to cookie or a db, which isn't true in our case.
-     """
+    """
     def open_session(*args, **kwargs):
         return _FlaskSession()
 
@@ -150,8 +148,12 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
         pass
 
 
-def _init(app):
+def _assert_oauth_type(t):
+    if t != DEFAULT_OAUTH_TYPE:
+        raise RuntimeError('Unknown oauth_type={}'.format(t))
 
+
+def _init(app):
     assert 0
 TODO(robnagler)
     added auth_method
@@ -161,44 +163,37 @@ TODO(robnagler)
 
     global cfg
     cfg = pkconfig.init(
-        github_key=pkconfig.Required(str, 'GitHub application key'),
-        github_secret=pkconfig.Required(str, 'GitHub application secret'),
-        github_callback_uri=(None, str, 'GitHub application callback URI'),
+        key=pkconfig.Required(str, 'GitHub application key'),
+        secret=pkconfig.Required(str, 'GitHub application secret'),
+        callback_uri=(None, str, 'GitHub application callback URI'),
     )
     app.session_interface = _FlaskSessionInterface()
 
 
 def _init_user_model(db, base):
     """Creates User class bound to dynamic `db` variable"""
-    global User, UserModel
+    global GitHubUser, UserModel
 
-    class User(base, db.Model):
-        __tablename__ = 'user_t'
+    class GitHubUser(base, db.Model):
+        __tablename__ = 'auth_github_t'
         uid = db.Column(db.String(8), primary_key=True)
         user_name = db.Column(db.String(100), nullable=False)
-        display_name = db.Column(db.String(100))
-        oauth_type = db.Column(
-            db.Enum(DEFAULT_OAUTH_TYPE, 'test', name='oauth_type'),
-            nullable=False
-        )
         oauth_id = db.Column(db.String(100), nullable=False)
-        __table_args__ = (sqlalchemy.UniqueConstraint('oauth_type', 'oauth_id'),)
+        __table_args__ = (sqlalchemy.UniqueConstraint('oauth_id'),)
 
 
-    UserModel = User
-    return User.__tablename__
+    UserModel = GitHubUser
 
 
 def _oauth_client(oauth_type):
-    if oauth_type == DEFAULT_OAUTH_TYPE:
-        return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
-            oauth_type,
-            consumer_key=cfg.github_key,
-            consumer_secret=cfg.github_secret,
-            base_url='https://api.github.com/',
-            request_token_url=None,
-            access_token_method='POST',
-            access_token_url='https://github.com/login/oauth/access_token',
-            authorize_url='https://github.com/login/oauth/authorize',
-        )
-    raise RuntimeError('Unknown oauth_type: {}'.format(oauth_type))
+    _assert_oauth_type(oauth_type)
+    return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
+        oauth_type,
+        consumer_key=cfg.github_key,
+        consumer_secret=cfg.github_secret,
+        base_url='https://api.github.com/',
+        request_token_url=None,
+        access_token_method='POST',
+        access_token_url='https://github.com/login/oauth/access_token',
+        authorize_url='https://github.com/login/oauth/authorize',
+    )

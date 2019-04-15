@@ -2200,6 +2200,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
+route completeregistration
 SIREPO.app.directive('completeRegistrationModal', function(loginService, panelState, requestSender) {
     return {
         restrict: 'A',
@@ -2318,9 +2319,7 @@ SIREPO.app.directive('commonFooter', function(loginService) {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-ng-if="::loginService.isEmailAuth">',
-              '<div data-complete-registration-modal=""></div>',
-            '</div>',
+            '<div data-complete-registration-modal=""></div>',
         ].join(''),
         controller: function($scope) {
             $scope.loginService = loginService;
