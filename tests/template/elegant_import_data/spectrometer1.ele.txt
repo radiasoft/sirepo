@@ -1,19 +1,19 @@
 
 &run_setup
   semaphore_file = run_setup.semaphore,
-  default_order = "1",
+  default_order = 1,
   final = "run_setup.final.sdds",
   lattice = "elegant.lte",
-  p_central_mev = "100",
+  p_central_mev = 100,
   parameters = "run_setup.parameters.sdds",
   use_beamline = "BL",
 &end
 
 &twiss_output
-  alpha_x = "0",
-  alpha_y = "0",
-  matched = "0",
-  output_at_each_step = "1",
+  alpha_x = 0,
+  alpha_y = 0,
+  matched = 0,
+  output_at_each_step = 1,
 &end
 
 &run_control
@@ -21,13 +21,13 @@
 
 &optimization_setup
   log_file = "optimization_setup.log_file.sdds",
-  n_evaluations = "1500",
-  n_passes = "3",
-  n_restarts = "2",
-  output_sparsing_factor = "100",
-  target = "0",
-  tolerance = "1e-12",
-  verbose = "0",
+  n_evaluations = 1500,
+  n_passes = 3,
+  n_restarts = 2,
+  output_sparsing_factor = 100,
+  target = 0,
+  tolerance = 1e-12,
+  verbose = 0,
 &end
 
 &optimization_term
@@ -44,49 +44,49 @@
 
 &optimization_variable
   item = "L",
-  lower_limit = "0",
+  lower_limit = 0,
   name = "D0",
-  step_size = "1e-3",
-  upper_limit = "5.0",
+  step_size = 1e-3,
+  upper_limit = 5.0,
 &end
 
 &optimization_variable
   item = "L",
-  lower_limit = "0.1",
+  lower_limit = 0.1,
   name = "D1",
-  step_size = "1e-3",
-  upper_limit = "5.0",
+  step_size = 1e-3,
+  upper_limit = 5.0,
 &end
 
 &optimization_variable
   item = "L",
-  lower_limit = "0.1",
+  lower_limit = 0.1,
   name = "D2",
-  step_size = "1e-3",
-  upper_limit = "5.0",
+  step_size = 1e-3,
+  upper_limit = 5.0,
 &end
 
 &optimization_variable
   item = "L",
-  lower_limit = "0.1",
+  lower_limit = 0.1,
   name = "D3",
-  step_size = "1e-3",
-  upper_limit = "5.0",
+  step_size = 1e-3,
+  upper_limit = 5.0,
 &end
 
 &optimization_variable
   item = "K1",
-  lower_limit = "0",
+  lower_limit = 0,
   name = "Q1",
-  step_size = "1e-3",
-  upper_limit = "2.5",
+  step_size = 1e-3,
+  upper_limit = 2.5,
 &end
 
 &optimization_variable
   item = "K1",
-  lower_limit = "-2.5",
+  lower_limit = -2.5,
   name = "Q2",
-  step_size = "1e-3",
+  step_size = 1e-3,
 &end
 
 &bunched_beam
@@ -104,14 +104,14 @@
   lattice = "save_lattice.filename.lte",
   magnets = "run_setup2.magnets.sdds",
   output = "run_setup2.output.sdds",
-  p_central_mev = "100",
+  p_central_mev = 100,
   sigma = "run_setup2.sigma.sdds",
   use_beamline = "BL",
 &end
 
 &twiss_output
-  alpha_x = "0",
-  alpha_y = "0",
+  alpha_x = 0,
+  alpha_y = 0,
   filename = "twiss_output2.filename.sdds",
 &end
 
@@ -119,16 +119,16 @@
 &end
 
 &bunched_beam
-  alpha_x = "0",
-  alpha_y = "0",
-  beta_x = "1",
-  beta_y = "1",
+  alpha_x = 0,
+  alpha_y = 0,
+  beta_x = 1,
+  beta_y = 1,
   distribution_cutoff[0] = 3, 3, 3,
-  emit_nx = "1e-6",
-  emit_ny = "1e-6",
+  emit_nx = 1e-6,
+  emit_ny = 1e-6,
   enforce_rms_values[0] = 1, 1, 1,
-  n_particles_per_bunch = "100000",
-  sigma_dp = "1e-3",
+  n_particles_per_bunch = 100000,
+  sigma_dp = 1e-3,
 &end
 
 &track

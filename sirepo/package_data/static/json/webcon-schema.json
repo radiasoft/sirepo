@@ -18,31 +18,60 @@
             }
         }
     },
-    "enum": {},
+    "enum": {
+        "ClusterMethod": [
+            ["kmeans", "KMeans"],
+            ["gmix", "Gaussian Mixture"],
+            ["dbscan", "DBSCAN"],
+            ["agglomerative", "Agglomerative Clustering"]
+        ],
+        "PlotAction": [
+            ["cluster", "Cluster"],
+            ["fit", "Fit"],
+            ["trim", "Trim"]
+        ]
+    },
     "model": {
         "analysisData": {
             "file": ["Archive Data File", "InputFile"]
         },
-        "analysisAnimation": {
+        "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
+            "action": ["Action", "PlotAction"],
+            "notes": ["Notes", "Text", ""],
+            "clusterMethod": ["Method", "ClusterMethod", "kmeans"],
+            "clusterCount": ["Number of Clusters", "Integer", 3],
+            "clusterFields": ["Fields", "ClusterFields"],
+            "fitEquation": ["Equation to Fit", "Equation"],
+            "fitParameters": ["Fit Parameters", "EquationParameters", ""],
+            "fitVariable": ["Independent Variable", "EquationVariables", ""],
+            "trimField": ["Trim Field", "AnalysisParameter"],
+            "trimMin": ["Minimum", "Float"],
+            "trimMax": ["Maximum", "Float"],
             "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
-         "fitter": {
+        "fftReport": {
+        },
+        "fitter": {
             "equation": ["Equation to Fit", "Equation"],
             "parameters": ["Fit Parameters", "EquationParameters", ""],
             "variable": ["Independent Variable", "EquationVariables", ""]
-        },
-        "fitReport": {
-            "parameterSigmas": ["_", "String", ""],
-            "parameterValues": ["_", "String", ""],
-            "x": ["X", "AnalysisParameter", "0"],
-            "y": ["Y", "AnalysisParameter", "1"]
         }
     },
     "view": {
+        "analysisCluster": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "clusterMethod",
+                "clusterCount",
+                "clusterFields"
+            ],
+            "advanced": []
+        },
         "analysisData": {
             "title": "Archive Data File",
             "basic": [
@@ -50,31 +79,44 @@
             ],
             "advanced": []
         },
-        "analysisAnimation": {
+        "analysisFit": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "fitEquation",
+                "fitVariable",
+                "fitParameters"
+            ],
+            "advanced": []
+        },
+        "analysisNone": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisReport": {
             "title": "Analysis Plot",
             "advanced": [
                 "x",
                 "y1",
-                "y2",
-                "y3",
                 "notes"
             ]
         },
-        "fitter": {
-            "title": "Fitter",
+        "analysisTrim": {
+            "model": "analysisReport",
             "basic": [
-                "equation",
-                "variable",
-                "parameters"
+                "action",
+                "trimField",
+                "trimMin",
+                "trimMax"
             ],
             "advanced": []
         },
-        "fitReport": {
-            "title": "Best Fit",
-            "advanced": [
-                "x",
-                "y"
-            ]
+        "fftReport": {
+            "title": "FFT",
+            "advanced": []
         }
     }
 }

@@ -2949,7 +2949,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.scatter-point').remove();
                 createLegend(plots);
                 plots.forEach(function(plot, i) {
-                    var strokeWidth = 2.0;
+                    var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
@@ -2970,7 +2970,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .datum(plot.points);
                     }
                     if(plot._parent) {
-                        strokeWidth = 1.0;
                         var parent = plots.filter(function (p, j) {
                             return j !== i && p.label === plot._parent;
                         })[0];
@@ -3222,6 +3221,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
             $scope.dataCleared = true;
 
+            $scope.hasAbsorbed = false;
+            $scope.hasConductors = false;
             $scope.hasReflected = false;
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
@@ -3503,6 +3504,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vtkPlotting.removeActors(renderer, conductorActors);
 
                 densityPlaneBundles = [];
+
                 conductorActors = [];
                 conductorBundles = [];
                 impactSphereActors = [];
@@ -3739,6 +3741,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
+
+                function coordAtIndex(startVal, sk, sl, k, l) {
+                    return startVal + k * sk + l * sl;
+                }
+
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
