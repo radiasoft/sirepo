@@ -48,7 +48,17 @@
             "fitVariable": ["Independent Variable", "EquationVariables", ""],
             "trimField": ["Trim Field", "AnalysisParameter"],
             "trimMin": ["Minimum", "Float"],
-            "trimMax": ["Maximum", "Float"]
+            "trimMax": ["Maximum", "Float"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
+            "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "fftReport": {
+        },
+        "fitter": {
+            "equation": ["Equation to Fit", "Equation"],
+            "parameters": ["Fit Parameters", "EquationParameters", ""],
+            "variable": ["Independent Variable", "EquationVariables", ""]
         }
     },
     "view": {
@@ -102,6 +112,10 @@
                 "trimMin",
                 "trimMax"
             ],
+            "advanced": []
+        },
+        "fftReport": {
+            "title": "FFT",
             "advanced": []
         }
     }

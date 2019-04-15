@@ -160,7 +160,8 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                         var pVals = data.p_vals.map(roundTo3Places);
                         var pErrs = data.p_errs.map(roundTo3Places);
                         pNames.forEach(function (p, i) {
-                            str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i] + ';  ';
+                            str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i];
+                            str = str + (i < pNames.length - 1 ? '; ' : '');
                         });
                     }
                     $($element).closest('.panel-body').find('.focus-hint').text(str);
@@ -392,6 +393,33 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
                     .reduce(function (valid, p) {
                         return valid && validateParam(p);
                     }, true);
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('fftReport', function(appState, panelState, plotting) {
+    return {
+        scope: {
+            controller: '=parentController',
+        },
+        template: [
+            '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fftReport">',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+
+            $scope.$on('fftReport.summaryData', function (e, data) {
+                var str = '';
+                data.freqs.forEach(function (wi, i) {
+                    if(str == '') {
+                        str = 'Found frequncies: ';
+                    }
+                    var w = wi[1];
+                    str = str + w + 's-1';
+                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
+                });
+                $($element).find('.focus-hint').text(str);
             });
         },
     };

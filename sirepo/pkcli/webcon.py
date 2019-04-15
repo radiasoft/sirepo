@@ -21,6 +21,8 @@ def run(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         if data.report == 'analysisReport':
             res = template.get_analysis_report(py.path.local(cfg_dir), data)
+        elif data['report'] == 'fftReport':
+            res = template.get_fft(data)
         else:
             assert False, 'unknown report: {}'.format(data.report)
         simulation_db.write_result(res)
