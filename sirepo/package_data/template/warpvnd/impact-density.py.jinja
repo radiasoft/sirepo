@@ -45,7 +45,7 @@ try:
             c = plot_density.conductors[i]
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
-            d = plot_density.generate_plot_data_for_faces_3d(c)
+            min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
             for (x, y, z, s) in d:
                 #n_bins = 20
                 #s_aves_k = []
@@ -80,7 +80,7 @@ try:
                 c_data.append(f_data)
             {% else %}
             coord_keys = ['x', 'z']
-            d = plot_density.generate_plot_data_for_faces_2d(c)
+            min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
             n_bins = 20
             for (x, z, s) in d:
                 h = np.histogram(s, bins=n_bins)[0]
@@ -121,8 +121,8 @@ try:
             {% endif %}
             'dz': plot_density.dz,
             'density': i_data,
-            'min': plot_density.cmap_normalization.vmin,
-            'max': plot_density.cmap_normalization.vmax,
+            'min': min_s,
+            'max': max_s,
         }
 
 except AssertionError as e:
