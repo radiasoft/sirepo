@@ -22,27 +22,7 @@ import re
 
 SIM_TYPE = 'webcon'
 
-WANT_BROWSER_FRAME_CACHE = False
-
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
-
-
-def background_percent_complete(report, run_dir, is_running):
-    if not is_running:
-        data = None
-        try:
-            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-        except IOError:
-            pass
-        return {
-            'percentComplete': 100,
-            'frameCount': 1,
-            'columnInfo': _column_info(run_dir.join(_analysis_data_file(data))) if data else None,
-        }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
 
 
 def fixup_old_data(data):
@@ -50,31 +30,77 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    for m in ('analysisAnimation', 'fitter', 'fitReport'):
+        if m in data.models:
+            del data.models[m]
     template_common.organize_example(data)
 
 
-def get_animation_name(data):
-    return 'animation'
+def get_application_data(data):
+    if data['method'] == 'column_info':
+        data = pkcollections.Dict({
+            'models': pkcollections.Dict({
+                'analysisData': data['analysisData'],
+                }),
+        })
+        return {
+            'columnInfo': _column_info(
+                _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
+        }
+    assert False, 'unknown application_data method: {}'.format(data['method'])
 
 
 def get_data_file(run_dir, model, frame, options=None):
     assert False, 'not implemented'
 
 
-def get_fit(data):
-    fit_in = _analysis_data_file(data)
-    col1 = int(data.models.fitReport.x)
-    col2 = int(data.models.fitReport.y)
+def get_analysis_report(run_dir, data):
+    report = data.models[data.report]
+    if 'action' in report and report.action == 'fit':
+        return get_fit_report(run_dir, data)
+    path = _analysis_data_path(run_dir, data)
+    plot_data = np.genfromtxt(path, delimiter=',', names=True)
+    col_info = _column_info(path)
+    x_idx = _safe_index(col_info, report.x)
+    x = plot_data[plot_data.dtype.names[x_idx]].tolist()
+    plots = []
+    for f in ('y1', 'y2', 'y3'):
+        if f not in report or report[f] == 'none':
+            continue
+        idx = _safe_index(col_info, report[f])
+        col = plot_data.dtype.names[idx]
+        if len(plot_data[col]) <= 0 or math.isnan(plot_data[col][0]):
+            continue
+        plots.append({
+            'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
+            'label': _label(col_info, idx),
+            'style': 'scatter',
+        })
+    return template_common.parameter_plot(x, plots, data, {
+        'title': '',
+        'y_label': '',
+        'x_label': _label(col_info, x_idx),
+        'summaryData': {},
+    })
 
-    x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
+
+def get_fit_report(run_dir, data):
+    fit_in = _analysis_data_path(run_dir, data)
+    report = data.models[data.report]
+
+    assert data.report != 'fitReport'
+
     col_info = _column_info(fit_in)
+    col1 = _safe_index(col_info, report.x)
+    col2 = _safe_index(col_info, report.y1)
+    x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
 
     fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
-        data.models.fitter.equation,
-        data.models.fitter.variable,
-        data.models.fitter.parameters
+        report.fitEquation,
+        report.fitVariable,
+        report.fitParameters,
     )
 
     plots = [
@@ -111,38 +137,6 @@ def get_fit(data):
     })
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    path = str(run_dir.join(_analysis_data_file(model_data)))
-    plot_data = np.genfromtxt(path, delimiter=',', names=True)
-    col_info = _column_info(path)
-    report = template_common.parse_animation_args(
-        data,
-        {
-            '': ['x', 'y1', 'y2', 'y3', 'startTime'],
-        },
-    )
-    x_idx = _safe_index(plot_data, report.x)
-    x = plot_data[plot_data.dtype.names[x_idx]].tolist()
-    plots = []
-    for f in ('y1', 'y2', 'y3'):
-        if report[f] == 'none':
-            continue
-        idx = _safe_index(plot_data, report[f])
-        col = plot_data.dtype.names[idx]
-        if len(plot_data[col]) <= 0 or math.isnan(plot_data[col][0]):
-            continue
-        plots.append({
-            'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
-            'label': _label(col_info, idx),
-            'style': 'scatter',
-        })
-    return template_common.parameter_plot(x, plots, data, {
-        'title': '',
-        'y_label': '',
-        'x_label': _label(col_info, x_idx),
-    })
-
-
 def lib_files(data, source_lib):
     res = []
     if data.models.analysisData.file:
@@ -153,13 +147,10 @@ def lib_files(data, source_lib):
 
 def models_related_to_report(data):
     r = data['report']
-    if r == get_animation_name(data):
-        return []
+    res = [r, 'analysisData']
     if r == 'fitReport':
-        return [r, 'fitter']
-    return [
-        r,
-    ]
+        res.append('fitter')
+    return res
 
 
 def python_source_for_model(data, model):
@@ -189,6 +180,10 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _analysis_data_file(data):
     return template_common.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+
+
+def _analysis_data_path(run_dir, data):
+    return str(run_dir.join(_analysis_data_file(data)))
 
 
 def _column_info(path):
@@ -269,6 +264,9 @@ def _fit_to_equation(x, y, equation, var, params):
     y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
     latex_label = sympy.latex(y_fit_rounded, mode='inline')
+    y_fit_l(x)
+    y_fit_min_l(x)
+    y_fit_max_l(x)
     return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sigma, latex_label
 
 
@@ -284,8 +282,8 @@ def _label(col_info, idx):
     return name
 
 
-def _safe_index(values, idx):
-    idx = int(idx)
-    if idx >= len(values.dtype.names):
+def _safe_index(col_info, idx):
+    idx = int(idx or 0)
+    if idx >= len(col_info['names']):
         idx = 1
     return idx

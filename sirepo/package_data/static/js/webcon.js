@@ -20,54 +20,210 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="EquationParameters" class="col-sm-7">',
       '<div data-equation-variables="" data-model="model" data-field="field" data-form="form" data-is-variable="false"></div>',
     '</div>',
+    '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
+      '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.factory('webconService', function(appState) {
     var self = {};
-    self.analysisParameters = null;
-
-    self.setAnalysisParameters = function(columnInfo) {
-        self.analysisParameters = columnInfo;
+    var parameterCache = {
+        analysisParameter: null,
+        parameterValues: null,
+        optionalParameterValues: null,
     };
 
+    self.buildParameterList = function(includeOptional) {
+        if (! appState.isLoaded()) {
+            return null;
+        }
+        var name = includeOptional ? 'optionalParameterValues' : 'parameterValues';
+        // use cached list unless the columnInfo changes
+        if (parameterCache.analysisParameters == appState.models.analysisData.columnInfo) {
+            if (parameterCache[name]) {
+                return parameterCache[name];
+            }
+        }
+        parameterCache.analysisParameters = appState.models.analysisData.columnInfo;
+        var parameterValues = [];
+        var visited = {};
+        parameterCache.analysisParameters.names.forEach(function(name, idx) {
+            // skip duplicate columns
+            if (! visited[name]) {
+                parameterValues.push(['' + idx, name]);
+                visited[name] = true;
+            }
+        });
+        parameterValues.sort(function(a, b) {
+            return a[1].localeCompare(b[1]);
+        });
+        if (includeOptional) {
+            parameterValues.unshift(['none', 'None']);
+        }
+        parameterCache[name] = parameterValues;
+        return parameterValues;
+    };
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function (appState, frameCache, panelState, persistentSimulation, webconService, $scope, $timeout) {
+SIREPO.app.controller('AnalysisController', function (appState, panelState, requestSender, $scope) {
     var self = this;
+    var currentFile = null;
 
-    function handleStatus(data) {
-        if (appState.models.analysisData.file) {
-            frameCache.setFrameCount(data.frameCount);
-            if (data.columnInfo) {
-                webconService.setAnalysisParameters(data.columnInfo);
-            }
-        }
+    function updateAnalysisParameters() {
+        requestSender.getApplicationData(
+            {
+                method: 'column_info',
+                analysisData: appState.models.analysisData,
+            },
+            function(data) {
+                if (appState.isLoaded() && data.columnInfo) {
+                    appState.models.analysisData.columnInfo = data.columnInfo;
+                    appState.saveChanges('analysisData');
+                }
+            });
     }
 
     self.hasFile = function() {
         return appState.isLoaded() && appState.applicationState().analysisData.file;
     };
 
-    self.isFitterConfigured = function() {
-        return appState.models.fitter.equation && appState.models.fitter.variable && appState.models.fitter.parameters;
-    };
-
     appState.whenModelsLoaded($scope, function() {
+        currentFile = appState.models.analysisData.file;
+        if (currentFile && ! appState.models.analysisData.columnInfo) {
+            updateAnalysisParameters();
+        }
         $scope.$on('analysisData.changed', function() {
-            frameCache.setFrameCount(0);
-            if (appState.models.analysisData.file) {
-                self.simState.saveAndRunSimulation('analysisData');
+            var analysisData = appState.models.analysisData;
+            if (currentFile != analysisData.file) {
+                currentFile = analysisData.file;
+                updateAnalysisParameters();
             }
         });
     });
-
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        analysisAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y1', 'y2', 'y3', 'startTime'],
-    });
 });
 
-SIREPO.app.directive('analysisParameter', function(webconService) {
+SIREPO.app.directive('analysisActions', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
+            '<div class="text-center">',
+              '<div data-field-editor="\'action\'" data-model-name="modelName" data-model="model()" data-field-size="12"></div>',
+            '</div>',
+            '<div class="clearfix"></div>',
+            //TODO(pjm): generalize repetition
+            '<div data-ng-if="! model().action" style="margin-top:3ex;">',
+              '<div data-advanced-editor-pane="" data-view-name="\'analysisNone\'" data-field-def="basic" data-want-buttons="1"></div>',
+            '</div>',
+            '<div data-ng-if="model().action == \'cluster\'" style="margin-top:3ex;">',
+              '<div data-advanced-editor-pane="" data-view-name="\'analysisCluster\'" data-field-def="basic" data-want-buttons="1"></div>',
+            '</div>',
+            '<div data-ng-if="model().action == \'fit\'" style="margin-top:3ex;">',
+              '<div data-advanced-editor-pane="" data-view-name="\'analysisFit\'" data-field-def="basic" data-want-buttons="1"></div>',
+            '</div>',
+            '<div data-ng-if="model().action == \'trim\'" style="margin-top:3ex;">',
+              '<div data-advanced-editor-pane="" data-view-name="\'analysisTrim\'" data-field-def="basic" data-want-buttons="1"></div>',
+            '</div>',
+            '<div class="clearfix"></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            function roundTo3Places(f) {
+                return Math.round(f * 1000) / 1000;
+            }
+
+            function updateAction() {
+                // hide the in-view action field
+                panelState.showField('analysisReport', 'action', false);
+            }
+
+            $scope.isLoading = function() {
+                return panelState.isLoading($scope.modelName);
+            };
+
+            $scope.model = function() {
+                if (appState.isLoaded()) {
+                    return appState.models[$scope.modelName];
+                }
+                return null;
+            };
+
+            appState.whenModelsLoaded($scope, function() {
+                $scope.$on('analysisReport.summaryData', function (e, data) {
+                    var str = '';
+                    if (data.p_vals) {
+                        var pNames = ($scope.model().fitParameters || '').split(/\s*,\s*/);
+                        var pVals = data.p_vals.map(roundTo3Places);
+                        var pErrs = data.p_errs.map(roundTo3Places);
+                        pNames.forEach(function (p, i) {
+                            str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i] + ';  ';
+                        });
+                    }
+                    $($element).closest('.panel-body').find('.focus-hint').text(str);
+                });
+                appState.watchModelFields($scope, ['analysisReport.action'], updateAction);
+                updateAction();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('clusterFields', function(appState, webconService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
+              '<table class="table table-condensed table-hover" style="margin:0">',
+                '<tbody>',
+                  '<tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">',
+                    '<td>{{ item.name }}</td>',
+                    '<td><input type="checkbox" data-ng-checked="isSelected(item)"></td>',
+                  '</tr>',
+                '</tbody>',
+              '</table>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var itemList, paramList;
+
+            $scope.isSelected = function(item) {
+                var v = $scope.model[$scope.field] || [];
+                return v[item.index];
+            };
+
+            $scope.itemList = function() {
+                var params = webconService.buildParameterList();
+                if (paramList != params) {
+                    paramList = params;
+                    itemList = [];
+                    paramList.forEach(function(param) {
+                        itemList.push({
+                            name: param[1],
+                            index: parseInt(param[0]),
+                        });
+                    });
+                }
+                return itemList;
+            };
+
+            $scope.toggleItem = function(item) {
+                var v = $scope.model[$scope.field] || [];
+                v[item.index] = ! v[item.index];
+                $scope.model[$scope.field] = v;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('analysisParameter', function(appState, webconService) {
     return {
         restrict: 'A',
         scope: {
@@ -79,28 +235,8 @@ SIREPO.app.directive('analysisParameter', function(webconService) {
             '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
         ].join(''),
         controller: function($scope) {
-            var analysisParameters, parameterValues;
             $scope.parameterValues = function() {
-                if (analysisParameters == webconService.analysisParameters) {
-                    return parameterValues;
-                }
-                analysisParameters = webconService.analysisParameters;
-                parameterValues = [];
-                var visited = {};
-                analysisParameters.names.forEach(function(name, idx) {
-                    // skip duplicate columns
-                    if (! visited[name]) {
-                        parameterValues.push(['' + idx, name]);
-                        visited[name] = true;
-                    }
-                });
-                parameterValues.sort(function(a, b) {
-                    return a[1].localeCompare(b[1]);
-                });
-                if ($scope.isOptional) {
-                    parameterValues.unshift(['none', 'None']);
-                }
-                return parameterValues;
+                return webconService.buildParameterList($scope.isOptional);
             };
         },
     };
@@ -198,7 +334,7 @@ SIREPO.app.directive('equationVariables', function() {
             '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
         controller: function($scope, $element) {
-            $scope.equation = $scope.model.equation;
+            $scope.equation = $scope.model.fitEquation;
         },
     };
 });
@@ -232,11 +368,11 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
                     scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
                     return false;
                 }
-                if(! scope.isVariable && p === scope.model.variable) {
+                if(! scope.isVariable && p === scope.model.fitVariable) {
                     scope.warningText = p + ' is an independent variable';
                     return false;
                 }
-                if(scope.model.equation.indexOf(p) < 0) {
+                if(scope.model.fitEquation.indexOf(p) < 0) {
                     scope.warningText = p + ' does not appear in the equation';
                     return false;
                 }
@@ -257,41 +393,6 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
                         return valid && validateParam(p);
                     }, true);
             });
-        },
-    };
-});
-
-SIREPO.app.directive('fitReport', function(appState) {
-    return {
-        scope: {
-            controller: '=parentController',
-        },
-        template: [
-            '<div data-basic-editor-panel="" data-view-name="fitter" data-parent-controller="controller"></div>',
-            '<div data-ng-if="controller.isFitterConfigured()" data-report-panel="parameter" data-request-priority="1" data-model-name="fitReport">',
-            '</div>',
-        ].join(''),
-        controller: function($scope, $element) {
-
-            function roundTo3Places(f) {
-                return Math.round(f * 1000) / 1000;
-            }
-
-            $scope.$on('fitter.changed', function() {
-                appState.saveChanges('fitReport');
-            });
-            $scope.$on('fitReport.summaryData', function (e, data) {
-                var str = '';
-                var pNames = (appState.models.fitter.parameters || '').split(/\s*,\s*/);
-                var pVals = data.p_vals.map(roundTo3Places);
-                var pErrs = data.p_errs.map(roundTo3Places);
-                pNames.forEach(function (p, i) {
-                    str = str + p + ' = ' + pVals[i] + ' ± ' + pErrs[i] + ';  ';
-                });
-                $($element).find('.focus-hint').text(str);
-            });
-
-
         },
     };
 });
