@@ -65,6 +65,9 @@ def get_analysis_report(run_dir, data):
     x = plot_data[plot_data.dtype.names[x_idx]].tolist()
     plots = []
     for f in ('y1', 'y2', 'y3'):
+        #TODO(pjm): determine if y2 or y3 will get used
+        if f != 'y1':
+            continue
         if f not in report or report[f] == 'none':
             continue
         idx = _safe_index(col_info, report[f])

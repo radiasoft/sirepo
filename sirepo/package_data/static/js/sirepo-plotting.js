@@ -2955,6 +2955,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 plots.forEach(function(plot, i) {
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
+                        viewport.selectAll('.param-plot').remove();
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
                             pg.selectAll('.scatter-point')

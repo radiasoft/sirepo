@@ -27,6 +27,7 @@
         ],
         "PlotAction": [
             ["cluster", "Cluster"],
+            ["fft", "FFT"],
             ["fit", "Fit"],
             ["trim", "Trim"]
         ]
@@ -38,7 +39,7 @@
         "analysisReport": {
             "x": ["X Value", "AnalysisParameter", "0"],
             "y1": ["Y1 Value", "AnalysisParameter", "1"],
-            "action": ["Action", "PlotAction"],
+            "action": ["", "PlotActionButtons"],
             "notes": ["Notes", "Text", ""],
             "clusterMethod": ["Method", "ClusterMethod", "kmeans"],
             "clusterCount": ["Number of Clusters", "Integer", 3],
@@ -76,6 +77,13 @@
             "title": "Archive Data File",
             "basic": [
                 "file"
+            ],
+            "advanced": []
+        },
+        "analysisFFT": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
             ],
             "advanced": []
         },
