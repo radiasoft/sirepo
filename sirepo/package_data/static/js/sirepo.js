@@ -387,7 +387,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         });
         return p;
     };
-    
+
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -468,19 +468,8 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     };
 
     self.newSimulation = function(model, op, errOp) {
-        var data = {
-            name: model.name,
-            folder: model.folder,
-            sourceType: model.sourceType,
-            notes: model.notes,
-            simulationType: SIREPO.APP_SCHEMA.simulationType,
-        };
-        for(var key in model) {
-            if(data[key]) {
-                continue;
-            }
-            data[key] = model[key];
-        }
+        var data = self.clone(model)
+        data.simulationType = SIREPO.APP_SCHEMA.simulationType;
         requestSender.sendRequest('newSimulation', op, data, errOp);
     };
 
