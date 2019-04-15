@@ -209,7 +209,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
                 }
                 for (var i = 0; i < fieldsByModel[m].length; i++) {
                     var f = fieldsByModel[m][i];
-                    if (models[m][f] != savedModelValues[m][f]) {
+                    if (! self.deepEquals(models[m][f], savedModelValues[m][f])) {
                         return true;
                     }
                 }
@@ -388,7 +388,6 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return p;
     };
 
-
     self.isAnimationModelName = function(name) {
         return name == 'animation' || name.indexOf('Animation') >= 0;
     };
@@ -468,17 +467,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return info;
     };
 
-    self.newSimulation = function(model, op) {
-        requestSender.sendRequest(
-            'newSimulation',
-            op,
-            {
-                name: model.name,
-                folder: model.folder,
-                sourceType: model.sourceType,
-                notes: model.notes,
-                simulationType: SIREPO.APP_SCHEMA.simulationType,
-            });
+    self.newSimulation = function(model, op, errOp) {
+        var data = self.clone(model);
+        data.simulationType = SIREPO.APP_SCHEMA.simulationType;
+        requestSender.sendRequest('newSimulation', op, data, errOp);
     };
 
     self.optFieldName = function(modelName, fieldName, model) {

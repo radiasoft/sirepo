@@ -20,6 +20,7 @@ import os.path
 import py.path
 import re
 
+
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
@@ -64,27 +65,30 @@ def fixup_old_data(data):
             'simulation',
             'simulationGrid',
     ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'joinEvery' in data['models']['particle3d']:
-        del data['models']['particle3d']['joinEvery']
-    for c in data['models']['conductorTypes']:
+        if m not in data.models:
+            data.models[m] = {}
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if 'joinEvery' in data.models.particle3d:
+        del data.models.particle3d['joinEvery']
+    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
+    for c in types:
+        if c is None:
+            continue
         if 'isConductor' not in c:
-            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
-        template_common.update_model_defaults(c, 'box', _SCHEMA)
-    for c in data['models']['conductors']:
+            c.isConductor = '1' if c.voltage > 0 else '0'
+        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
+    for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    if 'fieldComparisonReport' not in data['models']:
-        grid = data['models']['simulationGrid']
-        data['models']['fieldComparisonReport'] = {
+    if 'fieldComparisonReport' not in data.models:
+        grid = data.models.simulationGrid
+        data.models.fieldComparisonReport = {
             'dimension': 'x',
-            'xCell1': int(grid['num_x'] / 3.),
-            'xCell2': int(grid['num_x'] / 2.),
-            'xCell3': int(grid['num_x'] * 2. / 3),
-            'zCell1': int(grid['num_z'] / 2.),
-            'zCell2': int(grid['num_z'] * 2. / 3),
-            'zCell3': int(grid['num_z'] * 4. / 5),
+            'xCell1': int(grid.num_x / 3.),
+            'xCell2': int(grid.num_x / 2.),
+            'xCell3': int(grid.num_x * 2. / 3),
+            'zCell1': int(grid.num_z / 2.),
+            'zCell2': int(grid.num_z * 2. / 3),
+            'zCell3': int(grid.num_z * 4. / 5),
         }
     template_common.organize_example(data)
 
@@ -211,6 +215,15 @@ def models_related_to_report(data):
     if data['report'] != 'fieldComparisonReport':
         res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
+
+
+def new_simulation(data, new_simulation_data):
+    if 'conductorFile' in new_simulation_data:
+        c_file = new_simulation_data.conductorFile
+        if c_file:
+            # verify somehow?
+            data.models.simulation.conductorFile = c_file
+            data.models.simulationGrid.simulation_mode = '3d'
 
 
 def open_data_file(run_dir, model_name, file_index=None):
@@ -457,10 +470,10 @@ def _extract_impact_density(run_dir, data):
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    width = 0
 
     dx = plot_info['dx']
     dz = plot_info['dz']
@@ -778,6 +791,8 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
 def _prepare_conductors(data):
     type_by_id = {}
     for ct in data.models.conductorTypes:
+        if ct is None:
+            continue
         type_by_id[ct.id] = ct
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
@@ -785,6 +800,8 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
     for c in data.models.conductors:
+        if c.conductorTypeId not in type_by_id:
+            continue
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])

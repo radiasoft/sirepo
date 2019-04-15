@@ -299,6 +299,7 @@
     }
     .sr-hide-report {
       opacity: 0;
+      height: 0;
     }
     .sr-panel-active {
         border-width: 1px;
