@@ -2160,7 +2160,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 // loop over conductors
                 // arr[0] + k * sk for 2d
                 // arr[0][0] + k * sk + l * sl for 3d (later)
-                (json['density'] || []).forEach(function (c, ci) {
+                (json.density || []).forEach(function (c, ci) {
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
                     // loop over "faces"

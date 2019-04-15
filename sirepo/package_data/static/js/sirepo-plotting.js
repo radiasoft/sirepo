@@ -3742,10 +3742,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
 
-                function coordAtIndex(startVal, sk, sl, k, l) {
-                    return startVal + k * sk + l * sl;
-                }
-
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
@@ -3815,15 +3811,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
-                (impactData['density'] || []).forEach(function (c, ci) {
+                (impactData.density || []).forEach(function (c) {
                     if(! $scope.enableImpactDensity) {
                         return;
                     }
-                    //if(ci !== 3) {return}
                     // loop over faces
-                    c.forEach(function (f, fi) {
-                        //if(fi !== 2) {return}
-                        //srdbg('face data', f);
+                    c.forEach(function (f) {
                         if(! f.y) {
                             $scope.enableImpactDensity = false;
                             return;
@@ -3836,10 +3829,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         var nl = d[0].length;
                         var numPoints = nk * nl;
                         var numCells = (nk - 1) * (nl - 1);
-                        //srdbg('num pts', nk * nl, 'num cells', (nk - 1) * (nl - 1));
                         var smin = plotting.min2d(d);
                         var smax = plotting.max2d(d);
-                        //srdbg('min/max', smin, smax);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
 
                         var p1 = [
