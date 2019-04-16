@@ -13,6 +13,7 @@ from warp.data_dumping.openpmd_diag import ParticleDiagnostic
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
 from rswarp.cathode import injectors
+from rswarp.stlconductor import stlconductor
 
 from scipy import constants
 
@@ -335,7 +336,11 @@ wp.installconductor(plate,dfill=wp.largepos)
 
 conductors = [
 {% for c in conductors %}
+{% if c.conductor_type.type == 'stl' %}
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight")
+{% else %}
     wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}),
+{% endif %}
 {% endfor %}
 ]
 
