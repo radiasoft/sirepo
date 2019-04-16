@@ -22,7 +22,7 @@ def run(cfg_dir):
         if data.report == 'analysisReport':
             res = template.get_analysis_report(py.path.local(cfg_dir), data)
         elif data['report'] == 'fftReport':
-            res = template.get_fft(data)
+            res = template.get_fft(py.path.local(cfg_dir), data)
         else:
             assert False, 'unknown report: {}'.format(data.report)
         simulation_db.write_result(res)

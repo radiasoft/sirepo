@@ -2768,13 +2768,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var legend = $scope.select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
                 if (plots.length == 1) {
-                    return;
+                    return 0;
                 }
                 var itemWidth;
+                var count = 0;
                 plots.forEach(function(plot, i) {
                     if(plot._parent) {
                         return;
                     }
+                    count++;
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     item.append('text')
@@ -2799,6 +2801,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
                 });
+                return count;
             }
 
             function includeDomain(pIndex, doInclude) {
@@ -2917,6 +2920,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.load = function(json) {
+                //TODO(pjm): move first part into normalizeInput()
                 includeForDomain.length = 0;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
@@ -2951,10 +2955,19 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('.scatter-point').remove();
-                createLegend(plots);
+                var legendCount = createLegend(plots);
                 plots.forEach(function(plot, i) {
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
+                        var clusterInfo;
+                        var circleRadius = 2;
+                        if (json.clusters) {
+                            clusterInfo = json.clusters;
+                            clusterInfo.scale = clusterInfo.count > 10
+                                ? d3.scale.category20()
+                                : d3.scale.category10();
+                            circleRadius = 4;
+                        }
                         viewport.selectAll('.param-plot').remove();
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
@@ -2964,7 +2977,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                     .append('circle')
                                     .attr('cx', $scope.graphLine.x())
                                     .attr('cy', $scope.graphLine.y())
-                                    .attr('r', 2)
+                                    .attr('r', circleRadius)
+                                    .style('fill', function(d, i) {
+                                        return clusterInfo ? clusterInfo.scale(clusterInfo.group[i]) : null;
+                                    })
                                     .attr('class', 'scatter-point line-color');
                     }
                     else {
@@ -3014,7 +3030,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     : $scope.onRefresh
                         ? 65
                         : 20;
-                $scope.margin.bottom = 50 + 20 * plots.length;
+                $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
             };
 

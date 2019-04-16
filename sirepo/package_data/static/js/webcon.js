@@ -48,6 +48,9 @@ SIREPO.app.factory('webconService', function(appState) {
             }
         }
         parameterCache.analysisParameters = appState.models.analysisData.columnInfo;
+        if (! parameterCache.analysisParameters) {
+            return null;
+        }
         var parameterValues = [];
         var visited = {};
         parameterCache.analysisParameters.names.forEach(function(name, idx) {
@@ -113,16 +116,16 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
             modelName: '@',
         },
         template: [
-            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px; margin-top: -40px">',
+            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
               '<div class="clearfix"></div>',
-              '<div data-ng-repeat="view in viewNames track by $index">',
-                '<div data-ng-if="showView(view)" style="margin-top:3ex;">',
+              '<div data-ng-repeat="view in viewNames track by $index" style="margin-top: -48px;">',
+                '<div data-ng-if="isActiveView(view)" style="margin-top:3ex;">',
                   '<div data-advanced-editor-pane="" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>',
                 '</div>',
               '</div>',
               '<div class="clearfix"></div>',
               '<div data-ng-if="showFFT()">',
-                '<div data-fft-report=""></div>',
+                '<div data-fft-report="" style="margin-top: 5px;"></div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -139,9 +142,21 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                 'analysisNone', 'analysisCluster', 'analysisFFT', 'analysisFit', 'analysisTrim',
             ];
 
+            function processClusterMethod() {
+                panelState.showField('analysisReport', 'clusterCount', $scope.model().clusterMethod != 'dbscan');
+            }
+
             function roundTo3Places(f) {
                 return Math.round(f * 1000) / 1000;
             }
+
+            $scope.isActiveView = function(view) {
+                var model = $scope.model();
+                if (model) {
+                    return viewForEnum[model.action || ''] == view;
+                }
+                return false;
+            };
 
             $scope.isLoading = function() {
                 return panelState.isLoading($scope.modelName);
@@ -157,14 +172,6 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
             $scope.showFFT = function() {
                 if (appState.isLoaded()) {
                     return $scope.model().action == 'fft';
-                }
-                return false;
-            };
-
-            $scope.showView = function(view) {
-                var model = $scope.model();
-                if (model) {
-                    return viewForEnum[model.action || ''] == view;
                 }
                 return false;
             };
@@ -190,6 +197,8 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                     }
                     $($element).closest('.panel-body').find('.focus-hint').text(str);
                 });
+                appState.watchModelFields($scope, ['analysisReport.clusterMethod'], processClusterMethod);
+                processClusterMethod();
             });
         },
     };
@@ -230,7 +239,7 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
             field: '=',
         },
         template: [
-            '<div style="margin: 5px 0; min-height: 34px; max-height: 20em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
+            '<div style="margin: -3px 0 5px 0; min-height: 34px; max-height: 13.4em; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px">',
               '<table class="table table-condensed table-hover" style="margin:0">',
                 '<tbody>',
                   '<tr data-ng-repeat="item in itemList() track by item.index" data-ng-click="toggleItem(item)">',

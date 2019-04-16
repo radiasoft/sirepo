@@ -11,13 +11,18 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-
-import sympy
 import csv
 import math
 import numpy as np
 import os.path
 import re
+import scipy.fftpack
+import scipy.optimize
+import sklearn.cluster
+import sklearn.metrics.pairwise
+import sklearn.mixture
+import sklearn.preprocessing
+import sympy
 
 
 SIM_TYPE = 'webcon'
@@ -41,7 +46,7 @@ def get_application_data(data):
         data = pkcollections.Dict({
             'models': pkcollections.Dict({
                 'analysisData': data['analysisData'],
-                }),
+            }),
         })
         return {
             'columnInfo': _column_info(
@@ -56,11 +61,16 @@ def get_data_file(run_dir, model, frame, options=None):
 
 def get_analysis_report(run_dir, data):
     report = data.models[data.report]
-    if 'action' in report and report.action == 'fit':
-        return get_fit_report(run_dir, data)
+    clusters = None
+    if 'action' in report:
+        if report.action == 'fit':
+            return _get_fit_report(run_dir, data)
+        elif report.action == 'cluster':
+            clusters = _compute_clusters(run_dir, data)
     path = _analysis_data_path(run_dir, data)
-    plot_data = np.genfromtxt(path, delimiter=',', names=True)
     col_info = _column_info(path)
+    #TODO(pjm): consolidate all numpy load txt file calls
+    plot_data = np.genfromtxt(path, delimiter=',', names=True)
     x_idx = _safe_index(col_info, report.x)
     x = plot_data[plot_data.dtype.names[x_idx]].tolist()
     plots = []
@@ -83,15 +93,13 @@ def get_analysis_report(run_dir, data):
         'title': '',
         'y_label': '',
         'x_label': _label(col_info, x_idx),
+        'clusters': clusters,
         'summaryData': {},
     })
 
 
-def get_fft(data):
-
-    import scipy.fftpack
-
-    fft_in = _analysis_data_file(data)
+def get_fft(run_dir, data):
+    fft_in = _analysis_data_path(run_dir, data)
     col_info = _column_info(fft_in)
     # take from fit report in short term
     report = data.models.analysisReport
@@ -177,7 +185,7 @@ def get_fft(data):
     #}
 
 
-def get_fit_report(run_dir, data):
+def _get_fit_report(run_dir, data):
     fit_in = _analysis_data_path(run_dir, data)
     report = data.models[data.report]
     col_info = _column_info(fit_in)
@@ -246,8 +254,12 @@ def python_source_for_model(data, model):
 
 
 def validate_file(file_type, path):
-    if not _column_info(path):
-        return 'Invalid CSV header row'
+    #TODO(pjm): accept CSV or SDDS files
+    try:
+        if not _column_info(path):
+            return 'Invalid CSV header row'
+    except Exception as e:
+        return 'Error reading file. Ensure the file is in CSV or SDDS format.'
     return None
 
 
@@ -282,8 +294,10 @@ def _column_info(path):
         for row in reader:
             header = row
             break
-    if not header or not re.search(r'\w', header[0]) or len(header) < 2:
+    if not header or len(header) < 2:
         return None
+    if re.search(r'^[\-|\+0-9eE\.]+$', header[0]):
+        header = ['column {}'.format(idx + 1) for idx in range(len(header))]
     res = {
         'names': [],
         'units': [],
@@ -308,10 +322,54 @@ def _column_info(path):
     return res
 
 
+def _compute_clusters(run_dir, data):
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    cols = ()
+    if 'clusterFields' not in report:
+        assert len(cols) > 1, 'At least two cluster fields must be selected'
+    for idx in range(len(report.clusterFields)):
+        if report.clusterFields[idx] and idx < len(col_info['names']):
+            cols += (idx,)
+    assert len(cols) > 1, 'At least two cluster fields must be selected'
+    #TODO(pjm): consolidate all numpy load txt file calls
+    plot_data = np.loadtxt(path, delimiter=',', skiprows=1, usecols=cols)
+    min_max_scaler = sklearn.preprocessing.MinMaxScaler(
+        feature_range=[
+            report.clusterScaleMin,
+            report.clusterScaleMax,
+        ])
+    X_scale = min_max_scaler.fit_transform(plot_data)
+    group = None
+    count = report.clusterCount
+    if report.clusterMethod == 'kmeans':
+        k_means = sklearn.cluster.KMeans(init='k-means++', n_clusters=count, n_init=report.clusterKmeansInit)
+        k_means.fit(X_scale)
+        k_means_cluster_centers = np.sort(k_means.cluster_centers_, axis=0)
+        k_means_labels = sklearn.metrics.pairwise.pairwise_distances_argmin(X_scale, k_means_cluster_centers)
+        group = k_means_labels
+    elif report.clusterMethod == 'gmix':
+        gmm = sklearn.mixture.GaussianMixture(n_components=count)
+        gmm.fit(X_scale)
+        group = gmm.predict(X_scale)
+    elif report.clusterMethod == 'dbscan':
+        db = sklearn.cluster.DBSCAN(eps=report.clusterDbscanEps, min_samples=3).fit(X_scale)
+        group = db.fit_predict(X_scale) + 1.
+        count = len(set(group))
+    elif report.clusterMethod == 'agglomerative':
+        agg_clst = sklearn.cluster.AgglomerativeClustering(n_clusters=count, linkage='complete', affinity='euclidean')
+        agg_clst.fit(X_scale)
+        group = agg_clst.labels_
+    else:
+        assert False, 'unknown clusterMethod: {}'.format(report.clusterMethod)
+    return {
+        'group': group.tolist(),
+        'count': count,
+    }
+
+
 def _fit_to_equation(x, y, equation, var, params):
-
-    import scipy.optimize
-
     # TODO: must sanitize input - sympy uses eval
     sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
