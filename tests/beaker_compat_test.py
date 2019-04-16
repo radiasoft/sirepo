@@ -37,6 +37,7 @@ def test_oauth_user():
         'S0QmCORV',
         (
             ('li', 'sros'),
+            ('moellep', 'sron'),
         ),
     )
 
@@ -53,16 +54,19 @@ def _test_cookie(filename, header, uid, cases):
             'beaker', 'container_file', filename[0:1], filename[0:2], filename)
         pkio.mkdir_parent_only(target)
         shutil.copy(str(pkunit.data_dir().join(filename)), str(target))
+        for h in header.split('; '):
+            x = h.split('=')
+            fc.set_cookie('', *x)
 
     def _op():
         from sirepo import cookie
 
-        pkeq(uid, cookie.unchecked_get_user())
+        pkeq(uid, cookie.get_user(checked=False))
         for expect, key in cases:
             if expect is None:
                 pkeq(False, cookie.has_key(key))
             else:
-                pkeq(expect, cookie.unchecked_get_value(key))
+                pkeq(expect, cookie.get_value(key))
 
     srunit.test_in_request(
         op=_op,
@@ -73,6 +77,5 @@ def _test_cookie(filename, header, uid, cases):
             'SIREPO_OAUTH_GITHUB_CALLBACK_URI': 'n/a',
         },
         before_request=_before_request,
-        headers=dict(Cookie=header),
         want_cookie=False,
     )
