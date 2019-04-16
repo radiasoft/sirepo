@@ -264,6 +264,9 @@ SIREPO.app.service('geometry', function(utilities) {
                 c[3] = swap;
                 return c;
             },
+            height: function () {
+                return this.sides()[0].length();
+            },
             intersectsRect: function (r) {
                 var rs = r.sides();
                 var ts = this.sides();
@@ -304,8 +307,12 @@ SIREPO.app.service('geometry', function(utilities) {
             str: function () {
                 return svc.geomObjArrStr(this.points());
             },
+            width: function () {
+                return this.sides()[1].length();
+            }
         };
     };
+
 
     this.transform = function (matrix) {
 

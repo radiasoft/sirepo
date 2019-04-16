@@ -306,6 +306,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
+        colorScale: function(min, max, colorMap) {
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(min, max, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
+        },
+
         colorScaleForPlot: function(plotRange, modelName) {
             var m = appState.models[modelName];
             var zMin = plotRange.min;
@@ -315,10 +322,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 zMax = m.colorMax;
             }
             var colorMap = this.colorMapFromModel(modelName);
-            return d3.scale.linear()
-                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
+            return this.colorScale(zMin, zMax, colorMap);
         },
 
         colorsFromHexString: function(color, range) {
@@ -2951,6 +2955,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 plots.forEach(function(plot, i) {
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
+                        viewport.selectAll('.param-plot').remove();
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
                             pg.selectAll('.scatter-point')
@@ -3221,6 +3226,8 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             $scope.dataCleared = true;
 
+            $scope.hasAbsorbed = false;
+            $scope.hasConductors = false;
             $scope.hasReflected = false;
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
@@ -3487,9 +3494,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
 
-                impactSphereActors = [];
                 conductorActors = [];
                 conductorBundles = [];
+                impactSphereActors = [];
 
                 if (!pointData) {
                     return;
@@ -3515,6 +3522,9 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 pointData.lost_z.forEach(function(z, i) {
                     lostCoords.push(geometry.transpose([pointData.lost_y[i], pointData.lost_z[i], pointData.lost_x[i]]));
                 });
+
+                $scope.hasAbsorbed = lcoords.length > 0;
+                $scope.hasConductors = appState.models.conductors.length > 0;
 
                 axisCfg = {
                     x: {
@@ -3720,6 +3730,11 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
+
+                function coordAtIndex(startVal, sk, sl, k, l) {
+                    return startVal + k * sk + l * sl;
+                }
+
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
