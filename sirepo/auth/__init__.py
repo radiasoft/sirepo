@@ -205,7 +205,8 @@ _LOGIN_SESSION_MAP = pkcollections.Dict({
 
     key_map['key']['oauth_login_state'] = _COOKIE_SESSION_DEPRECATED
     # reverse map of login state values
-    key_map['value'] = dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
+    key_map['value'] = {v: k for k, v in .iteritems()}
+    dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
 
 
 def _update_session(login_state, auth_method):
