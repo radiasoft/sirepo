@@ -23,6 +23,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="ClusterFields" class="col-sm-7">',
       '<div data-cluster-fields="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="PlotActionButtons" class="col-sm-12">',
+      '<div data-plot-action-buttons="" data-model="model" data-field="field"></div>',
+    '</div>',
 ].join('');
 
 SIREPO.app.factory('webconService', function(appState) {
@@ -110,35 +113,34 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
             modelName: '@',
         },
         template: [
-            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">',
-            '<div class="text-center">',
-              '<div data-field-editor="\'action\'" data-model-name="modelName" data-model="model()" data-field-size="12"></div>',
-            '</div>',
-            '<div class="clearfix"></div>',
-            //TODO(pjm): generalize repetition
-            '<div data-ng-if="! model().action" style="margin-top:3ex;">',
-              '<div data-advanced-editor-pane="" data-view-name="\'analysisNone\'" data-field-def="basic" data-want-buttons="1"></div>',
-            '</div>',
-            '<div data-ng-if="model().action == \'cluster\'" style="margin-top:3ex;">',
-              '<div data-advanced-editor-pane="" data-view-name="\'analysisCluster\'" data-field-def="basic" data-want-buttons="1"></div>',
-            '</div>',
-            '<div data-ng-if="model().action == \'fit\'" style="margin-top:3ex;">',
-              '<div data-advanced-editor-pane="" data-view-name="\'analysisFit\'" data-field-def="basic" data-want-buttons="1"></div>',
-            '</div>',
-            '<div data-ng-if="model().action == \'trim\'" style="margin-top:3ex;">',
-              '<div data-advanced-editor-pane="" data-view-name="\'analysisTrim\'" data-field-def="basic" data-want-buttons="1"></div>',
-            '</div>',
-            '<div class="clearfix"></div>',
+            '<div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px; margin-top: -40px">',
+              '<div class="clearfix"></div>',
+              '<div data-ng-repeat="view in viewNames track by $index">',
+                '<div data-ng-if="showView(view)" style="margin-top:3ex;">',
+                  '<div data-advanced-editor-pane="" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>',
+                '</div>',
+              '</div>',
+              '<div class="clearfix"></div>',
+              '<div data-ng-if="showFFT()">',
+                '<div data-fft-report=""></div>',
+              '</div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            var viewForEnum = {
+                '': 'analysisNone',
+                'cluster': 'analysisCluster',
+                'fft': 'analysisFFT',
+                'fit': 'analysisFit',
+                'trim': 'analysisTrim',
+            };
+
+            $scope.viewNames = [
+                'analysisNone', 'analysisCluster', 'analysisFFT', 'analysisFit', 'analysisTrim',
+            ];
+
             function roundTo3Places(f) {
                 return Math.round(f * 1000) / 1000;
-            }
-
-            function updateAction() {
-                // hide the in-view action field
-                panelState.showField('analysisReport', 'action', false);
             }
 
             $scope.isLoading = function() {
@@ -150,6 +152,28 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                     return appState.models[$scope.modelName];
                 }
                 return null;
+            };
+
+            $scope.showFFT = function() {
+                if (appState.isLoaded()) {
+                    return $scope.model().action == 'fft';
+                }
+                return false;
+            };
+
+            $scope.showView = function(view) {
+                var model = $scope.model();
+                if (model) {
+                    return viewForEnum[model.action || ''] == view;
+                }
+                return false;
+            };
+
+            $scope.wantButtons = function() {
+                if (appState.isLoaded() && $scope.model().action != 'fft') {
+                    return  '1';
+                }
+                return '';
             };
 
             appState.whenModelsLoaded($scope, function() {
@@ -166,9 +190,34 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                     }
                     $($element).closest('.panel-body').find('.focus-hint').text(str);
                 });
-                appState.watchModelFields($scope, ['analysisReport.action'], updateAction);
-                updateAction();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('plotActionButtons', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="text-center">',
+            '<div class="btn-group">',
+              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
+
+            $scope.isSelectedValue = function(value) {
+                if ($scope.model && $scope.field) {
+                    return $scope.model[$scope.field] == value;
+                }
+                return false;
+            };
         },
     };
 });
@@ -398,14 +447,12 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('fftReport', function(appState, panelState, plotting) {
+SIREPO.app.directive('fftReport', function() {
     return {
         scope: {
-            controller: '=parentController',
         },
         template: [
-            '<div data-report-panel="parameter" data-request-priority="1" data-model-name="fftReport">',
-            '</div>',
+            '<div data-report-content="parameter" data-model-key="fftReport"></div>',
         ].join(''),
         controller: function($scope, $element) {
 
