@@ -97,7 +97,7 @@ def auth_hash(req, verify=False):
         )
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     assert cfg.auth_secret, \
         'sirepo_bluesky_auth_secret is not configured'
     uri_router.register_api_module()

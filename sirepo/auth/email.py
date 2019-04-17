@@ -174,7 +174,7 @@ def api_emailAuthorized(simulation_type, token):
     return flask.redirect('/{}'.format(sim_type))
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     assert not UserModel
     _init(app)
     user_db.init(app, _init_email_auth_model)

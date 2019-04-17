@@ -74,9 +74,8 @@ def init(app, uwsgi):
 
     if _uri_to_route:
         return
-    cookie.init_module(app, uwsgi)
     for m in _REQUIRED_MODULES + feature_config.cfg.api_modules:
-        importlib.import_module('sirepo.' + m).init_apis(app)
+        importlib.import_module('sirepo.' + m).init_apis(app, uwsgi)
     _init_uris(app, simulation_db)
 
 

@@ -107,7 +107,7 @@ def api_userState():
     return http_reply.render_static('user-state', 'js', v)
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     from sirepo import uri_router
 
     assert not _METHOD_MODULES

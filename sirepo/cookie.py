@@ -94,6 +94,7 @@ def set_sentinel():
     _state().set_sentinel()
 
 
+MOVE
 def set_log_user(uid):
     if not _uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
@@ -106,12 +107,11 @@ def set_log_user(uid):
     _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
+MOVE THIS
 def set_user(uid):
     assert uid
     set_value(_COOKIE_USER, uid)
-
 set user state auth_method
-
     set_log_user(uid)
 
 

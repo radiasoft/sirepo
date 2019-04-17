@@ -112,7 +112,7 @@ def compat_login(oauth_type, oauth_next):
     )
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     """`init_module` then call `user_state.register_login_module`"""
     init_module(app)
     user_state.register_login_module()

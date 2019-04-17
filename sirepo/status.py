@@ -42,7 +42,7 @@ def api_serverStatus():
     })
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     uri_router.register_api_module()
     global cfg
     cfg = pkconfig.init(

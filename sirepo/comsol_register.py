@@ -41,7 +41,7 @@ Email: {}
     return http_reply.gen_json_ok()
 
 
-def init_apis(app):
+def init_apis(app, uwsgi):
     global cfg
     cfg = pkconfig.init(
         mail_server=(None, str, 'Mail server'),
