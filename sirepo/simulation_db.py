@@ -876,12 +876,17 @@ def uid_from_dir_name(dir_name):
 
 
 def user_create():
-    """Always creates a new user
+    """Create a user and initialize the directory
 
     Returns:
-        str: new uid
+        str: New user id
     """
-    return  _user_dir_create()
+    uid = _random_id(user_dir_name())['id']
+    # Must set before calling simulation_dir
+    cookie.set_user(uid)
+    for simulation_type in feature_config.cfg.sim_types:
+        _create_example_and_lib_files(simulation_type)
+    return uid
 
 
 def user_dir_name(uid=None):
@@ -1204,29 +1209,11 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = cookie.unchecked_get_user()
-    if not uid:
-        uid = _user_dir_create()
+    uid = cookie.get_user()
     d = user_dir_name(uid)
     if d.check():
         return d
-    # flask session might have been deleted (in dev) so "logout" and "login"
-    uid = _user_dir_create()
-    return user_dir_name(uid)
-
-
-def _user_dir_create():
-    """Create a user and initialize the directory
-
-    Returns:
-        str: New user id
-    """
-    uid = _random_id(user_dir_name())['id']
-    # Must set before calling simulation_dir
-    cookie.set_user(uid)
-    for simulation_type in feature_config.cfg.sim_types:
-        _create_example_and_lib_files(simulation_type)
-    return uid
+    auth.user_not_found(uid)
 
 
 _init()

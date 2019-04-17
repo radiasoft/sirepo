@@ -25,31 +25,13 @@ _COOKIE_SENTINEL = 'srk'
 #: Unique, truthy that can be asserted on decrypt
 _COOKIE_SENTINEL_VALUE = 'z'
 
-#: Identifies the user in the cookie
-_COOKIE_USER = 'sru'
-
 _SERIALIZER_SEP = ' '
-
-#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
-_UWSGI_LOG_KEY_USER = 'sirepo_user'
-
-#: uwsgi object for logging
-_uwsgi = None
 
 #: Convert older cookies?
 _try_beaker_compat = True
 
-def clear_user():
-    set_log_user(None)
-    unchecked_remove(_COOKIE_USER)
-
-
 def get_value(key):
     return _state()[key]
-
-
-def get_user():
-    return _state().get_user(True)
 
 
 def has_key(key):
@@ -60,27 +42,22 @@ def has_sentinel():
     return _COOKIE_SENTINEL in _state()
 
 
-def has_user_value():
-    return bool(has_key(_COOKIE_USER) and get_value(_COOKIE_USER))
-
-
-def init(unit_test=None):
-    if not unit_test:
-        assert not 'sirepo_cookie' in flask.g
-    _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
-
-
 def init_mock(uid='invalid-uid'):
     """A mock cookie for pkcli"""
     flask.g = pkcollections.Dict()
     _State('')
     set_sentinel()
-    set_user(uid)
 
 
 def init_module(app, uwsgi):
     global _uwsgi
     _uwsgi = uwsgi
+
+
+def process_header(unit_test=None):
+    if not unit_test:
+        assert not 'sirepo_cookie' in flask.g
+    _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
 
 def save_to_cookie(resp):
@@ -94,27 +71,6 @@ def set_sentinel():
     _state().set_sentinel()
 
 
-MOVE
-def set_log_user(uid):
-    if not _uwsgi:
-        # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
-        # the limited http server for development only. This uses
-        # werkzeug.serving.WSGIRequestHandler.log which hardwires the
-        # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
-        # but we only use the limited http server for development.
-        return
-    u = 'li-' + uid if uid else '-'
-    _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
-
-
-MOVE THIS
-def set_user(uid):
-    assert uid
-    set_value(_COOKIE_USER, uid)
-set user state auth_method
-    set_log_user(uid)
-
-
 def set_value(key, value):
     value = str(value)
     assert not _SERIALIZER_SEP in value, \
@@ -123,10 +79,6 @@ def set_value(key, value):
     assert key == _COOKIE_SENTINEL or _COOKIE_SENTINEL in s, \
         'cookie is not valid so cannot set key={}'.format(key)
     s[key] = value
-
-
-def unchecked_get_user():
-    return _state().get_user(False)
 
 
 def unchecked_get_value(key, default=None):
@@ -150,11 +102,6 @@ class _State(dict):
         self.crypto = None
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
-
-    def get_user(self, checked=True):
-        if not self.get(_COOKIE_SENTINEL):
-            util.raise_unauthorized('Missing sentinel, cookies may be disabled')
-        return self[_COOKIE_USER] if checked else self.get(_COOKIE_USER)
 
     def set_sentinel(self):
         self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
@@ -209,7 +156,6 @@ class _State(dict):
                 s = self._decrypt(match.group(1))
                 self.update(self._deserialize(s))
                 self.incoming_serialized = s
-                set_log_user(self.get(_COOKIE_USER))
                 return
         except Exception as e:
             if 'crypto' in type(e).__module__:
@@ -229,7 +175,6 @@ class _State(dict):
                     self.set_sentinel()
                     self.update(res)
                     err = None
-                    set_log_user(self.get(_COOKIE_USER))
             except AssertionError:
                 pkdlog('Unconfiguring beaker_compat: {}', pkdexc())
                 _try_beaker_compat = False

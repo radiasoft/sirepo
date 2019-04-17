@@ -147,7 +147,7 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    cookie.init()
+    auth.process_cookie()
     try:
         if path is None:
             return _dispatch_call(_empty_route.func, {})

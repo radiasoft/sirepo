@@ -36,6 +36,9 @@ _COOKIE_LOGGED_IN = 'srali'
 #: key for auth method for login state
 _COOKIE_AUTH_METHOD = 'sralm'
 
+#: Identifies the user in the cookie
+_COOKIE_USER = 'sru'
+
 #: key for need user name
 _COOKIE_COMPLETE_REGISTRATION = 'sracr'
 
@@ -48,6 +51,11 @@ _REMOVED_COOKIE_NAME = 'sron'
 #: registered module
 _METHOD_MODULES = pkcollections.Dict()
 
+#: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
+_UWSGI_LOG_KEY_USER = 'sirepo_user'
+
+#: uwsgi object for logging
+_uwsgi = None
 
 @api_perm.require_user
 def api_authDisplayName():
@@ -107,10 +115,22 @@ def api_userState():
     return http_reply.render_static('user-state', 'js', v)
 
 
+def has_user_value():
+    return bool(has_key(_COOKIE_USER) and get_value(_COOKIE_USER))
+
+
+def init_mock(uid='invalid-uid'):
+    """A mock user for pkcli"""
+    cookie.init_mock()
+    set_user(uid)
+
+
 def init_apis(app, uwsgi):
+    global _uwsgi
     from sirepo import uri_router
 
     assert not _METHOD_MODULES
+    _uwsgi = uwsgi
     p = pkinspect.this_module().__name__
     for m in cfg.methods:
         x = importlib.import_module(pkinspect.module_name_join(p, m))
@@ -176,6 +196,10 @@ set auth method and
     to do
 
 
+def process_cookie():
+    set_log_user(cookie.unchecked_get_value())
+
+
 def require_user():
     migrate_cookie_keys()
     if cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION) == _LOGGED_IN:
@@ -196,6 +220,31 @@ def require_user():
     )
 
 
+def clear_user():
+    set_log_user(None)
+    unchecked_remove(_COOKIE_USER)
+
+
+def get_user():
+    return _get_user(True)
+
+
+def set_user(uid):
+    assert uid
+    cookie.set_value(_COOKIE_USER, uid)
+    set_log_user(uid)
+
+
+def unchecked_get_user():
+    _get_user(False)
+
+
+def user_not_found(uid):
+    no directory or not found in db?
+    Force user to logout and log back in
+    force a logout by throwing an srexception?
+
+
 def _beaker_compat_map_keys(key_map):
 _LOGIN_SESSION_MAP = pkcollections.Dict({
     _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_MODULE_NAME,
@@ -207,6 +256,23 @@ _LOGIN_SESSION_MAP = pkcollections.Dict({
     # reverse map of login state values
     key_map['value'] = {v: k for k, v in .iteritems()}
     dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
+
+def _get_user(checked=True):
+    if not cookie.has_sentinel():
+        util.raise_unauthorized('Missing sentinel, cookies may be disabled')
+    return cookie.get_value(_COOKIE_USER) if checked else cookie.unchecked_get_value(_COOKIE_USER)
+
+
+def _set_log_user(uid):
+    if not _uwsgi:
+        # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
+        # the limited http server for development only. This uses
+        # werkzeug.serving.WSGIRequestHandler.log which hardwires the
+        # common log format to: '%s - - [%s] %s\n'. Could monkeypatch
+        # but we only use the limited http server for development.
+        return
+    u = 'li-' + uid if uid else '-'
+    _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
 def _update_session(login_state, auth_method):
