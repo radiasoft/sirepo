@@ -83,20 +83,6 @@ def init(app, callback):
                         _db.session.add(u)
                     return self
 
-                def login(self):
-                    with thread_lock:
-                        session_uid = cookie.unchecked_get_user()
-                        if session_uid and session_uid != self.uid:
-                            # check if session_uid is already in the
-                            # user database, if not, copy over simulations
-                            # from anonymous to this user.
-                            if not self.search_by(uid=session_uid):
-                                simulation_db.move_user_simulations(
-                                    session_uid,
-                                    self.uid,
-                                )
-                        cookie.set_user(self.uid)
-
 
         callback(_db, UserDbBase)
         # only creates tables that don't already exist

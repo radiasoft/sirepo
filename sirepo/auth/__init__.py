@@ -65,7 +65,7 @@ def api_authDisplayName():
     assert is_logged_in(), \
         'user is not logged in, uid={}'.format(uid)
     with user_db.thread_lock:
-        user = EmailAuth.search_by(uid=uid)
+        user = User.search_by(uid=uid)
         user.display_name = dn
         user.save()
     return http_reply.gen_json_ok()
@@ -73,16 +73,10 @@ def api_authDisplayName():
 
 @api_perm.allow_visitor
 def api_logout(simulation_type):
-    """Set the current user as logged out. If the 'anonymous' query flag is set,
-    clear the user and change to an anonymous session.
+    """Set the current user as logged out.
     """
-    migrate_cookie_keys()
-    if cookie.has_user_value() and not is_anonymous_session():
-        if login_module.ALLOW_ANONYMOUS_SESSION \
-           and flask.request.args.get(_ANONYMOUS_LOGIN_QUERY, False):
-            logout_as_anonymous()
-        else:
-            logout_as_user()
+    if has_user_value():
+        logout()
     return flask.redirect('/{}'.format(simulation_type))
 
 
@@ -116,7 +110,7 @@ def api_userState():
 
 
 def has_user_value():
-    return bool(has_key(_COOKIE_USER) and get_value(_COOKIE_USER))
+    return bool(cookie.has_key(_COOKIE_USER) and get_value(_COOKIE_USER))
 
 
 def init_mock(uid='invalid-uid'):
@@ -144,21 +138,20 @@ def init_beaker_compat():
     beaker_compat.oauth_hook = _beaker_compat_map_keys
 
 
-def is_anonymous_session():
-    migrate_cookie_keys()
-    return cookie.get_value(_COOKIE_AUTH_METHOD) == _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE
-
-
 def login_as_user(user, module):
     migrate_cookie_keys()
-    user.login(is_anonymous_session())
+    prev_uid = unchecked_get_user()
+    if prev_uid and prev_uid != user.uid:
+        # check if prev_uid is already in the
+        # user database, if not, copy over simulations
+        # from anonymous to this user.
+        if not user.search_by(uid=prev_uid):
+            simulation_db.move_user_simulations(
+                prev_uid,
+                user.uid,
+            )
+        set_user(user.uid)
     _update_session(_LOGGED_IN, module.AUTH_METHOD_COOKIE_VALUE)
-
-
-def logout_as_anonymous():
-    migrate_cookie_keys()
-    cookie.clear_user()
-    _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
 
 
 def logout_as_user(module):
@@ -196,8 +189,11 @@ set auth method and
     to do
 
 
-def process_cookie():
-    set_log_user(cookie.unchecked_get_value())
+def process_cookie(unit_test=None):
+    cookie.process_header(unit_test)
+    migrate_cookie_keys()
+    if has_user_value():
+        set_log_user(unchecked_get_user())
 
 
 def require_user():
