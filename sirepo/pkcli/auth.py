@@ -5,6 +5,9 @@ u"""
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+import base64
+import os
+
 
 def gen_private_key():
     """Generate random private key"""
@@ -12,3 +15,6 @@ def gen_private_key():
     import os
 
     return base64.urlsafe_b64encode(os.urandom(32))
+
+def create_user(method):
+    return

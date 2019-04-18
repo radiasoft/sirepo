@@ -35,11 +35,8 @@ except ImportError:
     from urllib.parse import urlencode
 
 
-#: Tell GUI how to authenticate (before schema is loaded)
-AUTH_METHOD = 'guest'
-
-#: user_stat._COOKIE_AUTH_METHOD value
-AUTH_METHOD_COOKIE_VALUE = 'g'
+#: User can see it
+AUTH_METHOD_VISIBLE = True
 
 #: Used by user_db
 UserModel = None

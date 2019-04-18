@@ -6,56 +6,41 @@ u"""Sirepo web server status for remote monitoring
 """
 from __future__ import absolute_import, division, print_function
 
-from flask_basicauth import BasicAuth
 from pykern import pkconfig
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
-from sirepo import cookie
 from sirepo import http_reply
 from sirepo import server
 from sirepo import simulation_db
-from sirepo import uri_router
 import datetime
-import flask
-import random
 import re
 import time
 
 
-@api_perm.allow_cookieless_set_user
+#: basic auth "app" initilized in `init_apis`
+_basic_auth = None
+
+
+@api_perm.require_basic_auth
 def api_serverStatus():
-    """Allow for remote monitoring of the web server status. Authentication
-    is done via Basic Auth. The username should be an existing sirepo uid.
-    The status checks that a simple simulation can complete successfully
-    within a short period of time.
+    """Allow for remote monitoring of the web server status.
+
+    The user must be an existing sirepo uid.  The status checks
+    that a simple simulation can complete successfully within a
+    short period of time.
     """
-    if not _basic_auth.authenticate():
-        return _basic_auth.challenge()
-    uid = flask.request.authorization.username
-    simulation_db.assert_id(uid)
-    if not simulation_db.user_dir_name(uid).exists():
-        raise RuntimeError('status user does not exist: {}'.format(uid))
-    cookie.set_user(uid)
     _run_tests()
     return http_reply.gen_json_ok({
         'datetime': datetime.datetime.utcnow().isoformat(),
     })
 
 
-def init_apis(app, *args, **kwargs):
-    global cfg
-    cfg = pkconfig.init(
-        uid=pkconfig.Required(str, 'Sirepo status user id'),
-        password=pkconfig.Required(str, 'Basic Auth password'),
-    )
-    app.config['BASIC_AUTH_USERNAME'] = cfg.uid
-    app.config['BASIC_AUTH_PASSWORD'] = cfg.password
-    global _basic_auth
-    _basic_auth = BasicAuth(app)
+def init_apis(*args, **kwargs):
+    pass
 
 
 def _run_tests():
-    # Runs the SRW "Undulator Radiation" simulation's initialIntensityReport.
+    """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
     simulation_type = 'srw'
     res = server.api_findByName(simulation_type, 'default', 'Undulator Radiation')
     m = re.search(r'\/source\/(\w+)"', res)

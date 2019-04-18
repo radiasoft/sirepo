@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 u"""NSLS-II BlueSky integration
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkdebug import pkdp
-from sirepo import cookie
-from sirepo import simulation_db
 from sirepo import api_perm
-from sirepo import http_request
+from sirepo import auth
 from sirepo import http_reply
-from sirepo import uri_router
+from sirepo import http_request
+from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
 import time
 
+
 #: configuration
 cfg = None
+
+#: bots only
+AUTH_METHOD_VISIBLE = False
 
 #: separates the values of the clear text for the hash
 # POSIT: ':' not part of simulationType or simulationId
@@ -44,7 +47,7 @@ def api_blueskyAuth():
         sid,
         checked=True,
     )
-    cookie.set_user(simulation_db.uid_from_dir_name(path))
+    auth.login(simulation_db.uid_from_dir_name(path), 'bluesky')
     return http_reply.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),

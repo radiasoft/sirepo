@@ -53,15 +53,7 @@ SRUNIT_TEST_IN_REQUEST = 'test_in_request'
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
-#: Flask app instance, must be bound globally
-app = flask.Flask(
-    __name__,
-    static_folder=None,
-    template_folder=str(simulation_db.STATIC_FOLDER),
-)
-app.config.update(
-    PROPAGATE_EXCEPTIONS=True,
-)
+#: Global app value
 
 
 @api_perm.require_user
@@ -687,15 +679,27 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 
 def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
-    from sirepo import uri_router
+    global app
 
+    if app:
+        return
+    #: Flask app instance, must be bound globally
+    app = flask.Flask(
+        __name__,
+        static_folder=None,
+        template_folder=str(simulation_db.STATIC_FOLDER),
+    )
+    app.config.update(
+        PROPAGATE_EXCEPTIONS=True,
+    )
     app.sirepo_db_dir = cfg.db_dir
+    app.sirepo_uwsgi = uwsgi
     http_reply.init_by_server(app)
     simulation_db.init_by_server(app)
-    uri_router.init(app, uwsgi)
+    uri_router.init(app)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(err), _handle_error)
-    runner.init(app, uwsgi, use_reloader)
+    runner.init(app, use_reloader)
     return app
 
 

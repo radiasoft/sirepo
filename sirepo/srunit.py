@@ -25,6 +25,9 @@ except ImportError:
 #: import sirepo.server
 server = None
 
+#: app result from server.init
+app = None
+
 
 def flask_client(cfg=None):
     """Return FlaskClient with easy access methods.
@@ -40,24 +43,24 @@ def flask_client(cfg=None):
     Returns:
         FlaskClient: for local requests to Flask server
     """
-    global server
+    global server, app
 
     a = 'srunit_flask_client'
     if not cfg:
         cfg = {}
     wd = pkunit.work_dir()
     cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
-    if not (server and hasattr(server.app, a)):
+    if not (server and hasattr(app, a)):
         with pkio.save_chdir(wd):
             pkconfig.reset_state_for_testing(cfg)
             from sirepo import server as s
 
             server = s
-            server.app.config['TESTING'] = True
-            server.app.test_client_class = _TestClient
-            server.init()
-            setattr(server.app, a, server.app.test_client())
-    return getattr(server.app, a)
+            app = server.init()
+            app.config['TESTING'] = True
+            app.test_client_class = _TestClient
+            setattr(app, a, app.test_client())
+    return getattr(app, a)
 
 
 def init_user_db():
@@ -87,7 +90,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         if before_request:
             before_request(fc)
         setattr(
-            server.app,
+            server._app,
             server.SRUNIT_TEST_IN_REQUEST,
             pkcollections.Dict(op=op, want_cookie=want_cookie),
         )
@@ -98,7 +101,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         )
         pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
     finally:
-        delattr(server.app, server.SRUNIT_TEST_IN_REQUEST)
+        delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
     return resp
 
 

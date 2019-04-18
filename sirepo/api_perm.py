@@ -21,6 +21,8 @@ class APIPerm(aenum.Flag):
     ALLOW_COOKIELESS_SET_USER = aenum.auto()
     #: anybody can view this page, even without cookies
     ALLOW_VISITOR = aenum.auto()
+    #: use basic auth authentication (only)
+    REQUIRE_AUTH_BASIC = aenum.auto()
     #: a cookie has to have been returned, which might contain a user
     REQUIRE_COOKIE_SENTINEL = aenum.auto()
     #: a user will be created if necessary and auth may be necessary

@@ -14,7 +14,7 @@ export SIREPO_COOKIE_IS_SECURE=false
 mkdir -m 700 -p "$SIREPO_SERVER_DB_DIR"
 f=$SIREPO_SERVER_DB_DIR/cookie_private_key
 if [[ ! -r $f ]]; then
-    sirepo cookie gen_private_key > "$f"
+    sirepo auth gen_private_key > "$f"
 fi
 export SIREPO_COOKIE_PRIVATE_KEY=$(cat "$f")
 exec sirepo service http

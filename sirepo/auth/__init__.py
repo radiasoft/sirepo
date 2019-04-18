@@ -41,6 +41,10 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 #: uwsgi object for logging
 _uwsgi = None
 
+#: Methods that the user is allowed to see
+visible_methods = []
+
+
 @api_perm.require_user
 def api_authCompleteRegistration():
     data = http_request.parse_json(assert_sim_type=False)
@@ -60,6 +64,7 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
+allowed_methods can only include visible methods, not bluesky and basic_auth
     a = cookie.unchecked_get_value(_COOKIE_METHOD, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
     s = cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION, _LOGGED_OUT)
     v = pkcollections.Dict(
@@ -105,20 +110,23 @@ def init_mock(uid='invalid-uid'):
     set_user(uid)
 
 
-def init_apis(app, uwsgi):
-    global _uwsgi
+def init_apis(app, *args, **kwargs):
     from sirepo import uri_router
-
+    global _app
     assert not _METHOD_CLASS
-    _uwsgi = uwsgi
+    _app = app
     p = pkinspect.this_module().__name__
     for n in cfg.allowed_methods + cfg.deprecated_methods:
         m = importlib.import_module(pkinspect.module_name_join(p, n))
         uri_router.register_api_module(m)
         _METHOD_CLASS[n] = m.AuthClass()
-    uri_router.register_api_module()
+        if m.AUTH_VISIBLE and n in cfg.allowed_methods:
+            visible_methods.append(n)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
+
+def login(user, method):
+    assert method in valid_methods
 
 def login_as_user(user, module):
     prev_uid = unchecked_get_user()
@@ -186,7 +194,9 @@ def get_user():
 
 def set_user(uid):
     assert uid
+    # not logged in, but in cookie(?)
     cookie.set_value(_COOKIE_USER, uid)
+if no auth_method then what?
     set_log_user(uid)
 
 
@@ -200,11 +210,15 @@ def user_not_found(uid):
     force a logout by throwing an srexception?
 
 
-def _auth_hook_from_header(old):
-    u = old.get('uid', old.get('sru'))
+def _auth_hook_from_header(values):
+    if values.get(_COOKIE_METHOD):
+        # normal case
+        return values
+    u = values.get('uid', values.get('sru'))
     if not u:
-        return None
-    o = old.get('oauth_login_state', old.get('sros'))
+        # no user so really don't know state
+        return values
+    o = values.get('oauth_login_state', values.get('sros'))
     s = _STATE_COMPLETE_REGISTRATION
     if o is None or o in ('anonymous', 'a'):
         m = 'guest'
@@ -213,7 +227,8 @@ def _auth_hook_from_header(old):
         if 'i' not in o:
             s = _STATE_LOGGED_OUT
     else:
-        return None
+        pkdlog('unknown cookie state: {}', values)
+        return {}
     return {
         _COOKIE_USER: u,
         _COOKIE_METHOD: m,
@@ -236,7 +251,7 @@ def _set_log_user(uid):
         # but we only use the limited http server for development.
         return
     u = 'li-' + uid if uid else '-'
-    _uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
+    _app.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
 def _update_session(login_state, auth_method):

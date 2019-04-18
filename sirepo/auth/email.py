@@ -5,15 +5,14 @@ u"""Email login support
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-from flask_sqlalchemy import SQLAlchemy
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
-from sirepo import cookie
-from sirepo import http_reply, http_request
+from sirepo import auth
+from sirepo import http_reply
+from sirepo import http_request
 from sirepo import server
 from sirepo import simulation_db
 from sirepo import uri_router
@@ -26,7 +25,6 @@ import pyisemail
 import re
 import sirepo.auth
 import sirepo.template
-import sqlalchemy
 try:
     # py2
     from urllib import urlencode
@@ -34,15 +32,8 @@ except ImportError:
     # py3
     from urllib.parse import urlencode
 
-
-#: AuthEmail users most always be non-anonymous
-ALLOW_ANONYMOUS_SESSION = False
-
-#: Tell GUI how to authenticate (before schema is loaded)
-AUTH_METHOD = 'email'
-
-#: user_stat._COOKIE_AUTH_METHOD value
-AUTH_METHOD_COOKIE_VALUE = 'e'
+#: User can see it
+AUTH_METHOD_VISIBLE = True
 
 #: Used by user_db
 UserModel = None
@@ -62,25 +53,12 @@ _EXPIRES_MINUTES = 15
 #: for adding to now
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
-#: if in the cookie, we need to upgrade to force a login
-_COOKIE_OAUTH_COMPAT_LOGIN = 'sreaocl'
-
-#TODO(robnagler) when user hits escape on displayname modal it goes away
-
-go through all the code.
 
 @api_perm.require_cookie_sentinel
 def api_emailAuthLogin():
     """Login the user from the form.
     User can be l
     """
-    email = flask.request.args.get('email', None)
-    if email:
-        # see oauth_compat case below
-        data = pkcollections.Dict(
-            email=email,
-            simulationType=flask.request.args.get('sim_type'),
-        )
     data = http_request.parse_json()
     email = _parse_email(data)
     sim_type = sirepo.template.assert_sim_type(data.simulationType)
@@ -90,29 +68,11 @@ def api_emailAuthLogin():
             # might be different uid, but don't care for now, just logout
             user_state.logout_as_user(this_module)
         else:
-            uid = cookie.unchecked_get_user()
+            uid = auth.unchecked_get_user()
             if uid:
                 u = AuthEmail.search_by(uid=uid)
-                oauth_ok = False
-                if not u and cfg.oauth_compat:
-                    u = oauth.UserModel.search_by(uid=uid)
-                    if u:
-                        # Found in oauth table so if logged in, accept user
-                        if user_state.is_logged_in():
-                            oauth_ok = True
-                        else:
-                            cookie.set_value(_COOKIE_OAUTH_COMPAT_LOGIN, '1')
-                            # force user to login via GitHub first
-                            n = '?'.join([
-                                uri_router.uri_for_api('emailAuthLogin'),
-                                urlencode(dict(email=email, sim_type=sim_type)),
-                            ])
-                            return oauth.compat_login(oauth.DEFAULT_OAUTH_TYPE, n)
-                if not oauth_ok:
-                    # was logged in as different user so clear and get new user
-                    user_state.logout_as_anonymous()
-                    uid = None
-            u = AuthEmail.create_user(uid=uid, unverified_email=email)
+            else:
+                u = AuthEmail.create_user(uid=uid, unverified_email=email)
         token = u.create_token()
         u.save()
     return _send_login_email(
@@ -156,9 +116,6 @@ def api_emailAuthorized(simulation_type, token):
                     s.localRoutes.authorizationFailed.route,
                 ),
             )
-        if cfg.oauth_compat:
-            # user is logged in so clear compatibility login
-            cookie.unchecked_remove(_COOKIE_OAUTH_COMPAT_LOGIN)
         # delete old record if there was one. This would happen
         # if there was a email change.
         u.query.filter(
@@ -174,7 +131,7 @@ def api_emailAuthorized(simulation_type, token):
     return flask.redirect('/{}'.format(sim_type))
 
 
-def init_apis(app, uwsgi):
+def init_apis(app, *args, **kwargs):
     assert not UserModel
     _init(app)
     user_db.init(app, _init_email_auth_model)
@@ -276,7 +233,7 @@ This link will expire in {} minutes and can only be used once.
 
 def _user_with_email_is_logged_in():
     if user_state.is_logged_in():
-        user = AuthEmail.search_by(uid=cookie.get_user())
+        user = AuthEmail.search_by(uid=auth.get_user())
         if user and user.user_name and user.user_name == user.unverified_email:
             return True
     return False

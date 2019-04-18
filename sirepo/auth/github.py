@@ -22,15 +22,11 @@ import flask.sessions
 import flask_oauthlib.client
 import sqlalchemy
 
-
-#: How do we authenticate
-AUTH_METHOD = 'github'
-
-#: user_state._COOKIE_AUTH_METHOD value
-AUTH_METHOD_COOKIE_VALUE = 'g'
+#: User can see it
+AUTH_METHOD_VISIBLE = True
 
 #: oauth_type value that should be passed in always
-DEFAULT_OAUTH_TYPE = AUTH_METHOD
+DEFAULT_OAUTH_TYPE = 'github'
 
 #: Used by user_db
 UserModel = None
@@ -39,8 +35,8 @@ UserModel = None
 this_module = pkinspect.this_module()
 
 # cookie keys for oauth
-_COOKIE_NEXT = 'sronx'
-_COOKIE_NONCE = 'sronn'
+_COOKIE_NEXT = 'sragx'
+_COOKIE_NONCE = 'sragn'
 
 
 @api_perm.require_cookie_sentinel
@@ -69,6 +65,7 @@ def api_oauthAuthorized(oauth_type):
             u.display_name = data['name']
             u.user_name = data['login']
         else:
+if deprecated do not allow create
             if not cookie.has_user_value():
                 from sirepo import simulation_db
                 simulation_db.user_create()
@@ -91,11 +88,7 @@ def api_oauthLogin(simulation_type, oauth_type):
     """
     _assert_oauth_type(oauth_type)
     sim_type = sirepo.template.assert_sim_type(simulation_type)
-    return compat_login(oauth_type, '/{}'.format(sim_type))
-
-
-def compat_login(oauth_type, oauth_next):
-    _assert_oauth_type(oauth_type)
+    oauth_next = '/{}'.format(sim_type)
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_NEXT, oauth_next)
@@ -112,7 +105,7 @@ def compat_login(oauth_type, oauth_next):
     )
 
 
-def init_apis(app, uwsgi):
+def init_apis(app, *args, **kwargs):
     """`init_module` then call `user_state.register_login_module`"""
     init_module(app)
     user_state.register_login_module()
@@ -185,7 +178,6 @@ def _init_user_model(db, base):
 
 
 def _oauth_client(oauth_type):
-    _assert_oauth_type(oauth_type)
     return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
         oauth_type,
         consumer_key=cfg.github_key,

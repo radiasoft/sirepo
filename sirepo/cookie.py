@@ -62,8 +62,10 @@ def save_to_cookie(resp):
 
 
 def set_sentinel():
-    """Bypasses the state where the cookie has not come back from the
-    client. This is used by bluesky, login, and testing.
+    """Bypasses the state where the cookie has not come back from the client.
+
+    For auth methods that are used outside the GUI (bluesky and basic) and
+    testing.
     """
     _state().set_sentinel()
 

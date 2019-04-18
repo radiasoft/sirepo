@@ -11,7 +11,7 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import cookie
+from sirepo import auth
 from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
@@ -356,7 +356,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        cookie.get_user(),
+        auth.get_user(),
         data.simulationId,
         data.report,
     )
@@ -883,7 +883,7 @@ def user_create():
     """
     uid = _random_id(user_dir_name())['id']
     # Must set before calling simulation_dir
-    cookie.set_user(uid)
+    auth.set_user(uid)
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid
@@ -1209,7 +1209,7 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = cookie.get_user()
+    uid = auth.get_user()
     d = user_dir_name(uid)
     if d.check():
         return d

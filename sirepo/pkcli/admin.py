@@ -67,7 +67,6 @@ def purge_users(days=180, confirm=False):
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
         if _is_src_dir(d):
             continue;
-        #TODO(pjm): need to skip special "src" user
         if simulation_db.uid_from_dir_name(d) in uids:
             continue
         for f in pkio.walk_tree(d):

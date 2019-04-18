@@ -36,12 +36,11 @@ def from_cookie_header(header):
         with open(path, 'rb') as fh:
             values = pickle.load(fh)
         if 'session' in values and _ORIG_KEY in values['session']:
-            res = {k: _ascii(v) for k, v in values['session'].items()}
+            res = {_ascii(k): _ascii(v) for k, v in values['session'].items()}
             pkdlog('retrieved beaker cookie: res={}', res)
             return res
     except Exception as e:
         err = e
-        pass
     pkdlog('invalid beaker compat: header={} error={}', header, err)
     return None
 
