@@ -9,9 +9,9 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkcollections
 from pykern import pkinspect
 from sirepo import api_perm
+from sirepo import auth
 from sirepo import cookie
 from sirepo import http_reply
-from sirepo import user_state
 
 
 def assert_api_def(func):
@@ -47,7 +47,7 @@ def check_api_call(func):
                 'cookie does not have a sentinel',
             )
         elif p == a.REQUIRE_USER:
-            e = user_state.require_user()
+            e = auth.require_user()
             if e:
                 return _e(*e)
     elif p == a.ALLOW_VISITOR:
@@ -55,7 +55,7 @@ def check_api_call(func):
     elif p in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         cookie.set_sentinel()
         if p == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            e = user_state.require_user()
+            e = auth.require_user()
             if e:
                 return _e(*e)
     else:

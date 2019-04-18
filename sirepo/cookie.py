@@ -49,11 +49,6 @@ def init_mock(uid='invalid-uid'):
     set_sentinel()
 
 
-def init_module(app, uwsgi):
-    global _uwsgi
-    _uwsgi = uwsgi
-
-
 def process_header(unit_test=None):
     if not unit_test:
         assert not 'sirepo_cookie' in flask.g
@@ -98,6 +93,7 @@ def unchecked_remove(key):
 class _State(dict):
 
     def __init__(self, header):
+        super(_State, self).__init__()
         self.incoming_serialized = ''
         self.crypto = None
         flask.g.sirepo_cookie = self

@@ -8,8 +8,9 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import cookie
+from sirepo import auth
 from sirepo import api_auth
+from sirepo import cookie
 from sirepo import util
 import flask
 import importlib
@@ -74,21 +75,32 @@ def init(app, uwsgi):
 
     if _uri_to_route:
         return
-    for m in _REQUIRED_MODULES + feature_config.cfg.api_modules:
-        importlib.import_module('sirepo.' + m).init_apis(app, uwsgi)
+    global _uwsgi, _app
+    _app = app
+    _uwsgi = uwsgi
+    for n in _REQUIRED_MODULES + feature_config.cfg.api_modules:
+        register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
 
 
-def register_api_module():
+def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
 
     The module must have methods: api_XXX which do not collide with
-    other apis.
+    other apis. It must also have init_apis(), which will be called unless
+    it is already registered.
+
+    Args:
+        module (module): defaults to caller module
     """
-    m = pkinspect.caller_module()
-    assert not m in _api_modules, \
-        'module is a duplicate: module={}'.format(m.__name__)
+    assert not _default_route, \
+        '_init_uris already called. All APIs must registered at init'
+    m = module or pkinspect.caller_module()
+    if m in _api_modules:
+        return
+    # prevent recursion
     _api_modules.append(m)
+    m.init_apis(_app, _uwsgi)
     for n, o in inspect.getmembers(m):
         if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
             assert not n in _api_funcs, \
@@ -147,7 +159,7 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    auth.process_cookie()
+    auth.process_request()
     try:
         if path is None:
             return _dispatch_call(_empty_route.func, {})
@@ -196,6 +208,8 @@ def _dispatch_empty():
 def _init_uris(app, simulation_db):
     global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
 
+    assert not _default_route, \
+        '_init_uris called twice'
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():

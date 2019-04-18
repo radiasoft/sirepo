@@ -42,8 +42,7 @@ def api_serverStatus():
     })
 
 
-def init_apis(app, uwsgi):
-    uri_router.register_api_module()
+def init_apis(app, *args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         uid=pkconfig.Required(str, 'Sirepo status user id'),

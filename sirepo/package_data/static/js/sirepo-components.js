@@ -1735,7 +1735,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
                 $scope.simulationsLinkText = 'Simulations';
             }
             $scope.showMenu = function() {
-                return ! SIREPO.IS_LOGGED_OUT;
+                return SIREPO.authState.isLoggedIn ? 1 : 0;
             };
             $scope.showTitle = function() {
                 return appState.isLoaded();
@@ -1828,7 +1828,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
         controller: function($scope) {
 
             $scope.displayLoginMenu = function() {
-                return SIREPO.userState && $scope.modeIsDefault();
+                return SIREPO.authState && $scope.modeIsDefault();
             };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
@@ -2275,7 +2275,6 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            var x = requestSender.getSRException('loggedOut');
             function handleResponse(data) {
                 if (data.state == 'ok') {
                     $('#sr-email-login').modal('hide');

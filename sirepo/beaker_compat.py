@@ -16,7 +16,7 @@ import pickle
 
 _ORIG_KEY = 'uid'
 
-oauth_hook = None
+auth_hook = None
 
 
 def update_session_from_cookie_header(header):
@@ -73,8 +73,8 @@ def _init_maps():
         },
         'value': {}
     }
-    if oauth_hook:
-        oauth_hook(res)
+    if auth_hook:
+        auth_hook(res)
     return res
 
 

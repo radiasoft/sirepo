@@ -41,7 +41,7 @@ Email: {}
     return http_reply.gen_json_ok()
 
 
-def init_apis(app, uwsgi):
+def init_apis(app, *args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         mail_server=(None, str, 'Mail server'),
@@ -62,4 +62,3 @@ def init_apis(app, uwsgi):
     )
     global _mail
     _mail = flask_mail.Mail(app)
-    uri_router.register_api_module()

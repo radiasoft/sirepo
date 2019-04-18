@@ -17,39 +17,25 @@ import importlib
 
 
 #: what routeName to return in the event user is logged out in require_user
-LOGGED_OUT_ROUTE_NAME = 'loggedOut'
-
-_AUTH_METHOD_ANONYMOUS_COOKIE_VALUE = 'a'
-_AUTH_METHOD_ANONYMOUS_MODULE_NAME = 'anonymous'
-
-#: login_state values in cookie
-_ANONYMOUS_DEPRECATED = 'a'
-_LOGGED_IN = 'li'
-_LOGGED_OUT = 'lo'
-
-#: used in query of api_logout to indicate an anonymous session
-_ANONYMOUS_LOGIN_QUERY = 'anonymous'
+LOGIN_ROUTE_NAME = 'login'
 
 #: key for logged in
-_COOKIE_LOGGED_IN = 'srali'
+_COOKIE_STATE = 'sras'
 
 #: key for auth method for login state
-_COOKIE_AUTH_METHOD = 'sralm'
+_COOKIE_METHOD = 'sram'
 
 #: Identifies the user in the cookie
 _COOKIE_USER = 'sru'
 
-#: key for need user name
-_COOKIE_COMPLETE_REGISTRATION = 'sracr'
-
-#: oauth._COOKIE_STATE migrated to  _COOKIE_AUTH_METHOD and _COOKIE_LOGIN_SESSION
+#: oauth._COOKIE_STATE migrated to  _COOKIE_METHOD and _COOKIE_LOGIN_SESSION
 _COOKIE_SESSION_DEPRECATED = 'sros'
 
 #: formerly used in the cookie but no longer so is removed below
 _REMOVED_COOKIE_NAME = 'sron'
 
 #: registered module
-_METHOD_MODULES = pkcollections.Dict()
+_METHOD_CLASS = pkcollections.Dict()
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
@@ -57,33 +43,32 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 #: uwsgi object for logging
 _uwsgi = None
 
+_BEAKER_COMPAT_MAP = pkcollections.Dict({
+    'anonymous': 'a',
+    'logged_in': 'li',
+    'logged_out': 'lo',
+})
+
 @api_perm.require_user
-def api_authDisplayName():
+def api_authCompleteRegistration():
     data = http_request.parse_json(assert_sim_type=False)
     dn = _parse_display_name(data)
-    uid = cookie.get_user()
+    uid = get_user()
     assert is_logged_in(), \
         'user is not logged in, uid={}'.format(uid)
     with user_db.thread_lock:
-        user = User.search_by(uid=uid)
-        user.display_name = dn
-        user.save()
+        u = User.search_by(uid=uid)
+        if not u:
+            # first time for this user
+            u = User(uid=uid)
+        u.display_name = dn
+        u.save()
     return http_reply.gen_json_ok()
 
 
 @api_perm.allow_visitor
-def api_logout(simulation_type):
-    """Set the current user as logged out.
-    """
-    if has_user_value():
-        logout()
-    return flask.redirect('/{}'.format(simulation_type))
-
-
-@api_perm.allow_visitor
-def api_userState():
-    migrate_cookie_keys()
-    a = cookie.unchecked_get_value(_COOKIE_AUTH_METHOD, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
+def api_authState():
+    a = cookie.unchecked_get_value(_COOKIE_METHOD, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
     s = cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION, _LOGGED_OUT)
     v = pkcollections.Dict(
         user_state = pkcollections.Dict(
@@ -100,13 +85,22 @@ def api_userState():
             # useful for testing/debugging
             v.user_state.uid  = cookie.unchecked_get_user()
         if a == login_module.AUTH_METHOD_COOKIE_VALUE and s == _LOGGED_IN:
-            u = login_module.UserModel.search_by(uid=cookie.get_user())
+            u = login_module.UserModel.search_by(uid=get_user())
             if u:
                 v.user_state.update(
                     displayName=u.display_name,
                     userName=u.user_name,
                 )
     return http_reply.render_static('user-state', 'js', v)
+
+
+@api_perm.allow_visitor
+def api_logout(simulation_type):
+    """Set the current user as logged out.
+    """
+    if has_user_value():
+        logout()
+    return flask.redirect('/{}'.format(simulation_type))
 
 
 def has_user_value():
@@ -123,23 +117,20 @@ def init_apis(app, uwsgi):
     global _uwsgi
     from sirepo import uri_router
 
-    assert not _METHOD_MODULES
+    assert not _METHOD_CLASS
     _uwsgi = uwsgi
     p = pkinspect.this_module().__name__
-    for m in cfg.methods:
-        x = importlib.import_module(pkinspect.module_name_join(p, m))
-        _METHOD_CLASS[m] = _METHOD_MODULES[m].init_auth_method(x)
+    for n in cfg.allowed_methods + cfg.deprecated_methods:
+        m = importlib.import_module(pkinspect.module_name_join(p, n))
+        uri_router.register_api_module(m)
+        _METHOD_CLASS[n] = m.AuthClass()
     uri_router.register_api_module()
 
-
-def init_beaker_compat():
     from sirepo import beaker_compat
-
-    beaker_compat.oauth_hook = _beaker_compat_map_keys
+    beaker_compat.auth_hook = _beaker_compat_hook
 
 
 def login_as_user(user, module):
-    migrate_cookie_keys()
     prev_uid = unchecked_get_user()
     if prev_uid and prev_uid != user.uid:
         # check if prev_uid is already in the
@@ -155,65 +146,43 @@ def login_as_user(user, module):
 
 
 def logout_as_user(module):
-    migrate_cookie_keys()
     _update_session(_LOGGED_OUT, module.AUTH_METHOD_COOKIE_VALUE)
 
 
-def migrate_cookie_keys():
-    if cookie.has_key(_COOKIE_AUTH_METHOD):
-        return
-    # cookie_name is no longer used so clean up
-    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
-    if not cookie.has_sentinel():
-        # not initialized
-        return
-    if not cookie.has_key(_COOKIE_SESSION_DEPRECATED):
-        _update_session(
-            _LOGGED_IN if cookie.has_user_value() else _LOGGED_OUT,
-            _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE,
-        )
-        return
-    os = cookie.unchecked_remove(_COOKIE_SESSION_DEPRECATED)
-    if os == _AUTH_METHOD_ANONYMOUS_MODULE_NAME:
-        _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
-
-eoauth_anonymous
-anonymous login module needs to be there.
-
-
-
-    if no cookie whatsoever
-
-
-set auth method and
-    to do
-
-
-def process_cookie(unit_test=None):
+def process_request(unit_test=None):
     cookie.process_header(unit_test)
-    migrate_cookie_keys()
+    _migrate_cookie_keys()
     if has_user_value():
         set_log_user(unchecked_get_user())
 
 
 def require_user():
-    migrate_cookie_keys()
-    if cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION) == _LOGGED_IN:
-        a = cookie.get_value(_COOKIE_AUTH_METHOD)
-        if a not in valid_methods:
-            return (
-                LOGGED_OUT_ROUTE_NAME,
-                'auth_method={} invalid, force login to valid method: uid='.format(
-                    a,
-                    cookie.get_user(),
-                ),
-            )
-        return None
-    u = unchecked_get_user()
-    return (
-        LOGGED_OUT_ROUTE_NAME,
-        'logged out user={}'.format(u) if u else 'no user in cookie',
-    )
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    e = None
+    r = None
+    if s is None:
+        e = 'never been logged in'
+    elif s == _STATE_LOGGED_IN:
+        m = cookie.get_value(_COOKIE_METHOD)
+        if m in cfg.allowed_methods:
+            return None
+        u = get_user()
+        if m in cfg.deprecated_methods:
+            e = 'deprecated'
+        else:
+            clear_user()
+            e = 'invalid'
+        e = 'method={} is deprecated, forcing login: uid='.format(m, get_user())
+    elif s == _STATE_LOGGED_OUT:
+        e = 'logged out user={}'.format(get_user())
+    elif s == _STATE_COMPLETE_REGISTRATION:
+        r = COMPLETE_REGISTRATION_ROUTE_NAME
+        e = 'uid={} needs to complete registration'.format(get_user())
+    else:
+        # dump cookie values
+        # cookie.reset()
+        raise AssertionError('state={} invalid, cannot continue'.format(s))
+    return (r or LOGIN_ROUTE_NAME, e)
 
 
 def clear_user():
@@ -241,22 +210,38 @@ def user_not_found(uid):
     force a logout by throwing an srexception?
 
 
-def _beaker_compat_map_keys(key_map):
-_LOGIN_SESSION_MAP = pkcollections.Dict({
-    _ANONYMOUS_DEPRECATED: _AUTH_METHOD_ANONYMOUS_MODULE_NAME,
-    _LOGGED_IN: 'logged_in',
-    _LOGGED_OUT: 'logged_out',
-})
-
+def _beaker_compat_hook(key_map):
     key_map['key']['oauth_login_state'] = _COOKIE_SESSION_DEPRECATED
-    # reverse map of login state values
-    key_map['value'] = {v: k for k, v in .iteritems()}
-    dict(map(lambda k: (_LOGIN_SESSION_MAP[k], k), _LOGIN_SESSION_MAP))
+    key_map['value'] = dict(_BEAKER_COMPAT_MAP)
+
 
 def _get_user(checked=True):
     if not cookie.has_sentinel():
         util.raise_unauthorized('Missing sentinel, cookies may be disabled')
     return cookie.get_value(_COOKIE_USER) if checked else cookie.unchecked_get_value(_COOKIE_USER)
+
+
+def _migrate_cookie_keys():
+    if cookie.has_key(_COOKIE_METHOD):
+        return
+    # cookie_name is no longer used so clean up
+    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
+    if not cookie.has_sentinel():
+        # not initialized
+        return
+    if not cookie.has_key(_COOKIE_SESSION_DEPRECATED):
+        _update_session(
+            _LOGGED_IN if cookie.has_user_value() else _LOGGED_OUT,
+            _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE,
+        )
+        return
+    os = cookie.unchecked_remove(_COOKIE_SESSION_DEPRECATED)
+    if os == _AUTH_METHOD_ANONYMOUS_MODULE_NAME:
+        _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
+    eoauth_anonymous
+    anonymous login module needs to be there.
+    if no cookie whatsoever
+    set auth method and to do
 
 
 def _set_log_user(uid):
@@ -273,9 +258,10 @@ def _set_log_user(uid):
 
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
-    cookie.set_value(_COOKIE_AUTH_METHOD, auth_method)
+    cookie.set_value(_COOKIE_METHOD, auth_method)
 
 
 cfg = pkconfig.init(
-    methods=(('guest',), tuple, 'From email address'),
+    allowed_methods=(('guest',), tuple, 'for logging in'),
+    deprecated_methods=(tuple(), tuple, 'for migrating to allowed_methods'),
 )

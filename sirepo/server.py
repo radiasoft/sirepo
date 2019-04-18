@@ -699,8 +699,8 @@ def init(uwsgi=None, use_reloader=False):
     return app
 
 
-def init_apis(app, uwsgi):
-    uri_router.register_api_module()
+def init_apis(*args, **kwargs):
+    pass
 
 
 def javascript_redirect(redirect_uri):

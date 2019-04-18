@@ -126,7 +126,6 @@ def init_module(app):
     assert not UserModel
     _init(app)
     user_db.init(app, _init_user_model)
-    user_state.init_beaker_compat()
     uri_router.register_api_module()
 
 

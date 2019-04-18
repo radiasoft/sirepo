@@ -125,13 +125,13 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         }
     }
 
-    if (SIREPO.IS_LOGGED_OUT) {
-        addRoute('authorizationFailed');
-        addRoute('loggedOut', true);
-    } else {
+    if (SIREPO.authState.isLoggedIn) {
         for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
             addRoute(routeName);
         }
+    } else {
+        addRoute('authorizationFailed');
+        addRoute('login', true);
     }
 });
 
@@ -139,13 +139,11 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     var self = this;
 
     self.getActiveSection = function() {
-        if (SIREPO.IS_LOGGED_OUT) {
+        if (! SIREPO.authState.isLoggedIn) {
             return null;
         }
-        var match = ($location.path() || '').match(/^\/([^\/]+)/);
-        return match
-            ? match[1]
-            : null;
+        var m = ($location.path() || '').match(/^\/([^\/]+)/);
+        return m ? m[1] : null;
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
@@ -1001,7 +999,7 @@ should be github url; returned in user_state
     };
 
     self.isLoggedIn = function() {
-        return ! self.isAnonymous() && SIREPO.userState.loginSession == 'logged_in';
+        return SIREPO.authState.isLoggedIn ? 1 : 0;
     };
 
     self.isNotificationDisplayed = function() {
@@ -2584,13 +2582,12 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoggedOutController', function (requestSender, loginService, panelState) {
+SIREPO.app.controller('LoginController', function (requestSender, loginService, panelState) {
     var self = this;
     self.loginService = loginService;
     panelState.waitForUI(function() {
         $('#sr-login').modal('show');
     });
-
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {

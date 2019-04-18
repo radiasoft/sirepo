@@ -244,13 +244,6 @@ def _init_email_auth_model(db, base):
     return AuthEmail.__tablename__
 
 
-def _parse_display_name(data):
-    res = data.displayName.strip()
-    assert len(res), \
-        'invalid post data: displayName={}'.format(data.displayName)
-    return res
-
-
 def _parse_email(data):
     res = data.email.lower()
     assert pyisemail.is_email(res), \
