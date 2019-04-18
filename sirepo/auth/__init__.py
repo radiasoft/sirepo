@@ -22,17 +22,15 @@ LOGIN_ROUTE_NAME = 'login'
 #: key for logged in
 _COOKIE_STATE = 'sras'
 
+_STATE_LOGGED_IN = 'li'
+_STATE_LOGGED_OUT = 'li'
+_STATE_COMPLETE_REGISTRATION = 'cr'
+
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
 
 #: Identifies the user in the cookie
 _COOKIE_USER = 'sru'
-
-#: oauth._COOKIE_STATE migrated to  _COOKIE_METHOD and _COOKIE_LOGIN_SESSION
-_COOKIE_SESSION_DEPRECATED = 'sros'
-
-#: formerly used in the cookie but no longer so is removed below
-_REMOVED_COOKIE_NAME = 'sron'
 
 #: registered module
 _METHOD_CLASS = pkcollections.Dict()
@@ -42,12 +40,6 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
 #: uwsgi object for logging
 _uwsgi = None
-
-_BEAKER_COMPAT_MAP = pkcollections.Dict({
-    'anonymous': 'a',
-    'logged_in': 'li',
-    'logged_out': 'lo',
-})
 
 @api_perm.require_user
 def api_authCompleteRegistration():
@@ -125,9 +117,7 @@ def init_apis(app, uwsgi):
         uri_router.register_api_module(m)
         _METHOD_CLASS[n] = m.AuthClass()
     uri_router.register_api_module()
-
-    from sirepo import beaker_compat
-    beaker_compat.auth_hook = _beaker_compat_hook
+    cookie.auth_hook_from_header = _auth_hook_from_header
 
 
 def login_as_user(user, module):
@@ -210,38 +200,31 @@ def user_not_found(uid):
     force a logout by throwing an srexception?
 
 
-def _beaker_compat_hook(key_map):
-    key_map['key']['oauth_login_state'] = _COOKIE_SESSION_DEPRECATED
-    key_map['value'] = dict(_BEAKER_COMPAT_MAP)
+def _auth_hook_from_header(old):
+    u = old.get('uid', old.get('sru'))
+    if not u:
+        return None
+    o = old.get('oauth_login_state', old.get('sros'))
+    s = _STATE_COMPLETE_REGISTRATION
+    if o is None or o in ('anonymous', 'a'):
+        m = 'guest'
+    elif o in ('logged_in', 'li', 'logged_out', 'lo'):
+        m = 'github'
+        if 'i' not in o:
+            s = _STATE_LOGGED_OUT
+    else:
+        return None
+    return {
+        _COOKIE_USER: u,
+        _COOKIE_METHOD: m,
+        _COOKIE_STATE: s,
+    }
 
 
 def _get_user(checked=True):
     if not cookie.has_sentinel():
         util.raise_unauthorized('Missing sentinel, cookies may be disabled')
     return cookie.get_value(_COOKIE_USER) if checked else cookie.unchecked_get_value(_COOKIE_USER)
-
-
-def _migrate_cookie_keys():
-    if cookie.has_key(_COOKIE_METHOD):
-        return
-    # cookie_name is no longer used so clean up
-    cookie.unchecked_remove(_REMOVED_COOKIE_NAME)
-    if not cookie.has_sentinel():
-        # not initialized
-        return
-    if not cookie.has_key(_COOKIE_SESSION_DEPRECATED):
-        _update_session(
-            _LOGGED_IN if cookie.has_user_value() else _LOGGED_OUT,
-            _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE,
-        )
-        return
-    os = cookie.unchecked_remove(_COOKIE_SESSION_DEPRECATED)
-    if os == _AUTH_METHOD_ANONYMOUS_MODULE_NAME:
-        _update_session(_LOGGED_OUT, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
-    eoauth_anonymous
-    anonymous login module needs to be there.
-    if no cookie whatsoever
-    set auth method and to do
 
 
 def _set_log_user(uid):

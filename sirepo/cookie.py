@@ -16,6 +16,8 @@ import flask
 import itertools
 import re
 
+#: sirepo.auth gets to override parsing
+auth_hook_from_header = None
 
 _MAX_AGE_SECONDS = 10 * 365 * 24 * 3600
 
@@ -150,7 +152,7 @@ class _State(dict):
             match = re.search(r'\b{}=([^;]+)'.format(cfg.http_name), header)
             if match:
                 s = self._decrypt(match.group(1))
-                self.update(self._deserialize(s))
+                self.update(auth_hook_from_header(self._deserialize(s)))
                 self.incoming_serialized = s
                 return
         except Exception as e:
@@ -165,11 +167,11 @@ class _State(dict):
             try:
                 import sirepo.beaker_compat
 
-                res = sirepo.beaker_compat.update_session_from_cookie_header(header)
-                if not res is None:
+                res = sirepo.beaker_compat.from_cookie_header(header)
+                if res is not None:
                     self.clear()
                     self.set_sentinel()
-                    self.update(res)
+                    self.update(auth_hook_from_header(res))
                     err = None
             except AssertionError:
                 pkdlog('Unconfiguring beaker_compat: {}', pkdexc())
