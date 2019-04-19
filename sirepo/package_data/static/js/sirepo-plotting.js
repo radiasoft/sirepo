@@ -2773,7 +2773,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var itemWidth;
                 var count = 0;
                 plots.forEach(function(plot, i) {
-                    if(plot._parent) {
+                    if(! plot.label) {
                         return;
                     }
                     count++;
@@ -2921,6 +2921,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.load = function(json) {
                 //TODO(pjm): move first part into normalizeInput()
+                childPlots = {};
                 includeForDomain.length = 0;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [

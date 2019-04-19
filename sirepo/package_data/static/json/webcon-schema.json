@@ -20,10 +20,10 @@
     },
     "enum": {
         "ClusterMethod": [
-            ["kmeans", "KMeans"],
-            ["gmix", "Gaussian Mixture"],
+            ["agglomerative", "Agglomerative Clustering"],
             ["dbscan", "DBSCAN"],
-            ["agglomerative", "Agglomerative Clustering"]
+            ["gmix", "Gaussian Mixture"],
+            ["kmeans", "KMeans"]
         ],
         "PlotAction": [
             ["cluster", "Cluster"],
@@ -55,7 +55,8 @@
             "trimField": ["Trim Field", "AnalysisParameter"],
             "trimMin": ["Minimum", "Float"],
             "trimMax": ["Maximum", "Float"],
-            "y2": ["Y2 Value", "AnalysisOptionalParameter", "2"],
+            "trimButton": ["", "TrimButton"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "none"],
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
@@ -130,9 +131,9 @@
             "model": "analysisReport",
             "basic": [
                 "action",
-                "trimField",
                 "trimMin",
-                "trimMax"
+                "trimMax",
+                "trimButton"
             ],
             "advanced": []
         }
