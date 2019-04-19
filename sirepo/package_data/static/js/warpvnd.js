@@ -2450,7 +2450,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     var cModel = typeMap[c.conductorTypeId];
                     gridScale = Math.max(gridScale, cModel.scale);
                     // no need to reload data
-                    if(! stlReaders[c.id]) {
+                    if (! stlReaders[c.id]) {
                         loadConductor(c, cModel);
                     }
                     else {
@@ -2521,7 +2521,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             var isAdjustingSize = false;
             function adjustSize(rect) {
-                if(isAdjustingSize) {
+                if (isAdjustingSize) {
                     isAdjustingSize = false;
                     return;
                 }
@@ -2529,7 +2529,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 var fitThreshold = 0.01;
                 var cntAspectRatio = 1.3;
                 isAdjustingSize = vtkPlotting.adjustContainerSize(cnt, rect, cntAspectRatio, fitThreshold);
-                if(isAdjustingSize) {
+                if (isAdjustingSize) {
                     fsRenderer.resize();
                 }
             }
@@ -2563,7 +2563,10 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 refresh();
             }
 
-            var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];
+            var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
+            //var labMatrix = [0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1];  //warp
+            //var labMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];  //unit
+
             function loadConductor(conductor, type) {
                 $scope.parentController.isWaitoingForSTL = true;
                 vtkPlotting.loadSTLFile(type.file).then(function (r) {
@@ -2573,7 +2576,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function loadConductorData(reader, conductor, type) {
-                if(! reader) {
+                if (! reader) {
                     return;
                 }
                 reader.loadData()
@@ -2592,6 +2595,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             function setupConductor(reader, conductor, type) {
                 var bounds = reader.getOutputData().getBounds();
+                srdbg('!BOUNDS', bounds, 'grid factor', gridFactor);
                 var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
                 var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
                 var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
@@ -2608,6 +2612,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 a.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(a);
                 stlActors[conductor.id] = a;
+                srdbg('!ACTOR BOUNDS', a.getBounds());
                 $scope.parentController.isWaitingForSTL = false;
                 reset();
             }
@@ -2656,7 +2661,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 cacheCanvas();
             }
             function cacheCanvas() {
-                if(! snapshotCtx) {
+                if (! snapshotCtx) {
                     return;
                 }
                 var w = parseInt(canvas3d.getAttribute('width'));

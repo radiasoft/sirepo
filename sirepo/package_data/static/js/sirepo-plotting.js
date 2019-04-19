@@ -3183,7 +3183,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
 //TODO(mvk): This directive should move to sirepo-plotting-vtk
-SIREPO.app.directive('particle3d', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry, plotToPNG, $timeout) {
+SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, warpvndService, $timeout) {
 
     return {
         restrict: 'A',
@@ -3270,6 +3270,16 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var conductorBundles = [];
             var conductorActors = [];
 
+            var stlActors = {};
+            var stlReaders = {};
+
+            var vpConds = [];
+
+            var gridScale = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
+            var toMicronFactor = 1e-6;
+            var gridOffsets = [0, 0, 0];
+            var xfactor = 1;
+
             // lines
             var absorbedLineBundle;
             var reflectedLineBundle;
@@ -3287,6 +3297,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
 
             // geometry
             var coordMapper = vtkPlotting.coordMapper();
+            var scaleTransform = coordMapper.xform;
 
             // data
             var numPoints = 0;
@@ -3329,6 +3340,130 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
             var snapshotCtx;
 
             document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+
+            function addSTLConductors() {
+                var typeMap = warpvndService.conductorTypeMap();
+
+                appState.models.conductors.filter(function (c) {
+                    return warpvndService.getConductorType(c) === 'stl';
+                }).forEach(function (c) {
+                    var cModel = typeMap[c.conductorTypeId];
+                    gridScale = Math.max(gridScale, cModel.scale);
+                    if (! stlReaders[c.id]) {
+                        loadConductor(c, cModel);
+                    }
+                });
+
+                toMicronFactor = 1e-6 / gridScale;
+            }
+
+                var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];
+                function loadConductor(conductor, type) {
+                    srdbg('loading data for', conductor.id, stlReaders);
+                    $scope.isWaitingForSTL = true;
+                    coordMapper.buildSTL(type.file, conductorLoader(conductor, type));
+                }
+
+                function conductorLoader(conductor, type) {
+                    return function (bundle) {
+                        setupConductor(bundle, conductor, type);
+                    };
+                }
+
+                function buildSTLCoordMapper(scale) {
+                    //var t1 = geometry.transform(SIREPO.PLOT_3D_CONFIG.coordMatrix);
+                    var t1 = geometry.transform([
+                        [0, 1, 0],
+                        [0, 0, 1],
+                        [1, 0, 0]
+                    ]);
+                    srdbg('map', t1.matrix);
+                    var t2 = geometry.transform(
+                         [
+                            [scale, 0, 0],
+                            [0, scale, 0],
+                            [0, 0, scale]
+                        ]
+                    );
+                    var t2 = geometry.transform(
+                         [
+                            [scale, 0, 0],
+                            [0, scale, 0],
+                            [0, 0, scale]
+                        ]
+                    );
+                    var t2i = geometry.transform(
+                         [
+                            [1.0 / scale, 0, 0],
+                            [0, 1.0 /scale, 0],
+                            [0, 0, 1.0 / scale]
+                        ]
+                    );
+                    var t3 = t2.compose(scaleTransform);
+                    var t4 = t2i.compose(scaleTransform);
+                    //var t2 = geometry.transform(
+                    //     [
+                     //       [1.0 / Math.abs(zmax - zmin), 0, 0],
+                      //      [0, xzAspectRatio / Math.abs(xmax - xmin), 0],
+                      //      [0, 0, yzAspectRatio * xzAspectRatio / Math.abs(ymax - ymin)]
+                       // ]
+                    //);
+                    srdbg('scale', t2.matrix, xmin, xmax, ymin, ymax, zmin, zmax);
+                    srdbg('lab scale', scaleTransform.matrix);
+                    srdbg('combined scale', t3.matrix);
+                    srdbg('combined scale inv', t4.matrix);
+                    var stlcm = vtkPlotting.coordMapper(t2.compose(t1));
+                    //var stlcm = vtkPlotting.coordMapper(scaleTransform.compose(t1));
+                    srdbg('stlcm', stlcm.xform.matrix);
+                    return stlcm;
+                }
+                function setupConductor(bundle, conductor, type) {
+                    srdbg('!SETTING UP', type.file, 'toMicron factor', toMicronFactor, 'grid scale', gridScale);
+                    var cm = buildSTLCoordMapper(1.0 / toMicronFactor);
+                    //var cm = buildSTLCoordMapper(1.0 / Math.abs(zmax - zmin));  // scale to plate spacing
+                    var reader = bundle.source;
+                    var actor = bundle.actor;
+                    var bounds = reader.getOutputData().getBounds();
+                    srdbg('!BOUNDS', bounds, 'center', conductor.xCenter, conductor.yCenter, conductor.zCenter);
+                    // offsets are in coords set by the stl data
+                    var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
+                    var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
+                    var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
+                    srdbg('offsets', xOffset, yOffset, zOffset, 'to micron', toMicronFactor * xOffset, toMicronFactor * yOffset, toMicronFactor * zOffset);
+                    srdbg('ctr witn offsets', toMicronFactor * conductor.xCenter - xOffset, toMicronFactor * conductor.yCenter - yOffset, toMicronFactor * conductor.zCenter - zOffset);
+                    var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                    srdbg('coordmapper matrix', coordMapper.xform.matrix);
+                    var userMatrix = [];
+                    cm.xform.matrix.forEach(function (row) {
+                        userMatrix = userMatrix.concat(row);
+                        userMatrix.push(0);
+                    });
+                    userMatrix = userMatrix.concat([0, 0, 0, 1]);
+                    srdbg('user matrix', userMatrix);
+                    srdbg('!ACTOR BOUNDS BEFORE', actor.getBounds());
+                    actor.addPosition([
+                        conductor.xCenter - xOffset,
+                        conductor.yCenter - yOffset,
+                        conductor.zCenter - zOffset
+                    ]);
+                    actor.setUserMatrix(userMatrix);  // rotates from lab to "vtk world" coords
+                    //actor.addPosition([toMicronFactor * conductor.xCenter - xOffset, toMicronFactor * conductor.yCenter - yOffset, toMicronFactor * xfactor * conductor.zCenter - zOffset]);
+                    actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
+                    actor.getProperty().setLighting(false);
+                    fsRenderer.getRenderer().addActor(actor);
+                    srdbg('!ACTOR BOUNDS AFTER', actor.getBounds());
+                    stlActors[conductor.id] = actor;
+                }
+
+                var cFactor = 1000000.0;
+                function scaleWithShave(a) {
+                    var shave = 0.01;
+                    return (1.0 - shave) * a / cFactor;
+                }
+
+                function scaleConductor(a) {
+                    return a / cFactor;
+                }
 
             $scope.requestData = function() {
                 if (! $scope.hasFrames()) {
@@ -3571,6 +3706,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         [0, 0, yzAspectRatio * xzAspectRatio / Math.abs(ymax - ymin)]
                     ]
                 );
+                scaleTransform = t2;
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
 
                 coordMapper.setPlane(startPlaneBundle,
@@ -3604,6 +3740,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     Math.abs(epsP2[2] - epsP1[2]) + padding
                 ]);
                 outlineBundle.setCenter(osCtr);
+
 
                 for (var d = 0; d < 3; ++d) {
                     for (var s = 0; s < 1; ++s) {
@@ -3778,15 +3915,20 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                         bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
                         bb.actor.getProperty().setLighting(false);
                         bb.actor.getProperty().setOpacity(0.80);
-                        conductorActors.push(bb.actor);
+                        //conductorActors.push(bb.actor);
                     }
                 }
 
                 // do an initial render
                 renderWindow.render();
-
+                srdbg('outline bounds', outlineBundle.source.getOutputData().getBounds());
                 // wait to initialize after the render so the world to viewport transforms are ready
                 vpOutline.initializeWorld();
+
+                addSTLConductors();
+                vpConds.forEach(function (vpc) {
+                    vpc.initializeWorld();
+                });
 
                 refresh(true);
             };
@@ -3922,11 +4064,15 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
 
+                //addSTLConductors();
+
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
-
+                //srdbg('actorstuff', renderer.getActors().map(function (a) {
+                //    return a.getBounds();
+                //}));
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
                     renderer.resetCamera();
@@ -3946,7 +4092,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                     sceneRect.containsRect(screenRect)
                 );
                 var a = sceneRect.area() / sceneArea;
-                malSized = a < 0.1 || a > 7.5;
+                malSized = false;  //a < 0.1 || a > 7.5;
                 $scope.canInteract = ! offscreen && ! malSized;
                 if ($scope.canInteract) {
                     lastCamPos = cam.getPosition();
@@ -4053,7 +4199,7 @@ SIREPO.app.directive('particle3d', function(appState, panelState, requestSender,
                 // be cramped and unreadable
                 var minAxisDisplayLen = 50;
 
-                var b = ['z'];
+                //var b = ['z'];
                 //for (var i in b) {  // use to test inidividual axes
                 for (var i in geometry.basis) {
 

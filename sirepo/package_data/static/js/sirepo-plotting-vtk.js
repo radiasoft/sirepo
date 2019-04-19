@@ -113,6 +113,20 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
+            buildSTL: function(file, callback) {
+                var cm = this;
+                self.loadSTLFile(file).then(function (r) {
+                    r.loadData()
+                        .then(function (res) {
+                            callback(actorBundle(r));
+                        }, function (reason) {
+                            throw type.file + ': Error loading data from .stl file: ' + reason;
+                        }
+                    ).catch(function (e) {
+                        errorService.alertText(e);
+                    });
+                });
+            },
             setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
@@ -222,7 +236,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
         vpObj.source = vtkSource;
         vpObj.wCoord = worldCoord;
-        vpObj.worldCorners = [];
+        vpObj.worldCorners = wCorners();  //[];
         vpObj.worldEdges = {};
 
         vpObj.viewportCorners = [];
@@ -339,6 +353,21 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             });
             return ex;
         };
+
+        function wCorners() {
+            // [x0, x1, y0, y1, z0, z1]
+            var b = vpObj.source.getOutputData().getBounds();
+            return [
+                geometry.pointFromArr([b[0], b[2], b[4]]),
+                geometry.pointFromArr([b[0], b[2], b[5]]),
+                geometry.pointFromArr([b[0], b[3], b[4]]),
+                geometry.pointFromArr([b[0], b[3], b[5]]),
+                geometry.pointFromArr([b[1], b[2], b[4]]),
+                geometry.pointFromArr([b[1], b[2], b[5]]),
+                geometry.pointFromArr([b[1], b[3], b[4]]),
+                geometry.pointFromArr([b[1], b[3], b[5]])
+            ];
+        }
 
         return vpObj;
     };

@@ -193,9 +193,12 @@ def get_simulation_frame(run_dir, data, model_data):
 
 
 def lib_files(data, source_lib):
-    """No lib files"""
-    return []
-
+    res = []
+    for ct in data.models.conductorTypes:
+        if 'file' in ct and ct.file:
+            res.append(_stl_file(ct))
+    res = template_common.filename_to_path(res, source_lib or simulation_db.simulation_lib_dir(data.simulationType))
+    return res
 
 def models_related_to_report(data):
     """What models are required for this data['report']
@@ -287,6 +290,10 @@ def write_parameters(data, run_dir, is_parallel):
             run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
             txt,
         )
+
+
+def _stl_file(conductor_type):
+    return template_common.lib_file_name('stl', 'file', conductor_type.file)
 
 
 def _add_margin(bounds):
@@ -799,6 +806,10 @@ def _prepare_conductors(data):
         if not _is_3D(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
+        ct.file = template_common.filename_to_path(
+            [_stl_file(ct)],
+            simulation_db.simulation_lib_dir(data.simulationType)
+        )[0] if ct.file else 'None'
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
