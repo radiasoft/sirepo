@@ -111,7 +111,7 @@ def auth_login_hook(model, **kwargs):
     # delete old record if there was one. This would happen
     # if there was a email change.
     u.query.filter(
-        AuthEmail.uid == model.uid,
+        (AuthEmail.user_name == u.unverified_email) | (AuthEmail.uid == model.uid),
         AuthEmail.unverified_email != model.unverified_email,
     ).delete()
     model.user_name = model.unverified_email
