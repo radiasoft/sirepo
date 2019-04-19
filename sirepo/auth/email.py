@@ -111,7 +111,7 @@ def auth_login_hook(model, **kwargs):
     # delete old record if there was one. This would happen
     # if there was a email change.
     u.query.filter(
-        (AuthEmail.user_name == u.unverified_email) | (AuthEmail.uid == model.uid),
+        AuthEmail.user_name == u.unverified_email,
         AuthEmail.unverified_email != model.unverified_email,
     ).delete()
     model.user_name = model.unverified_email
@@ -180,10 +180,9 @@ def _init_email_auth_model(db, base):
         TOKEN_SIZE = 16
         __tablename__ = 'auth_email_t'
         unverified_email = db.Column(db.String(EMAIL_SIZE), primary_key=True)
-        uid = db.Column(db.String(8))
+        uid = db.Column(db.String(8), unique=True)
         user_name = db.Column(db.String(EMAIL_SIZE), unique=True)
-        display_name = db.Column(db.String(100))
-        token = db.Column(db.String(TOKEN_SIZE))
+        token = db.Column(db.String(TOKEN_SIZE), unique=True)
         expires = db.Column(db.DateTime())
 
         def create_token(self):
