@@ -47,7 +47,10 @@ def api_blueskyAuth():
         sid,
         checked=True,
     )
-    auth.login(simulation_db.uid_from_dir_name(path), 'bluesky')
+    auth.login(
+        this_module,
+        uid=simulation_db.uid_from_dir_name(path),
+    )
     return http_reply.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),

@@ -60,11 +60,12 @@ def gen_json_ok(*args, **kwargs):
     return gen_json(res)
 
 
-def gen_sr_exception(route_name):
+def gen_sr_exception(route_name, params=None):
     """Generate json response for srException
 
     Args:
         route_name (str): name (not uri) in localRoutes
+        params (dict): params for route_name [None]
 
     Returns:
         object: Flask response
@@ -73,7 +74,7 @@ def gen_sr_exception(route_name):
     return gen_json(
         {
             STATE: SR_EXCEPTION_STATE,
-            SR_EXCEPTION_STATE: {'routeName': route_name},
+            SR_EXCEPTION_STATE: {'routeName': route_name, 'params': params},
         },
         response_kwargs=dict(status=SR_EXCEPTION_STATUS),
     )

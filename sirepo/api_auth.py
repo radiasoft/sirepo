@@ -12,7 +12,6 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import cookie
 from sirepo import http_reply
-import sirepo.auth.basic
 
 
 def assert_api_def(func):
@@ -35,6 +34,7 @@ def check_api_call(func):
         if not sirepo.cookie.has_sentinel():
             e = (
                 'missingCookies',
+                None,
                 'cookie does not have a sentinel',
             )
         elif p == a.REQUIRE_USER:
@@ -46,21 +46,20 @@ def check_api_call(func):
         if p == a.ALLOW_COOKIELESS_REQUIRE_USER:
             e = auth.require_user()
     elif p == a.REQUIRE_AUTH_BASIC:
-        # user gets cookied so don't need to check db
-        if auth.require_user
-        e = sirepo.auth.basic.require_user()
+        e = auth.require_auth_basic()
         if e:
-            # returns a challenge response
+            # returns a response
             return e
     else:
         raise AssertionError('unexpected api_perm={}'.format(p))
     if not e:
         return None
     pkdlog(
-        'srException: err={} route={} perm={} func={}',
-        e[1],
+        'srException: route={} params={} err={} perm={} func={}',
         e[0],
+        e[1],
+        e[2],
         p,
         func.__name__,
     )
-    return http_reply.gen_sr_exception(e[0])
+    return http_reply.gen_sr_exception(e[0], e[1])

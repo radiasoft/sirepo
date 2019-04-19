@@ -63,17 +63,12 @@ def api_emailAuthLogin():
     email = _parse_email(data)
     sim_type = sirepo.template.assert_sim_type(data.simulationType)
     with user_db.thread_lock:
+        t = u.create_token()
         u = AuthEmail.search_by(unverified_email=email)
         if u:
-            # might be different uid, but don't care for now, just logout
-            user_state.logout_as_user(this_module)
+            u.token = t
         else:
-            uid = auth.unchecked_get_user()
-            if uid:
-                u = AuthEmail.search_by(uid=uid)
-            else:
-                u = AuthEmail.create_user(uid=uid, unverified_email=email)
-        token = u.create_token()
+            u = AuthEmail(unverified_email=email, token=t)
         u.save()
     return _send_login_email(
         u,
@@ -93,42 +88,43 @@ def api_emailAuthorized(simulation_type, token):
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
-        u = AuthEmail.search_by(token=token)
-        if not u or u.expires < datetime.datetime.utcnow():
-            # if the auth is invalid, but the user is already logged
-            # in (ie. following an old link from an email) keep the
-            # user logged in and proceed to the app
-            if _user_with_email_is_logged_in():
-                return flask.redirect('/{}'.format(sim_type))
-            if not u:
-                pkdlog('login with invalid token: {}', token)
-            else:
-                pkdlog(
-                    'login with expired token: {}, email: {}',
-                    token,
-                    u.unverified_email,
-                )
-            s = simulation_db.get_schema(sim_type)
-            #TODO(pjm): need uri_router method for this?
-            return server.javascript_redirect(
-                '/{}#{}'.format(
-                    sim_type,
-                    s.localRoutes.authorizationFailed.route,
-                ),
+        return auth.login(this_module, query=dict(token=token), sim_type=sim_type)
+
+
+def auth_login_hook(model, **kwargs):
+    if model.expires < datetime.datetime.utcnow():
+        # if the auth is invalid, but the user is already logged
+        # in (ie. following an old link from an email) keep the
+        # user logged in and proceed to the app
+        uid = _user_with_email_is_logged_in()
+        if uid:
+            return uid
+        if not model:
+            pkdlog('login with invalid token: {}', token)
+        else:
+            pkdlog(
+                'login with expired token: {}, email: {}',
+                token,
+                model.unverified_email,
             )
-        # delete old record if there was one. This would happen
-        # if there was a email change.
-        u.query.filter(
-            AuthEmail.user_name == u.unverified_email,
-            AuthEmail.unverified_email != u.unverified_email,
-        ).delete()
-        u.user_name = u.unverified_email
-        u.token = None
-        u.expires = None
-        u.save()
-        user_state.login_as_user(u, this_module)
-#TODO(robnagler) user_state.set_logged_in should do all the work
-    return flask.redirect('/{}'.format(sim_type))
+        return None
+    # delete old record if there was one. This would happen
+    # if there was a email change.
+    u.query.filter(
+        AuthEmail.uid == model.uid,
+        AuthEmail.unverified_email != model.unverified_email,
+    ).delete()
+    model.user_name = model.unverified_email
+    model.token = None
+    model.expires = None
+    model.save()
+    return model.uid
+
+def auth_create_hook(uid, **kwargs):
+    u.query.filter(
+        AuthEmail.user_name == model.unverified_email,
+        AuthEmail.unverified_email != model.unverified_email,
+    ).delete()
 
 
 def init_apis(app, *args, **kwargs):
@@ -196,7 +192,6 @@ def _init_email_auth_model(db, base):
             self.token = token
             return token
 
-
     UserModel = AuthEmail
     return AuthEmail.__tablename__
 
@@ -232,8 +227,12 @@ This link will expire in {} minutes and can only be used once.
 
 
 def _user_with_email_is_logged_in():
-    if user_state.is_logged_in():
-        user = AuthEmail.search_by(uid=auth.get_user())
-        if user and user.user_name and user.user_name == user.unverified_email:
-            return True
-    return False
+    uid = auth.get_user_if_logged_in(method='email')
+    if not uid:
+        return None
+    with user_db.thread_lock:
+        # uid is not unique so need to look for all entries
+        for u in AuthEmail.query.filter_by(uid=uid):
+            if u.user_name == u.unverified_email:
+                return uid
+    return None

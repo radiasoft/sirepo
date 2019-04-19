@@ -216,6 +216,13 @@
                   "templateUrl": "/static/html/login.html"
                 }
             },
+            "loginWith": {
+                "route": "/login-with/:authMethod",
+                "config": {
+                  "controller": "LoginController as login",
+                  "templateUrl": "/static/html/login.html"
+                }
+            },
             "missingCookies": {
                 "route": "/missing-cookies",
                 "config": {

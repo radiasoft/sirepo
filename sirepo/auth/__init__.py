@@ -12,12 +12,18 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
+from sirepo import util
 import flask
 import importlib
 
 
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
+
+#: what routeName to return in the event user is logged out in require_user
+LOGIN_WITH_ROUTE_NAME = 'loginWith'
+
+COMPLETE_REGISTRATION_ROUTE_NAME = 'completeRegistration'
 
 #: key for logged in
 _COOKIE_STATE = 'sras'
@@ -40,6 +46,9 @@ _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
 #: uwsgi object for logging
 _uwsgi = None
+
+#: allowed_methods + deprecated_methods
+valid_methods = []
 
 #: Methods that the user is allowed to see
 visible_methods = []
@@ -116,7 +125,8 @@ def init_apis(app, *args, **kwargs):
     assert not _METHOD_CLASS
     _app = app
     p = pkinspect.this_module().__name__
-    for n in cfg.allowed_methods + cfg.deprecated_methods:
+    valid_methods.extend(cfg.allowed_methods + cfg.deprecated_methods)
+    for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join(p, n))
         uri_router.register_api_module(m)
         _METHOD_CLASS[n] = m.AuthClass()
@@ -125,8 +135,64 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def login(user, method):
-    assert method in valid_methods
+def get_user_if_logged_in(method):
+    """Verify user is logged in and method matches
+
+    Args:
+        method (str): method must be logged in as
+    """
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    if s not in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN):
+        return None
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
+    if m != method:
+        return None
+    return get_user()
+
+
+def login(module, uid=None, query=None, sim_type=None, **kwargs):
+    if module.AUTH_METHOD not in valid_methods:
+        return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
+    d = module.AUTH_METHOD in cfg.deprecated_methods
+    if query:
+        assert not uid
+        u = module.UserModel.search_by(**query)
+        if u:
+            uid = module.auth_login_hook(u, *args, **kwargs)
+            if not uid:
+                s = simulation_db.get_schema(sim_type)
+                #TODO(pjm): need uri_router method for this?
+                return server.javascript_redirect(
+                    '/{}#{}'.format(
+                        sim_type,
+                        s.localRoutes.authorizationFailed.route,
+                    ),
+                )
+        if not cookie.has_user_value():
+            from sirepo import simulation_db
+            simulation_db.user_create()
+        if not cookie.has_user_value():
+            from sirepo import simulation_db
+    user_state.login_as_user(u)
+    return server.javascript_redirect()
+
+    if not uid:
+        else:
+if deprecated do not allow create
+        auth_create_hook(
+        need to create
+    if not cookie.has_user_value():
+
+
+
+def set_user(uid):
+    assert uid
+    # not logged in, but in cookie(?)
+    cookie.set_value(_COOKIE_USER, uid)
+if no auth_method then what?
+    set_log_user(uid)
+
+
 
 def login_as_user(user, module):
     prev_uid = unchecked_get_user()
@@ -154,15 +220,33 @@ def process_request(unit_test=None):
         set_log_user(unchecked_get_user())
 
 
+def require_auth_basic():
+    if 'basic' not in valid_methods:
+        util.raise_forbidden('basic auth is not configured')
+    m = _METHOD_MODULES['basic']
+    uid = m.require_user()
+    if not uid:
+        return _app.response_class(
+            status=401,
+            headers={'WWW-Authenticate': 'Basic realm="*"'},
+        )
+    r = login(m, uid=uid)
+    if r:
+        return r
+    return None
+
+
 def require_user():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     e = None
-    r = None
+    r = LOGIN_ROUTE_NAME
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
+    p = None
     if s is None:
         e = 'never been logged in'
     elif s == _STATE_LOGGED_IN:
-        m = cookie.get_value(_COOKIE_METHOD)
         if m in cfg.allowed_methods:
+            # Success
             return None
         u = get_user()
         if m in cfg.deprecated_methods:
@@ -170,17 +254,20 @@ def require_user():
         else:
             clear_user()
             e = 'invalid'
-        e = 'method={} is deprecated, forcing login: uid='.format(m, get_user())
+        e = 'method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
         e = 'logged out user={}'.format(get_user())
+        if m in cfg.deprecated_methods:
+            # Force login to this specific method so we can migrate to valid method
+            r = LOGIN_WITH_ROUTE_NAME
+            p = {'authMethod': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
         r = COMPLETE_REGISTRATION_ROUTE_NAME
         e = 'uid={} needs to complete registration'.format(get_user())
     else:
-        # dump cookie values
-        # cookie.reset()
-        raise AssertionError('state={} invalid, cannot continue'.format(s))
-    return (r or LOGIN_ROUTE_NAME, e)
+        cookie.reset_state('state={} invalid, cannot continue'.format(s))
+        e = 'invalid cookie'
+    return (r, p, e)
 
 
 def clear_user():
@@ -190,14 +277,6 @@ def clear_user():
 
 def get_user():
     return _get_user(True)
-
-
-def set_user(uid):
-    assert uid
-    # not logged in, but in cookie(?)
-    cookie.set_value(_COOKIE_USER, uid)
-if no auth_method then what?
-    set_log_user(uid)
 
 
 def unchecked_get_user():
@@ -211,14 +290,21 @@ def user_not_found(uid):
 
 
 def _auth_hook_from_header(values):
+    """Migrate from old cookie values
+
+    Args:
+        values (dict): just parsed values
+    Returns:
+        dict: unmodified or migrated values
+    """
     if values.get(_COOKIE_METHOD):
-        # normal case
+        # normal logged in case
         return values
-    u = values.get('uid', values.get('sru'))
+    u = values.get('sru', values.get('uid'))
     if not u:
-        # no user so really don't know state
+        # no user, so probably visitor case
         return values
-    o = values.get('oauth_login_state', values.get('sros'))
+    o = values.get('sros', values.get('oauth_login_state'))
     s = _STATE_COMPLETE_REGISTRATION
     if o is None or o in ('anonymous', 'a'):
         m = 'guest'
@@ -227,7 +313,7 @@ def _auth_hook_from_header(values):
         if 'i' not in o:
             s = _STATE_LOGGED_OUT
     else:
-        pkdlog('unknown cookie state: {}', values)
+        pkdlog('unknown cookie values, clearing, not migrating: {}', values)
         return {}
     return {
         _COOKIE_USER: u,

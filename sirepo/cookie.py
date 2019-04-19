@@ -57,6 +57,16 @@ def process_header(unit_test=None):
     _State(unit_test or flask.request.environ.get('HTTP_COOKIE', ''))
 
 
+def reset_state(error):
+    """Clear all values and log `error` with values.
+
+    Args:
+        error (str): to be logged
+    """
+    pkdlog('resetting cookie: error={} values={}', error, _state())
+    _state().clear()
+
+
 def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 

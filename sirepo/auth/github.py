@@ -35,8 +35,8 @@ UserModel = None
 this_module = pkinspect.this_module()
 
 # cookie keys for oauth
-_COOKIE_NEXT = 'sragx'
-_COOKIE_NONCE = 'sragn'
+_COOKIE_NEXT = 'sragn'
+_COOKIE_SIM_TYPE = 'srags'
 
 
 @api_perm.require_cookie_sentinel
@@ -51,8 +51,10 @@ def api_oauthAuthorized(oauth_type):
         resp = oc.authorized_response()
         if not resp:
             util.raise_forbidden('missing oauth response')
-        expect = cookie.unchecked_remove(_COOKIE_NONCE)
-        got = flask.request.args.get('state', '')
+        # clear cookie values
+        expect = cookie.unchecked_remove(_COOKIE_NONCE) || '<missing-nonce>'
+        sim_type = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
+        got = flask.request.args.get('state', '<missing-state>')
         if expect != got:
             util.raise_forbidden(
                 'mismatch oauth state: expected {} != got {}',
@@ -60,26 +62,25 @@ def api_oauthAuthorized(oauth_type):
                 got,
             )
         data = oc.get('user', token=(resp['access_token'], '')).data
-        u = UserModel.search_by(oauth_id=data['id'], oauth_type=oauth_type)
-        if u:
-            u.display_name = data['name']
-            u.user_name = data['login']
-        else:
-if deprecated do not allow create
-            if not cookie.has_user_value():
-                from sirepo import simulation_db
-                simulation_db.user_create()
-            # first time logging in to oauth so create oauth record
-            u = UserModel(
-                display_name=data['name'],
-                oauth_id=data['id'],
-                oauth_type=oauth_type,
-                uid=cookie.get_user(),
-                user_name=data['login'],
-            )
-        u.save()
-        user_state.login_as_user(u)
-    return server.javascript_redirect(cookie.unchecked_remove(_COOKIE_NEXT))
+        return auth.login(this_module, query=dict(oauth_id=data['id']), data=data)
+
+
+def auth_login_hook(model, data=None, **kwargs):
+    model.display_name = data['name']
+    model.user_name = data['login']
+    return model.uid
+
+
+def auth_create_hook(uid, data=None):
+    # first time logging in to oauth so create oauth record
+    u = UserModel(
+        display_name=data['name'],
+        oauth_id=data['id'],
+        uid=uid,
+        user_name=data['login'],
+    )
+    u.save()
+    return u
 
 
 @api_perm.allow_cookieless_set_user
@@ -88,10 +89,9 @@ def api_oauthLogin(simulation_type, oauth_type):
     """
     _assert_oauth_type(oauth_type)
     sim_type = sirepo.template.assert_sim_type(simulation_type)
-    oauth_next = '/{}'.format(sim_type)
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
-    cookie.set_value(_COOKIE_NEXT, oauth_next)
+    cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
     callback = cfg.github_callback_uri
     if not callback:
         from sirepo import uri_router

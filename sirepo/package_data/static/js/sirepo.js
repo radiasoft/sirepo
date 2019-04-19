@@ -1502,7 +1502,7 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     self.handleSRException = function(data) {
         srException = data.srException;
         srException.previousURL = $location.url();
-        self.localRedirect(srException.routeName);
+        self.localRedirect(srException.routeName, srException.params);
         return;
     };
 

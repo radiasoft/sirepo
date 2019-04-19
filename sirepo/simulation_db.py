@@ -875,15 +875,15 @@ def uid_from_dir_name(dir_name):
     return m.group(1)
 
 
-def user_create():
+def user_create(login_callback):
     """Create a user and initialize the directory
 
     Returns:
         str: New user id
     """
     uid = _random_id(user_dir_name())['id']
-    # Must set before calling simulation_dir
-    auth.set_user(uid)
+    # Must logged in before calling simulation_dir
+    login_callback(uid)
     for simulation_type in feature_config.cfg.sim_types:
         _create_example_and_lib_files(simulation_type)
     return uid

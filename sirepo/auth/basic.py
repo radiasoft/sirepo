@@ -12,16 +12,12 @@ import flask
 AUTH_METHOD_VISIBLE = False
 
 def require_user():
-    """Check for basic auth credentials against db
+    """Check for basic auth credentials against cfg
     """
-    a = flask.request.authenticate
-    if a and a.type == 'basic':
-        if _check(a.username, a.password):
-            return None
-    return flask.current_app.response_class(
-        status=401,
-        headers={'WWW-Authenticate': 'Basic realm="*"'},
-    )
+    v = flask.request.authenticate
+    if v and v.type == 'basic' and _check(v):
+        return cfg.uid
+    return None
 
 
 def _cfg_uid(value):
@@ -30,9 +26,13 @@ def _cfg_uid(value):
     return value
 
 
-def _check(username, password):
-    return cfg.uid == username and cfg.password == password
+def _check(v):
+    return cfg.uid == v.username and cfg.password == v.password
 
 
 def init_apis(**args, **kwargs):
-    pass
+    global cfg
+    cfg = pkconfig.init(
+        uid=pkconfig.Required(_cfg_uid, 'single user allowed to login with basic auth'),
+        password=pkconfig.Required(str, 'password for uid'),
+    )
