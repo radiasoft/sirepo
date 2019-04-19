@@ -8,8 +8,11 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 import flask
 
+AUTH_METHOD = 'basic'
+
 #: bots only
 AUTH_METHOD_VISIBLE = False
+
 
 def require_user():
     """Check for basic auth credentials against cfg

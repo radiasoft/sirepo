@@ -22,6 +22,8 @@ import flask.sessions
 import flask_oauthlib.client
 import sqlalchemy
 
+AUTH_METHOD = 'github'
+
 #: User can see it
 AUTH_METHOD_VISIBLE = True
 
@@ -29,7 +31,7 @@ AUTH_METHOD_VISIBLE = True
 DEFAULT_OAUTH_TYPE = 'github'
 
 #: Used by user_db
-UserModel = None
+AuthGitHubUser = None
 
 #: module handle
 this_module = pkinspect.this_module()
@@ -62,25 +64,18 @@ def api_oauthAuthorized(oauth_type):
                 got,
             )
         data = oc.get('user', token=(resp['access_token'], '')).data
-        return auth.login(this_module, query=dict(oauth_id=data['id']), data=data)
-
-
-def auth_login_hook(model, data=None, **kwargs):
-    model.display_name = data['name']
-    model.user_name = data['login']
-    return model.uid
-
-
-def auth_create_hook(uid, data=None):
-    # first time logging in to oauth so create oauth record
-    u = UserModel(
-        display_name=data['name'],
-        oauth_id=data['id'],
-        uid=uid,
-        user_name=data['login'],
-    )
-    u.save()
-    return u
+        u = AuthGitHubUser.search_by(oauth_id=data['id'])
+        if not u:
+            u = AuthGitHubUser(oauth_id=data['id'])
+        u.display_name = d['name']
+        u.user_name = d['login']
+        u.save()
+        return auth.login(
+            this_module,
+            model=u,
+            sim_type=sim_type,
+            data=data,
+        )
 
 
 @api_perm.allow_cookieless_set_user
@@ -107,19 +102,16 @@ def api_oauthLogin(simulation_type, oauth_type):
 
 def init_apis(app, *args, **kwargs):
     """`init_module` then call `user_state.register_login_module`"""
-    init_module(app)
-    user_state.register_login_module()
-
-
-def init_module(app):
-    """Used by email_auth to init without registering as login_module.
-
-    Used for backwards compatibility when migrating from GitHub to email_auth.
-    """
-    assert not UserModel
-    _init(app)
+    global cfg
+    cfg = pkconfig.init(
+        key=pkconfig.Required(str, 'GitHub application key'),
+        secret=pkconfig.Required(str, 'GitHub application secret'),
+        callback_uri=(None, str, 'GitHub application callback URI'),
+    )
+    app.session_interface = _FlaskSessionInterface()
     user_db.init(app, _init_user_model)
     uri_router.register_api_module()
+    user_state.register_login_module()
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -145,36 +137,17 @@ def _assert_oauth_type(t):
         raise RuntimeError('Unknown oauth_type={}'.format(t))
 
 
-def _init(app):
-    assert 0
-TODO(robnagler)
-    added auth_method
-    need to figure out what method so can
-    know how to switch methods
-
-
-    global cfg
-    cfg = pkconfig.init(
-        key=pkconfig.Required(str, 'GitHub application key'),
-        secret=pkconfig.Required(str, 'GitHub application secret'),
-        callback_uri=(None, str, 'GitHub application callback URI'),
-    )
-    app.session_interface = _FlaskSessionInterface()
-
-
-def _init_user_model(db, base):
+def _init_model(db, base):
     """Creates User class bound to dynamic `db` variable"""
-    global GitHubUser, UserModel
+    global AuthGitHubUser
 
-    class GitHubUser(base, db.Model):
-        __tablename__ = 'auth_github_t'
+    class AuthGitHubUser(base, db.Model):
+        __tablename__ = 'auth_github_user_t'
         uid = db.Column(db.String(8), primary_key=True)
         user_name = db.Column(db.String(100), nullable=False)
         oauth_id = db.Column(db.String(100), nullable=False)
         __table_args__ = (sqlalchemy.UniqueConstraint('oauth_id'),)
 
-
-    UserModel = GitHubUser
 
 
 def _oauth_client(oauth_type):

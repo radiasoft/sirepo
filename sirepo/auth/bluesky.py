@@ -22,6 +22,8 @@ import time
 #: configuration
 cfg = None
 
+AUTH_METHOD = 'bluesky'
+
 #: bots only
 AUTH_METHOD_VISIBLE = False
 
@@ -47,10 +49,12 @@ def api_blueskyAuth():
         sid,
         checked=True,
     )
-    auth.login(
+    r = auth.login(
         this_module,
         uid=simulation_db.uid_from_dir_name(path),
     )
+    if r:
+        return r
     return http_reply.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),

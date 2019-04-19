@@ -27,39 +27,21 @@ def assert_api_def(func):
 
 
 def check_api_call(func):
-    p = getattr(func, api_perm.ATTR)
+    expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
-    e = None
-    if p in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
+    if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
         if not sirepo.cookie.has_sentinel():
-            e = (
-                'missingCookies',
-                None,
-                'cookie does not have a sentinel',
-            )
-        elif p == a.REQUIRE_USER:
-            e = auth.require_user()
-    elif p == a.ALLOW_VISITOR:
+            return http_reply.gen_sr_exception('missingCookies')
+        if expect == a.REQUIRE_USER:
+            return auth.require_user()
+    elif expect == a.ALLOW_VISITOR:
         pass
-    elif p in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
+    elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
         sirepo.cookie.set_sentinel()
-        if p == a.ALLOW_COOKIELESS_REQUIRE_USER:
-            e = auth.require_user()
-    elif p == a.REQUIRE_AUTH_BASIC:
-        e = auth.require_auth_basic()
-        if e:
-            # returns a response
-            return e
+        if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
+            return auth.require_user()
+    elif expect == a.REQUIRE_AUTH_BASIC:
+        return auth.require_auth_basic()
     else:
-        raise AssertionError('unexpected api_perm={}'.format(p))
-    if not e:
-        return None
-    pkdlog(
-        'srException: route={} params={} err={} perm={} func={}',
-        e[0],
-        e[1],
-        e[2],
-        p,
-        func.__name__,
-    )
-    return http_reply.gen_sr_exception(e[0], e[1])
+        raise AssertionError('unhandled api_perm={}'.format(expect))
+    return None

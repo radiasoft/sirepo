@@ -70,7 +70,7 @@ def gen_sr_exception(route_name, params=None):
     Returns:
         object: Flask response
     """
-    #TODO(robnagler) assert route, but don't have sim_type
+    pkdlog('srException: route={} params={}', route_name, params)
     return gen_json(
         {
             STATE: SR_EXCEPTION_STATE,

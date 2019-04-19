@@ -12,6 +12,7 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
+from sirepo import user_db
 from sirepo import util
 import flask
 import importlib
@@ -25,7 +26,7 @@ LOGIN_WITH_ROUTE_NAME = 'loginWith'
 
 COMPLETE_REGISTRATION_ROUTE_NAME = 'completeRegistration'
 
-#: key for logged in
+#: There will always be this value in the cookie, if there is a cookie.
 _COOKIE_STATE = 'sras'
 
 _STATE_LOGGED_IN = 'li'
@@ -38,8 +39,8 @@ _COOKIE_METHOD = 'sram'
 #: Identifies the user in the cookie
 _COOKIE_USER = 'sru'
 
-#: registered module
-_METHOD_CLASS = pkcollections.Dict()
+#: initialized modules (for "basic" and so they don't get garbaged collected)
+_METHOD_MODULES = pkcollections.Dict()
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
@@ -73,7 +74,7 @@ def api_authCompleteRegistration():
 
 @api_perm.allow_visitor
 def api_authState():
-allowed_methods can only include visible methods, not bluesky and basic_auth
+    allowed_methods can only include visible methods, not bluesky and basic_auth
     a = cookie.unchecked_get_value(_COOKIE_METHOD, _AUTH_METHOD_ANONYMOUS_COOKIE_VALUE)
     s = cookie.unchecked_get_value(_COOKIE_LOGIN_SESSION, _LOGGED_OUT)
     v = pkcollections.Dict(
@@ -120,8 +121,9 @@ def init_mock(uid='invalid-uid'):
 
 
 def init_apis(app, *args, **kwargs):
-    from sirepo import uri_router
-    global _app
+    global uri_router, simulation_db, _app
+    uri_router = importlib.import_module('sirepo.uri_router')
+    simulation_db = importlib.import_module('sirepo.simulation_db')
     assert not _METHOD_CLASS
     _app = app
     p = pkinspect.this_module().__name__
@@ -129,69 +131,66 @@ def init_apis(app, *args, **kwargs):
     for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join(p, n))
         uri_router.register_api_module(m)
-        _METHOD_CLASS[n] = m.AuthClass()
-        if m.AUTH_VISIBLE and n in cfg.allowed_methods:
+        _METHOD_MODULES[n] = m
+        if m.AUTH_METHOD_VISIBLE and n in cfg.allowed_methods:
             visible_methods.append(n)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def get_user_if_logged_in(method):
+def get_user_if_logged_in(method=None):
     """Verify user is logged in and method matches
 
     Args:
-        method (str): method must be logged in as
+        method (str): method must be logged in as [None]
     """
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     if s not in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN):
         return None
-    m = cookie.unchecked_get_value(_COOKIE_METHOD)
-    if m != method:
-        return None
+    if method:
+        m = cookie.unchecked_get_value(_COOKIE_METHOD)
+        if m != method:
+            return None
     return get_user()
 
 
-def login(module, uid=None, query=None, sim_type=None, **kwargs):
-    if module.AUTH_METHOD not in valid_methods:
+def login(module, uid=None, model=None, sim_type=None, **kwargs):
+    r = _validate_method(module.AUTH_METHOD):
+    if r:
+        return r
+    if model:
+        uid = model.uid
+    if uid:
+        _login_user(module, uid)
+    if module.AUTH_METHOD in cfg.deprecated_methods:
+        pkdlog('deprecated auth method={} uid={}'.format(module.AUTH_METHOD, uid))
+        if not uid:
+            # No user so clear cookie so this method is removed
+            _reset_state()
+        # login with a non-deprecated method
         return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
-    d = module.AUTH_METHOD in cfg.deprecated_methods
-    if query:
-        assert not uid
-        u = module.UserModel.search_by(**query)
-        if u:
-            uid = module.auth_login_hook(u, *args, **kwargs)
-            if not uid:
-                s = simulation_db.get_schema(sim_type)
-                #TODO(pjm): need uri_router method for this?
-                return server.javascript_redirect(
-                    '/{}#{}'.format(
-                        sim_type,
-                        s.localRoutes.authorizationFailed.route,
-                    ),
-                )
-        if not cookie.has_user_value():
-            from sirepo import simulation_db
-            simulation_db.user_create()
-        if not cookie.has_user_value():
-            from sirepo import simulation_db
-    user_state.login_as_user(u)
-    return server.javascript_redirect()
-
     if not uid:
+        uid = get_user_if_logged_in()
+        m = cookie.get_value(_COOKIE_METHOD)
+        if uid and m != module.AUTH_METHOD
+            # switch this method to this uid (even for allowed_methods)
+            # except if the same method, then assuming logging in as different user.
+            # This handles the case where logging in as guest, creates a user every time
+            _login_user(module, uid)
         else:
-if deprecated do not allow create
-        auth_create_hook(
-        need to create
-    if not cookie.has_user_value():
-
-
-
-def set_user(uid):
-    assert uid
-    # not logged in, but in cookie(?)
-    cookie.set_value(_COOKIE_USER, uid)
-if no auth_method then what?
-    set_log_user(uid)
-
+            uid = simulation_db.user_create(lambda u: _login_user(module, u))
+        if model:
+            model.uid = uid
+            model.save()
+    if not sim_type:
+        return None
+    s = simulation_db.get_schema(sim_type)
+    #TODO(pjm): need uri_router method for this?
+    return server.javascript_redirect(
+        '/{}#{}'.format(
+            sim_type,
+            s.localRoutes.authorizationFailed.route,
+        ),
+    )
 
 
 def login_as_user(user, module):
@@ -221,8 +220,9 @@ def process_request(unit_test=None):
 
 
 def require_auth_basic():
-    if 'basic' not in valid_methods:
-        util.raise_forbidden('basic auth is not configured')
+    r = _validate_method('basic')
+    if r:
+        return r
     m = _METHOD_MODULES['basic']
     uid = m.require_user()
     if not uid:
@@ -230,10 +230,7 @@ def require_auth_basic():
             status=401,
             headers={'WWW-Authenticate': 'Basic realm="*"'},
         )
-    r = login(m, uid=uid)
-    if r:
-        return r
-    return None
+    return login(m, uid=uid)
 
 
 def require_user():
@@ -243,7 +240,7 @@ def require_user():
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     p = None
     if s is None:
-        e = 'never been logged in'
+        e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
         if m in cfg.allowed_methods:
             # Success
@@ -252,11 +249,11 @@ def require_user():
         if m in cfg.deprecated_methods:
             e = 'deprecated'
         else:
-            clear_user()
             e = 'invalid'
-        e = 'method={} is {}, forcing login: uid='.format(m, e, u)
+            _reset_state()
+        e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
-        e = 'logged out user={}'.format(get_user())
+        e = 'logged out user={}'.format(unchecked_get_user())
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = LOGIN_WITH_ROUTE_NAME
@@ -267,16 +264,19 @@ def require_user():
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
         e = 'invalid cookie'
-    return (r, p, e)
-
-
-def clear_user():
-    set_log_user(None)
-    unchecked_remove(_COOKIE_USER)
+    pkdlog('user not logged in: {}', e)
+    return http_reply.gen_sr_exception(r, p)
 
 
 def get_user():
     return _get_user(True)
+
+
+def reset_state():
+    set_log_user(None)
+    cookie.unchecked_remove(_COOKIE_USER)
+    cookie.unchecked_remove(_COOKIE_METHOD)
+    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
 
 
 def unchecked_get_user():
@@ -292,17 +292,20 @@ def user_not_found(uid):
 def _auth_hook_from_header(values):
     """Migrate from old cookie values
 
+    Always sets _COOKIE_STATE, which is our sentinel.
+
     Args:
         values (dict): just parsed values
     Returns:
         dict: unmodified or migrated values
     """
-    if values.get(_COOKIE_METHOD):
+    if values.get(_COOKIE_STATE):
         # normal logged in case
         return values
     u = values.get('sru', values.get('uid'))
     if not u:
         # no user, so probably visitor case
+        values[_COOKIE_STATE] = _STATE_LOGGED_OUT
         return values
     o = values.get('sros', values.get('oauth_login_state'))
     s = _STATE_COMPLETE_REGISTRATION
@@ -328,6 +331,22 @@ def _get_user(checked=True):
     return cookie.get_value(_COOKIE_USER) if checked else cookie.unchecked_get_value(_COOKIE_USER)
 
 
+def _login_user(module, uid):
+    # not logged in, but in cookie(?)
+    cookie.set_value(_COOKIE_USER, uid)
+    cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
+    s = _STATE_LOGGED_IN
+    if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.allowed_methods:
+        ur = user_db.UserRegistration.search_by(uid=uid)
+        if not ur:
+            ur = user_db.UserRegistration(uid=uid, created=datetime.now())
+            ur.save()
+        if not ur.display_name:
+            s = _STATE_COMPLETE_REGISTRATION
+    cookie.set_value(_COOKIE_STATE, s)
+    set_log_user(uid)
+
+
 def _set_log_user(uid):
     if not _uwsgi:
         # Only works for uWSGI (service.uwsgi). sirepo.service.http uses
@@ -343,6 +362,13 @@ def _set_log_user(uid):
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
     cookie.set_value(_COOKIE_METHOD, auth_method)
+
+
+def _validate_method(method):
+    if method in valid_methods:
+        return None
+    pkdlog('invalid auth method={}'.format(method))
+    return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
 
 
 cfg = pkconfig.init(
