@@ -13,9 +13,6 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import server
-from sirepo import simulation_db
-from sirepo import uri_router
 from sirepo import user_db
 from sirepo import util
 import datetime
@@ -39,6 +36,9 @@ AUTH_METHOD_VISIBLE = True
 
 #: Used by user_db
 AuthEmailUser = None
+
+#: Well known alias for auth
+UserModel = None
 
 #: module handle
 this_module = pkinspect.this_module()
@@ -84,7 +84,7 @@ def api_emailAuthLogin():
 def api_emailAuthorized(simulation_type, token):
     """Clicked by user in an email
 
-    User must exist in db with token.
+    Token must exist in db and not be expired.
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
@@ -139,12 +139,12 @@ def init_apis(app, *args, **kwargs):
     )
     global _smtp
     _smtp = flask_mail.Mail(app)
-    user_db.init(app, _init_model)
+    user_db.init_model(app, _init_model)
 
 
 def _init_model(db, base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
-    global AuthEmailUser
+    global AuthEmailUser, UserModel
 
     # Primary key is unverified_email.
     # New user: (unverified_email, uid, token, expires) -> auth -> (unverified_email, uid, email)
@@ -168,6 +168,8 @@ def _init_model(db, base):
             self.expires = datetime.datetime.utcnow() + _EXPIRES_DELTA
             self.token = token
             return token
+
+    UserModel = AuthEmailUser
 
 
 def _parse_email(data):

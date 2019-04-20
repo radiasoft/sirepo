@@ -33,6 +33,9 @@ DEFAULT_OAUTH_TYPE = 'github'
 #: Used by user_db
 AuthGitHubUser = None
 
+#: Well known alias for auth
+UserModel = None
+
 #: module handle
 this_module = pkinspect.this_module()
 
@@ -58,11 +61,12 @@ def api_oauthAuthorized(oauth_type):
         sim_type = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
         got = flask.request.args.get('state', '<missing-state>')
         if expect != got:
-            util.raise_forbidden(
+            pkdlog(
                 'mismatch oauth state: expected {} != got {}',
                 expect,
                 got,
             )
+            return auth.login_failed_redirect(sim_type)
         data = oc.get('user', token=(resp['access_token'], '')).data
         u = AuthGitHubUser.search_by(oauth_id=data['id'])
         if not u:
@@ -109,9 +113,7 @@ def init_apis(app, *args, **kwargs):
         callback_uri=(None, str, 'GitHub application callback URI'),
     )
     app.session_interface = _FlaskSessionInterface()
-    user_db.init(app, _init_user_model)
-    uri_router.register_api_module()
-    user_state.register_login_module()
+    user_db.init_module(app, _init_user_model)
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -139,7 +141,7 @@ def _assert_oauth_type(t):
 
 def _init_model(db, base):
     """Creates User class bound to dynamic `db` variable"""
-    global AuthGitHubUser
+    global AuthGitHubUser, UserModel
 
     class AuthGitHubUser(base, db.Model):
         __tablename__ = 'auth_github_user_t'
@@ -148,6 +150,7 @@ def _init_model(db, base):
         oauth_id = db.Column(db.String(100), nullable=False)
         __table_args__ = (sqlalchemy.UniqueConstraint('oauth_id'),)
 
+    UserModel = AuthGitHubUser
 
 
 def _oauth_client(oauth_type):

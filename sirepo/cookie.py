@@ -71,13 +71,16 @@ def save_to_cookie(resp):
     _state().save_to_cookie(resp)
 
 
-def set_sentinel():
+def set_sentinel(values=None):
     """Bypasses the state where the cookie has not come back from the client.
 
     For auth methods that are used outside the GUI (bluesky and basic) and
     testing.
+
+    Args:
+        values (dict): set sentinel in this if supplied [None]
     """
-    _state().set_sentinel()
+    _state().set_sentinel(values)
 
 
 def set_value(key, value):
@@ -113,8 +116,10 @@ class _State(dict):
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
 
-    def set_sentinel(self):
-        self[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
+    def set_sentinel(self, values):
+        if not values:
+            values = self
+        values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE
 
     def save_to_cookie(self, resp):
         if not 200 <= resp.status_code < 400:

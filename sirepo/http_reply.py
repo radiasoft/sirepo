@@ -60,6 +60,32 @@ def gen_json_ok(*args, **kwargs):
     return gen_json(res)
 
 
+def gen_redirect(sim_type, route):
+    """Generate a javascript redirect to sim_type/route/params
+
+    Args:
+        route_name (str): name (not uri) in localRoutes
+        params (dict): params for route_name [None]
+
+    Returns:
+        object: Flask response
+    """
+    pkdlog('srException: route={} params={}', route_name, params)
+    return server.javascript_redirect(
+        '/{}#{}'.format(
+            sim_type,
+            s.localRoutes.authorizationFailed.route,
+        ),
+    )
+    return gen_json(
+        {
+            STATE: SR_EXCEPTION_STATE,
+            SR_EXCEPTION_STATE: {'routeName': route_name, 'params': params},
+        },
+        response_kwargs=dict(status=SR_EXCEPTION_STATUS),
+    )
+
+
 def gen_sr_exception(route_name, params=None):
     """Generate json response for srException
 
@@ -79,7 +105,6 @@ def gen_sr_exception(route_name, params=None):
         response_kwargs=dict(status=SR_EXCEPTION_STATUS),
     )
 
-
 def headers_for_no_cache(resp):
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
@@ -94,6 +119,17 @@ def init_by_server(app):
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+    )
+
+
+def javascript_redirect(redirect_uri):
+    """Redirect using javascript for safari browser which doesn't support hash redirects.
+    """
+    return render_static(
+        'javascript-redirect',
+        'html',
+        pkcollections.Dict(redirect_uri=redirect_uri),
+        cache_ok=False,
     )
 
 

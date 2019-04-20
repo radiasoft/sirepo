@@ -36,7 +36,7 @@ def all_uids(user_class):
         return res
 
 
-def init(app, callback):
+def init_model(app, callback):
     global _db, UserDbBase, UserRegistration
 
     with thread_lock:

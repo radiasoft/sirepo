@@ -234,29 +234,43 @@ def api_listFiles(simulation_type, simulation_id, file_type):
 
 @api_perm.allow_cookieless_require_user
 def api_findByName(simulation_type, application_mode, simulation_name):
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
     # use the existing named simulation, or copy it from the examples
-    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-        'simulation.name': simulation_name,
-        'simulation.isExample': True,
-    })
-    if len(rows) == 0:
-        for s in simulation_db.examples(simulation_type):
-            if s['models']['simulation']['name'] == simulation_name:
-                simulation_db.save_new_example(s)
-                rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                    'simulation.name': simulation_name,
-                })
-                break
-        else:
-            util.raise_not_found('{}: simulation not found by name: {}', simulation_type, simulation_name)
-    return javascript_redirect(
-        uri_router.format_uri(
-            simulation_type,
-            application_mode,
-            rows[0]['simulationId'],
-            simulation_db.get_schema(simulation_type)
-        )
+    rows = simulation_db.iterate_simulation_datafiles(
+        sim_type,
+        simulation_db.process_simulation_list,
+        {
+            'simulation.name': simulation_name,
+            'simulation.isExample': True,
+        },
     )
+    if len(rows) == 0:
+        for s in simulation_db.examples(sim_type):
+            if s['models']['simulation']['name'] != simulation_name:
+                continue
+            simulation_db.save_new_example(s)
+            rows = simulation_db.iterate_simulation_datafiles(
+                sim_type,
+                simulation_db.process_simulation_list,
+                {
+                    'simulation.name': simulation_name,
+                },
+            )
+        else:
+            util.raise_not_found(
+                'simulation not found by name={} type={}',
+                simulation_name,
+                sim_type,
+            )
+    # format the uri for the local route to this simulation for application_mode
+    s = simulation_db.get_schema(sim_type)
+    m = s.appModes[application_mode]
+    r = m.localRoute
+    assert r in s.localRoutes
+    u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
+    if m[application_mode].includeMode:
+        u += '?application_mode={}'.format(application_mode)
+    return http_reply.javascript_redirect(u)
 
 
 @api_perm.require_user
@@ -292,7 +306,7 @@ def api_importArchive():
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return javascript_redirect(
+    return http_reply.javascript_redirect(
         '/{}#/{}/{}'.format(
             data.simulationType,
             simulation_db.get_schema(data.simulationType).appModes.default.localRoute,
@@ -705,17 +719,6 @@ def init(uwsgi=None, use_reloader=False):
 
 def init_apis(*args, **kwargs):
     pass
-
-
-def javascript_redirect(redirect_uri):
-    """Redirect using javascript for safari browser which doesn't support hash redirects.
-    """
-    return http_reply.render_static(
-        'javascript-redirect',
-        'html',
-        pkcollections.Dict(redirect_uri=redirect_uri),
-        cache_ok=True,
-    )
 
 
 def _as_attachment(resp, content_type, filename):
