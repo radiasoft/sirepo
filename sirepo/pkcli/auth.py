@@ -10,11 +10,8 @@ import os
 
 
 def gen_private_key():
-    """Generate random private key"""
+    """Generate 32 byte random private key"""
     import base64
     import os
 
     return base64.urlsafe_b64encode(os.urandom(32))
-
-def create_user(method):
-    return

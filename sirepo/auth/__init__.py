@@ -196,15 +196,21 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     return login_success_redirect(sim_type)
 
 
-def login_failed_redirect(sim_type):
+def login_failed_redirect(sim_type=None):
     if not sim_type:
         util.raise_forbidden('login failed without simulation_type')
+    return http_reply.gen_redirect(sim_type, 'authorizationFailed')
+
+
+def login_success_redirect(sim_type):
+    assert sim_type
     return http_reply.server.javascript_redirect(
         '/{}#{}'.format(
             sim_type,
             s.localRoutes.authorizationFailed.route,
         ),
     )
+
 
 def process_request(unit_test=None):
     cookie.process_header(unit_test)

@@ -60,17 +60,21 @@ def gen_json_ok(*args, **kwargs):
     return gen_json(res)
 
 
-def gen_redirect(sim_type, route):
+def gen_local_route_redirect(sim_type, route=None, params=None):
     """Generate a javascript redirect to sim_type/route/params
 
     Args:
-        route_name (str): name (not uri) in localRoutes
-        params (dict): params for route_name [None]
+        sim_type (str): how to find the schema
+        route (str): name in localRoutes [None: use default route]
+        params (dict): parameters for route (including :Name)
 
     Returns:
         object: Flask response
     """
-    pkdlog('srException: route={} params={}', route_name, params)
+    s = simulation_db.get_schema(sim_type)
+    if not route:
+        route = s.appModes.default.localRoute
+    "route": "/login-with/:authMethod"
     return server.javascript_redirect(
         '/{}#{}'.format(
             sim_type,
