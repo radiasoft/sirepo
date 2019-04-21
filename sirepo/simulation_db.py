@@ -1213,7 +1213,7 @@ def _user_dir():
     d = user_dir_name(uid)
     if d.check():
         return d
-    auth.user_not_found(uid)
+    auth.user_dir_not_found(uid)
 
 
 _init()

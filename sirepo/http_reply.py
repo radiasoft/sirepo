@@ -10,6 +10,7 @@ from pykern import pkcollections
 from sirepo import simulation_db
 from sirepo import util
 import flask
+import re
 
 #: HTTP status code for srException
 SR_EXCEPTION_STATUS = 400
@@ -33,7 +34,7 @@ def gen_json(value, pretty=False, response_kwargs=None):
         value (dict): what to format
         pretty (bool): pretty print [False]
     Returns:
-        Response: flask response
+        flask.Response: reply object
     """
     app = flask.current_app
     if not response_kwargs:
@@ -49,7 +50,7 @@ def gen_json_ok(*args, **kwargs):
     """Generate state=ok JSON flask response
 
     Returns:
-        Response: flask response
+        flask.Response: reply object
     """
     if not args:
         # do not cache this, see #1390
@@ -60,8 +61,29 @@ def gen_json_ok(*args, **kwargs):
     return gen_json(res)
 
 
-def gen_local_route_redirect(sim_type, route=None, params=None):
+def gen_redirect_for_anchor(uri):
+    """Redirect uri with an anchor using javascript
+
+    Safari browser doesn't support redirects with anchors so we do this
+    in all cases.
+
+    Args:
+        uri (str): where to redirect to
+    Returns:
+        flask.Response: reply object
+    """
+    return render_static(
+        'javascript-redirect',
+        'html',
+        pkcollections.Dict(redirect_uri=uri),
+    )
+
+
+def gen_redirect_for_local_route(sim_type, route=None, params=None):
     """Generate a javascript redirect to sim_type/route/params
+
+    Default route (None) only supported for ``default``
+    application_mode/appMode.
 
     Args:
         sim_type (str): how to find the schema
@@ -69,25 +91,31 @@ def gen_local_route_redirect(sim_type, route=None, params=None):
         params (dict): parameters for route (including :Name)
 
     Returns:
-        object: Flask response
+        flask.Response: reply object
     """
     s = simulation_db.get_schema(sim_type)
     if not route:
         route = s.appModes.default.localRoute
-    "route": "/login-with/:authMethod"
-    return server.javascript_redirect(
-        '/{}#{}'.format(
-            sim_type,
-            s.localRoutes.authorizationFailed.route,
-        ),
-    )
-    return gen_json(
-        {
-            STATE: SR_EXCEPTION_STATE,
-            SR_EXCEPTION_STATE: {'routeName': route_name, 'params': params},
-        },
-        response_kwargs=dict(status=SR_EXCEPTION_STATUS),
-    )
+    p = s.localRoutes[route].route.split('/:')
+    u = p.pop(0)
+    for x in p:
+        if p.endswith('?'):
+            p = p[:-1]
+            if not params or p not in params:
+                continue
+        u += '/' + params[p]
+    return gen_redirect_for_anchor('/{}#{}'.format(sim_type, u))
+
+
+def gen_redirect_for_root(sim_type, **kwargs):
+    """Redirect to app root for sim_type
+
+    Args:
+        sim_type (str): valid sim_type
+    Returns:
+        flask.Response: reply object
+    """
+    return flask.redirect('/' + sim_type, **kwargs)
 
 
 def gen_sr_exception(route_name, params=None):
@@ -98,7 +126,7 @@ def gen_sr_exception(route_name, params=None):
         params (dict): params for route_name [None]
 
     Returns:
-        object: Flask response
+        flask.Response: reply object
     """
     pkdlog('srException: route={} params={}', route_name, params)
     return gen_json(
@@ -108,6 +136,7 @@ def gen_sr_exception(route_name, params=None):
         },
         response_kwargs=dict(status=SR_EXCEPTION_STATUS),
     )
+
 
 def headers_for_no_cache(resp):
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -123,17 +152,6 @@ def init_by_server(app):
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-    )
-
-
-def javascript_redirect(redirect_uri):
-    """Redirect using javascript for safari browser which doesn't support hash redirects.
-    """
-    return render_static(
-        'javascript-redirect',
-        'html',
-        pkcollections.Dict(redirect_uri=redirect_uri),
-        cache_ok=False,
     )
 
 

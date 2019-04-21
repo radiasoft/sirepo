@@ -270,7 +270,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
     if m[application_mode].includeMode:
         u += '?application_mode={}'.format(application_mode)
-    return http_reply.javascript_redirect(u)
+    return http_reply.gen_redirect_for_anchor(u)
 
 
 @api_perm.require_user
@@ -306,11 +306,11 @@ def api_importArchive():
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return http_reply.javascript_redirect(
-        '/{}#/{}/{}'.format(
-            data.simulationType,
-            simulation_db.get_schema(data.simulationType).appModes.default.localRoute,
-            data.models.simulation.simulationId,
+    return http_reply.gen_local_route_redirect(
+        data.simulationType,
+        route=None,
+        params=pkcollections.Dict(
+            ':simulationId'=data.models.simulation.simulationId,
         ),
     )
 
@@ -414,9 +414,9 @@ def api_root(simulation_type):
         sirepo.template.assert_sim_type(simulation_type)
     except AssertionError:
         if simulation_type == 'warp':
-            return flask.redirect('/warppba', code=301)
+            return http_reply.gen_redirect_for_root('warppba', code=301)
         if simulation_type == 'fete':
-            return flask.redirect('/warpvnd', code=301)
+            return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()

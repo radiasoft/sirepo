@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import server
 from sirepo import uri_router
 import flask
 import flask_mail
@@ -20,7 +19,8 @@ import flask_mail
 
 @api_perm.allow_visitor
 def api_comsol():
-    return server.javascript_redirect('/#/comsol')
+    # landing-page redirect so no app
+    return http_reply.gen_redirect_for_anchor('/#/comsol')
 
 
 @api_perm.allow_visitor

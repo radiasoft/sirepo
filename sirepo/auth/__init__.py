@@ -114,16 +114,20 @@ def api_authState():
 @api_perm.allow_visitor
 def api_logout(simulation_type):
     """Set the current user as logged out.
+
+    Redirects to root simulation page.
     """
-    if has_user_value():
-        logout()
-    return flask.redirect('/{}'.format(simulation_type))
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
+    if _is_logged_in():
+        cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
+        set_log_user()
+    return http_reply.gen_redirect_for_root(sim_type)
 
 
 def init_mock(uid='invalid-uid'):
     """A mock user for pkcli"""
     cookie.init_mock()
-    set_user(uid)
+    _login_user('guest', uid)
 
 
 def init_apis(app, *args, **kwargs):
@@ -198,18 +202,13 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
 
 def login_failed_redirect(sim_type=None):
     if not sim_type:
-        util.raise_forbidden('login failed without simulation_type')
-    return http_reply.gen_redirect(sim_type, 'authorizationFailed')
+        util.raise_forbidden('login failed (without simulation_type)')
+    return http_reply.gen_redirect_for_local_route(sim_type, 'authorizationFailed')
 
 
 def login_success_redirect(sim_type):
     assert sim_type
-    return http_reply.server.javascript_redirect(
-        '/{}#{}'.format(
-            sim_type,
-            s.localRoutes.authorizationFailed.route,
-        ),
-    )
+    return http_reply.gen_redirect_for_root(sim_type)
 
 
 def process_request(unit_test=None):
@@ -277,10 +276,24 @@ def reset_state():
     _set_log_user()
 
 
-def user_not_found(uid):
-    no directory or not found in db?
-    Force user to logout and log back in
-    force a logout by throwing an srexception?
+def user_dir_not_found(uid):
+    """Called by simulation_db when user_dir is not found
+
+    Deletes any user records
+
+    Args:
+        uid (str): user that does not exist
+    """
+    for m in _METHOD_MODULES.keys():
+        u = m._method_user_model(m, uid)
+        if u:
+            u.delete()
+            u.save()
+    u = user_db.UserRegistration.search_by(uid=uid)
+    u.delete()
+    u.save()
+    reset_state()
+    util.raise_unauthorized('simulation_db dir not found for uid={}', uid)
 
 
 def _auth_hook_from_header(values):
@@ -332,6 +345,12 @@ def _get_user(checked=False):
         else cookie.unchecked_get_value(_COOKIE_USER)
 
 
+def _is_logged_in():
+    """Logged in is either needing to complete registration or done"""
+    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
+
+
 def _login_user(module, uid):
     """Set up the cookie for logged in state
 
@@ -357,11 +376,11 @@ def _login_user(module, uid):
     _set_log_user()
 
 
-
-def _is_logged_in():
-    """Logged in is either needing to complete registration or done"""
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
-    return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
+def _method_user_model(method, uid):
+    m = _METHOD_MODULES[method]
+    if not hasattr(m, 'UserModel'):
+        return None
+    return m.UserModel.search_by(uid=uid)
 
 
 def _set_log_user():
@@ -385,14 +404,9 @@ def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_METHOD, auth_method)
 
 
-def _user_name(method, uid):
-    m = _METHOD_MODULES[method]
-    if not hasattr(m, 'UserModel'):
-        return None
-    u = m.UserModel.search_by(uid=uid)
-    if u:
-        return u.user_name
-    return None
+def _user_name(*args, **kwargs):
+    u = _method_user_model(*args, **kwargs)
+    return u and u.user_name
 
 
 def _validate_method(method):
