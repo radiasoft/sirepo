@@ -44,7 +44,7 @@ def has_sentinel():
     return _COOKIE_SENTINEL in _state()
 
 
-def init_mock(uid='invalid-uid'):
+def init_mock():
     """A mock cookie for pkcli"""
     flask.g = pkcollections.Dict()
     _State('')
@@ -116,7 +116,7 @@ class _State(dict):
         flask.g.sirepo_cookie = self
         self._from_cookie_header(header)
 
-    def set_sentinel(self, values):
+    def set_sentinel(self, values=None):
         if not values:
             values = self
         values[_COOKIE_SENTINEL] = _COOKIE_SENTINEL_VALUE

@@ -108,10 +108,10 @@ def auth_hash(req, verify=False):
 
 
 def init_apis(*args, **kwargs):
-    assert cfg.auth_secret, \
-        'sirepo_bluesky_auth_secret is not configured'
-
-
-cfg = pkconfig.init(
-    auth_secret=(None, str, 'Shared secret between Sirepo and BlueSky server'),
-)
+    global cfg
+    cfg = pkconfig.init(
+        auth_secret=pkconfig.Required(
+            str,
+            'Shared secret between Sirepo and BlueSky server',
+        ),
+    )

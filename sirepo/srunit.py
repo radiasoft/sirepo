@@ -105,6 +105,27 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
     return resp
 
 
+def wrap_in_request(func, **kwargs):
+    """Decorator for calling functions in `test_in_request`
+
+    Example:
+        @srunit.wrap_in_request(cfg={'SIREPO_AUTH_ALLOWED_METHODS'='github:guest'})
+        def test_myapp():
+            inside a request context here
+
+    Args:
+        func (callable): function to be wrapped
+        kwargs (dict): passed to test_in_request
+
+    Returns:
+        callable: replacement function
+    """
+    def _wrapper(*ignore_args, **ignore_kwargs):
+        return test_in_request(lambda: func(), **kwargs)
+
+    return _wrapper
+
+
 class _TestClient(flask.testing.FlaskClient):
 
     def sr_post(self, route_name, data, params=None, raw_response=False):

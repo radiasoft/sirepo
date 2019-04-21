@@ -53,8 +53,8 @@ SRUNIT_TEST_IN_REQUEST = 'test_in_request'
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
-#: Global app value
-
+#: Global app value (only here so instance not lost)
+_app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -309,9 +309,7 @@ def api_importArchive():
     return http_reply.gen_local_route_redirect(
         data.simulationType,
         route=None,
-        params=pkcollections.Dict(
-            ':simulationId'=data.models.simulation.simulationId,
-        ),
+        params={':simulationId': data.models.simulation.simulationId},
     )
 
 
@@ -623,7 +621,7 @@ def api_srwLight():
 
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(app, SRUNIT_TEST_IN_REQUEST)
+    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_cookie:
         from sirepo import cookie
         cookie.set_sentinel()
@@ -693,28 +691,28 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 
 def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
-    global app
+    global _app
 
-    if app:
+    if _app:
         return
     #: Flask app instance, must be bound globally
-    app = flask.Flask(
+    _app = flask.Flask(
         __name__,
         static_folder=None,
         template_folder=str(simulation_db.STATIC_FOLDER),
     )
-    app.config.update(
+    _app.config.update(
         PROPAGATE_EXCEPTIONS=True,
     )
-    app.sirepo_db_dir = cfg.db_dir
-    app.sirepo_uwsgi = uwsgi
-    http_reply.init_by_server(app)
-    simulation_db.init_by_server(app)
-    uri_router.init(app)
+    _app.sirepo_db_dir = cfg.db_dir
+    _app.sirepo_uwsgi = uwsgi
+    http_reply.init_by_server(_app)
+    simulation_db.init_by_server(_app)
+    uri_router.init(_app)
     for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(err), _handle_error)
-    runner.init(app, use_reloader)
-    return app
+        _app.register_error_handler(int(err), _handle_error)
+    runner.init(_app, use_reloader)
+    return _app
 
 
 def init_apis(*args, **kwargs):

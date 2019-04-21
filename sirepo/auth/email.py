@@ -101,7 +101,7 @@ def api_emailAuthorized(simulation_type, token):
             return auth.login(this_module, sim_type=sim_type, model=u)
         if not u:
             pkdlog('login with invalid token={}', token)
-        else
+        else:
             pkdlog(
                 'login with expired token={}, email={}',
                 token,

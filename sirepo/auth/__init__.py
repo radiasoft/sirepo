@@ -81,7 +81,7 @@ def api_authState():
     v = pkcollections.Dict(
         displayName=None,
         isCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        isLoggedIn=s == _STATE_LOGGED_IN
+        isLoggedIn=s == _STATE_LOGGED_IN,
         isLoggedOut=s is None or s == _STATE_LOGGED_OUT,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         userName=None,
@@ -129,7 +129,7 @@ def init_apis(app, *args, **kwargs):
     p = pkinspect.this_module().__name__
     valid_methods.extend(cfg.allowed_methods + cfg.deprecated_methods)
     for n in valid_methods:
-        m = importlib.import_module(pkinspect.module_name_join(p, n))
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
         uri_router.register_api_module(m)
         _METHOD_MODULES[n] = m
         if m.AUTH_METHOD_VISIBLE and n in cfg.allowed_methods:
@@ -137,10 +137,11 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def init_mock(uid='invalid-uid'):
+def init_mock(uid):
     """A mock user for pkcli"""
     cookie.init_mock()
-    _login_user('guest', uid)
+    if uid:
+        _login_user('guest', uid)
 
 
 def logged_in_user():
@@ -170,7 +171,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     Returns:
         flask.Response: reply object or None (if no sim_type)
     """
-    r = _validate_method(module.AUTH_METHOD):
+    r = _validate_method(module.AUTH_METHOD)
     if r:
         return r
     if model:
@@ -191,7 +192,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
         m = cookie.get_value(_COOKIE_METHOD)
-        if uid and m != module.AUTH_METHOD
+        if uid and m != module.AUTH_METHOD:
             # switch this method to this uid (even for allowed_methods)
             # except if the same method, then assuming logging in as different user.
             # This handles the case where logging in as guest, creates a user every time
@@ -222,7 +223,7 @@ def login_success_redirect(sim_type):
 
 def process_request(unit_test=None):
     cookie.process_header(unit_test)
-    set_log_user()
+    _set_log_user()
 
 
 def require_auth_basic():

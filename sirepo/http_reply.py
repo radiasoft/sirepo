@@ -7,7 +7,6 @@ u"""response generation
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkcollections
-from sirepo import simulation_db
 from sirepo import util
 import flask
 import re
@@ -36,6 +35,8 @@ def gen_json(value, pretty=False, response_kwargs=None):
     Returns:
         flask.Response: reply object
     """
+    from sirepo import simulation_db
+
     app = flask.current_app
     if not response_kwargs:
         response_kwargs = {}
@@ -93,6 +94,8 @@ def gen_redirect_for_local_route(sim_type, route=None, params=None):
     Returns:
         flask.Response: reply object
     """
+    from sirepo import simulation_db
+
     s = simulation_db.get_schema(sim_type)
     if not route:
         route = s.appModes.default.localRoute

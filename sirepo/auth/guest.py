@@ -13,6 +13,7 @@ from sirepo import api_perm
 from sirepo import auth
 import sirepo.template
 
+
 AUTH_METHOD = 'guest'
 
 #: User can see it
@@ -27,3 +28,7 @@ def api_guestAuthLogin(simulation_type):
     """You have to be an anonymous or logged in user at this point"""
     t = sirepo.template.assert_sim_type(simulation_type)
     return auth.login(this_module, sim_type=t)
+
+
+def init_apis(*args, **kwargs):
+    pass
