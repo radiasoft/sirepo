@@ -36,38 +36,43 @@ def all_uids(user_class):
         return res
 
 
-def init_model(app, callback):
+def init(app):
     global _db, UserDbBase, UserRegistration
+    assert not _db
 
+    app.config.update(
+        SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
+        SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+    _db = SQLAlchemy(app, session_options=dict(autoflush=True))
+
+    class UserDbBase(object):
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+        def save(self):
+            _db.session.add(self)
+            _db.session.commit()
+
+        @classmethod
+        def search_by(cls, **kwargs):
+            with thread_lock:
+                return cls.query.filter_by(**kwargs).first()
+
+    class UserRegistration(UserDbBase, _db.Model):
+        __tablename__ = 'user_registration_t'
+        uid = _db.Column(_db.String(8), primary_key=True)
+        created = _db.Column(_db.DateTime(), nullable=False)
+        display_name = _db.Column(_db.String(100))
+
+    # only creates tables that don't already exist
+    _db.create_all()
+
+
+def init_model(app, callback):
     with thread_lock:
-        if not _db:
-            app.config.update(
-                SQLALCHEMY_DATABASE_URI='sqlite:///{}'.format(_db_filename(app)),
-                SQLALCHEMY_COMMIT_ON_TEARDOWN=True,
-                SQLALCHEMY_TRACK_MODIFICATIONS=False,
-            )
-            _db = SQLAlchemy(app, session_options=dict(autoflush=True))
-
-            class UserDbBase(object):
-                def __init__(self, **kwargs):
-                    for k, v in kwargs.items():
-                        setattr(self, k, v)
-
-                def save(self):
-                    _db.session.add(self)
-                    _db.session.commit()
-
-                @classmethod
-                def search_by(cls, **kwargs):
-                    with thread_lock:
-                        return cls.query.filter_by(**kwargs).first()
-
-            class UserRegistration(UserDbBase, _db.Model):
-                __tablename__ = 'user_registration_t'
-                uid = _db.Column(_db.String(8), primary_key=True)
-                created = _db.Column(_db.DateTime(), nullable=False)
-                display_name = _db.Column(_db.String(100))
-
         callback(_db, UserDbBase)
         # only creates tables that don't already exist
         _db.create_all()

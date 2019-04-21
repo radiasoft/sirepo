@@ -6,15 +6,20 @@ u"""Test sirepo.cookie
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-from pykern import pkcollections
 from sirepo import srunit
 
-@srunit.wrap_in_request
+@srunit.wrap_in_request()
 def test_set_get():
     from pykern import pkunit
     from pykern.pkunit import pkeq
     from pykern.pkdebug import pkdp
+    from pykern import pkcollections
     from sirepo import cookie
+
+    class _Response(pkcollections.Dict):
+        def set_cookie(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
 
     cookie.process_header('x')
     with pkunit.pkexcept('KeyError'):
@@ -33,10 +38,3 @@ def test_set_get():
     pkeq(None, cookie.unchecked_get_value('hi'))
     cookie.process_header('sirepo_dev={}'.format(r.args[1]))
     pkeq('hello', cookie.get_value('hi'))
-
-
-class _Response(pkcollections.Dict):
-
-    def set_cookie(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs

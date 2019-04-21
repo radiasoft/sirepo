@@ -12,8 +12,10 @@ from pykern import pkinspect
 from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
+from sirepo import http_request
 from sirepo import user_db
 from sirepo import util
+import datetime
 import flask
 import importlib
 
@@ -66,10 +68,10 @@ def api_authCompleteRegistration():
     dn = _parse_display_name(data)
     uid = _get_user()
     with user_db.thread_lock:
-        u = User.search_by(uid=uid)
+        u = user_db.UserRegistration.search_by(uid=uid)
         if not u:
             # first time for this user
-            u = User(uid=uid)
+            u = user_db.UserRegistration(uid=uid)
         u.display_name = dn
         u.save()
     return http_reply.gen_json_ok()
@@ -103,7 +105,7 @@ def api_authState():
     return http_reply.render_static(
         'auth-state',
         'js',
-        pkcollections.Dict(authState=v),
+        pkcollections.Dict(auth_state=v),
     )
 
 
@@ -124,6 +126,7 @@ def init_apis(app, *args, **kwargs):
     global uri_router, simulation_db, _app
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
+    user_db.init(app)
     assert not _METHOD_MODULES
     _app = app
     p = pkinspect.this_module().__name__
@@ -191,7 +194,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # the user might be switching methods (e.g. github to email or guest to email).
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
-        m = cookie.get_value(_COOKIE_METHOD)
+        m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if uid and m != module.AUTH_METHOD:
             # switch this method to this uid (even for allowed_methods)
             # except if the same method, then assuming logging in as different user.
@@ -389,7 +392,10 @@ def _login_user(module, uid):
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.allowed_methods:
         ur = user_db.UserRegistration.search_by(uid=uid)
         if not ur:
-            ur = user_db.UserRegistration(uid=uid, created=datetime.now())
+            ur = user_db.UserRegistration(
+                uid=uid,
+                created=datetime.datetime.utcnow(),
+            )
             ur.save()
         if not ur.display_name:
             s = _STATE_COMPLETE_REGISTRATION
@@ -402,6 +408,13 @@ def _method_user_model(method, uid):
     if not hasattr(m, 'UserModel'):
         return None
     return m.UserModel.search_by(uid=uid)
+
+
+def _parse_display_name(data):
+    res = data.displayName.strip()
+    assert len(res), \
+        'invalid post data: displayName={}'.format(data.displayName)
+    return res
 
 
 def _set_log_user():

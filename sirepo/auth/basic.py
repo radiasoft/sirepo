@@ -24,8 +24,10 @@ def require_user():
 
 
 def _cfg_uid(value):
-    assert simulation_db.user_dir_name(cfg.uid).exists(dir=True), \
-        'uid={} does not exist'.format(cfg.uid)
+    from sirepo import simulation_db
+
+    assert simulation_db.user_dir_name(value).check(dir=True), \
+        'uid={} does not exist'.format(value)
     return value
 
 
@@ -33,7 +35,7 @@ def _check(v):
     return cfg.uid == v.username and cfg.password == v.password
 
 
-def init_apis(**args, **kwargs):
+def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
         uid=pkconfig.Required(_cfg_uid, 'single user allowed to login with basic auth'),
