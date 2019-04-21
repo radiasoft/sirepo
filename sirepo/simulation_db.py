@@ -356,7 +356,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        auth.get_user(),
+        auth.logged_in_user(),
         data.simulationId,
         data.report,
     )
@@ -1209,7 +1209,7 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = auth.get_user()
+    uid = auth.logged_in_user()
     d = user_dir_name(uid)
     if d.check():
         return d

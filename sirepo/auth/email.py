@@ -109,9 +109,9 @@ def api_emailAuthorized(simulation_type, token):
             )
         uid = _user_with_email_is_logged_in()
         if uid:
-            # if the auth is invalid, but the user is already logged
-            # in (ie. following an old link from an email) keep the
-            # user logged in and proceed to the app.
+            # if the token is invalid, but the user is already logged
+            # in as an email user (ie. following an old link from an email)
+            # keep the user logged in and proceed to the app.
 #TODO(robnagler) this may be confusing if the user was trying to switch accounts
             return auth.login_success_redirect(sim_type)
         return auth.login_failed_redirect(sim_type)
@@ -203,7 +203,7 @@ This link will expire in {} minutes and can only be used once.
 
 
 def _user_with_email_is_logged_in():
-    uid = auth.get_user_if_logged_in(method='email')
+    uid = auth.user_if_logged_in(method='email')
     if not uid:
         return None
     u = AuthEmailUser.search_by(uid=uid)

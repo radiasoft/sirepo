@@ -27,10 +27,6 @@ LOGIN_WITH_ROUTE_NAME = 'loginWith'
 
 COMPLETE_REGISTRATION_ROUTE_NAME = 'completeRegistration'
 
-LOGIN_FAILED_ROUTE_NAME = 'loginFailed'
-
-LOGIN_SUCCESS_ROUTE_NAME = 'loginSuccess'
-
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
 
@@ -68,7 +64,7 @@ def api_authCompleteRegistration():
         return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
     data = http_request.parse_json(assert_sim_type=False)
     dn = _parse_display_name(data)
-    uid = get_user()
+    uid = _get_user()
     with user_db.thread_lock:
         u = User.search_by(uid=uid)
         if not u:
@@ -124,17 +120,11 @@ def api_logout(simulation_type):
     return http_reply.gen_redirect_for_root(sim_type)
 
 
-def init_mock(uid='invalid-uid'):
-    """A mock user for pkcli"""
-    cookie.init_mock()
-    _login_user('guest', uid)
-
-
 def init_apis(app, *args, **kwargs):
     global uri_router, simulation_db, _app
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    assert not _METHOD_CLASS
+    assert not _METHOD_MODULES
     _app = app
     p = pkinspect.this_module().__name__
     valid_methods.extend(cfg.allowed_methods + cfg.deprecated_methods)
@@ -147,23 +137,39 @@ def init_apis(app, *args, **kwargs):
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
-def get_user_if_logged_in(method=None):
-    """Verify user is logged in and method matches
+def init_mock(uid='invalid-uid'):
+    """A mock user for pkcli"""
+    cookie.init_mock()
+    _login_user('guest', uid)
 
-    Args:
-        method (str): method must be logged in as [None]
+
+def logged_in_user():
+    """Get the logged in user
+
+    Returns:
+        str: uid of authenticated user
     """
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
+    res = _get_user()
     if not _is_logged_in():
-        return None
-    if method:
-        m = cookie.unchecked_get_value(_COOKIE_METHOD)
-        if m != method:
-            return None
-    return get_user()
+        util.raise_unauthorized('user not logged in uid={}', res)
+    assert res, 'no user in cookie: state={} method={}'.format(
+        cookie.unchecked_get_value(_COOKIE_STATE),
+        cookie.unchecked_get_value(_COOKIE_METHOD),
+    )
+    return res
 
 
 def login(module, uid=None, model=None, sim_type=None, **kwargs):
+    """Login the user
+
+    Args:
+        module (module): method module
+        uid (str): user to login
+        model (user_db.UserDbBase): user to login (overrides uid)
+        sim_type (str): app to redirect to
+    Returns:
+        flask.Response: reply object or None (if no sim_type)
+    """
     r = _validate_method(module.AUTH_METHOD):
     if r:
         return r
@@ -183,7 +189,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
         # Or, this is just a new user, and we'll create one.
-        uid = get_user_if_logged_in()
+        uid = _get_user() if _is_logged_in() else None
         m = cookie.get_value(_COOKIE_METHOD)
         if uid and m != module.AUTH_METHOD
             # switch this method to this uid (even for allowed_methods)
@@ -201,9 +207,12 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
 
 
 def login_failed_redirect(sim_type=None):
-    if not sim_type:
-        util.raise_forbidden('login failed (without simulation_type)')
-    return http_reply.gen_redirect_for_local_route(sim_type, 'authorizationFailed')
+    if sim_type:
+        return http_reply.gen_redirect_for_local_route(
+            sim_type,
+            'authorizationFailed',
+        )
+    util.raise_unauthorized('login failed (without simulation_type)')
 
 
 def login_success_redirect(sim_type):
@@ -242,7 +251,7 @@ def require_user():
         if m in cfg.allowed_methods:
             # Success
             return None
-        u = get_user()
+        u = _get_user()
         if m in cfg.deprecated_methods:
             e = 'deprecated'
         else:
@@ -265,10 +274,6 @@ def require_user():
     return http_reply.gen_sr_exception(r, p)
 
 
-def get_user():
-    return _get_user(True)
-
-
 def reset_state():
     cookie.unchecked_remove(_COOKIE_USER)
     cookie.unchecked_remove(_COOKIE_METHOD)
@@ -284,16 +289,31 @@ def user_dir_not_found(uid):
     Args:
         uid (str): user that does not exist
     """
-    for m in _METHOD_MODULES.keys():
-        u = m._method_user_model(m, uid)
-        if u:
-            u.delete()
-            u.save()
-    u = user_db.UserRegistration.search_by(uid=uid)
-    u.delete()
-    u.save()
+    with user_db.thread_lock:
+        for m in _METHOD_MODULES.keys():
+            u = m._method_user_model(m, uid)
+            if u:
+                u.delete()
+                u.save()
+        u = user_db.UserRegistration.search_by(uid=uid)
+        u.delete()
+        u.save()
     reset_state()
-    util.raise_unauthorized('simulation_db dir not found for uid={}', uid)
+    util.raise_unauthorized('simulation_db dir not found, deleted uid={}', uid)
+
+
+def user_if_logged_in(method):
+    """Verify user is logged in and method matches
+
+    Args:
+        method (str): method must be logged in as
+    """
+    if not _is_logged_in():
+        return None
+    m = cookie.unchecked_get_value(_COOKIE_METHOD)
+    if m != method:
+        return None
+    return _get_user()
 
 
 def _auth_hook_from_header(values):
@@ -338,11 +358,11 @@ def _auth_hook_from_header(values):
     pkdlog('migrated cookie={}', values)
     return values
 
-def _get_user(checked=False):
+
+def _get_user():
     if not cookie.has_sentinel():
         util.raise_unauthorized('Missing sentinel, cookies may be disabled')
-    return cookie.get_value(_COOKIE_USER) if checked \
-        else cookie.unchecked_get_value(_COOKIE_USER)
+    return cookie.unchecked_get_value(_COOKIE_USER)
 
 
 def _is_logged_in():
