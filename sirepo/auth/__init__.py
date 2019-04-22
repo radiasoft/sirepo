@@ -15,6 +15,7 @@ from sirepo import http_reply
 from sirepo import http_request
 from sirepo import user_db
 from sirepo import util
+import sirepo.template
 import datetime
 import flask
 import importlib
@@ -111,7 +112,7 @@ def api_logout(simulation_type):
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
-        set_log_user()
+        _set_log_user()
     return http_reply.gen_redirect_for_root(sim_type)
 
 
@@ -258,7 +259,7 @@ def require_user():
             _reset_state()
         e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
-        e = 'logged out user={}'.format(_get_user())
+        e = 'logged out uid={}'.format(_get_user())
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'

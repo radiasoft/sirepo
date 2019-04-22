@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern import pkjson
 from pykern import pkunit
 from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog, pkdpretty
 import flask
@@ -138,6 +139,26 @@ def wrap_in_request(*args, **kwargs):
 
 class _TestClient(flask.testing.FlaskClient):
 
+    def sr_auth_state(self, **kwargs):
+        """Gets authState and prases
+
+        Returns:
+            dict: parsed auth_state
+        """
+        m = re.search(r'(\{.*\})', self.sr_get('authState').data)
+        s = pkcollections.json_load_any(m.group(1))
+        for k, v in kwargs.items():
+            pkunit.pkeq(
+                v,
+                s[k],
+                'key={} expected={} != actual={}: auth_state={}',
+                k,
+                v,
+                s[k],
+                s,
+            )
+        return s
+
     def sr_get(self, route_name, params=None, query=None):
         """Gets a request to route_name to server
 
@@ -161,6 +182,23 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         return _req(route_name, params, query, self.get, raw_response=False)
+
+    def sr_get_root(self, sim_type=None):
+        """Gets root app for sim_type
+
+        Args:
+            sim_type (str): app name ['myapp']
+
+        Returns:
+            flask.Response: reply object
+        """
+        return _req(
+            'root',
+            {'simulation_type': sim_type or 'myapp'},
+            None,
+            self.get,
+            raw_response=True,
+        )
 
     def sr_login_as_guest(self, sim_type='myapp'):
         """Setups up a guest login
@@ -256,7 +294,7 @@ def _req(route_name, params, query, op, raw_response):
         resp = op(uri)
         if raw_response:
             return resp
-        return simulation_db.json_load(resp.data)
+        return pkcollections.json_load_any(resp.data)
     except Exception as e:
         pkdlog('Exception: {}: msg={} uri={} resp={}', type(e), e, uri, resp)
         raise

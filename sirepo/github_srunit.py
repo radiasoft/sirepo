@@ -6,37 +6,35 @@ u"""support for oauth test
 """
 from __future__ import absolute_import, division, print_function
 
-
 class MockOAuthClient(object):
 
-    def __init__(self, monkeypatch):
+    def __init__(self, monkeypatch, user_name='joeblow'):
         from pykern import pkcollections
-        from sirepo import auth.github
+        from sirepo.auth import github
 
         self.values = pkcollections.Dict(
             access_token='xyzzy',
             data=pkcollections.Dict(
-                id='9999',
-                name='Joe Blow',
-                login='joeblow',
+                # don't really care about id as long as it is bound to login
+                id=user_name,
+                login=user_name,
             ),
         )
-        monkeypatch.setattr(oauth, '_oauth_client', self)
+        monkeypatch.setattr(github, '_oauth_client', self)
 
     def __call__(self, *args, **kwargs):
         return self
 
     def authorize(self, callback, state):
-        from sirepo import http_reply
-        from sirepo import oauth
+        from sirepo.auth import github
         import flask
 
         self.values.callback = callback
         self.values.state = state
         return flask.redirect(
             'https://github.com/login/oauth/oauthorize?response_type=code&client_id={}&redirect_uri={}&state={}'.format(
-                auth.github.cfg.key,
-                auth.github.cfg.callback_uri,
+                github.cfg.key,
+                github.cfg.callback_uri,
                 state,
             ),
             code=302,

@@ -10,17 +10,15 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
+from sirepo import auth
 from sirepo import cookie
-from sirepo import server
 from sirepo import uri_router
 from sirepo import user_db
-from sirepo import user_state
 from sirepo import util
-import sirepo.template
 import flask
 import flask.sessions
 import flask_oauthlib.client
-import sqlalchemy
+import sirepo.template
 
 AUTH_METHOD = 'github'
 
@@ -40,7 +38,7 @@ UserModel = None
 this_module = pkinspect.this_module()
 
 # cookie keys for oauth
-_COOKIE_NEXT = 'sragn'
+_COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
 
@@ -57,7 +55,7 @@ def api_oauthAuthorized(oauth_type):
         if not resp:
             util.raise_forbidden('missing oauth response')
         # clear cookie values
-        expect = cookie.unchecked_remove(_COOKIE_NONCE) || '<missing-nonce>'
+        expect = cookie.unchecked_remove(_COOKIE_NONCE) or '<missing-nonce>'
         sim_type = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
         got = flask.request.args.get('state', '<missing-state>')
         if expect != got:
@@ -67,18 +65,18 @@ def api_oauthAuthorized(oauth_type):
                 got,
             )
             return auth.login_failed_redirect(sim_type)
-        data = oc.get('user', token=(resp['access_token'], '')).data
-        u = AuthGitHubUser.search_by(oauth_id=data['id'])
-        if not u:
-            u = AuthGitHubUser(oauth_id=data['id'])
-        u.display_name = d['name']
-        u.user_name = d['login']
+        d = oc.get('user', token=(resp['access_token'], '')).data
+        u = AuthGitHubUser.search_by(oauth_id=d['id'])
+        if u:
+            u.user_name = d['login']
+        else:
+            u = AuthGitHubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
         return auth.login(
             this_module,
             model=u,
             sim_type=sim_type,
-            data=data,
+            data=d,
         )
 
 
@@ -91,9 +89,8 @@ def api_oauthLogin(simulation_type, oauth_type):
     state = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, state)
     cookie.set_value(_COOKIE_SIM_TYPE, sim_type)
-    callback = cfg.github_callback_uri
+    callback = cfg.callback_uri
     if not callback:
-        from sirepo import uri_router
         callback = uri_router.uri_for_api(
             'oauthAuthorized',
             dict(oauth_type=oauth_type),
@@ -105,7 +102,6 @@ def api_oauthLogin(simulation_type, oauth_type):
 
 
 def init_apis(app, *args, **kwargs):
-    """`init_module` then call `user_state.register_login_module`"""
     global cfg
     cfg = pkconfig.init(
         key=pkconfig.Required(str, 'GitHub application key'),
@@ -113,7 +109,7 @@ def init_apis(app, *args, **kwargs):
         callback_uri=(None, str, 'GitHub application callback URI'),
     )
     app.session_interface = _FlaskSessionInterface()
-    user_db.init_module(app, _init_user_model)
+    user_db.init_model(app, _init_model)
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):
@@ -145,10 +141,9 @@ def _init_model(db, base):
 
     class AuthGitHubUser(base, db.Model):
         __tablename__ = 'auth_github_user_t'
-        uid = db.Column(db.String(8), primary_key=True)
-        user_name = db.Column(db.String(100), nullable=False)
-        oauth_id = db.Column(db.String(100), nullable=False)
-        __table_args__ = (sqlalchemy.UniqueConstraint('oauth_id'),)
+        oauth_id = db.Column(db.String(100), primary_key=True)
+        user_name = db.Column(db.String(100), unique=True, nullable=False)
+        uid = db.Column(db.String(8), unique=True)
 
     UserModel = AuthGitHubUser
 
@@ -156,8 +151,8 @@ def _init_model(db, base):
 def _oauth_client(oauth_type):
     return flask_oauthlib.client.OAuth(flask.current_app).remote_app(
         oauth_type,
-        consumer_key=cfg.github_key,
-        consumer_secret=cfg.github_secret,
+        consumer_key=cfg.key,
+        consumer_secret=cfg.secret,
         base_url='https://api.github.com/',
         request_token_url=None,
         access_token_method='POST',

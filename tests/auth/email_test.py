@@ -16,22 +16,22 @@ def test_different_email():
     from pykern.pkdebug import pkdp
     import re
 
+    fc.sr_get_root(sim_type)
     r = fc.sr_post(
-        'emailAuthLogin',
+        'authEmailLogin',
         {'email': 'a@b.c', 'simulationType': sim_type},
     )
     r = fc.get(r.url)
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"loginSession": "logged_in"', t)
+    s = fc.sr_get_auth_state()
+    pkeq(false, s.isLoggedIn)
     r = fc.sr_post(
-        'emailAuthDisplayName',
-        {'email': 'a@b.c', 'displayName': 'abc'},
+        'authCompleteRegistration',
+        {'displayName': 'abc'},
     )
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"userName": "a@b.c"', t)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    t = fc.sr_get_auth_state(userName='a@b.c')
+    r = fc.sr_get('logout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     m = re.search('"uid": "([^"]+)"', t)
     uid = m.group(1)
     pkre('"userName": null', t)
@@ -45,7 +45,7 @@ def test_different_email():
         'emailAuthDisplayName',
         {'email': 'x@y.z', 'displayName': 'xyz'},
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": "x@y.z"', t)
     pkre('"displayName": "xyz"', t)
     pkre('"loginSession": "logged_in"', t)
@@ -70,8 +70,8 @@ def test_force_login():
         {'email': 'a@b.c', 'simulationType': sim_type},
     )
     fc.get(r.url)
-    fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    fc.sr_get('logout', {'simulation_type': sim_type})
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(http_reply.SR_EXCEPTION_STATUS, r.status_code)
     d = pkcollections.json_load_any(r.data)
     pkdp(d)
@@ -105,15 +105,15 @@ def test_happy_path():
         {'email': 'a@b.c', 'displayName': 'abc'},
     )
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": "a@b.c"', t)
     pkre('"displayName": "abc"', t)
     pkre('"loginSession": "logged_in"', t)
     m = re.search('"uid": "([^"]+)"', t)
     uid = m.group(1)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    r = fc.sr_get('logout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"uid": "{}"'.format(uid), t)
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
@@ -140,7 +140,7 @@ def test_oauth_conversion(monkeypatch):
         },
         raw_response=True,
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
     pkre('"loginSession": "anonymous"', t)
@@ -154,7 +154,7 @@ def test_oauth_conversion(monkeypatch):
         query=pkcollections.Dict(state=state),
         raw_response=True,
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     # won't have a userName or displayName, because moving to email auth
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
@@ -163,8 +163,8 @@ def test_oauth_conversion(monkeypatch):
     uid = m.group(1)
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(u'Scooby Doo', r[0].name)
-    fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    fc.sr_get('logout', {'simulation_type': sim_type})
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(400, r.status_code)
     oc.values.state = None
     r = fc.sr_post(
@@ -184,9 +184,9 @@ def test_oauth_conversion(monkeypatch):
         query=pkcollections.Dict(state=state),
         raw_response=True,
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"loginSession": "logged_in"', t)
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(400, r.status_code)
     r = fc.sr_post(
         'emailAuthLogin',
@@ -194,7 +194,7 @@ def test_oauth_conversion(monkeypatch):
         {'email': 'joe@blow.com', 'simulationType': sim_type},
     )
     r = fc.get(r.url)
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": "joe@blow.com"', t)
     pkre('"loginSession": "logged_in"', t)
 
@@ -213,12 +213,12 @@ def test_token_reuse():
     )
     login_url = r.url
     r = fc.get(r.url)
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"userName": "a@b.c"', t)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    s = fc.sr_get_auth_state()
+    pkeq('a@b.c', s.userName)
+    r = fc.sr_get('logout', {'simulation_type': sim_type})
     r = fc.get(login_url)
-    t = fc.sr_get('userState', raw_response=True).data
-    pkre('"loginSession": "logged_out"', t)
+    s = fc.sr_get_auth_state()
+    pkeq(False, s.isLoggedIn)
 
 
 def _fc():
@@ -227,19 +227,19 @@ def _fc():
     sim_type = 'myapp'
     fc = srunit.flask_client(
         cfg={
-            'SIREPO_EMAIL_AUTH_FROM_EMAIL': 'x',
-            'SIREPO_EMAIL_AUTH_FROM_NAME': 'x',
-            'SIREPO_EMAIL_AUTH_OAUTH_COMPAT': '1',
-            'SIREPO_EMAIL_AUTH_SMTP_PASSWORD': 'x',
-            'SIREPO_EMAIL_AUTH_SMTP_SERVER': 'dev',
-            'SIREPO_EMAIL_AUTH_SMTP_USER': 'x',
-            'SIREPO_FEATURE_CONFIG_API_MODULES': 'email_auth',
+            'SIREPO_AUTH_ALLOWED_METHODS': 'email_auth:guest',
+            'SIREPO_AUTH_DEPRECATED_METHODS': 'github',
+            'SIREPO_AUTH_EMAIL_FROM_EMAIL': 'x',
+            'SIREPO_AUTH_EMAIL_FROM_NAME': 'x',
+            'SIREPO_AUTH_EMAIL_SMTP_PASSWORD': 'x',
+            'SIREPO_AUTH_EMAIL_SMTP_SERVER': 'dev',
+            'SIREPO_AUTH_EMAIL_SMTP_USER': 'x',
+            'SIREPO_AUTH_GITHUB_CALLBACK_URI': '/uri',
+            'SIREPO_AUTH_GITHUB_KEY': 'key',
+            'SIREPO_AUTH_GITHUB_SECRET': 'secret',
             'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-            'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
-            'SIREPO_OAUTH_GITHUB_KEY': 'key',
-            'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
         },
     )
     # set the sentinel
-    fc.get('/{}'.format(sim_type))
+    fc.sr_get_root(sim_type)
     return fc, sim_type
