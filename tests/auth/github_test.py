@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Test oauth
+u"""Test github oauth
 
 :copyright: Copyright (c) 2016-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html

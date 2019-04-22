@@ -264,7 +264,7 @@ class _TestClient(flask.testing.FlaskClient):
                 break
         else:
             pkunit.pkfail('{}: not found in ', sim_name, pkdpretty(data))
-        return self.sr_get(
+        return self.sr_get_json(
             'simulationData',
             {
                 'simulation_type': sim_type,

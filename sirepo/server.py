@@ -268,7 +268,7 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     r = m.localRoute
     assert r in s.localRoutes
     u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
-    if m[application_mode].includeMode:
+    if m.includeMode:
         u += '?application_mode={}'.format(application_mode)
     return http_reply.gen_redirect_for_anchor(u)
 
