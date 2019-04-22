@@ -26,6 +26,7 @@ def test_runner_myapp():
     from sirepo import srunit
 
     fc = srunit.flask_client()
+    fc.sr_login_as_guest()
 
     from sirepo import srdb
     pkdc(srdb.runner_socket_path())

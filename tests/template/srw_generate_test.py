@@ -41,7 +41,7 @@ def test_generate_python():
 
 def _generate_source(fc, sim, name):
     from pykern.pkunit import pkeq
-    resp = fc.sr_get_json(
+    resp = fc.sr_get(
         'pythonSource',
         {
             'simulation_id': sim['models']['simulation']['simulationId'],
@@ -61,5 +61,5 @@ def _setup_client():
     from sirepo.template import srw
     from sirepo import srunit
     fc = srunit.flask_client()
-    fc.get('/{}'.format(srw.SIM_TYPE))
+    fc.sr_login_as_guest(srw.SIM_TYPE)
     return fc

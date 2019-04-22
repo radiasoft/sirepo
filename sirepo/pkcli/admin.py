@@ -51,7 +51,7 @@ def purge_users(days=180, confirm=False):
     from sirepo import server
     from sirepo import simulation_db
     from sirepo import user_db
-    from sirepo import user_state
+    from sirepo import auth
     import datetime
 
     days = int(days)
@@ -59,9 +59,7 @@ def purge_users(days=180, confirm=False):
         '{}: days must be a positive integer'
     server.init()
 
-    uids = []
-    if user_state.login_module:
-        uids = user_db.all_uids(user_state.login_module.UserModel)
+    uids = user_db.all_uids()
     now = datetime.datetime.utcnow()
     to_remove = []
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):

@@ -27,10 +27,10 @@ UserRegistration = None
 thread_lock = threading.RLock()
 
 
-def all_uids(user_class):
+def all_uids():
     with thread_lock:
         res = set()
-        for u in user_class.query.all():
+        for u in UserRegistration.query.all():
             if u.uid:
                 res.add(u.uid)
         return res

@@ -67,11 +67,8 @@ def flask_client(cfg=None):
 def init_user_db():
     """Force a request that creates a user in db"""
     fc = flask_client()
-    fc.get('/hellweg')
-    fc.sr_post(
-        'listSimulations',
-        {'simulationType': 'hellweg', 'search': {}},
-    )
+    fc.sr_login_as_guest('hellweg')
+    fc.sr_post('listSimulations', {'simulationType': 'hellweg'})
 
 
 def file_as_stream(filename):
