@@ -21,6 +21,8 @@ def test_login():
     import sirepo.cookie
     import sirepo.http_request
 
+    r = auth.api_authState()
+    pkre('LoggedIn": false.*Registration": false', r.data)
     delattr(flask.g, 'sirepo_cookie')
     auth.process_request()
     with pkunit.pkexcept('Unauthorized'):
@@ -32,6 +34,8 @@ def test_login():
     # copying examples for new user takes time
     r = auth.login(sirepo.auth.guest)
     pkeq(None, r, 'user created')
+    r = auth.api_authState()
+    pkre('LoggedIn": true.*Registration": true', r.data)
     u = auth.logged_in_user()
     pkok(u, 'user should exist')
     r = auth.require_user()
@@ -42,3 +46,5 @@ def test_login():
         return pkcollections.Dict(displayName='Joe Bob')
     setattr(sirepo.http_request, 'parse_json', parse_json)
     auth.api_authCompleteRegistration()
+    r = auth.api_authState()
+    pkre('Name": "Joe Bob".*In": true.*.*Registration": false', r.data)

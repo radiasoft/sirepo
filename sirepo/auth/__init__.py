@@ -74,6 +74,7 @@ def api_authCompleteRegistration():
             u = user_db.UserRegistration(uid=uid)
         u.display_name = dn
         u.save()
+    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
     return http_reply.gen_json_ok()
 
 
@@ -82,26 +83,21 @@ def api_authState():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
         displayName=None,
-        isCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        isLoggedIn=s == _STATE_LOGGED_IN,
-        isLoggedOut=s is None or s == _STATE_LOGGED_OUT,
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        isLoggedIn=_is_logged_in(s),
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         userName=None,
         visibleMethods=visible_methods,
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
+        v.userName = _user_name(v.method, u)
         m = user_db.UserRegistration.search_by(uid=u)
         if m:
             v.displayName = m.display_name
-    if not v.isLoggedOut:
-        u.userName = _user_name(v.method, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
-    i = int(v.isCompleteRegistration) + int(v.isLoggedIn) + int(v.isLoggedOut)
-    assert 1 == i, \
-        'sum of isXXX={} but must=1: uid={} v={}'.format(i, u, v)
     return http_reply.render_static(
         'auth-state',
         'js',
@@ -369,9 +365,15 @@ def _get_user():
     return cookie.unchecked_get_value(_COOKIE_USER)
 
 
-def _is_logged_in():
-    """Logged in is either needing to complete registration or done"""
-    s = cookie.unchecked_get_value(_COOKIE_STATE)
+def _is_logged_in(state=None):
+    """Logged in is either needing to complete registration or done
+
+    Args:
+        state (str): logged in state [None: from cookie]
+    Returns:
+        bool: is in one of the logged in states
+    """
+    s = state or cookie.unchecked_get_value(_COOKIE_STATE)
     return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
 
