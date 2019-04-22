@@ -27,7 +27,7 @@ def test_1_serial_stomp():
             break
     else:
         pkfail("{}: Young's not found", pkdpretty(data))
-    data = fc.sr_get(
+    data = fc.sr_get_json(
         'simulationData',
         {
             'simulation_type': sim_type,

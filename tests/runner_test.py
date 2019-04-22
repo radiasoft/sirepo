@@ -55,7 +55,7 @@ def test_runner_myapp():
         pkdc(data)
         data = data[0].simulation
         pkdc(data)
-        data = fc.sr_get(
+        data = fc.sr_get_json(
             'simulationData',
             params=dict(
                 pretty='1',

@@ -41,13 +41,12 @@ def test_generate_python():
 
 def _generate_source(fc, sim, name):
     from pykern.pkunit import pkeq
-    resp = fc.sr_get(
+    resp = fc.sr_get_json(
         'pythonSource',
         {
             'simulation_id': sim['models']['simulation']['simulationId'],
             'simulation_type': sim['simulationType'],
         },
-        raw_response=True,
     )
     filename = '{}.py'.format(name.lower())
     filename = re.sub(r'\s', '-', filename)

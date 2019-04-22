@@ -11,6 +11,7 @@ from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
+from sirepo import http_request
 import sirepo.template
 
 
@@ -24,9 +25,9 @@ this_module = pkinspect.this_module()
 
 
 @api_perm.require_cookie_sentinel
-def api_guestAuthLogin(simulation_type):
+def api_authGuestLogin():
     """You have to be an anonymous or logged in user at this point"""
-    t = sirepo.template.assert_sim_type(simulation_type)
+    t = sirepo.template.assert_sim_type(http_request.parse_json().simulationType)
     return auth.login(this_module, sim_type=t)
 
 

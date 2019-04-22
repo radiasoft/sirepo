@@ -34,7 +34,6 @@ def test_create_zip():
                 'simulation_id': sim_id,
                 'filename': 'anything.zip',
             },
-            raw_response=True,
         )
         with pkio.save_chdir(pkunit.work_dir()):
             fn = sim_name + '.zip'

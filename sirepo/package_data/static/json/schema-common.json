@@ -74,6 +74,8 @@
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailLogin": "/auth-email-login",
         "authEmailAuthorized": "/auth-email/<simulation_type>/<token>",
+        "authGuestLogin": "/auth-guest-login",
+        "authState": "/auth-state",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
@@ -104,8 +106,7 @@
         "srwLight": "/light",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
-        "userState": "/user-state"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "appModes": {

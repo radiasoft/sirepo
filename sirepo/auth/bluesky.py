@@ -7,6 +7,7 @@ u"""NSLS-II BlueSky integration
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkdebug import pkdp
 from sirepo import api_perm
 from sirepo import auth
@@ -26,6 +27,9 @@ AUTH_METHOD = 'bluesky'
 
 #: bots only
 AUTH_METHOD_VISIBLE = False
+
+#: module handle
+this_module = pkinspect.this_module()
 
 #: separates the values of the clear text for the hash
 # POSIT: ':' not part of simulationType or simulationId
@@ -73,7 +77,7 @@ def auth_hash(req, verify=False):
             req.authNonce,
             req.simulationType,
             req.simulationId,
-            cfg.auth_secret,
+            cfg.secret,
         ]),
     )
     res = 'v1:' + base64.urlsafe_b64encode(h.digest())
@@ -110,7 +114,7 @@ def auth_hash(req, verify=False):
 def init_apis(*args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        auth_secret=pkconfig.Required(
+        secret=pkconfig.Required(
             str,
             'Shared secret between Sirepo and BlueSky server',
         ),

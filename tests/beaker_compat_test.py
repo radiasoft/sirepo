@@ -74,7 +74,7 @@ def _test_cookie(filename, header, uid, cases):
     srunit.test_in_request(
         op=_op,
         cfg={
-            'SIREPO_AUTH_METHODS': 'oauth',
+            'SIREPO_AUTH_ALLOW_METHODS': 'oauth',
             'SIREPO_AUTH_GITHUB_KEY': 'n/a',
             'SIREPO_AUTH_GITHUB_SECRET': 'n/a',
             'SIREPO_AUTH_GITHUB_CALLBACK_URI': 'n/a',

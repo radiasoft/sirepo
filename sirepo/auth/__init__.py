@@ -39,6 +39,9 @@ _STATE_COMPLETE_REGISTRATION = 'cr'
 #: name to module object
 _METHOD_MODULES = pkcollections.Dict()
 
+#: Guest is a special method
+_METHOD_GUEST = 'guest'
+
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
@@ -134,7 +137,7 @@ def init_mock(uid):
     """A mock user for pkcli"""
     cookie.init_mock()
     if uid:
-        _login_user('guest', uid)
+        _login_user(_METHOD_GUEST, uid)
 
 
 def logged_in_user():
@@ -182,10 +185,12 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     if not uid:
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
+        # Not allowed to go to guest from other methods, because there's
+        # no authentication for guest.
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
-        if uid and m != module.AUTH_METHOD:
+        if uid and module.AUTH_METHOD not in (m, _METHOD_GUEST):
             # switch this method to this uid (even for allowed_methods)
             # except if the same method, then assuming logging in as different user.
             # This handles the case where logging in as guest, creates a user every time
@@ -333,7 +338,7 @@ def _auth_hook_from_header(values):
     o = values.get('sros') or values.get('oauth_login_state')
     s = _STATE_COMPLETE_REGISTRATION
     if o is None or o in ('anonymous', 'a'):
-        m = 'guest'
+        m = _METHOD_GUEST
     elif o in ('logged_in', 'li', 'logged_out', 'lo'):
         m = 'github'
         if 'i' not in o:
@@ -444,6 +449,6 @@ def _validate_method(method):
 
 
 cfg = pkconfig.init(
-    allowed_methods=(('guest',), tuple, 'for logging in'),
+    allowed_methods=((_METHOD_GUEST,), tuple, 'for logging in'),
     deprecated_methods=(tuple(), tuple, 'for migrating to allowed_methods'),
 )

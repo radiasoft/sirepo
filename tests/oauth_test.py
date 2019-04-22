@@ -18,34 +18,32 @@ def test_anonymous_merge(monkeypatch):
 
     sim_type = 'myapp'
     fc = srunit.flask_client({
-        'SIREPO_FEATURE_CONFIG_API_MODULES': 'oauth',
+        'SIREPO_AUTH_ALLOWED_METHODS': 'guest:oauth',
         'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-        'SIREPO_OAUTH_GITHUB_CALLBACK_URI': '/uri',
-        'SIREPO_OAUTH_GITHUB_KEY': 'key',
-        'SIREPO_OAUTH_GITHUB_SECRET': 'secret',
+        'SIREPO_AUTH_GITHUB_CALLBACK_URI': '/uri',
+        'SIREPO_AUTH_GITHUB_KEY': 'key',
+        'SIREPO_AUTH_GITHUB_SECRET': 'secret',
     })
     from sirepo import oauth
     from sirepo import oauth_srunit
 
     oc = oauth_srunit.MockOAuthClient(monkeypatch)
-    fc.get('/{}'.format(sim_type))
+    fc.sr_get(root, {'simulation_type': sim_type})
     fc.sr_get(
         'oauthLogin',
         {
             'simulation_type': sim_type,
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
-        raw_response=True,
     )
     state = oc.values.state
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get_json('authState').data
     fc.sr_get(
         'oauthAuthorized',
         {
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
         query=pkcollections.Dict(state=state),
-        raw_response=True,
     )
     d = fc.sr_post(
         'listSimulations',
@@ -60,14 +58,16 @@ def test_anonymous_merge(monkeypatch):
             name='oauth-sim',
         ),
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     m = re.search('"uid": "([^"]+)"', t)
     oauth_uid = m.group(1)
     fc.sr_get(
         'logout',
         {'simulation_type': sim_type},
-        query={'anonymous': '1'},
-        raw_response=True,
+    )
+    fc.sr_post(
+        'authGuestLogin',
+        {'simulationType': sim_type},
     )
     d = fc.sr_post(
         'listSimulations',
@@ -83,7 +83,7 @@ def test_anonymous_merge(monkeypatch):
             name='anon-sim',
         ),
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get_json('authState').data
     m = re.search('"uid": "([^"]+)"', t)
     anon_uid = m.group(1)
     pkok(anon_uid != oauth_uid, 'anon_uid == oauth_uid={}', oauth_uid)
@@ -93,17 +93,15 @@ def test_anonymous_merge(monkeypatch):
             'simulation_type': sim_type,
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
-        raw_response=True,
     )
     state = oc.values.state
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     fc.sr_get(
         'oauthAuthorized',
         {
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
         query=pkcollections.Dict(state=state),
-        raw_response=True,
     )
     d = fc.sr_post(
         'listSimulations',
@@ -132,40 +130,38 @@ def test_happy_path(monkeypatch):
     from sirepo import oauth_srunit
 
     oc = oauth_srunit.MockOAuthClient(monkeypatch)
-    fc.get('/{}'.format(sim_type))
+    fc.sr_get('authState')
     r = fc.sr_get(
         'oauthLogin',
         {
             'simulation_type': sim_type,
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
-        raw_response=True,
     )
     state = oc.values.state
     pkeq(302, r.status_code)
     pkre(state, r.headers['location'])
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": null', t)
     pkre('"displayName": null', t)
     pkre('"uid": null', t)
-    pkre('"loginSession": "anonymous"', t)
+    pkre('"isLoggedIn": false', t)
     fc.sr_get(
         'oauthAuthorized',
         {
             'oauth_type': oauth.DEFAULT_OAUTH_TYPE,
         },
         query=pkcollections.Dict(state=state),
-        raw_response=True,
     )
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"userName": "joeblow"', t)
     pkre('"displayName": "Joe Blow"', t)
     pkre('"loginSession": "logged_in"', t)
     m = re.search('"uid": "([^"]+)"', t)
     uid = m.group(1)
-    r = fc.sr_get('logout', {'simulation_type': sim_type}, raw_response=True)
+    r = fc.sr_get('logout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
-    t = fc.sr_get('userState', raw_response=True).data
+    t = fc.sr_get('authState').data
     pkre('"uid": "{}"'.format(uid), t)
     pkre('"userName": null', t)
     pkre('"displayName": null', t)

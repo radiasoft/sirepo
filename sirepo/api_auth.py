@@ -30,14 +30,14 @@ def check_api_call(func):
     expect = getattr(func, api_perm.ATTR)
     a = api_perm.APIPerm
     if expect in (a.REQUIRE_COOKIE_SENTINEL, a.REQUIRE_USER):
-        if not sirepo.cookie.has_sentinel():
+        if not cookie.has_sentinel():
             return http_reply.gen_sr_exception('missingCookies')
         if expect == a.REQUIRE_USER:
             return auth.require_user()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect in (a.ALLOW_COOKIELESS_SET_USER, a.ALLOW_COOKIELESS_REQUIRE_USER):
-        sirepo.cookie.set_sentinel()
+        cookie.set_sentinel()
         if expect == a.ALLOW_COOKIELESS_REQUIRE_USER:
             return auth.require_user()
     elif expect == a.REQUIRE_AUTH_BASIC:

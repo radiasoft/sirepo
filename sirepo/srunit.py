@@ -138,6 +138,48 @@ def wrap_in_request(*args, **kwargs):
 
 class _TestClient(flask.testing.FlaskClient):
 
+    def sr_get(self, route_name, params=None, query=None):
+        """Gets a request to route_name to server
+
+        Args:
+            route_name (str): identifies route in schema-common.json
+            params (dict): optional params to route_name
+
+        Returns:
+            flask.Response: reply object
+        """
+        return _req(route_name, params, query, self.get, raw_response=True)
+
+    def sr_get_json(self, route_name, params=None, query=None):
+        """Gets a request to route_name to server
+
+        Args:
+            route_name (str): identifies route in schema-common.json
+            params (dict): optional params to route_name
+
+        Returns:
+            object: Parsed JSON result
+        """
+        return _req(route_name, params, query, self.get, raw_response=False)
+
+    def sr_login_as_guest(self, sim_type='myapp'):
+        """Setups up a guest login
+
+        Args:
+            sim_type (str): simulation type ['myapp']
+
+        Returns:
+            str: new user id
+        """
+        self.cookie_jar.clear()
+        # Get a cookie
+        self.sr_get('authState')
+        self.sr_post('authGuestLogin', {'simulationType': sim_type}, raw_response=True)
+        self.sr_post('authCompleteRegistration', {'displayName': sim_type + ' Guest'})
+        m = re.search('"uid": "([^"]+)"', self.sr_get('authState').data)
+        return m.group(1)
+
+
     def sr_post(self, route_name, data, params=None, raw_response=False):
         """Posts JSON data to route_name to server
 
@@ -167,18 +209,6 @@ class _TestClient(flask.testing.FlaskClient):
         """
         op = lambda r: self.post(r, data=data)
         return _req(route_name, params, {}, op, raw_response=raw_response)
-
-    def sr_get(self, route_name, params=None, query=None, raw_response=False):
-        """Gets a request to route_name to server
-
-        Args:
-            route_name (str): identifies route in schema-common.json
-            params (dict): optional params to route_name
-
-        Returns:
-            object: Parsed JSON result
-        """
-        return _req(route_name, params, query, self.get, raw_response=raw_response)
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
