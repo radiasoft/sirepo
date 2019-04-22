@@ -31,12 +31,30 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
-SIREPO.app.factory('webconService', function(appState) {
+SIREPO.app.factory('webconService', function(appState, panelState) {
     var self = {};
     var parameterCache = {
         analysisParameter: null,
         parameterValues: null,
         optionalParameterValues: null,
+    };
+
+    self.addSubreport = function(parent, action) {
+        var report = appState.clone(parent);
+        var subreports = self.getSubreports();
+        report.id = subreports.length
+            ? (Math.max.apply(null, subreports) + 1)
+            : 1;
+        report.action = null;
+        report.history.push(action);
+        var name = 'analysisReport' + report.id;
+        var fftName = 'fftReport' + report.id;
+        appState.models[name] = report;
+        appState.models[fftName] = {
+            'analysisReport': name,
+        };
+        subreports.push(report.id);
+        appState.saveChanges([name, fftName, 'hiddenReport']);
     };
 
     self.buildParameterList = function(includeOptional) {
@@ -72,25 +90,48 @@ SIREPO.app.factory('webconService', function(appState) {
         parameterCache[name] = parameterValues;
         return parameterValues;
     };
+
+    self.getSubreports = function() {
+        // subreports are kept on a report which is never shown.
+        // This avoids refreshing all reports when a subreport is added or removed.
+        return appState.models.hiddenReport.subreports;
+    };
+
+    self.removeAllSubreports = function() {
+        var subreports = self.getSubreports();
+        while (subreports.length) {
+            self.removeSubreport(subreports[0]);
+        }
+    };
+
+    self.removeSubreport = function(id) {
+        var subreports = self.getSubreports();
+        subreports.splice(subreports.indexOf(id), 1);
+        appState.removeModel('analysisReport' + id);
+        appState.removeModel('fftReport' + id);
+        panelState.clear('analysisReport' + id);
+    };
+
     return self;
 });
 
-SIREPO.app.controller('AnalysisController', function (appState, panelState, requestSender, $scope) {
+SIREPO.app.controller('AnalysisController', function (appState, panelState, requestSender, webconService, $scope) {
     var self = this;
     var currentFile = null;
-    self.subreports = null;
+    self.subplots = null;
 
-    function buildSubreports() {
-        if (! currentFile || ! appState.models.subreports) {
-            self.subreports = null;
+    function buildSubplots() {
+        if (! currentFile) {
+            self.subplots = null;
             return;
         }
-        self.subreports = [];
-        appState.models.subreports.forEach(function(id) {
+        self.subplots = [];
+        webconService.getSubreports().forEach(function(id, idx) {
             var modelKey = 'analysisReport' + id;
-            self.subreports.push({
+            self.subplots.push({
                 id: id,
                 modelKey: modelKey,
+                title: 'Analysis Subplot #' + (idx + 1),
                 getData: function() {
                     return appState.models[modelKey];
                 },
@@ -126,6 +167,9 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
             if (currentFile != analysisData.file) {
                 currentFile = analysisData.file;
                 updateAnalysisParameters();
+                webconService.removeAllSubreports();
+                appState.models.analysisReport.action = null;
+                appState.saveChanges(['analysisReport', 'hiddenReport']);
             }
         });
         $scope.$on('modelChanged', function(e, name) {
@@ -134,12 +178,12 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
                 appState.saveChanges('fftReport' + (appState.models[name].id || ''));
             }
         });
-        $scope.$on('subreports.changed', buildSubreports);
-        buildSubreports();
+        $scope.$on('hiddenReport.changed', buildSubplots);
+        buildSubplots();
     });
 });
 
-SIREPO.app.directive('analysisActions', function(appState, panelState) {
+SIREPO.app.directive('analysisActions', function(appState, panelState, webconService) {
     return {
         restrict: 'A',
         scope: {
@@ -165,6 +209,8 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
+            var analysisReport;
+            var isFirstRefresh = true;
             var modelKey = $scope.modelData
                 ? $scope.modelData.modelKey
                 : $scope.modelName;
@@ -179,35 +225,51 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                 return viewForEnum[k];
             });
 
-            function findPlotScope() {
-                //TODO(pjm): need a general way to navigate to another scope?
-                var plotScope = $scope.$parent.$parent.$$nextSibling.$$childHead;
-                if (! plotScope.axes) {
-                    throw 'failed to find analysisActions plotScope';
-                }
-                return plotScope;
+            function addSubreport(clusterIndex) {
+                var action = {
+                    clusterIndex: clusterIndex,
+                };
+                var parent = $scope.model();
+                ['action', 'clusterMethod', 'clusterCount', 'clusterFields', 'clusterScaleMin', 'clusterScaleMax', 'clusterRandomSeed', 'clusterKmeansInit', 'clusterDbscanEps'].forEach(function(f) {
+                    action[f] = parent[f];
+                });
+                webconService.addSubreport(parent, action);
             }
 
-            function processAction() {
-                var model = $scope.model();
-                if (model) {
-                    if (model.action == 'trim') {
-                        model.trimField = model.x;
-                        var xDomain = findPlotScope().axes.x.scale.domain();
-                        model.trimMin = xDomain[0];
-                        model.trimMax = xDomain[1];
+            function initAnalysisReport(reportScope) {
+                analysisReport = reportScope;
+                var oldLoad = analysisReport.load;
+                analysisReport.load = function(json) {
+                    isFirstRefresh = true;
+                    $('.scatter-point').popover('hide');
+                    oldLoad(json);
+                };
+                var oldRefresh = analysisReport.refresh;
+                analysisReport.refresh = function() {
+                    if (isFirstRefresh) {
+                        isFirstRefresh = false;
+                        setupAnalysisReport();
+                        // resize will call refresh again
+                        analysisReport.resize();
+                        return;
                     }
-                }
-                processClusterMethod();
+                    oldRefresh();
+                    processTrimRange();
+                };
             }
 
             function processClusterMethod() {
+                //TODO(pjm): this does not work correctly for subreports
                 panelState.showField($scope.modelName, 'clusterCount', $scope.model().clusterMethod != 'dbscan');
             }
 
-            function processTrim() {
+            function processTrimRange() {
                 var model = $scope.model();
-                if (model) {
+                if (model && model.action == 'trim') {
+                    model.trimField = model.x;
+                    var xDomain = analysisReport.axes.x.scale.domain();
+                    model.trimMin = xDomain[0];
+                    model.trimMax = xDomain[1];
                 }
             }
 
@@ -215,13 +277,42 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                 return Math.round(f * 1000) / 1000;
             }
 
+            function setupAnalysisReport() {
+                analysisReport.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
+                analysisReport.zoomContainer = '.plot-viewport';
+                if ($scope.model().action == 'cluster'
+                    && appState.applicationState()[modelKey].action == 'cluster') {
+                    var viewport = analysisReport.select('.plot-viewport');
+                    viewport.selectAll('.scatter-point').on('click', function(d, idx) {
+                        var clusterIndex = analysisReport.clusterInfo.group[idx];
+
+                        function buttonHandler() {
+                            $('.scatter-point').popover('hide');
+                            $scope.$apply(function() {
+                                addSubreport(clusterIndex);
+                            });
+                        }
+
+                        $(this).popover({
+                            trigger: 'manual',
+                            html: true,
+                            placement: 'bottom',
+                            container: 'body',
+                            title: 'Cluster: ' + (clusterIndex + 1),
+                            content: '<div><button class="btn btn-default webcon-popover">Open in New Plot</button></div>',
+                        }).on('hide.bs.popover', function() {
+                            $(document).off('click', buttonHandler);
+                        });
+                        $('.scatter-point').not($(this)).popover('hide');
+                        $(this).popover('toggle');
+                        $(document).on('click', '.webcon-popover', buttonHandler);
+                    });
+                }
+            }
+
             $scope.closeSubreport = function() {
-                var id = $scope.model().id;
-                var subreports = appState.models.subreports;
-                subreports.splice(subreports.indexOf(id), 1);
-                appState.removeModel(modelKey);
-                appState.removeModel('fftReport' + id);
-                appState.saveChanges('subreports');
+                webconService.removeSubreport($scope.model().id);
+                appState.saveChanges('hiddenReport');
             };
 
             $scope.isActiveView = function(view) {
@@ -280,16 +371,28 @@ SIREPO.app.directive('analysisActions', function(appState, panelState) {
                     }
                     $($element).closest('.panel-body').find('.focus-hint').text(str);
                 });
-                appState.watchModelFields($scope, [modelKey + '.clusterMethod'], processClusterMethod);
-                appState.watchModelFields($scope, [modelKey + '.action'], processAction);
-                appState.watchModelFields($scope, [modelKey + '.trimButton'], processTrim);
+                appState.watchModelFields($scope, [modelKey + '.action'], processTrimRange);
+                appState.watchModelFields($scope, [modelKey + '.clusterMethod', modelKey + '.action'], processClusterMethod);
                 processClusterMethod();
             });
+
+            // hook up listener on report content to get the plot events
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                var reportScope = event.targetScope;
+                if (reportScope.modelName.indexOf('analysisReport') >= 0) {
+                    initAnalysisReport(reportScope);
+                }
+                else if (reportScope.modelName.indexOf('fftReport') >= 0) {
+                    // it may be useful to have the fftReport scope available
+                    //fftReport = reportScope;
+                }
+            });
+
         },
     };
 });
 
-SIREPO.app.directive('trimButton', function(appState) {
+SIREPO.app.directive('trimButton', function(appState, webconService) {
     return {
         restrict: 'A',
         scope: {
@@ -304,27 +407,11 @@ SIREPO.app.directive('trimButton', function(appState) {
         ].join(''),
         controller: function($scope) {
             $scope.trimPlot = function() {
-                var report = appState.clone($scope.model);
-                if (! appState.models.subreports) {
-                    appState.models.subreports = [];
-                }
-                report.id = appState.models.subreports.length
-                    ? (Math.max.apply(null, appState.models.subreports) + 1)
-                    : 1;
                 var action = {};
                 ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
-                    action[f] = report[f];
+                    action[f] = $scope.model[f];
                 });
-                report.history.push(action);
-                var name = 'analysisReport' + report.id;
-                var fftName = 'fftReport' + report.id;
-                appState.models[name] = report;
-                appState.models[fftName] = {
-                    'analysisReport': name,
-                };
-                appState.models.subreports.push(report.id);
-                report.action = null;
-                appState.saveChanges([name, fftName, 'subreports']);
+                webconService.addSubreport($scope.model, action);
                 appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
             };
         },

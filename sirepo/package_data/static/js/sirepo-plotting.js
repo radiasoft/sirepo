@@ -2964,6 +2964,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         var circleRadius = 2;
                         if (json.clusters) {
                             clusterInfo = json.clusters;
+                            $scope.clusterInfo = clusterInfo;
                             clusterInfo.scale = clusterInfo.count > 10
                                 ? d3.scale.category20()
                                 : d3.scale.category10();

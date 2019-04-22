@@ -49,9 +49,9 @@
             "clusterRandomSeed": ["Random Seed", "Integer", 12341234],
             "clusterKmeansInit": ["KMeans Number of Runs", "Integer", 2, "Number of time the k-means algorithm will be run with different centroid seeds. The final results will be the best output of n_init consecutive runs in terms of inertia.", 2, 20],
             "clusterDbscanEps": ["DBSCAN Max Sample Distance", "Float", 0.1, "The maximum distance between two samples for them to be considered as in the same neighborhood."],
-            "fitEquation": ["Equation to Fit", "Equation"],
-            "fitParameters": ["Fit Parameters", "EquationParameters", ""],
-            "fitVariable": ["Independent Variable", "EquationVariables", ""],
+            "fitEquation": ["Equation to Fit", "Equation", "a * x + b"],
+            "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
+            "fitVariable": ["Independent Variable", "EquationVariables", "x"],
             "trimField": ["Trim Field", "AnalysisParameter"],
             "trimMin": ["Minimum", "Float"],
             "trimMax": ["Maximum", "Float"],
@@ -62,10 +62,7 @@
         },
         "fftReport": {
         },
-        "fitter": {
-            "equation": ["Equation to Fit", "Equation"],
-            "parameters": ["Fit Parameters", "EquationParameters", ""],
-            "variable": ["Independent Variable", "EquationVariables", ""]
+        "hiddenReport": {
         }
     },
     "view": {

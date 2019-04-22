@@ -11,6 +11,8 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import StringIO
+import copy
 import csv
 import math
 import numpy as np
@@ -40,6 +42,8 @@ def fixup_old_data(data):
             del data.models[m]
     if 'history' not in data.models.analysisReport:
         data.models.analysisReport.history = []
+    if 'subreports' not in data.models.hiddenReport:
+        data.models.hiddenReport.subreports = []
     template_common.organize_example(data)
 
 
@@ -58,7 +62,15 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, options=None):
-    assert False, 'not implemented'
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    plot_data = _load_file_with_history(report, path, col_info)
+    buf = StringIO.StringIO()
+    buf.write(','.join(col_info['names']) + '\n')
+    np.savetxt(buf, plot_data, delimiter=',')
+    return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
 
 
 def _report_info(run_dir, data):
@@ -93,7 +105,7 @@ def get_analysis_report(run_dir, data):
         plots.append({
             'points': (y * col_info['scale'][y_idx]).tolist(),
             'label': _label(col_info, y_idx),
-            'style': 'line' if report.action == 'fft' else 'scatter',
+            'style': 'line' if 'action' in report and report.action == 'fft' else 'scatter',
         })
     return template_common.parameter_plot(x, plots, {}, {
         'title': '',
@@ -392,7 +404,6 @@ def _fit_to_equation(x, y, equation, var, params):
     p_subs = []
     p_subs_min = []
     p_subs_max = []
-    p_rounded = []
 
     # exclude the symbol of the variable when subbing
     for sidx, p in enumerate(p_vals, 1):
@@ -403,19 +414,20 @@ def _fit_to_equation(x, y, equation, var, params):
         p_subs.append((s, p))
         p_subs_min.append((s, p_min))
         p_subs_max.append((s, p_max))
-        p_rounded.append((s, np.round(p, 3)))
     y_fit = sym_curve.subs(p_subs)
     y_fit_min = sym_curve.subs(p_subs_min)
     y_fit_max = sym_curve.subs(p_subs_max)
 
     # used for the laTeX label - rounding should take size of uncertainty into account
-    y_fit_rounded = sym_curve.subs(p_rounded)
+    y_fit_rounded = sym_curve.subs(p_subs)
 
     y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
     y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
     y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
     latex_label = sympy.latex(y_fit_rounded, mode='inline')
+    #TODO(pjm): round rather than truncate?
+    latex_label = re.sub(r'(\.\d{4})\d+', r'\1', latex_label)
     y_fit_l(x)
     y_fit_min_l(x)
     y_fit_max_l(x)
@@ -442,6 +454,12 @@ def _load_file_with_history(report, path, col_info):
                 idx = _safe_index(col_info, action.trimField)
                 scale = col_info['scale'][idx]
                 res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
+            elif action.action == 'cluster':
+                report2 = copy.deepcopy(report)
+                report2.update(action)
+                clusters = _compute_clusters(report2, res, col_info)
+                labels = np.array(clusters['group'])
+                res = res[labels == action.clusterIndex,:]
     return res
 
 
