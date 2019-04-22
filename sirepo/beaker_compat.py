@@ -58,7 +58,7 @@ def _cfg_secret(value):
 
 def _ascii(v):
     """pickle decodes certains strings as unicode in Python 2"""
-    if v is None or isinstance(v, str):
+    if v is None or isinstance(v, (str)) or not hasattr(v, 'encode'):
         return v
     return v.encode('ascii')
 

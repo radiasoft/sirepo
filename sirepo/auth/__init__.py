@@ -324,7 +324,6 @@ def _auth_hook_from_header(values):
         # normal case: we've seen a cookie at least once
         return values
     u = values.get('sru') or values.get('uid')
-    res = {}
     if not u:
         # normal case: new visitor, and no user/state; set logged out
         # and return all values
@@ -354,8 +353,6 @@ def _auth_hook_from_header(values):
 
 
 def _get_user():
-    if not cookie.has_sentinel():
-        util.raise_unauthorized('Missing sentinel, cookies may be disabled')
     return cookie.unchecked_get_value(_COOKIE_USER)
 
 

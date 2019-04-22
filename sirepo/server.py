@@ -48,7 +48,7 @@ _RUN_STATES = ('pending', 'running')
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: See sirepo.srunit
-SRUNIT_TEST_IN_REQUEST = 'test_in_request'
+SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'

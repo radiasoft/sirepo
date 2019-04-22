@@ -101,7 +101,10 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         )
         pkunit.pkeq(200, resp.status_code, 'FAIL: resp={}', resp.status)
     finally:
-        delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
+        try:
+            delattr(server._app, server.SRUNIT_TEST_IN_REQUEST)
+        except AttributeError:
+            pass
     return resp
 
 
