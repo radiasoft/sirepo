@@ -11,7 +11,7 @@ from sirepo import util
 import flask
 import re
 
-#: HTTP status code for srException
+#: HTTP status code for srException (BAD REQUEST)
 SR_EXCEPTION_STATUS = 400
 
 #: data.state for srException
@@ -23,7 +23,7 @@ MIME_TYPE = None
 STATE = 'state'
 
 #: Default response
-_RESPONSE_OK = {STATE: 'ok'}
+_RESPONSE_OK = pkcollections.Dict({STATE: 'ok'})
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -35,11 +35,9 @@ def gen_json(value, pretty=False, response_kwargs=None):
     Returns:
         flask.Response: reply object
     """
-    from sirepo import simulation_db
-
     app = flask.current_app
     if not response_kwargs:
-        response_kwargs = {}
+        response_kwargs = pkcollections.Dict()
     return app.response_class(
         simulation_db.generate_json(value, pretty=pretty),
         mimetype=MIME_TYPE.json,
@@ -94,8 +92,6 @@ def gen_redirect_for_local_route(sim_type, route=None, params=None):
     Returns:
         flask.Response: reply object
     """
-    from sirepo import simulation_db
-
     s = simulation_db.get_schema(sim_type)
     if not route:
         route = s.appModes.default.localRoute
@@ -121,23 +117,29 @@ def gen_redirect_for_root(sim_type, **kwargs):
     return flask.redirect('/' + sim_type, **kwargs)
 
 
-def gen_sr_exception(route_name, params=None):
+def gen_sr_exception(route, params=None):
     """Generate json response for srException
 
     Args:
-        route_name (str): name (not uri) in localRoutes
-        params (dict): params for route_name [None]
+        route (str): name (not uri) in localRoutes
+        params (dict): params for route [None]
 
     Returns:
         flask.Response: reply object
     """
-    pkdlog('srException: route={} params={}', route_name, params)
+    s = simulation_db.get_schema(sim_type=None)
+    assert route in s.localRoutes, \
+        'route={} not found in schema='.format(route, s.simulationType)
+    pkdlog('srException: route={} params={}', route, params)
     return gen_json(
-        {
+        pkcollections.Dict({
             STATE: SR_EXCEPTION_STATE,
-            SR_EXCEPTION_STATE: {'routeName': route_name, 'params': params},
-        },
-        response_kwargs=dict(status=SR_EXCEPTION_STATUS),
+            SR_EXCEPTION_STATE: pkcollections.Dict(
+                routeName=route,
+                params=params,
+            ),
+        }),
+        response_kwargs=pkcollections.Dict(status=SR_EXCEPTION_STATUS),
     )
 
 
@@ -148,9 +150,10 @@ def headers_for_no_cache(resp):
 
 
 def init_by_server(app):
-    global MIME_TYPE
+    global MIME_TYPE, simulation_db
     if MIME_TYPE:
         return
+    from sirepo import simulation_db
     MIME_TYPE = pkcollections.Dict(
         html='text/html',
         js='application/javascript',

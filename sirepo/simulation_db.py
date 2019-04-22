@@ -78,7 +78,7 @@ _OLDEST_VERSION = '20140101.000001'
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
 #: Cache of schemas keyed by app name
-_SCHEMA_CACHE = {}
+_SCHEMA_CACHE = pkcollections.Dict()
 
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = '_super'
@@ -240,18 +240,31 @@ def fixup_old_data(data, force=False):
 
 
 def get_schema(sim_type):
-    if sim_type in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[sim_type]
+    """Get the schema for `sim_type`
+
+    If sim_type is None, it will return the schema for the first sim_type
+    in `feature_config.cfg.sim_types`
+
+    Args:
+        sim_type (str): must be valid
+    Returns:
+        dict: Shared schem
+
+    """
+    t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
+        else feature_config.cfg.sim_types[0]
+    if t in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[t]
     schema = read_json(
-        STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+        STATIC_FOLDER.join('json/{}-schema'.format(t)))
 
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        {'feature_config': feature_config.for_sim_type(sim_type)},
+        pkcollections.Dict(feature_config=feature_config.for_sim_type(t)),
     )
-    schema.simulationType = sim_type
-    _SCHEMA_CACHE[sim_type] = schema
+    schema.simulationType = t
+    _SCHEMA_CACHE[t] = schema
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
@@ -446,12 +459,12 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
-            raise CopyRedirect({
-                'redirect': {
-                    'simulationId': global_sid,
-                    'userCopySimulationId': user_copy_sid,
-                },
-            })
+            raise CopyRedirect(pkcollections.Dict(
+                redirect=pkcollections.Dict(
+                    simulationId=global_sid,
+                    userCopySimulationId=user_copy_sid,
+                ),
+            ))
         util.raise_not_found(
             '{}/{}: global simulation not found',
             sim_type,
@@ -570,16 +583,16 @@ def prepare_simulation(data, tmp_dir=None):
 
 def process_simulation_list(res, path, data):
     sim = data['models']['simulation']
-    res.append({
-        'simulationId': _sid_from_path(path),
-        'name': sim['name'],
-        'folder': sim['folder'],
-        'last_modified': datetime.datetime.fromtimestamp(
+    res.append(pkcollections.Dict(
+        simulationId=_sid_from_path(path),
+        name=sim['name'],
+        folder=sim['folder'],
+        last_modified=datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
-        'isExample': sim['isExample'] if 'isExample' in sim else False,
-        'simulation': sim,
-    })
+        isExample=sim['isExample'] if 'isExample' in sim else False,
+        simulation=sim,
+    ))
 
 
 def read_json(filename):
@@ -631,10 +644,10 @@ def read_result(run_dir):
     if err:
         return None, err
     if not res:
-        res = {}
+        res = pkcollections.Dict()
     if 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = {'state': 'canceled'}
+        res = pkcollections.Dict(state='canceled')
     return res, None
 
 
@@ -757,7 +770,7 @@ def save_simulation_json(data, do_validate=True):
                 iterate_simulation_datafiles(
                     sim_type,
                     lambda res, _, d: res.append(d),
-                    {'simulation.folder': s.folder},
+                    pkcollections.Dict({'simulation.folder': s.folder}),
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies
             )
@@ -1023,9 +1036,11 @@ def _files_in_schema(schema):
 
 
 def _find_user_simulation_copy(simulation_type, sid):
-    rows = iterate_simulation_datafiles(simulation_type, process_simulation_list, {
-        'simulation.outOfSessionSimulationId': sid,
-    })
+    rows = iterate_simulation_datafiles(
+        simulation_type,
+        process_simulation_list,
+        pkcollections.Dict({'simulation.outOfSessionSimulationId': sid}),
+    )
     if len(rows):
         return rows[0]['simulationId']
     return None

@@ -20,14 +20,8 @@ import flask
 import importlib
 
 
-#TODO(robnagler) pull these from schema
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
-
-#: what routeName to return in the event user is logged out in require_user
-LOGIN_WITH_ROUTE_NAME = 'loginWith'
-
-COMPLETE_REGISTRATION_ROUTE_NAME = 'completeRegistration'
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -242,7 +236,7 @@ def require_auth_basic():
 def require_user():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     e = None
-    r = LOGIN_ROUTE_NAME
+    r = 'login'
     m = cookie.unchecked_get_value(_COOKIE_METHOD)
     p = None
     if s is None:
@@ -262,10 +256,10 @@ def require_user():
         e = 'logged out user={}'.format(_get_user())
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
-            r = LOGIN_WITH_ROUTE_NAME
+            r = 'loginWith'
             p = {'authMethod': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
-        r = COMPLETE_REGISTRATION_ROUTE_NAME
+        r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
