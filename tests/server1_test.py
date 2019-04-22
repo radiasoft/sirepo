@@ -20,7 +20,7 @@ def test_1_serial_stomp():
 
     fc = srunit.flask_client()
     sim_type = 'srw'
-    fc.get('/{}'.format(sim_type))
+    fc.sr_login_as_guest(sim_type)
     data = fc.sr_post('listSimulations', {'simulationType': sim_type})
     for youngs in data:
         if youngs['name'] == "Young's Double Slit Experiment":
@@ -72,10 +72,11 @@ def test_1_serial_stomp():
 
 
 def test_missing_cookies():
-    from pykern.pkunit import pkeq
+    from pykern.pkunit import pkeq, pkre
     from sirepo import srunit
     import json
     fc = srunit.flask_client()
     sim_type = 'srw'
     resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
     pkeq(400, resp.status_code)
+    pkre('missingCookies', resp.data)
