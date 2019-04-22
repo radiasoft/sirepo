@@ -1093,7 +1093,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function drawConductors(typeMap, dim) {
                 var info = plotInfoForDimension(dim);
-                //srdbg('grid', appState.models.simulationGrid, info);
                 var shapes = [];
                 appState.models.conductors
                     .filter(function (c) {
@@ -2433,14 +2432,17 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             // if we have stl-type conductors, we might need to rescale the grid for drawing
             // (easier and faster than scaling the data)
-            var gridScale = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
-            var gridFactor = 1e-6;
+            var toMetersFactor = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
+            var toMicronFactor = 1e-6;
             var gridOffsets = [0, 0, 0];
+            var domain = {
+                width: 1,
+                height: 1,
+                depth: 1,
+            };
             var xfactor = 1;
 
             function addConductors() {
-                var grid = appState.models.simulationGrid;
-                var ASPECT_RATIO = 4.0 / 7;
                 var typeMap = warpvndService.conductorTypeMap();
 
                 // do stl conductors first so we have a proper scale
@@ -2448,24 +2450,20 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     return warpvndService.getConductorType(c) === 'stl';
                 }).forEach(function (c) {
                     var cModel = typeMap[c.conductorTypeId];
-                    gridScale = Math.max(gridScale, cModel.scale);
+                    toMetersFactor = Math.max(toMetersFactor, cModel.scale);
+                    toMicronFactor = 1e-6 / toMetersFactor;
+                    setScaling();
                     // no need to reload data
-                    if (! stlReaders[c.id]) {
+                    var r = vtkPlotting.getSTLReader(cModel.file);
+                    if (! r) {
                         loadConductor(c, cModel);
                     }
                     else {
-                        setupConductor(stlReaders[c.id], c, cModel);
+                        setupConductor(r, c, cModel);
                     }
                 });
 
-                gridFactor = 1e-6 / gridScale;
-
-                var domain = {
-                    width: gridFactor * grid.plate_spacing,
-                    height: gridFactor * grid.channel_width,
-                    depth: gridFactor * grid.channel_height,
-                };
-                xfactor = domain.height / domain.width / ASPECT_RATIO;
+                setScaling();
                 appState.models.conductors.filter(function (c) {
                     return warpvndService.getConductorType(c) === 'box';
                 }).forEach(function(c) {
@@ -2475,13 +2473,13 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     // model (z, x, y) --> (x, y, z)
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
-                            xLength: gridFactor * xfactor * cModel.zLength,
-                            yLength: gridFactor * cModel.xLength,
-                            zLength: gridFactor * cModel.yLength,
+                            xLength: toMicronFactor * xfactor * cModel.zLength,
+                            yLength: toMicronFactor * cModel.xLength,
+                            zLength: toMicronFactor * cModel.yLength,
                             center: [
-                                gridFactor * xfactor * c.zCenter,
-                                gridFactor * c.xCenter,
-                                gridFactor * c.yCenter,
+                                toMicronFactor * xfactor * c.zCenter,
+                                toMicronFactor * c.xCenter,
+                                toMicronFactor * c.yCenter,
                             ],
                         }),
                         {
@@ -2570,7 +2568,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             function loadConductor(conductor, type) {
                 $scope.parentController.isWaitoingForSTL = true;
                 vtkPlotting.loadSTLFile(type.file).then(function (r) {
-                    stlReaders[conductor.id] = r;
+                    vtkPlotting.addSTLReader(type.file, r);
                     loadConductorData(r, conductor, type);
                 });
             }
@@ -2593,9 +2591,19 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             }
 
+            function setScaling() {
+                var grid = appState.models.simulationGrid;
+                var ASPECT_RATIO = 4.0 / 7;
+                domain = {
+                    width: toMicronFactor * grid.plate_spacing,
+                    height: toMicronFactor * grid.channel_width,
+                    depth: toMicronFactor * grid.channel_height,
+                };
+                xfactor = domain.height / domain.width / ASPECT_RATIO;
+            }
+
             function setupConductor(reader, conductor, type) {
                 var bounds = reader.getOutputData().getBounds();
-                srdbg('!BOUNDS', bounds, 'grid factor', gridFactor);
                 var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
                 var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
                 var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
@@ -2605,14 +2613,17 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 a.setMapper(smapper);
                 smapper.setInputConnection(reader.getOutputPort());
                 a.setUserMatrix(labMatrix);  // rotates from lab to "vtk world" coords
-                //a.setScale([1, 1, xfactor]);
-                a.addPosition([gridFactor * conductor.xCenter - xOffset, gridFactor * conductor.yCenter - yOffset, gridFactor * xfactor * conductor.zCenter - zOffset]);
+                var offsetPos = [
+                    toMicronFactor * conductor.xCenter - xOffset,
+                    toMicronFactor * conductor.yCenter - yOffset,
+                    toMicronFactor * xfactor * conductor.zCenter - zOffset
+                ];
+                a.addPosition(offsetPos);
                 a.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 //stlActor.getProperty().setEdgeVisibility(true);
                 a.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(a);
                 stlActors[conductor.id] = a;
-                srdbg('!ACTOR BOUNDS', a.getBounds());
                 $scope.parentController.isWaitingForSTL = false;
                 reset();
             }

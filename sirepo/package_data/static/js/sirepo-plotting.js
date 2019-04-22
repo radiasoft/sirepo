@@ -3273,9 +3273,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var stlActors = {};
             var stlReaders = {};
 
-            var vpConds = [];
-
-            var gridScale = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
+            var toMetersFactor = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
             var toMicronFactor = 1e-6;
             var gridOffsets = [0, 0, 0];
             var xfactor = 1;
@@ -3298,6 +3296,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             // geometry
             var coordMapper = vtkPlotting.coordMapper();
             var scaleTransform = coordMapper.xform;
+            var scaleTransformNorm = coordMapper.xform;
 
             // data
             var numPoints = 0;
@@ -3348,18 +3347,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     return warpvndService.getConductorType(c) === 'stl';
                 }).forEach(function (c) {
                     var cModel = typeMap[c.conductorTypeId];
-                    gridScale = Math.max(gridScale, cModel.scale);
-                    if (! stlReaders[c.id]) {
-                        loadConductor(c, cModel);
-                    }
+                    toMetersFactor = Math.max(toMetersFactor, cModel.scale);
+                    toMicronFactor = 1e-6 / toMetersFactor;
+                    loadConductor(c, cModel);
                 });
-
-                toMicronFactor = 1e-6 / gridScale;
             }
 
                 var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];
                 function loadConductor(conductor, type) {
-                    srdbg('loading data for', conductor.id, stlReaders);
                     $scope.isWaitingForSTL = true;
                     coordMapper.buildSTL(type.file, conductorLoader(conductor, type));
                 }
@@ -3371,13 +3366,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
 
                 function buildSTLCoordMapper(scale) {
-                    //var t1 = geometry.transform(SIREPO.PLOT_3D_CONFIG.coordMatrix);
                     var t1 = geometry.transform([
                         [0, 1, 0],
                         [0, 0, 1],
                         [1, 0, 0]
                     ]);
-                    srdbg('map', t1.matrix);
+
+                    // transforms stl scale to microns
                     var t2 = geometry.transform(
                          [
                             [scale, 0, 0],
@@ -3385,73 +3380,42 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             [0, 0, scale]
                         ]
                     );
-                    var t2 = geometry.transform(
-                         [
-                            [scale, 0, 0],
-                            [0, scale, 0],
-                            [0, 0, scale]
-                        ]
-                    );
-                    var t2i = geometry.transform(
-                         [
-                            [1.0 / scale, 0, 0],
-                            [0, 1.0 /scale, 0],
-                            [0, 0, 1.0 / scale]
-                        ]
-                    );
-                    var t3 = t2.compose(scaleTransform);
-                    var t4 = t2i.compose(scaleTransform);
-                    //var t2 = geometry.transform(
-                    //     [
-                     //       [1.0 / Math.abs(zmax - zmin), 0, 0],
-                      //      [0, xzAspectRatio / Math.abs(xmax - xmin), 0],
-                      //      [0, 0, yzAspectRatio * xzAspectRatio / Math.abs(ymax - ymin)]
-                       // ]
-                    //);
-                    srdbg('scale', t2.matrix, xmin, xmax, ymin, ymax, zmin, zmax);
-                    srdbg('lab scale', scaleTransform.matrix);
-                    srdbg('combined scale', t3.matrix);
-                    srdbg('combined scale inv', t4.matrix);
-                    var stlcm = vtkPlotting.coordMapper(t2.compose(t1));
+                    var tstln = t2.compose(scaleTransformNorm);
+                    var stlcm = vtkPlotting.coordMapper(tstln.compose(t1));
+                    //var stlcm = vtkPlotting.coordMapper(t2.compose(t1));
                     //var stlcm = vtkPlotting.coordMapper(scaleTransform.compose(t1));
-                    srdbg('stlcm', stlcm.xform.matrix);
                     return stlcm;
                 }
                 function setupConductor(bundle, conductor, type) {
-                    srdbg('!SETTING UP', type.file, 'toMicron factor', toMicronFactor, 'grid scale', gridScale);
+                    vtkPlotting.addSTLReader(type.file, bundle.source);
+                    // stl coordinates should be multiplied by toMicronFactor to become microns.  This is
+                    // independent of the scaling of warp data
                     var cm = buildSTLCoordMapper(1.0 / toMicronFactor);
-                    //var cm = buildSTLCoordMapper(1.0 / Math.abs(zmax - zmin));  // scale to plate spacing
                     var reader = bundle.source;
                     var actor = bundle.actor;
                     var bounds = reader.getOutputData().getBounds();
-                    srdbg('!BOUNDS', bounds, 'center', conductor.xCenter, conductor.yCenter, conductor.zCenter);
-                    // offsets are in coords set by the stl data
-                    var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
-                    var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
-                    var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
-                    srdbg('offsets', xOffset, yOffset, zOffset, 'to micron', toMicronFactor * xOffset, toMicronFactor * yOffset, toMicronFactor * zOffset);
-                    srdbg('ctr witn offsets', toMicronFactor * conductor.xCenter - xOffset, toMicronFactor * conductor.yCenter - yOffset, toMicronFactor * conductor.zCenter - zOffset);
+                    // offsets are in coords set by the stl data - convert to microns
+                    var xOffset = (bounds[0] + (bounds[1] - bounds[0]) / 2) / toMicronFactor;
+                    var yOffset = (bounds[2] + (bounds[3] - bounds[2]) / 2) / toMicronFactor;
+                    var zOffset = (bounds[4] + (bounds[5] - bounds[4]) / 2) / toMicronFactor;
+                    // the conductor centers are already in microns
+                    var offsetPos = [
+                        toMicronFactor * (conductor.xCenter - xOffset),
+                        toMicronFactor * (conductor.yCenter - yOffset),
+                        toMicronFactor * (conductor.zCenter - zOffset)
+                    ];
                     var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-                    srdbg('coordmapper matrix', coordMapper.xform.matrix);
                     var userMatrix = [];
                     cm.xform.matrix.forEach(function (row) {
                         userMatrix = userMatrix.concat(row);
                         userMatrix.push(0);
                     });
                     userMatrix = userMatrix.concat([0, 0, 0, 1]);
-                    srdbg('user matrix', userMatrix);
-                    srdbg('!ACTOR BOUNDS BEFORE', actor.getBounds());
-                    actor.addPosition([
-                        conductor.xCenter - xOffset,
-                        conductor.yCenter - yOffset,
-                        conductor.zCenter - zOffset
-                    ]);
                     actor.setUserMatrix(userMatrix);  // rotates from lab to "vtk world" coords
-                    //actor.addPosition([toMicronFactor * conductor.xCenter - xOffset, toMicronFactor * conductor.yCenter - yOffset, toMicronFactor * xfactor * conductor.zCenter - zOffset]);
+                    actor.addPosition(offsetPos);
                     actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                     actor.getProperty().setLighting(false);
                     fsRenderer.getRenderer().addActor(actor);
-                    srdbg('!ACTOR BOUNDS AFTER', actor.getBounds());
                     stlActors[conductor.id] = actor;
                 }
 
@@ -3691,6 +3655,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var grid = appState.models.simulationGrid;
                 var yzAspectRatio =  grid.channel_height / grid.channel_width;
 
+                //addSTLConductors();
+
                 // vtk makes things fit so it does not particularly care about the
                 // absolute sizes of things - except that really small values (e.g. 10^-7) don't scale
                 // up properly.  We use these scaling factors to overcome that problem
@@ -3699,12 +3665,26 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var t1 = geometry.transform(SIREPO.PLOT_3D_CONFIG.coordMatrix);
 
                 // ...this scales the new axes
+                // just put in µ?
                 var t2 = geometry.transform(
                      [
                         [1.0 / Math.abs(zmax - zmin), 0, 0],
                         [0, xzAspectRatio / Math.abs(xmax - xmin), 0],
                         [0, 0, yzAspectRatio * xzAspectRatio / Math.abs(ymax - ymin)]
-                    ]
+                     ]
+                     //[
+                     //   [1e6, 0, 0],
+                     //   [0, 1e6 * xzAspectRatio * Math.abs(zmax - zmin) / Math.abs(xmax - xmin), 0],
+                     //   [0, 0, 1e6 * yzAspectRatio * xzAspectRatio * Math.abs(zmax - zmin) / Math.abs(ymax - ymin)]
+                     //]
+                );
+                // normalize to z length
+                scaleTransformNorm = geometry.transform(
+                     [
+                        [1.0, 0, 0],
+                        [0, xzAspectRatio * Math.abs(zmax - zmin) / Math.abs(xmax - xmin), 0],
+                        [0, 0, yzAspectRatio * xzAspectRatio * Math.abs(zmax - zmin) / Math.abs(ymax - ymin)]
+                     ]
                 );
                 scaleTransform = t2;
                 coordMapper = vtkPlotting.coordMapper(t2.compose(t1));
@@ -3915,20 +3895,17 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         bb.actor.getProperty().setEdgeColor(cEdgeColor[0], cEdgeColor[1], cEdgeColor[2]);
                         bb.actor.getProperty().setLighting(false);
                         bb.actor.getProperty().setOpacity(0.80);
-                        //conductorActors.push(bb.actor);
+                        conductorActors.push(bb.actor);
                     }
                 }
 
                 // do an initial render
                 renderWindow.render();
-                srdbg('outline bounds', outlineBundle.source.getOutputData().getBounds());
+
                 // wait to initialize after the render so the world to viewport transforms are ready
                 vpOutline.initializeWorld();
 
-                addSTLConductors();
-                vpConds.forEach(function (vpc) {
-                    vpc.initializeWorld();
-                });
+                //addSTLConductors();
 
                 refresh(true);
             };
@@ -4064,15 +4041,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
 
-                //addSTLConductors();
-
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
-                //srdbg('actorstuff', renderer.getActors().map(function (a) {
-                //    return a.getBounds();
-                //}));
+
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
                     renderer.resetCamera();

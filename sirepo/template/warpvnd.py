@@ -809,7 +809,7 @@ def _prepare_conductors(data):
         ct.file = template_common.filename_to_path(
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
-        )[0] if ct.file else 'None'
+        )[0] if 'file' in ct else 'None'
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
