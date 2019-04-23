@@ -217,11 +217,17 @@
                   "templateUrl": "/static/html/login.html"
                 }
             },
+            "loginFailed": {
+                "route": "/login-failed",
+                "config": {
+                  "templateUrl": "/static/html/login-failed.html"
+                }
+            },
             "loginWith": {
                 "route": "/login-with/:authMethod",
                 "config": {
-                  "controller": "LoginController as login",
-                  "templateUrl": "/static/html/login.html"
+                  "controller": "LoginWithController as loginWith",
+                  "templateUrl": "/static/html/login-with.html"
                 }
             },
             "missingCookies": {

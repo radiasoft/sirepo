@@ -134,5 +134,6 @@ def _fc(monkeypatch, user_name):
     from sirepo import github_srunit
     from sirepo.auth import github
 
+    fc.cookie_jar.clear()
     oc = github_srunit.MockOAuthClient(monkeypatch, user_name=user_name)
     return fc, sim_type, oc, github.DEFAULT_OAUTH_TYPE

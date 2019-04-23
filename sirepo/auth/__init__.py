@@ -179,7 +179,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         pkdlog('deprecated auth method={} uid={}'.format(module.AUTH_METHOD, uid))
         if not uid:
             # No user so clear cookie so this method is removed
-            _reset_state()
+            reset_state()
         # We are logged in with a deprecated method, and now the user
         # needs to login with an allowed method.
         return login_failed_redirect(sim_type)
@@ -210,7 +210,7 @@ def login_failed_redirect(sim_type=None):
     if sim_type:
         return http_reply.gen_redirect_for_local_route(
             sim_type,
-            'authorizationFailed',
+            'loginFailed',
         )
     util.raise_unauthorized('login failed (without simulation_type)')
 
@@ -256,7 +256,7 @@ def require_user():
             e = 'deprecated'
         else:
             e = 'invalid'
-            _reset_state()
+            reset_state()
         e = 'auth_method={} is {}, forcing login: uid='.format(m, e, u)
     elif s == _STATE_LOGGED_OUT:
         e = 'logged out uid={}'.format(_get_user())

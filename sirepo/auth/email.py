@@ -1,4 +1,4 @@
-n# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 u"""Email login support
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -13,6 +13,7 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import http_reply
 from sirepo import http_request
+from sirepo import uri_router
 from sirepo import user_db
 from sirepo import util
 import datetime
@@ -56,39 +57,15 @@ _EXPIRES_MINUTES = 15
 _EXPIRES_DELTA = datetime.timedelta(minutes=_EXPIRES_MINUTES)
 
 
-@api_perm.require_cookie_sentinel
-def api_emailAuthLogin():
-    """Start the login process for the user.
-
-    User has sent an email, which needs to be verified.
-    """
-    data = http_request.parse_json()
-    email = _parse_email(data)
-    sim_type = sirepo.template.assert_sim_type(data.simulationType)
-    with user_db.thread_lock:
-        u = AuthEmailUser.search_by(unverified_email=email)
-        if not u:
-            u = AuthEmailUser(unverified_email=email)
-        u.token = u.create_token()
-        u.save()
-    return _send_login_email(
-        u,
-        uri_router.uri_for_api(
-            'emailAuthorized',
-            dict(simulation_type=sim_type, token=token),
-        ),
-    )
-
-
 @api_perm.allow_cookieless_set_user
-def api_emailAuthorized(simulation_type, token):
+def api_authEmailAuthorized(simulation_type, token):
     """Clicked by user in an email
 
     Token must exist in db and not be expired.
     """
     sim_type = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
-        u = module.AuthEmailUser.search_by(token=token)
+        u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= datetime.datetime.utcnow():
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
@@ -117,6 +94,30 @@ def api_emailAuthorized(simulation_type, token):
         return auth.login_failed_redirect(sim_type)
 
 
+@api_perm.require_cookie_sentinel
+def api_authEmailLogin():
+    """Start the login process for the user.
+
+    User has sent an email, which needs to be verified.
+    """
+    data = http_request.parse_json()
+    email = _parse_email(data)
+    sim_type = sirepo.template.assert_sim_type(data.simulationType)
+    with user_db.thread_lock:
+        u = AuthEmailUser.search_by(unverified_email=email)
+        if not u:
+            u = AuthEmailUser(unverified_email=email)
+        u.token = u.create_token()
+        u.save()
+    return _send_login_email(
+        u,
+        uri_router.uri_for_api(
+            'authEmailAuthorized',
+            dict(simulation_type=sim_type, token=u.token),
+        ),
+    )
+
+
 def init_apis(app, *args, **kwargs):
     global cfg
     cfg = pkconfig.init(
@@ -128,6 +129,7 @@ def init_apis(app, *args, **kwargs):
         smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
+    user_db.init_model(app, _init_model)
     if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
         return
     app.config.update(
@@ -139,7 +141,6 @@ def init_apis(app, *args, **kwargs):
     )
     global _smtp
     _smtp = flask_mail.Mail(app)
-    user_db.init_model(app, _init_model)
 
 
 def _init_model(db, base):
@@ -170,6 +171,7 @@ def _init_model(db, base):
             return token
 
     UserModel = AuthEmailUser
+
 
 
 def _parse_email(data):
