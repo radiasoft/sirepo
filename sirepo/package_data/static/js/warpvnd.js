@@ -254,16 +254,16 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
                 t.xLength = normalizeToum(Math.abs(bounds[3] - bounds[2]), t.scale);
                 t.yLength = normalizeToum(Math.abs(bounds[1] - bounds[0]), t.scale);
                 appState.models.simulationGrid.plate_spacing = Math.max(appState.models.simulationGrid.plate_spacing, t.zLength);
-                appState.models.simulationGrid.channel_height = Math.max(appState.models.simulationGrid.channel_height, t.xLength);
-                appState.models.simulationGrid.channel_width = Math.max(appState.models.simulationGrid.channel_width, t.yLength);
+                appState.models.simulationGrid.channel_width = Math.max(appState.models.simulationGrid.channel_width, t.xLength);
+                appState.models.simulationGrid.channel_height = Math.max(appState.models.simulationGrid.channel_height, t.yLength);
                 appState.models.stl = t;
                 appState.saveChanges(['stl', 'simulationGrid'], function () {
                     var c = {
                         id: appState.maxId(appState.models.conductors) + 1,
                         conductorTypeId: t.id,
-                        zCenter: appState.models.simulationGrid.plate_spacing / 2,
-                        xCenter: 0,
-                        yCenter: 0,
+                        zCenter: normalizeToum(bounds[4], t.scale) + t.zLength / 2.0,
+                        xCenter: normalizeToum(bounds[2], t.scale) + t.xLength / 2.0,
+                        yCenter: normalizeToum(bounds[0], t.scale) + t.yLength / 2.0,
                     };
                     appState.models.conductors.push(c);
                     appState.saveChanges('conductors');
@@ -2507,6 +2507,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function addSource(source, actorProperties) {
+                if (! fsRenderer) {
+                    return;
+                }
                 var actor = vtk.Rendering.Core.vtkActor.newInstance();
                 actorProperties.lighting = false;
                 actor.getProperty().set(actorProperties);
@@ -2561,8 +2564,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 refresh();
             }
 
-            var labMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
-            //var labMatrix = [0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1];  //warp
+            var labMatrix = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
             //var labMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];  //unit
 
             function loadConductor(conductor, type) {
@@ -2654,6 +2656,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function removeActors() {
+                if (! fsRenderer) {
+                    return;
+                }
                 var renderer = fsRenderer.getRenderer();
                 renderer.getActors().forEach(function(actor) {
                     renderer.removeActor(actor);
