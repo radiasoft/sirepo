@@ -11,13 +11,20 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-
-import sympy
+import StringIO
+import copy
 import csv
 import math
 import numpy as np
 import os.path
 import re
+import scipy.fftpack
+import scipy.optimize
+import sklearn.cluster
+import sklearn.metrics.pairwise
+import sklearn.mixture
+import sklearn.preprocessing
+import sympy
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -52,6 +59,10 @@ def fixup_old_data(data):
     for m in ('analysisAnimation', 'fitter', 'fitReport'):
         if m in data.models:
             del data.models[m]
+    if 'history' not in data.models.analysisReport:
+        data.models.analysisReport.history = []
+    if 'subreports' not in data.models.hiddenReport:
+        data.models.hiddenReport.subreports = []
     template_common.organize_example(data)
 
 
@@ -60,7 +71,7 @@ def get_application_data(data):
         data = pkcollections.Dict({
             'models': pkcollections.Dict({
                 'analysisData': data['analysisData'],
-                }),
+            }),
         })
         return {
             'columnInfo': _column_info(
@@ -70,18 +81,35 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, options=None):
-    assert False, 'not implemented'
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    plot_data = _load_file_with_history(report, path, col_info)
+    buf = StringIO.StringIO()
+    buf.write(','.join(col_info['names']) + '\n')
+    np.savetxt(buf, plot_data, delimiter=',')
+    return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
+
+
+def _report_info(run_dir, data):
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    plot_data = _load_file_with_history(report, path, col_info)
+    return report, col_info, plot_data
 
 
 def get_analysis_report(run_dir, data):
-    report = data.models[data.report]
-    if 'action' in report and report.action == 'fit':
-        return get_fit_report(run_dir, data)
-    path = _analysis_data_path(run_dir, data)
-    plot_data = np.genfromtxt(path, delimiter=',', names=True)
-    col_info = _column_info(path)
+    report, col_info, plot_data = _report_info(run_dir, data)
+    clusters = None
+    if 'action' in report:
+        if report.action == 'fit':
+            return _get_fit_report(report, plot_data, col_info)
+        elif report.action == 'cluster':
+            clusters = _compute_clusters(report, plot_data, col_info)
     x_idx = _safe_index(col_info, report.x)
-    x = plot_data[plot_data.dtype.names[x_idx]].tolist()
+    x = (plot_data[:, x_idx] * col_info['scale'][x_idx]).tolist()
     plots = []
     for f in ('y1', 'y2', 'y3'):
         #TODO(pjm): determine if y2 or y3 will get used
@@ -89,45 +117,42 @@ def get_analysis_report(run_dir, data):
             continue
         if f not in report or report[f] == 'none':
             continue
-        idx = _safe_index(col_info, report[f])
-        col = plot_data.dtype.names[idx]
-        if len(plot_data[col]) <= 0 or math.isnan(plot_data[col][0]):
+        y_idx = _safe_index(col_info, report[f])
+        y = plot_data[:, y_idx]
+        if len(y) <= 0 or math.isnan(y[0]):
             continue
         plots.append({
-            'points': (plot_data[col] * col_info['scale'][idx]).tolist(),
-            'label': _label(col_info, idx),
-            'style': 'scatter',
+            'points': (y * col_info['scale'][y_idx]).tolist(),
+            'label': _label(col_info, y_idx),
+            'style': 'line' if 'action' in report and report.action == 'fft' else 'scatter',
         })
-    return template_common.parameter_plot(x, plots, data, {
+    return template_common.parameter_plot(x, plots, {}, {
         'title': '',
         'y_label': '',
         'x_label': _label(col_info, x_idx),
+        'clusters': clusters,
         'summaryData': {},
     })
 
 
-def get_fft(data):
-
-    import scipy.fftpack
-
-    fft_in = _analysis_data_file(data)
-    col_info = _column_info(fft_in)
-    # take from fit report in short term
-    report = data.models.analysisReport
+def get_fft(run_dir, data):
+    data.report = _analysis_report_name_for_fft_report(data.report, data)
+    report, col_info, plot_data = _report_info(run_dir, data)
     col1 = _safe_index(col_info, report.x)
     col2 = _safe_index(col_info, report.y1)
-
-    t_vals, y_vals = np.loadtxt(fft_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
+    t_vals = plot_data[:, col1] * col_info['scale'][col1]
+    y_vals = plot_data[:, col2] * col_info['scale'][col2]
 
     # fft takes the y data only and assumes it corresponds to equally-spaced x values.
     fft_out = scipy.fftpack.fft(y_vals)
-
 
     num_samples = len(y_vals)
     half_num_samples = num_samples // 2
 
     # should all be the same - this will normalize the frequencies
     sample_period = abs(t_vals[1] - t_vals[0])
+    if sample_period == 0:
+        assert False, 'FFT sample period could not be determined from data. Ensure x has equally spaced values'
     #sample_period = np.mean(np.diff(t_vals))
 
     # the first half of the fft data (taking abs() folds in the imaginary part)
@@ -171,13 +196,13 @@ def get_fft(data):
 
     plots = [
         {
-            'points': (y * col_info['scale'][1]).tolist(),
+            'points': y.tolist(),
             'label': 'fft',
         },
     ]
 
     #TODO(mvk): figure out appropriate labels from input
-    return template_common.parameter_plot(w.tolist(), plots, data, {
+    return template_common.parameter_plot(w.tolist(), plots, {}, {
         'title': '',
         'y_label': _label(col_info, 1),
         'x_label': 'ω[s-1]',
@@ -196,14 +221,15 @@ def get_fft(data):
     #}
 
 
-def get_fit_report(run_dir, data):
-    fit_in = _analysis_data_path(run_dir, data)
-    report = data.models[data.report]
-    col_info = _column_info(fit_in)
+def _analysis_report_name_for_fft_report(report, data):
+    return data.models[report].get('analysisReport', 'analysisReport')
+
+
+def _get_fit_report(report, plot_data, col_info):
     col1 = _safe_index(col_info, report.x)
     col2 = _safe_index(col_info, report.y1)
-    x_vals, y_vals = np.loadtxt(fit_in, delimiter=',', skiprows=1, usecols=(col1, col2), unpack=True)
-
+    x_vals = plot_data[:, col1] * col_info['scale'][col1]
+    y_vals = plot_data[:, col2] * col_info['scale'][col2]
     fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
@@ -211,33 +237,31 @@ def get_fit_report(run_dir, data):
         report.fitVariable,
         report.fitParameters,
     )
-
     plots = [
         {
-            'points': (y_vals * col_info['scale'][1]).tolist(),
+            'points': y_vals.tolist(),
             'label': 'data',
             'style': 'scatter',
         },
         {
-            'points': (fit_y * col_info['scale'][1]).tolist(),
+            'points': fit_y.tolist(),
             'label': 'fit',
         },
         {
-            'points': (fit_y_min * col_info['scale'][1]).tolist(),
-            'label': '',
-            '_parent': 'fit'
+            'points': fit_y_min.tolist(),
+            'label': 'confidence',
+            '_parent': 'confidence'
         },
         {
-            'points': (fit_y_max * col_info['scale'][1]).tolist(),
+            'points': fit_y_max.tolist(),
             'label': '',
-            '_parent': 'fit'
+            '_parent': 'confidence'
         }
     ]
-
-    return template_common.parameter_plot(x_vals.tolist(), plots, data, {
+    return template_common.parameter_plot(x_vals.tolist(), plots, {}, {
         'title': '',
-        'y_label': _label(col_info, 1),
-        'x_label': _label(col_info, 0),
+        'x_label': _label(col_info, col1),
+        'y_label': _label(col_info, col2),
         'summaryData': {
             'p_vals': param_vals.tolist(),
             'p_errs': param_sigmas.tolist(),
@@ -257,6 +281,9 @@ def lib_files(data, source_lib):
 def models_related_to_report(data):
     r = data['report']
     res = [r, 'analysisData']
+    if 'fftReport' in r:
+        name = _analysis_report_name_for_fft_report(r, data)
+        res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
     return res
 
 
@@ -265,8 +292,12 @@ def python_source_for_model(data, model):
 
 
 def validate_file(file_type, path):
-    if not _column_info(path):
-        return 'Invalid CSV header row'
+    #TODO(pjm): accept CSV or SDDS files
+    try:
+        if not _column_info(path):
+            return 'Invalid CSV header row'
+    except Exception as e:
+        return 'Error reading file. Ensure the file is in CSV or SDDS format.'
     return None
 
 
@@ -301,9 +332,14 @@ def _column_info(path):
         for row in reader:
             header = row
             break
-    if not header or not re.search(r'\w', header[0]) or len(header) < 2:
+    if not header or len(header) < 2:
         return None
+    header_row_count = 1
+    if re.search(r'^[\-|\+0-9eE\.]+$', header[0]):
+        header = ['column {}'.format(idx + 1) for idx in range(len(header))]
+        header_row_count = 0
     res = {
+        'header_row_count': header_row_count,
         'names': [],
         'units': [],
         'scale': [],
@@ -327,10 +363,50 @@ def _column_info(path):
     return res
 
 
+def _compute_clusters(report, plot_data, col_info):
+    cols = []
+    if 'clusterFields' not in report:
+        assert len(cols) > 1, 'At least two cluster fields must be selected'
+    for idx in range(len(report.clusterFields)):
+        if report.clusterFields[idx] and idx < len(col_info['names']):
+            cols.append(idx)
+    assert len(cols) > 1, 'At least two cluster fields must be selected'
+    plot_data = plot_data[:, cols]
+    min_max_scaler = sklearn.preprocessing.MinMaxScaler(
+        feature_range=[
+            report.clusterScaleMin,
+            report.clusterScaleMax,
+        ])
+    x_scale = min_max_scaler.fit_transform(plot_data)
+    group = None
+    count = report.clusterCount
+    if report.clusterMethod == 'kmeans':
+        k_means = sklearn.cluster.KMeans(init='k-means++', n_clusters=count, n_init=report.clusterKmeansInit, random_state=report.clusterRandomSeed)
+        k_means.fit(x_scale)
+        k_means_cluster_centers = np.sort(k_means.cluster_centers_, axis=0)
+        k_means_labels = sklearn.metrics.pairwise.pairwise_distances_argmin(x_scale, k_means_cluster_centers)
+        group = k_means_labels
+    elif report.clusterMethod == 'gmix':
+        gmm = sklearn.mixture.GaussianMixture(n_components=count, random_state=report.clusterRandomSeed)
+        gmm.fit(x_scale)
+        group = gmm.predict(x_scale)
+    elif report.clusterMethod == 'dbscan':
+        db = sklearn.cluster.DBSCAN(eps=report.clusterDbscanEps, min_samples=3).fit(x_scale)
+        group = db.fit_predict(x_scale) + 1.
+        count = len(set(group))
+    elif report.clusterMethod == 'agglomerative':
+        agg_clst = sklearn.cluster.AgglomerativeClustering(n_clusters=count, linkage='complete', affinity='euclidean')
+        agg_clst.fit(x_scale)
+        group = agg_clst.labels_
+    else:
+        assert False, 'unknown clusterMethod: {}'.format(report.clusterMethod)
+    return {
+        'group': group.tolist(),
+        'count': count,
+    }
+
+
 def _fit_to_equation(x, y, equation, var, params):
-
-    import scipy.optimize
-
     # TODO: must sanitize input - sympy uses eval
     sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
@@ -347,7 +423,6 @@ def _fit_to_equation(x, y, equation, var, params):
     p_subs = []
     p_subs_min = []
     p_subs_max = []
-    p_rounded = []
 
     # exclude the symbol of the variable when subbing
     for sidx, p in enumerate(p_vals, 1):
@@ -358,19 +433,20 @@ def _fit_to_equation(x, y, equation, var, params):
         p_subs.append((s, p))
         p_subs_min.append((s, p_min))
         p_subs_max.append((s, p_max))
-        p_rounded.append((s, np.round(p, 3)))
     y_fit = sym_curve.subs(p_subs)
     y_fit_min = sym_curve.subs(p_subs_min)
     y_fit_max = sym_curve.subs(p_subs_max)
 
     # used for the laTeX label - rounding should take size of uncertainty into account
-    y_fit_rounded = sym_curve.subs(p_rounded)
+    y_fit_rounded = sym_curve.subs(p_subs)
 
     y_fit_l = sympy.lambdify(var, y_fit, 'numpy')
     y_fit_min_l = sympy.lambdify(var, y_fit_min, 'numpy')
     y_fit_max_l = sympy.lambdify(var, y_fit_max, 'numpy')
 
     latex_label = sympy.latex(y_fit_rounded, mode='inline')
+    #TODO(pjm): round rather than truncate?
+    latex_label = re.sub(r'(\.\d{4})\d+', r'\1', latex_label)
     y_fit_l(x)
     y_fit_min_l(x)
     y_fit_max_l(x)
@@ -387,6 +463,23 @@ def _label(col_info, idx):
     if units:
         return '{} [{}]'.format(name, units)
     return name
+
+
+def _load_file_with_history(report, path, col_info):
+    res = np.genfromtxt(path, delimiter=',', skip_header=col_info['header_row_count'])
+    if 'history' in report:
+        for action in report.history:
+            if action.action == 'trim':
+                idx = _safe_index(col_info, action.trimField)
+                scale = col_info['scale'][idx]
+                res = res[(res[:,idx] * scale >= action.trimMin) & (res[:, idx] * scale <= action.trimMax)]
+            elif action.action == 'cluster':
+                report2 = copy.deepcopy(report)
+                report2.update(action)
+                clusters = _compute_clusters(report2, res, col_info)
+                labels = np.array(clusters['group'])
+                res = res[labels == action.clusterIndex,:]
+    return res
 
 
 def _safe_index(col_info, idx):
