@@ -79,6 +79,9 @@ def init(app):
     for n in _REQUIRED_MODULES + feature_config.cfg.api_modules:
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
+    for m in _api_modules:
+        if hasattr(m, 'post_init_uris'):
+            m.post_init_uris(app)
 
 
 def register_api_module(module=None):
@@ -244,7 +247,7 @@ def _split_uri(uri):
         m = _PARAM_RE.search(p)
         if not m:
             assert first is None, \
-                '{}: too many non-parameter components of uri'.format(uri)
+                'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
         rp = pkcollections.Dict()

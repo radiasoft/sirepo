@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""NSLS-II BlueSky integration
+u"""NSLS-II BlueSky Login
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -43,7 +43,7 @@ _AUTH_NONCE_SEPARATOR = '-'
 
 
 @api_perm.allow_cookieless_set_user
-def api_blueskyAuth():
+def api_authBlueskyLogin():
     req = http_request.parse_json()
     auth_hash(req, verify=True)
     sid = req.simulationId
@@ -63,6 +63,12 @@ def api_blueskyAuth():
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),
     ))
+
+
+@api_perm.allow_cookieless_set_user
+def api_blueskyAuth():
+    """Deprecated use `api_authBlueskyLogin`"""
+    return api_authBlueskyLogin()
 
 
 def auth_hash(req, verify=False):

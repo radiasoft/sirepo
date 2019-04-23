@@ -104,7 +104,7 @@ def api_authState():
 
 
 @api_perm.allow_visitor
-def api_logout(simulation_type):
+def api_authLogout(simulation_type):
     """Set the current user as logged out.
 
     Redirects to root simulation page.
@@ -182,7 +182,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
             reset_state()
         # We are logged in with a deprecated method, and now the user
         # needs to login with an allowed method.
-        return login_failed_redirect(sim_type)
+        return login_failed_redirect(sim_type, module, 'deprecated')
     if not uid:
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
@@ -206,11 +206,15 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     return login_success_redirect(sim_type)
 
 
-def login_failed_redirect(sim_type=None):
+def login_failed_redirect(sim_type=None, module=None, reason=None):
     if sim_type:
         return http_reply.gen_redirect_for_local_route(
             sim_type,
             'loginFailed',
+            {
+                'method': module.AUTH_METHOD,
+                'reason': reason,
+            },
         )
     util.raise_unauthorized('login failed (without simulation_type)')
 
@@ -263,7 +267,7 @@ def require_user():
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'
-            p = {'authMethod': m}
+            p = {'method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())

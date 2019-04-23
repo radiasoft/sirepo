@@ -95,9 +95,9 @@ def gen_redirect_for_local_route(sim_type, route=None, params=None):
     s = simulation_db.get_schema(sim_type)
     if not route:
         route = s.appModes.default.localRoute
-    p = s.localRoutes[route].route.split('/:')
-    u = p.pop(0)
-    for x in p:
+    parts = s.localRoutes[route].route.split('/:')
+    u = parts.pop(0)
+    for p in parts:
         if p.endswith('?'):
             p = p[:-1]
             if not params or p not in params:

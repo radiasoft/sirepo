@@ -71,10 +71,14 @@
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
+        "authBlueskyLogin": "/auth-bluesky-login",
         "authCompleteRegistration": "/auth-complete-registration",
+        "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
-        "authEmailAuthorized": "/auth-email/<simulation_type>/<token>",
+        "authGitHubAuthorized": "/auth-github-authorized",
+        "authGitHubLogin": "/auth-github-login",
         "authGuestLogin": "/auth-guest-login",
+        "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
@@ -87,10 +91,8 @@
         "importFile": "/import-file/?<simulation_type>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
-        "logout": "/logout/<simulation_type>",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
-        "oauthLogin": "/oauth-login/<simulation_type>/<oauth_type>",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
@@ -218,13 +220,14 @@
                 }
             },
             "loginFailed": {
-                "route": "/login-failed",
+                "route": "/login-failed/:method/:reason",
                 "config": {
+                  "controller": "LoginFailedController as loginFailed",
                   "templateUrl": "/static/html/login-failed.html"
                 }
             },
             "loginWith": {
-                "route": "/login-with/:authMethod",
+                "route": "/login-with/:method",
                 "config": {
                   "controller": "LoginWithController as loginWith",
                   "templateUrl": "/static/html/login-with.html"

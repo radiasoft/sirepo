@@ -12,7 +12,7 @@ def test_guest_merge(monkeypatch):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkfail, pkok, pkeq, pkre
 
-    fc, sim_type, oc, oauth_type = _fc(monkeypatch, 'guest_merge')
+    fc, sim_type, oc = _fc(monkeypatch, 'guest_merge')
     fc.sr_login_as_guest(sim_type)
     d = fc.sr_post(
         'listSimulations',
@@ -29,20 +29,10 @@ def test_guest_merge(monkeypatch):
         ),
     )
     guest_uid = fc.sr_auth_state().uid
-    fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': oauth_type,
-        },
-    )
+    r = fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
     state = oc.values.state
     s = fc.sr_auth_state(isLoggedIn=True, method='guest')
-    fc.sr_get(
-        'oauthAuthorized',
-        {'oauth_type': oauth_type},
-        query={'state': state},
-    )
+    fc.sr_get('authGitHubAuthorized', query={'state': state})
     fc.sr_auth_state(method='github', uid=guest_uid)
     d = fc.sr_post(
         'listSimulations',
@@ -57,23 +47,10 @@ def test_guest_merge(monkeypatch):
             name='oauth-sim',
         ),
     )
-    fc.sr_get(
-        'logout',
-        {'simulation_type': sim_type},
-    )
-    fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': oauth_type,
-        },
-    )
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+    fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
     state = oc.values.state
-    fc.sr_get(
-        'oauthAuthorized',
-        {'oauth_type': oauth_type},
-        query={'state': state},
-    )
+    fc.sr_get('authGitHubAuthorized', query={'state': state})
     d = fc.sr_post(
         'listSimulations',
         {'simulationType': sim_type},
@@ -85,15 +62,9 @@ def test_happy_path(monkeypatch):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkfail, pkok, pkeq, pkre
 
-    fc, sim_type, oc, oauth_type = _fc(monkeypatch, 'happy')
+    fc, sim_type, oc = _fc(monkeypatch, 'happy')
     fc.sr_auth_state(isLoggedIn=False)
-    r = fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': oauth_type,
-        },
-    )
+    r = fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('srException', d.state)
     pkeq('login', d.srException.routeName)
@@ -101,22 +72,15 @@ def test_happy_path(monkeypatch):
     pkeq(302, r.status_code)
     pkre(state, r.headers['location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=None, userName=None)
-    r = fc.sr_get(
-        'oauthAuthorized',
-        {'oauth_type': oauth_type},
-        query={'state': state},
-    )
+    r = fc.sr_get('authGitHubAuthorized', query={'state': state})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('srException', d.state)
     pkeq('completeRegistration', d.srException.routeName)
-    d = fc.sr_post(
-        'authCompleteRegistration',
-        {'displayName': 'Happy Path'},
-    )
+    d = fc.sr_post('authCompleteRegistration', {'displayName': 'Happy Path'})
     s = fc.sr_auth_state(displayName='Happy Path', isLoggedIn=True, userName='happy')
     uid = s.uid
-    r = fc.sr_get('logout', {'simulation_type': sim_type})
+    r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=uid, userName=None)
 
@@ -136,4 +100,4 @@ def _fc(monkeypatch, user_name):
 
     fc.cookie_jar.clear()
     oc = github_srunit.MockOAuthClient(monkeypatch, user_name=user_name)
-    return fc, sim_type, oc, github.DEFAULT_OAUTH_TYPE
+    return fc, sim_type, oc

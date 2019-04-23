@@ -978,7 +978,7 @@ should be github url; returned in user_state
 // another logout url
     self.formatLogoutUrl = function() {
         return requestSender.formatUrl(
-            'logout',
+            'authLogout',
             {
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
             },

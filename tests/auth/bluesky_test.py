@@ -98,7 +98,7 @@ def test_auth_login():
         simulationId=data.simulationId,
     )
     bluesky.auth_hash(req)
-    resp = fc.sr_post('blueskyAuth', req)
+    resp = fc.sr_post('authBlueskyLogin', req)
     pkeq('ok', resp['state'])
     pkeq(req.simulationId, simulation_db.parse_sid(resp['data']))
     pkeq('srw', resp['schema']['simulationType'])

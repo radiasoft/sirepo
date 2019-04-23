@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-u"""Email login support
+u"""Email login
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -84,14 +84,7 @@ def api_authEmailAuthorized(simulation_type, token):
                 token,
                 u.unverified_email,
             )
-        uid = _user_with_email_is_logged_in()
-        if uid:
-            # if the token is invalid, but the user is already logged
-            # in as an email user (ie. following an old link from an email)
-            # keep the user logged in and proceed to the app.
-#TODO(robnagler) this may be confusing if the user was trying to switch accounts
-            return auth.login_success_redirect(sim_type)
-        return auth.login_failed_redirect(sim_type)
+        return auth.login_failed_redirect(sim_type, this_module, 'invalid')
 
 
 @api_perm.require_cookie_sentinel

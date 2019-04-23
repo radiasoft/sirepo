@@ -709,8 +709,8 @@ def init(uwsgi=None, use_reloader=False):
     http_reply.init_by_server(_app)
     simulation_db.init_by_server(_app)
     uri_router.init(_app)
-    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        _app.register_error_handler(int(err), _handle_error)
+    for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        _app.register_error_handler(int(e), _handle_error)
     runner.init(_app, use_reloader)
     return _app
 
