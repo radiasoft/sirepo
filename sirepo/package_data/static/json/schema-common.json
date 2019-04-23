@@ -213,7 +213,7 @@
                 }
             },
             "login": {
-                "route": "/login",
+                "route": "/login/:method?",
                 "config": {
                   "controller": "LoginController as login",
                   "templateUrl": "/static/html/login.html"

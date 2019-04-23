@@ -568,22 +568,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loginLink', function(loginService) {
-    return {
-        restrict: 'A',
-        scope: {
-            loginClass: '@',
-        },
-        template: [
-            '<a href data-ng-if="::loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-target="#sr-email-login" data-toggle="modal" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
-            '<a data-ng-if="::! loginService.isEmailAuth" data-ng-attr-class="{{ loginClass }}" data-ng-href="{{ ::loginService.formatAuthUrl() }}" data-ng-click="loginService.enableNotification(false)">Sign in with {{ loginService.authMethodName }}</a>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.loginService = loginService;
-        },
-    };
-});
-
 SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
     return {
         restrict: 'A',
@@ -593,12 +577,12 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
               '<a href data-ng-if="::loginService.isEmailAuth" class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
                 '<span class="glyphicon glyphicon-user"></span> <span class="caret"></span>',
               '</a>',
-              '<a href data-ng-if="::! loginService.isEmailAuth" class="dropdown-toggle" data-toggle="dropdown">',
-                '<img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img>',
+              '<a href data-ng-if=":: loginService." class="dropdown-toggle" data-toggle="dropdown">',
+                '<img data-ng-src="https://avatars.githubusercontent.com/{{ authState.userName }}?size=40"</img>',
                 ' <span class="caret"></span>',
               '</a>',
               '<ul class="dropdown-menu">',
-                '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
+                '<li class="dropdown-header">Signed in as <strong>{{ authState.userName }}</strong></li>',
                 '<li class="divider"></li>',
                 '<li><a data-ng-href="{{ logoutURL }}" loginService.enableNotification(true)">Sign out</a></li>',
               '</ul>',
@@ -612,7 +596,7 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
         ].join(''),
         controller: function($scope) {
             $scope.loginService = loginService;
-            $scope.userState = SIREPO.userState;
+            $scope.authState = SIREPO.authState;
             $scope.logoutURL = loginService.formatLogoutUrl();
             if (appDataService.isApplicationMode('default')) {
                 loginService.initNotification();
@@ -2223,7 +2207,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
-                    SIREPO.userState.displayName = $scope.data.displayName;
+                    SIREPO.authState.displayName = $scope.data.displayName;
                 }
                 else {
                     //TODO(pjm): add server error message
@@ -2232,7 +2216,7 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
 
             $scope.updateDisplayName = function() {
                 requestSender.sendRequest(
-                    'emailAuthDisplayName',
+                    'authCompleteRegistration',
                     handleResponse,
                     {
                         displayName: $scope.data.displayName,
@@ -2240,9 +2224,9 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
             };
 
             $scope.missingDisplayName = function() {
-                if (loginService.isLoggedIn() && ! SIREPO.userState.displayName) {
+                if (loginService.isLoggedIn() && ! SIREPO.authState.displayName) {
                     $scope.data = {
-                        email: SIREPO.userState.userName,
+                        email: SIREPO.authState.userName,
                         name: '',
                     };
                     panelState.waitForUI(function() {

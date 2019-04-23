@@ -948,63 +948,8 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('loginService', function(requestSender, notificationService, $location) {
+SIREPO.app.factory('loginService', function(requestSender, $location) {
     var self = {};
-    var loginNotification = null;
-
-authMethod is in user state
-
-    self.enableNotification = function(isEnabled) {
-        if (loginNotification) {
-            loginNotification.active = isEnabled;
-            if (isEnabled) {
-                notificationService.sleepNotification(loginNotification);
-            }
-            else {
-                notificationService.dismissNotification(loginNotification);
-            }
-        }
-    };
-
-should be github url; returned in user_state
-//    self.formatAuthUrl = function() {
-//        return requestSender.formatUrl('oauthLogin', {
-//            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-//            '<oauth_type>': SIREPO.userState.authMethod,
-//        });
-//    };
-
-
-// another logout url
-    self.formatLogoutUrl = function() {
-        return requestSender.formatUrl(
-            'authLogout',
-            {
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            },
-        );
-    };
-
-    self.initNotification = function() {
-        if (! loginNotification) {
-            loginNotification = SIREPO.APP_SCHEMA.notifications.login;
-            loginNotification.content = '<strong>To save your work, sign in with ' + self.authMethodName + '</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
-            loginNotification.active = self.isAnonymous();
-            notificationService.addNotification(loginNotification);
-        }
-    };
-
-    self.isAnonymous = function() {
-        return SIREPO.userState ? 0 : 1;
-    };
-
-    self.isLoggedIn = function() {
-        return SIREPO.authState.isLoggedIn ? 1 : 0;
-    };
-
-    self.isNotificationDisplayed = function() {
-        return notificationService.shouldPresent('login');
-    };
 
     return self;
 });
