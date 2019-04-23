@@ -60,7 +60,7 @@ def test_force_login():
     pkeq(1, len(d))
 
 
-def xtest_happy_path():
+def test_happy_path():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
