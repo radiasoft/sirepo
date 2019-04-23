@@ -283,10 +283,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return fwhm;
         },
 
-        colorMapFromModel: function(modelName) {
+        colorMapFromModel: function(modelName, fieldName) {
 
             var model = appState.models[modelName];
-            var modelMap = model ? model.colorMap : null;
+            var modelMap = model ? (model[fieldName] || model.colorMap) : null;
 
             var modelDefaultMap;
             var info = SIREPO.APP_SCHEMA.model[modelName];
@@ -306,14 +306,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return COLOR_MAP[this.colorMapNameOrDefault(mapName, defaultMapName)];
         },
 
-        colorScale: function(min, max, colorMap) {
-            return d3.scale.linear()
-                .domain(linearlySpacedArray(min, max, colorMap.length))
-                .range(colorMap)
-                .clamp(true);
-        },
-
-        colorScaleForPlot: function(plotRange, modelName) {
+        colorScaleForPlot: function(plotRange, modelName, fieldName) {
             var m = appState.models[modelName];
             var zMin = plotRange.min;
             var zMax = plotRange.max;
@@ -321,8 +314,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 zMin = m.colorMin;
                 zMax = m.colorMax;
             }
-            var colorMap = this.colorMapFromModel(modelName);
-            return this.colorScale(zMin, zMax, colorMap);
+            var colorMap = this.colorMapFromModel(modelName, fieldName);
+            return d3.scale.linear()
+                .domain(linearlySpacedArray(zMin, zMax, colorMap.length))
+                .range(colorMap)
+                .clamp(true);
         },
 
         colorsFromHexString: function(color, range) {
@@ -2768,13 +2764,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var legend = $scope.select('.sr-plot-legend');
                 legend.selectAll('.sr-plot-legend-item').remove();
                 if (plots.length == 1) {
-                    return;
+                    return 0;
                 }
                 var itemWidth;
+                var count = 0;
                 plots.forEach(function(plot, i) {
-                    if(plot._parent) {
+                    if(! plot.label) {
                         return;
                     }
+                    count++;
                     plotLabels.push(plot.label);
                     var item = legend.append('g').attr('class', 'sr-plot-legend-item');
                     item.append('text')
@@ -2799,6 +2797,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         .attr('y', 16 + i * 20)
                         .text(plot.label);
                 });
+                return count;
             }
 
             function includeDomain(pIndex, doInclude) {
@@ -2917,6 +2916,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.load = function(json) {
+                //TODO(pjm): move first part into normalizeInput()
+                childPlots = {};
                 includeForDomain.length = 0;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
@@ -2951,10 +2952,20 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('.scatter-point').remove();
-                createLegend(plots);
+                var legendCount = createLegend(plots);
                 plots.forEach(function(plot, i) {
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if(plot.style === 'scatter') {
+                        var clusterInfo;
+                        var circleRadius = 2;
+                        if (json.clusters) {
+                            clusterInfo = json.clusters;
+                            $scope.clusterInfo = clusterInfo;
+                            clusterInfo.scale = clusterInfo.count > 10
+                                ? d3.scale.category20()
+                                : d3.scale.category10();
+                            circleRadius = 4;
+                        }
                         viewport.selectAll('.param-plot').remove();
                         var pg = viewport.append('g')
                             .attr('class', 'param-plot');
@@ -2964,7 +2975,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                     .append('circle')
                                     .attr('cx', $scope.graphLine.x())
                                     .attr('cy', $scope.graphLine.y())
-                                    .attr('r', 2)
+                                    .attr('r', circleRadius)
+                                    .style('fill', function(d, i) {
+                                        return clusterInfo ? clusterInfo.scale(clusterInfo.group[i]) : null;
+                                    })
                                     .attr('class', 'scatter-point line-color');
                     }
                     else {
@@ -3014,7 +3028,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     : $scope.onRefresh
                         ? 65
                         : 20;
-                $scope.margin.bottom = 50 + 20 * plots.length;
+                $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
             };
 
@@ -3232,6 +3246,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             $scope.showAbsorbed = true;
             $scope.showReflected = true;
             $scope.showImpact = true;
+            $scope.enableImpactDensity = true;
+            $scope.showImpactDensity = false;
             $scope.showConductors = true;
 
             // these are in screen/vtk coords, not lab coords
@@ -3265,6 +3281,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
             var startPlaneBundle = null;
             var endPlaneBundle = null;
+            var densityPlaneBundles = [];
 
             // conductors (boxes)
             var conductorBundles = [];
@@ -3302,6 +3319,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var numPoints = 0;
             var pointData = {};
             var fieldData = {};
+            var impactData = [];
             var xmin = 0.0;  var xmax = 1.0;
             var ymin = 0.0;  var ymax = 1.0;
             var zmin = 0.0;  var zmax = 1.0;
@@ -3449,8 +3467,18 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                                 }
                                 panelState.setError($scope.modelName, null);
                                 fieldData = data;
-                                $scope.load();
-                            }
+                                frameCache.getFrame('impactDensityAnimation', 0, false, function(index, data) {
+                                    if ($scope.element) {
+                                        if (data.error) {
+                                            panelState.setError($scope.modelName, data.error);
+                                            return;
+                                        }
+                                        panelState.setError($scope.modelName, null);
+                                        impactData = data;
+                                        $scope.load();
+                                    }
+                                });
+                             }
                         });
                     }
                 });
@@ -3592,6 +3620,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 vtkPlotting.removeActors(renderer, impactSphereActors);
                 vtkPlotting.removeActors(renderer, conductorActors);
+
+                densityPlaneBundles = [];
 
                 conductorActors = [];
                 conductorBundles = [];
@@ -3882,13 +3912,15 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
 
-                function coordAtIndex(startVal, sk, sl, k, l) {
-                    return startVal + k * sk + l * sl;
-                }
-
                 if (pointData.lost_x) {
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
+                }
+
+                mapImpactDensity();
+
+                function coordAtIndex(startVal, sk, sl, k, l) {
+                    return startVal + k * sk + l * sl;
                 }
 
                 function scaleWithShave(a) {
@@ -3898,6 +3930,10 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 function scaleConductor(a) {
                     return a / cFactor;
+                }
+
+                function toMicron(v) {
+                    return v * 1e-6;
                 }
 
                 // build conductors -- make them a tiny bit small so the edges do not bleed into each other
@@ -3943,6 +3979,71 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 refresh(true);
             };
+
+            function mapImpactDensity() {
+                // loop over conductors
+                // arr[0][0] + k * sk + l * sl
+                (impactData.density || []).forEach(function (c) {
+                    if(! $scope.enableImpactDensity) {
+                        return;
+                    }
+                    // loop over faces
+                    c.forEach(function (f) {
+                        if(! f.y) {
+                            $scope.enableImpactDensity = false;
+                            return;
+                        }
+                        var o = [f.x.startVal, f.y.startVal, f.z.startVal].map(toNano);
+                        var sk = [f.x.slopek, f.y.slopek, f.z.slopek].map(toNano);
+                        var sl = [f.x.slopel, f.y.slopel, f.z.slopel].map(toNano);
+                        var d = f.dArr;
+                        var nk = d.length;
+                        var nl = d[0].length;
+                        var numPoints = nk * nl;
+                        var numCells = (nk - 1) * (nl - 1);
+                        var smin = plotting.min2d(d);
+                        var smax = plotting.max2d(d);
+                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
+
+                        var p1 = [
+                            o[0] + (nk - 1) * sk[0],
+                            o[1] + (nk - 1) * sk[1],
+                            o[2] + (nk - 1) * sk[2]
+                        ];
+                        var p2 = [
+                            o[0] + (nl - 1) * sl[0],
+                            o[1] + (nl - 1) * sl[1],
+                            o[2] + (nl - 1) * sl[2]
+                        ];
+                        var p = coordMapper.buildPlane(o, p1, p2);
+                        p.source.setXResolution(nl - 1);
+                        p.source.setYResolution(nk - 1);
+                        p.actor.getProperty().setLighting(false);
+
+                        var dataColors = [];
+                        for(var k = 0; k < nk - 1; ++k) {
+                            for(var l = 0; l < nl - 1; ++l) {
+                                var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k][l])).map(function (cc) {
+                                    return Math.floor(255*cc);
+                                });
+                                dataColors.push(color[0], color[1], color[2]);
+                           }
+                        }
+                        var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                            numberOfComponents: 3,
+                            values: dataColors,
+                            dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                        });
+                        p.source.getOutputData().getCellData().setScalars(carr);
+
+                        densityPlaneBundles.push(p);
+                    });
+                });
+
+                function toNano(v) {
+                    return v * 1e-9;
+                }
+            }
 
             function setLinesFromPoints(bundle, points, color, includeImpact) {
                 if (! bundle) {
@@ -4011,6 +4112,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     });
                 }
             }
+
             function indexValPriorTo(map, startIndex, spacing) {
                 var k = startIndex - spacing;
                 var prevVal = map[k];
@@ -4020,6 +4122,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
                 return prevVal;
             }
+
             function colorAtIndex(index) {
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
@@ -4074,11 +4177,19 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vtkPlotting.addActor(renderer, reflectedLineBundle.actor);
                 vtkPlotting.addActors(renderer, conductorActors);
                 vtkPlotting.addActors(renderer, impactSphereActors);
+                vtkPlotting.addActors(renderer, densityPlaneBundles.map(function (b) {
+                    return b.actor;
+                }));
 
+                vtkPlotting.showActor(renderWindow, startPlaneBundle.actor, ! $scope.showImpactDensity);
+                vtkPlotting.showActor(renderWindow, endPlaneBundle.actor, ! $scope.showImpactDensity);
                 vtkPlotting.showActor(renderWindow, absorbedLineBundle.actor, $scope.showAbsorbed);
                 vtkPlotting.showActors(renderWindow, impactSphereActors, $scope.showAbsorbed && $scope.showImpact);
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, densityPlaneBundles.map(function (b) {
+                    return b.actor;
+                }), $scope.showImpactDensity, 1.0);
 
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
@@ -4482,6 +4593,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+            };
+            $scope.toggleImpactDensity = function() {
+                $scope.showImpactDensity = ! $scope.showImpactDensity;
+                $scope.showConductors = ! $scope.showImpactDensity;
+                refresh();
             };
 
 

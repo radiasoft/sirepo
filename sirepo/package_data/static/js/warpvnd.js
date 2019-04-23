@@ -2074,7 +2074,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
+SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geometry) {
     return {
         restrict: 'A',
         scope: {
@@ -2092,6 +2092,16 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 }
             }
 
+            function toMicron(v) {
+                return v * 1e-6;
+            }
+
+            function toNano(v) {
+                return v * 1e-9;
+            }
+
+            $scope.has3dData = false;
+
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
                     aspectRatio: 4.0 / 7,
@@ -2102,7 +2112,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                 // can't remove the overlay or it causes a memory leak
                 $scope.select('svg').selectAll('.overlay').classed('disabled-overlay', true);
             };
-
             $scope.load = function(json) {
                 $scope.xRange = json.x_range;
                 var xdom = [json.x_range[0], json.x_range[1]];
@@ -2146,6 +2155,72 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService) {
                         path.on('mouseover', mouseOver);
                     }
                 }
+
+                // loop over conductors
+                // arr[0] + k * sk for 2d
+                // arr[0][0] + k * sk + l * sl for 3d (later)
+                (json.density || []).forEach(function (c, ci) {
+                    var pg = viewport.append('g')
+                        .attr('class', 'density-plot');
+                    // loop over "faces"
+                    c.forEach(function (f, fi) {
+                        var o = [f.x.startVal, f.z.startVal].map(toNano);
+                        var sk = [f.x.slopek, f.z.slopek].map(toNano);
+                        var den = f.dArr;
+                        var nk = den.length;
+                        var nl = den[0].length;
+                        if(nl) {
+                            // for now don't display 2d impact density if the data is 3d
+                            $scope.has3dData = true;
+                            return;
+                        }
+                        /*** aves ***/
+                        var nPts = f.n;
+                        var binWidth = Math.floor(nPts / nk);
+                        var indices = [];
+                        for(var j = 0; j < nk; ++j) {
+                            indices.push(j * binWidth);
+                        }
+                        indices.push(nPts - 1);
+
+                        /*** raw densities ***/
+                        /*
+                        var indices = [];
+                        for(var j = 0; j < nk; ++j) {indices.push(j);}
+                        */
+                        /******/
+
+                        //srdbg('indices', indices);
+                        var xc = indices.map(function (i) {
+                            return o[0] + sk[0] * i;
+                        });
+                        var zc = indices.map(function (i) {
+                            return o[1] + sk[1] * i;
+                        });
+                        var coords = geometry.transpose([zc, xc]);
+                        //srdbg('coords', coords);
+                        var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
+                        var smax = Math.max.apply(null, den);
+                        var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
+
+                        coords.forEach(function (c, i) {
+                            if(i === coords.length - 1) {
+                                return;
+                            }
+                            var p0 = c;
+                            var p1 = coords[i+1];
+                            var v = [[p0[0], p0[1]], [p1[0], p1[1]]];
+                            v.srDensity = den[i];
+                            var path = pg.append('path')
+                                .attr('class', 'line')
+                                .attr('style', 'stroke-width: 6px; stroke-linecap: square; cursor: default; stroke: ' +
+                                        (den[i] > 0 ? fcs(den[i]) : 'black')
+                                )
+                                .datum(v);
+                            path.on('mouseover', mouseOver);
+                        });
+                    });
+                });
             };
 
             $scope.refresh = function() {

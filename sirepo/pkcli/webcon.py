@@ -19,10 +19,10 @@ _SCHEMA = simulation_db.get_schema(template.SIM_TYPE)
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-        if data.report == 'analysisReport':
+        if 'analysisReport' in data.report:
             res = template.get_analysis_report(py.path.local(cfg_dir), data)
-        elif data['report'] == 'fftReport':
-            res = template.get_fft(data)
+        elif 'fftReport' in data.report:
+            res = template.get_fft(py.path.local(cfg_dir), data)
         else:
             assert False, 'unknown report: {}'.format(data.report)
         simulation_db.write_result(res)

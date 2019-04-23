@@ -37,7 +37,7 @@ _OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.npy'
 _PARTICLE_PERIOD = 100
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
@@ -483,8 +483,14 @@ def _extract_impact_density(run_dir, data):
     width = 0
 
     dx = plot_info['dx']
+    dy = 0
     dz = plot_info['dz']
-    gated_ids = plot_info['gated_ids']
+
+    if _is_3D(data):
+        dy = 0 #plot_info['dy']
+        width = _meters(grid.channel_width)
+
+    gated_ids = plot_info['gated_ids'] if 'gated_ids' in plot_info else []
     lines = []
 
     for i in gated_ids:
@@ -507,8 +513,11 @@ def _extract_impact_density(run_dir, data):
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
         'y_range': [-radius, radius],
+        'z_range': [-width / 2., width / 2.],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
+        'density': plot_info['density'] if 'density' in plot_info else [],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
