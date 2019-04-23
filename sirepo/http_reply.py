@@ -110,10 +110,12 @@ def gen_redirect_for_root(sim_type, **kwargs):
     """Redirect to app root for sim_type
 
     Args:
-        sim_type (str): valid sim_type
+        sim_type (str): valid sim_type or None
     Returns:
         flask.Response: reply object
     """
+    if not sim_type:
+        sim_type = ''
     return flask.redirect('/' + sim_type, **kwargs)
 
 

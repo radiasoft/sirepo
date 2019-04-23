@@ -62,18 +62,18 @@ def api_authCompleteRegistration():
     # for just this API.
     if not _is_logged_in():
         return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
-    data = http_request.parse_json(assert_sim_type=False)
-    dn = _parse_display_name(data)
-    uid = _get_user()
+    d = http_request.parse_json()
+    t = d.simulationType
+    n = _parse_display_name(d)
+    u = _get_user()
     with user_db.thread_lock:
-        u = user_db.UserRegistration.search_by(uid=uid)
-        if not u:
-            # first time for this user
-            u = user_db.UserRegistration(uid=uid)
-        u.display_name = dn
-        u.save()
+        r = user_db.UserRegistration.search_by(uid=u)
+        if not r:
+            r = user_db.UserRegistration(uid=u)
+        r.display_name = n
+        r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
-    return http_reply.gen_json_ok()
+    return http_reply.gen_redirect_for_root(t)
 
 
 @api_perm.allow_visitor
@@ -109,11 +109,15 @@ def api_authLogout(simulation_type):
 
     Redirects to root simulation page.
     """
-    sim_type = sirepo.template.assert_sim_type(simulation_type)
+    t = None
+    try:
+        t = sirepo.template.assert_sim_type(simulation_type)
+    except AssertionError:
+        pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_root(sim_type)
+    return http_reply.gen_redirect_for_root(t)
 
 
 def init_apis(app, *args, **kwargs):
@@ -168,7 +172,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     Returns:
         flask.Response: reply object or None (if no sim_type)
     """
-    r = _validate_method(module.AUTH_METHOD)
+    r = _validate_method(module, sim_type=sim_type)
     if r:
         return r
     if model:
@@ -182,7 +186,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
             reset_state()
         # We are logged in with a deprecated method, and now the user
         # needs to login with an allowed method.
-        return login_failed_redirect(sim_type, module, 'deprecated')
+        return login_fail_redirect(sim_type, module, 'deprecated')
     if not uid:
         # No user in the cookie and method didn't provide one so
         # the user might be switching methods (e.g. github to email or guest to email).
@@ -201,26 +205,37 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         if model:
             model.uid = uid
             model.save()
-    if not sim_type:
-        return None
-    return login_success_redirect(sim_type)
+    if sim_type:
+        return login_success_redirect(sim_type)
+    # bluesky or basic
+    return None
 
 
-def login_failed_redirect(sim_type=None, module=None, reason=None):
+def login_fail_redirect(sim_type=None, module=None, reason=None):
     if sim_type:
         return http_reply.gen_redirect_for_local_route(
             sim_type,
-            'loginFailed',
+            'loginFail',
             {
                 'method': module.AUTH_METHOD,
                 'reason': reason,
             },
         )
-    util.raise_unauthorized('login failed (without simulation_type)')
+    util.raise_unauthorized(
+        'login failed (no sym_type): reason={} method={}'.format(
+            reason,
+            module.AUTH_METHOD,
+        ),
+    )
 
 
 def login_success_redirect(sim_type):
-    assert sim_type
+    if sim_type:
+        if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
+            return http_reply.gen_redirect_for_local_route(
+                sim_type,
+                'completeRegistration',
+            )
     return http_reply.gen_redirect_for_root(sim_type)
 
 
@@ -230,10 +245,10 @@ def process_request(unit_test=None):
 
 
 def require_auth_basic():
-    r = _validate_method('basic')
+    m = _METHOD_MODULES['basic']
+    r = _validate_method(m)
     if r:
         return r
-    m = _METHOD_MODULES['basic']
     uid = m.require_user()
     if not uid:
         return _app.response_class(
@@ -446,11 +461,11 @@ def _user_name(*args, **kwargs):
     return u and u.user_name
 
 
-def _validate_method(method):
-    if method in valid_methods:
+def _validate_method(module, sim_type=None):
+    if module.AUTH_METHOD in valid_methods:
         return None
-    pkdlog('invalid auth method={}'.format(method))
-    return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
+    pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
+    return login_fail_redirect(sim_type, module, 'invalid-method')
 
 
 cfg = pkconfig.init(

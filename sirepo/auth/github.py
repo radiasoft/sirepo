@@ -48,7 +48,7 @@ def api_authGitHubAuthorized():
     """
     # clear temporary cookie values first
     expect = cookie.unchecked_remove(_COOKIE_NONCE) or '<missing-nonce>'
-    sim_type = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
+    t = cookie.unchecked_remove(_COOKIE_SIM_TYPE)
     oc = _oauth_client()
     resp = oc.authorized_response()
     if not resp:
@@ -60,7 +60,7 @@ def api_authGitHubAuthorized():
             expect,
             got,
         )
-        return auth.login_failed_redirect(sim_type, this_module, 'invalid')
+        return auth.login_fail_redirect(t, this_module, 'oauth-state')
     d = oc.get('user', token=(resp['access_token'], '')).data
     with user_db.thread_lock:
         u = AuthGitHubUser.search_by(oauth_id=d['id'])
@@ -73,7 +73,7 @@ def api_authGitHubAuthorized():
         return auth.login(
             this_module,
             model=u,
-            sim_type=sim_type,
+            sim_type=t,
             data=d,
         )
 
@@ -82,7 +82,7 @@ def api_authGitHubAuthorized():
 def api_authGitHubLogin():
     """Redirects to GitHub"""
     d = http_request.parse_json()
-    t = sirepo.template.assert_sim_type(d.simulationType)
+    t = d.simulationType
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
     cookie.set_value(_COOKIE_SIM_TYPE, t)

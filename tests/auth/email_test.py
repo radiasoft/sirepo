@@ -23,14 +23,28 @@ def test_different_email():
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
     s = fc.sr_auth_state(isLoggedIn=True, needCompleteRegistration=True)
-    r = fc.sr_post('authCompleteRegistration', {'displayName': 'abc'})
+    r = fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+        raw_response=True,
+    )
     t = fc.sr_auth_state(userName='a@b.c', displayName='abc')
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
     r = fc.sr_post('authEmailLogin', {'email': 'x@y.z', 'simulationType': sim_type})
-    r = fc.get(r.url)
-    r = fc.sr_post('authCompleteRegistration', {'displayName': 'xyz'})
+    fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'xyz',
+            'simulationType': sim_type,
+        },
+        raw_response=True,
+    )
     uid2 = fc.sr_auth_state(displayName='xyz', isLoggedIn=True, userName='x@y.z').uid
     pkok(uid != uid2, 'did not get a new uid={}', uid)
 
@@ -71,7 +85,14 @@ def test_happy_path():
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'a@b.c', 'simulationType': sim_type})
     fc.get(r.url)
-    fc.sr_post('authCompleteRegistration', {'displayName': 'abc'})
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+        raw_response=True,
+    )
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     uid = fc.sr_auth_state(userName='a@b.c', displayName='abc', isLoggedIn=True).uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})

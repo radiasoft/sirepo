@@ -73,11 +73,18 @@ def test_happy_path(monkeypatch):
     pkre(state, r.headers['location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=None, userName=None)
     r = fc.sr_get('authGitHubAuthorized', query={'state': state})
-    pkre('/{}$'.format(sim_type), r.headers['Location'])
+    pkre('location = "/{}#/complete-registration"'.format(sim_type), r.data)
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('srException', d.state)
     pkeq('completeRegistration', d.srException.routeName)
-    d = fc.sr_post('authCompleteRegistration', {'displayName': 'Happy Path'})
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'Happy Path',
+            'simulationType': sim_type,
+        },
+        raw_response=True,
+    )
     s = fc.sr_auth_state(displayName='Happy Path', isLoggedIn=True, userName='happy')
     uid = s.uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})

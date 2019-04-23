@@ -63,7 +63,7 @@ def api_authEmailAuthorized(simulation_type, token):
 
     Token must exist in db and not be expired.
     """
-    sim_type = sirepo.template.assert_sim_type(simulation_type)
+    t = sirepo.template.assert_sim_type(simulation_type)
     with user_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= datetime.datetime.utcnow():
@@ -75,7 +75,7 @@ def api_authEmailAuthorized(simulation_type, token):
             u.token = None
             u.expires = None
             u.save()
-            return auth.login(this_module, sim_type=sim_type, model=u)
+            return auth.login(this_module, sim_type=t, model=u)
         if not u:
             pkdlog('login with invalid token={}', token)
         else:
@@ -84,7 +84,7 @@ def api_authEmailAuthorized(simulation_type, token):
                 token,
                 u.unverified_email,
             )
-        return auth.login_failed_redirect(sim_type, this_module, 'invalid')
+        return auth.login_fail_redirect(t, this_module, 'email-token')
 
 
 @api_perm.require_cookie_sentinel
@@ -95,7 +95,7 @@ def api_authEmailLogin():
     """
     data = http_request.parse_json()
     email = _parse_email(data)
-    sim_type = sirepo.template.assert_sim_type(data.simulationType)
+    t = data.simulationType
     with user_db.thread_lock:
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
@@ -106,7 +106,7 @@ def api_authEmailLogin():
         u,
         uri_router.uri_for_api(
             'authEmailAuthorized',
-            dict(simulation_type=sim_type, token=u.token),
+            dict(simulation_type=t, token=u.token),
         ),
     )
 
@@ -145,8 +145,6 @@ def _init_model(db, base):
     # Existing user: (unverified_email, token, expires) -> auth -> (unverified_email, uid, email)
 
     # display_name is prompted after first login
-
-### subclass model passed into _init_email_auth_model
     class AuthEmailUser(base, db.Model):
         EMAIL_SIZE = 255
         TOKEN_SIZE = 16

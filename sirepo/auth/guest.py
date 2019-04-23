@@ -27,7 +27,7 @@ this_module = pkinspect.this_module()
 @api_perm.require_cookie_sentinel
 def api_authGuestLogin():
     """You have to be an anonymous or logged in user at this point"""
-    t = sirepo.template.assert_sim_type(http_request.parse_json().simulationType)
+    t = http_request.parse_json().simulationType
     return auth.login(this_module, sim_type=t)
 
 

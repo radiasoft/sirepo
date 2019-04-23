@@ -200,7 +200,7 @@
         },
         "localRoutes": {
             "completeRegistration": {
-                "route": "/user-display-name",
+                "route": "/complete-registration",
                 "config": {
                   "controller": "CompleteRegistrationController as completeRegistration",
                   "templateUrl": "/static/html/complete-registration.html"
@@ -219,11 +219,11 @@
                   "templateUrl": "/static/html/login.html"
                 }
             },
-            "loginFailed": {
-                "route": "/login-failed/:method/:reason",
+            "loginFail": {
+                "route": "/login-fail/:method/:reason",
                 "config": {
-                  "controller": "LoginFailedController as loginFailed",
-                  "templateUrl": "/static/html/login-failed.html"
+                  "controller": "LoginFailController as loginFail",
+                  "templateUrl": "/static/html/login-fail.html"
                 }
             },
             "loginWith": {

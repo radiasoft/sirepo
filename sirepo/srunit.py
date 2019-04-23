@@ -210,9 +210,15 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get('authState')
         self.sr_post('authGuestLogin', {'simulationType': sim_type}, raw_response=True)
-        self.sr_post('authCompleteRegistration', {'displayName': sim_type + ' Guest'})
-        m = re.search('"uid": "([^"]+)"', self.sr_get('authState').data)
-        return m.group(1)
+        self.sr_post(
+            'authCompleteRegistration',
+            {
+                'displayName': sim_type + ' Guest',
+                'simulationType': sim_type,
+            },
+            raw_response=True,
+        )
+        return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 
     def sr_post(self, route_name, data, params=None, raw_response=False):
