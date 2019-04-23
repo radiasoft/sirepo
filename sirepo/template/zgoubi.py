@@ -170,6 +170,7 @@ def fixup_old_data(data):
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'coordinates' not in data.models.bunch:
         data.models.bunch.coordinates = []
+    template_common.organize_example(data)
 
 
 def get_animation_name(data):
