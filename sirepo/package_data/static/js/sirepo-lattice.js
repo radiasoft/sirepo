@@ -1105,9 +1105,16 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             length = 0;
                         }
                         else if (picType == 'magnet') {
-                            groupItem.height = 0.5;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item, 'red');
+                            if (! length) {
+                                groupItem.height = 0.2;
+                                groupItem.picType = 'zeroLength';
+                                groupItem.color = 'black';
+                            }
+                            else {
+                                groupItem.height = 0.5;
+                                groupItem.y = pos.y - groupItem.height / 2;
+                                groupItem.color = getPicColor(item, 'red');
+                            }
                         }
                         else if (picType == 'undulator') {
                             groupItem.height = 0.25;
