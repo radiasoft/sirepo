@@ -125,7 +125,6 @@ def init_apis(app, *args, **kwargs):
         #TODO(robnagler) validate email
         from_email=pkconfig.Required(str, 'From email address'),
         from_name=pkconfig.Required(str, 'From display name'),
-        oauth_compat=(False, bool, 'backward compatibility: try to find user in oauth'),
         smtp_password=pkconfig.Required(str, 'SMTP auth password'),
         smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),

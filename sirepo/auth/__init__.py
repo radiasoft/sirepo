@@ -53,7 +53,7 @@ _AVATAR_SIZE = 40
 #: uwsgi object for logging
 _uwsgi = None
 
-#: allowed_methods + deprecated_methods
+#: methods + deprecated_methods
 valid_methods = []
 
 #: Methods that the user is allowed to see
@@ -126,19 +126,24 @@ def api_authLogout(simulation_type):
 
 
 def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app
+    global uri_router, simulation_db, _app, cfg
+    assert not _METHOD_MODULES
+
+    cfg = pkconfig.init(
+        methods=((_METHOD_GUEST,), tuple, 'for logging in'),
+        deprecated_methods=(tuple(), tuple, 'for migrating to methods'),
+    )
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
     user_db.init(app)
-    assert not _METHOD_MODULES
     _app = app
     p = pkinspect.this_module().__name__
-    valid_methods.extend(cfg.allowed_methods + cfg.deprecated_methods)
+    valid_methods.extend(cfg.methods + cfg.deprecated_methods)
     for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         uri_router.register_api_module(m)
         _METHOD_MODULES[n] = m
-        if m.AUTH_METHOD_VISIBLE and n in cfg.allowed_methods:
+        if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
@@ -201,7 +206,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         uid = _get_user() if _is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
         if uid and module.AUTH_METHOD not in (m, _METHOD_GUEST):
-            # switch this method to this uid (even for allowed_methods)
+            # switch this method to this uid (even for methods)
             # except if the same method, then assuming logging in as different user.
             # This handles the case where logging in as guest, creates a user every time
             _login_user(module, uid)
@@ -272,7 +277,7 @@ def require_user():
     if s is None:
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
-        if m in cfg.allowed_methods:
+        if m in cfg.methods:
             # Success
             return None
         u = _get_user()
@@ -412,7 +417,7 @@ def _login_user(module, uid):
     cookie.set_value(_COOKIE_USER, uid)
     cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
     s = _STATE_LOGGED_IN
-    if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.allowed_methods:
+    if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
         ur = user_db.UserRegistration.search_by(uid=uid)
         if not ur:
             ur = user_db.UserRegistration(
@@ -475,9 +480,3 @@ def _validate_method(module, sim_type=None):
         return None
     pkdlog('invalid auth method={}'.format(module.AUTH_METHOD))
     return login_fail_redirect(sim_type, module, 'invalid-method')
-
-
-cfg = pkconfig.init(
-    allowed_methods=((_METHOD_GUEST,), tuple, 'for logging in'),
-    deprecated_methods=(tuple(), tuple, 'for migrating to allowed_methods'),
-)

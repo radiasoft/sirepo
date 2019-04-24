@@ -11,7 +11,7 @@ def test_auth_hash(monkeypatch):
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
-        'SIREPO_AUTH_ALLOWED_METHODS': 'bluesky',
+        'SIREPO_AUTH_METHODS': 'bluesky',
         'SIREPO_AUTH_BLUESKY_SECRET': 'a simple string is fine',
     })
     from sirepo.auth import bluesky
@@ -37,7 +37,7 @@ def test_auth_hash_copy():
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
-        'SIREPO_AUTH_ALLOWED_METHODS': 'bluesky',
+        'SIREPO_AUTH_METHODS': 'bluesky',
         'SIREPO_AUTH_BLUESKY_SECRET': 'anything',
     })
     from pykern import pkcollections
@@ -78,7 +78,7 @@ def test_auth_login():
     from sirepo import srunit
 
     fc = srunit.flask_client(cfg={
-        'SIREPO_AUTH_ALLOWED_METHODS': 'bluesky:guest',
+        'SIREPO_AUTH_METHODS': 'bluesky:guest',
         'SIREPO_AUTH_BLUESKY_SECRET': '3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
     })
     from sirepo import simulation_db

@@ -115,7 +115,7 @@ def wrap_in_request(*args, **kwargs):
         def test_simple():
             inside request context
 
-        @srunit.wrap_in_request(cfg={'SIREPO_AUTH_ALLOWED_METHODS': 'github:guest'})
+        @srunit.wrap_in_request(cfg={'SIREPO_AUTH_METHODS': 'github:guest'})
         def test_myapp():
             inside a request context here
 

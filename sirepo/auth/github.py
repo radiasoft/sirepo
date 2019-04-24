@@ -86,6 +86,9 @@ def api_authGitHubLogin():
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
     cookie.set_value(_COOKIE_SIM_TYPE, t)
+    if not cfg.callback_uri:
+        # must be executed in an app and request context
+        cfg.callback_uri = uri_router.uri_for_api('authGitHubAuthorized')
     return _oauth_client().authorize(callback=cfg.callback_uri, state=s)
 
 
@@ -111,12 +114,6 @@ def init_apis(app, *args, **kwargs):
     )
     app.session_interface = _FlaskSessionInterface()
     user_db.init_model(app, _init_model)
-
-
-def post_init_uris(*args, **kwargs):
-    """Called after uris are initialized"""
-    if not cfg.callback_uri:
-        cfg.callback_uri = uri_router.uri_for_api('authGitHubAuthorized')
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):

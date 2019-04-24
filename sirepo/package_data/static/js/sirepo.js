@@ -960,9 +960,25 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('loginService', function(requestSender, $location) {
+SIREPO.app.factory('authService', function(authState, requestSender) {
     var self = {};
 
+    function label(method) {
+        if ('guest' == method) {
+            return 'as Guest';
+        }
+        return 'with ' + method.charAt(0).toUpperCase() + method.slice(1);
+    }
+
+    self.methods = authState.visibleMethods.map(
+        function (method) {
+            return {
+                'label': 'Sign in ' + label(method),
+                'url': requestSender.formatUrlLocal('loginWith', {':method': method})
+            };
+        }
+    );
+    self.logoutUrl = '/TODO-' + 'logout';
     return self;
 });
 
@@ -2539,12 +2555,10 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoginController', function (requestSender, loginService, panelState) {
+SIREPO.app.controller('LoginController', function (authState, authService) {
     var self = this;
-    self.loginService = loginService;
-    panelState.waitForUI(function() {
-        $('#sr-login').modal('show');
-    });
+    self.authState = authState;
+    self.authService = authService;
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {

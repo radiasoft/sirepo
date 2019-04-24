@@ -568,34 +568,26 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
+SIREPO.app.directive('logoutMenu', function(authState) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<li data-ng-if=":: authState." class="sr-logged-in-menu dropdown">',
-              '<a href data-ng-if="::loginService.isEmailAuth" class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
-                '<span class="glyphicon glyphicon-user"></span> <span class="caret"></span>',
-              '</a>',
-              '<a href data-ng-if=":: loginService." class="dropdown-toggle" data-toggle="dropdown">',
-                '<img data-ng-src="https://avatars.githubusercontent.com/{{ authState.userName }}?size=40"</img>',
+            '<li data-ng-if="::authState.isLoggedIn" class="sr-logged-in-menu dropdown">',
+              '<a href class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
+                '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
+                '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
                 ' <span class="caret"></span>',
               '</a>',
               '<ul class="dropdown-menu">',
-                '<li class="dropdown-header">Signed in as <strong>{{ authState.userName }}</strong></li>',
+                '<li class="dropdown-header"><strong>{{ authState.displayName }}!</strong></li>',
+                '<li data-ng-if="::authState.userName">{{ authState.userName }} via {{ authState.method }}</li>',
                 '<li class="divider"></li>',
-                '<li><a data-ng-href="{{ logoutURL }}" loginService.enableNotification(true)">Sign out</a></li>',
-              '</ul>',
-            '</li>',
-            '<li data-ng-if="! loginService.isLoggedIn()" class="dropdown" data-ng-class="{\'alert-success\': loginService.isNotificationDisplayed()}">',
-              '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
-              '<ul class="dropdown-menu">',
-                '<li data-login-link=""></li>',
+                '<li><a data-ng-href="::authState.logoutUrl">Sign out</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
-            $scope.loginService = loginService;
             $scope.authState = authState;
         },
     };
@@ -1694,7 +1686,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
+SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1702,7 +1694,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
             simulationsLinkText: '@',
         },
         template: [
-            '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
+            '<ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
@@ -1711,12 +1703,10 @@ SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.authState = authState;
             if (! $scope.simulationsLinkText) {
                 $scope.simulationsLinkText = 'Simulations';
             }
-            $scope.showMenu = function() {
-                return SIREPO.authState.isLoggedIn ? 1 : 0;
-            };
             $scope.showTitle = function() {
                 return appState.isLoaded();
             };
@@ -1791,7 +1781,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                     '</ul>',
                   '</li>',
                 '</ul>',
-                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="displayLoginMenu()"></ul>',
+                '<ul data-ng-if="::! authState.isLoggedIn" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1807,9 +1797,6 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
         },
         controller: function($scope) {
 
-            $scope.displayLoginMenu = function() {
-                return SIREPO.authState && $scope.modeIsDefault();
-            };
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -2180,8 +2167,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-route completeregistration
-SIREPO.app.directive('completeRegistrationModal', function(loginService, panelState, requestSender) {
+SIREPO.app.directive('completeRegistrationModal', function(panelState, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -2209,29 +2195,6 @@ SIREPO.app.directive('completeRegistrationModal', function(loginService, panelSt
                     //TODO(pjm): add server error message
                 }
             }
-
-            $scope.updateDisplayName = function() {
-                requestSender.sendRequest(
-                    'authCompleteRegistration',
-                    handleResponse,
-                    {
-                        displayName: $scope.data.displayName,
-                    });
-            };
-
-            $scope.missingDisplayName = function() {
-                if (loginService.isLoggedIn() && ! SIREPO.authState.displayName) {
-                    $scope.data = {
-                        email: SIREPO.authState.userName,
-                        name: '',
-                    };
-                    panelState.waitForUI(function() {
-                        $('#sr-complete-registration').modal('show');
-                    });
-                    return true;
-                }
-                return false;
-            };
         },
     };
 });
@@ -2273,7 +2236,7 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
                 $scope.data.sentEmail = $scope.data.email;
                 //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
-                    'emailAuthLogin',
+                    'authEmailLogin',
                     handleResponse,
                     {
                         email: $scope.data.sentEmail,
@@ -2289,7 +2252,7 @@ SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
     };
 });
 
-SIREPO.app.directive('commonFooter', function(loginService) {
+SIREPO.app.directive('commonFooter', function() {
     return {
         restrict: 'A',
         scope: {
@@ -2298,11 +2261,7 @@ SIREPO.app.directive('commonFooter', function(loginService) {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
-            '<div data-complete-registration-modal=""></div>',
         ].join(''),
-        controller: function($scope) {
-            $scope.loginService = loginService;
-        },
     };
 });
 

@@ -107,7 +107,7 @@ def _fc(monkeypatch, user_name):
     from sirepo import srunit
     sim_type = 'myapp'
     fc = srunit.flask_client({
-        'SIREPO_AUTH_ALLOWED_METHODS': 'guest:github',
+        'SIREPO_AUTH_METHODS': 'guest:github',
         'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
         'SIREPO_AUTH_GITHUB_CALLBACK_URI': '/uri',
         'SIREPO_AUTH_GITHUB_KEY': 'key',

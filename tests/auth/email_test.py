@@ -226,7 +226,7 @@ def _fc(github_deprecated=True):
 
     sim_type = 'myapp'
     cfg = {
-        'SIREPO_AUTH_ALLOWED_METHODS': 'email:guest',
+        'SIREPO_AUTH_METHODS': 'email:guest',
         'SIREPO_AUTH_EMAIL_FROM_EMAIL': 'x',
         'SIREPO_AUTH_EMAIL_FROM_NAME': 'x',
         'SIREPO_AUTH_EMAIL_SMTP_PASSWORD': 'x',
@@ -240,7 +240,7 @@ def _fc(github_deprecated=True):
     if github_deprecated:
         cfg['SIREPO_AUTH_DEPRECATED_METHODS'] = 'github'
     else:
-        cfg['SIREPO_AUTH_ALLOWED_METHODS'] += ':github'
+        cfg['SIREPO_AUTH_METHODS'] += ':github'
     fc = srunit.flask_client(cfg=cfg)
     # set the sentinel
     fc.cookie_jar.clear()
