@@ -334,10 +334,12 @@ wp.installconductor(source, dfill=wp.largepos)
 plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate)
 wp.installconductor(plate,dfill=wp.largepos)
 
+dz = (Z_MAX - Z_MIN)/NUM_Z
+
 conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
-    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight")
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz)
 {% else %}
     wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}),
 {% endif %}

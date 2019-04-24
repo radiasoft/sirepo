@@ -238,12 +238,13 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     // add the type here.  Details get filled in later
     function initImportedConductor() {
         var f = appState.models.simulation.conductorFile;
-        if(f) {
+        if (f) {
             var iTypes = importedConductorTypes(f);
-            if(iTypes.length) {
+            if (iTypes.length) {
                 return;
             }
             vtkPlotting.loadSTLFile(f).then(function (r) {
+                vtkPlotting.addSTLReader(f, r);
                 var t = self.createConductorType('stl', true);
                 t.file = f;
                 t.name = f.substring(0, f.indexOf('.'));
@@ -2680,6 +2681,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function setupConductor(reader, conductor, type) {
+                if (! fsRenderer) {
+                    return;
+                }
                 var bounds = reader.getOutputData().getBounds();
                 var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
                 var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;

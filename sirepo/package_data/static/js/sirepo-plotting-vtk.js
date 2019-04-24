@@ -128,6 +128,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 self.loadSTLFile(file).then(function (r) {
                     r.loadData()
                         .then(function (res) {
+                            self.addSTLReader(file, r);
                             callback(actorBundle(r));
                         }, function (reason) {
                             throw file + ': Error loading data from .stl file: ' + reason;

@@ -667,6 +667,7 @@ def _generate_parameters_file(data):
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductors'] = _prepare_conductors(data)
+    v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
     if not v['is3D']:

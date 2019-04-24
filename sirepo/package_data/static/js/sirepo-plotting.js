@@ -3405,13 +3405,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return stlcm;
             }
             function setupConductor(bundle, conductor, type) {
-                vtkPlotting.addSTLReader(type.file, bundle.source);
+                //vtkPlotting.addSTLReader(type.file, bundle.source);
                 // stl coordinates should be multiplied by toMicronFactor to become microns.  This is
                 // independent of the scaling of warp data
                 var cm = buildSTLCoordMapper(1.0 / toMicronFactor);
                 var reader = bundle.source;
                 var actor = bundle.actor;
                 var bounds = reader.getOutputData().getBounds();
+                //srdbg('cond bounds', bounds);
                 // offsets are in coords set by the stl data - convert to microns
                 var xOffset = (bounds[0] + (bounds[1] - bounds[0]) / 2) / toMicronFactor;
                 var yOffset = (bounds[2] + (bounds[3] - bounds[2]) / 2) / toMicronFactor;
@@ -3645,12 +3646,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 ymin = pointData.z_range[0];
                 ymax = pointData.z_range[1];
 
-                var gXMin = 10e-6 * (-grid.channel_width / 2.0);
-                var gXMax = 10e-6 * (grid.channel_width / 2.0);
-                var gYMin = 10e-6 * (-grid.channel_height / 2.0);
-                var gYMax = 10e-6 * (grid.channel_height / 2.0);
+                var gXMin = 1e-6 * (-grid.channel_width / 2.0);
+                var gXMax = 1e-6 * (grid.channel_width / 2.0);
+                var gYMin = 1e-6 * (-grid.channel_height / 2.0);
+                var gYMax = 1e-6 * (grid.channel_height / 2.0);
                 var gZMin = 0;
-                var gZMax = 10e-6 * grid.plate_spacing;
+                var gZMax = 1e-6 * grid.plate_spacing;
 
                 //srdbg('grid scaled', gXMin, gXMax, gYMin, gYMax, gZMin, gZMax);
                 //srdbg('particle bounds', xmin, xmax, ymin, ymax, zmin, zmax);
@@ -3752,16 +3753,16 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     [xmin, ymax, zmin],
                     [xmax, ymin, zmin]
                     //[gXMin, gYMin, gZMin],
-                  //  [gXMin, gYMin, gZMin],
-                  //  [gXMax, gYMin, gZMin]
+                    //[gXMin, gYMax, gZMin],
+                    //[gXMax, gYMin, gZMin]
                 );
                 coordMapper.setPlane(endPlaneBundle,
                     [xmin, ymin, zmax],
                     [xmin, ymax, zmax],
                     [xmax, ymin, zmax]
                     //[gXMin, gYMin, gZMax],
-                   // [gXMin, gYMin, gZMax],
-                  //  [gXMax, gYMin, gZMax]
+                    //[gXMin, gYMax, gZMax],
+                    //[gXMax, gYMin, gZMax]
                 );
 
                 var padding = 0.01;
