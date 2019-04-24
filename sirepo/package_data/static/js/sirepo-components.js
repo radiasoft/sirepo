@@ -573,7 +573,7 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
         restrict: 'A',
         scope: {},
         template: [
-            '<li data-ng-if="loginService.isLoggedIn()" class="sr-logged-in-menu dropdown">',
+            '<li data-ng-if=":: authState." class="sr-logged-in-menu dropdown">',
               '<a href data-ng-if="::loginService.isEmailAuth" class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
                 '<span class="glyphicon glyphicon-user"></span> <span class="caret"></span>',
               '</a>',
@@ -596,11 +596,7 @@ SIREPO.app.directive('loginMenu', function(appDataService, loginService) {
         ].join(''),
         controller: function($scope) {
             $scope.loginService = loginService;
-            $scope.authState = SIREPO.authState;
-            $scope.logoutURL = loginService.formatLogoutUrl();
-            if (appDataService.isApplicationMode('default')) {
-                loginService.initNotification();
-            }
+            $scope.authState = authState;
         },
     };
 });

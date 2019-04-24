@@ -19,6 +19,7 @@ from sirepo import util
 import datetime
 import flask
 import flask_mail
+import hashlib
 import pyisemail
 import re
 import sirepo.auth
@@ -108,6 +109,13 @@ def api_authEmailLogin():
             'authEmailAuthorized',
             dict(simulation_type=t, token=u.token),
         ),
+    )
+
+
+def avatar_uri(model, size):
+    return 'https://www.gravatar.com/avatar/{}?d=mp&s={}'.format(
+        hashlib.md5(model.user_name).hexdigest(),
+        size,
     )
 
 

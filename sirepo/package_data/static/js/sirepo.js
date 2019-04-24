@@ -88,7 +88,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 
         $delegate.$broadcast = function () {
             return _broadcast.apply(this, arguments);
-        };
+lxu        };
 
         return $delegate;
     });
@@ -130,16 +130,28 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
             addRoute(routeName);
         }
     } else {
-        addRoute('authorizationFailed');
+//TODO(robnagler) this probably can go away, because server throws exceptions for other routes
+        addRoute('completeRegistration');
+        addRoute('forbidden');
         addRoute('login', true);
+        addRoute('loginFail');
+        addRoute('loginWith');
+        addRoute('missingCookies');
+        addRoute('notFound');
     }
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState) {
+SIREPO.app.factory('authState', function(appState) {
+    var self = appState.clone(SIREPO.authState);
+
+    return self;
+});
+
+SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, authState) {
     var self = this;
 
     self.getActiveSection = function() {
-        if (! SIREPO.authState.isLoggedIn) {
+        if (! authState.isLoggedIn) {
             return null;
         }
         var m = ($location.path() || '').match(/^\/([^\/]+)/);

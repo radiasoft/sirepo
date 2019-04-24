@@ -85,11 +85,22 @@ def test_happy_path(monkeypatch):
         },
         raw_response=True,
     )
-    s = fc.sr_auth_state(displayName='Happy Path', isLoggedIn=True, userName='happy')
+    s = fc.sr_auth_state(
+        avatarUrl='https://avatars.githubusercontent.com/happy?size=40',
+        displayName='Happy Path',
+        isLoggedIn=True,
+        userName='happy',
+    )
     uid = s.uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
-    fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=uid, userName=None)
+    fc.sr_auth_state(
+        avatarUrl=None,
+        displayName=None,
+        isLoggedIn=False,
+        uid=uid,
+        userName=None,
+    )
 
 
 def _fc(monkeypatch, user_name):

@@ -94,10 +94,21 @@ def test_happy_path():
         raw_response=True,
     )
     fc.sr_post('listSimulations', {'simulationType': sim_type})
-    uid = fc.sr_auth_state(userName='a@b.c', displayName='abc', isLoggedIn=True).uid
+    uid = fc.sr_auth_state(
+        avatarUrl='https://www.gravatar.com/avatar/5d60d4e28066df254d5452f92c910092?d=mp&s=40',
+        displayName='abc',
+        isLoggedIn=True,
+        userName='a@b.c',
+    ).uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
-    fc.sr_auth_state(uid=uid, userName=None, displayName=None, isLoggedIn=False)
+    fc.sr_auth_state(
+        displayName=None,
+        isLoggedIn=False,
+        needCompleteRegistration=False,
+        uid=uid,
+        userName=None,
+    )
 
 
 def test_oauth_conversion(monkeypatch):

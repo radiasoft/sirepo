@@ -172,7 +172,7 @@
                 ]
             },
             "libURLs": [
-                "/user-state"
+                "/auth-state"
             ]
         },
         "enum": {

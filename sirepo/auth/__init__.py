@@ -46,6 +46,10 @@ _METHOD_GUEST = 'guest'
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
 
+#TODO(robnagler) probably from the schema
+#: For formatting the size parameter to an avatar_uri
+_AVATAR_SIZE = 40
+
 #: uwsgi object for logging
 _uwsgi = None
 
@@ -80,6 +84,7 @@ def api_authCompleteRegistration():
 def api_authState():
     s = cookie.unchecked_get_value(_COOKIE_STATE)
     v = pkcollections.Dict(
+        avatarUrl=None,
         displayName=None,
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         isLoggedIn=_is_logged_in(s),
@@ -89,10 +94,10 @@ def api_authState():
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
-        v.userName = _user_name(v.method, u)
-        m = user_db.UserRegistration.search_by(uid=u)
-        if m:
-            v.displayName = m.display_name
+        r = user_db.UserRegistration.search_by(uid=u)
+        if r:
+            v.displayName = r.display_name
+        _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
@@ -309,8 +314,8 @@ def user_dir_not_found(uid):
         uid (str): user that does not exist
     """
     with user_db.thread_lock:
-        for m in _METHOD_MODULES.keys():
-            u = m._method_user_model(m, uid)
+        for m in _METHOD_MODULES.values():
+            u = _method_user_model(m, uid)
             if u:
                 u.delete()
                 u.save()
@@ -421,11 +426,20 @@ def _login_user(module, uid):
     _set_log_user()
 
 
-def _method_user_model(method, uid):
-    m = _METHOD_MODULES[method]
-    if not hasattr(m, 'UserModel'):
+def _method_auth_state(values, uid):
+    m = _METHOD_MODULES[values.method]
+    u = _method_user_model(m, uid)
+    if not u:
+        return
+    values.userName = u.user_name
+    if hasattr(m, 'avatar_uri'):
+        values.avatarUrl = m.avatar_uri(u, _AVATAR_SIZE)
+
+
+def _method_user_model(module, uid):
+    if not hasattr(module, 'UserModel'):
         return None
-    return m.UserModel.search_by(uid=uid)
+    return module.UserModel.search_by(uid=uid)
 
 
 def _parse_display_name(data):
@@ -454,11 +468,6 @@ def _set_log_user():
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
     cookie.set_value(_COOKIE_METHOD, auth_method)
-
-
-def _user_name(*args, **kwargs):
-    u = _method_user_model(*args, **kwargs)
-    return u and u.user_name
 
 
 def _validate_method(module, sim_type=None):

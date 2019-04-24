@@ -95,6 +95,13 @@ def api_oauthAuthorized(oauth_type):
     return api_authGitHubAuthorized()
 
 
+def avatar_uri(model, size):
+    return 'https://avatars.githubusercontent.com/{}?size={}'.format(
+        model.user_name,
+        size,
+    )
+
+
 def init_apis(app, *args, **kwargs):
     global cfg
     cfg = pkconfig.init(
