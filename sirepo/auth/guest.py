@@ -28,6 +28,9 @@ this_module = pkinspect.this_module()
 def api_authGuestLogin():
     """You have to be an anonymous or logged in user at this point"""
     t = http_request.parse_json().simulationType
+    # if already logged in as guest, just redirect
+    if auth.user_if_logged_in(AUTH_METHOD):
+        return auth.login_success_redirect(t)
     return auth.login(this_module, sim_type=t)
 
 

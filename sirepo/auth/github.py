@@ -81,13 +81,13 @@ def api_authGitHubAuthorized():
 @api_perm.require_cookie_sentinel
 def api_authGitHubLogin():
     """Redirects to GitHub"""
-    d = http_request.parse_json()
-    t = d.simulationType
+    t = http_request.parse_json().simulationType
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
     cookie.set_value(_COOKIE_SIM_TYPE, t)
     if not cfg.callback_uri:
-        # must be executed in an app and request context
+        # must be executed in an app and request context so can't
+        # initialize earlier.
         cfg.callback_uri = uri_router.uri_for_api('authGitHubAuthorized')
     return _oauth_client().authorize(callback=cfg.callback_uri, state=s)
 

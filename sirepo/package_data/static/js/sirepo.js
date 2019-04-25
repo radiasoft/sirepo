@@ -577,6 +577,10 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
         return model;
     };
 
+    self.ucfirst = function(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
     self.uniqueName = function(items, idField, template) {
         // find a unique name comparing against a list of items
         // template has {} replaced with a counter, ex. "my name (copy {})"
@@ -960,25 +964,31 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('authService', function(authState, requestSender) {
+SIREPO.app.factory('authService', function(appstate, authState, requestSender) {
     var self = {};
 
     function label(method) {
         if ('guest' == method) {
             return 'as Guest';
         }
-        return 'with ' + method.charAt(0).toUpperCase() + method.slice(1);
+        return 'with ' + ucfirst(method);
     }
 
     self.methods = authState.visibleMethods.map(
         function (method) {
             return {
                 'label': 'Sign in ' + label(method),
-                'url': requestSender.formatUrlLocal('loginWith', {':method': method})
+                'url': requestSender.formatUrlLocal(
+                    'loginWith',
+                    {':method': method},
+                )
             };
         }
     );
-    self.logoutUrl = '/TODO-' + 'logout';
+    self.logoutUrl = requestSender.formatUrl(
+        'authLogout',
+        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+    );
     return self;
 });
 
@@ -1405,8 +1415,9 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
         return SIREPO.APP_SCHEMA.appModes.default.localRoute;
     };
 
-    self.formatUrlLocal = function(routeName, params) {
-        return formatUrl(localRoutes, routeName, params);
+    self.formatUrlLocal = function(routeName, params, app) {
+        var u = '#' + formatUrl(localRoutes, routeName, params);
+        return app ? '/' + app + u : u;
     };
 
     self.formatUrl = function(routeName, params) {
@@ -1980,9 +1991,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
                     return 'Error: ' + e.split(/[\n\r]+/)[0];
                 }
             }
-            // ucfirst on the state value
-            var s = simulationStatus().state;
-            return s.charAt(0).toUpperCase() + s.slice(1);
+            return ucfirst(simulationStatus().state);
         };
 
         frameCache.setAnimationArgs(animationArgs);
@@ -2492,7 +2501,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     };
 
     self.sectionURL = function(name) {
-        return '#' + requestSender.formatUrlLocal(name, sectionParams(name));
+        return requestSender.formatUrlLocal(name, sectionParams(name));
     };
 
     self.getLocation = function() {
@@ -2559,6 +2568,31 @@ SIREPO.app.controller('LoginController', function (authState, authService) {
     var self = this;
     self.authState = authState;
     self.authService = authService;
+});
+
+SIREPO.app.controller('LoginWithController', function (appState, authState, requestSender) {
+    var self = this;
+    self.authState = authState;
+    var m = route.current.params.method || '';
+    self.message = 'Redirecting. Please wait...';
+    if (m == 'guest' || m == 'github') {
+        var t = appState.ucfirst(m);
+        requestSender.sendRequest(
+            'auth' + t + 'Login',
+            function() {
+                // should never get here
+                errorService.alertText('Failed to login with ' + t));
+            },
+            {simulationType: SIREPO.APP_SCHEMA.simulationType},
+        );
+    }
+    else if (m == 'email') {
+        self.message = 'Logging in';
+    }
+    else {
+        errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
+        requestSender.localRedirect('login');
+    }
 });
 
 SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {
