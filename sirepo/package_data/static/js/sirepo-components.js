@@ -574,7 +574,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService) {
         scope: {},
         template: [
             '<li data-ng-if="::authState.isLoggedIn" class="sr-logged-in-menu dropdown">',
-              '<a href class="dropdown-toggle sr-logged-in" data-toggle="dropdown">',
+              '<a href class="dropdown-toggle" data-toggle="dropdown">',
                 '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
                 '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
                 ' <span class="caret"></span>',

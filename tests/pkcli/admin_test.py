@@ -24,7 +24,6 @@ def test_purge_users(monkeypatch):
 
     res = admin.purge_users(days=1, confirm=False)
     pkeq([], res, '{}: no old users so empty')
-    pkdp(simulation_db.user_dir_name('*'))
     g = simulation_db.user_dir_name('*')
     dirs = list(pkio.sorted_glob(g))
     pkeq(1, len(dirs), '{}: expecting exactly one user dir', g)

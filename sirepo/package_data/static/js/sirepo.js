@@ -2578,6 +2578,7 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, appState
     self.method = m;
     if (m == 'guest' || m == 'github') {
         var t = appState.ucfirst(m);
+        self.msg = 'Logging in via ' + m + '. Please wait...';
         $window.location.href = requestSender.formatUrl(
             'auth' + t + 'Login',
             {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
