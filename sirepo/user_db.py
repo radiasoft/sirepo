@@ -52,6 +52,10 @@ def init(app):
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
+        def delete(self):
+            _db.session.delete(self)
+            _db.session.commit()
+
         def save(self):
             _db.session.add(self)
             _db.session.commit()

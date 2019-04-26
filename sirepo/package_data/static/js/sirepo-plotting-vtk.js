@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utilities, geometry, $window) {
+SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
     var self = {};
 
@@ -23,42 +23,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             return true;
         }
         return false;
-    };
-
-    self.vtkPlot = function(scope, element) {
-
-        scope.element = element[0];
-        var requestData = plotting.initAnimation(scope);
-
-        scope.windowResize = utilities.debounce(function() {
-            scope.resize();
-        }, 250);
-
-        scope.$on('$destroy', function() {
-            scope.destroy();
-            scope.element = null;
-            $($window).off('resize', scope.windowResize);
-        });
-
-        scope.$on(
-            scope.modelName + '.changed',
-            function() {
-                scope.prevFrameIndex = -1;
-                if (scope.modelChanged) {
-                    scope.modelChanged();
-                }
-                panelState.clear(scope.modelName);
-                requestData();
-            });
-        scope.isLoading = function() {
-            return panelState.isLoading(scope.modelName);
-        };
-        $($window).resize(scope.windowResize);
-
-        scope.init();
-        if (appState.isLoaded()) {
-            requestData();
-        }
     };
 
     self.coordMapper = function(transform) {
@@ -130,10 +94,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
             },
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
+                var b = actorBundle(src);
                 if(labOrigin && labP1 && labP2) {
-                    this.setPlane(src, labOrigin, labP1, labP2);
+                    this.setPlane(b, labOrigin, labP1, labP2);
                 }
-                return actorBundle(src);
+                return b;
             },
             buildSphere: function(lcenter, radius, colorArray) {
                 var ps = vtk.Filters.Sources.vtkSphereSource.newInstance({
@@ -157,6 +122,86 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
                 planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
         };
+    };
+
+    self.isSTLFileValid = function(file) {
+        return self.loadSTLFile(file).then(function (r) {
+            return ! ! r;
+        });
+    };
+
+    self.isSTLUrlValid = function(url) {
+        return self.loadSTLURL(url).then(function (r) {
+            return ! ! r;
+        });
+    };
+
+    self.loadSTLFile = function(file) {
+        var fileName = file.name || file;
+
+        var url = requestSender.formatUrl('downloadFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<filename>': self.stlFileType + '.' + fileName,
+        });
+        return self.loadSTLURL(url).then(function (r) {
+            return r;
+        });
+    };
+
+    self.loadSTLURL = function(url) {
+        var r = vtk.IO.Geometry.vtkSTLReader.newInstance();
+        return r.setUrl(url)
+            .then(function() {
+                return r;
+        }, function (err) {
+            throw url + ': Invalid or missing .stl: ' +
+            (err.xhr ? err.xhr.status + ' (' + err.xhr.statusText + ')' : err);
+        })
+            .catch(function (e) {
+                $rootScope.$apply(function () {
+                    errorService.alertText(e);
+                });
+            });
+    };
+
+
+    self.stlFileType = 'stl-file';
+
+    self.vtkPlot = function(scope, element) {
+
+        scope.element = element[0];
+        var requestData = plotting.initAnimation(scope);
+
+        scope.windowResize = utilities.debounce(function() {
+            scope.resize();
+        }, 250);
+
+        scope.$on('$destroy', function() {
+            scope.destroy();
+            scope.element = null;
+            $($window).off('resize', scope.windowResize);
+        });
+
+        scope.$on(
+            scope.modelName + '.changed',
+            function() {
+                scope.prevFrameIndex = -1;
+                if (scope.modelChanged) {
+                    scope.modelChanged();
+                }
+                panelState.clear(scope.modelName);
+                requestData();
+            });
+        scope.isLoading = function() {
+            return panelState.isLoading(scope.modelName);
+        };
+        $($window).resize(scope.windowResize);
+
+        scope.init();
+        if (appState.isLoaded()) {
+            requestData();
+        }
     };
 
     // "Superclass" for representation of vtk source objects in ViewPort coordinates
@@ -420,6 +465,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
         return box;
     };
 
+    self.vpSTL = function(stlReader, renderer) {
+        var stl = self.vpObject(stlReader, renderer);
+        return stl;
+    };
+
     self.addActors = function(renderer, actorArr) {
         actorArr.forEach(function(actor) {
             self.addActor(renderer, actor);
@@ -488,7 +538,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, plotting, panelState, utili
 });
 
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry, appVTKService) {
+SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender, frameCache, geometry, plotting, vtkManager, vtkPlotting, layoutService, plotToPNG, utilities) {
 
     return {
         restrict: 'A',
@@ -497,6 +547,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         //},
         scope: {
             modelName: '@',
+            reportId: '<',
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
@@ -508,6 +559,144 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, requestSender,
         },
     };
 });
+
+SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '=',
+            url: '=',
+            inputFile: '=',
+            model: '=',
+            require: '<',
+            title: '@',
+        },
+        template: [
+            '<div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.validate = function (file) {
+                $scope.url = URL.createObjectURL(file);
+                return vtkPlotting.isSTLUrlValid($scope.url).then(function (ok) {
+                    return ok;
+                });
+            };
+            $scope.validationError = '';
+        },
+        link: function(scope, element, attrs) {
+
+        },
+    };
+});
+
+SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, vtkPlotting, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '@',
+            title: '@',
+        },
+        template: [
+            '<div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">',
+              '<div class="modal-dialog modal-lg">',
+                '<div class="modal-content">',
+                  '<div class="modal-header bg-info">',
+                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<div data-help-button="{{ title }}"></div>',
+                    '<span class="lead modal-title text-info">{{ title }}</span>',
+                  '</div>',
+                  '<div class="modal-body">',
+                    '<div class="container-fluid">',
+                        '<form>',
+                        '<div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>',
+                          '<div class="col-sm-6 pull-right">',
+                            '<button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>',
+                            ' <button data-dismiss="modal" class="btn btn-default">Cancel</button>',
+                          '</div>',
+                        '</form>',
+                    '</div>',
+                  '</div>',
+                '</div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.inputFile = null;
+            $scope.fileURL = null;
+            $scope.isMissingImportFile = function() {
+                return ! $scope.inputFile;
+            };
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import STL File';
+            $scope.description = $scope.description || 'Select File';
+
+            $scope.importStlFile = function(inputFile) {
+                if (! inputFile) {
+                    return;
+                }
+                newSimFromSTL(inputFile);
+            };
+
+            function upload(inputFile, data) {
+                var simId = data.models.simulation.simulationId;
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
+                    requestSender.formatUrl(
+                        'uploadFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': vtkPlotting.stlFileType,
+                        }),
+                    function(d) {
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(simId);
+                    }, function (err) {
+                        throw inputFile + ': Error during upload ' + err;
+                    });
+            }
+
+            function newSimFromSTL(inputFile) {
+                var url = $scope.fileURL;
+                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.conductorFile = inputFile.name;
+                appState.newSimulation(
+                    model,
+                    function (data) {
+                        $scope.isUploading = false;
+                        upload(inputFile, data);
+                    },
+                    function (err) {
+                        throw inputFile + ': Error creating simulation ' + err;
+                    }
+                );
+            }
+
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+                scope.isUploading = false;
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
+        },
+    };});
+
 
 // will be axis display
 SIREPO.app.directive('vtkAxes', function(appState, panelState, requestSender, frameCache, plotting, vtkManager, vtkPlotting, layoutService, utilities, plotUtilities, geometry) {

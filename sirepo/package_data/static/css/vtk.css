@@ -22,3 +22,7 @@
     opacity: 0;
     font-size: 13px;
 }
+
+.vtk-canvas-holder img {
+  display: none;
+}

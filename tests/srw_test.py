@@ -65,6 +65,10 @@ def test_prepare_aux_files():
     def t():
         from sirepo.template import template_common
         from pykern import pkcollections
+        import sirepo.auth
+        import sirepo.auth.guest
+
+        sirepo.auth.login(sirepo.auth.guest)
 
         # Needed to initialize simulation_db
         data = pkcollections.json_load_any('''{

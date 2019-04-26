@@ -205,6 +205,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
+        pkdp(uid)
         if uid and module.AUTH_METHOD not in (m, _METHOD_GUEST):
             # switch this method to this uid (even for methods)
             # except if the same method, then assuming logging in as different user.
@@ -323,10 +324,9 @@ def user_dir_not_found(uid):
             u = _method_user_model(m, uid)
             if u:
                 u.delete()
-                u.save()
         u = user_db.UserRegistration.search_by(uid=uid)
-        u.delete()
-        u.save()
+        if u:
+            u.delete()
     reset_state()
     util.raise_unauthorized('simulation_db dir not found, deleted uid={}', uid)
 

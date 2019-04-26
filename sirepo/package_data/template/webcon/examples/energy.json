@@ -1,0 +1,178 @@
+{
+    "models": {
+        "analysisData": {
+            "columnInfo": {
+                "header_row_count": 1,
+                "names": [
+                    "column 1",
+                    "column 2",
+                    "column 3",
+                    "column 4",
+                    "column 5"
+                ],
+                "scale": [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                "units": [
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                ]
+            },
+            "file": "energy.csv"
+        },
+        "analysisReport": {
+            "action": "cluster",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterFields": [
+                true,
+                true,
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "3",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport1": {
+            "action": "cluster",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterFields": [
+                true,
+                true,
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "gmix",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "cluster",
+                    "clusterCount": 3,
+                    "clusterDbscanEps": 0.1,
+                    "clusterFields": [
+                        true,
+                        true,
+                        true,
+                        true
+                    ],
+                    "clusterIndex": 1,
+                    "clusterKmeansInit": 2,
+                    "clusterMethod": "dbscan",
+                    "clusterRandomSeed": 12341234,
+                    "clusterScaleMax": 0.8,
+                    "clusterScaleMin": -0.8
+                }
+            ],
+            "id": 1,
+            "notes": "",
+            "x": "4",
+            "y1": "3",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport2": {
+            "action": "fit",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterFields": [
+                true,
+                true,
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "gmix",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x ** 2 + b * x + c",
+            "fitParameters": "a,b,c",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "cluster",
+                    "clusterCount": 3,
+                    "clusterDbscanEps": 0.1,
+                    "clusterFields": [
+                        true,
+                        true,
+                        true,
+                        true
+                    ],
+                    "clusterIndex": 1,
+                    "clusterKmeansInit": 2,
+                    "clusterMethod": "dbscan",
+                    "clusterRandomSeed": 12341234,
+                    "clusterScaleMax": 0.8,
+                    "clusterScaleMin": -0.8
+                },
+                {
+                    "action": "trim",
+                    "trimField": "4",
+                    "trimMax": 1742.9192326808416,
+                    "trimMin": 1602.6821087575443
+                }
+            ],
+            "id": 2,
+            "notes": "",
+            "trimField": "4",
+            "trimMax": 1742.9192326808416,
+            "trimMin": 1602.6821087575443,
+            "x": "4",
+            "y1": "3",
+            "y2": "none",
+            "y3": "none"
+        },
+        "fftReport": {},
+        "fftReport1": {
+            "analysisReport": "analysisReport1"
+        },
+        "fftReport2": {
+            "analysisReport": "analysisReport2"
+        },
+        "hiddenReport": {
+            "subreports": [
+                1,
+                2
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "name": "Energy Data",
+            "notes": "",
+            "simulationId": "f7AOLI89",
+            "simulationSerial": 1555955979020086
+        },
+        "simulationStatus": {}
+    },
+    "simulationType": "webcon",
+    "version": "20190422.173004"
+}

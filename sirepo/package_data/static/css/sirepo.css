@@ -299,6 +299,7 @@
     }
     .sr-hide-report {
       opacity: 0;
+      height: 0;
     }
     .sr-panel-active {
         border-width: 1px;
@@ -348,6 +349,7 @@
     .sr-plot .scatter-point {
       fill: steelblue;
       stroke: none;
+      cursor: pointer;
     }
     .sr-plot path.line-0 {
       stroke-width: 1.5px;
