@@ -43,7 +43,7 @@ def test_login():
     pkre('"routeName": "completeRegistration"', r.data)
     flask.request = 'abcdef'
     def parse_json(*args, **kwargs):
-        return pkcollections.Dict(displayName='Joe Bob')
+        return pkcollections.Dict(simulationType='myapp', displayName='Joe Bob')
     setattr(sirepo.http_request, 'parse_json', parse_json)
     auth.api_authCompleteRegistration()
     r = auth.api_authState()

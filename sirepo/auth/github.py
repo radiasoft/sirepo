@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 u"""GitHub Login
 
+GitHub is written Github and github (no underscore or dash) for ease of use.
+
 :copyright: Copyright (c) 2016-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
@@ -27,7 +29,7 @@ AUTH_METHOD = 'github'
 AUTH_METHOD_VISIBLE = True
 
 #: Used by user_db
-AuthGitHubUser = None
+AuthGithubUser = None
 
 #: Well known alias for auth
 UserModel = None
@@ -41,7 +43,7 @@ _COOKIE_SIM_TYPE = 'srags'
 
 
 @api_perm.allow_cookieless_set_user
-def api_authGitHubAuthorized():
+def api_authGithubAuthorized():
     """Handle a callback from a successful OAUTH request.
 
     Tracks oauth users in a database.
@@ -63,12 +65,12 @@ def api_authGitHubAuthorized():
         return auth.login_fail_redirect(t, this_module, 'oauth-state')
     d = oc.get('user', token=(resp['access_token'], '')).data
     with user_db.thread_lock:
-        u = AuthGitHubUser.search_by(oauth_id=d['id'])
+        u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
             # always update user_name
             u.user_name = d['login']
         else:
-            u = AuthGitHubUser(oauth_id=d['id'], user_name=d['login'])
+            u = AuthGithubUser(oauth_id=d['id'], user_name=d['login'])
         u.save()
         return auth.login(
             this_module,
@@ -79,23 +81,23 @@ def api_authGitHubAuthorized():
 
 
 @api_perm.require_cookie_sentinel
-def api_authGitHubLogin():
-    """Redirects to GitHub"""
-    t = http_request.parse_json().simulationType
+def api_authGithubLogin(simulation_type):
+    """Redirects to Github"""
+    t = sirepo.template.assert_sim_type(simulation_type)
     s = util.random_base62()
     cookie.set_value(_COOKIE_NONCE, s)
     cookie.set_value(_COOKIE_SIM_TYPE, t)
     if not cfg.callback_uri:
         # must be executed in an app and request context so can't
         # initialize earlier.
-        cfg.callback_uri = uri_router.uri_for_api('authGitHubAuthorized')
+        cfg.callback_uri = uri_router.uri_for_api('authGithubAuthorized')
     return _oauth_client().authorize(callback=cfg.callback_uri, state=s)
 
 
 @api_perm.allow_cookieless_set_user
 def api_oauthAuthorized(oauth_type):
-    """Deprecated use `api_authGitHubAuthorized`"""
-    return api_authGitHubAuthorized()
+    """Deprecated use `api_authGithubAuthorized`"""
+    return api_authGithubAuthorized()
 
 
 def avatar_uri(model, size):
@@ -108,9 +110,9 @@ def avatar_uri(model, size):
 def init_apis(app, *args, **kwargs):
     global cfg
     cfg = pkconfig.init(
-        key=pkconfig.Required(str, 'GitHub key'),
-        secret=pkconfig.Required(str, 'GitHub secret'),
-        callback_uri=(None, str, 'GitHub callback URI (defaults to api_authGitHubAuthorized)'),
+        key=pkconfig.Required(str, 'Github key'),
+        secret=pkconfig.Required(str, 'Github secret'),
+        callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
     )
     app.session_interface = _FlaskSessionInterface()
     user_db.init_model(app, _init_model)
@@ -136,15 +138,15 @@ class _FlaskSessionInterface(flask.sessions.SessionInterface):
 
 def _init_model(db, base):
     """Creates User class bound to dynamic `db` variable"""
-    global AuthGitHubUser, UserModel
+    global AuthGithubUser, UserModel
 
-    class AuthGitHubUser(base, db.Model):
+    class AuthGithubUser(base, db.Model):
         __tablename__ = 'auth_github_user_t'
         oauth_id = db.Column(db.String(100), primary_key=True)
         user_name = db.Column(db.String(100), unique=True, nullable=False)
         uid = db.Column(db.String(8), unique=True)
 
-    UserModel = AuthGitHubUser
+    UserModel = AuthGithubUser
 
 
 def _oauth_client():

@@ -75,9 +75,9 @@
         "authCompleteRegistration": "/auth-complete-registration",
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
-        "authGitHubAuthorized": "/auth-github-authorized",
-        "authGitHubLogin": "/auth-github-login",
-        "authGuestLogin": "/auth-guest-login",
+        "authGithubAuthorized": "/auth-github-authorized",
+        "authGithubLogin": "/auth-github-login/<simulation_type>",
+        "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "errorLogging": "/error-logging",
@@ -202,7 +202,7 @@
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
-                  "controller": "CompleteRegistrationController as completeRegistration",
+                  "controller": "LoginController as login",
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },

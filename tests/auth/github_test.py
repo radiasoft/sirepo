@@ -29,10 +29,10 @@ def test_guest_merge(monkeypatch):
         ),
     )
     guest_uid = fc.sr_auth_state().uid
-    r = fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
+    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
     s = fc.sr_auth_state(isLoggedIn=True, method='guest')
-    fc.sr_get('authGitHubAuthorized', query={'state': state})
+    fc.sr_get('authGithubAuthorized', query={'state': state})
     fc.sr_auth_state(method='github', uid=guest_uid)
     d = fc.sr_post(
         'listSimulations',
@@ -48,9 +48,9 @@ def test_guest_merge(monkeypatch):
         ),
     )
     fc.sr_get('authLogout', {'simulation_type': sim_type})
-    fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
+    fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
-    fc.sr_get('authGitHubAuthorized', query={'state': state})
+    fc.sr_get('authGithubAuthorized', query={'state': state})
     d = fc.sr_post(
         'listSimulations',
         {'simulationType': sim_type},
@@ -64,7 +64,7 @@ def test_happy_path(monkeypatch):
 
     fc, sim_type, oc = _fc(monkeypatch, 'happy')
     fc.sr_auth_state(isLoggedIn=False)
-    r = fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
+    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('srException', d.state)
     pkeq('login', d.srException.routeName)
@@ -72,7 +72,7 @@ def test_happy_path(monkeypatch):
     pkeq(302, r.status_code)
     pkre(state, r.headers['location'])
     fc.sr_auth_state(displayName=None, isLoggedIn=False, uid=None, userName=None)
-    r = fc.sr_get('authGitHubAuthorized', query={'state': state})
+    r = fc.sr_get('authGithubAuthorized', query={'state': state})
     pkre('location = "/{}#/complete-registration"'.format(sim_type), r.data)
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('srException', d.state)
@@ -83,7 +83,6 @@ def test_happy_path(monkeypatch):
             'displayName': 'Happy Path',
             'simulationType': sim_type,
         },
-        raw_response=True,
     )
     s = fc.sr_auth_state(
         avatarUrl='https://avatars.githubusercontent.com/happy?size=40',

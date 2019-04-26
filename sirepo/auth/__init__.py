@@ -77,7 +77,7 @@ def api_authCompleteRegistration():
         r.display_name = n
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
-    return http_reply.gen_redirect_for_root(t)
+    return http_reply.gen_json_ok()
 
 
 @api_perm.allow_visitor

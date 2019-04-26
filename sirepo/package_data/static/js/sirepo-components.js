@@ -568,7 +568,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('logoutMenu', function(authState) {
+SIREPO.app.directive('logoutMenu', function(authState, authService) {
     return {
         restrict: 'A',
         scope: {},
@@ -580,15 +580,15 @@ SIREPO.app.directive('logoutMenu', function(authState) {
                 ' <span class="caret"></span>',
               '</a>',
               '<ul class="dropdown-menu">',
-                '<li class="dropdown-header"><strong>{{ authState.displayName }}!</strong></li>',
-                '<li data-ng-if="::authState.userName">{{ authState.userName }} via {{ authState.method }}</li>',
-                '<li class="divider"></li>',
-                '<li><a data-ng-href="::authState.logoutUrl">Sign out</a></li>',
+                '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
+                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
+            $scope.authService = authService;
         },
     };
 });
@@ -2167,74 +2167,104 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistrationModal', function(panelState, requestSender) {
+SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div data-ng-if="::missingDisplayName()" data-confirmation-modal="" data-id="sr-complete-registration" data-is-required="true" data-title="Complete your registration" data-ok-text="Continue" data-ok-clicked="updateDisplayName()">',
-              '<p>Please enter your full name to complete your Sirepo registration.</p>',
-              '<form class="form-horizontal" autocomplete="off">',
-                '<label class="col-sm-3 control-label">Your email</label>',
-                '<div class="col-sm-9">',
-                    '<p class="form-control-static">{{ data.email }}</p>',
-                '</div>',
+            '<div class="row text-center">',
+            '<p>Please enter your full name to complete your Sirepo registration.</p>',
+            '</div>',
+            '<form class="form-horizontal" autocomplete="off">',
+              '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
-                '<div class="col-sm-9">',
+                '<div class="col-sm-7">',
                   '<input class="form-control" data-ng-model="data.displayName" required/>',
                 '</div>',
-              '</form>',
-            '</div>',
+              '</div>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="submit()" class="btn btn-primary">Submit</button>',
+              '</div>',
+            '</form>',
         ].join(''),
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
-                    SIREPO.authState.displayName = $scope.data.displayName;
+                    $window.location.href = requestSender.formatUrl(
+                        'root',
+                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+                    )
+                    return;
                 }
-                else {
-                    //TODO(pjm): add server error message
-                }
+//TODO(robnagler) what should we do?
+                errorService.alertText('something went wrong, please contact support');
             }
+            $scope.data = {};
+            $scope.submit = function() {
+//TODO(robnagler): change button to sending
+                requestSender.sendRequest(
+                    'authCompleteRegistration',
+                    handleResponse,
+                    {
+                        displayName: $scope.data.displayName,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
         },
+        link: function(scope, element) {
+            // get the angular form from within the transcluded content
+            scope.form = element.find('input').eq(0).controller('form');
+        }
     };
 });
 
-SIREPO.app.directive('emailLoginModal', function(requestSender, $location) {
+SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
     return {
         restrict: 'A',
         scope: {},
         template: [
-            '<div data-confirmation-modal="" data-id="sr-email-login" data-title="Sign in with email" data-ok-text="Continue" data-ok-clicked="login()">',
+            '<div class="row text-center">',
               '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
-              '<form class="form-horizontal" autocomplete="off">',
+            '</div>',
+            '<form class="form-horizontal" autocomplete="off">',
+              '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your Email</label>',
                 '<div class="col-sm-9">',
                   '<input type="email" class="form-control" data-ng-model="data.email" required/>',
                 '</div>',
-              '</form>',
-            '</div>',
-            '<div data-confirmation-modal="" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="OK">',
-              '<p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in.</p>',
+              '</div>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="login()" class="btn btn-primary">Login</button>',
+              '</div>',
+            '</form>',
+            '<div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">',
+              '<p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in. You may close this window.</p>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
-                    $('#sr-email-login').modal('hide');
                     $scope.data.email = '';
                     $scope.form.$setPristine();
                     $('#sr-email-login-done').modal('show');
                 }
                 else {
-                    //TODO(pjm): add server error message
-                    // note that missingCookies is an exception so
-                    // won't appear here.
+//TODO(robnagler) what should we do?
+                    errorService.alertText('something went wrong, please contact support');
                 }
             }
             $scope.data = {};
             $scope.login = function() {
+                var e = $scope.data.email;
+                errorService.alertText('');
+                if (! ( e && e.match(/^.+@.+\..+$/) )) {
+//TODO(robnagler) how to put error on form field?
+                    errorService.alertText('email is invalid');
+                    return;
+                }
                 $scope.data.sentEmail = $scope.data.email;
-                //TODO(robnagler): change button to sending
+//TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'authEmailLogin',
                     handleResponse,

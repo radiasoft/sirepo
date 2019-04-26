@@ -23,13 +23,12 @@ def test_different_email():
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
     s = fc.sr_auth_state(isLoggedIn=True, needCompleteRegistration=True)
-    r = fc.sr_post(
+    fc.sr_post(
         'authCompleteRegistration',
         {
             'displayName': 'abc',
             'simulationType': sim_type,
         },
-        raw_response=True,
     )
     t = fc.sr_auth_state(userName='a@b.c', displayName='abc')
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
@@ -43,7 +42,6 @@ def test_different_email():
             'displayName': 'xyz',
             'simulationType': sim_type,
         },
-        raw_response=True,
     )
     uid2 = fc.sr_auth_state(displayName='xyz', isLoggedIn=True, userName='x@y.z').uid
     pkok(uid != uid2, 'did not get a new uid={}', uid)
@@ -91,7 +89,6 @@ def test_happy_path():
             'displayName': 'abc',
             'simulationType': sim_type,
         },
-        raw_response=True,
     )
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     uid = fc.sr_auth_state(
@@ -135,11 +132,11 @@ def test_oauth_conversion(monkeypatch):
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('loginWith', r.srException.routeName)
     pkeq('github', r.srException.params.method)
-    r = fc.sr_post('authGitHubLogin', {'simulationType': sim_type}, raw_response=True)
+    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
     pkeq(302, r.status_code)
     pkre(state, r.headers['location'])
-    fc.sr_get('authGitHubAuthorized', query={'state': state})
+    fc.sr_get('authGithubAuthorized', query={'state': state})
     r = fc.sr_post(
         'authEmailLogin',
         {'email': 'emailer@test.com', 'simulationType': sim_type},

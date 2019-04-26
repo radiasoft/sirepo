@@ -173,7 +173,7 @@ def _init_model(db, base):
 
 
 def _parse_email(data):
-    res = data.email.lower()
+    res = data.email.strip().lower()
     assert pyisemail.is_email(res), \
         'invalid post data: email={}'.format(data.email)
     return res

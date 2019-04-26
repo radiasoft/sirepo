@@ -964,14 +964,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     return self;
 });
 
-SIREPO.app.factory('authService', function(appstate, authState, requestSender) {
+SIREPO.app.factory('authService', function(appState, authState, requestSender) {
     var self = {};
 
     function label(method) {
         if ('guest' == method) {
             return 'as Guest';
         }
-        return 'with ' + ucfirst(method);
+        return 'with ' + appState.ucfirst(method);
     }
 
     self.methods = authState.visibleMethods.map(
@@ -1491,7 +1491,8 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
     };
 
     self.localRedirect = function(routeName, params) {
-        $location.path(self.formatUrlLocal(routeName, params));
+        var r = self.formatUrlLocal(routeName, params);
+        $location.path(r.slice(1));
     };
 
     self.localRedirectHome = function(simulationId) {
@@ -1991,7 +1992,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
                     return 'Error: ' + e.split(/[\n\r]+/)[0];
                 }
             }
-            return ucfirst(simulationStatus().state);
+            return appState.ucfirst(simulationStatus().state);
         };
 
         frameCache.setAnimationArgs(animationArgs);
@@ -2570,26 +2571,24 @@ SIREPO.app.controller('LoginController', function (authState, authService) {
     self.authService = authService;
 });
 
-SIREPO.app.controller('LoginWithController', function (appState, authState, requestSender) {
+SIREPO.app.controller('LoginWithController', function ($route, $window, appState, authState, requestSender) {
     var self = this;
     self.authState = authState;
-    var m = route.current.params.method || '';
-    self.message = 'Redirecting. Please wait...';
+    var m = $route.current.params.method || '';
+    self.method = m;
     if (m == 'guest' || m == 'github') {
         var t = appState.ucfirst(m);
-        requestSender.sendRequest(
+        $window.location.href = requestSender.formatUrl(
             'auth' + t + 'Login',
-            function() {
-                // should never get here
-                errorService.alertText('Failed to login with ' + t));
-            },
-            {simulationType: SIREPO.APP_SCHEMA.simulationType},
+            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
         );
+        return;
     }
     else if (m == 'email') {
-        self.message = 'Logging in';
+        self.message = '<strong>Logging in</strong>';
     }
     else {
+        self.msg = '';
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
         requestSender.localRedirect('login');
     }
