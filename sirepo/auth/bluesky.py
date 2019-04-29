@@ -75,7 +75,7 @@ def auth_hash(req, verify=False):
     now = int(time.time())
     if not 'authNonce' in req:
         if verify:
-           util.raise_not_found('authNonce: missing field in request')
+           util.raise_unauthorized('authNonce: missing field in request')
         req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
@@ -91,7 +91,8 @@ def auth_hash(req, verify=False):
         req.authHash = res
         return
     if res != req.authHash:
-        util.raise_not_found(
+        pkdp('error')
+        util.raise_unauthorized(
             '{}: hash mismatch expected={} nonce={}',
             req.authHash,
             res,
@@ -101,14 +102,14 @@ def auth_hash(req, verify=False):
     try:
         t = int(t)
     except ValueError as e:
-        util.raise_not_found(
+        util.raise_unauthorized(
             '{}: auth_nonce prefix not an int: nonce={}',
             t,
             req.authNonce,
         )
     delta = now - t
     if abs(delta) > _AUTH_NONCE_REPLAY_SECS:
-        util.raise_not_found(
+        util.raise_unauthorized(
             '{}: auth_nonce time outside replay window={} now={} nonce={}',
             t,
             _AUTH_NONCE_REPLAY_SECS,

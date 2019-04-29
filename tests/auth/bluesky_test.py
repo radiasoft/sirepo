@@ -29,7 +29,7 @@ def test_auth_hash(monkeypatch):
     bluesky.auth_hash(req)
     bluesky.auth_hash(req, verify=True)
     time.sleep(2)
-    with pkexcept(werkzeug.exceptions.NotFound):
+    with pkexcept(werkzeug.exceptions.Unauthorized):
         bluesky.auth_hash(req, verify=True)
 
 
@@ -74,7 +74,7 @@ def test_auth_hash_copy():
 def test_auth_login():
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq
+    from pykern.pkunit import pkeq, pkexcept
     from sirepo import srunit
 
     fc = srunit.flask_client(cfg={
@@ -83,6 +83,7 @@ def test_auth_login():
     })
     from sirepo import simulation_db
     from sirepo.auth import bluesky
+    import werkzeug.exceptions
 
     sim_type = 'srw'
     uid = fc.sr_login_as_guest(sim_type)
@@ -102,3 +103,6 @@ def test_auth_login():
     pkeq('ok', resp['state'])
     pkeq(req.simulationId, simulation_db.parse_sid(resp['data']))
     pkeq('srw', resp['schema']['simulationType'])
+    req.authHash = 'not match'
+    resp = fc.sr_post('authBlueskyLogin', req, raw_response=True)
+    pkeq(401, resp.status_code)
