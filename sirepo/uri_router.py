@@ -60,6 +60,33 @@ class NotFound(Exception):
         self.kwargs = kwargs
 
 
+def call_api(func, kwargs=None, data=None):
+    """Call another API with permission checks.
+
+    Note: also calls `save_to_cookie`.
+
+    Args:
+        func (callable): api function
+        kwargs (dict): to be passed to API [None]
+        data (dict): will be returned `http_request.parse_json`
+    Returns:
+        flask.Response: result
+    """
+    resp = api_auth.check_api_call(func)
+    if resp:
+        return resp
+    try:
+        if data:
+            #POSIT: http_request.parse_json
+            flask.g.sirepo_call_api_data = data
+        resp = flask.make_response(func(**kwargs) if kwargs else func())
+    finally:
+        if data:
+            flask.g.sirepo_call_api_data = None
+    cookie.save_to_cookie(resp)
+    return resp
+
+
 def init(app):
     """Convert route map to dispatchable callables
 
@@ -147,7 +174,7 @@ def _dispatch(path):
     auth.process_request()
     try:
         if path is None:
-            return _dispatch_call(_empty_route.func, {})
+            return call_api(_empty_route.func, {})
         # werkzeug doesn't convert '+' to ' '
         parts = re.sub(r'\+', ' ', path).split('/')
         try:
@@ -168,21 +195,12 @@ def _dispatch(path):
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
-        return _dispatch_call(route.func, kwargs)
+        return call_api(route.func, kwargs)
     except NotFound as e:
         util.raise_not_found(e.log_fmt, *e.args, **e.kwargs)
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
-
-
-def _dispatch_call(func, kwargs):
-    resp = api_auth.check_api_call(func)
-    if resp:
-        return resp
-    resp = flask.make_response(func(**kwargs))
-    cookie.save_to_cookie(resp)
-    return resp
 
 
 def _dispatch_empty():

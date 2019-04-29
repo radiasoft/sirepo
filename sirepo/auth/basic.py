@@ -18,7 +18,7 @@ AUTH_METHOD_VISIBLE = False
 def require_user():
     """Check for basic auth credentials against cfg
     """
-    v = flask.request.authenticate
+    v = flask.request.authorization
     if v and v.type == 'basic' and _check(v):
         return cfg.uid
     return None
