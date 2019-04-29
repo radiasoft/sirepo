@@ -121,15 +121,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             buildSTL: function(file, callback) {
                 var cm = this;
                 var r = self.getSTLReader(file);
+
                 if (r) {
-                    callback(actorBundle(r));
+                    setSTL(r);
                     return;
                 }
                 self.loadSTLFile(file).then(function (r) {
                     r.loadData()
                         .then(function (res) {
                             self.addSTLReader(file, r);
-                            callback(actorBundle(r));
+                            setSTL(r);
                         }, function (reason) {
                             throw file + ': Error loading data from .stl file: ' + reason;
                         }
@@ -137,6 +138,20 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                         errorService.alertText(e);
                     });
                 });
+
+                function setSTL(r) {
+                    var b = actorBundle(r);
+                    var a = b.actor;
+                    var userMatrix = [];
+                    cm.xform.matrix.forEach(function (row) {
+                        userMatrix = userMatrix.concat(row);
+                        userMatrix.push(0);
+                    });
+                    userMatrix = userMatrix.concat([0, 0, 0, 1]);
+                    a.setUserMatrix(userMatrix);
+                    callback(b);
+                }
+
             },
             setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
