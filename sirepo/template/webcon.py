@@ -34,9 +34,11 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def fixup_old_data(data):
     for m in _SCHEMA.model:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+        # don't include beamline element models (all uppercase)
+        if m != m.upper():
+            if m not in data.models:
+                data.models[m] = pkcollections.Dict({})
+            template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     for m in ('analysisAnimation', 'fitter', 'fitReport'):
         if m in data.models:
             del data.models[m]
