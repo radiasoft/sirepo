@@ -91,7 +91,6 @@ def auth_hash(req, verify=False):
         req.authHash = res
         return
     if res != req.authHash:
-        pkdp('error')
         util.raise_unauthorized(
             '{}: hash mismatch expected={} nonce={}',
             req.authHash,

@@ -203,7 +203,6 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
-        pkdp(uid)
         if uid and module.AUTH_METHOD not in (m, _METHOD_GUEST):
             # switch this method to this uid (even for methods)
             # except if the same method, then assuming logging in as different user.
