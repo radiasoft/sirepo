@@ -64,7 +64,7 @@ def flask_client(cfg=None):
     return getattr(app, a)
 
 
-def init_user_db():
+def init_auth_db():
     """Force a request that creates a user in db"""
     fc = flask_client()
     fc.sr_login_as_guest('hellweg')

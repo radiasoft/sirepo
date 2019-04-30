@@ -14,7 +14,7 @@ from sirepo import auth
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import uri_router
-from sirepo import user_db
+from sirepo import auth_db
 from sirepo import util
 import datetime
 import flask
@@ -36,7 +36,7 @@ AUTH_METHOD = 'email'
 #: User can see it
 AUTH_METHOD_VISIBLE = True
 
-#: Used by user_db
+#: Used by auth_db
 AuthEmailUser = None
 
 #: Well known alias for auth
@@ -65,7 +65,7 @@ def api_authEmailAuthorized(simulation_type, token):
     Token must exist in db and not be expired.
     """
     t = sirepo.template.assert_sim_type(simulation_type)
-    with user_db.thread_lock:
+    with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= datetime.datetime.utcnow():
             u.query.filter(
@@ -97,7 +97,7 @@ def api_authEmailLogin():
     data = http_request.parse_json()
     email = _parse_email(data)
     t = data.simulationType
-    with user_db.thread_lock:
+    with auth_db.thread_lock:
         u = AuthEmailUser.search_by(unverified_email=email)
         if not u:
             u = AuthEmailUser(unverified_email=email)
@@ -129,7 +129,7 @@ def init_apis(app, *args, **kwargs):
         smtp_server=pkconfig.Required(str, 'SMTP TLS server'),
         smtp_user=pkconfig.Required(str, 'SMTP auth user'),
     )
-    user_db.init_model(app, _init_model)
+    auth_db.init_model(app, _init_model)
     if pkconfig.channel_in('dev') and cfg.smtp_server == _DEV_SMTP_SERVER:
         return
     app.config.update(

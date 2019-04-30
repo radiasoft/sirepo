@@ -50,7 +50,7 @@ def purge_users(days=180, confirm=False):
     from pykern import pkio
     from sirepo import server
     from sirepo import simulation_db
-    from sirepo import user_db
+    from sirepo import auth_db
     from sirepo import auth
     import datetime
 
@@ -59,7 +59,7 @@ def purge_users(days=180, confirm=False):
         '{}: days must be a positive integer'
     server.init()
 
-    uids = user_db.all_uids()
+    uids = auth_db.all_uids()
     now = datetime.datetime.utcnow()
     to_remove = []
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):

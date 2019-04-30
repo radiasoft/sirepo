@@ -16,7 +16,7 @@ from sirepo import auth
 from sirepo import cookie
 from sirepo import http_request
 from sirepo import uri_router
-from sirepo import user_db
+from sirepo import auth_db
 from sirepo import util
 import flask
 import flask.sessions
@@ -28,7 +28,7 @@ AUTH_METHOD = 'github'
 #: User can see it
 AUTH_METHOD_VISIBLE = True
 
-#: Used by user_db
+#: Used by auth_db
 AuthGithubUser = None
 
 #: Well known alias for auth
@@ -64,7 +64,7 @@ def api_authGithubAuthorized():
         )
         return auth.login_fail_redirect(t, this_module, 'oauth-state')
     d = oc.get('user', token=(resp['access_token'], '')).data
-    with user_db.thread_lock:
+    with auth_db.thread_lock:
         u = AuthGithubUser.search_by(oauth_id=d['id'])
         if u:
             # always update user_name
@@ -115,7 +115,7 @@ def init_apis(app, *args, **kwargs):
         callback_uri=(None, str, 'Github callback URI (defaults to api_authGithubAuthorized)'),
     )
     app.session_interface = _FlaskSessionInterface()
-    user_db.init_model(app, _init_model)
+    auth_db.init_model(app, _init_model)
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):

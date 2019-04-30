@@ -13,7 +13,7 @@ from sirepo import api_perm
 from sirepo import cookie
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import user_db
+from sirepo import auth_db
 from sirepo import util
 import sirepo.template
 import datetime
@@ -70,7 +70,7 @@ def api_authCompleteRegistration():
     t = d.simulationType
     n = _parse_display_name(d)
     u = _get_user()
-    with user_db.thread_lock:
+    with auth_db.thread_lock:
         r = _user_registration(u)
         r.display_name = n
         r.save()
@@ -92,7 +92,7 @@ def api_authState():
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
-        r = user_db.UserRegistration.search_by(uid=u)
+        r = auth_db.UserRegistration.search_by(uid=u)
         if r:
             v.displayName = r.display_name
         _method_auth_state(v, u)
@@ -133,7 +133,7 @@ def init_apis(app, *args, **kwargs):
     )
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
-    user_db.init(app)
+    auth_db.init(app)
     _app = app
     p = pkinspect.this_module().__name__
     valid_methods.extend(cfg.methods + cfg.deprecated_methods)
@@ -175,7 +175,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
     Args:
         module (module): method module
         uid (str): user to login
-        model (user_db.UserDbBase): user to login (overrides uid)
+        model (auth_db.UserDbBase): user to login (overrides uid)
         sim_type (str): app to redirect to
     Returns:
         flask.Response: reply object or None (if no sim_type)
@@ -317,12 +317,12 @@ def user_dir_not_found(uid):
     Args:
         uid (str): user that does not exist
     """
-    with user_db.thread_lock:
+    with auth_db.thread_lock:
         for m in _METHOD_MODULES.values():
             u = _method_user_model(m, uid)
             if u:
                 u.delete()
-        u = user_db.UserRegistration.search_by(uid=uid)
+        u = auth_db.UserRegistration.search_by(uid=uid)
         if u:
             u.delete()
     reset_state()
@@ -468,9 +468,9 @@ def _update_session(login_state, auth_method):
 
 
 def _user_registration(uid):
-    res = user_db.UserRegistration.search_by(uid=uid)
+    res = auth_db.UserRegistration.search_by(uid=uid)
     if not res:
-        res = user_db.UserRegistration(
+        res = auth_db.UserRegistration(
             uid=uid,
             created=datetime.datetime.utcnow(),
         )
