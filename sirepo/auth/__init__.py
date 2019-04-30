@@ -135,7 +135,8 @@ def init_apis(app, *args, **kwargs):
     simulation_db = importlib.import_module('sirepo.simulation_db')
     auth_db.init(app)
     _app = app
-    p = pkinspect.this_module().__name__
+    this_module = pkinspect.this_module()
+    p = this_module.__name__
     valid_methods.extend(cfg.methods + cfg.deprecated_methods)
     for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
@@ -143,6 +144,7 @@ def init_apis(app, *args, **kwargs):
         _METHOD_MODULES[n] = m
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
+        setattr(this_module, n, m)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
