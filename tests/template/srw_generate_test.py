@@ -47,7 +47,6 @@ def _generate_source(fc, sim, name):
             'simulation_id': sim['models']['simulation']['simulationId'],
             'simulation_type': sim['simulationType'],
         },
-        raw_response=True,
     )
     filename = '{}.py'.format(name.lower())
     filename = re.sub(r'\s', '-', filename)
@@ -62,5 +61,5 @@ def _setup_client():
     from sirepo.template import srw
     from sirepo import srunit
     fc = srunit.flask_client()
-    fc.get('/{}'.format(srw.SIM_TYPE))
+    fc.sr_login_as_guest(srw.SIM_TYPE)
     return fc

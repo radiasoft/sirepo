@@ -244,9 +244,11 @@ SIREPO.app.directive('elegantSimList', function(appState, requestSender, $window
                 if ($scope.model && $scope.model[$scope.field]) {
                     //TODO(pjm): this depends on the visualization route being present in both jspec and elegant apps
                     // need meta data for a page in another app
-                    var url = '/elegant#' + requestSender.formatUrlLocal('visualization', {
-                        ':simulationId': $scope.model[$scope.field],
-                    });
+                    var url = requestSender.formatUrlLocal(
+                        'visualization',
+                        {':simulationId': $scope.model[$scope.field]},
+                        'elegant',
+                    );
                     $window.open(url, '_blank');
                 }
             };

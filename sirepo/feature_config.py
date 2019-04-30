@@ -56,7 +56,7 @@ def _codes(want_all=None):
 
 
 cfg = pkconfig.init(
-    api_modules=((), tuple, 'optional api modules, e.g. bluesky'),
+    api_modules=((), tuple, 'optional api modules, e.g. status'),
     runner_daemon=(False, bool, 'use the runner daemon'),
     #TODO(robnagler) make sim_type config
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),

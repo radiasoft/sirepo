@@ -217,7 +217,7 @@ class DockerJob(runner.JobBase):
         return tuple(res)
 
 
-def init_class(app, uwsgi):
+def init_class(app, *args, **kwargs):
     global cfg, _hosts, _parallel_cores
 
     if _hosts:
