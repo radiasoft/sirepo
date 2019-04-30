@@ -2209,6 +2209,7 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
                   '<input class="form-control" data-ng-model="data.displayName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
@@ -2219,18 +2220,19 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
+                    $scope.showWarning = false;
                     $window.location.href = requestSender.formatUrl(
                         'root',
                         {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
                     )
                     return;
                 }
-//TODO(robnagler) what should we do?
-                errorService.alertText('something went wrong, please contact support');
+                $scope.showWarning = true;
+                $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
             }
             $scope.data = {};
             $scope.submit = function() {
-//TODO(robnagler): change button to sending
+                //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'authCompleteRegistration',
                     handleResponse,
@@ -2260,7 +2262,8 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your Email</label>',
                 '<div class="col-sm-9">',
-                  '<input type="email" class="form-control" data-ng-model="data.email" required/>',
+                  '<input type="text" class="form-control" data-ng-model="data.email" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
@@ -2274,13 +2277,14 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
+                    $scope.showWarning = false;
                     $scope.data.email = '';
                     $scope.form.$setPristine();
                     $('#sr-email-login-done').modal('show');
                 }
                 else {
-//TODO(robnagler) what should we do?
-                    errorService.alertText('something went wrong, please contact support');
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
                 }
             }
             $scope.data = {};
@@ -2288,12 +2292,13 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 var e = $scope.data.email;
                 errorService.alertText('');
                 if (! ( e && e.match(/^.+@.+\..+$/) )) {
-//TODO(robnagler) how to put error on form field?
-                    errorService.alertText('email is invalid');
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Email address is invalid. Please update and resubmit.';
                     return;
                 }
+                $scope.showWarning = false;
                 $scope.data.sentEmail = $scope.data.email;
-//TODO(robnagler): change button to sending
+                //TODO(robnagler): change button to sending
                 requestSender.sendRequest(
                     'authEmailLogin',
                     handleResponse,
