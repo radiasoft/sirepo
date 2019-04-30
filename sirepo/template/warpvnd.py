@@ -689,7 +689,8 @@ def _generate_parameters_file(data):
     elif data['report'] == 'optimizerAnimation':
         res += _render_jinja('parameters-optimize', v)
     else:
-        res += _render_jinja('source-field', v)
+       # res += _render_jinja('source-field', v)
+        res += _render_jinja('source-field-test', v)
     return res, v
 
 
