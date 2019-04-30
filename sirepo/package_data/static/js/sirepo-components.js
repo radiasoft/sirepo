@@ -39,7 +39,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
-              '<div class="col-sm-6 pull-right" data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+              '<div data-ng-if="wantButtons" class="row">',
+                '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+              '</div>',
             '</form>',
         ].join(''),
         controller: function($scope, $element) {
@@ -187,14 +189,18 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             viewName: '@',
             parentController: '=',
             wantButtons: '@',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
+            panelTitle: '@',
         },
         template: [
             '<div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
-                '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelKey" data-view-name="{{ viewName }}"></div>',
+                '<div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
                   //TODO(pjm): not really an advanced editor pane anymore, should get renamed
-                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtonsEval }}" data-field-def="basic" data-parent-controller="parentController"></div>',
-              '<div data-ng-transclude=""></div>',
+                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>',
+                  '<div data-ng-transclude=""></div>',
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -204,13 +210,13 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
                 throw 'unknown viewName: ' + $scope.viewName;
             }
             $scope.modelName = viewInfo.model || $scope.viewName;
+            $scope.modelKey = $scope.modelData
+                ? $scope.modelData.modelKey
+                : $scope.modelName;
             $scope.panelState = panelState;
-            $scope.panelTitle = viewInfo.title;
-            if ($scope.wantButtons === null || $scope.wantButtons === undefined) {
-                $scope.wantButtonsEval = '1';
-            }
-            else {
-                $scope.wantButtonsEval = $scope.wantButtons;
+            $scope.panelTitle = $scope.panelTitle || viewInfo.title;
+            if (! angular.isDefined($scope.wantButtons)) {
+                $scope.wantButtons = '1';
             }
         },
     };
@@ -1463,6 +1469,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             modelKey: '=',
             isReport: '@',
             reportId: '<',
+            viewName: '@',
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
@@ -1488,8 +1495,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             $scope.utilities = utilities;
 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
-            $scope.hasEditor = appState.viewInfo($scope.modelKey)
-                && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
+            var view = appState.viewInfo($scope.viewName || $scope.modelKey);
+            $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {

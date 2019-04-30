@@ -6,7 +6,10 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["webcon.js"]
+            "js": [
+                "webcon.js",
+                "sirepo-lattice.js"
+            ]
         }
     },
     "localRoutes": {
@@ -15,6 +18,13 @@
             "config": {
                 "controller": "AnalysisController as analysis",
                 "templateUrl": "/static/html/webcon-analysis.html"
+            }
+        },
+        "controls": {
+            "route": "/controls/:simulationId",
+            "config": {
+                "controller": "ControlsController as controls",
+                "templateUrl": "/static/html/webcon-controls.html"
             }
         }
     },
@@ -30,6 +40,10 @@
             ["fft", "FFT"],
             ["fit", "Fit"],
             ["trim", "Trim"]
+        ],
+        "SteeringMethod": [
+            ["svd", "SVD"],
+            ["nmead", "Nelder-Mead"]
         ]
     },
     "model": {
@@ -60,9 +74,32 @@
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
+        "beamPositionAnimation": {
+        },
+        "beamSteering": {
+            "steeringMethod": ["Steering Method", "SteeringMethod", "svd"]
+        },
+        "bunch": {
+            "p_central_mev": ["Central momentum [MeV/c]", "Float", 1000],
+            "centroid_x": ["Centroid X [m]", "Float", 0],
+            "centroid_xp": ["X' [rad]", "Float", 0],
+            "centroid_y": ["Centroid Y [m]", "Float", 0],
+            "centroid_yp": ["Y' [rad]", "Float", 0]
+        },
+        "correctorSettingAnimation": {
+        },
         "fftReport": {
         },
         "hiddenReport": {
+        },
+        "KICKER": {
+            "hkick": ["H. Kick [rad]", "MiniFloat", 0],
+            "vkick": ["V. Kick [rad]", "MiniFloat", 0]
+        },
+        "QUAD": {
+            "k1": ["Strength [1/m²]", "MiniFloat", 0]
+        },
+        "WATCH": {
         }
     },
     "view": {
@@ -132,6 +169,49 @@
                 "trimMax",
                 "trimButton"
             ],
+            "advanced": []
+        },
+        "beamPositionAnimation": {
+            "title": "Beam Position",
+            "advanced": []
+        },
+        "beamSteering": {
+            "title": "Beam Steering",
+            "basic": [
+                "steeringMethod"
+            ],
+            "advanced": []
+        },
+        "bunch": {
+            "title": "Beam Settings",
+            "basic": [
+                "p_central_mev",
+                "centroid_x",
+                "centroid_xp",
+                "centroid_y",
+                "centroid_yp"
+            ],
+            "advanced": []
+        },
+        "correctorSettingAnimation": {
+            "title": "Corrector Settings",
+            "advanced": []
+        },
+        "KICKER": {
+            "basic": [
+                "hkick",
+                "vkick"
+            ],
+            "advanced": []
+        },
+        "QUAD": {
+            "basic": [
+                "k1"
+            ],
+            "advanced": []
+        },
+        "WATCH": {
+            "basic": [],
             "advanced": []
         }
     }

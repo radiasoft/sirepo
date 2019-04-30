@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
+      '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+    '</div>',
     '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
       '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
     '</div>',
@@ -30,6 +33,14 @@ SIREPO.appFieldEditors = [
       '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.lattice = {
+    elementColor: {},
+    elementPic: {
+        drift: ['DRIF'],
+        magnet: ['KICKER', 'QUAD'],
+        watch: ['WATCH'],
+    },
+};
 
 SIREPO.app.factory('webconService', function(appState, panelState) {
     var self = {};
@@ -181,6 +192,172 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
         $scope.$on('hiddenReport.changed', buildSubplots);
         buildSubplots();
     });
+});
+
+SIREPO.app.controller('ControlsController', function (appState, panelState, requestSender, webconService, $scope) {
+    var self = this;
+
+    //TODO(pjm): hard-coded beamline for now, using elegant format
+    var elements = [
+            {
+                "_id": 8,
+                "l": 0.1,
+                "name": "drift",
+                "type": "DRIF"
+            },
+            {
+                "_id": 10,
+                "hkick": 0,
+                "name": "HV KICKER 1",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 12,
+                "hkick": 0,
+                "name": "HV KICKER 2",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 13,
+                "hkick": 0,
+                "name": "HV KICKER 3",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 14,
+                "hkick": 0,
+                "name": "HV KICKER 4",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 24,
+                "k1": 5,
+                "l": 0.05,
+                "name": "F QUAD 1",
+                "type": "QUAD",
+            },
+            {
+                "_id": 25,
+                "k1": -5,
+                "l": 0.05,
+                "name": "D QUAD 1",
+                "type": "QUAD",
+            },
+            {
+                "_id": 30,
+                "k1": 5,
+                "l": 0.05,
+                "name": "F QUAD 2",
+                "type": "QUAD",
+            },
+            {
+                "_id": 31,
+                "k1": -5,
+                "l": 0.05,
+                "name": "D QUAD 2",
+                "type": "QUAD",
+            },
+            {
+                "_id": 9,
+                "name": "BPM 1",
+                "type": "WATCH",
+            },
+            {
+                "_id": 27,
+                "name": "BPM 2",
+                "type": "WATCH",
+            },
+            {
+                "_id": 28,
+                "name": "BPM 3",
+                "type": "WATCH",
+            },
+            {
+                "_id": 29,
+                "name": "BPM 4",
+                "type": "WATCH",
+            }
+    ];
+    var beamline = [
+        8, 8, 10, 8, 8, 9, 8, 8,
+        8, 8, 12, 8, 8, 27, 8, 8,
+        8, 24, 8, 8, 25, 8,
+        8, 8, 13, 8, 8, 28, 8, 8,
+        8, 8, 14, 8, 8, 29, 8, 8,
+        8, 30, 8, 8, 31, 8,
+    ];
+    var layout = [
+        [10, 24],
+        [12, 25],
+        [13, 30],
+        [14, 31],
+    ];
+
+    function elementForId(id) {
+        var model = null;
+        elements.some(function(m) {
+            if (m._id == id) {
+                model = m;
+                return true;
+            }
+        });
+        if (! model) {
+            throw 'model not found for id: ' + id;
+        }
+        return model;
+    }
+
+    function modelForElement(element, id) {
+        var modelKey = element.type + id;
+        if (! appState.models[modelKey]) {
+            appState.models[modelKey] = element;
+            appState.saveQuietly(modelKey);
+        }
+        return {
+            id: id,
+            modelKey: modelKey,
+            title: element.name,
+            viewName: element.type,
+            getData: function() {
+                return appState.models[modelKey];
+            },
+        };
+    }
+
+    appState.whenModelsLoaded($scope, function() {
+        if (! appState.models.beamline) {
+            appState.models.beamlines = [
+                {
+                    id: 1,
+                    items: beamline,
+                    name: 'beamline',
+                },
+            ];
+            appState.models.elements = elements;
+            appState.saveChanges(['beamlines', 'elements']);
+        }
+        self.watches = [];
+        beamline.forEach(function(id) {
+            var element = elementForId(id);
+            if (element.type == 'WATCH') {
+                self.watches.push(modelForElement(element, id));
+            }
+        });
+        self.editorColumns = [];
+        layout.forEach(function(col) {
+            var res = [];
+            col.forEach(function(id) {
+                res.push(modelForElement(elementForId(id), id));
+            });
+            self.editorColumns.push(res);
+        });
+    });
+
+    return self;
 });
 
 SIREPO.app.directive('analysisActions', function(appState, panelState, webconService) {
@@ -392,58 +569,63 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, webconSer
     };
 });
 
-SIREPO.app.directive('trimButton', function(appState, webconService) {
+SIREPO.app.directive('analysisParameter', function(appState, webconService) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
             field: '=',
-            modelName: '=',
+            isOptional: '@',
         },
         template: [
-            '<div class="text-center">',
-              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
-            '</div>',
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
         ].join(''),
         controller: function($scope) {
-            $scope.trimPlot = function() {
-                var action = {};
-                ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
-                    action[f] = $scope.model[f];
-                });
-                webconService.addSubreport($scope.model, action);
-                appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
+            $scope.parameterValues = function() {
+                return webconService.buildParameterList($scope.isOptional);
             };
         },
     };
 });
 
-SIREPO.app.directive('plotActionButtons', function(appState) {
+SIREPO.app.directive('appFooter', function() {
     return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
+	restrict: 'A',
+	scope: {
+            nav: '=appFooter',
+	},
         template: [
-            '<div class="text-center">',
-            '<div class="btn-group">',
-              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
-            '</div>',
-            '</div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
-
-            $scope.isSelectedValue = function(value) {
-                if ($scope.model && $scope.field) {
-                    return $scope.model[$scope.field] == value;
-                }
-                return false;
-            };
-        },
+            '<div data-common-footer="nav"></div>',
+	].join(''),
     };
 });
+
+SIREPO.app.directive('appHeader', function(appState, panelState) {
+    return {
+	restrict: 'A',
+	scope: {
+            nav: '=appHeader',
+	},
+        template: [
+            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-left="nav"></div>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+		'<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
+		'</div>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+		//  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+              '</app-header-right-sim-list>',
+            '</div>',
+	].join(''),
+    };
+});
+
 
 SIREPO.app.directive('clusterFields', function(appState, webconService) {
     return {
@@ -493,62 +675,6 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
                 $scope.model[$scope.field] = v;
             };
         },
-    };
-});
-
-SIREPO.app.directive('analysisParameter', function(appState, webconService) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-            isOptional: '@',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.parameterValues = function() {
-                return webconService.buildParameterList($scope.isOptional);
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('appFooter', function() {
-    return {
-	restrict: 'A',
-	scope: {
-            nav: '=appFooter',
-	},
-        template: [
-            '<div data-common-footer="nav"></div>',
-	].join(''),
-    };
-});
-
-SIREPO.app.directive('appHeader', function(appState, panelState) {
-    return {
-	restrict: 'A',
-	scope: {
-            nav: '=appHeader',
-	},
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-		'<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-		'</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-		//  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-              '</app-header-right-sim-list>',
-            '</div>',
-	].join(''),
     };
 });
 
@@ -612,6 +738,89 @@ SIREPO.app.directive('equationVariables', function() {
     };
 });
 
+SIREPO.app.directive('fftReport', function(appState) {
+    return {
+        scope: {
+            modelData: '=',
+        },
+        template: [
+            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelKey = 'fftReport';
+            if ($scope.modelData) {
+                $scope.modelKey += appState.models[$scope.modelData.modelKey].id;
+            }
+
+            $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
+                var str = '';
+                data.freqs.forEach(function (wi, i) {
+                    if(str == '') {
+                        str = 'Found frequncies: ';
+                    }
+                    var w = wi[1];
+                    str = str + w + 's-1';
+                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
+                });
+                $($element).find('.focus-hint').text(str);
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('plotActionButtons', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="text-center">',
+            '<div class="btn-group">',
+              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
+
+            $scope.isSelectedValue = function(value) {
+                if ($scope.model && $scope.field) {
+                    return $scope.model[$scope.field] == value;
+                }
+                return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('trimButton', function(appState, webconService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div class="text-center">',
+              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.trimPlot = function() {
+                var action = {};
+                ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
+                    action[f] = $scope.model[f];
+                });
+                webconService.addSubreport($scope.model, action);
+                appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     return {
         restrict: 'A',
@@ -670,32 +879,46 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('fftReport', function(appState) {
+SIREPO.app.directive('webconLattice', function(utilities, $window) {
     return {
-        scope: {
-            modelData: '=',
-        },
+        restrict: 'A',
+        scope: {},
         template: [
-            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
+            '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
+              '<div class="webcon-lattice">',
+                '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
+                '<div style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
+              '</div>',
+            '</div>',
         ].join(''),
-        controller: function($scope, $element) {
-            $scope.modelKey = 'fftReport';
-            if ($scope.modelData) {
-                $scope.modelKey += appState.models[$scope.modelData.modelKey].id;
-            }
+        controller: function($scope) {
+            var axis, latticeScope;
 
-            $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
-                var str = '';
-                data.freqs.forEach(function (wi, i) {
-                    if(str == '') {
-                        str = 'Found frequncies: ';
-                    }
-                    var w = wi[1];
-                    str = str + w + 's-1';
-                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
-                });
-                $($element).find('.focus-hint').text(str);
+            $scope.windowResize = utilities.debounce(function() {
+                if (axis) {
+                    axis.scale.range([0, $('.webcon-lattice').parent().width()]);
+                    latticeScope.updateFixedAxis(axis, 0);
+                    $scope.$applyAsync();
+                }
+            }, 250);
+
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', $scope.windowResize);
             });
+
+            $scope.$on('sr-latticeLinked', function(event) {
+                latticeScope = event.targetScope;
+                event.stopPropagation();
+                axis = {
+                    scale: d3.scale.linear(),
+                    //TODO(pjm): 3.4 is the hard-code example beamline length
+                    domain: [0, 3.4],
+                };
+                axis.scale.domain(axis.domain);
+                $scope.windowResize();
+            });
+
+            $($window).resize($scope.windowResize);
         },
     };
 });
