@@ -71,9 +71,7 @@ def api_authCompleteRegistration():
     n = _parse_display_name(d)
     u = _get_user()
     with user_db.thread_lock:
-        r = user_db.UserRegistration.search_by(uid=u)
-        if not r:
-            r = user_db.UserRegistration(uid=u)
+        r = _user_registration(u)
         r.display_name = n
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
@@ -418,14 +416,8 @@ def _login_user(module, uid):
     cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
     s = _STATE_LOGGED_IN
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
-        ur = user_db.UserRegistration.search_by(uid=uid)
-        if not ur:
-            ur = user_db.UserRegistration(
-                uid=uid,
-                created=datetime.datetime.utcnow(),
-            )
-            ur.save()
-        if not ur.display_name:
+        u = _user_registration(uid)
+        if not u.display_name:
             s = _STATE_COMPLETE_REGISTRATION
     cookie.set_value(_COOKIE_STATE, s)
     _set_log_user()
@@ -473,6 +465,17 @@ def _set_log_user():
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
     cookie.set_value(_COOKIE_METHOD, auth_method)
+
+
+def _user_registration(uid):
+    res = user_db.UserRegistration.search_by(uid=uid)
+    if not res:
+        res = user_db.UserRegistration(
+            uid=uid,
+            created=datetime.datetime.utcnow(),
+        )
+        res.save()
+    return res
 
 
 def _validate_method(module, sim_type=None):
