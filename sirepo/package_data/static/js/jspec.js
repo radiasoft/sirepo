@@ -247,7 +247,7 @@ SIREPO.app.directive('elegantSimList', function(appState, requestSender, $window
                     var url = requestSender.formatUrlLocal(
                         'visualization',
                         {':simulationId': $scope.model[$scope.field]},
-                        'elegant',
+                        'elegant'
                     );
                     $window.open(url, '_blank');
                 }

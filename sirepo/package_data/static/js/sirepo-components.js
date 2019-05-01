@@ -2230,8 +2230,8 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
                     $scope.showWarning = false;
                     $window.location.href = requestSender.formatUrl(
                         'root',
-                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
-                    )
+                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+                    );
                     return;
                 }
                 $scope.showWarning = true;

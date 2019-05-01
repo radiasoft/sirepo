@@ -88,7 +88,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 
         $delegate.$broadcast = function () {
             return _broadcast.apply(this, arguments);
-lxu        };
+        };
 
         return $delegate;
     });
@@ -579,7 +579,7 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
 
     self.ucfirst = function(s) {
         return s.charAt(0).toUpperCase() + s.slice(1);
-    }
+    };
 
     self.uniqueName = function(items, idField, template) {
         // find a unique name comparing against a list of items
@@ -980,14 +980,14 @@ SIREPO.app.factory('authService', function(appState, authState, requestSender) {
                 'label': 'Sign in ' + label(method),
                 'url': requestSender.formatUrlLocal(
                     'loginWith',
-                    {':method': method},
+                    {':method': method}
                 )
             };
         }
     );
     self.logoutUrl = requestSender.formatUrl(
         'authLogout',
-        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
     );
     return self;
 });
@@ -2571,7 +2571,7 @@ SIREPO.app.controller('LoginController', function (authState, authService) {
     self.authService = authService;
 });
 
-SIREPO.app.controller('LoginWithController', function ($route, $window, appState, authState, requestSender) {
+SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, authState, requestSender) {
     var self = this;
     self.authState = authState;
     var m = $route.current.params.method || '';
@@ -2581,7 +2581,7 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, appState
         self.msg = 'Logging in via ' + m + '. Please wait...';
         $window.location.href = requestSender.formatUrl(
             'auth' + t + 'Login',
-            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType},
+            {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
         );
         return;
     }
