@@ -95,7 +95,7 @@ angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
 }]);
 
 // Add "log-broadcasts" in dependencies if you want to see all broadcasts
-SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies']);
+SIREPO.app = angular.module('SirepoApp', ['ngDraggable', 'ngRoute', 'ngCookies', 'ngSanitize']);
 
 SIREPO.app.value('localRoutes', {});
 
@@ -692,7 +692,7 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         if(! name || ! self.getNotification(name)) {
             return '';
         }
-        return $sce.trustAsHtml(self.getNotification(name).content);
+        return self.getNotification(name).content;
     };
 
     self.getNotification = function(name) {
@@ -2595,19 +2595,39 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
     }
 });
 
-SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window) {
+SIREPO.app.controller('LoginFailController', function ($route, $sce, appState, authState, requestSender) {
+    var self = this;
+    self.authState = authState;
+    var m = $route.current.params.method || '';
+    var t = $sce.getTrustedHtml(appState.ucfirst(m));
+    var r = $route.current.params.reason || '';
+    var l = '<a href="' + requestSender.formatUrlLocal('login')
+        + '">Please try to login again.</a>';
+    if (r == 'deprecated' || r == 'invalid-method') {
+        self.msg = 'You can no longer login with ' + t + '. ' + l;
+    }
+    else if (r == 'email-token') {
+        self.msg = 'You clicked on an expired link. ' + l;
+    }
+    else if (r == 'oauth-state') {
+        self.msg = 'Something went wrong with ' + t + '. ' + l;
+    }
+    else {
+        self.msg = 'Unexpected error. ' + l;
+    }
+});
+
+SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window, $sce) {
     var self = this;
 
     $rootScope.$broadcast('simulationUnloaded');
-    var getStartedNotifyContent = [
+    var n = appState.clone(SIREPO.APP_SCHEMA.notifications.getStarted);
+    n.content = [
         '<div class="text-center"><strong>Welcome to Sirepo - ',
-        SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+        $sce.getTrustedHtml(SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName),
         '!</strong></div>',
         'Below are some example simulations and folders containing simulations. Click on the simulation to open and view simulation results. You can create a new simulation by selecting the New Simulation link above.',
     ].join('');
-
-    var n = SIREPO.APP_SCHEMA.notifications.getStarted;
-    n.content = getStartedNotifyContent;
     notificationService.addNotification(n);
 
     self.importText = SIREPO.appImportText;

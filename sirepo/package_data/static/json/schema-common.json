@@ -147,6 +147,7 @@
                 "js": [
                     "angular-cookies.min.js",
                     "angular-route.min.js",
+                    "angular-sanitize.min.js",
                     "bootstrap-3.3.7.min.js",
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
