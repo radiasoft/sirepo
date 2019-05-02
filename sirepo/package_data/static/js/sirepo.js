@@ -125,19 +125,8 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         }
     }
 
-    if (SIREPO.authState.isLoggedIn) {
-        for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
-            addRoute(routeName);
-        }
-    } else {
-//TODO(robnagler) this probably can go away, because server throws exceptions for other routes
-        addRoute('completeRegistration');
-        addRoute('forbidden');
-        addRoute('login', true);
-        addRoute('loginFail');
-        addRoute('loginWith');
-        addRoute('missingCookies');
-        addRoute('notFound');
+    for (var routeName in SIREPO.APP_SCHEMA.localRoutes) {
+        addRoute(routeName);
     }
 });
 
