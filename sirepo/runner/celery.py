@@ -58,7 +58,7 @@ class CeleryJob(runner.JobBase):
         )
 
 
-def init_class(app, uwsgi):
+def init_class(app, *args, **kwargs):
     """Verify celery & rabbit are running"""
     if pkconfig.channel_in('dev'):
         return CeleryJob

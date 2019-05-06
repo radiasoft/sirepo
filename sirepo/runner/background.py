@@ -167,8 +167,8 @@ def _safe_env():
     )
 
 
-def init_class(app, uwsgi):
-    assert not uwsgi, \
+def init_class(app, *args, **kwargs):
+    assert not app.sirepo_uwsgi, \
         'uwsgi does not work if sirepo.runner.cfg.job_class=background'
     signal.signal(signal.SIGCHLD, BackgroundJob._sigchld_handler)
     return BackgroundJob

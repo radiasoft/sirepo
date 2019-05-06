@@ -11,15 +11,16 @@ def test_auth_hash(monkeypatch):
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
-        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
-        'SIREPO_BLUESKY_AUTH_SECRET': 'a simple string is fine',
+        'SIREPO_AUTH_METHODS': 'bluesky',
+        'SIREPO_AUTH_BLUESKY_SECRET': 'a simple string is fine',
     })
-    from sirepo import bluesky
+    from sirepo.auth import bluesky
     from pykern import pkcollections
     from pykern.pkunit import pkexcept, pkre
     import time
     import werkzeug.exceptions
 
+    bluesky.init_apis()
     monkeypatch.setattr(bluesky, '_AUTH_NONCE_REPLAY_SECS', 1)
     req = pkcollections.Dict(
         simulationType='xyz',
@@ -28,7 +29,7 @@ def test_auth_hash(monkeypatch):
     bluesky.auth_hash(req)
     bluesky.auth_hash(req, verify=True)
     time.sleep(2)
-    with pkexcept(werkzeug.exceptions.NotFound):
+    with pkexcept(werkzeug.exceptions.Unauthorized):
         bluesky.auth_hash(req, verify=True)
 
 
@@ -36,17 +37,18 @@ def test_auth_hash_copy():
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
-        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
-        'SIREPO_BLUESKY_AUTH_SECRET': 'anything',
+        'SIREPO_AUTH_METHODS': 'bluesky',
+        'SIREPO_AUTH_BLUESKY_SECRET': 'anything',
     })
     from pykern import pkcollections
     from pykern.pkunit import pkeq
-    from sirepo import bluesky
+    from sirepo.auth import bluesky
     import base64
     import hashlib
     import numconv
     import random
     import time
+    bluesky.init_apis()
 
     req = dict(
         simulationType='xyz',
@@ -62,7 +64,7 @@ def test_auth_hash_copy():
             req['authNonce'],
             req['simulationType'],
             req['simulationId'],
-            bluesky.cfg.auth_secret,
+            bluesky.cfg.secret,
         ]),
     )
     req['authHash'] = 'v1:' + base64.urlsafe_b64encode(h.digest())
@@ -72,30 +74,35 @@ def test_auth_hash_copy():
 def test_auth_login():
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkeq
+    from pykern.pkunit import pkeq, pkexcept
     from sirepo import srunit
 
-    fc = srunit.flask_client({
-        'SIREPO_FEATURE_CONFIG_API_MODULES': 'bluesky',
-        'SIREPO_BLUESKY_AUTH_SECRET': '3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
+    fc = srunit.flask_client(cfg={
+        'SIREPO_AUTH_METHODS': 'bluesky:guest',
+        'SIREPO_AUTH_BLUESKY_SECRET': '3SExmbOzn1WeoCWeJxekaE6bMDUj034Pu5az1hLNnvENyvL1FAJ1q3eowwODoa3f',
     })
     from sirepo import simulation_db
-    from sirepo import bluesky
-    from sirepo import cookie
+    from sirepo.auth import bluesky
+    import werkzeug.exceptions
 
-    fc.get('/srw')
+    sim_type = 'srw'
+    uid = fc.sr_login_as_guest(sim_type)
     data = fc.sr_post(
         'listSimulations',
-        {'simulationType': 'srw', 'search': {'simulationName': 'Bending Magnet Radiation'}},
+        {'simulationType': 'srw', 'search': {'simulationName': 'Bending Magnet Radiatin'}},
     )
     fc.cookie_jar.clear()
+    fc.sr_get('authState')
     data = data[0].simulation
     req = pkcollections.Dict(
         simulationType='srw',
         simulationId=data.simulationId,
     )
     bluesky.auth_hash(req)
-    resp = fc.sr_post('blueskyAuth', req)
+    resp = fc.sr_post('authBlueskyLogin', req)
     pkeq('ok', resp['state'])
     pkeq(req.simulationId, simulation_db.parse_sid(resp['data']))
     pkeq('srw', resp['schema']['simulationType'])
+    req.authHash = 'not match'
+    resp = fc.sr_post('authBlueskyLogin', req, raw_response=True)
+    pkeq(401, resp.status_code)
