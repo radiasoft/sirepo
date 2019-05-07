@@ -11,7 +11,7 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import cookie
+from sirepo import auth
 from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
@@ -78,7 +78,7 @@ _OLDEST_VERSION = '20140101.000001'
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
 #: Cache of schemas keyed by app name
-_SCHEMA_CACHE = {}
+_SCHEMA_CACHE = pkcollections.Dict()
 
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = '_super'
@@ -240,18 +240,31 @@ def fixup_old_data(data, force=False):
 
 
 def get_schema(sim_type):
-    if sim_type in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[sim_type]
+    """Get the schema for `sim_type`
+
+    If sim_type is None, it will return the schema for the first sim_type
+    in `feature_config.cfg.sim_types`
+
+    Args:
+        sim_type (str): must be valid
+    Returns:
+        dict: Shared schem
+
+    """
+    t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
+        else feature_config.cfg.sim_types[0]
+    if t in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[t]
     schema = read_json(
-        STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+        STATIC_FOLDER.join('json/{}-schema'.format(t)))
 
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        {'feature_config': feature_config.for_sim_type(sim_type)},
+        pkcollections.Dict(feature_config=feature_config.for_sim_type(t)),
     )
-    schema.simulationType = sim_type
-    _SCHEMA_CACHE[sim_type] = schema
+    schema.simulationType = t
+    _SCHEMA_CACHE[t] = schema
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
@@ -356,7 +369,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        cookie.get_user(),
+        auth.logged_in_user(),
         data.simulationId,
         data.report,
     )
@@ -395,10 +408,16 @@ def lib_dir_from_sim_dir(sim_dir):
     return sim_dir.join(_REL_LIB_DIR)
 
 
-def move_user_simulations(to_uid):
-    """Moves all non-example simulations for the current session into the target user's dir.
+def move_user_simulations_is_deprecated(from_uid, to_uid):
+    """Moves all non-example simulations `from_uid` into `to_uid`.
+
+    Only moves non-example simulations. Doesn't delete the from_uid.
+
+    Args:
+        from_uid (str): source user
+        to_uid (str): dest user
+
     """
-    from_uid = cookie.get_user()
     with _global_lock:
         for path in glob.glob(
                 str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
@@ -440,12 +459,12 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
-            raise CopyRedirect({
-                'redirect': {
-                    'simulationId': global_sid,
-                    'userCopySimulationId': user_copy_sid,
-                },
-            })
+            raise CopyRedirect(pkcollections.Dict(
+                redirect=pkcollections.Dict(
+                    simulationId=global_sid,
+                    userCopySimulationId=user_copy_sid,
+                ),
+            ))
         util.raise_not_found(
             '{}/{}: global simulation not found',
             sim_type,
@@ -564,16 +583,16 @@ def prepare_simulation(data, tmp_dir=None):
 
 def process_simulation_list(res, path, data):
     sim = data['models']['simulation']
-    res.append({
-        'simulationId': _sid_from_path(path),
-        'name': sim['name'],
-        'folder': sim['folder'],
-        'last_modified': datetime.datetime.fromtimestamp(
+    res.append(pkcollections.Dict(
+        simulationId=_sid_from_path(path),
+        name=sim['name'],
+        folder=sim['folder'],
+        last_modified=datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
-        'isExample': sim['isExample'] if 'isExample' in sim else False,
-        'simulation': sim,
-    })
+        isExample=sim['isExample'] if 'isExample' in sim else False,
+        simulation=sim,
+    ))
 
 
 def read_json(filename):
@@ -625,10 +644,10 @@ def read_result(run_dir):
     if err:
         return None, err
     if not res:
-        res = {}
+        res = pkcollections.Dict()
     if 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = {'state': 'canceled'}
+        res = pkcollections.Dict(state='canceled')
     return res, None
 
 
@@ -751,7 +770,7 @@ def save_simulation_json(data, do_validate=True):
                 iterate_simulation_datafiles(
                     sim_type,
                     lambda res, _, d: res.append(d),
-                    {'simulation.folder': s.folder},
+                    pkcollections.Dict({'simulation.folder': s.folder}),
                 ),
                 SCHEMA_COMMON.common.constants.maxSimCopies
             )
@@ -867,6 +886,20 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def user_create(login_callback):
+    """Create a user and initialize the directory
+
+    Returns:
+        str: New user id
+    """
+    uid = _random_id(user_dir_name())['id']
+    # Must logged in before calling simulation_dir
+    login_callback(uid)
+    for simulation_type in feature_config.cfg.sim_types:
+        _create_example_and_lib_files(simulation_type)
+    return uid
 
 
 def user_dir_name(uid=None):
@@ -1003,9 +1036,11 @@ def _files_in_schema(schema):
 
 
 def _find_user_simulation_copy(simulation_type, sid):
-    rows = iterate_simulation_datafiles(simulation_type, process_simulation_list, {
-        'simulation.outOfSessionSimulationId': sid,
-    })
+    rows = iterate_simulation_datafiles(
+        simulation_type,
+        process_simulation_list,
+        pkcollections.Dict({'simulation.outOfSessionSimulationId': sid}),
+    )
     if len(rows):
         return rows[0]['simulationId']
     return None
@@ -1189,29 +1224,11 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = cookie.get_user(checked=False)
-    if not uid:
-        uid = _user_dir_create()
+    uid = auth.logged_in_user()
     d = user_dir_name(uid)
     if d.check():
         return d
-    # flask session might have been deleted (in dev) so "logout" and "login"
-    uid = _user_dir_create()
-    return user_dir_name(uid)
-
-
-def _user_dir_create():
-    """Create a user and initialize the directory
-
-    Returns:
-        str: New user id
-    """
-    uid = _random_id(user_dir_name())['id']
-    # Must set before calling simulation_dir
-    cookie.set_user(uid)
-    for simulation_type in feature_config.cfg.sim_types:
-        _create_example_and_lib_files(simulation_type)
-    return uid
+    auth.user_dir_not_found(uid)
 
 
 _init()

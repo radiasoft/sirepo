@@ -39,7 +39,9 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 '<div class="form-group form-group-sm" data-ng-if="! isColumnField(f)" data-model-field="f" data-form="form" data-model-name="modelName" data-model-data="modelData"></div>',
                 '<div data-ng-if="isColumnField(f)" data-column-editor="" data-column-fields="f" data-model-name="modelName" data-model-data="modelData"></div>',
               '</div>',
-              '<div class="col-sm-6 pull-right" data-ng-if="wantButtons" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+              '<div data-ng-if="wantButtons" class="row">',
+                '<div class="col-sm-12 text-center" data-buttons="" data-model-name="modelName" data-model-data="modelData" data-fields="advancedFields"></div>',
+              '</div>',
             '</form>',
         ].join(''),
         controller: function($scope, $element) {
@@ -187,14 +189,18 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
             viewName: '@',
             parentController: '=',
             wantButtons: '@',
+            // optional, allow caller to provide path for modelKey and model data
+            modelData: '=',
+            panelTitle: '@',
         },
         template: [
             '<div class="panel panel-info" id="{{ \'sr-\' + viewName + \'-basicEditor\' }}">',
-              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelName"></div>',
-                '<div class="panel-body" data-ng-hide="panelState.isHidden(modelName)">',
+              '<div class="panel-heading clearfix" data-panel-heading="{{ panelTitle }}" data-model-key="modelKey" data-view-name="{{ viewName }}"></div>',
+                '<div class="panel-body" data-ng-hide="panelState.isHidden(modelKey)">',
                   //TODO(pjm): not really an advanced editor pane anymore, should get renamed
-                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtonsEval }}" data-field-def="basic" data-parent-controller="parentController"></div>',
-              '<div data-ng-transclude=""></div>',
+                  '<div data-advanced-editor-pane="" data-view-name="viewName" data-want-buttons="{{ wantButtons }}" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>',
+                  '<div data-ng-transclude=""></div>',
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -204,13 +210,13 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
                 throw 'unknown viewName: ' + $scope.viewName;
             }
             $scope.modelName = viewInfo.model || $scope.viewName;
+            $scope.modelKey = $scope.modelData
+                ? $scope.modelData.modelKey
+                : $scope.modelName;
             $scope.panelState = panelState;
-            $scope.panelTitle = viewInfo.title;
-            if ($scope.wantButtons === null || $scope.wantButtons === undefined) {
-                $scope.wantButtonsEval = '1';
-            }
-            else {
-                $scope.wantButtonsEval = $scope.wantButtons;
+            $scope.panelTitle = $scope.panelTitle || viewInfo.title;
+            if (! angular.isDefined($scope.wantButtons)) {
+                $scope.wantButtons = '1';
             }
         },
     };
@@ -279,13 +285,14 @@ SIREPO.app.directive('confirmationModal', function() {
             okText: '@',
             okClicked: '&',
             cancelText: '@',
+            isRequired: '@',
         },
         template: [
-            '<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog">',
+            '<div class="modal fade" data-backdrop="{{ isRequired ? \'static\' : true }}" id="{{ id }}" tabindex="-1" role="dialog">',
               '<div class="modal-dialog">',
                 '<div class="modal-content">',
                   '<div class="modal-header bg-warning">',
-                    '<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
+                    '<button data-ng-if="! isRequired" type="button" class="close" data-dismiss="modal"><span>&times;</span></button>',
                     '<span class="lead modal-title text-info">{{ title }}</span>',
                   '</div>',
                   '<div class="modal-body">',
@@ -298,7 +305,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       '<div class="row">',
                         '<div class="col-sm-6 pull-right" style="margin-top: 1em">',
                           '<button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default">{{ okText }}</button>',
-                          ' <button data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
+                          ' <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default">{{ cancelText || \'Cancel\' }}</button>',
                         '</div>',
                       '</div>',
                     '</div>',
@@ -324,6 +331,15 @@ SIREPO.app.directive('confirmationModal', function() {
                 }
                 return $scope.formCtl.$valid;
             };
+
+            $scope.$on('$destroy', function() {
+                // release modal data to prevent memory leak
+                $($element).off();
+            });
+
+            $($element).on('shown.bs.modal', function() {
+                $($element).find('.form-control').first().select();
+            });
         },
     };
 });
@@ -558,64 +574,27 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('loginMenu', function(notificationService, requestSender) {
-
-    var loginNotifyContent = '<strong>To save your work, log into GitHub</strong><span class="glyphicon glyphicon-hand-up sr-notify-pointer"></span>';
-
+SIREPO.app.directive('logoutMenu', function(authState, authService) {
     return {
         restrict: 'A',
-        scope: {
-            notifyActive: '=',
-        },
+        scope: {},
         template: [
-              '<li data-ng-if="isLoggedIn()" class="sr-logged-in-menu dropdown"><a href class="dropdown-toggle" data-toggle="dropdown"><img data-ng-src="https://avatars.githubusercontent.com/{{ userState.userName }}?size=40"</img> <span class="caret"></span></a>',
-                '<ul class="dropdown-menu">',
-                  '<li class="dropdown-header">Signed in as <strong>{{ userState.userName }}</strong></li>',
-                  '<li class="divider"></li>',
-                  '<li><a data-ng-href="{{ logoutURL }}" data-ng-click="doLogoutTasks()">Sign out</a></li>',
-                '</ul>',
-              '</li>',
-              '<li data-ng-if="isLoggedOut()" class="dropdown"  data-ng-class="{\'alert-success\': notificationService.shouldPresent(\'login\')}">',
-                '<a href class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> <span class="caret"></span></a>',
-                '<ul class="dropdown-menu">',
-                  '<li><a data-ng-href="{{ githubLoginURL() }}" data-ng-click="doLoginTasks()">Sign In with <strong>GitHub</strong></a></li>',
-                '</ul>',
-              '</li>',
+            '<li data-ng-if="::authState.isLoggedIn" class="sr-logged-in-menu dropdown">',
+              '<a href class="dropdown-toggle" data-toggle="dropdown">',
+                '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
+                '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
+                ' <span class="caret"></span>',
+              '</a>',
+              '<ul class="dropdown-menu">',
+                '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
+                '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
+                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
+              '</ul>',
+            '</li>',
         ].join(''),
         controller: function($scope) {
-            $scope.userState = SIREPO.userState;
-            $scope.githubLoginURL = function() {
-                return requestSender.formatAuthUrl('github');
-            };
-            $scope.logoutURL = requestSender.formatUrl('oauthLogout', {
-                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            });
-            $scope.isLoggedIn = function() {
-                if($scope.loginNotification) {
-                    $scope.loginNotification.active = $scope.loginNotification.active && $scope.notifyActive;
-                }
-                return $scope.userState && $scope.userState.loginState == 'logged_in';
-            };
-            $scope.isLoggedOut = function() {
-                return $scope.userState && ! $scope.isLoggedIn();
-            };
-            $scope.doLogoutTasks = function() {
-                $scope.loginNotification.active = true;
-                notificationService.sleepNotification($scope.loginNotification);
-            };
-            $scope.doLoginTasks = function() {
-                $scope.loginNotification.active = false;
-                notificationService.dismissNotification($scope.loginNotification);
-            };
-
-            var n = SIREPO.APP_SCHEMA.notifications.login;
-            n.content = loginNotifyContent;
-            n.active = $scope.notifyActive && $scope.isLoggedOut();
-
-            $scope.notificationService = notificationService;
-            $scope.sr_login_notify_cookie = n.name;
-            $scope.loginNotification = n;
-            notificationService.addNotification(n);
+            $scope.authState = authState;
+            $scope.authService = authService;
         },
     };
 });
@@ -1490,6 +1469,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             modelKey: '=',
             isReport: '@',
             reportId: '<',
+            viewName: '@',
         },
         template: [
             '<div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">',
@@ -1515,8 +1495,8 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             $scope.utilities = utilities;
 
             // modelKey may not exist in viewInfo, assume it has an editor in that case
-            $scope.hasEditor = appState.viewInfo($scope.modelKey)
-                && appState.viewInfo($scope.modelKey).advanced.length === 0 ? false : true;
+            var view = appState.viewInfo($scope.viewName || $scope.modelKey);
+            $scope.hasEditor = view && view.advanced.length === 0 ? false : true;
 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
@@ -1713,7 +1693,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     };
 });
 
-SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
+SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) {
     return {
         restrict: 'A',
         scope: {
@@ -1721,7 +1701,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
             simulationsLinkText: '@',
         },
         template: [
-            '<ul class="nav navbar-nav" data-ng-if="showMenu()">',
+            '<ul class="nav navbar-nav" data-ng-if=":: authState.isLoggedIn">',
               '<li data-ng-class="{active: nav.isActive(\'simulations\')}"><a href data-ng-click="nav.openSection(\'simulations\')"><span class="glyphicon glyphicon-th-list"></span> {{ simulationsLinkText }}</a></li>',
             '</ul>',
             '<div data-ng-if="showTitle()" class="navbar-text">',
@@ -1730,12 +1710,10 @@ SIREPO.app.directive('appHeaderLeft', function(appState, panelState) {
             '</div>',
         ].join(''),
         controller: function($scope) {
+            $scope.authState = authState;
             if (! $scope.simulationsLinkText) {
                 $scope.simulationsLinkText = 'Simulations';
             }
-            $scope.showMenu = function() {
-                return ! SIREPO.IS_LOGGED_OUT;
-            };
             $scope.showTitle = function() {
                 return appState.isLoaded();
             };
@@ -1810,7 +1788,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                     '</ul>',
                   '</li>',
                 '</ul>',
-                '<ul class="nav navbar-nav navbar-right" data-login-menu="" data-ng-if="modeIsDefault()" data-notify-active="modeIsDefault()"></ul>',
+                '<ul data-ng-if="::! authState.isLoggedIn" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -2225,6 +2203,125 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
+SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="row text-center">',
+            '<p>Please enter your full name to complete your Sirepo registration.</p>',
+            '</div>',
+            '<form class="form-horizontal" autocomplete="off">',
+              '<div class="row text-center">',
+                '<label class="col-sm-3 control-label">Your full name</label>',
+                '<div class="col-sm-7">',
+                  '<input class="form-control" data-ng-model="data.displayName" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                '</div>',
+              '</div>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="submit()" class="btn btn-primary">Submit</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    $scope.showWarning = false;
+                    $window.location.href = requestSender.formatUrl(
+                        'root',
+                        {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+                    );
+                    return;
+                }
+                $scope.showWarning = true;
+                $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+            }
+            $scope.data = {};
+            $scope.submit = function() {
+                //TODO(robnagler): change button to sending
+                requestSender.sendRequest(
+                    'authCompleteRegistration',
+                    handleResponse,
+                    {
+                        displayName: $scope.data.displayName,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
+        },
+        link: function(scope, element) {
+            // get the angular form from within the transcluded content
+            scope.form = element.find('input').eq(0).controller('form');
+        }
+    };
+});
+
+SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="row text-center">',
+              '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
+            '</div>',
+            '<form class="form-horizontal" autocomplete="off">',
+              '<div class="row text-center">',
+                '<label class="col-sm-3 control-label">Your Email</label>',
+                '<div class="col-sm-9">',
+                  '<input type="text" class="form-control" data-ng-model="data.email" required/>',
+                  '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+                '</div>',
+              '</div>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="login()" class="btn btn-primary">Login</button>',
+              '</div>',
+            '</form>',
+            '<div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">',
+              '<p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you\'ll be signed in. You may close this window.</p>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            function handleResponse(data) {
+                if (data.state == 'ok') {
+                    $scope.showWarning = false;
+                    $scope.data.email = '';
+                    $scope.form.$setPristine();
+                    $('#sr-email-login-done').modal('show');
+                }
+                else {
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+                }
+            }
+            $scope.data = {};
+            $scope.login = function() {
+                var e = $scope.data.email;
+                errorService.alertText('');
+                if (! ( e && e.match(/^.+@.+\..+$/) )) {
+                    $scope.showWarning = true;
+                    $scope.warningText = 'Email address is invalid. Please update and resubmit.';
+                    return;
+                }
+                $scope.showWarning = false;
+                $scope.data.sentEmail = $scope.data.email;
+                //TODO(robnagler): change button to sending
+                requestSender.sendRequest(
+                    'authEmailLogin',
+                    handleResponse,
+                    {
+                        email: $scope.data.sentEmail,
+                        simulationType: SIREPO.APP_NAME
+                    }
+                );
+            };
+        },
+        link: function(scope, element) {
+            // get the angular form from within the transcluded content
+            scope.form = element.find('input').eq(0).controller('form');
+        }
+    };
+});
 
 SIREPO.app.directive('commonFooter', function() {
     return {

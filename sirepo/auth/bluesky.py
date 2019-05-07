@@ -1,26 +1,35 @@
 # -*- coding: utf-8 -*-
-u"""NSLS-II BlueSky integration
+u"""NSLS-II BlueSky Login
 
-:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern import pkinspect
 from pykern.pkdebug import pkdp
-from sirepo import cookie
-from sirepo import simulation_db
 from sirepo import api_perm
-from sirepo import http_request
+from sirepo import auth
 from sirepo import http_reply
-from sirepo import uri_router
+from sirepo import http_request
+from sirepo import simulation_db
 from sirepo import util
 import base64
 import hashlib
 import time
 
+
 #: configuration
 cfg = None
+
+AUTH_METHOD = 'bluesky'
+
+#: bots only
+AUTH_METHOD_VISIBLE = False
+
+#: module handle
+this_module = pkinspect.this_module()
 
 #: separates the values of the clear text for the hash
 # POSIT: ':' not part of simulationType or simulationId
@@ -33,8 +42,8 @@ _AUTH_NONCE_REPLAY_SECS = 10
 _AUTH_NONCE_SEPARATOR = '-'
 
 
-@api_perm.allow_login
-def api_blueskyAuth():
+@api_perm.allow_cookieless_set_user
+def api_authBlueskyLogin():
     req = http_request.parse_json()
     auth_hash(req, verify=True)
     sid = req.simulationId
@@ -44,18 +53,29 @@ def api_blueskyAuth():
         sid,
         checked=True,
     )
-    cookie.set_user(simulation_db.uid_from_dir_name(path))
+    r = auth.login(
+        this_module,
+        uid=simulation_db.uid_from_dir_name(path),
+    )
+    if r:
+        return r
     return http_reply.gen_json_ok(dict(
         data=simulation_db.open_json_file(req.simulationType, sid=req.simulationId),
         schema=simulation_db.get_schema(req.simulationType),
     ))
 
 
+@api_perm.allow_cookieless_set_user
+def api_blueskyAuth():
+    """Deprecated use `api_authBlueskyLogin`"""
+    return api_authBlueskyLogin()
+
+
 def auth_hash(req, verify=False):
     now = int(time.time())
     if not 'authNonce' in req:
         if verify:
-           util.raise_not_found('authNonce: missing field in request')
+           util.raise_unauthorized('authNonce: missing field in request')
         req.authNonce = str(now) + _AUTH_NONCE_SEPARATOR + util.random_base62()
     h = hashlib.sha256()
     h.update(
@@ -63,7 +83,7 @@ def auth_hash(req, verify=False):
             req.authNonce,
             req.simulationType,
             req.simulationId,
-            cfg.auth_secret,
+            cfg.secret,
         ]),
     )
     res = 'v1:' + base64.urlsafe_b64encode(h.digest())
@@ -71,7 +91,7 @@ def auth_hash(req, verify=False):
         req.authHash = res
         return
     if res != req.authHash:
-        util.raise_not_found(
+        util.raise_unauthorized(
             '{}: hash mismatch expected={} nonce={}',
             req.authHash,
             res,
@@ -81,14 +101,14 @@ def auth_hash(req, verify=False):
     try:
         t = int(t)
     except ValueError as e:
-        util.raise_not_found(
+        util.raise_unauthorized(
             '{}: auth_nonce prefix not an int: nonce={}',
             t,
             req.authNonce,
         )
     delta = now - t
     if abs(delta) > _AUTH_NONCE_REPLAY_SECS:
-        util.raise_not_found(
+        util.raise_unauthorized(
             '{}: auth_nonce time outside replay window={} now={} nonce={}',
             t,
             _AUTH_NONCE_REPLAY_SECS,
@@ -97,12 +117,11 @@ def auth_hash(req, verify=False):
         )
 
 
-def init_apis(app):
-    assert cfg.auth_secret, \
-        'sirepo_bluesky_auth_secret is not configured'
-    uri_router.register_api_module()
-
-
-cfg = pkconfig.init(
-    auth_secret=(None, str, 'Shared secret between Sirepo and BlueSky server'),
-)
+def init_apis(*args, **kwargs):
+    global cfg
+    cfg = pkconfig.init(
+        secret=pkconfig.Required(
+            str,
+            'Shared secret between Sirepo and BlueSky server',
+        ),
+    )

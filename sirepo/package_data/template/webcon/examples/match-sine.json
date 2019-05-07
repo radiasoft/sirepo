@@ -82,8 +82,8 @@
             "clusterRandomSeed": 12341234,
             "clusterScaleMax": 0.8,
             "clusterScaleMin": -0.8,
-            "fitEquation": "15  * sin(13 * a * x + b)",
-            "fitParameters": "a,b",
+            "fitEquation": "20 * a * sin(14 * b * x + c) + d",
+            "fitParameters": "a,b,c,d",
             "fitVariable": "x",
             "history": [
                 {

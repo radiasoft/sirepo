@@ -47,10 +47,6 @@ build_as_run_user() {
         pip install .
     done
 
-    # test & deploy
-    # npm gets ECONNRESET due to a node error, which shouldn't happen
-    # https://github.com/nodejs/node/issues/3595
-    npm install jshint >& /dev/null || true
     bash test.sh
     cd ..
     build_run_user_home_chmod_public

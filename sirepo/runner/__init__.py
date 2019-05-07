@@ -58,7 +58,7 @@ MAX_OPEN_FILES = 1024
 _job_class = None
 
 
-def init(app, uwsgi, use_reloader):
+def init(app, use_reloader):
     """Initialize module"""
     if use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         # avoid first call to init() when using reloader
@@ -80,7 +80,7 @@ def init(app, uwsgi, use_reloader):
             cfg.job_class,
         )),
     )
-    _job_class = m.init_class(app, uwsgi)
+    _job_class = m.init_class(app)
 
 
 def job_is_processing(jid):
