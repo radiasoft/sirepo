@@ -53,6 +53,8 @@ SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
+_ROBOTS_TXT = None
+
 #: Global app value (only here so instance not lost)
 _app = None
 
@@ -400,11 +402,21 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
 
 @api_perm.allow_visitor
 def api_robotsTxt():
-    """Tell robots to go away"""
-    return flask.Response(
-        'User-agent: *\nDisallow: /\n',
-        mimetype='text/plain',
-    )
+    """Disallow the app (dev, prod) or / (alpha, beta)"""
+    global _ROBOTS_TXT
+    if not _ROBOTS_TXT:
+        # We include dev so we can test
+        if pkconfig.channel_in('prod', 'dev'):
+            u = [
+                uri_router.uri_for_api('root', params={'simulation_type': x})
+                for x in sorted(feature_config.cfg.sim_types)
+            ]
+        else:
+            u = ['/']
+        _ROBOTS_TXT = ''.join(
+            ['User-agent: *\n'] + ['Disallow: /{}\n'.format(x) for x in u],
+        )
+    return flask.Response(_ROBOTS_TXT, mimetype='text/plain')
 
 
 @api_perm.allow_visitor
