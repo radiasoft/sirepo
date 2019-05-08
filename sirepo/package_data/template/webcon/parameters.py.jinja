@@ -1,0 +1,118 @@
+from __future__ import absolute_import, division, print_function
+
+import numpy as np
+import os
+import subprocess
+import time
+import epics
+
+lattice_file = """
+{{ fodoLattice -}}
+"""
+
+elegant_file = """
+&run_setup
+  centroid = "run_setup.centroid.sdds",
+  concat_order = 2,
+  lattice = "elegant.lte",
+  p_central_mev = {{ bunch_p_central_mev }},
+  print_statistics = 1,
+  use_beamline = "BEAMLINE",
+&end
+
+&run_control
+&end
+
+&bunched_beam
+  alpha_x = 1,
+  alpha_y = 1,
+  alpha_z = 0,
+  beta_x = 10,
+  beta_y = 10,
+  beta_z = 0,
+  centroid[0] = {{ bunch_centroid_x }}, {{ bunch_centroid_xp }}, {{ bunch_centroid_y }}, {{ bunch_centroid_yp }}, 0, 0,
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  emit_z = 0,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  one_random_bunch = 0,
+  sigma_dp = 0.001,
+  sigma_s = 0.00065,
+  symmetrize = 1,
+&end
+
+&track
+&end
+"""
+
+currents = [
+{% for name in CURRENT_FIELDS %}
+    '{{ name }}',
+{% endfor %}
+]
+
+positions = [
+{% for name in BPM_FIELDS %}
+    '{{ name }}',
+{% endfor %}    
+]
+
+def read_sdds_columns(file_name, column_names, column_types, data_class=None):
+    if data_class == None:
+        class sdds_data:
+            def __init__(self,file_name,column_names):
+                self.file_name = file_name
+                self.column_names = column_names
+        data_class = sdds_data(file_name,column_names)
+    stdout, stderr = subprocess.Popen(
+        ['sdds2stream', file_name, '-col={}'.format(','.join(column_names))],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).communicate()
+    column_data = np.asarray(stdout.split())
+    for idx in range(len(column_names)):
+        column = column_names[idx]
+        setattr(data_class, column, column_data[idx::len(column_names)].astype(column_types[idx]))
+    return data_class
+
+
+def run_simulation():
+    settings = epics.caget_many(currents)
+    args = {}
+    for name in currents:
+        args[name.replace(':', '_')] = settings.pop(0)
+    with open('elegant.lte', 'w') as f:
+        f.write(lattice_file.format(**args))
+    with open('elegant.ele', 'w') as f:
+        f.write(elegant_file)
+    os.system('elegant elegant.ele > elegant.log')
+
+
+def update_epics_currents(server_address):
+    filename = '{{ currentFile }}'
+    if os.path.exists(filename):
+        currents = np.load(filename)
+        os.remove(filename)
+        #TODO(pjm): couldn't get caput_many to work on current fields, using caput directly for now
+        import sirepo.template.webcon as template
+        for idx in range(len(currents[0])):
+            if template.run_epics_command(
+                    server_address,
+                    ['caput', '-w', '10', str(currents[0][idx]), str(currents[1][idx])],
+            ) is None:
+                print('epics current update failed')
+    import sys
+    sys.stdout.flush()
+
+
+def update_epics_positions():
+    values = []
+    data = read_sdds_columns('run_setup.centroid.sdds', ['ElementType', 'Cx', 'Cy'], [str, float, float])
+    for idx in range(len(data.ElementType)):
+        if data.ElementType[idx] == 'WATCH':
+            values += [data.Cx[idx], data.Cy[idx]]
+    res = epics.caput_many(positions, values)
+    if sum(res) != len(positions):
+        print('epics bpm update failed')

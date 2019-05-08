@@ -194,112 +194,12 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
     });
 });
 
-SIREPO.app.controller('ControlsController', function (appState, panelState, requestSender, webconService, $scope) {
+SIREPO.app.controller('ControlsController', function (appState, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
-
-    //TODO(pjm): hard-coded beamline for now, using elegant format
-    var elements = [
-            {
-                "_id": 8,
-                "l": 0.1,
-                "name": "drift",
-                "type": "DRIF"
-            },
-            {
-                "_id": 10,
-                "hkick": 0,
-                "name": "HV KICKER 1",
-                "type": "KICKER",
-                "vkick": 0
-            },
-            {
-                "_id": 12,
-                "hkick": 0,
-                "name": "HV KICKER 2",
-                "type": "KICKER",
-                "vkick": 0
-            },
-            {
-                "_id": 13,
-                "hkick": 0,
-                "name": "HV KICKER 3",
-                "type": "KICKER",
-                "vkick": 0
-            },
-            {
-                "_id": 14,
-                "hkick": 0,
-                "name": "HV KICKER 4",
-                "type": "KICKER",
-                "vkick": 0
-            },
-            {
-                "_id": 24,
-                "k1": 5,
-                "l": 0.05,
-                "name": "F QUAD 1",
-                "type": "QUAD",
-            },
-            {
-                "_id": 25,
-                "k1": -5,
-                "l": 0.05,
-                "name": "D QUAD 1",
-                "type": "QUAD",
-            },
-            {
-                "_id": 30,
-                "k1": 5,
-                "l": 0.05,
-                "name": "F QUAD 2",
-                "type": "QUAD",
-            },
-            {
-                "_id": 31,
-                "k1": -5,
-                "l": 0.05,
-                "name": "D QUAD 2",
-                "type": "QUAD",
-            },
-            {
-                "_id": 9,
-                "name": "BPM 1",
-                "type": "WATCH",
-            },
-            {
-                "_id": 27,
-                "name": "BPM 2",
-                "type": "WATCH",
-            },
-            {
-                "_id": 28,
-                "name": "BPM 3",
-                "type": "WATCH",
-            },
-            {
-                "_id": 29,
-                "name": "BPM 4",
-                "type": "WATCH",
-            }
-    ];
-    var beamline = [
-        8, 8, 10, 8, 8, 9, 8, 8,
-        8, 8, 12, 8, 8, 27, 8, 8,
-        8, 24, 8, 8, 25, 8,
-        8, 8, 13, 8, 8, 28, 8, 8,
-        8, 8, 14, 8, 8, 29, 8, 8,
-        8, 30, 8, 8, 31, 8,
-    ];
-    var layout = [
-        [10, 24],
-        [12, 25],
-        [13, 30],
-        [14, 31],
-    ];
 
     function elementForId(id) {
         var model = null;
-        elements.some(function(m) {
+        appState.models.elements.some(function(m) {
             if (m._id == id) {
                 model = m;
                 return true;
@@ -311,50 +211,191 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, requ
         return model;
     }
 
-    function modelForElement(element, id) {
-        var modelKey = element.type + id;
+    function enableLatticeFields(isEnabled) {
+        // all quad fields enabled at once...
+        panelState.enableField('QUAD', 'k1', isEnabled);
+        Object.keys(appState.models.bunch).forEach(function(f) {
+            panelState.enableField('bunch', f, isEnabled);
+        });
+    }
+
+    function handleStatus(data) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        if (data.summaryData) {
+            updateBpmPositions(data.summaryData.bpmValues);
+        }
+        if (data.state == 'completed' || data.state == 'error' || data.state == 'canceled') {
+            appState.models.epicsServerAnimation.connectToServer = '0';
+            appState.saveChanges('epicsServerAnimation');
+        }
+        else if (data.state != 'running' && data.state != 'pending') {
+            //console.log('handle state:', data.state);
+        }
+    }
+
+    function kickerModelNames() {
+        var res = [];
+        appState.models.elements.forEach(function(el) {
+            if (el.type == 'KICKER') {
+                res.push(el.type + el._id);
+            }
+        });
+        return res;
+    }
+
+    function modelForElement(element) {
+        var modelKey = element.type + element._id;
         if (! appState.models[modelKey]) {
             appState.models[modelKey] = element;
             appState.saveQuietly(modelKey);
         }
         return {
-            id: id,
+            id: element._id,
             modelKey: modelKey,
-            title: element.name,
+            title: element.name.replace(/\_/g, ' '),
             viewName: element.type,
+            element: element,
             getData: function() {
                 return appState.models[modelKey];
             },
         };
     }
 
-    appState.whenModelsLoaded($scope, function() {
-        if (! appState.models.beamline) {
-            appState.models.beamlines = [
-                {
-                    id: 1,
-                    items: beamline,
-                    name: 'beamline',
-                },
-            ];
-            appState.models.elements = elements;
-            appState.saveChanges(['beamlines', 'elements']);
+    function processEPICSServer() {
+        // updates the UI state of the epicsServer view
+        if (appState.applicationState().epicsServerAnimation.connectToServer == '1') {
+            panelState.showField('epicsServerAnimation', 'serverType', false);
+            panelState.showField('epicsServerAnimation', 'serverAddress', false);
+            enableLatticeFields(false);
         }
-        self.watches = [];
-        beamline.forEach(function(id) {
-            var element = elementForId(id);
-            if (element.type == 'WATCH') {
-                self.watches.push(modelForElement(element, id));
+        else {
+            panelState.showField('epicsServerAnimation', 'serverType', true);
+            panelState.showField(
+                'epicsServerAnimation', 'serverAddress',
+                appState.models.epicsServerAnimation.serverType == 'remote');
+            enableLatticeFields(true);
+        }
+    }
+
+    function updateBpmPositions(bpmValues) {
+        var count = 0;
+        appState.models.elements.forEach(function(el) {
+            if (el.type == 'WATCH') {
+                count += 1;
+                ['hpos', 'vpos'].forEach(function(pos) {
+                    var field = 'bpm' + count + '_' + pos;
+                    el[pos] = bpmValues[field];
+                });
             }
         });
-        self.editorColumns = [];
-        layout.forEach(function(col) {
-            var res = [];
-            col.forEach(function(id) {
-                res.push(modelForElement(elementForId(id), id));
+    }
+
+    function updateEPICSServer() {
+        var runEpics = appState.applicationState().epicsServerAnimation.connectToServer;
+        // update the simulation status for epics
+        if (runEpics == '1') {
+            if (! self.simState.isProcessing()) {
+                //console.log('starting epics');
+                if (appState.applicationState().epicsServerAnimation.serverType == 'remote') {
+                    requestSender.getApplicationData(
+                        {
+                            method: 'read_kickers',
+                            epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+                        },
+                        function(data) {
+                            if (data.kickers) {
+                                var modelNames = kickerModelNames();
+                                modelNames.forEach(function(name) {
+                                    appState.models[name].hkick = data.kickers.shift();
+                                    appState.models[name].vkick = data.kickers.shift();
+                                });
+                                appState.saveChanges(modelNames);
+                            }
+                        });
+                }
+                self.simState.runSimulation();
+            }
+        }
+        else {
+            if (self.simState.isProcessing()) {
+                //console.log('stopping epics');
+                self.simState.cancelSimulation();
+            }
+        }
+    }
+
+    function updateKicker(name) {
+        var epicsField = kickerModelNames().indexOf(name) + 1;
+        if (! epicsField) {
+            throw 'invalid kicker name: ' + name;
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'update_kicker',
+                epics_field: epicsField,
+                kicker: appState.models[name],
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+                simulationId: appState.models.simulation.simulationId,
+            },
+            function(data) {
+                //TODO(pjm): look for error from epics
             });
-            self.editorColumns.push(res);
+    }
+
+    self.isConnectedToEPICS = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().epicsServerAnimation.connectToServer == '1';
+        }
+        return false;
+    };
+
+    self.isRemoteServer = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().epicsServerAnimation.serverType == 'remote';
+        }
+        return false;
+    };
+
+    self.showEditor = function(item) {
+        if (self.isRemoteServer()) {
+            return item.element.type != 'QUAD';
+        }
+        return true;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        self.watches = [];
+        self.editorColumns = [];
+        var quadCount = 0;
+        appState.models.beamlines[0].items.forEach(function(id) {
+            var element = elementForId(id);
+            if (element.type == 'WATCH') {
+                self.watches.push(modelForElement(element));
+            }
+            else if (element.type == 'KICKER') {
+                self.editorColumns.push([modelForElement(element)]);
+            }
+            else if (element.type == 'QUAD') {
+                self.editorColumns[quadCount].push(modelForElement(element));
+                quadCount += 1;
+            }
         });
+        appState.watchModelFields($scope, ['epicsServerAnimation.serverType'], processEPICSServer);
+        processEPICSServer();
+        $scope.$on('epicsServerAnimation.changed', function() {
+            processEPICSServer();
+            updateEPICSServer();
+        });
+        $scope.$on('modelChanged', function(e, name) {
+            if (name.indexOf('KICKER') >= 0) {
+                updateKicker(name);
+            }
+        });
+    });
+    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
+        //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
     });
 
     return self;
@@ -893,7 +934,6 @@ SIREPO.app.directive('webconLattice', function(utilities, $window) {
         ].join(''),
         controller: function($scope) {
             var axis, latticeScope;
-
             $scope.windowResize = utilities.debounce(function() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);
