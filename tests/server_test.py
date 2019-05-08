@@ -19,10 +19,13 @@ pytest.importorskip('sdds')
 
 def test_basic():
     from sirepo import srunit
+    from pykern import pkunit
     fc = srunit.flask_client(sim_types='elegant:srw:myapp')
     resp = fc.get('/')
     assert 'LandingPageController' in resp.get_data(), \
         'Top level document is the landing page'
+    resp = fc.get('/robots.txt')
+    pkunit.pkre('elegant.*myapp.*srw', resp.get_data())
 
 
 def test_get_data_file():
