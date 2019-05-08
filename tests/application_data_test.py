@@ -14,8 +14,8 @@ def test_processed_image():
     from pykern import pkunit
     from sirepo import srunit
 
-    fc = srunit.flask_client()
     sim_type = 'srw'
+    fc = srunit.flask_client(sim_types=sim_type)
     fc.sr_login_as_guest(sim_type)
     r = fc.sr_sim_data(sim_type, 'Sample from Image')
     r = fc.sr_post(

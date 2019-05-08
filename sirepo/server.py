@@ -246,7 +246,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     )
     if len(rows) == 0:
         for s in simulation_db.examples(sim_type):
-            pkdp(s.models.simulation.name)
             if s['models']['simulation']['name'] != simulation_name:
                 continue
             simulation_db.save_new_example(s)
