@@ -1071,6 +1071,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
+                            pos.radius = 0;
                         }
                         else if (picType == 'malign') {
                             groupItem.color = getPicColor(item, 'black');
@@ -1086,6 +1087,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 var thetaAngle = latticeService.radiansToDegrees(rpnValue(item.theta));
                                 newAngle = 180 - 2 * thetaAngle;
                                 groupItem.angle = thetaAngle;
+                                pos.radius = 0;
                             }
                             else {
                                 groupItem.angle = 0;
