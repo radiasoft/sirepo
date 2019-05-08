@@ -33,6 +33,7 @@ def wrapper(parameters, bounds, constraints, cache):
         sys.stdout.flush()
         if os.path.exists('{{ optimizerStatusFile }}'):
             os.remove('{{ optimizerStatusFile }}')
+        #TODO(pjm): change command to an array and try without shell=True
         run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = {
             'steps': 0,
