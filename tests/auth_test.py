@@ -10,7 +10,7 @@ from pykern import pkcollections
 from sirepo import srunit
 
 
-@srunit.wrap_in_request()
+@srunit.wrap_in_request(sim_types='myapp')
 def test_login():
     from pykern import pkunit
     from pykern.pkdebug import pkdp

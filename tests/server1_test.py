@@ -18,7 +18,7 @@ def test_1_serial_stomp():
     from sirepo import srunit
     import copy
 
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='srw:myapp')
     sim_type = 'srw'
     fc.sr_login_as_guest(sim_type)
     data = fc.sr_post('listSimulations', {'simulationType': sim_type})
@@ -75,7 +75,7 @@ def test_missing_cookies():
     from pykern.pkunit import pkeq, pkre
     from sirepo import srunit
     import json
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='srw:myapp')
     sim_type = 'srw'
     resp = fc.post('/simulation-list', data=json.dumps({'simulationType': sim_type}), content_type='application/json')
     pkeq(400, resp.status_code)

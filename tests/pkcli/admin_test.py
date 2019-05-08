@@ -15,7 +15,7 @@ def test_purge_users(monkeypatch):
     from pykern import pkio
     from pykern import pkconfig
     from sirepo import srunit
-    srunit.init_auth_db()
+    srunit.init_auth_db(sim_types='myapp')
 
     from sirepo.pkcli import admin
     from sirepo import simulation_db
