@@ -246,7 +246,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     )
     if len(rows) == 0:
         for s in simulation_db.examples(sim_type):
-            pkdp(s.models.simulation.name)
             if s['models']['simulation']['name'] != simulation_name:
                 continue
             simulation_db.save_new_example(s)
@@ -308,10 +307,10 @@ def api_importArchive():
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return http_reply.gen_local_route_redirect(
+    return http_reply.gen_redirect_for_local_route(
         data.simulationType,
         route=None,
-        params={':simulationId': data.models.simulation.simulationId},
+        params={'simulationId': data.models.simulation.simulationId},
     )
 
 
