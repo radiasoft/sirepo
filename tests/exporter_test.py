@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip('sdds')
 pytest.importorskip('srwl_bl')
-pytest.importorskip('warp')
+pytest.importorskip('warpC')
 
 def test_create_zip():
     from pykern import pkio

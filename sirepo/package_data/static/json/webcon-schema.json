@@ -41,9 +41,14 @@
             ["fit", "Fit"],
             ["trim", "Trim"]
         ],
+        "ServerType": [
+            ["local", "Local"],
+            ["remote", "Remote"]
+        ],
         "SteeringMethod": [
-            ["svd", "SVD"],
-            ["nmead", "Nelder-Mead"]
+            ["nmead", "Nelder-Mead"],
+            ["polyfit", "Polyfit"],
+            ["svd", "SVD"]
         ]
     },
     "model": {
@@ -77,16 +82,22 @@
         "beamPositionAnimation": {
         },
         "beamSteering": {
-            "steeringMethod": ["Steering Method", "SteeringMethod", "svd"]
+            "useSteering": ["Use Steering", "Boolean", "0"],
+            "steeringMethod": ["Steering Method", "SteeringMethod", "polyfit"]
         },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV/c]", "Float", 1000],
             "centroid_x": ["Centroid X [m]", "Float", 0],
             "centroid_xp": ["X' [rad]", "Float", 0],
-            "centroid_y": ["Centroid Y [m]", "Float", 0],
+            "centroid_y": ["Y [m]", "Float", 0],
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
         "correctorSettingAnimation": {
+        },
+        "epicsServerAnimation": {
+            "serverType": ["EPICS Server Type", "ServerType", "local"],
+            "serverAddress": ["Network Address", "OptionalString", "", "EPICS server network address, $\\text{<host>:<port>}$"],
+            "connectToServer": ["Connect to EPICS", "Boolean", "0"]
         },
         "fftReport": {
         },
@@ -178,6 +189,7 @@
         "beamSteering": {
             "title": "Beam Steering",
             "basic": [
+                "useSteering",
                 "steeringMethod"
             ],
             "advanced": []
@@ -195,6 +207,15 @@
         },
         "correctorSettingAnimation": {
             "title": "Corrector Settings",
+            "advanced": []
+        },
+        "epicsServerAnimation": {
+            "title": "EPICS Server",
+            "basic": [
+                "serverType",
+                "serverAddress",
+                "connectToServer"
+            ],
             "advanced": []
         },
         "KICKER": {

@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import StringIO
@@ -26,10 +26,54 @@ import sklearn.mixture
 import sklearn.preprocessing
 import sympy
 
-
 SIM_TYPE = 'webcon'
 
+BPM_LOGFILE = 'bpm.log'
+
+BPM_FIELDS = [
+    'vagrant:bpm1:hpos',
+    'vagrant:bpm1:vpos',
+    'vagrant:bpm2:hpos',
+    'vagrant:bpm2:vpos',
+    'vagrant:bpm3:hpos',
+    'vagrant:bpm3:vpos',
+    'vagrant:bpm4:hpos',
+    'vagrant:bpm4:vpos',
+]
+
+CURRENT_FIELDS = [
+    'vagrant:corrector1:HCurrent',
+    'vagrant:corrector1:VCurrent',
+    'vagrant:corrector2:HCurrent',
+    'vagrant:corrector2:VCurrent',
+    'vagrant:corrector3:HCurrent',
+    'vagrant:corrector3:VCurrent',
+    'vagrant:corrector4:HCurrent',
+    'vagrant:corrector4:VCurrent',
+]
+
+
+_CURRENT_FILE = 'currents.npy'
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
+
+def background_percent_complete(report, run_dir, is_running):
+    if is_running:
+        bpm_file = run_dir.join(BPM_LOGFILE)
+        if bpm_file.exists():
+            return _parse_bpm_file(bpm_file)
+    return {
+        'percentComplete': 0,
+        'frameCount': 0,
+    }
+
+
+def epics_env(server_address):
+    env = os.environ.copy()
+    env['EPICS_CA_AUTO_ADDR_LIST'] = 'NO'
+    env['EPICS_CA_ADDR_LIST'] = server_address
+    env['EPICS_CA_SERVER_PORT'] = server_address.split(':')[1]
+    return env
 
 
 def fixup_old_data(data):
@@ -46,6 +90,8 @@ def fixup_old_data(data):
         data.models.analysisReport.history = []
     if 'subreports' not in data.models.hiddenReport:
         data.models.hiddenReport.subreports = []
+    if 'beamlines' not in data.models:
+        _init_default_beamline(data)
     template_common.organize_example(data)
 
 
@@ -60,6 +106,10 @@ def get_application_data(data):
             'columnInfo': _column_info(
                 _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
         }
+    if data['method'] == 'update_kicker':
+        return _update_epics_kicker(data)
+    if data['method'] == 'read_kickers':
+        return _read_epics_kickers(data)
     assert False, 'unknown application_data method: {}'.format(data['method'])
 
 
@@ -255,14 +305,25 @@ def _get_fit_report(report, plot_data, col_info):
 
 def lib_files(data, source_lib):
     res = []
-    if data.models.analysisData.file:
+    report = data.report if 'report' in data else None
+    if report == 'epicsServerAnimation':
+        res += [
+	    'beam_line_readings.db',
+            'beam_line_example.dbd',
+            'beam_line_exampleVersion.db',
+            'beam_line_settings.db',
+            'epics-boot.cmd',
+            'user.substitutions',
+        ]
+    elif data.models.analysisData.file:
         res.append(_analysis_data_file(data))
-    res = template_common.filename_to_path(res, source_lib)
-    return res
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
     r = data['report']
+    if r == 'epicsServerAnimation':
+        return []
     res = [r, 'analysisData']
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
@@ -271,7 +332,11 @@ def models_related_to_report(data):
 
 
 def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
+    return _generate_parameters_file(None, data)
+
+
+def run_epics_command(server_address, cmd):
+    return template_common.subprocess_output(cmd, epics_env(server_address))
 
 
 def validate_file(file_type, path):
@@ -295,7 +360,7 @@ def validate_sympy(str):
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data),
+        _generate_parameters_file(run_dir, data),
     )
 
 
@@ -436,8 +501,143 @@ def _fit_to_equation(x, y, equation, var, params):
     return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sigma, latex_label
 
 
-def _generate_parameters_file(data):
-    return ''
+def _generate_parameters_file(run_dir, data):
+    report = data['report'] if 'report' in data else None
+    if report and report != 'epicsServerAnimation':
+        return ''
+    #template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
+
+    # copy model values into beamline elements
+    kicker_values = []
+    count = 0
+    for idx in range(len(data.models.elements)):
+        el = data.models.elements[idx]
+        key = '{}{}'.format(el.type, el._id)
+        if key in data.models:
+            data.models.elements[idx] = data.models[key]
+            el = data.models.elements[idx]
+        if el.type == 'KICKER':
+            kicker_values += [el.hkick, el.vkick]
+            count += 1
+            el.hkick = '{' + 'vagrant_corrector{}_HCurrent'.format(count) + '}'
+            el.vkick = '{' + 'vagrant_corrector{}_VCurrent'.format(count) + '}'
+    if run_dir:
+        np.save(str(run_dir.join(_CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
+    v = template_common.flatten_data(data['models'], {})
+    from sirepo.template import elegant
+    #TODO(pjm): calling private template.elegant._build_beamline_map()
+    data.models.commands = []
+    v['currentFile'] = _CURRENT_FILE
+    v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
+    v['BPM_FIELDS'] = BPM_FIELDS
+    v['CURRENT_FIELDS'] = CURRENT_FIELDS
+    return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _init_default_beamline(data):
+    #TODO(pjm): hard-coded beamline for now, using elegant format
+    data.models.elements = [
+            {
+                '_id': 8,
+                'l': 0.1,
+                'name': 'drift',
+                'type': 'DRIF'
+            },
+            {
+                '_id': 10,
+                'hkick': 0,
+                'name': 'HV_KICKER_1',
+                'type': 'KICKER',
+                'vkick': 0
+            },
+            {
+                '_id': 12,
+                'hkick': 0,
+                'name': 'HV_KICKER_2',
+                'type': 'KICKER',
+                'vkick': 0
+            },
+            {
+                '_id': 13,
+                'hkick': 0,
+                'name': 'HV_KICKER_3',
+                'type': 'KICKER',
+                'vkick': 0
+            },
+            {
+                '_id': 14,
+                'hkick': 0,
+                'name': 'HV_KICKER_4',
+                'type': 'KICKER',
+                'vkick': 0
+            },
+            {
+                '_id': 24,
+                'k1': -5,
+                'l': 0.05,
+                'name': 'F_QUAD_1',
+                'type': 'QUAD',
+            },
+            {
+                '_id': 25,
+                'k1': 5,
+                'l': 0.05,
+                'name': 'D_QUAD_1',
+                'type': 'QUAD',
+            },
+            {
+                '_id': 30,
+                'k1': -5,
+                'l': 0.05,
+                'name': 'F_QUAD_2',
+                'type': 'QUAD',
+            },
+            {
+                '_id': 31,
+                'k1': 5,
+                'l': 0.05,
+                'name': 'D_QUAD_2',
+                'type': 'QUAD',
+            },
+            {
+                '_id': 9,
+                'name': 'BPM_1',
+                'type': 'WATCH',
+                'filename': '1',
+            },
+            {
+                '_id': 27,
+                'name': 'BPM_2',
+                'type': 'WATCH',
+                'filename': '1',
+            },
+            {
+                '_id': 28,
+                'name': 'BPM_3',
+                'type': 'WATCH',
+                'filename': '1',
+            },
+            {
+                '_id': 29,
+                'name': 'BPM_4',
+                'type': 'WATCH',
+                'filename': '1',
+            }
+    ]
+    data.models.beamlines = [
+        {
+            'id': 1,
+            'items': [
+                8, 8, 10, 8, 8, 9, 8, 8,
+                8, 8, 12, 8, 8, 27, 8, 8,
+                8, 24, 8, 8, 25, 8,
+                8, 8, 13, 8, 8, 28, 8, 8,
+                8, 8, 14, 8, 8, 29, 8, 8,
+                8, 30, 8, 8, 31, 8,
+            ],
+            'name': 'beamline',
+        },
+    ]
 
 
 def _label(col_info, idx):
@@ -465,8 +665,69 @@ def _load_file_with_history(report, path, col_info):
     return res
 
 
+def _parse_bpm_file(bpm_path):
+    bpm_values = {}
+    count = 0
+    #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
+    for line in pkio.read_text(str(bpm_path)).split("\n"):
+        m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
+        if not m:
+            continue
+        var_name = m.group(1)
+        var_value = m.group(2)
+        var_name = re.sub(r'^vagrant:', '', var_name)
+        var_name = re.sub(r':', '_', var_name)
+        bpm_values[var_name] = float(var_value)
+        count += 1
+    return {
+        'percentComplete': 0,
+        'frameCount': count,
+        'summaryData': {
+            'bpmValues': bpm_values
+        },
+    }
+
+
+def _read_epics_kickers(data):
+    epicsSettings = data.epicsServerAnimation
+    assert epicsSettings.serverAddress, 'missing remote server address'
+    output = run_epics_command(
+        epicsSettings.serverAddress,
+        ['caget'] + CURRENT_FIELDS,
+    )
+    return {
+        'kickers': np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist(),
+    }
+
+
 def _safe_index(col_info, idx):
     idx = int(idx or 0)
     if idx >= len(col_info['names']):
         idx = 1
     return idx
+
+
+def _update_epics_kicker(data):
+    epicsSettings = data.epicsServerAnimation
+    # data validation is done by casting values to int() or float()
+    prefix = 'vagrant:corrector{}:'.format(int(data['epics_field']))
+    fields = []
+    values = []
+    for f in 'h', 'v':
+        field = '{}{}Current'.format(prefix, f.upper())
+        fields.append(field)
+        values.append(float(data['kicker']['{}kick'.format(f)]))
+    if epicsSettings.serverType == 'remote':
+        assert epicsSettings.serverAddress, 'missing remote server address'
+        for idx in range(len(fields)):
+            v = run_epics_command(
+                epicsSettings.serverAddress,
+                ['caput', str(fields[idx]), str(values[idx])],
+            )
+    else:
+        sim_dir = simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('epicsServerAnimation')
+        if not sim_dir.exists():
+            return {}
+        #TODO(pjm): use save to tmp followed by mv for atomicity
+        np.save(str(sim_dir.join(_CURRENT_FILE)), np.array([fields, values]))
+    return {}

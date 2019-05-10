@@ -1016,7 +1016,7 @@ def _is_ignore_error_text(text):
 
 def _is_numeric(el_type, value):
     return el_type in ('RPNValue', 'RPNBoolean', 'Integer', 'Float') \
-        and re.search(r'^[\-\+0-9eE\.]+$', value)
+        and re.search(r'^[\-\+0-9eE\.]+$', str(value))
 
 
 def _iterate_model_fields(data, state, callback):

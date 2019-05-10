@@ -309,10 +309,10 @@ def api_importArchive():
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return http_reply.gen_local_route_redirect(
+    return http_reply.gen_redirect_for_local_route(
         data.simulationType,
         route=None,
-        params={':simulationId': data.models.simulation.simulationId},
+        params={'simulationId': data.models.simulation.simulationId},
     )
 
 

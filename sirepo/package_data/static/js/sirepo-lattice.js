@@ -181,12 +181,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         for (var i = 0; i < appState.models[type].length; i++) {
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
+                var saveModelNames = [type];
                 if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
-                    appState.models.simulation.visualizationBeamlineId = '';
-                    appState.saveQuietly('simulation');
+                    appState.models.simulation.visualizationBeamlineId = self.activeBeamlineId;
+                    saveModelNames.push('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type);
+                appState.saveChanges(saveModelNames);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
@@ -1071,6 +1072,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
+                            pos.radius = 0;
                         }
                         else if (picType == 'malign') {
                             groupItem.color = getPicColor(item, 'black');
@@ -1086,6 +1088,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 var thetaAngle = latticeService.radiansToDegrees(rpnValue(item.theta));
                                 newAngle = 180 - 2 * thetaAngle;
                                 groupItem.angle = thetaAngle;
+                                pos.radius = 0;
                             }
                             else {
                                 groupItem.angle = 0;

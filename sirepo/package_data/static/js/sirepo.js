@@ -1631,6 +1631,19 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         qi.interval = null;
     }
 
+    function cancelItems(mode) {
+        var rq = runQueue;
+        runQueue = [];
+        rq.forEach(function(item) {
+            if (! mode || item.qMode == mode) {
+                self.removeItem(item);
+            }
+            else {
+                runQueue.push(item);
+            }
+        });
+    }
+
     function handleResult(qi, resp) {
         qi.qState = 'done';
         self.removeItem(qi);
@@ -1700,11 +1713,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     };
 
     self.cancelAllItems = function() {
-        var rq = runQueue;
-        runQueue = [];
-        while (rq.length > 0) {
-            self.removeItem(rq.shift());
-        }
+        cancelItems();
     };
 
     // TODO(mvk): handle possible queue state conflicts
@@ -1723,6 +1732,10 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
             runFirstTransientItem();
         }
         return true;
+    };
+
+    self.cancelTransientItems = function() {
+        cancelItems('transient');
     };
 
     self.removeItem = function(qi) {
@@ -1745,7 +1758,7 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
     };
 
     $rootScope.$on('$routeChangeSuccess', self.cancelAllItems);
-    $rootScope.$on('clearCache', self.cancelAllItems);
+    $rootScope.$on('clearCache', self.cancelTransientItems);
 
     return self;
 });
