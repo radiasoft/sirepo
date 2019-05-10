@@ -181,12 +181,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         for (var i = 0; i < appState.models[type].length; i++) {
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
+                var saveModelNames = [type];
                 if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
-                    appState.models.simulation.visualizationBeamlineId = '';
-                    appState.saveQuietly('simulation');
+                    appState.models.simulation.visualizationBeamlineId = self.activeBeamlineId;
+                    saveModelNames.push('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type);
+                appState.saveChanges(saveModelNames);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
