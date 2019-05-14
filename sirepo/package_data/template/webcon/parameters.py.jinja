@@ -92,11 +92,18 @@ def run_simulation(server_address):
 
 
 def update_and_run_simulation(server_address):
+    start = time.time()
     error = update_epics_currents(server_address)
     if error:
         return error
     run_simulation(server_address)
-    return update_epics_positions(server_address)
+    error = update_epics_positions(server_address)
+    end = time.time()
+    # run at most every second, sleep if necessary
+    wait_seconds = 1. - (end - start)
+    if wait_seconds > 0 and wait_seconds < 1:
+        time.sleep(wait_seconds)
+    return error
 
 
 def update_epics_currents(server_address):

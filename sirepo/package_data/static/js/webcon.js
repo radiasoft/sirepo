@@ -196,6 +196,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
 
 SIREPO.app.controller('ControlsController', function (appState, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
+    var wantFinalKickerUpdate = false;
 
     function elementForId(id) {
         var model = null;
@@ -226,9 +227,7 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
         if (data.summaryData) {
             updateFromMonitorValues(data.summaryData.monitorValues);
             if (data.summaryData.optimizationValues) {
-                appState.models.beamSteering.useSteering = '0';
-                appState.saveChanges('beamSteering');
-                $scope.$broadcast('wc-optimizationValues', data.summaryData.optimizationValues);
+                stopSteering(data.summaryData.optimizationValues);
             }
         }
         if (data.state == 'completed' || data.state == 'error' || data.state == 'canceled') {
@@ -299,7 +298,7 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
             },
             function(data) {});
         if (! isSteeringBeam()) {
-            $scope.$broadcast('wc-optimizationValues', null);
+            stopSteering(null);
         }
         processKickers();
     }
@@ -309,10 +308,21 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
             && appState.applicationState().beamSteering.useSteering == '1';
     }
 
+    function stopSteering(results) {
+        if (appState.applicationState().beamSteering.useSteering == '1') {
+            appState.models.beamSteering.useSteering = '0';
+            appState.saveChanges('beamSteering');
+        }
+        // steering may have been stopped before the UI has updated the kicker settings
+        wantFinalKickerUpdate = true;
+        $scope.$broadcast('wc-optimizationValues', results);
+    }
+
     function updateFromMonitorValues(monitorValues) {
         var watchCount = 0;
         var kickerCount = 0;
-        var isSteering = isSteeringBeam();
+        var isSteering = isSteeringBeam() || wantFinalKickerUpdate;
+        wantFinalKickerUpdate = false;
         appState.models.elements.forEach(function(el) {
             if (el.type == 'WATCH') {
                 watchCount += 1;
@@ -351,12 +361,9 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
             if (self.simState.isProcessing()) {
                 //console.log('stopping epics');
                 self.simState.cancelSimulation();
-                $scope.$broadcast('wc-optimizationValues', null);
             }
             if (appState.applicationState().beamSteering.useSteering == '1') {
-                //console.log('stopping steering');
-                appState.models.beamSteering.useSteering = '0';
-                appState.saveQuietly('beamSteering');
+                stopSteering(null);
                 processKickers();
             }
         }

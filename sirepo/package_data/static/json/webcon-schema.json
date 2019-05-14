@@ -85,10 +85,10 @@
             "steeringMethod": ["Steering Method", "SteeringMethod", "polyfit"]
         },
         "bunch": {
-            "p_central_mev": ["Central momentum [MeV/c]", "Float", 1000],
-            "centroid_x": ["Centroid X [m]", "Float", 0],
+            "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],
+            "centroid_x": ["Centroid X [m]", "Float", 0.001],
             "centroid_xp": ["X' [rad]", "Float", 0],
-            "centroid_y": ["Y [m]", "Float", 0],
+            "centroid_y": ["Y [m]", "Float", 0.001],
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
         "correctorSettingAnimation": {

@@ -225,10 +225,9 @@ def _wait_for_beam_steering(server_address, periodic_callback):
             is_steering = False
         else:
             error = periodic_callback(server_address)
-            time.sleep(0.5)
             if error:
                 return error
 
 
 def _wait_for_remote_epics(server_address):
-    time.sleep(1)
+    time.sleep(2)
