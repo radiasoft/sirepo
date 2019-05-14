@@ -76,7 +76,7 @@ def _init_root(*args):
         # but should be reliable.
         if not root.join('requirements.txt').check():
             # Don't run from an install directory
-            root = pkio.py_pth.local('.')
+            root = pkio.py_path.local('.')
         v = pkio.mkdir_parent(root.join(_DEFAULT_ROOT))
     _root = v
 
