@@ -11,3 +11,4 @@ dbLoadTemplate "user.substitutions"
 dbLoadRecords "beam_line_exampleVersion.db", "user=vagrant"
 
 iocInit
+epicsEnvShow EPICS_CA_SERVER_PORT

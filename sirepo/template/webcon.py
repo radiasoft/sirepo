@@ -16,6 +16,7 @@ import copy
 import csv
 import math
 import numpy as np
+import os
 import os.path
 import re
 import scipy.fftpack
@@ -27,8 +28,6 @@ import sklearn.preprocessing
 import sympy
 
 SIM_TYPE = 'webcon'
-
-BPM_LOGFILE = 'bpm.log'
 
 BPM_FIELDS = [
     'vagrant:bpm1:hpos',
@@ -52,16 +51,30 @@ CURRENT_FIELDS = [
     'vagrant:corrector4:VCurrent',
 ]
 
+CURRENT_FILE = 'currents.npy'
 
-_CURRENT_FILE = 'currents.npy'
+MONITOR_LOGFILE = 'monitor.log'
+
+OPTIMIZER_RESULT_FILE = 'opt.json'
+
+STEERING_FILE = 'steering.json'
+
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 
 def background_percent_complete(report, run_dir, is_running):
-    if is_running:
-        bpm_file = run_dir.join(BPM_LOGFILE)
-        if bpm_file.exists():
-            return _parse_bpm_file(bpm_file)
+    if report == 'epicsServerAnimation' and is_running:
+        monitor_file = run_dir.join(MONITOR_LOGFILE)
+        if monitor_file.exists():
+            values, count = _read_monitor_file(monitor_file)
+            return {
+                'percentComplete': 0,
+                'frameCount': count,
+                'summaryData': {
+                    'monitorValues': values,
+                    'optimizationValues': _optimization_values(run_dir),
+                }
+            }
     return {
         'percentComplete': 0,
         'frameCount': 0,
@@ -93,44 +106,6 @@ def fixup_old_data(data):
     if 'beamlines' not in data.models:
         _init_default_beamline(data)
     template_common.organize_example(data)
-
-
-def get_application_data(data):
-    if data['method'] == 'column_info':
-        data = pkcollections.Dict({
-            'models': pkcollections.Dict({
-                'analysisData': data['analysisData'],
-            }),
-        })
-        return {
-            'columnInfo': _column_info(
-                _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
-        }
-    if data['method'] == 'update_kicker':
-        return _update_epics_kicker(data)
-    if data['method'] == 'read_kickers':
-        return _read_epics_kickers(data)
-    assert False, 'unknown application_data method: {}'.format(data['method'])
-
-
-def get_data_file(run_dir, model, frame, options=None):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
-    col_info = _column_info(path)
-    plot_data = _load_file_with_history(report, path, col_info)
-    buf = StringIO.StringIO()
-    buf.write(','.join(col_info['names']) + '\n')
-    np.savetxt(buf, plot_data, delimiter=',')
-    return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
-
-
-def _report_info(run_dir, data):
-    report = data.models[data.report]
-    path = _analysis_data_path(run_dir, data)
-    col_info = _column_info(path)
-    plot_data = _load_file_with_history(report, path, col_info)
-    return report, col_info, plot_data
 
 
 def get_analysis_report(run_dir, data):
@@ -166,6 +141,38 @@ def get_analysis_report(run_dir, data):
         'clusters': clusters,
         'summaryData': {},
     })
+
+
+def get_application_data(data):
+    if data['method'] == 'column_info':
+        data = pkcollections.Dict({
+            'models': pkcollections.Dict({
+                'analysisData': data['analysisData'],
+            }),
+        })
+        return {
+            'columnInfo': _column_info(
+                _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
+        }
+    if data['method'] == 'update_kicker':
+        return _update_epics_kicker(data)
+    if data['method'] == 'read_kickers':
+        return _read_epics_kickers(data)
+    if data['method'] == 'enable_steering':
+        return _enable_steering(data)
+    assert False, 'unknown application_data method: {}'.format(data['method'])
+
+
+def get_data_file(run_dir, model, frame, options=None):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    plot_data = _load_file_with_history(report, path, col_info)
+    buf = StringIO.StringIO()
+    buf.write(','.join(col_info['names']) + '\n')
+    np.savetxt(buf, plot_data, delimiter=',')
+    return '{}.csv'.format(model), buf.getvalue(), 'text/csv'
 
 
 def get_fft(run_dir, data):
@@ -254,55 +261,6 @@ def get_fft(run_dir, data):
     #}
 
 
-def _analysis_report_name_for_fft_report(report, data):
-    return data.models[report].get('analysisReport', 'analysisReport')
-
-
-def _get_fit_report(report, plot_data, col_info):
-    col1 = _safe_index(col_info, report.x)
-    col2 = _safe_index(col_info, report.y1)
-    x_vals = plot_data[:, col1] * col_info['scale'][col1]
-    y_vals = plot_data[:, col2] * col_info['scale'][col2]
-    fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
-        x_vals,
-        y_vals,
-        report.fitEquation,
-        report.fitVariable,
-        report.fitParameters,
-    )
-    plots = [
-        {
-            'points': y_vals.tolist(),
-            'label': 'data',
-            'style': 'scatter',
-        },
-        {
-            'points': fit_y.tolist(),
-            'label': 'fit',
-        },
-        {
-            'points': fit_y_min.tolist(),
-            'label': 'confidence',
-            '_parent': 'confidence'
-        },
-        {
-            'points': fit_y_max.tolist(),
-            'label': '',
-            '_parent': 'confidence'
-        }
-    ]
-    return template_common.parameter_plot(x_vals.tolist(), plots, {}, {
-        'title': '',
-        'x_label': _label(col_info, col1),
-        'y_label': _label(col_info, col2),
-        'summaryData': {
-            'p_vals': param_vals.tolist(),
-            'p_errs': param_sigmas.tolist(),
-        },
-        'latex_label': latex_label
-    })
-
-
 def lib_files(data, source_lib):
     res = []
     report = data.report if 'report' in data else None
@@ -335,8 +293,29 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(None, data)
 
 
+def read_epics_values(server_address, fields):
+    assert server_address, 'missing remote server address'
+    output = run_epics_command(server_address, ['caget', '-w', '5'] + fields)
+    if not output:
+        return None
+    res = np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist()
+    #pkdp(' got result: {}', res)
+    return res
+
+
 def run_epics_command(server_address, cmd):
     return template_common.subprocess_output(cmd, epics_env(server_address))
+
+
+def update_epics_kickers(epics_settings, sim_dir, fields, values):
+    if epics_settings.serverType == 'remote':
+        assert epics_settings.serverAddress, 'missing remote server address'
+        write_epics_values(epics_settings.serverAddress, fields, values)
+    else:
+        if not sim_dir.exists():
+            return {}
+        #TODO(pjm): use save to tmp followed by mv for atomicity
+        np.save(str(sim_dir.join(CURRENT_FILE)), np.array([fields, values]))
 
 
 def validate_file(file_type, path):
@@ -364,12 +343,26 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
+def write_epics_values(server_address, fields, values):
+    for idx in range(len(fields)):
+        if run_epics_command(
+                server_address,
+                ['caput', '-w', '10', fields[idx], str(values[idx])],
+        ) is None:
+            return False
+    return True
+
+
 def _analysis_data_file(data):
     return template_common.lib_file_name('analysisData', 'file', data.models.analysisData.file)
 
 
 def _analysis_data_path(run_dir, data):
     return str(run_dir.join(_analysis_data_file(data)))
+
+
+def _analysis_report_name_for_fft_report(report, data):
+    return data.models[report].get('analysisReport', 'analysisReport')
 
 
 def _column_info(path):
@@ -454,6 +447,18 @@ def _compute_clusters(report, plot_data, col_info):
     }
 
 
+def _enable_steering(data):
+    sim_dir = _epics_dir(data['simulationId'])
+    if sim_dir.exists():
+        #TODO(pjm): use save to tmp followed by mv for atomicity
+        simulation_db.write_json(sim_dir.join(STEERING_FILE), data['beamSteering'])
+    return {}
+
+
+def _epics_dir(sim_id):
+    return simulation_db.simulation_dir(SIM_TYPE, sim_id).join('epicsServerAnimation')
+
+
 def _fit_to_equation(x, y, equation, var, params):
     # TODO: must sanitize input - sympy uses eval
     sym_curve = sympy.sympify(equation)
@@ -522,16 +527,61 @@ def _generate_parameters_file(run_dir, data):
             el.hkick = '{' + 'vagrant_corrector{}_HCurrent'.format(count) + '}'
             el.vkick = '{' + 'vagrant_corrector{}_VCurrent'.format(count) + '}'
     if run_dir:
-        np.save(str(run_dir.join(_CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
+        np.save(str(run_dir.join(CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
     v = template_common.flatten_data(data['models'], {})
     from sirepo.template import elegant
     #TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
-    v['currentFile'] = _CURRENT_FILE
+    v['currentFile'] = CURRENT_FILE
     v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
     v['BPM_FIELDS'] = BPM_FIELDS
     v['CURRENT_FIELDS'] = CURRENT_FIELDS
     return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _get_fit_report(report, plot_data, col_info):
+    col1 = _safe_index(col_info, report.x)
+    col2 = _safe_index(col_info, report.y1)
+    x_vals = plot_data[:, col1] * col_info['scale'][col1]
+    y_vals = plot_data[:, col2] * col_info['scale'][col2]
+    fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
+        x_vals,
+        y_vals,
+        report.fitEquation,
+        report.fitVariable,
+        report.fitParameters,
+    )
+    plots = [
+        {
+            'points': y_vals.tolist(),
+            'label': 'data',
+            'style': 'scatter',
+        },
+        {
+            'points': fit_y.tolist(),
+            'label': 'fit',
+        },
+        {
+            'points': fit_y_min.tolist(),
+            'label': 'confidence',
+            '_parent': 'confidence'
+        },
+        {
+            'points': fit_y_max.tolist(),
+            'label': '',
+            '_parent': 'confidence'
+        }
+    ]
+    return template_common.parameter_plot(x_vals.tolist(), plots, {}, {
+        'title': '',
+        'x_label': _label(col_info, col1),
+        'y_label': _label(col_info, col2),
+        'summaryData': {
+            'p_vals': param_vals.tolist(),
+            'p_errs': param_sigmas.tolist(),
+        },
+        'latex_label': latex_label
+    })
 
 
 def _init_default_beamline(data):
@@ -665,11 +715,21 @@ def _load_file_with_history(report, path, col_info):
     return res
 
 
-def _parse_bpm_file(bpm_path):
-    bpm_values = {}
+def _optimization_values(run_dir):
+    opt_file = run_dir.join(OPTIMIZER_RESULT_FILE)
+    res = None
+    if opt_file.exists():
+        res = simulation_db.read_json(opt_file)
+        os.remove(str(opt_file))
+    return res
+
+
+
+def _read_monitor_file(monitor_path):
+    monitor_values = {}
     count = 0
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
-    for line in pkio.read_text(str(bpm_path)).split("\n"):
+    for line in pkio.read_text(str(monitor_path)).split("\n"):
         m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
         if not m:
             continue
@@ -677,27 +737,24 @@ def _parse_bpm_file(bpm_path):
         var_value = m.group(2)
         var_name = re.sub(r'^vagrant:', '', var_name)
         var_name = re.sub(r':', '_', var_name)
-        bpm_values[var_name] = float(var_value)
+        monitor_values[var_name] = float(var_value)
         count += 1
-    return {
-        'percentComplete': 0,
-        'frameCount': count,
-        'summaryData': {
-            'bpmValues': bpm_values
-        },
-    }
+    return monitor_values, count
 
 
 def _read_epics_kickers(data):
-    epicsSettings = data.epicsServerAnimation
-    assert epicsSettings.serverAddress, 'missing remote server address'
-    output = run_epics_command(
-        epicsSettings.serverAddress,
-        ['caget'] + CURRENT_FIELDS,
-    )
+    epics_settings = data.epicsServerAnimation
     return {
-        'kickers': np.array(re.split(r'\s+', output)[1::2]).astype('float').tolist(),
+        'kickers': read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
     }
+
+
+def _report_info(run_dir, data):
+    report = data.models[data.report]
+    path = _analysis_data_path(run_dir, data)
+    col_info = _column_info(path)
+    plot_data = _load_file_with_history(report, path, col_info)
+    return report, col_info, plot_data
 
 
 def _safe_index(col_info, idx):
@@ -708,7 +765,7 @@ def _safe_index(col_info, idx):
 
 
 def _update_epics_kicker(data):
-    epicsSettings = data.epicsServerAnimation
+    epics_settings = data.epicsServerAnimation
     # data validation is done by casting values to int() or float()
     prefix = 'vagrant:corrector{}:'.format(int(data['epics_field']))
     fields = []
@@ -717,17 +774,5 @@ def _update_epics_kicker(data):
         field = '{}{}Current'.format(prefix, f.upper())
         fields.append(field)
         values.append(float(data['kicker']['{}kick'.format(f)]))
-    if epicsSettings.serverType == 'remote':
-        assert epicsSettings.serverAddress, 'missing remote server address'
-        for idx in range(len(fields)):
-            v = run_epics_command(
-                epicsSettings.serverAddress,
-                ['caput', str(fields[idx]), str(values[idx])],
-            )
-    else:
-        sim_dir = simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('epicsServerAnimation')
-        if not sim_dir.exists():
-            return {}
-        #TODO(pjm): use save to tmp followed by mv for atomicity
-        np.save(str(sim_dir.join(_CURRENT_FILE)), np.array([fields, values]))
+    update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
     return {}

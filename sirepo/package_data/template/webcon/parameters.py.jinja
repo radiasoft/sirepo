@@ -4,7 +4,7 @@ import numpy as np
 import os
 import subprocess
 import time
-import epics
+import sirepo.template.webcon as webcon
 
 lattice_file = """
 {{ fodoLattice -}}
@@ -47,17 +47,18 @@ elegant_file = """
 &end
 """
 
-currents = [
+CURRENT_FIELDS = [
 {% for name in CURRENT_FIELDS %}
     '{{ name }}',
 {% endfor %}
 ]
 
-positions = [
+BPM_FIELDS = [
 {% for name in BPM_FIELDS %}
     '{{ name }}',
 {% endfor %}    
 ]
+
 
 def read_sdds_columns(file_name, column_names, column_types, data_class=None):
     if data_class == None:
@@ -78,10 +79,10 @@ def read_sdds_columns(file_name, column_names, column_types, data_class=None):
     return data_class
 
 
-def run_simulation():
-    settings = epics.caget_many(currents)
+def run_simulation(server_address):
+    settings = webcon.read_epics_values(server_address, CURRENT_FIELDS)
     args = {}
-    for name in currents:
+    for name in CURRENT_FIELDS:
         args[name.replace(':', '_')] = settings.pop(0)
     with open('elegant.lte', 'w') as f:
         f.write(lattice_file.format(**args))
@@ -90,29 +91,31 @@ def run_simulation():
     os.system('elegant elegant.ele > elegant.log')
 
 
+def update_and_run_simulation(server_address):
+    error = update_epics_currents(server_address)
+    if error:
+        return error
+    run_simulation(server_address)
+    return update_epics_positions(server_address)
+
+
 def update_epics_currents(server_address):
     filename = '{{ currentFile }}'
     if os.path.exists(filename):
-        currents = np.load(filename)
+        values = np.load(filename)
         os.remove(filename)
-        #TODO(pjm): couldn't get caput_many to work on current fields, using caput directly for now
-        import sirepo.template.webcon as template
-        for idx in range(len(currents[0])):
-            if template.run_epics_command(
-                    server_address,
-                    ['caput', '-w', '10', str(currents[0][idx]), str(currents[1][idx])],
-            ) is None:
-                print('epics current update failed')
-    import sys
-    sys.stdout.flush()
+        if not webcon.write_epics_values(server_address, values[0], values[1]):
+            return 'epics current update failed'
+    return None
 
 
-def update_epics_positions():
+def update_epics_positions(server_address):
     values = []
     data = read_sdds_columns('run_setup.centroid.sdds', ['ElementType', 'Cx', 'Cy'], [str, float, float])
     for idx in range(len(data.ElementType)):
         if data.ElementType[idx] == 'WATCH':
             values += [data.Cx[idx], data.Cy[idx]]
-    res = epics.caput_many(positions, values)
-    if sum(res) != len(positions):
-        print('epics bpm update failed')
+    #TODO(pjm): only update positions which have changed, avoid extra subprocess calls
+    if not webcon.write_epics_values(server_address, BPM_FIELDS, values):
+        return 'epics bpm update failed'
+    return None

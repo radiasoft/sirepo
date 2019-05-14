@@ -224,7 +224,12 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
             return;
         }
         if (data.summaryData) {
-            updateBpmPositions(data.summaryData.bpmValues);
+            updateFromMonitorValues(data.summaryData.monitorValues);
+            if (data.summaryData.optimizationValues) {
+                appState.models.beamSteering.useSteering = '0';
+                appState.saveChanges('beamSteering');
+                $scope.$broadcast('wc-optimizationValues', data.summaryData.optimizationValues);
+            }
         }
         if (data.state == 'completed' || data.state == 'error' || data.state == 'canceled') {
             appState.models.epicsServerAnimation.connectToServer = '0';
@@ -265,7 +270,7 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
 
     function processEPICSServer() {
         // updates the UI state of the epicsServer view
-        if (appState.applicationState().epicsServerAnimation.connectToServer == '1') {
+        if (self.isConnectedToEPICS()) {
             panelState.showField('epicsServerAnimation', 'serverType', false);
             panelState.showField('epicsServerAnimation', 'serverAddress', false);
             enableLatticeFields(false);
@@ -279,54 +284,107 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
         }
     }
 
-    function updateBpmPositions(bpmValues) {
-        var count = 0;
+    function processKickers() {
+        panelState.enableField('KICKER', 'hkick', ! isSteeringBeam());
+        panelState.enableField('KICKER', 'vkick', ! isSteeringBeam());
+        panelState.showField('beamSteering', 'steeringMethod', ! isSteeringBeam());
+    }
+
+    function updateBeamSteering() {
+        requestSender.getApplicationData(
+            {
+                method: 'enable_steering',
+                simulationId: appState.models.simulation.simulationId,
+                beamSteering: appState.applicationState().beamSteering,
+            },
+            function(data) {});
+        if (! isSteeringBeam()) {
+            $scope.$broadcast('wc-optimizationValues', null);
+        }
+        processKickers();
+    }
+
+    function isSteeringBeam() {
+        return self.isConnectedToEPICS()
+            && appState.applicationState().beamSteering.useSteering == '1';
+    }
+
+    function updateFromMonitorValues(monitorValues) {
+        var watchCount = 0;
+        var kickerCount = 0;
+        var isSteering = isSteeringBeam();
         appState.models.elements.forEach(function(el) {
             if (el.type == 'WATCH') {
-                count += 1;
+                watchCount += 1;
                 ['hpos', 'vpos'].forEach(function(pos) {
-                    var field = 'bpm' + count + '_' + pos;
-                    el[pos] = bpmValues[field];
+                    var field = 'bpm' + watchCount + '_' + pos;
+                    el[pos] = monitorValues[field];
                 });
+            }
+            else if (isSteering && el.type == 'KICKER') {
+                kickerCount += 1;
+                ['hkick', 'vkick'].forEach(function(pos) {
+                    var field = 'corrector' + kickerCount
+                        + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
+                    el[pos] = monitorValues[field];
+                    appState.models[el.type + el._id] = el;
+                });
+                appState.saveQuietly(el.type + el._id);
             }
         });
     }
 
     function updateEPICSServer() {
-        var runEpics = appState.applicationState().epicsServerAnimation.connectToServer;
         // update the simulation status for epics
-        if (runEpics == '1') {
+        if (self.isConnectedToEPICS()) {
             if (! self.simState.isProcessing()) {
                 //console.log('starting epics');
-                if (appState.applicationState().epicsServerAnimation.serverType == 'remote') {
-                    requestSender.getApplicationData(
-                        {
-                            method: 'read_kickers',
-                            epicsServerAnimation: appState.applicationState().epicsServerAnimation,
-                        },
-                        function(data) {
-                            if (data.kickers) {
-                                var modelNames = kickerModelNames();
-                                modelNames.forEach(function(name) {
-                                    appState.models[name].hkick = data.kickers.shift();
-                                    appState.models[name].vkick = data.kickers.shift();
-                                });
-                                appState.saveChanges(modelNames);
-                            }
-                        });
+                if (self.isRemoteServer()) {
+                    updateKickersFromEPICSAndRunSimulation();
                 }
-                self.simState.runSimulation();
+                else {
+                    self.simState.runSimulation();
+                }
             }
         }
         else {
             if (self.simState.isProcessing()) {
                 //console.log('stopping epics');
                 self.simState.cancelSimulation();
+                $scope.$broadcast('wc-optimizationValues', null);
+            }
+            if (appState.applicationState().beamSteering.useSteering == '1') {
+                //console.log('stopping steering');
+                appState.models.beamSteering.useSteering = '0';
+                appState.saveQuietly('beamSteering');
+                processKickers();
             }
         }
     }
 
+    function updateKickersFromEPICSAndRunSimulation() {
+        requestSender.getApplicationData(
+            {
+                method: 'read_kickers',
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+            },
+            function(data) {
+                if (data.kickers) {
+                    var modelNames = kickerModelNames();
+                    modelNames.forEach(function(name) {
+                        appState.models[name].hkick = data.kickers.shift();
+                        appState.models[name].vkick = data.kickers.shift();
+                    });
+                    appState.saveChanges(modelNames, self.simState.runSimulation);
+                }
+            });
+    }
+
     function updateKicker(name) {
+        if (isSteeringBeam()) {
+            // don't respond to kicker changes if server is controlling the steering
+            return;
+        }
         var epicsField = kickerModelNames().indexOf(name) + 1;
         if (! epicsField) {
             throw 'invalid kicker name: ' + name;
@@ -383,17 +441,25 @@ SIREPO.app.controller('ControlsController', function (appState, panelState, pers
             }
         });
         appState.watchModelFields($scope, ['epicsServerAnimation.serverType'], processEPICSServer);
-        processEPICSServer();
-        $scope.$on('epicsServerAnimation.changed', function() {
+        // the elements UI get setup in the next digest cycle, so wait before disabling
+        panelState.waitForUI(function() {
             processEPICSServer();
-            updateEPICSServer();
+            processKickers();
         });
         $scope.$on('modelChanged', function(e, name) {
             if (name.indexOf('KICKER') >= 0) {
                 updateKicker(name);
             }
+            else if (name == 'epicsServerAnimation') {
+                processEPICSServer();
+                updateEPICSServer();
+            }
+            else if (name == 'beamSteering') {
+                updateBeamSteering();
+            }
         });
     });
+
     self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
         //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
     });
@@ -667,6 +733,40 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
+SIREPO.app.directive('beamSteeringResults', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div data-ng-if="showStatus()" class="well" style="margin-top: 10px; margin-bottom: 0;">{{ status }}<br />{{ message }}</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showStatus = function() {
+                if (! appState.isLoaded()) {
+                    return false;
+                }
+                var steering = appState.applicationState().beamSteering;
+                if (steering.useSteering == '1') {
+                    $scope.status = 'Running ' + appState.enumDescription('SteeringMethod', steering.steeringMethod);
+                    $scope.message = '';
+                    return true;
+                }
+                return $scope.status;
+            };
+
+            $scope.$on('wc-optimizationValues', function(e, values) {
+                if (! values) {
+                    $scope.status = '';
+                    $scope.message = '';
+                }
+                else {
+                    $scope.status = values.success ? 'Steering Successful' : 'Steering failed to find optimal values.';
+                    $scope.message = values.message;
+                }
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('clusterFields', function(appState, webconService) {
     return {
@@ -920,7 +1020,7 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('webconLattice', function(utilities, $window) {
+SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
     return {
         restrict: 'A',
         scope: {},
@@ -928,12 +1028,15 @@ SIREPO.app.directive('webconLattice', function(utilities, $window) {
             '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
               '<div class="webcon-lattice">',
                 '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
-                '<div style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
+                '<div data-ng-if="isLoaded()" style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             var axis, latticeScope;
+
+            $scope.isLoaded = appState.isLoaded;
+
             $scope.windowResize = utilities.debounce(function() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);

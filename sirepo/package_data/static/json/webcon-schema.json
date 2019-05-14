@@ -47,8 +47,7 @@
         ],
         "SteeringMethod": [
             ["nmead", "Nelder-Mead"],
-            ["polyfit", "Polyfit"],
-            ["svd", "SVD"]
+            ["polyfit", "Linear Response Matrix"]
         ]
     },
     "model": {
@@ -189,8 +188,8 @@
         "beamSteering": {
             "title": "Beam Steering",
             "basic": [
-                "useSteering",
-                "steeringMethod"
+                "steeringMethod",
+                "useSteering"
             ],
             "advanced": []
         },
