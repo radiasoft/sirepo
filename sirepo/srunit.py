@@ -30,7 +30,7 @@ server = None
 app = None
 
 
-def flask_client(cfg=None):
+def flask_client(cfg=None, sim_types=None):
     """Return FlaskClient with easy access methods.
 
     Creates a new run directory every test file so can assume
@@ -40,6 +40,7 @@ def flask_client(cfg=None):
 
     Args:
         cfg (dict): extra configuration for reset_state_for_testing
+        sim_types (str): value for SIREPO_FEATURE_CONFIG_SIM_TYPES
 
     Returns:
         FlaskClient: for local requests to Flask server
@@ -49,6 +50,8 @@ def flask_client(cfg=None):
     a = 'srunit_flask_client'
     if not cfg:
         cfg = {}
+    if sim_types:
+        cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types
     wd = pkunit.work_dir()
     cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
     if not (server and hasattr(app, a)):
@@ -64,11 +67,11 @@ def flask_client(cfg=None):
     return getattr(app, a)
 
 
-def init_auth_db():
+def init_auth_db(*args, **kwargs):
     """Force a request that creates a user in db"""
-    fc = flask_client()
-    fc.sr_login_as_guest('hellweg')
-    fc.sr_post('listSimulations', {'simulationType': 'hellweg'})
+    fc = flask_client(*args, **kwargs)
+    fc.sr_login_as_guest('myapp')
+    fc.sr_post('listSimulations', {'simulationType': 'myapp'})
 
 
 def file_as_stream(filename):
@@ -82,8 +85,8 @@ def file_as_stream(filename):
     return res, StringIO.StringIO(res)
 
 
-def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True):
-    fc = flask_client(cfg)
+def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
+    fc = flask_client(cfg, **kwargs)
     try:
         if before_request:
             before_request(fc)

@@ -7,7 +7,9 @@ u"""?
 from __future__ import absolute_import, division, print_function
 import pytest
 
+pytest.importorskip('sdds')
 pytest.importorskip('srwl_bl')
+pytest.importorskip('warpC')
 
 def test_create_zip():
     from pykern import pkio
@@ -18,7 +20,7 @@ def test_create_zip():
     import copy
     import zipfile
 
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='elegant:srw:warppba')
     fc.sr_login_as_guest('srw')
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [

@@ -40,7 +40,7 @@ def _do(file_ext, parse):
     from sirepo import srunit
     import re
 
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='srw:myapp')
     fc.sr_login_as_guest()
     for suffix in '', ' 2', ' 3':
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):

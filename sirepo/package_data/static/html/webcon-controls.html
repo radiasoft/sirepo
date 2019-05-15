@@ -1,12 +1,22 @@
 <div class="container-fluid">
   <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="epicsServerAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-show="controls.isConnectedToEPICS()">
+      <div data-basic-editor-panel="" data-view-name="beamSteering">
+        <div data-beam-steering-results=""></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
     <div data-webcon-lattice=""></div>
   </div>
   <div class="row">
     <div data-ng-repeat="col in controls.editorColumns track by $index">
       <div class="col-sm-6 col-md-3">
         <div class="row">
-          <div class="col-sm-12" data-ng-repeat="item in col track by $index">
+          <div class="col-sm-12" data-ng-repeat="item in col track by $index" data-ng-show="controls.showEditor(item)">
             <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item" data-panel-title="{{ item.title }}"></div>
           </div>
         </div>
@@ -17,16 +27,18 @@
   <div class="row">
     <div data-ng-repeat="item in controls.watches track by $index">
       <div class="col-sm-6 col-md-3">
-        <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item" data-panel-title="{{ item.title }}">TODO: Centroid history plot</div>
+        <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item" data-panel-title="{{ item.title }}">
+          TODO: Centroid history plot
+          <div data-ng-if="item.element.hpos != undefined">
+            X, Y: {{ item.element.hpos }}, {{ item.element.vpos }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
   <div class="row">
     <div class="col-md-6 col-xl-4">
-      <div data-basic-editor-panel="" data-view-name="bunch"></div>
-    </div>
-    <div class="col-md-6 col-xl-4">
-      <div data-basic-editor-panel="" data-view-name="beamSteering"></div>
+      <div data-basic-editor-panel="" data-view-name="bunch" data-ng-show="! controls.isRemoteServer()"></div>
     </div>
     <div class="col-md-6 col-xl-4">
       <div data-report-content="parameter" data-model-key="beamPositionAnimation"</div>

@@ -75,9 +75,17 @@ _PLOT_TITLE = {
 
 _SDDS_INDEX = 0
 
-_SDDS_DOUBLE_TYPE = 1
+_SDDS_Singleton = sdds.SDDS(_SDDS_INDEX)
 
-_SDDS_STRING_TYPE = 7
+x = getattr(_SDDS_Singleton, 'SDDS_LONGDOUBLE', None)
+_SDDS_DOUBLE_TYPES = [
+    _SDDS_Singleton.SDDS_DOUBLE,
+    _SDDS_Singleton.SDDS_FLOAT,
+]
+if x is not None:
+    _SDDS_DOUBLE_TYPES.append(x)
+
+_SDDS_STRING_TYPE = _SDDS_Singleton.SDDS_STRING
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
@@ -801,7 +809,7 @@ def _file_info(filename, run_dir, id, output_index):
             col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
             if col_type < _SDDS_STRING_TYPE:
                 plottable_columns.append(col)
-            if col_type == _SDDS_DOUBLE_TYPE:
+            if col_type in _SDDS_DOUBLE_TYPES:
                 double_column_count += 1
             field_range[col] = []
         parameter_names = sdds.sddsdata.GetParameterNames(_SDDS_INDEX)
@@ -1008,7 +1016,7 @@ def _is_ignore_error_text(text):
 
 def _is_numeric(el_type, value):
     return el_type in ('RPNValue', 'RPNBoolean', 'Integer', 'Float') \
-        and re.search(r'^[\-\+0-9eE\.]+$', value)
+        and re.search(r'^[\-\+0-9eE\.]+$', str(value))
 
 
 def _iterate_model_fields(data, state, callback):

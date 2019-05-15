@@ -25,7 +25,7 @@ def test_runner_myapp():
     from pykern.pkdebug import pkdc, pkdp
     from sirepo import srunit
 
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
 
     from sirepo import srdb

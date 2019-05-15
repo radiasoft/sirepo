@@ -53,6 +53,8 @@ SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
+_ROBOTS_TXT = None
+
 #: Global app value (only here so instance not lost)
 _app = None
 
@@ -246,7 +248,6 @@ def api_findByName(simulation_type, application_mode, simulation_name):
     )
     if len(rows) == 0:
         for s in simulation_db.examples(sim_type):
-            pkdp(s.models.simulation.name)
             if s['models']['simulation']['name'] != simulation_name:
                 continue
             simulation_db.save_new_example(s)
@@ -308,10 +309,10 @@ def api_importArchive():
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return http_reply.gen_local_route_redirect(
+    return http_reply.gen_redirect_for_local_route(
         data.simulationType,
         route=None,
-        params={':simulationId': data.models.simulation.simulationId},
+        params={'simulationId': data.models.simulation.simulationId},
     )
 
 
@@ -401,11 +402,21 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
 
 @api_perm.allow_visitor
 def api_robotsTxt():
-    """Tell robots to go away"""
-    return flask.Response(
-        'User-agent: *\nDisallow: /\n',
-        mimetype='text/plain',
-    )
+    """Disallow the app (dev, prod) or / (alpha, beta)"""
+    global _ROBOTS_TXT
+    if not _ROBOTS_TXT:
+        # We include dev so we can test
+        if pkconfig.channel_in('prod', 'dev'):
+            u = [
+                uri_router.uri_for_api('root', params={'simulation_type': x})
+                for x in sorted(feature_config.cfg.sim_types)
+            ]
+        else:
+            u = ['/']
+        _ROBOTS_TXT = ''.join(
+            ['User-agent: *\n'] + ['Disallow: /{}\n'.format(x) for x in u],
+        )
+    return flask.Response(_ROBOTS_TXT, mimetype='text/plain')
 
 
 @api_perm.allow_visitor

@@ -25,6 +25,7 @@ module.exports = function(config) {
         'sirepo/package_data/static/js/ext/angular.js',
         'sirepo/package_data/static/js/ext/angular-route.js',
         'sirepo/package_data/static/js/ext/angular-cookies.js',
+        'sirepo/package_data/static/js/ext/angular-sanitize.js',
         'sirepo/package_data/static/js/ext/jquery-2.2.4.js',
         'sirepo/package_data/static/js/ext/bootstrap-3.3.7.js',
         'sirepo/package_data/static/js/ext/ngDraggable.js',
