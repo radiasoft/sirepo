@@ -311,7 +311,11 @@
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0],
+            "spntrk": ["Include Spin Tracking", "Boolean", "0"],
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
@@ -388,12 +392,8 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "npass": ["Number of Runs", "Integer", 10, "", 1],
-            "ip": ["Diagnostic Interval", "Integer", 1, "", 1],
-            "spntrk": ["Compute Spin Tracking", "Boolean", "0"],
-            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
-            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
-            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
+            "npass": ["Number of Turns", "Integer", 10, "", 1],
+            "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
@@ -626,7 +626,19 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "method"
+                    "method",
+                    "spntrk",
+                    [
+                        ["X", [
+                            "S_X"
+                        ]],
+                        ["Y", [
+                            "S_Y"
+                        ]],
+                        ["Z", [
+                            "S_Z"
+                        ]]
+                    ]
                 ]],
                 ["Distribution", [
                     "particleCount",
@@ -839,19 +851,7 @@
             "basic": [
                 "simulation.visualizationBeamlineId",
                 "npass",
-                "ip",
-                "spntrk",
-                [
-                    ["X", [
-                        "S_X"
-                    ]],
-                    ["Y", [
-                        "S_Y"
-                    ]],
-                    ["Z", [
-                        "S_Z"
-                    ]]
-                ]
+                "ip"
             ],
             "advanced": []
         },

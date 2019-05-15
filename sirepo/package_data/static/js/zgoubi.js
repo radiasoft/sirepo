@@ -13,6 +13,7 @@ SIREPO.appFieldEditors = [
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
 ].join('');
+SIREPO.appImportText = 'Import an zgoubi.dat file';
 
 SIREPO.lattice = {
     elementColor: {
@@ -40,6 +41,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
+            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select an zgoubi.dat file." data-file-formats=".dat"></div>',
         ].join(''),
     };
 });
@@ -66,6 +68,9 @@ SIREPO.app.directive('appHeader', function(latticeService) {
                 //  '<div>App-specific setting item</div>',
               '</app-settings>',
               '<app-header-right-sim-list>',
+                '<ul class="nav navbar-nav sr-navbar-right">',
+                  '<li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>',
+                '</ul>',
               '</app-header-right-sim-list>',
             '</div>',
         ].join(''),
@@ -203,11 +208,16 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         });
     }
 
+    function processSpinTracking() {
+        panelState.showRow('bunch', 'S_X', appState.models.bunch.spntrk == '1');
+    }
+
     self.handleModalShown = function(name) {
         if (name == 'bunch') {
             processBunchTwiss();
             processParticleType();
             processBunchMethod();
+            processSpinTracking();
             zgoubiService.processParticleCount2('bunch');
         }
     };
@@ -220,6 +230,8 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
             zgoubiService.processParticleCount2('bunch');
         });
         appState.watchModelFields($scope, ['bunch.particleSelector'], processParticleSelector);
+        appState.watchModelFields($scope, ['bunch.spntrk'], processSpinTracking);
+        processSpinTracking();
         processParticleType();
         processBunchMethod();
         processParticleSelector();
@@ -281,19 +293,12 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             model.showAllFrames == '1' && appState.models.bunch.method == 'OBJET2.1');
     }
 
-    function processSpinTracking() {
-        panelState.showRow('simulationSettings', 'S_X', appState.models.simulationSettings.spntrk == '1');
-    }
-
     self.bunchReportHeading = function(name) {
         return latticeService.bunchReportHeading(name);
     };
 
     self.handleModalShown = function(name) {
-        if (name == 'simulationSettings') {
-            processSpinTracking();
-        }
-        else if (name.indexOf('Animation') >= 0) {
+        if (name.indexOf('Animation') >= 0) {
             plotRangeService.processPlotRange(self, name);
             processShowAllFrames(name);
             zgoubiService.processParticleCount2(name);
@@ -331,8 +336,6 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 processShowAllFrames(m);
             });
         });
-        appState.watchModelFields($scope, ['simulationSettings.spntrk'], processSpinTracking);
-        processSpinTracking();
     });
 });
 
