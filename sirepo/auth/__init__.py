@@ -152,7 +152,8 @@ def init_mock(uid):
     """A mock user for pkcli"""
     cookie.init_mock()
     if uid:
-        _login_user(_METHOD_GUEST, uid)
+        import sirepo.auth.guest
+        _login_user(sirepo.auth.guest, uid)
 
 
 def logged_in_user():
