@@ -170,6 +170,11 @@ def fixup_old_data(data):
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'coordinates' not in data.models.bunch:
         data.models.bunch.coordinates = []
+    if 'spntrk' in data.models.simulationSettings:
+        for f in ('spntrk', 'S_X', 'S_Y', 'S_Z'):
+            if f in data.models.simulationSettings:
+                data.models.bunch[f] = data.models.simulationSettings[f]
+                del data.models.simulationSettings[f]
     template_common.organize_example(data)
 
 
