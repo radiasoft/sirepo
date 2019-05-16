@@ -1679,7 +1679,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
                 '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
                   SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
@@ -1688,7 +1688,18 @@ SIREPO.app.directive('appHeaderBrand', function() {
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appUrl = $scope.appUrl || '/#/' + SIREPO.APP_NAME;
+            if (! $scope.appUrl ) {
+                //TODO(rjn) need to centeralize this
+                if (SIREPO.APP_NAME == 'elegant') {
+                    $scope.appUrl = '/en/particle-accelerators.html';
+                }
+                else if (SIREPO.APP_NAME == 'srw') {
+                    $scope.appUrl = '/en/xray-beamlines.html';
+                }
+                else {
+                    $scope.appUrl = '/old#/' + SIREPO.APP_NAME;
+                }
+            }
         },
     };
 });

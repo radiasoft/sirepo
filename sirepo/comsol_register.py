@@ -19,8 +19,7 @@ import flask_mail
 
 @api_perm.allow_visitor
 def api_comsol():
-    # landing-page redirect so no app
-    return http_reply.gen_redirect_for_anchor('/#/comsol')
+    return server.javascript_redirect('/old#/comsol')
 
 
 @api_perm.allow_visitor

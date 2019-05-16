@@ -39,7 +39,7 @@
         },
         "jupyter": {
             "url": "/static/html/landing-page-jupyter.html",
-            "codeURL": "/#/jupyter",
+            "codeURL": "/old#/jupyter",
             "codeTitle": "Jupyter Hub",
             "infoPanelTitle": "RadiaSoft JupyterHub Server",
             "mediaConfig": {
