@@ -10,13 +10,14 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common
+from sirepo.template import template_common, zgoubi_importer
 import io
 import locale
 import math
 import numpy as np
 import py.path
 import re
+import werkzeug
 
 SIM_TYPE = 'zgoubi'
 
@@ -191,6 +192,13 @@ def get_simulation_frame(run_dir, data, model_data):
     if re.search(r'bunchAnimation', data['modelName']) or data['modelName'] == 'energyAnimation':
         return _extract_animation(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
+
+
+def import_file(request, lib_dir=None, tmp_dir=None):
+    f = request.files['file']
+    filename = werkzeug.secure_filename(f.filename)
+    data = zgoubi_importer.import_file(f.read())
+    return data
 
 
 def lib_files(data, source_lib):
