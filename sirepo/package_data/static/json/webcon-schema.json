@@ -45,6 +45,10 @@
             ["local", "Local"],
             ["remote", "Remote"]
         ],
+        "SettingsPlotOrder": [
+            ["time", "By Time"],
+            ["position", "By Position"]
+        ],
         "SteeringMethod": [
             ["nmead", "Nelder-Mead"],
             ["polyfit", "Linear Response Matrix"]
@@ -91,7 +95,9 @@
             "centroid_y": ["Y [m]", "Float", 0.001],
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
-        "correctorSettingAnimation": {
+        "correctorSettingReport": {
+            "numHistory": ["Settings History to Keep", "Integer", 3, "", 1, 10],
+            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
@@ -204,9 +210,13 @@
             ],
             "advanced": []
         },
-        "correctorSettingAnimation": {
+        "correctorSettingReport": {
             "title": "Corrector Settings",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "numHistory",
+                "plotOrder"
+            ]
         },
         "epicsServerAnimation": {
             "title": "EPICS Server",

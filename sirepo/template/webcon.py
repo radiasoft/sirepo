@@ -51,6 +51,7 @@ CURRENT_FIELDS = [
     'vagrant:corrector4:VCurrent',
 ]
 
+
 CURRENT_FILE = 'currents.npy'
 
 MONITOR_LOGFILE = 'monitor.log'
@@ -59,8 +60,26 @@ OPTIMIZER_RESULT_FILE = 'opt.json'
 
 STEERING_FILE = 'steering.json'
 
+_MONITOR_TO_MODEL_FIELDS = pkcollections.Dict({})
+
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_SETTINGS_PLOT_COLORS = [
+    '#ff0000',
+    '#f4a442',
+    '#e9ed2d',
+    '#44c926',
+    '#2656c9',
+    '#3d25c4',
+    '#7e23c4'
+]
+
+_SETTINGS_KICKER_SYMBOLS = {
+    'hkick': 'square',
+    'x': 'square',
+    'vkick': 'triangle-up',
+    'y': 'triangle-up'
+}
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'epicsServerAnimation' and is_running:
@@ -73,6 +92,18 @@ def background_percent_complete(report, run_dir, is_running):
                 'summaryData': {
                     'monitorValues': values,
                     'optimizationValues': _optimization_values(run_dir),
+                }
+            }
+    if report == 'correctorSettingAnimation':
+        pkdp('background_percent_complete for correctorSettingAnimation')
+        monitor_file = run_dir.join(MONITOR_LOGFILE)
+        if monitor_file.exists():
+            values, count = _read_monitor_file(monitor_file, True)
+            return {
+                'percentComplete': 0,
+                'frameCount': count,
+                'summaryData': {
+                    'monitorValues': values,
                 }
             }
     return {
@@ -105,6 +136,8 @@ def fixup_old_data(data):
         data.models.hiddenReport.subreports = []
     if 'beamlines' not in data.models:
         _init_default_beamline(data)
+    #_build_monitor_to_model_fields(data)
+    #pkdp('!MAP {}', _MONITOR_TO_MODEL_FIELDS)
     template_common.organize_example(data)
 
 
@@ -141,6 +174,12 @@ def get_analysis_report(run_dir, data):
         'clusters': clusters,
         'summaryData': {},
     })
+
+
+def get_animation_name(data):
+    if data['modelName'] == 'correctorSettingAnimation':
+        return data['modelName']
+    return 'animation'
 
 
 def get_application_data(data):
@@ -259,6 +298,68 @@ def get_fft(run_dir, data):
     #    'y_label': _label(col_info, 1),
     #    'x_label': 'ω[s-1]',
     #}
+
+
+def _build_monitor_to_model_fields(data):
+    watch_count = 0
+    kicker_count = 0
+    for el_idx in range(0, len(data.models.elements)):
+        el = data.models.elements[el_idx]
+        t = el.type
+        if t not in ['WATCH', 'KICKER']:
+            continue
+        if t == 'WATCH':
+            watch_count += 1
+            for setting in ['hpos', 'vpos']:
+                mon_setting = 'bpm{}_{}'.format(watch_count, setting)
+                _MONITOR_TO_MODEL_FIELDS[mon_setting] = pkcollections.Dict({
+                    'element': el.name,
+                    'setting': setting
+                })
+        elif t == 'KICKER':
+            kicker_count += 1
+            for setting in ['hkick', 'vkick']:
+                mon_setting = 'corrector{}_{}'.format(kicker_count, 'HCurrent' if setting == 'hkick' else 'VCurrent')
+                _MONITOR_TO_MODEL_FIELDS[mon_setting] = pkcollections.Dict({
+                    'element': el.name,
+                    'setting': setting
+                })
+
+
+def get_settings_report(run_dir, data):
+
+    monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
+    if not monitor_file.exists():
+        return {
+            'error': 'No Settings history'
+        }
+    if not _MONITOR_TO_MODEL_FIELDS:
+        _build_monitor_to_model_fields(data)
+    pkdp('map {}', _MONITOR_TO_MODEL_FIELDS)
+    history = _read_monitor_file(monitor_file, True)[0]  #get_settings_history(run_dir, data)
+    pkdp(history)
+    o = data.models.correctorSettingReport.plotOrder
+    plot_order = o if o is not None else 'time'
+    x_label = 't [s]'
+    if plot_order == 'time':
+        x, plots, colors = _setting_plots_by_time(data, history)
+    else:
+        x, plots, colors = _setting_plots_by_position(history)
+        x_label = 'z [m]'
+    return template_common.parameter_plot(x.tolist(), plots, {}, {
+        'title': '',
+        'y_label': 'rad',
+        'x_label': x_label,
+        'summaryData': {},
+    }, colors)
+
+
+def get_simulation_frame(run_dir, data, model_data):
+    frame_index = int(data['frameIndex'])
+    if data['modelName'] == 'correctorSettingAnimation':
+        #data_file = open_data_file(run_dir, data['modelName'], frame_index)
+        return get_settings_report(run_dir, data)
+    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def lib_files(data, source_lib):
@@ -724,20 +825,30 @@ def _optimization_values(run_dir):
     return res
 
 
-
-def _read_monitor_file(monitor_path):
+def _read_monitor_file(monitor_path, history=False):
     monitor_values = {}
     count = 0
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
     for line in pkio.read_text(str(monitor_path)).split("\n"):
-        m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
+        #m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
+        m = re.match(r'(\S+)(.*?)\s([\d\.\e\-\+]+)\s*$', line)
         if not m:
             continue
         var_name = m.group(1)
-        var_value = m.group(2)
+        timestamp = m.group(2)
+        var_value = m.group(3)
         var_name = re.sub(r'^vagrant:', '', var_name)
         var_name = re.sub(r':', '_', var_name)
-        monitor_values[var_name] = float(var_value)
+        if not history:
+            monitor_values[var_name] = float(var_value)
+        else:
+            if var_name not in monitor_values:
+                monitor_values[var_name] = pkcollections.Dict({
+                    'vals': [],
+                    'times': []
+                })
+            monitor_values[var_name].vals.append(float(var_value))
+            monitor_values[var_name].times.append(timestamp.strip())
         count += 1
     return monitor_values, count
 
@@ -762,6 +873,113 @@ def _safe_index(col_info, idx):
     if idx >= len(col_info['names']):
         idx = 1
     return idx
+
+def _setting_plots_by_position(history):
+    plots = []
+    all_z = [0.0]
+    c = []
+    s = _settings_for_plots(history)
+    beamline_len = s[0].itervalues().next()['coords']['length']
+    for e_idx, element in enumerate(s):
+        for name in element:
+            for setting in element[name]['settings']:
+                c.append(_SETTINGS_PLOT_COLORS[e_idx % len(_SETTINGS_PLOT_COLORS)])
+                y = np.array(element[name]['settings'][setting])
+                c_z = element[name]['coords']['z']
+                z = np.full((len(y)), c_z)
+                all_z.append(c_z)
+                plots.append({
+                    'x_points': z.tolist(),
+                    'points': y.tolist(),
+                    'label': '{} {}'.format(name, setting),
+                    'style': 'scatter',
+                    'symbol': _SETTINGS_KICKER_SYMBOLS[setting],
+                    'colorModulation': [0, 0, 0, 0.90]
+                })
+    all_z.append(beamline_len)
+    return np.unique(np.array(all_z)), plots, c
+
+def _element_by_name(data, e_name):
+    return [el for el in data.models.elements if el['name'] == e_name][0]
+
+def _model_for_element_name(data, e_name):
+    e = _element_by_name(data, e_name)
+    if e is None:
+        return None
+    e_id =e['_id']
+    for m_name in data.models:
+        m = data.models[m_name]
+        #pkdp('checking {}: {}', m_name, m)
+        id_key = _model_id_key(m)
+        if id_key is None:
+            continue
+        if data.models[m_name][id_key] == e_id:
+            return data.models[m_name]
+    return None
+
+
+def _model_id_key(model):
+    for k in ['id', '_id']:
+        if k in model:
+            return k
+    return None
+
+
+def _setting_plots_by_time(data, history):
+    pkdp('models {}', data.models)
+    plots = []
+    t = None
+    c = []
+    pkdp('hist {}', history)
+    for m_idx, mon_setting in enumerate(history):
+        pkdp('mon setting {}', mon_setting)
+        s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
+        el_name = s_map.element
+        el = _element_by_name(data, el_name)
+        pkdp('el {} of type {}', el_name, el.type)
+        if el.type != 'KICKER':
+            continue
+        el_setting = s_map.setting
+        h = history[mon_setting]
+        y = h.vals
+        if t is None:
+            t = np.arange(len(y)) + 1
+        m = _model_for_element_name(data, el_name)
+        pkdp('setting field in {} from {}', m, h)
+        c.append(_SETTINGS_PLOT_COLORS[m_idx % len(_SETTINGS_PLOT_COLORS)])
+        plots.append({
+            'points': h.vals,
+            'label': '{} {}'.format(el_name, el_setting),
+            'style': 'line',
+            'symbol': _SETTINGS_KICKER_SYMBOLS[el_setting],
+            'colorModulation': [0, 0, 0, 0.90]
+        })
+    return t, plots, c
+
+# arrange historical data for ease of plotting
+def _settings_for_plots(history):
+
+    s = []
+    for entry in history:
+        for element in entry:
+            for name in element:
+                vals_for_name = [v for v in s if name in v]
+                v = vals_for_name[0] if len(vals_for_name) > 0 else None
+                if v is None:
+                    v = {
+                        name: {
+                            'settings': {}
+                        }
+                    }
+                    s.append(v)
+                settings = element[name]['settings']
+                v[name]['coords'] = element[name]['coords']
+                for setting in settings:
+                    value = settings[setting]
+                    if setting not in v[name]['settings']:
+                        v[name]['settings'][setting] = []
+                    v[name]['settings'][setting].append(value)
+    return s
 
 
 def _update_epics_kicker(data):

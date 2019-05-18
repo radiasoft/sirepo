@@ -12,6 +12,11 @@
   <div class="row">
     <div data-webcon-lattice=""></div>
   </div>
+    <div class="row">
+        <div class="col-sm-6 col-md-3">
+            <button class="btn btn-default" data-ng-disabled="controls.isConnectedToEPICS()" data-ng-click="controls.reset()">Reset</button>
+        </div>
+    </div>
   <div class="row">
     <div data-ng-repeat="col in controls.editorColumns track by $index">
       <div class="col-sm-6 col-md-3">
@@ -41,10 +46,10 @@
       <div data-basic-editor-panel="" data-view-name="bunch" data-ng-show="! controls.isRemoteServer()"></div>
     </div>
     <div class="col-md-6 col-xl-4">
-      <div data-report-content="parameter" data-model-key="beamPositionAnimation"</div>
+      <div data-report-content="parameter" data-model-key="beamPositionAnimation"></div>
     </div>
     <div class="col-md-6 col-xl-4">
-      <div data-report-content="parameter" data-model-key="correctorSettingAnimation"</div>
+      <div data-control-corrector-report="" data-parent-controller="controls"></div>
     </div>
   </div>
 </div>
