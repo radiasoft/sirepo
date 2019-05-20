@@ -85,7 +85,7 @@ def background_percent_complete(report, run_dir, is_running):
     if report == 'epicsServerAnimation' and is_running:
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
-            values, count = _read_monitor_file(monitor_file)
+            values, count = _read_monitor_file(monitor_file)   #start time?
             return {
                 'percentComplete': 0,
                 'frameCount': count,
@@ -98,7 +98,7 @@ def background_percent_complete(report, run_dir, is_running):
         pkdp('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
-            values, count = _read_monitor_file(monitor_file, True)
+            values, count = _read_monitor_file(monitor_file, True)  #start time?
             return {
                 'percentComplete': 0,
                 'frameCount': count,
@@ -136,8 +136,6 @@ def fixup_old_data(data):
         data.models.hiddenReport.subreports = []
     if 'beamlines' not in data.models:
         _init_default_beamline(data)
-    #_build_monitor_to_model_fields(data)
-    #pkdp('!MAP {}', _MONITOR_TO_MODEL_FIELDS)
     template_common.organize_example(data)
 
 
@@ -335,20 +333,20 @@ def get_settings_report(run_dir, data):
         }
     if not _MONITOR_TO_MODEL_FIELDS:
         _build_monitor_to_model_fields(data)
-    pkdp('map {}', _MONITOR_TO_MODEL_FIELDS)
-    history = _read_monitor_file(monitor_file, True)[0]  #get_settings_history(run_dir, data)
-    pkdp(history)
+    history, num_records, start_time = _read_monitor_file(monitor_file, True)  #get_settings_history(run_dir, data)
+    #pkdp(history)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
     x_label = 't [s]'
     if plot_order == 'time':
-        x, plots, colors = _setting_plots_by_time(data, history)
+        x, plots, colors = _setting_plots_by_time(data, history, start_time)
     else:
-        x, plots, colors = _setting_plots_by_position(history)
+        x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
+    #pkdp('plots {}', plots)
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'rad',
+        'y_label': 'A',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -546,6 +544,37 @@ def _compute_clusters(report, plot_data, col_info):
         'group': group.tolist(),
         'count': count,
     }
+
+
+def _element_by_id(data, e_id):
+    return [el for el in data.models.elements if el['_id'] == e_id][0]
+
+
+def _element_by_name(data, e_name):
+    return [el for el in data.models.elements if el['name'] == e_name][0]
+
+
+def _element_positions(data):
+    bl = data.models.beamlines[0]
+    e_ids = bl['items']
+    els_with_length = _elements_of_types(data, ['DRIF', 'QUAD'])
+    d_ids = set([])
+    for d in els_with_length:
+        d_ids.add(d['_id'])
+    positions = np.array([])
+    for e_idx, e_id in enumerate(e_ids):
+        z = 0
+        for e_jdx in range(0, e_idx):
+            elj = [el for el in data.models.elements if el['_id'] == e_ids[e_jdx]][0]
+            z += (elj['l'] if 'l' in elj else 0)
+        positions = np.append(positions, z)
+    return positions
+
+
+def _elements_of_types(data, types):
+    return [
+        m for m in data.models.elements if 'type' in m and m.type in types
+    ]
 
 
 def _enable_steering(data):
@@ -826,8 +855,10 @@ def _optimization_values(run_dir):
 
 
 def _read_monitor_file(monitor_path, history=False):
+    from datetime import datetime
     monitor_values = {}
     count = 0
+    min_time = datetime.max
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
     for line in pkio.read_text(str(monitor_path)).split("\n"):
         #m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
@@ -836,6 +867,8 @@ def _read_monitor_file(monitor_path, history=False):
             continue
         var_name = m.group(1)
         timestamp = m.group(2)
+        t = datetime.strptime(timestamp.strip(), '%Y-%m-%d %H:%M:%S.%f')
+        min_time = min(min_time, t)
         var_value = m.group(3)
         var_name = re.sub(r'^vagrant:', '', var_name)
         var_name = re.sub(r':', '_', var_name)
@@ -848,9 +881,9 @@ def _read_monitor_file(monitor_path, history=False):
                     'times': []
                 })
             monitor_values[var_name].vals.append(float(var_value))
-            monitor_values[var_name].times.append(timestamp.strip())
+            monitor_values[var_name].times.append(t)
         count += 1
-    return monitor_values, count
+    return monitor_values, count, min_time
 
 
 def _read_epics_kickers(data):
@@ -874,33 +907,55 @@ def _safe_index(col_info, idx):
         idx = 1
     return idx
 
-def _setting_plots_by_position(history):
+
+def _setting_plots_by_position(data, history, start_time):
     plots = []
     all_z = [0.0]
     c = []
-    s = _settings_for_plots(history)
-    beamline_len = s[0].itervalues().next()['coords']['length']
-    for e_idx, element in enumerate(s):
-        for name in element:
-            for setting in element[name]['settings']:
-                c.append(_SETTINGS_PLOT_COLORS[e_idx % len(_SETTINGS_PLOT_COLORS)])
-                y = np.array(element[name]['settings'][setting])
-                c_z = element[name]['coords']['z']
-                z = np.full((len(y)), c_z)
-                all_z.append(c_z)
-                plots.append({
-                    'x_points': z.tolist(),
-                    'points': y.tolist(),
-                    'label': '{} {}'.format(name, setting),
-                    'style': 'scatter',
-                    'symbol': _SETTINGS_KICKER_SYMBOLS[setting],
-                    'colorModulation': [0, 0, 0, 0.90]
-                })
+    kickers = _settings_for_plots(history, data, start_time)
+
+    #beamline_len = s[0].itervalues().next()['coords']['length']
+
+    pkdp('kickers {}', kickers)
+    k_sorted = []
+    for k_name in sorted([k for k in kickers]):
+        if k_name not in [kk[0] for kk in k_sorted]:
+            k_sorted.append((k_name, []))
+        k_s = kickers[k_name]
+        for s in sorted([s for s in k_s]):
+            k_sorted[-1][1].append((s,  k_s[s][0], k_s[s][2]))
+    for k_idx, k in enumerate(k_sorted):
+        for s in k[1]:
+            all_z = np.append(all_z, s[2])
+            c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
+            plots.append({
+                'points': s[1],
+                'x_points': s[2],
+                'label': '{} {}'.format(k[0], s[0]),
+                'style': 'line',
+                'symbol': _SETTINGS_KICKER_SYMBOLS[s[0]],
+                'colorModulation': [0, 0, 0, 0.90]
+            })
+
+    #for e_idx, element in enumerate(s):
+    #    for name in element:
+    #        for setting in element[name]['settings']:
+    #            c.append(_SETTINGS_PLOT_COLORS[e_idx % len(_SETTINGS_PLOT_COLORS)])
+    ##            y = np.array(element[name]['settings'][setting])
+    #            c_z = element[name]['coords']['z']
+    #            z = np.full((len(y)), c_z)
+    #            all_z.append(c_z)
+    #            plots.append({
+    #                'x_points': z.tolist(),
+    #                'points': y.tolist(),
+    #                'label': '{} {}'.format(name, setting),
+    #                'style': 'scatter',
+    #                'symbol': _SETTINGS_KICKER_SYMBOLS[setting],
+    #                'colorModulation': [0, 0, 0, 0.90]
+    #            })
+    beamline_len = 5
     all_z.append(beamline_len)
     return np.unique(np.array(all_z)), plots, c
-
-def _element_by_name(data, e_name):
-    return [el for el in data.models.elements if el['name'] == e_name][0]
 
 def _model_for_element_name(data, e_name):
     e = _element_by_name(data, e_name)
@@ -925,61 +980,84 @@ def _model_id_key(model):
     return None
 
 
-def _setting_plots_by_time(data, history):
-    pkdp('models {}', data.models)
+# only works for unique ids (so not drifts)
+def _position_of_element(data, id):
+    p = _element_positions(data)
+    bl = data.models.beamlines[0]
+    items = bl['items']
+    i = items.index(id)
+    return p[i]
+
+
+def _setting_plots_by_time(data, history, start_time):
     plots = []
-    t = None
+    all_times = np.array([])
     c = []
-    pkdp('hist {}', history)
-    for m_idx, mon_setting in enumerate(history):
-        pkdp('mon setting {}', mon_setting)
+    #pkdp('hist {}', history)
+    #kickers = {}
+    #for mon_setting in history:
+    #    s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
+    #    el_name = s_map.element
+    #    el = _element_by_name(data, el_name)
+    #    if el.type != 'KICKER':
+    #        continue
+    #    if el_name not in kickers:
+    #        kickers[el_name] = {}
+    #    el_setting = s_map.setting
+    #    h = history[mon_setting]
+    #    t_deltas = [
+    #        round(((dt.days * 86400) + dt.seconds + (dt.microseconds / 1000000))) for dt in
+    #        [t - start_time for t in h.times]
+    #    ]
+    #    pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
+    #    all_times = np.append(all_times, t_deltas)
+    #    kickers[el_name][el_setting] = (h.vals, t_deltas, pos)
+
+    kickers = _settings_for_plots(data, history, start_time)
+    pkdp('kickers {}', kickers)
+    k_sorted = []
+    for k_name in sorted([k for k in kickers]):
+        if k_name not in [kk[0] for kk in k_sorted]:
+            k_sorted.append((k_name, []))
+        k_s = kickers[k_name]
+        for s in sorted([s for s in k_s]):
+            k_sorted[-1][1].append((s,  k_s[s][0], k_s[s][1]))
+    for k_idx, k in enumerate(k_sorted):
+        for s in k[1]:
+            all_times = np.append(all_times, s[2])
+            c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
+            plots.append({
+                'points': s[1],
+                'x_points': s[2],
+                'label': '{} {}'.format(k[0], s[0]),
+                'style': 'line',
+                'symbol': _SETTINGS_KICKER_SYMBOLS[s[0]],
+                'colorModulation': [0, 0, 0, 0.90]
+            })
+    return np.sort(np.unique(all_times)), plots, c
+
+# arrange historical data for ease of plotting
+def _settings_for_plots(data, history, start_time):
+
+    kickers = {}
+    for mon_setting in history:
         s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
         el_name = s_map.element
         el = _element_by_name(data, el_name)
-        pkdp('el {} of type {}', el_name, el.type)
         if el.type != 'KICKER':
             continue
+        if el_name not in kickers:
+            kickers[el_name] = {}
         el_setting = s_map.setting
         h = history[mon_setting]
-        y = h.vals
-        if t is None:
-            t = np.arange(len(y)) + 1
-        m = _model_for_element_name(data, el_name)
-        pkdp('setting field in {} from {}', m, h)
-        c.append(_SETTINGS_PLOT_COLORS[m_idx % len(_SETTINGS_PLOT_COLORS)])
-        plots.append({
-            'points': h.vals,
-            'label': '{} {}'.format(el_name, el_setting),
-            'style': 'line',
-            'symbol': _SETTINGS_KICKER_SYMBOLS[el_setting],
-            'colorModulation': [0, 0, 0, 0.90]
-        })
-    return t, plots, c
+        t_deltas = [
+            round(((dt.days * 86400) + dt.seconds + (dt.microseconds / 1000000))) for dt in
+            [t - start_time for t in h.times]
+        ]
+        pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
+        kickers[el_name][el_setting] = (h.vals, t_deltas, pos)
+    return kickers
 
-# arrange historical data for ease of plotting
-def _settings_for_plots(history):
-
-    s = []
-    for entry in history:
-        for element in entry:
-            for name in element:
-                vals_for_name = [v for v in s if name in v]
-                v = vals_for_name[0] if len(vals_for_name) > 0 else None
-                if v is None:
-                    v = {
-                        name: {
-                            'settings': {}
-                        }
-                    }
-                    s.append(v)
-                settings = element[name]['settings']
-                v[name]['coords'] = element[name]['coords']
-                for setting in settings:
-                    value = settings[setting]
-                    if setting not in v[name]['settings']:
-                        v[name]['settings'][setting] = []
-                    v[name]['settings'][setting].append(value)
-    return s
 
 
 def _update_epics_kicker(data):
