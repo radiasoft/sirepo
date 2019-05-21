@@ -2748,6 +2748,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var symbolSize = 144.0;
             var legendSymbolSize = 48.0;
 
+            $scope.domPadding = {
+                x: 0,
+                y: 0
+            };
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
             $scope.latexTitle = '';
@@ -2839,7 +2843,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function plotPath(pIndex) {
                 var sel = '.plot-viewport .param-plot[index=\'' + pIndex + '\']';
-                //return d3.select(selectAll('.plot-viewport .param-plot')[0][pIndex]);
                 return d3.selectAll(selectAll(sel)[0]);
             }
 
@@ -2948,6 +2951,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.load = function(json) {
+                $scope.firstRefresh = true;
                 //TODO(pjm): move first part into normalizeInput()
                 childPlots = {};
                 includeForDomain.length = 0;
@@ -2987,7 +2991,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
 
-                var hasSymbols = false;
+                $scope.hasSymbols = false;
 
                 var legendCount = createLegend(plots);
                 plots.forEach(function(plot, i) {
@@ -3000,7 +3004,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     });
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if (plot.symbol) {
-                        hasSymbols = true;
+                        $scope.hasSymbols = true;
                     }
                     if (plot.style === 'scatter') {
                         var clusterInfo;
@@ -3105,16 +3109,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         $scope.focusPoints[i] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
                     }
 
-                    //TODO(mvk): symbols are centered at the data point and so can be half offscreen.
-                    //Adjust the domain
-                    if (hasSymbols) {
-                        //srdbg('sym h', $scope.axes.y.scale(Math.sqrt(symbolSize)));
-                    }
-
                     // make sure everything is visible when reloading
                     includeDomain(i, true);
                     setPlotVisible(i, true);
                 });
+
                 $scope.axes.y.plots = plots;
                 for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     if (fpIndex < plots.length) {
@@ -3143,7 +3142,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var xdom = $scope.axes.x.scale.domain();
                 var xPoints = $scope.axes.x.points;
                 var plots = $scope.axes.y.plots;
-                var hasSymbols = false;
                 for (var i = 0; i < xPoints.length; i++) {
                     var x = xPoints[i];
                     if (x > xdom[1] || x < xdom[0]) {
@@ -3152,7 +3150,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     for (var d in includeForDomain) {
                         var j = includeForDomain[d];
                         var y = plots[j].points[i];
-                        hasSymbols = hasSymbols || (plots[j].style == 'scatter' && plots[j].symbol);
                         if (ydom) {
                             if (y < ydom[0]) {
                                 ydom[0] = y;
@@ -3170,12 +3167,27 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (ydom[0] > 0 && $scope.axes.y.domain[0] == 0) {
                         ydom[0] = 0;
                     }
-                    $scope.axes.y.scale.domain(ydom).nice();
+                    $scope.axes.y.scale.domain([ydom[0] - $scope.domPadding.y, ydom[1] + $scope.domPadding.y]).nice();
+                    //$scope.axes.y.scale.domain(ydom).nice();
                 }
             };
 
             $scope.refresh = function() {
-                //$scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                if ($scope.firstRefresh) {
+                    $scope.firstRefresh = false;
+                    if ($scope.hasSymbols) {
+                        for (var dim in $scope.domPadding) {
+                            $scope.domPadding[dim] = Math.abs($scope.axes[dim].scale.invert(Math.sqrt(symbolSize)) -
+                                $scope.axes[dim].scale.invert(0));
+                        }
+                    }
+                    $scope.$apply(function () {
+                        $scope.setYDomain();
+                        $scope.padXDomain();
+                        $scope.axes.x.scale.domain($scope.axes.x.domain);
+                    });
+                }
+
                 $scope.select('.plot-viewport').selectAll('.line')
                     .each(function (d, i) {
                         d3.select(this).attr('d', $scope.plotGraphLine(i));
@@ -3211,6 +3223,13 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
             };
 
+            // Note that here we pad the axis domain, not the scale!  The scale is set by
+            // user interaction
+            $scope.padXDomain = function() {
+                var xdom = $scope.axes.x.domain;
+                $scope.axes.x.domain = [xdom[0] - $scope.domPadding.x, xdom[1] + $scope.domPadding.x];
+            };
+
             $scope.setYDomain = function() {
                 if (! $scope.doAdjustDomain) {
                     return;
@@ -3220,7 +3239,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
                 }
                 else {
-                    $scope.axes.y.scale.domain(visibleDomain()).nice();
+                    var vd = visibleDomain();
+                    $scope.axes.y.scale.domain([vd[0] - $scope.domPadding.y, vd[1] + $scope.domPadding.y]).nice();
+                    //$scope.axes.y.scale.domain(visibleDomain()).nice();
                 }
             };
         },
