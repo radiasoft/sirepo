@@ -931,7 +931,6 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             parentController: '<',
         },
         template: [
-            //'<div data-webcon-lattice=""></div>',
             '<div data-report-panel="parameter" data-model-name="correctorSettingReport">',
             '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
             '</div>',
@@ -947,11 +946,11 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             $scope.spreadView = false;
 
             $scope.init = function() {
-                srdbg('INIT');
+                //srdbg('INIT');
             };
 
             $scope.load = function() {
-                srdbg('hist', history, $scope.parentController.monitorToModelFields);
+                //srdbg('hist', history, $scope.parentController.monitorToModelFields);
             };
 
             $scope.requestData = function() {

@@ -85,7 +85,7 @@ def background_percent_complete(report, run_dir, is_running):
     if report == 'epicsServerAnimation' and is_running:
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
-            values, count = _read_monitor_file(monitor_file)   #start time?
+            values, count, start_time = _read_monitor_file(monitor_file)
             return {
                 'percentComplete': 0,
                 'frameCount': count,
@@ -98,7 +98,7 @@ def background_percent_complete(report, run_dir, is_running):
         pkdp('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
-            values, count = _read_monitor_file(monitor_file, True)  #start time?
+            values, count, start_time = _read_monitor_file(monitor_file, True)
             return {
                 'percentComplete': 0,
                 'frameCount': count,
@@ -333,8 +333,7 @@ def get_settings_report(run_dir, data):
         }
     if not _MONITOR_TO_MODEL_FIELDS:
         _build_monitor_to_model_fields(data)
-    history, num_records, start_time = _read_monitor_file(monitor_file, True)  #get_settings_history(run_dir, data)
-    #pkdp(history)
+    history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
     x_label = 't [s]'
@@ -343,7 +342,6 @@ def get_settings_report(run_dir, data):
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
-    #pkdp('plots {}', plots)
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
         'y_label': 'A',
@@ -910,13 +908,9 @@ def _safe_index(col_info, idx):
 
 def _setting_plots_by_position(data, history, start_time):
     plots = []
-    all_z = [0.0]
+    all_z = np.array([0.0])
     c = []
-    kickers = _settings_for_plots(history, data, start_time)
-
-    #beamline_len = s[0].itervalues().next()['coords']['length']
-
-    pkdp('kickers {}', kickers)
+    kickers = _kicker_settings_for_plots(data, history, start_time)
     k_sorted = []
     for k_name in sorted([k for k in kickers]):
         if k_name not in [kk[0] for kk in k_sorted]:
@@ -932,29 +926,11 @@ def _setting_plots_by_position(data, history, start_time):
                 'points': s[1],
                 'x_points': s[2],
                 'label': '{} {}'.format(k[0], s[0]),
-                'style': 'line',
+                'style': 'scatter',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s[0]],
                 'colorModulation': [0, 0, 0, 0.90]
             })
-
-    #for e_idx, element in enumerate(s):
-    #    for name in element:
-    #        for setting in element[name]['settings']:
-    #            c.append(_SETTINGS_PLOT_COLORS[e_idx % len(_SETTINGS_PLOT_COLORS)])
-    ##            y = np.array(element[name]['settings'][setting])
-    #            c_z = element[name]['coords']['z']
-    #            z = np.full((len(y)), c_z)
-    #            all_z.append(c_z)
-    #            plots.append({
-    #                'x_points': z.tolist(),
-    #                'points': y.tolist(),
-    #                'label': '{} {}'.format(name, setting),
-    #                'style': 'scatter',
-    #                'symbol': _SETTINGS_KICKER_SYMBOLS[setting],
-    #                'colorModulation': [0, 0, 0, 0.90]
-    #            })
-    beamline_len = 5
-    all_z.append(beamline_len)
+    np.append(all_z, _element_positions(data)[-1])
     return np.unique(np.array(all_z)), plots, c
 
 def _model_for_element_name(data, e_name):
@@ -993,28 +969,7 @@ def _setting_plots_by_time(data, history, start_time):
     plots = []
     all_times = np.array([])
     c = []
-    #pkdp('hist {}', history)
-    #kickers = {}
-    #for mon_setting in history:
-    #    s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
-    #    el_name = s_map.element
-    #    el = _element_by_name(data, el_name)
-    #    if el.type != 'KICKER':
-    #        continue
-    #    if el_name not in kickers:
-    #        kickers[el_name] = {}
-    #    el_setting = s_map.setting
-    #    h = history[mon_setting]
-    #    t_deltas = [
-    #        round(((dt.days * 86400) + dt.seconds + (dt.microseconds / 1000000))) for dt in
-    #        [t - start_time for t in h.times]
-    #    ]
-    #    pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
-    #    all_times = np.append(all_times, t_deltas)
-    #    kickers[el_name][el_setting] = (h.vals, t_deltas, pos)
-
-    kickers = _settings_for_plots(data, history, start_time)
-    pkdp('kickers {}', kickers)
+    kickers = _kicker_settings_for_plots(data, history, start_time)
     k_sorted = []
     for k_name in sorted([k for k in kickers]):
         if k_name not in [kk[0] for kk in k_sorted]:
@@ -1037,7 +992,7 @@ def _setting_plots_by_time(data, history, start_time):
     return np.sort(np.unique(all_times)), plots, c
 
 # arrange historical data for ease of plotting
-def _settings_for_plots(data, history, start_time):
+def _kicker_settings_for_plots(data, history, start_time):
 
     kickers = {}
     for mon_setting in history:
@@ -1055,7 +1010,7 @@ def _settings_for_plots(data, history, start_time):
             [t - start_time for t in h.times]
         ]
         pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
-        kickers[el_name][el_setting] = (h.vals, t_deltas, pos)
+        kickers[el_name][el_setting] = (h.vals, t_deltas, pos.tolist())
     return kickers
 
 
