@@ -336,15 +336,15 @@ def get_settings_report(run_dir, data):
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
-    x_label = 't [s]'
     if plot_order == 'time':
         x, plots, colors = _setting_plots_by_time(data, history, start_time)
+        x_label = 't [s]'
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'A',
+        'y_label': 'rad',
         'x_label': x_label,
         'summaryData': {},
     }, colors)

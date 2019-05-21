@@ -229,7 +229,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
             self.monitorToModelFields[t].push(map);
         });
-        srdbg(self.monitorToModelFields);
+        //srdbg(self.monitorToModelFields);
     }
 
     function elementForId(id) {
@@ -567,7 +567,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
 
     self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
         //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
-        'correctorSettingAnimation': [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime']
+        //'correctorSettingAnimation': [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime']
     });
 
     return self;
@@ -942,7 +942,8 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             var history = [];
             var spread = [40.0, 0];
 
-            $scope.modelName = 'correctorSettingAnimation';
+            //$scope.modelName = 'correctorSettingAnimation';
+            $scope.modelName = 'correctorSettingReport';
             $scope.spreadView = false;
 
             $scope.init = function() {
@@ -975,9 +976,9 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             };
 
            $scope.showSpreadButton = function() {
-                //return canToggleSpread && (appState.models.correctorSettingReport || {}).plotOrder == 'position'
+                return canToggleSpread && (appState.models.correctorSettingReport || {}).plotOrder == 'position'
                 //srdbg('spread', appState.models.correctorSettingAnimation);
-                return (appState.models.correctorSettingAnimation || {}).plotOrder == 'position'
+                //return (appState.models.correctorSettingAnimation || {}).plotOrder == 'position'
            };
 
            $scope.spreadButtonText = function () {
@@ -1000,12 +1001,14 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
                 }
             });
 
+            /*
             $scope.$on('correctorSettingAnimation.summaryData', function (e, data) {
                 srdbg('correctorSettingAnimation sum data', data);
                 if (! $scope.showSpreadButton()) {
                     return;
                 }
             });
+            */
             $scope.$on('modelChanged', update);
 
 
@@ -1051,7 +1054,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
                 if ( $scope.parentController.kickers().indexOf(name) < 0) {
                     return;
                 }
-                srdbg('update from kicker', name, appState.models[name]);
+                //srdbg('update from kicker', name, appState.models[name]);
                 var m = appState.models[name];
             }
 
@@ -1066,9 +1069,9 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             */
 
         },
-        link: function link(scope, element) {
-            plotting.linkPlot(scope, element);
-        },
+        //link: function link(scope, element) {
+        //    plotting.linkPlot(scope, element);
+        //},
     };
 });
 

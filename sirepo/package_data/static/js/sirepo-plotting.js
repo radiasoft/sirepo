@@ -2838,7 +2838,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function plotPath(pIndex) {
-                return d3.select(selectAll('.plot-viewport .param-plot')[0][pIndex]);
+                var sel = '.plot-viewport .param-plot[index=\'' + pIndex + '\']';
+                //return d3.select(selectAll('.plot-viewport .param-plot')[0][pIndex]);
+                return d3.selectAll(selectAll(sel)[0]);
             }
 
             function selectAll(selector) {
@@ -3015,6 +3017,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             var sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
                             viewport.append('g')
                             .attr('class', 'param-plot')
+                            .attr('index', i)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
@@ -3040,6 +3043,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         else {
                             viewport.append('g')
                             .attr('class', 'param-plot')
+                            .attr('index', i)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
@@ -3057,6 +3061,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     else {
                         var p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
+                            .attr('index', i)
                             .style('stroke', plot.color)
                             .style('stroke-width', strokeWidth)
                             .datum(plot.points);
@@ -3066,6 +3071,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         if (plot.symbol) {
                             var sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
                             viewport.append('g')
+                                .attr('index', i)
                                 .attr('class', 'param-plot').selectAll('.data-point')
                                 .data(plot.points)
                                 .enter()
@@ -3169,7 +3175,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.refresh = function() {
-                $scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                //$scope.select('.plot-viewport').selectAll('.line').attr('d', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.line')
+                    .each(function (d, i) {
+                        d3.select(this).attr('d', $scope.plotGraphLine(i));
+                    });
+
                 $scope.select('.plot-viewport').selectAll('g.param-plot')
                     .each(function (d, i) {
                         var sp = d3.select(this).selectAll('.scatter-point');
@@ -3186,23 +3197,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                     });
                             }
                             else {
-                                p.attr('cx', $scope.plotGraphLine(i).x())
+                                pt.attr('cx', $scope.plotGraphLine(i).x())
                                     .attr('cy', $scope.plotGraphLine(i).y());
                             }
                         });
-                        /*
-                        if ($scope.axes.y.plots[i].symbol) {
-                            sp.attr('x', $scope.plotGraphLine(i).x())
-                                .attr('y', $scope.plotGraphLine(i).y())
-                                .attr('transform', function (d) {
-                                    return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
-                                });
-                        }
-                        else {
-                            sp.attr('cx', $scope.plotGraphLine(i).x())
-                                .attr('cy', $scope.plotGraphLine(i).y());
-                        }
-                        */
                 });
 
                 $scope.focusPoints.forEach(function(fp) {
