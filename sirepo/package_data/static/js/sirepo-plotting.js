@@ -472,8 +472,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.resize();
             }, 250);
 
+            // also emit so scopes in either direction can see
             scope.broadcastEvent = function(args) {
                 scope.$broadcast('sr-plotEvent', args);
+                scope.$emit('sr-plotEvent', args);
             };
 
             scope.$on('$destroy', function() {
@@ -2993,6 +2995,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 $scope.hasSymbols = false;
 
+                $scope.axes.y.plots = plots;
                 var legendCount = createLegend(plots);
                 plots.forEach(function(plot, i) {
                     var color = plotting.colorsFromHexString(plot.color, 1.0);
@@ -3114,7 +3117,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     setPlotVisible(i, true);
                 });
 
-                $scope.axes.y.plots = plots;
+                //$scope.axes.y.plots = plots;
                 for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     if (fpIndex < plots.length) {
                         $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
@@ -3168,11 +3171,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         ydom[0] = 0;
                     }
                     $scope.axes.y.scale.domain([ydom[0] - $scope.domPadding.y, ydom[1] + $scope.domPadding.y]).nice();
-                    //$scope.axes.y.scale.domain(ydom).nice();
                 }
             };
 
             $scope.refresh = function() {
+                // need to wait for the screen dimensions to be set, then calculate the padding once
                 if ($scope.firstRefresh) {
                     $scope.firstRefresh = false;
                     if ($scope.hasSymbols) {
@@ -3181,11 +3184,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 $scope.axes[dim].scale.invert(0));
                         }
                     }
-                    $scope.$apply(function () {
-                        $scope.setYDomain();
-                        $scope.padXDomain();
-                        $scope.axes.x.scale.domain($scope.axes.x.domain);
-                    });
+                    $scope.setYDomain();
+                    $scope.padXDomain();
+                    $scope.axes.x.scale.domain($scope.axes.x.domain);
                 }
 
                 $scope.select('.plot-viewport').selectAll('.line')
@@ -3214,6 +3215,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             }
                         });
                 });
+                $scope.broadcastEvent({
+                    name: 'retranslate'
+                });
 
                 $scope.focusPoints.forEach(function(fp) {
                     focusPointService.refreshFocusPoint(fp, $scope);
@@ -3241,7 +3245,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 else {
                     var vd = visibleDomain();
                     $scope.axes.y.scale.domain([vd[0] - $scope.domPadding.y, vd[1] + $scope.domPadding.y]).nice();
-                    //$scope.axes.y.scale.domain(visibleDomain()).nice();
                 }
             };
         },

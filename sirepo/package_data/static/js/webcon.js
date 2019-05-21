@@ -937,7 +937,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
         ].join(''),
         controller: function($scope, $element) {
 
-            var canToggleSpread = false;
+            var canToggleSpread = true;
             var d3self = d3.selectAll($element);
             var history = [];
             var spread = [40.0, 0];
@@ -975,25 +975,24 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
                 */
             };
 
-           $scope.showSpreadButton = function() {
-                return canToggleSpread && (appState.models.correctorSettingReport || {}).plotOrder == 'position'
-                //srdbg('spread', appState.models.correctorSettingAnimation);
-                //return (appState.models.correctorSettingAnimation || {}).plotOrder == 'position'
-           };
-
-           $scope.spreadButtonText = function () {
-                return $scope.spreadView ? 'Collapse' : 'Expand';
-           };
-
-            $scope.toggleSpreadView = function () {
-                $scope.spreadView = ! $scope.spreadView;
-                doSpread(true);
+            $scope.showSpreadButton = function() {
+                return canToggleSpread && (appState.models.correctorSettingReport || {}).plotOrder == 'position';
             };
 
-           // changing plot visibility triggers a refresh, which undoes the spread.
+            $scope.spreadButtonText = function () {
+                return $scope.spreadView ? 'Collapse' : 'Expand';
+            };
+
+            $scope.toggleSpreadView = function () {
+                 $scope.spreadView = ! $scope.spreadView;
+                 doSpread(true);
+            };
+
+            // changing plot visibility triggers a refresh, which undoes the spread.
             // put it back if active but don't animate it
+            var spreadEvents = ['setInfoVisible' ,'retranslate'];
             $scope.$on('sr-plotEvent', function (e, data) {
-                if (data.name !== 'setInfoVisible') {
+                if (spreadEvents.indexOf(data.name) < 0) {
                     return;
                 }
                 if ($scope.spreadView) {
