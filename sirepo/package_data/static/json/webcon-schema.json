@@ -82,7 +82,8 @@
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
-        "beamPositionAnimation": {
+         "beamPositionReport": {
+            "numHistory": ["Centroid History to Keep", "Integer", 3, "", 1, 10]
         },
         "beamSteering": {
             "useSteering": ["Use Steering", "Boolean", "0"],
@@ -97,7 +98,8 @@
         },
         "correctorSettingReport": {
             "numHistory": ["Settings History to Keep", "Integer", 3, "", 1, 10],
-            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
+            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"],
+            "inProgressText": ["_", "String", "Working"]
         },
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
@@ -187,9 +189,12 @@
             ],
             "advanced": []
         },
-        "beamPositionAnimation": {
+        "beamPositionReport": {
             "title": "Beam Position",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "numHistory"
+            ]
         },
         "beamSteering": {
             "title": "Beam Steering",

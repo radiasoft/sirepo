@@ -925,6 +925,27 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
     };
 });
 
+SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+    return {
+        scope: {
+            parentController: '<',
+        },
+        template: [
+            //'<div data-webcon-lattice=""></div>',
+            '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.$on('settingsLoaded', function (e, data) {
+                //requestSender.getApplicationData(
+                //    {
+                //        method: '_get_settings_report',
+                //    },
+                //);
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
     return {
         scope: {
