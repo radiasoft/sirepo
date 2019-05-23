@@ -64,6 +64,11 @@ _MONITOR_TO_MODEL_FIELDS = pkcollections.Dict({})
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_DIM_PLOT_COLORS = [
+    '#d0c383',
+    '#9400d3'
+]
+
 _SETTINGS_PLOT_COLORS = [
     '#ff0000',
     '#f4a442',
@@ -211,12 +216,10 @@ def get_beam_pos_report(run_dir, data):
     if not _MONITOR_TO_MODEL_FIELDS:
         _build_monitor_to_model_fields(data)
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
-    pkdp('hist {}', history)
     if len(history) == 0:
         return {}
     x_label = 'z [m]'
 
-    pkdp('running _beam_pos_plots')
     x, plots, colors = _beam_pos_plots(data, history, start_time)
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
@@ -465,61 +468,13 @@ def _analysis_report_name_for_fft_report(report, data):
 
 def _beam_pos_plots(data, history, start_time):
     plots = []
-    all_times = np.array([])
     c = []
 
     bpms = _bpm_readings_for_plots(data, history, start_time)
-    #pkdp('bpm dara {}', bpms)
-    #bpm_sorted = []
-    #for k_name in sorted([k for k in bpms]):
-    #    if k_name not in [kk[0] for kk in bpm_sorted]:
-    #        bpm_sorted.append((k_name, []))
-    #    k_s = bpms[k_name]
-    #    for s in sorted([s for s in k_s]):
-    #        bpm_sorted[-1][1].append(
-    #            {
-    #                'setting': s,
-    #                'vals': k_s[s]['vals'],
-    #                'position': k_s[s]['position'],
-    #                'times': k_s[s]['times']
-    #            }
-    #        )  # name, values, position
-    #        all_times = np.append(all_times, k_s[s]['times'])  # times
-
-    #pkdp('bpms sorted {}', bpm_sorted)
-    #all_times = np.sort(np.unique(all_times))
-    #pkdp('all times {}', all_times)
-
-    #z = [0.0]
-    #for k_idx, k in enumerate(bpm_sorted):
-    #    for s in k[1]:
-    #        # fill in missing times - use previous monitor values
-    #        v = np.array(s['vals'])
-    #        t = np.array(s['times'])
-    #        #pkdp('{} before {} {}', s['setting'], v, t)
-    #        for a_t_idx, a_t in enumerate(all_times):
-    #            if a_t in t:
-    #                continue
-    #            d_ts = a_t - t  # array of new time minus setting times
-    #            prev_dt = min([dt for dt in (a_t - t) if dt > 0])
-    #            dt_idx = np.where(d_ts == prev_dt)[0][0] + 1
-    #            #pkdp('insert {} at {}', a_t, dt_idx)
-    #            if dt_idx < np.alen(t):
-    #                t = np.insert(t, dt_idx, a_t)
-    #                v = np.insert(v, dt_idx, v[dt_idx - 1])
-    #            else:
-    #                t = np.append(t, a_t)
-    #                v = np.append(v, v[dt_idx - 1])
-    #        #pkdp('{} after {} {}', s['setting'], v, t)
-    #        s['vals'] = v.tolist()
-    #        s['times'] = t.tolist()  # or just all_times
-    #        s['position'] = np.full(len(s['times']), s['position'][0]).tolist()
-
-    #pkdp('bpm times {}', bpms['t'])
+    pkdp('bpms {}', bpms)
     for t_idx, t in enumerate(bpms['t']):
-        #for k_idx, k in enumerate(bpm_sorted):
         for d_idx, dim in enumerate(['x', 'y']):
-            c.append(_SETTINGS_PLOT_COLORS[d_idx % len(_SETTINGS_PLOT_COLORS)])
+            c.append(_DIM_PLOT_COLORS[d_idx % len(_DIM_PLOT_COLORS)])
             plots.append({
                 'points': bpms[dim][t_idx],
                 'x_points': bpms['z'],
@@ -528,33 +483,6 @@ def _beam_pos_plots(data, history, start_time):
                 'symbol': _SETTINGS_KICKER_SYMBOLS[dim],
                 'colorModulation': [0, 0, 0, 0.90]
             })
-
-    #for pos in history[0]:
-    #    z = np.append(z, pos[2])
-    #for e_idx, entry in enumerate(history):
-    #    points = {
-    #        'x': [0.0],
-    #        'y': [0.0]
-    #    }
-    #    colors = {
-    #        'x': '#ff0000',
-    #        'y': '#0000ff'
-    #    }
-    #    dashes = '' if e_idx == len(history) - 1 else '{}, {}'.format(5 - e_idx, 5 - e_idx)
-    #    for centroid in entry:
-    #        points['x'].append(centroid[0])
-    #        points['y'].append(centroid[1])
-    #    for dim in ['x', 'y']:
-    #        plots.append({
-    #            'points': points[dim],
-    #            'label': '{} {}'.format(dim, e_idx + 1),
-    #            'style': 'line',
-    #            'dashes': dashes,
-    #            'symbol': _SETTINGS_KICKER_SYMBOLS[dim],
-    #        })
-    #        c.append(colors[dim])
-    #return np.sort(np.unique(all_times)), plots, c
-
     return np.array(bpms['z']), plots, c
 
 
@@ -580,7 +508,7 @@ def _bpm_readings_for_plots(data, history, start_time):
                     'times': b_readings[reading_name]['times']
                 }
             )
-            all_times = np.append(all_times, b_readings[reading_name]['times'])  # times
+            all_times = np.append(all_times, b_readings[reading_name]['times'])
 
     all_times = np.sort(np.unique(all_times))
 
@@ -605,7 +533,20 @@ def _bpm_readings_for_plots(data, history, start_time):
 
     x = []
     y = []
-    for t_idx, t in enumerate(all_times):
+    t = []
+    time_window = data.models.beamPositionReport.numHistory
+    period = data.models.beamPositionReport.samplePeriod
+    current_time = all_times[-1]
+
+    tmp_t_idx = np.where(all_times > current_time - time_window) if time_window > 0 else [np.arange(len(all_times))]
+    pkdp('indexed {}', tmp_t_idx)
+    for t_idx in tmp_t_idx[0]:
+        time = all_times[t_idx]
+        #if current_time - time > time_window > 0:
+        #    continue
+        if int(time) % period != 0:
+            continue
+        t.append(time)
         xt = []
         yt = []
         for z_idx, zz in enumerate(z):
@@ -618,7 +559,7 @@ def _bpm_readings_for_plots(data, history, start_time):
         'x': x,
         'y': y,
         'z': z.tolist(),
-        't': all_times.tolist()
+        't': t
     }
 
 
@@ -1201,7 +1142,6 @@ def _setting_plots_by_time(data, history, start_time):
             k_sorted.append((k_name, []))
         k_s = kickers[k_name]
         for s in sorted([s for s in k_s]):
-            #k_sorted[-1][1].append((s,  k_s[s]['vals'], k_s[s]['times']))
             k_sorted[-1][1].append(
                 {
                     'setting': s,
@@ -1209,20 +1149,29 @@ def _setting_plots_by_time(data, history, start_time):
                     'times': k_s[s]['times']
                 }
             )
+            all_times = np.append(all_times, k_s[s]['times'])
+
+    all_times = np.sort(np.unique(all_times))
+    time_window = data.models.correctorSettingReport.numHistory
+    period = data.models.correctorSettingReport.samplePeriod
+    current_time = all_times[-1]
+
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
-           # all_times = np.append(all_times, s[2])
-            all_times = np.append(all_times, s['times'])
+            times = [t for t in s['times'] if current_time - t < time_window] if time_window > 0 else s['times']
+            if len(times) == 0:
+                continue
+            t_idx = s['times'].index(times[0])
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
             plots.append({
-                'points': s['vals'],  #s[1],
-                'x_points': s['times'],  #s[2],
+                'points': s['vals'][t_idx:],
+                'x_points': times,
                 'label': '{} {}'.format(k[0], s['setting']),
                 'style': 'line',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']],
                 'colorModulation': [0, 0, 0, 0.90]
             })
-    return np.sort(np.unique(all_times)), plots, c
+    return all_times, plots, c
 
 
 def _update_epics_kicker(data):

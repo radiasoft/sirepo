@@ -1030,6 +1030,9 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             });
             */
             $scope.$on('modelChanged', update);
+            $scope.$on('beamSteering.changed', function (data) {
+                srdbg('check state', data);
+            });
 
 
             function doSpread(doAnimate) {

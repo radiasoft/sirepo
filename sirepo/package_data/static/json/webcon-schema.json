@@ -83,7 +83,9 @@
             "notes": ["Notes", "Text", ""]
         },
          "beamPositionReport": {
-            "numHistory": ["Centroid History to Keep", "Integer", 3, "", 1, 10]
+            "inProgressText": ["_", "String", "Working"],
+            "numHistory": ["Time Window (s)", "Float", 0.0, "enter 0 to view entire history", 0.0],
+            "samplePeriod": ["Sample Period (s)", "Integer", 1, "", 1]
         },
         "beamSteering": {
             "useSteering": ["Use Steering", "Boolean", "0"],
@@ -97,9 +99,9 @@
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
         "correctorSettingReport": {
-            "numHistory": ["Settings History to Keep", "Integer", 3, "", 1, 10],
-            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"],
-            "inProgressText": ["_", "String", "Working"]
+            "inProgressText": ["_", "String", "Working"],
+            "numHistory": ["Time Window (s)", "Float", 0.0, "enter 0 to view entire history", 0.0],
+            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
@@ -107,6 +109,7 @@
             "connectToServer": ["Connect to EPICS", "Boolean", "0"]
         },
         "fftReport": {
+            "inProgressText": ["_", "String", "Working"]
         },
         "hiddenReport": {
         },
@@ -193,7 +196,8 @@
             "title": "Beam Position",
             "basic": [],
             "advanced": [
-                "numHistory"
+                "numHistory",
+                "samplePeriod"
             ]
         },
         "beamSteering": {
