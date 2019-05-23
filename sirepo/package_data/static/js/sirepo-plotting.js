@@ -2843,9 +2843,33 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return parseFloat(plotPath(pIndex).style('opacity')) < 1;
             }
 
+            function modulateRGBA(start, end, steps, reverse) {
+                var rgbaSteps = [];
+                if (! start[3]) {
+                    start.push(1.0);
+                }
+                if (! end[3]) {
+                    end.push(1.0);
+                }
+                var s = reverse ? end : start;
+                var e = reverse ? start : end;
+                for (var i  = 0; i < steps; ++i) {
+                    var c = s.map(function (startComp, j) {
+                        var endComp = e[j];
+                        return startComp + i * (endComp - startComp) / steps;
+                    });
+                    rgbaSteps.push(c);
+                }
+                return rgbaSteps;
+            }
+
             function plotPath(pIndex) {
                 var sel = '.plot-viewport .param-plot[index=\'' + pIndex + '\']';
                 return d3.selectAll(selectAll(sel)[0]);
+            }
+
+            function rgbaToCSS(rgba) {
+                return 'rgba(' + rgba[0] + ',' + rgba[1] + ',' + rgba[2] + ',' + rgba[3] + ')';
             }
 
             function selectAll(selector) {
@@ -2997,14 +3021,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 $scope.axes.y.plots = plots;
                 var legendCount = createLegend(plots);
-                plots.forEach(function(plot, i) {
+                plots.forEach(function(plot, ip) {
                     var color = plotting.colorsFromHexString(plot.color, 1.0);
 
                     // specifically meant for historical data - each data point's color gets
                     // modulated by the amount specified
-                    var colorMod = (plot.colorModulation || [0, 0, 0, 0]).map(function (comp) {
-                        return comp / (plot.points.length || 1);
-                    });
+                    var endColor = plot.colorModulation || color;
+                    var reverseMod = (plot.modDirection || 0) < 0;
+                    var pointColorMod = modulateRGBA(color, endColor, plot.points.length, reverseMod);
+                    var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     if (plot.symbol) {
                         $scope.hasSymbols = true;
@@ -3024,25 +3049,20 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             var sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
                             viewport.append('g')
                             .attr('class', 'param-plot')
-                            .attr('index', i)
+                            .attr('index', ip)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
                                 .append('path')
                                 .attr('d', sym)
-                                .attr('x', $scope.plotGraphLine(i).x())
-                                .attr('y', $scope.plotGraphLine(i).y())
+                                .attr('x', $scope.plotGraphLine(ip).x())
+                                .attr('y', $scope.plotGraphLine(ip).y())
                                 .attr('transform', function (d) {
                                     return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
                                 })
                                 .attr('class', 'scatter-point line-color')
-                                .style('fill', function (d, i) {
-                                    var ii = plot.points.length - i;
-                                    var c = color.map(function (comp, j) {
-                                        return comp + colorMod[j] * ii;
-                                    });
-                                    c.push(1.0 - colorMod[3] * ii);
-                                    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + c[3] + ')'
+                                .style('fill', function (d, j) {
+                                    return rgbaToCSS(pointColorMod[j]);
                                 })
                                 .style('stroke', 'black')
                                 .style('stroke-width', 0.5);
@@ -3050,16 +3070,16 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         else {
                             viewport.append('g')
                             .attr('class', 'param-plot')
-                            .attr('index', i)
+                            .attr('index', ip)
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
                                 .append('circle')
-                                .attr('cx', $scope.plotGraphLine(i).x())
-                                .attr('cy', $scope.plotGraphLine(i).y())
+                                .attr('cx', $scope.plotGraphLine(ip).x())
+                                .attr('cy', $scope.plotGraphLine(ip).y())
                                 .attr('r', circleRadius)
-                                .style('fill', function (d, i) {
-                                    return clusterInfo ? clusterInfo.scale(clusterInfo.group[i]) : plot.color;
+                                .style('fill', function (d, j) {
+                                    return clusterInfo ? clusterInfo.scale(clusterInfo.group[j]) : plot.color;
                                 })
                                 .attr('class', 'scatter-point line-color')
                                 .style('stroke', plot.color);
@@ -3068,8 +3088,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     else {
                         var p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
-                            .attr('index', i)
-                            .style('stroke', plot.color)
+                            .attr('index', ip)
+                            .style('stroke', rgbaToCSS(plotColorMod[ip]))
                             .style('stroke-width', strokeWidth)
                             .datum(plot.points);
                         if (plot.dashes) {
@@ -3078,43 +3098,43 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         if (plot.symbol) {
                             var sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
                             viewport.append('g')
-                                .attr('index', i)
+                                .attr('index', ip)
                                 .attr('class', 'param-plot').selectAll('.data-point')
                                 .data(plot.points)
                                 .enter()
                                     .append('path')
                                     .attr('d', sym)
-                                    .attr('x', $scope.plotGraphLine(i).x())
-                                    .attr('y', $scope.plotGraphLine(i).y())
+                                    .attr('x', $scope.plotGraphLine(ip).x())
+                                    .attr('y', $scope.plotGraphLine(ip).y())
                                     .attr('transform', function (d) {
                                         return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
                                     })
                                     .attr('class', 'data-point line-color')
-                                    .style('fill', plot.color)
+                                    .style('fill', rgbaToCSS(plotColorMod[ip]))
                                     .style('stroke', 'black')
                                     .style('stroke-width', 0.5);
                         }
                     }
                     if (plot._parent) {
                         var parent = plots.filter(function (p, j) {
-                            return j !== i && p.label === plot._parent;
+                            return j !== ip && p.label === plot._parent;
                         })[0];
                         if (parent) {
                             var pIndex = plots.indexOf(parent);
                             var cp = childPlots[pIndex] || [];
-                            cp.push(i);
+                            cp.push(ip);
                             childPlots[pIndex] = cp;
                         }
                     }
                     // must create extra focus points here since we don't know how many to make
-                    var name = $scope.modelName + '-fp-' + i;
-                    if (! $scope.focusPoints[i]) {
-                        $scope.focusPoints[i] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
+                    var name = $scope.modelName + '-fp-' + ip;
+                    if (! $scope.focusPoints[ip]) {
+                        $scope.focusPoints[ip] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
                     }
 
                     // make sure everything is visible when reloading
-                    includeDomain(i, true);
-                    setPlotVisible(i, true);
+                    includeDomain(ip, true);
+                    setPlotVisible(ip, true);
                 });
 
                 //$scope.axes.y.plots = plots;
