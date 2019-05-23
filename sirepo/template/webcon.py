@@ -474,9 +474,9 @@ def _beam_pos_plots(data, history, start_time):
     for t_idx, t in enumerate(bpms['t']):
         for d_idx, dim in enumerate(['x', 'y']):
             c.append(_DIM_PLOT_COLORS[d_idx % len(_DIM_PLOT_COLORS)])
-            # same color, fade to alpha 0.1
+            # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
-            c_mod[3] = 0.1
+            c_mod[3] = 0.2
             plots.append({
                 'points': bpms[dim][t_idx],
                 'x_points': bpms['z'],
@@ -1019,7 +1019,6 @@ def _monitor_data_for_plots(data, history, start_time, type):
             [t - start_time for t in h.times]
         ]
         pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
-        #m_data[el_name][el_setting] = (h.vals, t_deltas, pos.tolist())
         m_data[el_name][el_setting] = {
             'vals': h.vals,
             'times': t_deltas,
@@ -1115,19 +1114,25 @@ def _setting_plots_by_position(data, history, start_time):
                 {
                     'setting': s,
                     'vals': k_s[s]['vals'],
-                    'position': k_s[s]['position']
+                    'position': k_s[s]['position'],
+                    'times': k_s[s]['times']
                 }
             )
+
+    time_window = data.models.correctorSettingReport.numHistory
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
             all_z = np.append(all_z, s['position'])
+            current_time = s['times'][-1]
+            times = [t for t in s['times'] if current_time - t < time_window] if time_window > 0 else s['times']
+            t_idx = s['times'].index(times[0])
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
-            # same color, fade to alpha 0.1
+            # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
-            c_mod[3] = 0.1
+            c_mod[3] = 0.2
             plots.append({
-                'points': s['vals'],
-                'x_points': s['position'],
+                'points': s['vals'][t_idx:],
+                'x_points': s['position'][t_idx:],
                 'label': '{} {}'.format(k[0], s['setting']),
                 'style': 'scatter',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']],

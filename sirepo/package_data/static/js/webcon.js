@@ -218,7 +218,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
                 ['hpos', 'vpos'].forEach(function(pos) {
                     map[pos] = 'bpm' + watchCount + '_' + pos;
                 });
-
             }
             else if (t === 'KICKER') {
                 kickerCount += 1;
@@ -371,34 +370,14 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     function updateFromMonitorValues(monitorValues) {
-        srdbg('updateFromMonitorValues', monitorValues);
+        //srdbg('updateFromMonitorValues', monitorValues);
         var watchCount = 0;
         var kickerCount = 0;
         var count = 0;
         var isSteering = isSteeringBeam() || wantFinalKickerUpdate;
         wantFinalKickerUpdate = false;
-        /*
+
         appState.models.elements.forEach(function(el) {
-            if (el.type == 'WATCH') {
-                watchCount += 1;
-                ['hpos', 'vpos'].forEach(function(pos) {
-                    var field = 'bpm' + watchCount + '_' + pos;
-                    el[pos] = monitorValues[field];
-                });
-            }
-            else if (isSteering && el.type == 'KICKER') {
-                kickerCount += 1;
-                ['hkick', 'vkick'].forEach(function(pos) {
-                    var field = 'corrector' + kickerCount
-                        + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
-                    el[pos] = monitorValues[field];
-                    appState.models[el.type + el._id] = el;
-                });
-                appState.saveQuietly(el.type + el._id);
-            }
-        });
-        */
-         appState.models.elements.forEach(function(el) {
             if (Object.keys(self.monitorToModelFields).indexOf(el.type) < 0) {
                 return;
             }
@@ -506,6 +485,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     };
 
     self.reset = function () {
+        /*
         var toSave = [];
         monitoredModels().forEach(function(m) {
             var e = elementForId(m.id);
@@ -515,6 +495,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
         appState.saveChanges(toSave, function () {
         });
+        */
     };
 
     self.showEditor = function(item) {
@@ -527,17 +508,21 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     appState.whenModelsLoaded($scope, function() {
         self.watches = [];
         self.editorColumns = [];
+        self.monitoredModels = [];
         var quadCount = 0;
         appState.models.beamlines[0].items.forEach(function(id) {
             var element = elementForId(id);
+            var m = modelForElement(element);
             if (element.type == 'WATCH') {
-                self.watches.push(modelForElement(element));
+                self.watches.push(m);
             }
             else if (element.type == 'KICKER') {
-                self.editorColumns.push([modelForElement(element)]);
+                self.editorColumns.push([m]);
+                self.monitoredModels.push(m);
             }
             else if (element.type == 'QUAD') {
-                self.editorColumns[quadCount].push(modelForElement(element));
+                self.editorColumns[quadCount].push(m);
+                self.monitoredModels.push(m);
                 quadCount += 1;
             }
         });
@@ -1030,9 +1015,12 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             });
             */
             $scope.$on('modelChanged', update);
-            $scope.$on('beamSteering.changed', function (data) {
-                srdbg('check state', data);
-            });
+            //$scope.$on('epicsServerAnimation.changed', function (e, data) {
+            //    srdbg('check state', appState.models.epicsServerAnimation.connectToServer);
+            //});
+            //$scope.$on('beamSteering.changed', function (data) {
+            //    srdbg('check state', data);
+            //});
 
 
             function doSpread(doAnimate) {

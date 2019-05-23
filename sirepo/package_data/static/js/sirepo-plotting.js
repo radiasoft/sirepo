@@ -2844,7 +2844,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function modulateRGBA(start, end, steps, reverse) {
-                var rgbaSteps = [];
                 if (! start[3]) {
                     start.push(1.0);
                 }
@@ -2853,10 +2852,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 var s = reverse ? end : start;
                 var e = reverse ? start : end;
+                if (steps <= 1) {
+                    return [end];
+                }
+                var rgbaSteps = [];
                 for (var i  = 0; i < steps; ++i) {
                     var c = s.map(function (startComp, j) {
                         var endComp = e[j];
-                        return startComp + i * (endComp - startComp) / steps;
+                        return startComp + i * (endComp - startComp) / (steps - 1);
                     });
                     rgbaSteps.push(c);
                 }

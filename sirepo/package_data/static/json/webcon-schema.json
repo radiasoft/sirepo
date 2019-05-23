@@ -74,6 +74,7 @@
             "fitEquation": ["Equation to Fit", "Equation", "a * x + b"],
             "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
             "fitVariable": ["Independent Variable", "EquationVariables", "x"],
+            "inProgressText": ["_", "String", "Working"],
             "trimField": ["Trim Field", "AnalysisParameter"],
             "trimMin": ["Minimum", "Float"],
             "trimMax": ["Maximum", "Float"],
