@@ -409,78 +409,12 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, la
 SIREPO.app.controller('ElegantSourceController', function(appState, latticeService, panelState, $scope) {
     var self = this;
 
-    function validateSaving() {
-        if (! appState.isLoaded()) {
-            return;
-        }
-        var bunch = appState.models.bunch;
-        validateGreaterThanZero(bunch, 'beta_x');
-        validateGreaterThanZero(bunch, 'beta_y');
-        validateGreaterThanZero(bunch, 'n_particles_per_bunch');
-        validateGreaterThanZero(bunch, 'p_central_mev');
-        appState.saveQuietly('bunch');
-    }
-
-    function validateGreaterThanZero(model, field) {
-        if (parseFloat(model[field]) <= 0) {
-            model[field] = 1;
-        }
-    }
-
-    function validateGreaterOrEqualToZero(model, field) {
-        if (parseFloat(model[field]) < 0) {
-            model[field] = 0;
-        }
-    }
-
-    function updateHalton() {
-        panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
-    }
-
-    function updateLongitudinalFields() {
-        var method = parseInt(appState.models.bunch.longitudinalMethod);
-        panelState.showField('bunch', 'sigma_s', method == 1 || method == 2);
-        panelState.showField('bunch', 'sigma_dp', method == 1 || method == 2);
-        panelState.showField('bunch', 'dp_s_coupling', method == 1);
-        panelState.showField('bunch', 'alpha_z', method == 2 || method == 3);
-        panelState.showField('bunch', 'emit_z', method == 3);
-        panelState.showField('bunch', 'beta_z', method == 3);
-    }
-
-    function validateTyping() {
-        var bunch = appState.models.bunch;
-        // dp_s_coupling valid only between -1 and 1
-        var v = parseFloat(bunch.dp_s_coupling);
-        if (v > 1) {
-            bunch.dp_s_coupling = 1;
-        }
-        else if (v < -1) {
-            bunch.dp_s_coupling = -1;
-        }
-        validateGreaterOrEqualToZero(bunch, 'emit_x');
-        validateGreaterOrEqualToZero(bunch, 'emit_y');
-        validateGreaterOrEqualToZero(bunch, 'emit_z');
-        validateGreaterOrEqualToZero(bunch, 'beta_z');
-    }
-
-    self.handleModalShown = function() {
-        updateHalton();
-        updateLongitudinalFields();
-    };
-
     self.isBunchSource = function(name) {
-        if (! appState.isLoaded()) {
-            return false;
+        if (appState.isLoaded()) {
+            return appState.models.bunchSource.inputSource == name;
         }
-        return appState.models.bunchSource.inputSource == name;
+        return false;
     };
-
-    appState.whenModelsLoaded($scope, function() {
-        $scope.$on('bunch.changed', validateSaving);
-        appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
-        appState.watchModelFields($scope, ['bunch.dp_s_coupling', 'bunch.emit_x', 'bunch.emit_y', 'bunch.emit_z', 'bunch_beta_z'], validateTyping);
-        appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
-    });
 
     latticeService.initSourceController(self);
 });
@@ -528,10 +462,8 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, plotRangeService, $rootScope, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, elegantService, frameCache, panelState, persistentSimulation, $rootScope, $scope) {
     var self = this;
-    var plotRangeWatchers = [];
-    var fieldRanges = {};
     self.appState = appState;
     self.panelState = panelState;
     self.outputFiles = [];
@@ -627,7 +559,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 'verticalOffset',
                 'startTime',
             ];
-            fieldRanges[modelKey] = info.fieldRange;
             var m = null;
             if (appState.models[modelKey]) {
                 m = appState.models[modelKey];
@@ -682,21 +613,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         frameCache.setAnimationArgs(animationArgs);
     }
 
-    function processPlotRange(name, modelKey) {
-        self.fieldRange = fieldRanges[modelKey];
-        plotRangeService.processPlotRange(self, name, modelKey);
-    }
-
-    function registerPlotRangeWatcher(name, modelKey) {
-        if (plotRangeWatchers.indexOf(modelKey) >= 0) {
-            return;
-        }
-        plotRangeWatchers.push(modelKey);
-        appState.watchModelFields($scope, [modelKey + '.plotRangeType'], function() {
-            processPlotRange(name, modelKey);
-        });
-    }
-
     function yFileUpdate(modelKey) {
         var m = appState.models[modelKey];
         if (! m.y1 && m.y) {
@@ -723,23 +639,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             }
         });
     }
-
-    self.handleModalShown = function(name, modelKey) {
-        self.outputFiles.forEach(function(outputFile) {
-            if (outputFile.modelAccess.modelKey == modelKey) {
-                if (outputFile.reportType == 'parameterWithLattice') {
-                    panelState.showField(
-                        name, 'includeLattice',
-                        appState.models[modelKey].valueList.x.indexOf('s') >= 0);
-                }
-                panelState.showField(
-                    name, 'framesPerSecond',
-                    outputFile.info.pageCount > 1);
-                registerPlotRangeWatcher(name, modelKey);
-                processPlotRange(name, modelKey);
-            }
-        });
-    };
 
     self.logFileURL = function() {
         return elegantService.dataFileURL(self.simState.model, -1);
@@ -1121,17 +1020,21 @@ SIREPO.app.directive('elegantLatticeList', function(appState) {
     };
 });
 
-SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
+SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelState, plotRangeService) {
     return {
         scope: {
-            viewName: '@',
-            modelKey: '@',
-            controller: '=parentController',
+            reportInfo: '=',
         },
         template: [
-            '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess" data-parent-controller="controller"></div>',
+            '<div data-modal-editor="" data-view-name="{{ viewName }}" data-model-data="modelAccess"></div>',
         ].join(''),
         controller: function($scope) {
+            var isFirstVisit = true;
+            var plotRangeWatchers = [];
+
+            $scope.fieldRange = $scope.reportInfo.info.fieldRange;
+            $scope.modelKey = $scope.reportInfo.modelAccess.modelKey;
+            $scope.viewName = $scope.reportInfo.viewName;
             $scope.modelAccess = {
                 modelKey: $scope.modelKey,
                 getData: function() {
@@ -1139,6 +1042,39 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState) {
                     return data;
                 },
             };
+
+            function processPlotRange(name, modelKey) {
+                plotRangeService.processPlotRange($scope, name, modelKey);
+            }
+
+            function registerPlotRangeWatcher(name, modelKey) {
+                if (plotRangeWatchers.indexOf(modelKey) >= 0) {
+                    return;
+                }
+                plotRangeWatchers.push(modelKey);
+                appState.watchModelFields($scope, [modelKey + '.plotRangeType'], function() {
+                    processPlotRange(name, modelKey);
+                });
+            }
+
+            $scope.$on('sr-tabSelected', function(evt, modelName, modelKey) {
+                if (isFirstVisit) {
+                    isFirstVisit = false;
+                    return;
+                }
+                if (modelKey == $scope.modelKey) {
+                    if ($scope.reportInfo.reportType == 'parameterWithLattice') {
+                        panelState.showField(
+                            name, 'includeLattice',
+                            appState.models[modelKey].valueList.x.indexOf('s') >= 0);
+                    }
+                    panelState.showField(
+                        modelName, 'framesPerSecond',
+                        $scope.reportInfo.info.pageCount > 1);
+                    registerPlotRangeWatcher(modelName, modelKey);
+                    processPlotRange(modelName, modelKey);
+                }
+            });
         },
     };
 });
@@ -1831,6 +1767,10 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel) {
             var rpnVariableName = scope.modelName == 'rpnVariable' ? scope.model.name : null;
+            var range = {
+                min: scope.info[4],
+                max: scope.info[5],
+            };
             ngModel.$parsers.push(function(value) {
                 requestIndex++;
                 var currentRequestIndex = requestIndex;
@@ -1838,11 +1778,17 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                     return null;
                 }
                 if (SIREPO.NUMBER_REGEXP.test(value)) {
-                    ngModel.$setValidity('', true);
                     var v = parseFloat(value);
                     if (rpnVariableName) {
                         rpnService.recomputeCache(rpnVariableName, v);
                     }
+                    if (range.min != undefined && v < range.min) {
+                        return undefined;
+                    }
+                    if (range.max != undefined && v > range.max) {
+                        return undefined;
+                    }
+                    ngModel.$setValidity('', true);
                     return v;
                 }
                 rpnService.computeRpnValue(value, function(v, err) {
@@ -1890,7 +1836,7 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
         },
         template: [
             '<div data-ng-if="outputInfo">',
-              '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable" data-parent-controller="visualization">',
+              '<div data-basic-editor-panel="" data-want-buttons="" data-view-name="parameterTable">',
                 '<form name="form" class="form-horizontal" autocomplete="off">',
                   '<div data-ng-repeat="item in parameterRows">',
                     '<div class="sr-parameter-table-row form-group">',
@@ -2017,5 +1963,36 @@ SIREPO.app.directive('parameterTable', function(appState, panelState, $sce) {
                 modelsLoaded();
             });
         }
+    };
+});
+
+SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+            function updateHalton() {
+                panelState.showField('bunch', 'halton_radix', appState.models.bunch.optimized_halton == '0');
+            }
+
+            function updateLongitudinalFields() {
+                var method = parseInt(appState.models.bunch.longitudinalMethod);
+                panelState.showField('bunch', 'sigma_s', method == 1 || method == 2);
+                panelState.showField('bunch', 'sigma_dp', method == 1 || method == 2);
+                panelState.showField('bunch', 'dp_s_coupling', method == 1);
+                panelState.showField('bunch', 'alpha_z', method == 2 || method == 3);
+                panelState.showField('bunch', 'emit_z', method == 3);
+                panelState.showField('bunch', 'beta_z', method == 3);
+            }
+
+            $scope.$on('sr-tabSelected', function(evt) {
+                updateHalton();
+                updateLongitudinalFields();
+            });
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['bunch.optimized_halton'], updateHalton);
+                appState.watchModelFields($scope, ['bunch.longitudinalMethod'], updateLongitudinalFields);
+            });
+        },
     };
 });

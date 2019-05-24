@@ -74,7 +74,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 }
                 if (appState.isLoaded()) {
                     panelState.waitForUI(function() {
-                        $scope.$emit('sr-tabSelected', $scope.modelName);
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
             };
