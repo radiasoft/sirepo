@@ -391,7 +391,6 @@ SIREPO.app.controller('CommandController', function(appState, elegantService, la
     ];
 
     self.createElement = function(name) {
-        $('#' + panelState.modalId('newCommand')).modal('hide');
         var model = {
             _id: latticeService.nextId(),
             _type: name,

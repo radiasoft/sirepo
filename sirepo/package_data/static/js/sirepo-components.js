@@ -64,11 +64,17 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 }
                 $scope.activePage = page;
                 page.isActive = true;
+                //TODO(pjm): deprecated parentController processing replaced by sr-tabSelected event
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     panelState.waitForUI(function() {
                         $scope.parentController.handleModalShown(
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                }
+                if (appState.isLoaded()) {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName);
                     });
                 }
             };

@@ -167,7 +167,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.createElement = function(type) {
-        $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = self.getNextElement(type);
         appState.setModelDefaults(model, type);
         self.editElement(type, model);
@@ -807,12 +806,21 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
             $scope.allNames = $scope.controller.basicNames.concat($scope.controller.advancedNames).sort();
 
             $scope.createElement = function(name) {
-                if ($scope.controller.createElement) {
-                    $scope.controller.createElement(name);
-                }
-                else {
-                    latticeService.createElement(name);
-                }
+                // don't show the new editor until the picker panel is gone
+                // the modal show/hide in bootstrap doesn't handle layered modals
+                // and the browser scrollbar can be lost in some cases
+                var picker = $('#' + $scope.id);
+                picker.on('hidden.bs.modal', function() {
+                    picker.off();
+                    if ($scope.controller.createElement) {
+                        $scope.controller.createElement(name);
+                    }
+                    else {
+                        latticeService.createElement(name);
+                    }
+                    $scope.$applyAsync();
+                });
+                picker.modal('hide');
             };
         },
     };
