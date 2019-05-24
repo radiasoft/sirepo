@@ -4,6 +4,9 @@
             "localRoute": "analysis"
         }
     },
+    "constants": {
+        "inProgressText": "Working"
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -74,7 +77,6 @@
             "fitEquation": ["Equation to Fit", "Equation", "a * x + b"],
             "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
             "fitVariable": ["Independent Variable", "EquationVariables", "x"],
-            "inProgressText": ["_", "String", "Working"],
             "trimField": ["Trim Field", "AnalysisParameter"],
             "trimMin": ["Minimum", "Float"],
             "trimMax": ["Maximum", "Float"],
@@ -84,7 +86,6 @@
             "notes": ["Notes", "Text", ""]
         },
          "beamPositionReport": {
-            "inProgressText": ["_", "String", "Working"],
             "numHistory": ["Time Window (sec)", "Float", 0.0, "enter 0 to view entire history", 0.0],
             "samplePeriod": ["Sample Period (sec)", "Integer", 1, "", 1]
         },
@@ -100,7 +101,6 @@
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
         "correctorSettingReport": {
-            "inProgressText": ["_", "String", "Working"],
             "numHistory": ["Time Window (sec)", "Float", 0.0, "enter 0 to view entire history", 0.0],
             "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
@@ -110,7 +110,6 @@
             "connectToServer": ["Connect to EPICS", "Boolean", "0"]
         },
         "fftReport": {
-            "inProgressText": ["_", "String", "Working"]
         },
         "hiddenReport": {
         },
@@ -251,8 +250,6 @@
             "advanced": []
         },
         "WATCH": {
-            "basic": [],
-            "advanced": []
         }
     }
 }

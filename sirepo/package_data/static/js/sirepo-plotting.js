@@ -420,14 +420,14 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return fmt(v);
         },
 
-        getAspectRatio: function(modelName, json) {
+        getAspectRatio: function(modelName, json, defaultRatio) {
             if (appState.isLoaded() && appState.applicationState()[modelName]) {
                 var ratioEnum = appState.applicationState()[modelName].aspectRatio;
                 if (ratioEnum) {
                     return parseFloat(ratioEnum);
                 }
             }
-            return json.aspectRatio || 1.0;
+            return json.aspectRatio || defaultRatio || 1.0;
         },
 
         initialHeight: function(scope) {
@@ -2986,6 +2986,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 includeForDomain.length = 0;
                 $scope.isZoomXY = json.zoom_x_y;
                 $scope.doAdjustDomain = ! json.fixed_y_range;
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
                     {

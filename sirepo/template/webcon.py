@@ -211,13 +211,15 @@ def get_beam_pos_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
         return {
-            'error': 'No Settings history'
+            'error': 'no beam position history'
         }
     if not _MONITOR_TO_MODEL_FIELDS:
         _build_monitor_to_model_fields(data)
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     if len(history) == 0:
-        return {}
+        return {
+            'error': 'no beam position history'
+        }
     x_label = 'z [m]'
 
     x, plots, colors = _beam_pos_plots(data, history, start_time)
@@ -227,6 +229,69 @@ def get_beam_pos_report(run_dir, data):
         'x_label': x_label,
         'summaryData': {},
     }, colors)
+
+
+def get_centroid_report(run_dir, data):
+    monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
+    if not monitor_file.exists():
+        return {
+            'error': 'no beam position history'
+        }
+    if not _MONITOR_TO_MODEL_FIELDS:
+        _build_monitor_to_model_fields(data)
+    history, num_records, start_time = _read_monitor_file(monitor_file, True)
+
+    if len(history) == 0:
+        return {
+            'error': 'no beam position history'
+        }
+
+    bpms = _bpm_readings_for_plots(data, history, start_time)
+
+    x = []
+    y = []
+    z = _position_of_element(data, data.models[data.report]['_id'])
+
+    cx = bpms['x']
+    cy = bpms['y']
+    cz = bpms['z']
+    ct = bpms['t']
+
+    # Use the range over all the plots so they start the same size -
+    # this to make visual comparisons
+    x_range = [min(min(x) for x in cx), max(max(x) for x in cx)]
+    y_range = [min(min(x) for x in cx), max(max(x) for x in cx)]
+
+    c_idx = cz.index(z)
+
+    for t_idx, time in enumerate(ct):
+        x.append(cx[t_idx][c_idx])
+        y.append(cy[t_idx][c_idx])
+
+    color = _SETTINGS_PLOT_COLORS[c_idx % len(_SETTINGS_PLOT_COLORS)]
+    c_mod = _hex_color_to_rgb(color)
+    c_mod[3] = 0.2
+    plots = [
+        {
+            'points': y,
+            'label': 'y [m]',
+            'style': 'scatter',
+            'symbol': 'circle',
+            'colorModulation': c_mod
+        },
+    ]
+
+    return template_common.parameter_plot(x, plots, {}, {
+        'title': 'z = {}m'.format(z),
+        'y_label': '',
+        'x_label': 'x [m]',
+        'fixed_y_range': True,
+        'zoom_x_y': False,
+        'aspectRatio': 1.0,
+        'summaryData': {},
+    },[
+        color
+    ], x_range=x_range, y_range=y_range)
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -333,7 +398,7 @@ def get_settings_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
         return {
-            'error': 'No Settings history'
+            'error': 'no settings history'
         }
     if not _MONITOR_TO_MODEL_FIELDS:
         _build_monitor_to_model_fields(data)
@@ -348,7 +413,7 @@ def get_settings_report(run_dir, data):
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'rad',
+        'y_label': 'A',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -587,6 +652,19 @@ def _build_monitor_to_model_fields(data):
                     'element': el.name,
                     'setting': setting
                 })
+
+
+def _centroid_ranges(history):
+    r = [
+        [np.finfo('d').max, np.finfo('d').min],
+        [np.finfo('d').max, np.finfo('d').min]
+    ]
+    for ch in history:
+        for cz in ch:
+            for i in range(0, 2):
+                r[i][0] = min(r[i][0], cz[i])
+                r[i][1] = max(r[i][1], cz[i])
+    return r
 
 
 def _column_info(path):
