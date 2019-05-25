@@ -9,6 +9,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="LatticeBeamlineList" data-ng-class="fieldClass">',
       '<div data-lattice-beamline-list="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
+      '<div data-magnet-files="" data-model="model" data-field="field"></div>',
+    '</div>',
 ].join('');
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
@@ -20,12 +23,13 @@ SIREPO.lattice = {
         CHANGREF: 'orange',
         QUADRUPO: 'tomato',
         SEXTUPOL: 'lightgreen',
+        TOSCA: 'cornflowerblue',
     },
     elementPic: {
         aperture: [],
         bend: ['AUTOREF', 'BEND', 'CHANGREF', 'MULTIPOL'],
         drift: ['DRIFT'],
-        magnet: ['QUADRUPO', 'SEXTUPOL'],
+        magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
         solenoid: [],
         watch: ['MARKER'],
@@ -84,7 +88,7 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'YMY'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'TOSCA', 'YMY'];
     var scaling = {};
 
     function updateScaling() {
@@ -298,7 +302,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 
     self.handleModalShown = function(name) {
-        if (name.indexOf('Animation') >= 0) {
+        if (appState.isAnimationModelName(name)) {
             plotRangeService.processPlotRange(self, name);
             processShowAllFrames(name);
             zgoubiService.processParticleCount2(name);
@@ -337,6 +341,61 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             });
         });
     });
+});
+
+SIREPO.app.factory('magnetService', function() {
+    var self = {};
+
+    self.hasFileFields = function(magnetType) {
+        return magnetType.indexOf('-f') >= 0;
+    };
+
+    self.isMultiFile = function(magnetType) {
+        return magnetType.indexOf('-mf') >= 0;
+    };
+
+    self.isSingleFile = function(magnetType) {
+        return magnetType.indexOf('-sf') >= 0;
+    };
+
+    self.isZipFile = function(filename) {
+        return filename && filename.match(/.zip$/i) ? true : false;
+    };
+
+    self.magnetFileCount = function(model) {
+        var magnetType = model.magnetType;
+        if (self.hasFileFields(magnetType)) {
+            return model.fileCount;
+        }
+        if (self.isSingleFile(magnetType)) {
+            return self.isZipFile(model.magnetFile) ? 1 : 0;
+        }
+        if (magnetType == '3d-mf-2v') {
+            return Math.floor((model.IZ + 1 ) / 2);
+        }
+        if (magnetType == '3d-mf-1v') {
+            return model.IZ;
+        }
+        throw 'unhandled magnetType: ' + magnetType;
+    };
+
+    self.magnetTypesForMesh = function(model) {
+        // list of magnet types depends on mesh and Z
+        var is2D = model.IZ == 1;
+        if (model.meshType == 'cartesian') {
+            if (is2D) {
+                return ['2d-sf', '2d-sf-ags', '2d-sf-ags-p', '2d-mf-f'];
+            }
+            return ['3d-mf-2v', '3d-mf-1v', '3d-sf-2v', '3d-sf-1v', '3d-sf-8v', '3d-mf-f'];
+        }
+        // cylindrical
+        if (is2D) {
+            return ['2d-mf-f', '2d-mf-f-2v'];
+        }
+        return ['3d-sf-4v', '3d-mf-f-2v'];
+    };
+
+    return self;
 });
 
 SIREPO.app.factory('zgoubiService', function(appState, panelState) {
@@ -387,6 +446,192 @@ SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
                 appState.watchModelFields($scope, ['CAVITE.IOPT'], processFields);
                 processFields();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelState, requestSender) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function getTosca() {
+                if (appState.isLoaded()) {
+                    if (! appState.models.TOSCA.fileNames) {
+                        appState.models.TOSCA.fileNames = [];
+                    }
+                    return appState.models.TOSCA;
+                }
+                return null;
+            }
+
+            function processAlignment() {
+                var tosca = getTosca();
+                if (tosca) {
+                    updateAlignment(tosca);
+                }
+            }
+
+            function processFileCount() {
+                var tosca = getTosca();
+                if (tosca) {
+                    updateFileFields(tosca);
+                }
+            }
+
+            function processIntegrationBoundary() {
+                var tosca = getTosca();
+                if (tosca) {
+                    updateIntegrationBoundary(tosca);
+                }
+            }
+
+            function processMeshType() {
+                var tosca = getTosca();
+                if (tosca) {
+                    updateMagnetType(tosca);
+                    updateAlignment(tosca);
+                }
+            }
+
+            function processMagnetFile() {
+                var tosca = getTosca();
+                //console.log('process magnet file:', tosca);
+                if (tosca) {
+                    //TODO(pjm): error message if zip file required and regular file supplied
+                    requestSender.getApplicationData(
+                        {
+                            method: 'tosca_info',
+                            tosca: tosca,
+                        },
+                        function(data) {
+                            if (appState.isLoaded() && data.toscaInfo) {
+                                if (data.toscaInfo.magnetFile != tosca.magnetFile) {
+                                    // ignore old requests
+                                    return;
+                                }
+                                tosca.l = data.toscaInfo.toscaLength;
+                                tosca.allFileNames = data.toscaInfo.fileList;
+                            }
+                        });
+                    updateMagnetFiles(tosca);
+                }
+            }
+
+            function processZCount() {
+                var tosca = getTosca();
+                if (tosca) {
+                    updateMagnetType(tosca);
+                }
+            }
+
+            function updateAlignment(tosca) {
+                ['XCE', 'YCE', 'ALE'].forEach(function(f) {
+                    panelState.showField('TOSCA', f, tosca.meshType == 'cartesian');
+                });
+                ['RE', 'TE', 'RS', 'TS'].forEach(function(f) {
+                    panelState.showField('TOSCA', f, tosca.meshType == 'cylindrical' && tosca.KPOS == '2');
+                });
+            }
+
+            function updateFileFields(tosca) {
+                var hasFileFields = magnetService.hasFileFields(tosca.magnetType);
+                panelState.showField('TOSCA', 'fileCount', hasFileFields);
+                [1, 2, 3, 4].forEach(function(idx) {
+                    panelState.showField('TOSCA', 'field' + idx, hasFileFields && tosca.fileCount >= idx);
+                });
+            }
+
+            function updateIntegrationBoundary(tosca) {
+                var useBoundary = tosca.ID != '0';
+                ['A', 'B', 'C'].forEach(function(f) {
+                    panelState.showField('TOSCA', f, useBoundary);
+                });
+                ['Ap', 'Bp', 'Cp'].forEach(function(f) {
+                    panelState.showField('TOSCA', f, tosca.ID == '2' || tosca.ID == '3');
+                });
+                ['App', 'Bpp', 'Cpp'].forEach(function(f) {
+                    panelState.showField('TOSCA', f, tosca.ID == '3');
+                });
+            }
+
+            function updateMagnetFiles(tosca) {
+                panelState.showField(
+                    'TOSCA', 'fileNames',
+                    magnetService.isMultiFile(tosca.magnetType) || magnetService.isZipFile(tosca.magnetFile));
+            }
+
+            function updateMagnetType(tosca) {
+                var items = magnetService.magnetTypesForMesh(tosca);
+                var allItems = SIREPO.APP_SCHEMA.enum.TOSCAMagnetType.map(function(v) {
+                    return v[0];
+                });
+                allItems.forEach(function(item) {
+                    panelState.showEnum('TOSCA', 'magnetType', item, items.indexOf(item) >= 0);
+                });
+                if (items.indexOf(tosca.magnetType) < 0) {
+                    // select the first item in the list if the current selection is invalid
+                    tosca.magnetType = items[0];
+                }
+            }
+
+            function updatePolynomialInterpolation(tosca) {
+                panelState.showField('TOSCA', 'IORDRE', tosca.IZ == 1);
+            }
+
+            $scope.$on('sr-tabSelected', function() {
+                var tosca = appState.models.TOSCA;
+                if (! tosca) {
+                    return;
+                }
+                updateMagnetType(tosca);
+                updateAlignment(tosca);
+                updateFileFields(tosca);
+                updateIntegrationBoundary(tosca);
+                updatePolynomialInterpolation(tosca);
+                updateMagnetFiles(tosca);
+            });
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['TOSCA.meshType'], processMeshType);
+                appState.watchModelFields($scope, ['TOSCA.IZ'], processZCount);
+                appState.watchModelFields($scope, ['TOSCA.KPOS'], processAlignment);
+                appState.watchModelFields($scope, ['TOSCA.fileCount'], processFileCount);
+                appState.watchModelFields($scope, ['TOSCA.ID'], processIntegrationBoundary);
+                appState.watchModelFields($scope, ['TOSCA.magnetFile'], processMagnetFile);
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('magnetFiles', function(appState, magnetService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div data-ng-repeat="idx in fileRange()">',
+              '<select style="margin-bottom: 1ex" class="form-control" data-ng-model="model[field][idx]" data-ng-options="item for item in model.allFileNames track by item"></select>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var range = [];
+
+            $scope.fileRange = function() {
+                if (! appState.isLoaded() || ! $scope.model) {
+                    return null;
+                }
+                var count = magnetService.magnetFileCount($scope.model);
+                if (count != range.length) {
+                    range = new Array(count);
+                    for (var i = 0; i < range.length; i++) {
+                        range[i] = i;
+                    }
+                }
+                return range;
+            };
         },
     };
 });
