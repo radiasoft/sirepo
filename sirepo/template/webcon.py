@@ -601,11 +601,12 @@ def _bpm_readings_for_plots(data, history, start_time):
     period = data.models.beamPositionReport.samplePeriod
     current_time = all_times[-1]
 
-    t_indexes = np.where(all_times > current_time - time_window) if time_window > 0 else [np.arange(len(all_times))]
+    t_indexes = np.where(
+        ((all_times > current_time - time_window) if time_window > 0 else (all_times >= 0)) &
+        (all_times % period == 0)
+    )
     for t_idx in t_indexes[0]:
         time = all_times[t_idx]
-        if int(time) % period != 0:
-            continue
         t.append(time)
         xt = []
         yt = []
@@ -1168,21 +1169,26 @@ def _setting_plots_by_position(data, history, start_time):
                     'times': k_s[s]['times']
                 }
             )
-
+            all_z = np.append(all_z, k_s[s]['position'])
     time_window = data.models.correctorSettingReport.numHistory
+    period = data.models.correctorSettingReport.samplePeriod
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
-            all_z = np.append(all_z, s['position'])
-            current_time = s['times'][-1]
-            times = [t for t in s['times'] if current_time - t < time_window] if time_window > 0 else s['times']
-            t_idx = s['times'].index(times[0])
+            times = np.array(s['times'])
+            current_time = times[-1]
+            t_indexes = np.where(
+                ((times > current_time - time_window) if time_window > 0 else (times >= 0)) &
+                (times % period == 0)
+            )[0]
+            if len(t_indexes) == 0:
+                continue
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
             # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
             plots.append({
-                'points': s['vals'][t_idx:],
-                'x_points': s['position'][t_idx:],
+                'points': np.array(s['vals'])[t_indexes].tolist(),
+                'x_points': np.array(s['position'])[t_indexes].tolist(),
                 'label': '{} {}'.format(k[0], s['setting']),
                 'style': 'scatter',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']],
@@ -1215,18 +1221,22 @@ def _setting_plots_by_time(data, history, start_time):
 
     all_times = np.sort(np.unique(all_times))
     time_window = data.models.correctorSettingReport.numHistory
+    period = data.models.correctorSettingReport.samplePeriod
     current_time = all_times[-1]
 
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
-            times = [t for t in s['times'] if current_time - t < time_window] if time_window > 0 else s['times']
-            if len(times) == 0:
+            times = np.array(s['times'])
+            t_indexes = np.where(
+                ((times > current_time - time_window) if time_window > 0 else (times >= 0)) &
+                (times % period == 0)
+            )[0]
+            if len(t_indexes) == 0:
                 continue
-            t_idx = s['times'].index(times[0])
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
             plots.append({
-                'points': s['vals'][t_idx:],
-                'x_points': times,
+                'points': np.array(s['vals'])[t_indexes].tolist(),
+                'x_points': times[t_indexes].tolist(),
                 'label': '{} {}'.format(k[0], s['setting']),
                 'style': 'line',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']]

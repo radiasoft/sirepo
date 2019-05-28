@@ -102,6 +102,7 @@
         },
         "correctorSettingReport": {
             "numHistory": ["Time Window (sec)", "Float", 0.0, "enter 0 to view entire history", 0.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 1, "", 1],
             "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
         "epicsServerAnimation": {
@@ -226,6 +227,7 @@
             "basic": [],
             "advanced": [
                 "numHistory",
+                "samplePeriod",
                 "plotOrder"
             ]
         },
