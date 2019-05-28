@@ -375,7 +375,7 @@ app.directive('pageHeading', function() {
     function getTemplate() {
         var template = [
                 '<div class="lp-main-header-content" data-ng-class="{\'lp-sub-header-content\': ! onMainLandingPage()}">',
-                    '<a href="/#about">',
+                    '<a href="/en/landing.html">',
                         '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
                     '</a>',
                     '<div data-ng-show="onMainLandingPage()" class="pull-right lp-hide-wide">',

@@ -24,7 +24,7 @@ line.add(core.FAKE_ELEM("""
 2.1
 {{ bunch_particleCount2 }} 1
 {% for i in range(bunch_particleCount2) %}
-{{ bunchCoordinates[i]['Y'] }} {{ bunchCoordinates[i]['T'] }} {{ bunchCoordinates[i]['Z'] }} {{ bunchCoordinates[i]['P'] }} {{ bunchCoordinates[i]['X'] }} {{ bunchCoordinates[i]['D'] }} '{{ i + 1 }}'
+{{ bunchCoordinates[i]['Y'] }} {{ bunchCoordinates[i]['T'] }} {{ bunchCoordinates[i]['Z'] }} {{ bunchCoordinates[i]['P'] }} {{ bunchCoordinates[i]['X'] }} {{ bunchCoordinates[i]['D'] }} '{{ i }}'
 {% endfor %}
 {{ '1 ' * bunch_particleCount2 }}
 """))

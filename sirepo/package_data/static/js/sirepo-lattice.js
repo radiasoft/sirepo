@@ -167,7 +167,6 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     };
 
     self.createElement = function(type) {
-        $('#' + panelState.modalId('newBeamlineElement')).modal('hide');
         var model = self.getNextElement(type);
         appState.setModelDefaults(model, type);
         self.editElement(type, model);
@@ -181,12 +180,13 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         for (var i = 0; i < appState.models[type].length; i++) {
             var el = appState.models[type][i];
             if (el[idField] == element[idField]) {
+                var saveModelNames = [type];
                 if(type === 'beamlines' && el[idField] == appState.models.simulation.visualizationBeamlineId) {
-                    appState.models.simulation.visualizationBeamlineId = '';
-                    appState.saveQuietly('simulation');
+                    appState.models.simulation.visualizationBeamlineId = self.activeBeamlineId;
+                    saveModelNames.push('simulation');
                 }
                 appState.models[type].splice(i, 1);
-                appState.saveChanges(type);
+                appState.saveChanges(saveModelNames);
                 $rootScope.$broadcast('elementDeleted', type);
                 return;
             }
@@ -806,12 +806,21 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
             $scope.allNames = $scope.controller.basicNames.concat($scope.controller.advancedNames).sort();
 
             $scope.createElement = function(name) {
-                if ($scope.controller.createElement) {
-                    $scope.controller.createElement(name);
-                }
-                else {
-                    latticeService.createElement(name);
-                }
+                // don't show the new editor until the picker panel is gone
+                // the modal show/hide in bootstrap doesn't handle layered modals
+                // and the browser scrollbar can be lost in some cases
+                var picker = $('#' + $scope.id);
+                picker.on('hidden.bs.modal', function() {
+                    picker.off();
+                    if ($scope.controller.createElement) {
+                        $scope.controller.createElement(name);
+                    }
+                    else {
+                        latticeService.createElement(name);
+                    }
+                    $scope.$applyAsync();
+                });
+                picker.modal('hide');
             };
         },
     };
@@ -918,6 +927,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 pos.y += rpnValue(y) * Math.cos(radAngle);
             }
 
+            function subScaleWatch() {
+                var xsMax = 50;
+                return {
+                    x: ($scope.xScale > xsMax ? xsMax / $scope.xScale  : 1),
+                    y: 1,
+                };
+            }
+
             //TODO(pjm): this monster method needs to get broken into a separate service with karma tests
             function applyGroup(items, pos) {
                 var group = {
@@ -931,22 +948,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var oldRadius = pos.radius;
                 var newAngle = 0;
                 var maxHeight = 0;
-
-                function subScalingForType(type) {
-                    var unitScale = {x: 1, y: 1};
-                    if(type !== 'watch') {
-                        return function () {
-                            return unitScale;
-                        };
-                    }
-                    return function () {
-                        var xsMax = 50;
-                        return {
-                            x: ($scope.xScale > xsMax ? xsMax / $scope.xScale  : 1),
-                            y: 1
-                        };
-                    };
-                }
 
                 for (var i = 0; i < items.length; i++) {
                     var item = items[i];
@@ -1045,12 +1046,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             x: pos.radius + pos.x + x,
                             height: 0,
                             width: length,
-                            subScaling: subScalingForType(picType),
                         };
                         if (picType == 'watch') {
                             groupItem.height = 1;
                             groupItem.y = pos.y;
                             groupItem.color = getPicColor(item, 'lightgreen');
+                            groupItem.subScaling = subScaleWatch;
                         }
                         else if (picType == 'drift') {
                             groupItem.color = getPicColor(item, 'lightgrey');
@@ -1079,6 +1080,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             length = 0;
+                            pos.radius = 0;
                         }
                         else if (picType == 'malign') {
                             groupItem.color = getPicColor(item, 'black');
@@ -1094,6 +1096,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                                 var thetaAngle = latticeService.radiansToDegrees(rpnValue(item.theta));
                                 newAngle = 180 - 2 * thetaAngle;
                                 groupItem.angle = thetaAngle;
+                                pos.radius = 0;
                             }
                             else {
                                 groupItem.angle = 0;
@@ -1105,9 +1108,17 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             length = 0;
                         }
                         else if (picType == 'magnet') {
-                            groupItem.height = 0.5;
-                            groupItem.y = pos.y - groupItem.height / 2;
-                            groupItem.color = getPicColor(item, 'red');
+                            if (! length) {
+                                groupItem.height = 0.2;
+                                groupItem.y = pos.y;
+                                groupItem.picType = 'zeroLength';
+                                groupItem.color = 'black';
+                            }
+                            else {
+                                groupItem.height = 0.5;
+                                groupItem.y = pos.y - groupItem.height / 2;
+                                groupItem.color = getPicColor(item, 'red');
+                            }
                         }
                         else if (picType == 'undulator') {
                             groupItem.height = 0.25;

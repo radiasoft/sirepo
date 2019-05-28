@@ -25,7 +25,8 @@ def test_runner_myapp():
     from pykern.pkdebug import pkdc, pkdp
     from sirepo import srunit
 
-    fc = srunit.flask_client()
+    fc = srunit.flask_client(sim_types='myapp')
+    fc.sr_login_as_guest()
 
     from sirepo import srdb
     pkdc(srdb.runner_socket_path())
@@ -55,7 +56,7 @@ def test_runner_myapp():
         pkdc(data)
         data = data[0].simulation
         pkdc(data)
-        data = fc.sr_get(
+        data = fc.sr_get_json(
             'simulationData',
             params=dict(
                 pretty='1',

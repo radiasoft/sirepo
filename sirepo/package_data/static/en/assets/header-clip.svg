@@ -1,0 +1,9 @@
+<svg width="0%" height="0%">
+  <defs>
+    <clipPath id="header-clip">
+      <path id="curve1" cx="100" d="M84 0 c 0 0, 50 108, 96 0"/>
+      <path id="curve2" cx="100" d="M168 0 c 0 0, 50 108, 96 0"/>
+      <path id="curve2" cx="100" d="M251 0 c 0 0, 50 108, 96 0"/>
+    </clipPath>
+  </defs>
+</svg>

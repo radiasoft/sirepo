@@ -14,14 +14,14 @@ def test_processed_image():
     from pykern import pkunit
     from sirepo import srunit
 
-    fc = srunit.flask_client()
     sim_type = 'srw'
-    fc.get('/{}'.format(sim_type))
-    sim_id = fc.sr_sim_data(sim_type, 'Sample from Image')
-    resp = fc.sr_post(
+    fc = srunit.flask_client(sim_types=sim_type)
+    fc.sr_login_as_guest(sim_type)
+    r = fc.sr_sim_data(sim_type, 'Sample from Image')
+    r = fc.sr_post(
         'getApplicationData',
         {
-            'simulationId': sim_id,
+            'simulationId': r.models.simulation.simulationId,
             'simulationType': sim_type,
             'method': 'processedImage',
             'baseImage': 'sample.tif',
@@ -50,4 +50,4 @@ def test_processed_image():
         raw_response=True,
     )
     with open(str(pkunit.work_dir().join('x.tif')), 'wb') as f:
-        f.write(resp.data)
+        f.write(r.data)

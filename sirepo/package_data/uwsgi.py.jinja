@@ -6,5 +6,4 @@ import logging
 
 # Needs to be explicit and pass on uwsgi
 import uwsgi
-server.init(uwsgi=uwsgi)
-app = server.app
+app = server.init(uwsgi=uwsgi)

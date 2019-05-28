@@ -18,6 +18,7 @@ import os.path
 import py.path
 import re
 import sirepo.template
+import subprocess
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
@@ -445,6 +446,35 @@ def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
         if pkio.has_file_extension(file_path, ext):
             return False
     return  True
+
+
+def subprocess_output(cmd, env):
+    """Run cmd and return output or None, logging errors.
+
+    Args:
+        cmd (list): what to run
+    Returns:
+        str: output is None on error else a stripped string
+    """
+    err = None
+    out = None
+    try:
+
+        p = subprocess.Popen(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        out, err = p.communicate()
+        if p.wait() != 0:
+            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
+    except subprocess.CalledProcessError as e:
+        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
+        return None
+    if out != None and len(out):
+        return out.strip()
+    return ''
 
 
 def watchpoint_id(report):

@@ -12,7 +12,6 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
-        'Flask-BasicAuth',
         'Flask-OAuthlib',
         'Flask-Mail',
         'Flask_SQLAlchemy',
@@ -33,7 +32,7 @@ pykern.pksetup.setup(
         # requests-oauthlib-1.2.0 forces oauthlib-3.0.0 but Flask-OAuthlib
         # requires oauthlib<3.0.0.
         'requests-oauthlib==1.1.0',
-        'sklearn',
+        'scikit-learn==0.20',
         'sympy',
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',

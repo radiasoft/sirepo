@@ -10,7 +10,6 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import adm
-from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
@@ -49,21 +48,15 @@ _RUN_STATES = ('pending', 'running')
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: See sirepo.srunit
-SRUNIT_TEST_IN_REQUEST = 'test_in_request'
+SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
-#: Flask app instance, must be bound globally
-app = flask.Flask(
-    __name__,
-    static_folder=None,
-    template_folder=str(simulation_db.STATIC_FOLDER),
-)
-app.config.update(
-    PROPAGATE_EXCEPTIONS=True,
-)
+_ROBOTS_TXT = None
 
+#: Global app value (only here so instance not lost)
+_app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -241,31 +234,46 @@ def api_listFiles(simulation_type, simulation_id, file_type):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_require_user
 def api_findByName(simulation_type, application_mode, simulation_name):
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
     # use the existing named simulation, or copy it from the examples
-    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-        'simulation.name': simulation_name,
-        'simulation.isExample': True,
-    })
-    if len(rows) == 0:
-        for s in simulation_db.examples(simulation_type):
-            if s['models']['simulation']['name'] == simulation_name:
-                simulation_db.save_new_example(s)
-                rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                    'simulation.name': simulation_name,
-                })
-                break
-        else:
-            util.raise_not_found('{}: simulation not found by name: {}', simulation_type, simulation_name)
-    return javascript_redirect(
-        uri_router.format_uri(
-            simulation_type,
-            application_mode,
-            rows[0]['simulationId'],
-            simulation_db.get_schema(simulation_type)
-        )
+    rows = simulation_db.iterate_simulation_datafiles(
+        sim_type,
+        simulation_db.process_simulation_list,
+        {
+            'simulation.name': simulation_name,
+            'simulation.isExample': True,
+        },
     )
+    if len(rows) == 0:
+        for s in simulation_db.examples(sim_type):
+            if s['models']['simulation']['name'] != simulation_name:
+                continue
+            simulation_db.save_new_example(s)
+            rows = simulation_db.iterate_simulation_datafiles(
+                sim_type,
+                simulation_db.process_simulation_list,
+                {
+                    'simulation.name': simulation_name,
+                },
+            )
+            break
+        else:
+            util.raise_not_found(
+                'simulation not found by name={} type={}',
+                simulation_name,
+                sim_type,
+            )
+    # format the uri for the local route to this simulation for application_mode
+    s = simulation_db.get_schema(sim_type)
+    m = s.appModes[application_mode]
+    r = m.localRoute
+    assert r in s.localRoutes
+    u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
+    if m.includeMode:
+        u += '?application_mode={}'.format(application_mode)
+    return http_reply.gen_redirect_for_anchor(u)
 
 
 @api_perm.require_user
@@ -292,23 +300,19 @@ def api_getApplicationData(filename=''):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_require_user
 def api_importArchive():
     """
-    Args:
-        simulation_type (str): which simulation type
     Params:
         data: what to import
     """
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return javascript_redirect(
-        '/{}#/{}/{}'.format(
-            data.simulationType,
-            simulation_db.get_schema(data.simulationType).appModes.default.localRoute,
-            data.models.simulation.simulationId,
-        ),
+    return http_reply.gen_redirect_for_local_route(
+        data.simulationType,
+        route=None,
+        params={'simulationId': data.models.simulation.simulationId},
     )
 
 
@@ -359,7 +363,12 @@ def api_importFile(simulation_type=None):
 
 
 @api_perm.allow_visitor
-def api_homePage():
+def api_homePage(path_info=None):
+    return api_staticFile('en/' + (path_info or 'landing.html'))
+
+
+@api_perm.allow_visitor
+def api_homePageOld():
     return _render_root_page('landing-page', pkcollections.Dict())
 
 
@@ -398,11 +407,21 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
 
 @api_perm.allow_visitor
 def api_robotsTxt():
-    """Tell robots to go away"""
-    return flask.Response(
-        'User-agent: *\nDisallow: /\n',
-        mimetype='text/plain',
-    )
+    """Disallow the app (dev, prod) or / (alpha, beta)"""
+    global _ROBOTS_TXT
+    if not _ROBOTS_TXT:
+        # We include dev so we can test
+        if pkconfig.channel_in('prod', 'dev'):
+            u = [
+                uri_router.uri_for_api('root', params={'simulation_type': x})
+                for x in sorted(feature_config.cfg.sim_types)
+            ]
+        else:
+            u = ['/']
+        _ROBOTS_TXT = ''.join(
+            ['User-agent: *\n'] + ['Disallow: /{}\n'.format(x) for x in u],
+        )
+    return flask.Response(_ROBOTS_TXT, mimetype='text/plain')
 
 
 @api_perm.allow_visitor
@@ -411,9 +430,9 @@ def api_root(simulation_type):
         sirepo.template.assert_sim_type(simulation_type)
     except AssertionError:
         if simulation_type == 'warp':
-            return flask.redirect('/warppba', code=301)
+            return http_reply.gen_redirect_for_root('warppba', code=301)
         if simulation_type == 'fete':
-            return flask.redirect('/warpvnd', code=301)
+            return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()
@@ -502,19 +521,6 @@ def api_runStatus():
     return http_reply.gen_json(status)
 
 
-@api_perm.allow_visitor
-def api_userState():
-    return _no_cache(
-        flask.Response(
-            flask.render_template(
-                'js/user-state.js',
-                user_state=api_auth.get_auth_user_state(),
-            ),
-            mimetype='application/javascript',
-        )
-    )
-
-
 @api_perm.require_user
 def api_saveSimulationData():
     data = _parse_data_input(validate=True)
@@ -535,6 +541,11 @@ def api_saveSimulationData():
 
 @api_perm.require_user
 def api_simulationData(simulation_type, simulation_id, pretty, section=None):
+    """First entry point for a simulation
+
+    Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
+    We have to allow a non-user to get data.
+    """
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
@@ -549,14 +560,14 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         if pretty:
             _as_attachment(
                 resp,
-                app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-                '{}.json'.format(data['models']['simulation']['name']),
+                http_reply.MIME_TYPE.json,
+                '{}.json'.format(data.models.simulation.name),
             )
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
-    return _no_cache(resp)
+    return http_reply.headers_for_no_cache(resp)
 
 
 @api_perm.require_user
@@ -587,7 +598,7 @@ def api_simulationFrame(frame_id):
         resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
         resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
     else:
-        _no_cache(resp)
+        http_reply.headers_for_no_cache(resp)
     return resp
 
 
@@ -625,9 +636,10 @@ def api_simulationSchema():
 def api_srwLight():
     return _render_root_page('light', pkcollections.Dict())
 
+
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(app, SRUNIT_TEST_IN_REQUEST)
+    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_cookie:
         from sirepo import cookie
         cookie.set_sentinel()
@@ -637,7 +649,16 @@ def api_srUnit():
 
 @api_perm.allow_visitor
 def api_staticFile(path_info=None):
-    # send_from_directory uses safe_join and doesn't allow indexing.
+    """flask.send_from_directory for static folder.
+
+    Uses safe_join which doesn't allow indexing, paths with '..',
+    or absolute paths.
+
+    Args:
+        path_info (str): relative path to join
+    Returns:
+        flask.Response: flask.send_from_directory response
+    """
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
         path_info,
@@ -697,28 +718,32 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
 
 def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
-    from sirepo import uri_router
+    global _app
 
-    app.sirepo_db_dir = cfg.db_dir
-    simulation_db.init_by_server(app)
-    uri_router.init(app, uwsgi)
-    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(err), _handle_error)
-    runner.init(app, uwsgi, use_reloader)
-    return app
-
-
-def init_apis(app):
-    uri_router.register_api_module()
-
-
-def javascript_redirect(redirect_uri):
-    """Redirect using javascript for safari browser which doesn't support hash redirects.
-    """
-    return flask.render_template(
-        'html/javascript-redirect.html',
-        redirect_uri=redirect_uri
+    if _app:
+        return
+    #: Flask app instance, must be bound globally
+    _app = flask.Flask(
+        __name__,
+        static_folder=None,
+        template_folder=str(simulation_db.STATIC_FOLDER),
     )
+    _app.config.update(
+        PROPAGATE_EXCEPTIONS=True,
+    )
+    _app.sirepo_db_dir = cfg.db_dir
+    _app.sirepo_uwsgi = uwsgi
+    http_reply.init_by_server(_app)
+    simulation_db.init_by_server(_app)
+    uri_router.init(_app)
+    for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        _app.register_error_handler(int(e), _handle_error)
+    runner.init(_app, use_reloader)
+    return _app
+
+
+def init_apis(*args, **kwargs):
+    pass
 
 
 def _as_attachment(resp, content_type, filename):
@@ -778,25 +803,18 @@ def _lib_filepath(simulation_type, filename, file_type):
     return lib.join(_lib_filename(simulation_type, filename, file_type))
 
 
-def _no_cache(resp):
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    return resp
-
-
 def _parse_data_input(validate=False):
     data = http_request.parse_json(assert_sim_type=False)
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _render_root_page(page, values):
-    values.source_cache_key = _source_cache_key()
-    values.app_version = simulation_db.app_version()
-    values.static_files = simulation_db.static_libs()
-    return flask.render_template(
-        'html/{}.html'.format(page),
-        **values
-    )
+    values.update(pkcollections.Dict(
+        app_version=simulation_db.app_version(),
+        source_cache_key=_source_cache_key(),
+        static_files=simulation_db.static_libs(),
+    ))
+    return http_reply.render_static(page, 'html', values, cache_ok=True)
 
 
 def _save_new_and_reply(*args):

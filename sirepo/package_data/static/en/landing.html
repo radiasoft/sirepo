@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="shortcut icon" href="/static/img/favicon.ico">
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="apple-touch-icon" href="/static/img/favicon.png">
+  <title>RadiaSoft</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Montserrat|Titillium+Web:300i,400,400i,700,700i" rel="stylesheet">
+
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/en/css/landing.css" rel="stylesheet">
+
+  <script
+  src="https://code.jquery.com/jquery-2.2.4.min.js"
+  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+  crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.0/showdown.min.js"></script>
+  <script src="/en/js/landing.js"></script>
+</head>
+<body class="landing">
+  <div class="header-strip"></div>
+  <div class="max-width-container">
+    <header>
+      <nav class="navbar navbar-static-top main-nav">
+        <a class="home-link" href="/">
+          <img src="/en/img/sirepo-by-radiasoft-logo.png" class="logo" alt="Sirepo" />
+        </a>
+        <ul class="nav-items text-bold">
+          <li class="supported-codes">
+            <button class="dropdown-toggle" type="button" id="sr-landing-supported-codes" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              <span>Supported Codes</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sr-landing-supported-codes">
+              <li><a href="/en/particle-accelerators.html">elegant</a></li>
+              <li><a href="/warpvnd">Warp VND</a></li>
+              <li><a href="/en/xray-beamlines.html">SRW</a></li>
+              <li><a href="/synergia">Synergia</a></li>
+              <li><a href="/warppba">Warp PBA</a></li>
+              <li><a href="/zgoubi">Zgoubi</a></li>
+            </ul>
+          </li>
+          <li><a href="mailto:support@sirepo.com?subject=Web+Contact">Contact Us</a></li>
+          <li><a href="http://radiasoft.net/" target="_blank" rel="noopener">RadiaSoft Home</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <div class="header-media-wrapper">
+      <video autoplay muted loop>
+        <source src="/en/video/landing-header-video.m4v" type="video/mp4">
+      </video>
+    </div>
+
+    <main>
+      <section class="content-block intro">
+        <div class="row">
+          <div class="col-xs-11 col-lg-10 center-block intro-content">
+            <h2>Welcome to your personal <span style="white-space: nowrap">cloud-based</span> workspace.</h2>
+            <p>
+              Looking for an easy-to-use scientific interactive development environment? Then you’ve hit the jackpot. Tap into the powerful simulation codes that run on our intuitive, browser-based interfaces so you can model, share, and archive your simulations.
+            </p>
+            <p class="text-green text-italic">
+              With Sirepo, we’re <strong>Bringing Scientific Computing to the Cloud.&trade;</strong>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div class="header-decoration">
+          <div class="curve-container"><img src="/en/img/curve-header-left-mask.svg" alt=""></div>
+          <div class="fill-white"></div>
+        </div>
+
+      <section class="content-block simulations">
+        <div class="row">
+          <div class="col-xs-11 col-lg-10 center-block">
+            <h3>
+              Powerful, sharable simulations at your fingertips
+            </h3>
+            <hr class="gradient-rule" />
+
+            <div class="row simulation-items">
+              <article class="col-sm-6 simulation-item">
+                <img src="/en/img/landing/particle-accelerators.jpg" alt="Particle Accelerators" />
+                <h4>Particle Accelerators</h4>
+                <p>
+                  Simulate charged particle accelerators with a range of features, including support for nonlinear optimization and design.
+                </p>
+
+                <div class="simulation-links">
+                  <a href="/en/particle-accelerators.html" class="btn-link"><span>Learn More</span></a>
+                  <a href="/elegant" class="btn-link"><span>Simulate Now</span></a>
+                </div>
+              </article>
+              <article class="col-sm-6 simulation-item">
+                <img src="/en/img/landing/xray-beamlines.jpg" alt="X-ray Beamlines" />
+                <h4>X-ray Beamlines</h4>
+                <p>
+                  Compute synchrotron radiation from relativistic electrons in arbitrary magnetic fields and the propagation of radiation wavefronts through optical beamlines.
+                </p>
+
+                <div class="simulation-links">
+                  <a href="/en/xray-beamlines.html" class="btn-link"><span>Learn More</span></a>
+                  <a href="/srw" class="btn-link"><span>Simulate Now</span></a>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-block explore">
+        <div class="row">
+          <div class="col-xs-11 col-lg-10 center-block">
+            <h3>More applications mean more possibilities</h3>
+            <h5>Explore our beta simulations</h5>
+            <hr class="gradient-rule" />
+
+            <div class="row explore-items">
+
+              <article class="col-sm-5">
+                <h4>Include Particle Spin</h4>
+                <p>
+                  Simulate electron and ion accelerators, including spin dynamics, in-flight decay, and many other physical effects.
+                </p>
+                <a href="/zgoubi">Launch</a>
+              </article>
+
+              <article class="col-sm-5 col-sm-offset-1">
+                <h4>Plasma Accelerators</h4>
+                <p>
+                  Simulate beam-drive and laser-driven plasma-based accelerators in quasi-3D geometry.
+                </p>
+                <a href="/warppba">Launch</a>
+              </article>
+
+              <article class="col-sm-5">
+                <h4>Include Electron Cooling</h4>
+                <p>
+                  Simulate ion rings with an electron cooling system, including intrabeam scattering (IBS) effects.
+                </p>
+                <a href="/jspec">Launch</a>
+              </article>
+
+              <article class="col-sm-5 col-sm-offset-1">
+                <h4>Vacuum Nanoelectronic Devices</h4>
+                <p>
+                  Simulate electron dynamics in thermionic converters and other types of vacuum nanoelectronic devices (VND).
+                </p>
+                <a href="/warpvnd">Launch</a>
+              </article>
+
+              <article class="col-sm-5">
+                <h4>Include Space Charge</h4>
+                <p>
+                  Simulate electron and ion rings, including 3D space charge and impedance effects.
+                </p>
+                <a href="/synergia">Launch</a>
+              </article>
+
+              <article style="display: none" class="col-sm-5 col-sm-offset-1">
+                <h4>X-ray Beamlines – Ray Tracing</h4>
+                <p>
+                  Simulate state-of-the-art incoherent X-Ray beamlines, using ray-tracing techniques for fast solutions.
+                </p>
+                <a href="/synergia">Launch</a>
+              </article>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-block news-announcements hidden">
+        <div class="row">
+          <div class="col-xs-11 col-lg-10 center-block">
+            <h3>News and Announcements</h3>
+            <hr class="gradient-rule" />
+            <div class="news-announcements-items">
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+
+    <footer>
+      <div class="row">
+        <div class="col-lg-12 center-block footer-content">
+          <img class="footer-sirepo" src="/en/img/sirepo-logo-white.png" alt="Sirepo" />
+
+          <nav class="footer-nav">
+            <ul>
+              <li><a href="mailto:support@sirepo.com?subject=Web+Contact">Contact Us</a></li>
+              <li><a href="http://radiasoft.net">RadiaSoft Home</a></li>
+              <li><a href="/en/privacy.html">Privacy Policy</a></li>
+              <li><a href="/en/terms.html">Terms of Service</a></li>
+            </ul>
+          </nav>
+
+          <div class="footer-radiasoft">
+            <img src="/en/img/radiasoft-logo-white.png" alt="RadiaSoft" />
+            <p>
+              &copy;2019 RadiaSoft
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

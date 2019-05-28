@@ -1,9 +1,9 @@
 
-{% if simulationSettings_spntrk == '1' %}
+{% if bunch_spntrk == '1' %}
 line.add(core.FAKE_ELEM("""
 'SPNTRK'
 4.1
-{{ simulationSettings_S_X }} {{ simulationSettings_S_Y }} {{ simulationSettings_S_Z }}
+{{ bunch_S_X }} {{ bunch_S_Y }} {{ bunch_S_Z }}
 """))
 {% endif %}
 

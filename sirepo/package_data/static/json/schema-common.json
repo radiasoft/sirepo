@@ -71,21 +71,29 @@
         "deleteSimulation": "/delete-simulation",
         "downloadDataFile": "/download-data-file/<simulation_type>/<simulation_id>/<model>/<frame>/?<suffix>",
         "downloadFile": "/download-file/<simulation_type>/<simulation_id>/<filename>",
+        "authBlueskyLogin": "/auth-bluesky-login",
+        "authCompleteRegistration": "/auth-complete-registration",
+        "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
+        "authEmailLogin": "/auth-email-login",
+        "authGithubAuthorized": "/auth-github-authorized",
+        "authGithubLogin": "/auth-github-login/<simulation_type>",
+        "authGuestLogin": "/auth-guest-login/<simulation_type>",
+        "authLogout": "/auth-logout/?<simulation_type>",
+        "authState": "/auth-state",
         "errorLogging": "/error-logging",
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "getServerData": "/get-server-data/?<id>",
-        "homePage": "/about",
+        "homePage": "/en/*<path_info>",
+        "homePageOld": "/old",
         "importArchive": "/import-archive",
         "importFile": "/import-file/?<simulation_type>",
         "listFiles": "/file-list/<simulation_type>/<simulation_id>/<file_type>",
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "oauthAuthorized": "/oauth-authorized/<oauth_type>",
-        "oauthLogin": "/login/<simulation_type>/<oauth_type>",
-        "oauthLogout": "/logout/<simulation_type>",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<report>",
         "robotsTxt": "/robots.txt",
         "root": "/<simulation_type>",
@@ -101,8 +109,7 @@
         "srwLight": "/light",
         "staticFile": "/static/*<path_info>",
         "updateFolder": "/update-folder",
-        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
-        "userState": "/user-state"
+        "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>"
     },
     "common": {
         "appModes": {
@@ -141,6 +148,7 @@
                 "js": [
                     "angular-cookies.min.js",
                     "angular-route.min.js",
+                    "angular-sanitize.min.js",
                     "bootstrap-3.3.7.min.js",
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
@@ -166,7 +174,7 @@
                 ]
             },
             "libURLs": [
-                "/user-state"
+                "/auth-state"
             ]
         },
         "enum": {
@@ -193,6 +201,59 @@
             ]
         },
         "localRoutes": {
+            "completeRegistration": {
+                "route": "/complete-registration",
+                "config": {
+                  "controller": "LoginController as login",
+                  "templateUrl": "/static/html/complete-registration.html"
+                }
+            },
+            "forbidden": {
+                "route": "/forbidden",
+                "config": {
+                  "templateUrl": "/static/html/forbidden.html"
+                }
+            },
+            "login": {
+                "route": "/login",
+                "config": {
+                  "controller": "LoginController as login",
+                  "templateUrl": "/static/html/login.html"
+                }
+            },
+            "loginFail": {
+                "route": "/login-fail/:method/:reason",
+                "config": {
+                  "controller": "LoginFailController as loginFail",
+                  "templateUrl": "/static/html/login-fail.html"
+                }
+            },
+            "loginWith": {
+                "route": "/login-with/:method",
+                "config": {
+                  "controller": "LoginWithController as loginWith",
+                  "templateUrl": "/static/html/login-with.html"
+                }
+            },
+            "missingCookies": {
+                "route": "/missing-cookies",
+                "config": {
+                    "templateUrl": "/static/html/missing-cookies.html"
+                }
+            },
+            "notFound": {
+                "route": "/not-found",
+                "config": {
+                  "templateUrl": "/static/html/not-found.html"
+                }
+            },
+            "notFoundCopy": {
+                "route": "/copy-session/:simulationIds/:section",
+                "config": {
+                  "controller": "NotFoundCopyController as notFoundCopy",
+                  "templateUrl": "/static/html/copy-session.html"
+                }
+            },
             "simulations": {
                 "route": "/simulations",
                 "config": {
@@ -210,38 +271,6 @@
             },
             "source": {
                 "route": "/source/:simulationId"
-            },
-            "loggedOut": {
-                "route": "/logged-out",
-                "config": {
-                  "controller": "LoggedOutController as loggedOut",
-                  "templateUrl": "/static/html/logged-out.html"
-                }
-            },
-            "forbidden": {
-                "route": "/forbidden",
-                "config": {
-                  "templateUrl": "/static/html/forbidden.html"
-                }
-            },
-            "notFound": {
-                "route": "/not-found",
-                "config": {
-                  "templateUrl": "/static/html/not-found.html"
-                }
-            },
-            "notFoundCopy": {
-                "route": "/copy-session/:simulationIds/:section",
-                "config": {
-                  "controller": "NotFoundCopyController as notFoundCopy",
-                  "templateUrl": "/static/html/copy-session.html"
-                }
-            },
-            "notAuthorized": {
-                "route": "/missing-cookies",
-                "config": {
-                  "templateUrl": "/static/html/not-authorized.html"
-                }
             }
         },
         "model": {
@@ -317,11 +346,6 @@
         }
     },
     "customErrors": {
-        "401": {
-            "url": "not-authorized.html",
-            "msg": "Missing Cookies",
-            "route": "notAuthorized"
-        },
         "403": {
             "url": "forbidden.html",
             "msg": "Forbidden",

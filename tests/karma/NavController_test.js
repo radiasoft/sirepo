@@ -5,6 +5,7 @@ describe('Controller: NavController', function() {
     var isLoaded = false;
     beforeEach(module(function ($provide) {
         $provide.value('appState', {
+            clone: function() { return {} },
             isLoaded: function() { return isLoaded },
             models: {
                 simulation: {

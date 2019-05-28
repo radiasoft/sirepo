@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.appFieldEditors = [
+    '<div data-ng-switch-when="MiniFloat" class="col-sm-7">',
+      '<input data-string-to-number="" data-ng-model="model[field]" data-min="info[4]" data-max="info[5]" class="form-control" style="text-align: right" data-lpignore="true" required />',
+    '</div>',
     '<div data-ng-switch-when="AnalysisParameter" class="col-sm-5">',
       '<div data-analysis-parameter="" data-model="model" data-field="field"></div>',
     '</div>',
@@ -30,6 +33,14 @@ SIREPO.appFieldEditors = [
       '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.lattice = {
+    elementColor: {},
+    elementPic: {
+        drift: ['DRIF'],
+        magnet: ['KICKER', 'QUAD'],
+        watch: ['WATCH'],
+    },
+};
 
 SIREPO.app.factory('webconService', function(appState, panelState) {
     var self = {};
@@ -181,6 +192,286 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
         $scope.$on('hiddenReport.changed', buildSubplots);
         buildSubplots();
     });
+});
+
+SIREPO.app.controller('ControlsController', function (appState, panelState, persistentSimulation, requestSender, webconService, $scope) {
+    var self = this;
+    var wantFinalKickerUpdate = false;
+
+    function elementForId(id) {
+        var model = null;
+        appState.models.elements.some(function(m) {
+            if (m._id == id) {
+                model = m;
+                return true;
+            }
+        });
+        if (! model) {
+            throw 'model not found for id: ' + id;
+        }
+        return model;
+    }
+
+    function enableLatticeFields(isEnabled) {
+        // all quad fields enabled at once...
+        panelState.enableField('QUAD', 'k1', isEnabled);
+        Object.keys(appState.models.bunch).forEach(function(f) {
+            panelState.enableField('bunch', f, isEnabled);
+        });
+    }
+
+    function handleStatus(data) {
+        if (! appState.isLoaded()) {
+            return;
+        }
+        if (data.summaryData) {
+            updateFromMonitorValues(data.summaryData.monitorValues);
+            if (data.summaryData.optimizationValues) {
+                stopSteering(data.summaryData.optimizationValues);
+            }
+        }
+        if (data.state == 'completed' || data.state == 'error' || data.state == 'canceled') {
+            appState.models.epicsServerAnimation.connectToServer = '0';
+            appState.saveChanges('epicsServerAnimation');
+        }
+        else if (data.state != 'running' && data.state != 'pending') {
+            //console.log('handle state:', data.state);
+        }
+    }
+
+    function kickerModelNames() {
+        var res = [];
+        appState.models.elements.forEach(function(el) {
+            if (el.type == 'KICKER') {
+                res.push(el.type + el._id);
+            }
+        });
+        return res;
+    }
+
+    function modelForElement(element) {
+        var modelKey = element.type + element._id;
+        if (! appState.models[modelKey]) {
+            appState.models[modelKey] = element;
+            appState.saveQuietly(modelKey);
+        }
+        return {
+            id: element._id,
+            modelKey: modelKey,
+            title: element.name.replace(/\_/g, ' '),
+            viewName: element.type,
+            element: element,
+            getData: function() {
+                return appState.models[modelKey];
+            },
+        };
+    }
+
+    function processEPICSServer() {
+        // updates the UI state of the epicsServer view
+        if (self.isConnectedToEPICS()) {
+            panelState.showField('epicsServerAnimation', 'serverType', false);
+            panelState.showField('epicsServerAnimation', 'serverAddress', false);
+            enableLatticeFields(false);
+        }
+        else {
+            panelState.showField('epicsServerAnimation', 'serverType', true);
+            panelState.showField(
+                'epicsServerAnimation', 'serverAddress',
+                appState.models.epicsServerAnimation.serverType == 'remote');
+            enableLatticeFields(true);
+        }
+    }
+
+    function processKickers() {
+        panelState.enableField('KICKER', 'hkick', ! isSteeringBeam());
+        panelState.enableField('KICKER', 'vkick', ! isSteeringBeam());
+        panelState.showField('beamSteering', 'steeringMethod', ! isSteeringBeam());
+    }
+
+    function updateBeamSteering() {
+        requestSender.getApplicationData(
+            {
+                method: 'enable_steering',
+                simulationId: appState.models.simulation.simulationId,
+                beamSteering: appState.applicationState().beamSteering,
+            },
+            function(data) {});
+        if (! isSteeringBeam()) {
+            stopSteering(null);
+        }
+        processKickers();
+    }
+
+    function isSteeringBeam() {
+        return self.isConnectedToEPICS()
+            && appState.applicationState().beamSteering.useSteering == '1';
+    }
+
+    function stopSteering(results) {
+        if (appState.applicationState().beamSteering.useSteering == '1') {
+            appState.models.beamSteering.useSteering = '0';
+            appState.saveChanges('beamSteering');
+        }
+        // steering may have been stopped before the UI has updated the kicker settings
+        wantFinalKickerUpdate = true;
+        $scope.$broadcast('wc-optimizationValues', results);
+    }
+
+    function updateFromMonitorValues(monitorValues) {
+        var watchCount = 0;
+        var kickerCount = 0;
+        var isSteering = isSteeringBeam() || wantFinalKickerUpdate;
+        wantFinalKickerUpdate = false;
+        appState.models.elements.forEach(function(el) {
+            if (el.type == 'WATCH') {
+                watchCount += 1;
+                ['hpos', 'vpos'].forEach(function(pos) {
+                    var field = 'bpm' + watchCount + '_' + pos;
+                    el[pos] = monitorValues[field];
+                });
+            }
+            else if (isSteering && el.type == 'KICKER') {
+                kickerCount += 1;
+                ['hkick', 'vkick'].forEach(function(pos) {
+                    var field = 'corrector' + kickerCount
+                        + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
+                    el[pos] = monitorValues[field];
+                    appState.models[el.type + el._id] = el;
+                });
+                appState.saveQuietly(el.type + el._id);
+            }
+        });
+    }
+
+    function updateEPICSServer() {
+        // update the simulation status for epics
+        if (self.isConnectedToEPICS()) {
+            if (! self.simState.isProcessing()) {
+                //console.log('starting epics');
+                if (self.isRemoteServer()) {
+                    updateKickersFromEPICSAndRunSimulation();
+                }
+                else {
+                    self.simState.runSimulation();
+                }
+            }
+        }
+        else {
+            if (self.simState.isProcessing()) {
+                //console.log('stopping epics');
+                self.simState.cancelSimulation();
+            }
+            if (appState.applicationState().beamSteering.useSteering == '1') {
+                stopSteering(null);
+                processKickers();
+            }
+        }
+    }
+
+    function updateKickersFromEPICSAndRunSimulation() {
+        requestSender.getApplicationData(
+            {
+                method: 'read_kickers',
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+            },
+            function(data) {
+                if (data.kickers) {
+                    var modelNames = kickerModelNames();
+                    modelNames.forEach(function(name) {
+                        appState.models[name].hkick = data.kickers.shift();
+                        appState.models[name].vkick = data.kickers.shift();
+                    });
+                    appState.saveChanges(modelNames, self.simState.runSimulation);
+                }
+            });
+    }
+
+    function updateKicker(name) {
+        if (isSteeringBeam()) {
+            // don't respond to kicker changes if server is controlling the steering
+            return;
+        }
+        var epicsField = kickerModelNames().indexOf(name) + 1;
+        if (! epicsField) {
+            throw 'invalid kicker name: ' + name;
+        }
+        requestSender.getApplicationData(
+            {
+                method: 'update_kicker',
+                epics_field: epicsField,
+                kicker: appState.models[name],
+                epicsServerAnimation: appState.applicationState().epicsServerAnimation,
+                simulationId: appState.models.simulation.simulationId,
+            },
+            function(data) {
+                //TODO(pjm): look for error from epics
+            });
+    }
+
+    self.isConnectedToEPICS = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().epicsServerAnimation.connectToServer == '1';
+        }
+        return false;
+    };
+
+    self.isRemoteServer = function() {
+        if (appState.isLoaded()) {
+            return appState.applicationState().epicsServerAnimation.serverType == 'remote';
+        }
+        return false;
+    };
+
+    self.showEditor = function(item) {
+        if (self.isRemoteServer()) {
+            return item.element.type != 'QUAD';
+        }
+        return true;
+    };
+
+    appState.whenModelsLoaded($scope, function() {
+        self.watches = [];
+        self.editorColumns = [];
+        var quadCount = 0;
+        appState.models.beamlines[0].items.forEach(function(id) {
+            var element = elementForId(id);
+            if (element.type == 'WATCH') {
+                self.watches.push(modelForElement(element));
+            }
+            else if (element.type == 'KICKER') {
+                self.editorColumns.push([modelForElement(element)]);
+            }
+            else if (element.type == 'QUAD') {
+                self.editorColumns[quadCount].push(modelForElement(element));
+                quadCount += 1;
+            }
+        });
+        appState.watchModelFields($scope, ['epicsServerAnimation.serverType'], processEPICSServer);
+        // the elements UI get setup in the next digest cycle, so wait before disabling
+        panelState.waitForUI(function() {
+            processEPICSServer();
+            processKickers();
+        });
+        $scope.$on('modelChanged', function(e, name) {
+            if (name.indexOf('KICKER') >= 0) {
+                updateKicker(name);
+            }
+            else if (name == 'epicsServerAnimation') {
+                processEPICSServer();
+                updateEPICSServer();
+            }
+            else if (name == 'beamSteering') {
+                updateBeamSteering();
+            }
+        });
+    });
+
+    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
+        //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
+    });
+
+    return self;
 });
 
 SIREPO.app.directive('analysisActions', function(appState, panelState, webconService) {
@@ -392,55 +683,95 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, webconSer
     };
 });
 
-SIREPO.app.directive('trimButton', function(appState, webconService) {
+SIREPO.app.directive('analysisParameter', function(appState, webconService) {
     return {
         restrict: 'A',
         scope: {
             model: '=',
             field: '=',
-            modelName: '=',
+            isOptional: '@',
         },
         template: [
-            '<div class="text-center">',
-              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
-            '</div>',
+            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
         ].join(''),
         controller: function($scope) {
-            $scope.trimPlot = function() {
-                var action = {};
-                ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
-                    action[f] = $scope.model[f];
-                });
-                webconService.addSubreport($scope.model, action);
-                appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
+            $scope.parameterValues = function() {
+                return webconService.buildParameterList($scope.isOptional);
             };
         },
     };
 });
 
-SIREPO.app.directive('plotActionButtons', function(appState) {
+SIREPO.app.directive('appFooter', function() {
+    return {
+	restrict: 'A',
+	scope: {
+            nav: '=appFooter',
+	},
+        template: [
+            '<div data-common-footer="nav"></div>',
+	].join(''),
+    };
+});
+
+SIREPO.app.directive('appHeader', function(appState, panelState) {
+    return {
+	restrict: 'A',
+	scope: {
+            nav: '=appHeader',
+	},
+        template: [
+            '<div data-app-header-brand="nav"></div>',
+            '<div data-app-header-left="nav"></div>',
+            '<div data-app-header-right="nav">',
+              '<app-header-right-sim-loaded>',
+		'<div data-sim-sections="">',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
+                  //TODO(pjm): disable on alpha for now
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
+		'</div>',
+              '</app-header-right-sim-loaded>',
+              '<app-settings>',
+		//  '<div>App-specific setting item</div>',
+              '</app-settings>',
+              '<app-header-right-sim-list>',
+              '</app-header-right-sim-list>',
+            '</div>',
+	].join(''),
+    };
+});
+
+SIREPO.app.directive('beamSteeringResults', function(appState) {
     return {
         restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
+        scope: {},
         template: [
-            '<div class="text-center">',
-            '<div class="btn-group">',
-              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
-            '</div>',
-            '</div>',
+            '<div data-ng-if="showStatus()" class="well" style="margin-top: 10px; margin-bottom: 0;">{{ status }}<br />{{ message }}</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
-
-            $scope.isSelectedValue = function(value) {
-                if ($scope.model && $scope.field) {
-                    return $scope.model[$scope.field] == value;
+            $scope.showStatus = function() {
+                if (! appState.isLoaded()) {
+                    return false;
                 }
-                return false;
+                var steering = appState.applicationState().beamSteering;
+                if (steering.useSteering == '1') {
+                    $scope.status = 'Running ' + appState.enumDescription('SteeringMethod', steering.steeringMethod);
+                    $scope.message = '';
+                    return true;
+                }
+                return $scope.status;
             };
+
+            $scope.$on('wc-optimizationValues', function(e, values) {
+                if (! values) {
+                    $scope.status = '';
+                    $scope.message = '';
+                }
+                else {
+                    $scope.status = values.success ? 'Steering Successful' : 'Steering failed to find optimal values.';
+                    $scope.message = values.message;
+                }
+            });
         },
     };
 });
@@ -493,62 +824,6 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
                 $scope.model[$scope.field] = v;
             };
         },
-    };
-});
-
-SIREPO.app.directive('analysisParameter', function(appState, webconService) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-            isOptional: '@',
-        },
-        template: [
-            '<select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in parameterValues()"></select>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.parameterValues = function() {
-                return webconService.buildParameterList($scope.isOptional);
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('appFooter', function() {
-    return {
-	restrict: 'A',
-	scope: {
-            nav: '=appFooter',
-	},
-        template: [
-            '<div data-common-footer="nav"></div>',
-	].join(''),
-    };
-});
-
-SIREPO.app.directive('appHeader', function(appState, panelState) {
-    return {
-	restrict: 'A',
-	scope: {
-            nav: '=appHeader',
-	},
-        template: [
-            '<div data-app-header-brand="nav"></div>',
-            '<div data-app-header-left="nav"></div>',
-            '<div data-app-header-right="nav">',
-              '<app-header-right-sim-loaded>',
-		'<div data-sim-sections="">',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-		'</div>',
-              '</app-header-right-sim-loaded>',
-              '<app-settings>',
-		//  '<div>App-specific setting item</div>',
-              '</app-settings>',
-              '<app-header-right-sim-list>',
-              '</app-header-right-sim-list>',
-            '</div>',
-	].join(''),
     };
 });
 
@@ -612,6 +887,89 @@ SIREPO.app.directive('equationVariables', function() {
     };
 });
 
+SIREPO.app.directive('fftReport', function(appState) {
+    return {
+        scope: {
+            modelData: '=',
+        },
+        template: [
+            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            $scope.modelKey = 'fftReport';
+            if ($scope.modelData) {
+                $scope.modelKey += appState.models[$scope.modelData.modelKey].id;
+            }
+
+            $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
+                var str = '';
+                data.freqs.forEach(function (wi, i) {
+                    if(str == '') {
+                        str = 'Found frequncies: ';
+                    }
+                    var w = wi[1];
+                    str = str + w + 's-1';
+                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
+                });
+                $($element).find('.focus-hint').text(str);
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('plotActionButtons', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="text-center">',
+            '<div class="btn-group">',
+              '<button class="btn sr-enum-button" data-ng-repeat="item in enumValues" data-ng-click="model[field] = item[0]" data-ng-class="{\'active btn-primary\': isSelectedValue(item[0]), \'btn-default\': ! isSelectedValue(item[0])}">{{ item[1] }}</button>',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.enumValues = SIREPO.APP_SCHEMA.enum.PlotAction;
+
+            $scope.isSelectedValue = function(value) {
+                if ($scope.model && $scope.field) {
+                    return $scope.model[$scope.field] == value;
+                }
+                return false;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('trimButton', function(appState, webconService) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+            modelName: '=',
+        },
+        template: [
+            '<div class="text-center">',
+              '<button class="btn btn-default" data-ng-click="trimPlot()">Open in New Plot</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.trimPlot = function() {
+                var action = {};
+                ['action', 'trimField', 'trimMin', 'trimMax'].forEach(function(f) {
+                    action[f] = $scope.model[f];
+                });
+                webconService.addSubreport($scope.model, action);
+                appState.cancelChanges($scope.modelName + ($scope.model.id || ''));
+            };
+        },
+    };
+});
+
 SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     return {
         restrict: 'A',
@@ -670,32 +1028,48 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('fftReport', function(appState) {
+SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
     return {
-        scope: {
-            modelData: '=',
-        },
+        restrict: 'A',
+        scope: {},
         template: [
-            '<div data-report-content="parameter" data-model-key="{{ modelKey }}"></div>',
+            '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
+              '<div class="webcon-lattice">',
+                '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
+                '<div data-ng-if="isLoaded()" style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
+              '</div>',
+            '</div>',
         ].join(''),
-        controller: function($scope, $element) {
-            $scope.modelKey = 'fftReport';
-            if ($scope.modelData) {
-                $scope.modelKey += appState.models[$scope.modelData.modelKey].id;
-            }
+        controller: function($scope) {
+            var axis, latticeScope;
 
-            $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
-                var str = '';
-                data.freqs.forEach(function (wi, i) {
-                    if(str == '') {
-                        str = 'Found frequncies: ';
-                    }
-                    var w = wi[1];
-                    str = str + w + 's-1';
-                    str = str + (i < data.freqs.length - 1 ? ', ' : '');
-                });
-                $($element).find('.focus-hint').text(str);
+            $scope.isLoaded = appState.isLoaded;
+
+            $scope.windowResize = utilities.debounce(function() {
+                if (axis) {
+                    axis.scale.range([0, $('.webcon-lattice').parent().width()]);
+                    latticeScope.updateFixedAxis(axis, 0);
+                    $scope.$applyAsync();
+                }
+            }, 250);
+
+            $scope.$on('$destroy', function() {
+                $($window).off('resize', $scope.windowResize);
             });
+
+            $scope.$on('sr-latticeLinked', function(event) {
+                latticeScope = event.targetScope;
+                event.stopPropagation();
+                axis = {
+                    scale: d3.scale.linear(),
+                    //TODO(pjm): 3.4 is the hard-code example beamline length
+                    domain: [0, 3.4],
+                };
+                axis.scale.domain(axis.domain);
+                $scope.windowResize();
+            });
+
+            $($window).resize($scope.windowResize);
         },
     };
 });

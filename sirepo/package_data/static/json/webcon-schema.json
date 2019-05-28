@@ -6,7 +6,10 @@
     },
     "dynamicFiles": {
         "sirepoLibs": {
-            "js": ["webcon.js"]
+            "js": [
+                "webcon.js",
+                "sirepo-lattice.js"
+            ]
         }
     },
     "localRoutes": {
@@ -15,6 +18,13 @@
             "config": {
                 "controller": "AnalysisController as analysis",
                 "templateUrl": "/static/html/webcon-analysis.html"
+            }
+        },
+        "controls": {
+            "route": "/controls/:simulationId",
+            "config": {
+                "controller": "ControlsController as controls",
+                "templateUrl": "/static/html/webcon-controls.html"
             }
         }
     },
@@ -30,6 +40,14 @@
             ["fft", "FFT"],
             ["fit", "Fit"],
             ["trim", "Trim"]
+        ],
+        "ServerType": [
+            ["local", "Local"],
+            ["remote", "Remote"]
+        ],
+        "SteeringMethod": [
+            ["nmead", "Nelder-Mead"],
+            ["polyfit", "Linear Response Matrix"]
         ]
     },
     "model": {
@@ -60,9 +78,38 @@
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
+        "beamPositionAnimation": {
+        },
+        "beamSteering": {
+            "useSteering": ["Use Steering", "Boolean", "0"],
+            "steeringMethod": ["Steering Method", "SteeringMethod", "polyfit"]
+        },
+        "bunch": {
+            "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],
+            "centroid_x": ["Centroid X [m]", "Float", 0.001],
+            "centroid_xp": ["X' [rad]", "Float", 0],
+            "centroid_y": ["Y [m]", "Float", 0.001],
+            "centroid_yp": ["Y' [rad]", "Float", 0]
+        },
+        "correctorSettingAnimation": {
+        },
+        "epicsServerAnimation": {
+            "serverType": ["EPICS Server Type", "ServerType", "local"],
+            "serverAddress": ["Network Address", "OptionalString", "", "EPICS server network address, $\\text{<host>:<port>}$"],
+            "connectToServer": ["Connect to EPICS", "Boolean", "0"]
+        },
         "fftReport": {
         },
         "hiddenReport": {
+        },
+        "KICKER": {
+            "hkick": ["H. Kick [rad]", "MiniFloat", 0],
+            "vkick": ["V. Kick [rad]", "MiniFloat", 0]
+        },
+        "QUAD": {
+            "k1": ["Strength [1/m²]", "MiniFloat", 0]
+        },
+        "WATCH": {
         }
     },
     "view": {
@@ -132,6 +179,59 @@
                 "trimMax",
                 "trimButton"
             ],
+            "advanced": []
+        },
+        "beamPositionAnimation": {
+            "title": "Beam Position",
+            "advanced": []
+        },
+        "beamSteering": {
+            "title": "Beam Steering",
+            "basic": [
+                "steeringMethod",
+                "useSteering"
+            ],
+            "advanced": []
+        },
+        "bunch": {
+            "title": "Beam Settings",
+            "basic": [
+                "p_central_mev",
+                "centroid_x",
+                "centroid_xp",
+                "centroid_y",
+                "centroid_yp"
+            ],
+            "advanced": []
+        },
+        "correctorSettingAnimation": {
+            "title": "Corrector Settings",
+            "advanced": []
+        },
+        "epicsServerAnimation": {
+            "title": "EPICS Server",
+            "basic": [
+                "serverType",
+                "serverAddress",
+                "connectToServer"
+            ],
+            "advanced": []
+        },
+        "KICKER": {
+            "basic": [
+                "hkick",
+                "vkick"
+            ],
+            "advanced": []
+        },
+        "QUAD": {
+            "basic": [
+                "k1"
+            ],
+            "advanced": []
+        },
+        "WATCH": {
+            "basic": [],
             "advanced": []
         }
     }

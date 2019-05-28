@@ -6,13 +6,17 @@ u"""request input parsing
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import simulation_db
 from sirepo import util
 import flask
 import sirepo.template
 
 
 def parse_json(assert_sim_type=True):
+    from sirepo import simulation_db
+
+    #POSIT: uri_router.call_api
+    if hasattr(flask.g, 'sirepo_call_api_data') and flask.g.sirepo_call_api_data:
+        return flask.g.sirepo_call_api_data
     req = flask.request
     if req.mimetype != 'application/json':
         util.raise_bad_request(

@@ -81,6 +81,11 @@
             ["2", "Element Misaligned"],
             ["3", "Adjust Entrance and Exit Frame"]
         ],
+        "ElementAlignmentMultipol": [
+            ["1", "Element Aligned"],
+            ["2", "Element Misaligned"],
+            ["3", "Adjust Entrance and Exit Frame"]
+        ],
         "EnergyPlotVariable": [
             ["time", "t"],
             ["ENEKI", "Kenetic Energy"],
@@ -99,6 +104,18 @@
             ["10", "10"],
             ["15", "15"],
             ["20", "20"]
+        ],
+        "IntegrationBoundary": [
+            ["0", "None"],
+            ["1", "Exit boundary"],
+            ["-1", "Entry boundary"],
+            ["2", "Entry and exit boundary"],
+            ["3", "Entry and 2 exit boundaries"]
+        ],
+        "MeshPolynomialInterpolation": [
+            ["2", "Second order with 9 point grid"],
+            ["25", "Second order with 25 point grid"],
+            ["4", "Fourth order with 25 point grid"]
         ],
         "OpticsParameter": [
             ["x", "x [m]"],
@@ -259,6 +276,25 @@
             ["phiy2pi", "Vertical phase advance"],
             ["btl", "Longitudinal beta [m]"],
             ["alfl", "Longitudinal alpha"]
+        ],
+        "TOSCAMagnetType": [
+            ["2d-sf", "2-D"],
+            ["2d-sf-ags", "2-D AGS Main Magnet"],
+            ["2d-sf-ags-p", "2-D AGS Main Magnet, Perturbed"],
+            ["2d-mf-f", "2-D Multi-file with field"],
+            ["3d-mf-2v", "3-D Multi-file, Half Volume"],
+            ["3d-mf-1v", "3-D Multi-file, Full Volume"],
+            ["3d-sf-2v", "3-D Single-file, Half Volume"],
+            ["3d-sf-1v", "3-D Single-file, Full Volume"],
+            ["3d-sf-8v", "3-D Single-file, One Eighth Volume"],
+            ["3d-mf-f", "3-D Multi-file with field"],
+            ["3d-sf-4v", "3-D Single-file, One Fourth Volume"],
+            ["2d-mf-f-2v", "2-D Multi-file with field, Half Volume"],
+            ["3d-mf-f-2v", "3-D Multi-file with field, Half Volume"]
+        ],
+        "TOSCAMeshType": [
+            ["cartesian", "Cartesian"],
+            ["cylindrical", "Cylindrical"]
         ]
     },
     "model": {
@@ -311,7 +347,11 @@
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0],
+            "spntrk": ["Include Spin Tracking", "Boolean", "0"],
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
@@ -388,12 +428,8 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "npass": ["Number of Runs", "Integer", 10, "", 1],
-            "ip": ["Diagnostic Interval", "Integer", 1, "", 1],
-            "spntrk": ["Compute Spin Tracking", "Boolean", "0"],
-            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
-            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
-            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
+            "npass": ["Number of Turns", "Integer", 10, "", 1],
+            "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
@@ -605,6 +641,49 @@
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
+        "TOSCA": {
+            "name": ["Name", "ValidatedString"],
+            "BNORM": ["Field Unit Conversion Coefficient", "Float", 1.0, "BNORM"],
+            "XN": ["X Coordinate Unit Conversion Coefficient", "Float", 1.0, "XN, YN, ZN"],
+            "YN": ["Y Coordinate Unit Conversion Coefficient", "Float", 1.0, "YN"],
+            "ZN": ["Z Coordinate Unit Conversion Coefficient", "Float", 1.0, "ZN"],
+            "flipX": ["Flip X Field Map", "Boolean", "0"],
+            "headerLineCount": ["Header Line Count", "Integer", 0],
+            "zeroBXY": ["Zero Bx, By where Z=0", "Boolean", "0"],
+            "normalizeHelix": ["Normalize BNORM to Helix Current", "Boolean", "0"],
+            "IX": ["X Number of Mesh Nodes", "Integer", 1, "IX, IY, IZ", 1],
+            "IY": ["Y Number of Mesh Nodes", "Integer", 1, "IY", 1],
+            "IZ": ["Z Number of Mesh Nodes", "Integer", 1, "IZ", 1],
+            "meshType": ["Mesh Type", "TOSCAMeshType", "cartesian"],
+            "magnetType": ["Field Map Type", "TOSCAMagnetType", "2d-sf"],
+            "fileCount": ["File Count", "Integer", 1, "", 1, 4],
+            "field1": ["Field 1", "Float", 0, "a(1)"],
+            "field2": ["Field 2", "Float", 0, "a(2)"],
+            "field3": ["Field 3", "Float", 0, "a(3)"],
+            "field4": ["Field 4", "Float", 0, "a(4)"],
+            "magnetFile": ["Magnet File", "InputFile", "", "Use a single file or a zip file of multiple files"],
+            "fileNames": ["File Names", "FileNameArray"],
+            "ID": ["Integration Boundary", "IntegrationBoundary", "0", "ID"],
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "Ap": ["A'", "Float", 0],
+            "Bp": ["B'", "Float", 0],
+            "Cp": ["C'", "Float", 0],
+            "App": ["A''", "Float", 0],
+            "Bpp": ["B''", "Float", 0],
+            "Cpp": ["C''", "Float", 0],
+            "IORDRE": ["Polynomial Interpolation", "MeshPolynomialInterpolation", "2", "IORDRE"],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
+            "RE": ["Incoming Frame Radius [m]", "Float", 0, "RE"],
+            "TE": ["Incoming Frame Angle [rad]", "Float", 0, "TE"],
+            "RS": ["Exit Frame Radius [m]", "Float", 0, "RS"],
+            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"]
+        },
         "YMY": {
             "name": ["Name", "ValidatedString"]
         }
@@ -626,7 +705,19 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "method"
+                    "method",
+                    "spntrk",
+                    [
+                        ["X", [
+                            "S_X"
+                        ]],
+                        ["Y", [
+                            "S_Y"
+                        ]],
+                        ["Z", [
+                            "S_Z"
+                        ]]
+                    ]
                 ]],
                 ["Distribution", [
                     "particleCount",
@@ -839,19 +930,7 @@
             "basic": [
                 "simulation.visualizationBeamlineId",
                 "npass",
-                "ip",
-                "spntrk",
-                [
-                    ["X", [
-                        "S_X"
-                    ]],
-                    ["Y", [
-                        "S_Y"
-                    ]],
-                    ["Z", [
-                        "S_Z"
-                    ]]
-                ]
+                "ip"
             ],
             "advanced": []
         },
@@ -1178,6 +1257,77 @@
                             "CS_5"
                         ]]
                     ]
+                ]]
+            ]
+        },
+        "TOSCA": {
+            "title": "TOSCA",
+            "description": "2-D and 3-D Cartesian or cylindrical mesh field map",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    [
+                        ["X", [
+                            "IX"
+                        ]],
+                        ["Y", [
+                            "IY"
+                        ]],
+                        ["Z", [
+                            "IZ"
+                        ]]
+                    ],
+                    "meshType",
+                    "magnetType",
+                    "XPAS",
+                    "KPOS",
+                    "XCE",
+                    "YCE",
+                    "ALE",
+                    "RE",
+                    "TE",
+                    "RS",
+                    "TS"
+                ]],
+                ["Magnet Files", [
+                    "magnetFile",
+                    "fileCount",
+                    "field1",
+                    "field2",
+                    "field3",
+                    "field4",
+                    "fileNames",
+                    "flipX",
+                    "headerLineCount",
+                    "zeroBXY"
+                ]],
+                ["Unit Conversion", [
+                    "BNORM",
+                    [
+                        ["X", [
+                            "XN"
+                        ]],
+                        ["Y", [
+                            "YN"
+                        ]],
+                        ["Z", [
+                            "ZN"
+                        ]]
+                    ],
+                    "normalizeHelix"
+                ]],
+                ["Integration Boundary", [
+                    "ID",
+                    "A",
+                    "B",
+                    "C",
+                    "Ap",
+                    "Bp",
+                    "Cp",
+                    "App",
+                    "Bpp",
+                    "Cpp",
+                    "IORDRE"
                 ]]
             ]
         },
