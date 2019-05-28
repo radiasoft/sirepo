@@ -2736,7 +2736,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
     return {
         restrict: 'A',
         scope: {
-            axisStyle: '<',
             reportId: '<',
             modelName: '@',
         },
@@ -2958,8 +2957,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: 23, bottom: 50, left: 75},
-                    isZoomXY: true,
+                    margin: {top: 50, right: 23, bottom: 50, left: 75}
                 });
                 // override graphLine to work with multiple point sets
                 $scope.plotGraphLine = function(plotIndex) {
@@ -2986,7 +2984,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 //TODO(pjm): move first part into normalizeInput()
                 childPlots = {};
                 includeForDomain.length = 0;
-                $scope.isZoomXY = json.zoom_x_y;
                 $scope.doAdjustDomain = ! json.fixed_y_range;
                 $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
@@ -3280,7 +3277,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         },
     };
 });
-
 
 SIREPO.app.directive('particle', function(plotting, plot2dService) {
     return {

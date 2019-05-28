@@ -282,7 +282,6 @@ def get_centroid_report(run_dir, data):
         'y_label': '',
         'x_label': 'x [m]',
         'fixed_y_range': True,
-        'zoom_x_y': False,
         'aspectRatio': 1.0,
         'summaryData': {
             'times': ct
@@ -747,10 +746,6 @@ def _compute_clusters(report, plot_data, col_info):
     }
 
 
-def _element_by_id(data, e_id):
-    return [el for el in data.models.elements if el['_id'] == e_id][0]
-
-
 def _element_by_name(data, e_name):
     return [el for el in data.models.elements if el['name'] == e_name][0]
 
@@ -1055,28 +1050,6 @@ def _load_file_with_history(report, path, col_info):
     return res
 
 
-def _model_for_element_name(data, e_name):
-    e = _element_by_name(data, e_name)
-    if e is None:
-        return None
-    e_id =e['_id']
-    for m_name in data.models:
-        m = data.models[m_name]
-        id_key = _model_id_key(m)
-        if id_key is None:
-            continue
-        if data.models[m_name][id_key] == e_id:
-            return data.models[m_name]
-    return None
-
-
-def _model_id_key(model):
-    for k in ['id', '_id']:
-        if k in model:
-            return k
-    return None
-
-
 def _monitor_data_for_plots(data, history, start_time, type):
     m_data = {}
     _build_monitor_to_model_fields(data)
@@ -1128,7 +1101,6 @@ def _read_monitor_file(monitor_path, history=False):
     min_time = datetime.max
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
     for line in pkio.read_text(str(monitor_path)).split("\n"):
-        #m = re.match(r'(\S+).*?\s([\d\.\e\-\+]+)\s*$', line)
         m = re.match(r'(\S+)(.*?)\s([\d\.\e\-\+]+)\s*$', line)
         if not m:
             continue

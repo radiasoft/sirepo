@@ -936,7 +936,7 @@ SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache,
     };
 });
 
-SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     return {
         scope: {
             parentController: '<',
