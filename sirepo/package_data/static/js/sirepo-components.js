@@ -148,19 +148,23 @@ SIREPO.app.directive('srAlert', function(errorService) {
         scope: {},
         template: [
             '<div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">',
-              '<button type="button" class="close" data-dismiss="alert" aria-label="Close">',
+              '<button type="button" class="close" data-ng-click="clearAlert()" aria-label="Close">',
                 '<span aria-hidden="true">&times;</span>',
               '</button>',
               '<strong>{{ alertText() }}</strong>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //TODO(robnagler) timeout the alert
             //TODO(robnagler) bind to value in appState or vice versa
             $scope.alertText = function() {
                 return errorService.alertText();
             };
-            return;
+
+            $scope.clearAlert = function() {
+                errorService.alertText('');
+            };
+
+            $scope.$on('$routeChangeSuccess', $scope.clearAlert);
         },
     };
 });
