@@ -144,8 +144,6 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
             panelState.showField(f, 'verticalPointCount', ! isAutomatic);
         });
-        // Always show the distance, so commenting it out:
-        // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
@@ -1093,15 +1091,20 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
+    return {
+        restrict: 'A',
         controller: function($scope) {
-            $scope.appState = appState;
-            // hook for sampling method changes
-            $scope.nav.handleModalShown = srwService.updateSimulationGridFields;
-            $scope.$watch('appState.models.simulation.samplingMethod', srwService.updateSimulationGridFields);
-            $scope.$watch('appState.models.sourceIntensityReport.samplingMethod', srwService.updateSimulationGridFields);
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields(
+                    $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
+                    srwService.updateSimulationGridFields);
+            });
         },
     };
 });
