@@ -1677,6 +1677,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
 });
 
 SIREPO.app.directive('appHeaderBrand', function() {
+    var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
     return {
         restrict: 'A',
         scope: {
@@ -1688,7 +1689,16 @@ SIREPO.app.directive('appHeaderBrand', function() {
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
                 '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
-                  SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+                  '<span class="hidden-md hidden-sm">',
+                    appInfo.longName,
+                  '</span>',
+                  '<span class="hidden-xs hidden-lg hidden-xl"',
+                    appInfo.longName == appInfo.shortName
+                      ? ''
+                      : ' title="'+ appInfo.longName + '"',
+                  '>',
+                    appInfo.shortName,
+                  '</span>',
                 '</a>',
               '</div>',
             '</div>',
