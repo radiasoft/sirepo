@@ -60,14 +60,14 @@ OPTIMIZER_RESULT_FILE = 'opt.json'
 
 STEERING_FILE = 'steering.json'
 
-_MONITOR_TO_MODEL_FIELDS = pkcollections.Dict({})
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
-
 _DIM_PLOT_COLORS = [
     '#d0c383',
     '#9400d3'
 ]
+
+_MONITOR_TO_MODEL_FIELDS = pkcollections.Dict({})
+
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _SETTINGS_PLOT_COLORS = [
     '#ff0000',
@@ -915,6 +915,7 @@ def _hex_color_to_rgb(color):
     rgb.append(1.0)
     return rgb
 
+
 def _init_default_beamline(data):
     #TODO(pjm): hard-coded beamline for now, using elegant format
     data.models.elements = [
@@ -1020,6 +1021,7 @@ def _init_default_beamline(data):
         },
     ]
 
+
 # arrange historical data for ease of plotting
 def _kicker_settings_for_plots(data, history, start_time):
     return _monitor_data_for_plots(data, history, start_time, 'KICKER')
@@ -1094,6 +1096,13 @@ def _position_of_element(data, id):
     return p[i]
 
 
+def _read_epics_kickers(data):
+    epics_settings = data.epicsServerAnimation
+    return {
+        'kickers': read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
+    }
+
+
 def _read_monitor_file(monitor_path, history=False):
     from datetime import datetime
     monitor_values = {}
@@ -1123,13 +1132,6 @@ def _read_monitor_file(monitor_path, history=False):
             monitor_values[var_name].times.append(t)
         count += 1
     return monitor_values, count, min_time
-
-
-def _read_epics_kickers(data):
-    epics_settings = data.epicsServerAnimation
-    return {
-        'kickers': read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
-    }
 
 
 def _report_info(run_dir, data):
