@@ -727,7 +727,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-header-right-sim-loaded>',
 		'<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
+                  //TODO(pjm): disable on alpha for now
+                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
 		'</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',

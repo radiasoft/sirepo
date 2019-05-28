@@ -3,7 +3,7 @@
 build_vars() {
     export sirepo_db_dir=/sirepo
     export sirepo_port=8000
-    build_image_base=radiasoft/beamsim
+    : ${build_image_base:=radiasoft/beamsim}
     export build_passenv=TRAVIS_BRANCH
     : ${TRAVIS_BRANCH:=}
     local boot_dir=$build_run_user_home/.radia-run

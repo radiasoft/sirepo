@@ -144,8 +144,6 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
             panelState.showField(f, 'verticalPointCount', ! isAutomatic);
         });
-        // Always show the distance, so commenting it out:
-        // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
@@ -1093,15 +1091,20 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
+    return {
+        restrict: 'A',
         controller: function($scope) {
-            $scope.appState = appState;
-            // hook for sampling method changes
-            $scope.nav.handleModalShown = srwService.updateSimulationGridFields;
-            $scope.$watch('appState.models.simulation.samplingMethod', srwService.updateSimulationGridFields);
-            $scope.$watch('appState.models.sourceIntensityReport.samplingMethod', srwService.updateSimulationGridFields);
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields(
+                    $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
+                    srwService.updateSimulationGridFields);
+            });
         },
     };
 });
@@ -1130,8 +1133,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
-              '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<div class="navbar-brand"><a href="/old#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',

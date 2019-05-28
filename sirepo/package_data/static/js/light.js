@@ -180,13 +180,13 @@ app.directive('pageHeading', function() {
     function getTemplate() {
         var template = [
                 '<div class="lp-main-header-content lp-sub-header-content">',
-                    '<a href="/#about">',
+                    '<a href="/old#about">',
                         '<img class="lp-header-sr-logo" src="/static/img/SirepoLogo.png',SIREPO.SOURCE_CACHE_KEY,'">',
                     '</a>',
         ].join('');
         template += [
             '<div class="lp-srw-sub-header-text">',
-                '<a href="/#/srw">Synchrotron Radiation Workshop</a>',
+                '<a href="/old#/xray-beamlines.html">Synchrotron Radiation Workshop</a>',
                 ' <span class="hidden-xs" data-ng-if="lc.pageName()">-</span> ',
                 '<span class="hidden-xs" data-ng-if="lc.pageName()" data-ng-bind="lc.pageName()"></span>',
             '</div>',

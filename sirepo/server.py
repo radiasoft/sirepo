@@ -363,7 +363,12 @@ def api_importFile(simulation_type=None):
 
 
 @api_perm.allow_visitor
-def api_homePage():
+def api_homePage(path_info=None):
+    return api_staticFile('en/' + (path_info or 'landing.html'))
+
+
+@api_perm.allow_visitor
+def api_homePageOld():
     return _render_root_page('landing-page', pkcollections.Dict())
 
 
@@ -644,7 +649,16 @@ def api_srUnit():
 
 @api_perm.allow_visitor
 def api_staticFile(path_info=None):
-    # send_from_directory uses safe_join and doesn't allow indexing.
+    """flask.send_from_directory for static folder.
+
+    Uses safe_join which doesn't allow indexing, paths with '..',
+    or absolute paths.
+
+    Args:
+        path_info (str): relative path to join
+    Returns:
+        flask.Response: flask.send_from_directory response
+    """
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
         path_info,

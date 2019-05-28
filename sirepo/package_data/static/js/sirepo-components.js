@@ -64,11 +64,17 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
                 }
                 $scope.activePage = page;
                 page.isActive = true;
+                //TODO(pjm): deprecated parentController processing replaced by sr-tabSelected event
                 if (appState.isLoaded() && $scope.parentController && $scope.parentController.handleModalShown) {
                     // invoke parentController after UI has been constructed
                     panelState.waitForUI(function() {
                         $scope.parentController.handleModalShown(
                             $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
+                    });
+                }
+                if (appState.isLoaded()) {
+                    panelState.waitForUI(function() {
+                        $scope.$emit('sr-tabSelected', $scope.modelName, $scope.modelData ? $scope.modelData.modelKey : null);
                     });
                 }
             };
@@ -142,19 +148,23 @@ SIREPO.app.directive('srAlert', function(errorService) {
         scope: {},
         template: [
             '<div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">',
-              '<button type="button" class="close" data-dismiss="alert" aria-label="Close">',
+              '<button type="button" class="close" data-ng-click="clearAlert()" aria-label="Close">',
                 '<span aria-hidden="true">&times;</span>',
               '</button>',
               '<strong>{{ alertText() }}</strong>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            //TODO(robnagler) timeout the alert
             //TODO(robnagler) bind to value in appState or vice versa
             $scope.alertText = function() {
                 return errorService.alertText();
             };
-            return;
+
+            $scope.clearAlert = function() {
+                errorService.alertText('');
+            };
+
+            $scope.$on('$routeChangeSuccess', $scope.clearAlert);
         },
     };
 });
@@ -1671,6 +1681,7 @@ SIREPO.app.directive('reportPanel', function(appState) {
 });
 
 SIREPO.app.directive('appHeaderBrand', function() {
+    var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
     return {
         restrict: 'A',
         scope: {
@@ -1679,16 +1690,36 @@ SIREPO.app.directive('appHeaderBrand', function() {
         },
         template: [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
                 '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
-                  SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName,
+                  '<span class="hidden-md hidden-sm">',
+                    appInfo.longName,
+                  '</span>',
+                  '<span class="hidden-xs hidden-lg hidden-xl"',
+                    appInfo.longName == appInfo.shortName
+                      ? ''
+                      : ' title="'+ appInfo.longName + '"',
+                  '>',
+                    appInfo.shortName,
+                  '</span>',
                 '</a>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appUrl = $scope.appUrl || '/#/' + SIREPO.APP_NAME;
+            if (! $scope.appUrl ) {
+                //TODO(rjn) need to centeralize this
+                if (SIREPO.APP_NAME == 'elegant') {
+                    $scope.appUrl = '/en/particle-accelerators.html';
+                }
+                else if (SIREPO.APP_NAME == 'srw') {
+                    $scope.appUrl = '/en/xray-beamlines.html';
+                }
+                else {
+                    $scope.appUrl = '/old#/' + SIREPO.APP_NAME;
+                }
+            }
         },
     };
 });

@@ -153,7 +153,7 @@ def uri_for_api(api_name, params=None, external=True):
         if p.name in params:
             v = params[p.name]
             if not v is None and len(v) > 0:
-                if not (p.is_path_info and v.startwith('/')):
+                if not (p.is_path_info and v.startswith('/')):
                     res += '/'
                 res += v
                 continue
@@ -235,7 +235,7 @@ def _init_uris(app, simulation_db):
             srunit_uri = v
     assert _default_route, \
         'missing default route'
-    _empty_route = _uri_to_route.about
+    _empty_route = _uri_to_route.en
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
