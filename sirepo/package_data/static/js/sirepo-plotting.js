@@ -2853,14 +2853,16 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 var s = reverse ? end : start;
                 var e = reverse ? start : end;
                 if (steps <= 1) {
-                    return [end];
+                    return [e];
                 }
                 var rgbaSteps = [];
                 for (var i  = 0; i < steps; ++i) {
-                    var c = s.map(function (startComp, j) {
+                    var c = [];
+                    for (var j = 0; j < 4; ++j) {
+                        var startComp = s[j];
                         var endComp = e[j];
-                        return startComp + i * (endComp - startComp) / (steps - 1);
-                    });
+                        c.push(startComp + i * (endComp - startComp) / (steps - 1));
+                    }
                     rgbaSteps.push(c);
                 }
                 return rgbaSteps;
@@ -3035,6 +3037,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     var pointColorMod = modulateRGBA(color, endColor, plot.points.length, reverseMod);
                     var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
+                    var sym;
                     if (plot.symbol) {
                         $scope.hasSymbols = true;
                     }
@@ -3050,7 +3053,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             circleRadius = 4;
                         }
                         if (plot.symbol) {
-                            var sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
+                            sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
                             viewport.append('g')
                             .attr('class', 'param-plot')
                             .attr('index', ip)
@@ -3097,10 +3100,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .style('stroke-width', strokeWidth)
                             .datum(plot.points);
                         if (plot.dashes) {
-                            p.style('stroke-dasharray', (plot.dashes))
+                            p.style('stroke-dasharray', (plot.dashes));
                         }
                         if (plot.symbol) {
-                            var sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
+                            sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
                             viewport.append('g')
                                 .attr('index', ip)
                                 .attr('class', 'param-plot').selectAll('.data-point')

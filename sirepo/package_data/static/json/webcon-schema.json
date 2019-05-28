@@ -121,6 +121,8 @@
             "k1": ["Strength [1/m²]", "MiniFloat", 0]
         },
         "WATCH": {
+        },
+        "watchpointReport": {
         }
     },
     "view": {
@@ -250,6 +252,8 @@
             "advanced": []
         },
         "WATCH": {
+        },
+        "watchpointReport": {
         }
     }
 }

@@ -211,7 +211,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             if (Object.keys(self.monitorToModelFields).indexOf(t) < 0) {
                 return;
             }
-
             var map = {};
             if (t === 'WATCH') {
                 watchCount += 1;
@@ -228,7 +227,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
             self.monitorToModelFields[t].push(map);
         });
-        //srdbg(self.monitorToModelFields);
     }
 
     function elementForId(id) {
@@ -308,7 +306,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         }
         return {
             id: element._id,
-            modelKey: modelKey,
+            modelKey: element.type === 'WATCH' ? self.watchpointReportName(element._id) : modelKey,
             title: element.name.replace(/\_/g, ' '),
             viewName: element.type,
             element: element,
@@ -370,7 +368,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     function updateFromMonitorValues(monitorValues) {
-        //srdbg('updateFromMonitorValues', monitorValues);
         var watchCount = 0;
         var kickerCount = 0;
         var count = 0;
@@ -480,22 +477,17 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         return false;
     };
 
-    self.kickers = function() {
-        return kickerModelNames();
-    };
-
     self.reset = function () {
-        /*
         var toSave = [];
-        monitoredModels().forEach(function(m) {
-            var e = elementForId(m.id);
-            //var m = modelForElement(e, id);
-            appState.models[m.modelKey] = appState.setModelDefaults(m, e.type, true);
+        self.monitoredModels.forEach(function(m) {
+            var am = appState.models[m.modelKey];
+            var info = appState.modelInfo(am.type);
+            for (var field in info) {
+                am[field] = info[field][SIREPO.INFO_INDEX_DEFAULT_VALUE];
+            }
             toSave.push(m.modelKey);
         });
-        appState.saveChanges(toSave, function () {
-        });
-        */
+        appState.saveChanges(toSave);
     };
 
     self.showEditor = function(item) {
@@ -503,6 +495,10 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             return item.element.type != 'QUAD';
         }
         return true;
+    };
+
+    self.watchpointReportName = function (id) {
+        return 'watchpointReport' + id;
     };
 
     appState.whenModelsLoaded($scope, function() {
@@ -515,6 +511,13 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             var m = modelForElement(element);
             if (element.type == 'WATCH') {
                 self.watches.push(m);
+                // this to remove panel editor
+                SIREPO.APP_SCHEMA.view[m.modelKey] = {advanced: []};
+                var wName = self.watchpointReportName(m.id);
+                if (! appState.models[wName]) {
+                    var wm = appState.cloneModel('WATCH' + m.id);
+                    appState.models[wName] = appState.setModelDefaults(wm, 'watchpointReport');
+                }
             }
             else if (element.type == 'KICKER') {
                 self.editorColumns.push([m]);
@@ -522,7 +525,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
             else if (element.type == 'QUAD') {
                 self.editorColumns[quadCount].push(m);
-                self.monitoredModels.push(m);
                 quadCount += 1;
             }
         });
@@ -920,12 +922,15 @@ SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache,
             '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
         ].join(''),
         controller: function($scope) {
-            $scope.$on('settingsLoaded', function (e, data) {
-                //requestSender.getApplicationData(
-                //    {
-                //        method: '_get_settings_report',
-                //    },
-                //);
+            $scope.$on('beamPositionReport.changed', function () {
+                //srdbg('beamPositionReport.changed');
+                var toSave = [];
+                ($scope.parentController.watches || []).forEach(function (w) {
+                    var rpt = $scope.parentController.watchpointReportName(w.id);
+                    appState.models[rpt].lastUpdateTime = Date.now();
+                    toSave.push(rpt);
+                });
+                appState.saveChanges(toSave);
             });
         },
     };
@@ -973,7 +978,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
                             return;
                         }
                         panelState.setError($scope.modelName, null);
-                        srdbg('hist', data);
+                        //srdbg('hist', data);
                         history = data;
                         $scope.load();
                     }
@@ -1008,20 +1013,16 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
 
             /*
             $scope.$on('correctorSettingAnimation.summaryData', function (e, data) {
-                srdbg('correctorSettingAnimation sum data', data);
+                //srdbg('correctorSettingAnimation sum data', data);
                 if (! $scope.showSpreadButton()) {
                     return;
                 }
             });
             */
-            $scope.$on('modelChanged', update);
-            //$scope.$on('epicsServerAnimation.changed', function (e, data) {
-            //    srdbg('check state', appState.models.epicsServerAnimation.connectToServer);
-            //});
-            //$scope.$on('beamSteering.changed', function (data) {
-            //    srdbg('check state', data);
-            //});
-
+            //$scope.$on('modelChanged', update);
+            $scope.$on('epicsServerAnimation.changed', function (e, data) {
+                //srdbg('check state', appState.models.epicsServerAnimation.connectToServer);
+            });
 
             function doSpread(doAnimate) {
                 d3self.selectAll('.param-plot')
@@ -1062,22 +1063,8 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache, pa
             }
 
             function update(e, name) {
-                if ( $scope.parentController.kickers().indexOf(name) < 0) {
-                    return;
-                }
                 //srdbg('update from kicker', name, appState.models[name]);
-                var m = appState.models[name];
             }
-
-            /*
-            appState.whenModelsLoaded($scope, function() {
-                var kk = $scope.parentController.kickers();
-                for (var k in kk) {
-                    srdbg('listening', kk[k]);
-                    $scope.$on(kk[k] + '.changed', update);
-                }
-            });
-            */
 
         },
         //link: function link(scope, element) {

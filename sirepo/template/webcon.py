@@ -102,7 +102,7 @@ def background_percent_complete(report, run_dir, is_running):
                 }
             }
     if report == 'correctorSettingAnimation':
-        pkdp('background_percent_complete for correctorSettingAnimation')
+        #pkdp('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
             values, count, start_time = _read_monitor_file(monitor_file, True)
@@ -213,8 +213,6 @@ def get_beam_pos_report(run_dir, data):
         return {
             'error': 'no beam position history'
         }
-    if not _MONITOR_TO_MODEL_FIELDS:
-        _build_monitor_to_model_fields(data)
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     if len(history) == 0:
         return {
@@ -237,8 +235,6 @@ def get_centroid_report(run_dir, data):
         return {
             'error': 'no beam position history'
         }
-    if not _MONITOR_TO_MODEL_FIELDS:
-        _build_monitor_to_model_fields(data)
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
 
     if len(history) == 0:
@@ -275,20 +271,22 @@ def get_centroid_report(run_dir, data):
         {
             'points': y,
             'label': 'y [m]',
-            'style': 'scatter',
+            'style': 'line',
             'symbol': 'circle',
             'colorModulation': c_mod
         },
     ]
 
     return template_common.parameter_plot(x, plots, {}, {
-        'title': 'z = {}m'.format(z),
+        'title': 'z = {}m ({}s - {}s)'.format(z, ct[0], ct[-1]),
         'y_label': '',
         'x_label': 'x [m]',
         'fixed_y_range': True,
         'zoom_x_y': False,
         'aspectRatio': 1.0,
-        'summaryData': {},
+        'summaryData': {
+            'times': ct
+        },
     },[
         color
     ], x_range=x_range, y_range=y_range)
@@ -400,8 +398,6 @@ def get_settings_report(run_dir, data):
         return {
             'error': 'no settings history'
         }
-    if not _MONITOR_TO_MODEL_FIELDS:
-        _build_monitor_to_model_fields(data)
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -629,6 +625,8 @@ def _bpm_readings_for_plots(data, history, start_time):
 
 
 def _build_monitor_to_model_fields(data):
+    if _MONITOR_TO_MODEL_FIELDS:
+        return
     watch_count = 0
     kicker_count = 0
     for el_idx in range(0, len(data.models.elements)):
@@ -1027,7 +1025,6 @@ def _init_default_beamline(data):
         },
     ]
 
-
 # arrange historical data for ease of plotting
 def _kicker_settings_for_plots(data, history, start_time):
     return _monitor_data_for_plots(data, history, start_time, 'KICKER')
@@ -1082,6 +1079,7 @@ def _model_id_key(model):
 
 def _monitor_data_for_plots(data, history, start_time, type):
     m_data = {}
+    _build_monitor_to_model_fields(data)
     for mon_setting in history:
         s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
         el_name = s_map.element
