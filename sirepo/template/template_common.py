@@ -162,6 +162,13 @@ def filename_to_path(files, source_lib):
     return res
 
 
+def generate_parameters_file(data):
+    v = flatten_data(data['models'], {})
+    v['notes'] = _get_notes(v)
+    res = render_jinja('.', v, name='common-header.py')
+    return res, v
+
+
 def heatmap(values, model, plot_fields=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
     range = None
@@ -486,6 +493,18 @@ def watchpoint_id(report):
 
 def _escape(v):
     return re.sub("[\"'()]", '', str(v))
+
+
+def _get_notes(data):
+    notes = []
+    for key in data.keys():
+        match = re.search(r'^(.+)_notes$', key)
+        if match:
+            n_key = match.group(1)
+            k = n_key[0].capitalize() + n_key[1:]
+            k_words = [word for word in re.split(r'([A-Z][a-z]*)', k) if word != '']
+            notes.append((' '.join(k_words), data[key]))
+    return sorted(notes, key=lambda n: n[0])
 
 
 def _plot_range(report, axis):
