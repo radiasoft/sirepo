@@ -1256,14 +1256,14 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 var baseFormat = calcFormat(tickCount, unit, null, true).format;
                 var base = midPoint(formatInfo, d);
                 if (unit) {
-                    unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+                    unit =  formatPrefix(d, base);
                 }
                 formatInfo = calcFormat(tickCount, unit, base);
                 tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
                 var f2 = calcFormat(tickCount, unit);
                 base = midPoint(f2, d);
                 if (unit) {
-                    unit = d3.formatPrefix(Math.max(Math.abs(d[0] - base), Math.abs(d[1] - base)), 0);
+                    unit = formatPrefix(d, base);
                 }
                 formatInfo = calcFormat(tickCount, unit, base);
                 formatInfo.base = base;
@@ -1285,6 +1285,17 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             });
             self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
             return formatInfo;
+        }
+
+        // If the axis is set to preserve units, use whatever prefix the plot started
+        // with regardless of zoom.  Useful for non-linear units (1/sec, m^2, etc)
+        function formatPrefix(dom, base) {
+            if (! base) {
+                base = 0;
+            }
+            return self.preserveUnits ?
+                d3.formatPrefix(1, 0) :
+                d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
         }
 
         function midPoint(formatInfo, domain) {
@@ -1330,6 +1341,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
         self.init = function() {
             self.scale = d3.scale.linear();
             self.svgAxis = self.createAxis();
+            self.preserveUnits = false;
         };
 
         self.parseLabelAndUnits = function(label) {
@@ -1355,7 +1367,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 var formatInfo, unit;
                 if (self.units) {
                     var d = self.scale.domain();
-                    unit = d3.formatPrefix(Math.max(Math.abs(d[0]), Math.abs(d[1])), 0);
+                    unit = formatPrefix(d, 0);
                     formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, unit, fontSize);
                     select('.' + dimension + '-axis-label').text(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
@@ -2945,6 +2957,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 $scope.axes.x.domain = xdom;
                 $scope.axes.x.scale.domain(xdom);
+                $scope.axes.x.preserveUnits = json.preserve_units;
                 plotting.ensureDomain(json.y_range);
                 $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
