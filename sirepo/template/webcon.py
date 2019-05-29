@@ -326,7 +326,7 @@ def get_fft(run_dir, data):
     # the first half of the fft data (taking abs() folds in the imaginary part)
     y = 2.0 / num_samples * np.abs(fft_out[0:half_num_samples])
 
-    # get the freuqencies found
+    # get the frequencies found
     # fftfreq just generates an array of equally-spaced values that represent the x-axis
     # of the fft of data of a given length.  It includes negative values
     freqs = scipy.fftpack.fftfreq(len(fft_out)) / sample_period
@@ -338,7 +338,7 @@ def get_fft(run_dir, data):
     sd = y.std()
     s2n = np.where(sd == 0, 0, m / sd)
 
-    # We'll say we found a frequncy peak when the size of the coefficient divided by the average is
+    # We'll say we found a frequency peak when the size of the coefficient divided by the average is
     # greather than this.  A crude indicator - one presumes better methods exist
     found_sn_thresh = 10
 
@@ -362,9 +362,11 @@ def get_fft(run_dir, data):
     yy = 2.0 / num_samples * np.abs(fft_out[min_bin:max_bin])
     ww = freqs[min_bin:max_bin]
 
+    max_y = np.max(y)
+    y_norm = y / (max_y if max_y != 0 else 1)
     plots = [
         {
-            'points': y.tolist(),
+            'points': y_norm.tolist(),
             'label': 'fft',
         },
     ]
@@ -373,7 +375,8 @@ def get_fft(run_dir, data):
     return template_common.parameter_plot(w.tolist(), plots, {}, {
         'title': '',
         'y_label': _label(col_info, 1),
-        'x_label': 'ω[s-1]',
+        'x_label': 'f[1/s]',
+        'preserve_units': True,
         #'x_label': _label(col_info, 0) + '^-1',
         'summaryData': {
             'freqs': found_freqs,
