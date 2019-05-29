@@ -73,7 +73,7 @@ def compute_field_range(args, compute_range):
     }
 
 
-def compute_plot_color_and_range(plots, plot_colors, fixed_y_range):
+def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     """ For parameter plots, assign each plot a color and compute the full y_range.
     If a fixed range is provided, use that instead
     """
