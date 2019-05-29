@@ -1256,7 +1256,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 var baseFormat = calcFormat(tickCount, unit, null, true).format;
                 var base = midPoint(formatInfo, d);
                 if (unit) {
-                    unit =  formatPrefix(d, base);
+                    unit = formatPrefix(d, base);
                 }
                 formatInfo = calcFormat(tickCount, unit, base);
                 tickCount = calcTickCount(formatInfo.format, canvasSize, unit, base, fontSize);
@@ -1269,7 +1269,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 formatInfo.base = base;
                 formatInfo.baseFormat = baseFormat;
             }
-            if ((orientation == 'left' || orientation == 'right') && ! canvasSize.isPlaying) {
+            if ((orientation === 'left' || orientation === 'right') && ! canvasSize.isPlaying) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
                 margin[orientation] = (w + 6) * (fontSize / 2);
             }
