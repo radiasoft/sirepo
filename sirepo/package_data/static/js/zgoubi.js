@@ -45,7 +45,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select an zgoubi.dat file." data-file-formats=".dat"></div>',
+            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select an zgoubi.dat file." data-file-formats=".dat,.res"></div>',
         ].join(''),
     };
 });
@@ -84,7 +84,7 @@ SIREPO.app.directive('appHeader', function(latticeService) {
     };
 });
 
-SIREPO.app.controller('LatticeController', function(appState, panelState, latticeService, $scope) {
+SIREPO.app.controller('LatticeController', function(appState, errorService, panelState, latticeService, $scope) {
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
@@ -150,11 +150,16 @@ SIREPO.app.controller('LatticeController', function(appState, panelState, lattic
     };
 
     appState.whenModelsLoaded($scope, function() {
+        var sim = appState.models.simulation;
+        if (sim.warnings) {
+            errorService.alertText(sim.warnings);
+            delete sim.warnings;
+        }
 
-        if (! appState.models.simulation.isInitialized) {
+        if (! sim.isInitialized) {
             updateScaling();
             appState.models.elements.map(updateElementAttributes);
-            appState.models.simulation.isInitialized = true;
+            sim.isInitialized = true;
             appState.saveChanges(['elements', 'simulation']);
         }
 
