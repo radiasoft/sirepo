@@ -580,12 +580,12 @@ def _generate_element_tosca(el):
 
 
 def _generate_parameters_file(data):
-    v = template_common.flatten_data(data.models, {})
+    res, v = template_common.generate_parameters_file(data)
     report = data.report if 'report' in data else ''
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
     v['bunchCoordinates'] = data.models.bunch.coordinates
-    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE

@@ -1453,6 +1453,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['photonEnergy'] -= half_width
 
     _validate_data(data, _SCHEMA)
+    res, v = template_common.generate_parameters_file(data)
     last_id = None
     if template_common.is_watchpoint(report):
         last_id = template_common.watchpoint_id(report)
@@ -1460,7 +1461,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         last_id = data['models']['multiElectronAnimation']['watchpointId']
     if int(data['models']['simulation']['samplingMethod']) == 2:
         data['models']['simulation']['sampleFactor'] = 0
-    v = template_common.flatten_data(data['models'], pkcollections.Dict())
 
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
@@ -1508,7 +1508,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             mmz.z.extract(df, target_dir)
         v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + '/' + mmz.index_dir
         v.magneticMeasurementsIndexFile = mmz.index_file
-    return template_common.render_jinja(SIM_TYPE, v)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _generate_srw_main(data, plot_reports):

@@ -226,7 +226,7 @@ def fixup_old_data(data):
 
 def generate_parameters_file(data, is_parallel=False):
     template_common.validate_models(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     v['isAnimationView'] = is_parallel
     v['incSteps'] = 50
     v['diagnosticPeriod'] = 50
@@ -238,7 +238,7 @@ def generate_parameters_file(data, is_parallel=False):
         v['useLaser'] = 1
     if data['models']['electronBeam']['beamRadiusMethod'] == 'a':
         v['electronBeam_transverseEmittance'] = 0
-    return template_common.render_jinja(SIM_TYPE, v)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def get_animation_name(data):
