@@ -27,7 +27,6 @@ import sklearn.mixture
 import sklearn.preprocessing
 import sympy
 
-
 SIM_TYPE = 'webcon'
 
 BPM_FIELDS = [
