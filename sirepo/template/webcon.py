@@ -447,7 +447,7 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'epicsServerAnimation':
         return []
-    res = [r, 'analysisData']
+    res = [r, 'analysisData', _lib_file_datetime(data['models']['analysisData']['file'])]
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
@@ -1038,6 +1038,18 @@ def _label(col_info, idx):
     if units:
         return '{} [{}]'.format(name, units)
     return name
+
+
+# For hashing purposes, return an object mapping the file name to a mod date
+def _lib_file_datetime(filename):
+    lib_filename = template_common.lib_file_name('analysisData','file', filename)
+    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(lib_filename)
+    if path.exists():
+        return {
+            filename: path.mtime()
+        }
+    pkdlog('error, missing lib file: {}', path)
+    return 0
 
 
 def _load_file_with_history(report, path, col_info):
