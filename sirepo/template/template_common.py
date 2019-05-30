@@ -73,21 +73,25 @@ def compute_field_range(args, compute_range):
     }
 
 
-def compute_plot_color_and_range(plots):
-    """ For parameter plots, assign each plot a color and compute the full y_range. """
-    y_range = None
+def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
+    """ For parameter plots, assign each plot a color and compute the full y_range.
+    If a fixed range is provided, use that instead
+    """
+    y_range = fixed_y_range
+    colors = plot_colors if plot_colors is not None else _PLOT_LINE_COLOR
     for i in range(len(plots)):
         plot = plots[i]
-        plot['color'] = _PLOT_LINE_COLOR[i % len(_PLOT_LINE_COLOR)]
-        vmin = min(plot['points'])
-        vmax = max(plot['points'])
-        if y_range:
-            if vmin < y_range[0]:
-                y_range[0] = vmin
-            if vmax > y_range[1]:
-                y_range[1] = vmax
-        else:
-            y_range = [vmin, vmax]
+        plot['color'] = colors[i % len(colors)]
+        if fixed_y_range is None:
+            vmin = min(plot['points'])
+            vmax = max(plot['points'])
+            if y_range:
+                if vmin < y_range[0]:
+                    y_range[0] = vmin
+                if vmax > y_range[1]:
+                    y_range[1] = vmax
+            else:
+                y_range = [vmin, vmax]
     # color child plots the same as parent
     for c in [p for p in plots if '_parent' in p]:
         p_label = plot['_parent']
@@ -228,12 +232,12 @@ def model_defaults(name, schema):
     return res
 
 
-def parameter_plot(x, plots, model, plot_fields=None):
+def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, x_range=None, y_range=None):
     res = {
         'x_points': x,
-        'x_range': [min(x), max(x)],
+        'x_range': x_range if x_range is not None else [min(x), max(x)],
         'plots': plots,
-        'y_range': compute_plot_color_and_range(plots),
+        'y_range': compute_plot_color_and_range(plots, plot_colors, y_range),
     }
     if 'plotRangeType' in model:
         if model.plotRangeType == 'fixed':
