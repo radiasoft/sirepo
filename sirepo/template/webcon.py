@@ -330,8 +330,8 @@ def get_fft(run_dir, data):
     # get the frequencies found
     # fftfreq just generates an array of equally-spaced values that represent the x-axis
     # of the fft of data of a given length.  It includes negative values
-    freqs = scipy.fftpack.fftfreq(len(fft_out)) / sample_period
-    w = freqs[0:half_num_samples]
+    freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
+    w = 2. * np.pi * freqs[0:half_num_samples]
     found_freqs = []
 
     # is signal to noise useful?
@@ -340,14 +340,15 @@ def get_fft(run_dir, data):
     s2n = np.where(sd == 0, 0, m / sd)
 
     # We'll say we found a frequency peak when the size of the coefficient divided by the average is
-    # greather than this.  A crude indicator - one presumes better methods exist
+    # greater than this.  A crude indicator - one presumes better methods exist
     found_sn_thresh = 10
 
     ci = 0
     max_bin = -1
     min_bin = half_num_samples
     bin_spread = 10
-    for coef, freq in zip(fft_out[0:half_num_samples], freqs[0:half_num_samples]):
+    #for coef, freq in zip(fft_out[0:half_num_samples], freqs[0:half_num_samples]):
+    for coef, freq in zip(fft_out[0:half_num_samples], w):
         #pkdp('{c:>6} * exp(2 pi i t * {f}) : vs thresh {t}', c=(2.0 / N) * np.abs(coef), f=freq, t=(2.0 / N) * np.abs(coef) / m)
         if (2.0 / num_samples) * np.abs(coef) / m > found_sn_thresh:
             found_freqs.append((ci, freq))
@@ -355,13 +356,15 @@ def get_fft(run_dir, data):
             if ci < min_bin:
                 min_bin = ci
         ci += 1
-    #pkdp('!FOUND FREQS {}, MIN {}, MAX {}, P2P {}, S2N {}, MEAN {}', found_freqs, min_coef, max_coef, p2p, s2n, m)
+    #pkdp('!FOUND FREQS {}, S2N {}, MEAN {}', found_freqs, s2n, m)
 
     # focus in on the peaks?
     min_bin = max(0, min_bin - bin_spread)
     max_bin = min(half_num_samples, max_bin + bin_spread)
     yy = 2.0 / num_samples * np.abs(fft_out[min_bin:max_bin])
-    ww = freqs[min_bin:max_bin]
+    max_yy = np.max(yy)
+    yy_norm = yy / (max_yy if max_yy != 0 else 1)
+    ww = 2. * np.pi * freqs[min_bin:max_bin]
 
     max_y = np.max(y)
     y_norm = y / (max_y if max_y != 0 else 1)
