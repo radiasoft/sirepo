@@ -93,12 +93,10 @@ def compute_plot_color_and_range(plots, plot_colors, fixed_y_range):
             else:
                 y_range = [vmin, vmax]
     # color child plots the same as parent
-    for c in [p for p in plots if '_parent' in p]:
-        p_label = plot['_parent']
-        for p in plots:
-            if p['label'] == p_label:
-                c['color'] = p['color']
-                break
+    for child in [p for p in plots if '_parent' in p]:
+        parent = next((pr for pr in plots if 'label' in pr and pr['label'] == child['_parent']), None)
+        if parent is not None:
+            child['color'] = parent['color'] if 'color' in parent else '#000000'
     return y_range
 
 

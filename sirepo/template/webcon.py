@@ -408,7 +408,7 @@ def get_settings_report(run_dir, data):
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'A',
+        'y_label': 'rad',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -537,15 +537,20 @@ def _beam_pos_plots(data, history, start_time):
             # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
-            plots.append({
+            plot = {
                 'points': bpms[dim][t_idx],
                 'x_points': bpms['z'],
-                'label': '{} ({}s)'.format(dim, t),
                 'style': 'line',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[dim],
                 'colorModulation': c_mod,
                 'modDirection': -1
-            })
+            }
+            if t_idx < len(bpms['t']) - 1:
+                plot['_parent'] = dim
+                plot['label'] = ''
+            else:
+                plot['label'] = dim
+            plots.append(plot)
     return np.array(bpms['z']), plots, c
 
 

@@ -2770,6 +2770,28 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return pts;
             }
 
+            function canToggle(pIndex) {
+                if (includeForDomain.length === 1 && includeForDomain[0] === pIndex) {
+                    return false;
+                }
+
+                function intSort(a, b) {
+                    return parseInt(a) - parseInt(b);
+                }
+
+                var dp = appState.clone(includeForDomain);
+                dp.sort(intSort);
+                if (childPlots[pIndex]) {
+                    var cp = appState.clone(childPlots[pIndex]);
+                    cp.push(parseInt(pIndex));
+                    cp.sort(intSort);
+                    if (angular.equals(cp, dp)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             function createLegend(plots) {
                 plotLabels.length = 0;
                 var legend = $scope.select('.sr-plot-legend');
@@ -2783,13 +2805,13 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (! plot.label) {
                         return;
                     }
-                    count++;
+                    //count++;
                     plotLabels.push(plot.label);
-                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item').attr('index', i);
                     item.append('text')
                         .attr('class', 'focus-text-popup glyphicon plot-visibility')
                         .attr('x', 8)
-                        .attr('y', 17 + i * 20)
+                        .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
                             togglePlot(i);
@@ -2799,7 +2821,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         var sym = d3.svg.symbol().size(legendSymbolSize).type(plot.symbol);
                         item.append('path')
                             .attr('d', sym)
-                            .attr('transform', 'translate(' +  (24 + itemWidth) + ',' + (10 + i * 20) + ')')
+                            .attr('transform', 'translate(' +  (24 + itemWidth) + ',' + (10 + count * 20) + ')')
                             .attr('fill', plot.color)
                             .attr('class', 'scatter-point line-color')
                             .style('stroke', 'black')
@@ -2810,7 +2832,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         item.append('circle')
                             .attr('r', 5)
                             .attr('cx', 24 + itemWidth)
-                            .attr('cy', 10 + i * 20)
+                            .attr('cy', 10 + count * 20)
                             .style('stroke', plot.color)
                             .style('fill', plot.color);
                     }
@@ -2818,8 +2840,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     item.append('text')
                         .attr('class', 'focus-text')
                         .attr('x', 12 + itemWidth)
-                        .attr('y', 16 + i * 20)
+                        .attr('y', 16 + count * 20)
                         .text(plot.label);
+                    count++;
                 });
                 return count;
             }
@@ -2835,6 +2858,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (domainIndex < 0) {
                         includeForDomain.push(pIndex);
                     }
+                }
+                if (childPlots[pIndex]) {
+                    childPlots[pIndex].forEach(function (cIndex) {
+                        includeDomain(cIndex, doInclude);
+                    });
                 }
             }
 
@@ -2883,20 +2911,19 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function setPlotVisible(pIndex, isVisible) {
                 // disable last toggle - meaningless to show no plots
-                if (includeForDomain.length == 1 && includeForDomain[0] == pIndex) {
+                if (! canToggle(pIndex)) {
                     return;
                 }
-                plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                vIcon(pIndex).text(vIconText(isVisible));
+                ([pIndex].concat(childPlots[pIndex] || [])).forEach(function (i) {
+                    plotPath(i).style('opacity', isVisible ? 1.0 : 0.0);
+                    vIcon(i).text(vIconText(isVisible));
+                });
 
                 if ($scope.axes.y.plots && $scope.axes.y.plots[pIndex]) {
                     includeDomain(pIndex, isVisible);
-                    if (includeForDomain.length == 1) {
-                        vIcon(includeForDomain[0]).style('fill', '#aaaaaa');
-                    }
-                    else {
-                        selectAll('.sr-plot-legend .plot-visibility').style('fill', null);
-                    }
+                    includeForDomain.forEach(function (ip) {
+                        vIcon(ip).style('fill', canToggle(ip) ? null : '#aaaaaa');
+                    });
                     $scope.recalculateYDomain();
                     $scope.resize();
                 }
@@ -2910,13 +2937,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function togglePlot(pIndex) {
                 setPlotVisible(pIndex, isPlotVisible(pIndex));
-                (childPlots[pIndex] || []).forEach(function (i) {
-                    setPlotVisible(i, isPlotVisible(i));
-                });
             }
 
             function vIcon(pIndex) {
-                return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
+                return d3.select('.sr-plot-legend .sr-plot-legend-item[index=\'' + pIndex + '\'] .plot-visibility');
             }
 
             function vIconText(isVisible) {
