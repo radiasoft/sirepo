@@ -351,12 +351,12 @@ def get_fft(run_dir, data):
     for coef, freq in zip(fft_out[0:half_num_samples], w):
         #pkdp('{c:>6} * exp(2 pi i t * {f}) : vs thresh {t}', c=(2.0 / N) * np.abs(coef), f=freq, t=(2.0 / N) * np.abs(coef) / m)
         if (2.0 / num_samples) * np.abs(coef) / m > found_sn_thresh:
-            found_freqs.append((ci, freq))
+            found_freqs.append((ci, np.around(freq, 3)))
             max_bin = ci
             if ci < min_bin:
                 min_bin = ci
         ci += 1
-    #pkdp('!FOUND FREQS {}, S2N {}, MEAN {}', found_freqs, s2n, m)
+    pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
     min_bin = max(0, min_bin - bin_spread)
@@ -379,8 +379,8 @@ def get_fft(run_dir, data):
     return template_common.parameter_plot(w.tolist(), plots, {}, {
         'title': '',
         'y_label': _label(col_info, 1),
-        'x_label': 'f[1/s]',
-        'preserve_units': True,
+        'x_label': 'f[Hz]',
+        'preserve_units': False,
         #'x_label': _label(col_info, 0) + '^-1',
         'summaryData': {
             'freqs': found_freqs,
