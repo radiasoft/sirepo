@@ -232,21 +232,21 @@ def get_beam_pos_report(run_dir, data):
 
 def get_centroid_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    if not monitor_file.exists():
+    bpms = None
+
+    if monitor_file.exists():
+        history, num_records, start_time = _read_monitor_file(monitor_file, True)
+        if len(history):
+            bpms = _bpm_readings_for_plots(data, history, start_time)
+
+    if not bpms:
         return {
             'error': 'no beam position history'
         }
-    history, num_records, start_time = _read_monitor_file(monitor_file, True)
-
-    if len(history) == 0:
-        return {
-            'error': 'no beam position history'
-        }
-
-    bpms = _bpm_readings_for_plots(data, history, start_time)
 
     x = []
     y = []
+    t = []
     z = _position_of_element(data, data.models[data.report]['_id'])
 
     cx = bpms['x']
@@ -254,16 +254,22 @@ def get_centroid_report(run_dir, data):
     cz = bpms['z']
     ct = bpms['t']
 
-    # Use the range over all the plots so they start the same size -
-    # this to make visual comparisons
-    x_range = [min(min(x) for x in cx), max(max(x) for x in cx)]
-    y_range = [min(min(x) for x in cx), max(max(x) for x in cx)]
-
     c_idx = cz.index(z)
 
     for t_idx, time in enumerate(ct):
-        x.append(cx[t_idx][c_idx])
-        y.append(cy[t_idx][c_idx])
+        xv = cx[t_idx][c_idx]
+        yv = cy[t_idx][c_idx]
+        t.append(time)
+        x.append(xv)
+        y.append(yv)
+
+    #TODO(pjm): set reasonable history limit
+    _MAX_BPM_POINTS = 50
+    if len(t) > _MAX_BPM_POINTS:
+        cutoff = len(t) - _MAX_BPM_POINTS
+        t = t[cutoff:]
+        x = x[cutoff:]
+        y = y[cutoff:]
 
     color = _SETTINGS_PLOT_COLORS[c_idx % len(_SETTINGS_PLOT_COLORS)]
     c_mod = _hex_color_to_rgb(color)
@@ -274,22 +280,15 @@ def get_centroid_report(run_dir, data):
             'label': 'y [m]',
             'style': 'line',
             'symbol': 'circle',
-            'colorModulation': c_mod
+            'colorModulation': c_mod,
         },
     ]
-
-    return template_common.parameter_plot(x, plots, {}, {
-        'title': 'z = {}m ({}s - {}s)'.format(z, ct[0], ct[-1]),
+    return template_common.parameter_plot(x, plots, data.models[data.report], {
+        'title': 'z = {}m ({}s - {}s)'.format(z, t[0], t[-1]),
         'y_label': '',
         'x_label': 'x [m]',
-        'fixed_y_range': True,
         'aspectRatio': 1.0,
-        'summaryData': {
-            'times': ct
-        },
-    },[
-        color
-    ], x_range=x_range, y_range=y_range)
+    },[color])
 
 
 def get_data_file(run_dir, model, frame, options=None):

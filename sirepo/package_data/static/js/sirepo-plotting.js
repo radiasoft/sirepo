@@ -2996,8 +2996,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 //TODO(pjm): move first part into normalizeInput()
                 childPlots = {};
                 includeForDomain.length = 0;
-                $scope.doAdjustDomain = ! json.fixed_y_range;
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                if (json.aspectRatio) {
+                    // only use aspectRatio from server for parameterPlot for now, not from model like heatplots
+                    $scope.aspectRatio = json.aspectRatio;
+                }
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
                     {
@@ -3044,8 +3046,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     // modulated by the amount specified
                     var endColor = plot.colorModulation || color;
                     var reverseMod = (plot.modDirection || 0) < 0;
-                    var pointColorMod = modulateRGBA(color, endColor, plot.points.length, reverseMod);
-                    var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                     var strokeWidth = plot._parent ? 0.75 : 2.0;
                     var sym;
                     if (plot.symbol) {
@@ -3063,6 +3063,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             circleRadius = 4;
                         }
                         if (plot.symbol) {
+                            var pointColorMod = modulateRGBA(color, endColor, plot.points.length, reverseMod);
                             sym = d3.svg.symbol().size(symbolSize).type(plot.symbol);
                             viewport.append('g')
                             .attr('class', 'param-plot')
@@ -3098,11 +3099,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .style('fill', function (d, j) {
                                     return clusterInfo ? clusterInfo.scale(clusterInfo.group[j]) : plot.color;
                                 })
-                                .attr('class', 'scatter-point line-color')
-                                .style('stroke', plot.color);
+                                .attr('class', 'scatter-point line-color');
                         }
                     }
                     else {
+                        var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                         var p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
                             .attr('index', ip)
@@ -3272,9 +3273,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.setYDomain = function() {
-                if (! $scope.doAdjustDomain) {
-                    return;
-                }
                 var model = appState.models[$scope.modelName];
                 if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
                     $scope.axes.y.scale.domain($scope.axes.y.domain).nice();

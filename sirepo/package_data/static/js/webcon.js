@@ -378,7 +378,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             if (Object.keys(self.monitorToModelFields).indexOf(el.type) < 0) {
                 return;
             }
-            var doSave = false;
             if (el.type === 'WATCH') {
                 watchCount += 1;
                 count = watchCount - 1;
@@ -386,14 +385,17 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             else if (isSteering && el.type === 'KICKER') {
                 kickerCount += 1;
                 count = kickerCount - 1;
-                appState.models[el.type + el._id] = el;
+                ['hkick', 'vkick'].forEach(function(pos) {
+                    var field = 'corrector' + kickerCount
+                        + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
+                    el[pos] = monitorValues[field];
+                    appState.models[el.type + el._id] = el;
+                });
+                appState.saveQuietly(el.type + el._id);
             }
             var map = self.monitorToModelFields[el.type][count];
             for (var f in map) {
                 el[map[f]] = monitorValues[f];
-            }
-            if (doSave) {
-                appState.saveQuietly(el.type + el._id);
             }
         });
     }

@@ -124,6 +124,11 @@
         "WATCH": {
         },
         "watchpointReport": {
+            "plotRangeType": ["Range", "PlotRangeType", "fixed"],
+            "horizontalSize": ["Horizontal Size", "Float", 0.003],
+            "verticalSize": ["Vertical Size", "Float", 0.003],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0]
         }
     },
     "view": {
