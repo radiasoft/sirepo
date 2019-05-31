@@ -356,7 +356,7 @@ def get_fft(run_dir, data):
             if ci < min_bin:
                 min_bin = ci
         ci += 1
-    pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
+    #pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
     min_bin = max(0, min_bin - bin_spread)
