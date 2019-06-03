@@ -414,7 +414,7 @@ def get_settings_report(run_dir, data):
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'A',
+        'y_label': 'rad',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -543,15 +543,20 @@ def _beam_pos_plots(data, history, start_time):
             # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
-            plots.append({
+            plot = {
                 'points': bpms[dim][t_idx],
                 'x_points': bpms['z'],
-                'label': '{} ({}s)'.format(dim, t),
                 'style': 'line',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[dim],
                 'colorModulation': c_mod,
                 'modDirection': -1
-            })
+            }
+            if t_idx < len(bpms['t']) - 1:
+                plot['_parent'] = dim
+                plot['label'] = ''
+            else:
+                plot['label'] = dim
+            plots.append(plot)
     return np.array(bpms['z']), plots, c
 
 
@@ -1214,12 +1219,12 @@ def _setting_plots_by_position(data, history, start_time):
                 'modDirection': -1
             })
     np.append(all_z, _element_positions(data)[-1])
-    return np.unique(np.array(all_z)), plots, c
+    return np.array([0.0, _element_positions(data)[-1]]), plots, c
 
 
 def _setting_plots_by_time(data, history, start_time):
     plots = []
-    all_times = np.array([])
+    current_time = 0
     c = []
     kickers = _kicker_settings_for_plots(data, history, start_time)
     k_sorted = []
@@ -1228,6 +1233,7 @@ def _setting_plots_by_time(data, history, start_time):
             k_sorted.append((k_name, []))
         k_s = kickers[k_name]
         for s in sorted([s for s in k_s]):
+            current_time = max(current_time, np.max(k_s[s]['times']))
             k_sorted[-1][1].append(
                 {
                     'setting': s,
@@ -1235,12 +1241,9 @@ def _setting_plots_by_time(data, history, start_time):
                     'times': k_s[s]['times']
                 }
             )
-            all_times = np.append(all_times, k_s[s]['times'])
 
-    all_times = np.sort(np.unique(all_times))
     time_window = data.models.correctorSettingReport.numHistory
     period = data.models.correctorSettingReport.samplePeriod
-    current_time = all_times[-1]
 
     for k_idx, k in enumerate(k_sorted):
         for s in k[1]:
@@ -1259,7 +1262,7 @@ def _setting_plots_by_time(data, history, start_time):
                 'style': 'line',
                 'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']]
             })
-    return all_times, plots, c
+    return np.array([current_time - time_window, current_time]), plots, c
 
 
 def _update_epics_kicker(data):

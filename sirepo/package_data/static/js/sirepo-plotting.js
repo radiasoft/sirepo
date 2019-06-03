@@ -2782,6 +2782,51 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return pts;
             }
 
+            function buildSymbols(plots, d3Selection, size, type) {
+                var symbols = [];
+                plots
+                    .map(function (plot) {
+                        return plot.symbol;
+                    })
+                    .forEach(function (s) {
+                        if (! s) {
+                            return;
+                        }
+                        var symId = s + '-' + type;
+                        if (symbols.indexOf(s) >= 0) {
+                            return;
+                        }
+                        symbols.push(s);
+                        d3Selection.append('symbol')
+                            .attr('id', symId)
+                            .attr('overflow', 'visible')
+                            .append('path')
+                            .attr('d', d3.svg.symbol().size(size).type(s));
+                    });
+            }
+
+            function canToggle(pIndex) {
+                if (includeForDomain.length === 1 && includeForDomain[0] === pIndex) {
+                    return false;
+                }
+
+                function intSort(a, b) {
+                    return parseInt(a) - parseInt(b);
+                }
+
+                var dp = appState.clone(includeForDomain);
+                dp.sort(intSort);
+                if (childPlots[pIndex]) {
+                    var cp = appState.clone(childPlots[pIndex]);
+                    cp.push(parseInt(pIndex));
+                    cp.sort(intSort);
+                    if (angular.equals(cp, dp)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             function createLegend(plots) {
                 plotLabels.length = 0;
                 var legend = $scope.select('.sr-plot-legend');
@@ -2791,27 +2836,29 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 var itemWidth;
                 var count = 0;
+
+                buildSymbols(plots, legend, legendSymbolSize, 'legend');
+
                 plots.forEach(function(plot, i) {
                     if (! plot.label) {
                         return;
                     }
-                    count++;
                     plotLabels.push(plot.label);
-                    var item = legend.append('g').attr('class', 'sr-plot-legend-item');
+                    var item = legend.append('g').attr('class', 'sr-plot-legend-item').attr('index', i);
                     item.append('text')
                         .attr('class', 'focus-text-popup glyphicon plot-visibility')
                         .attr('x', 8)
-                        .attr('y', 17 + i * 20)
+                        .attr('y', 17 + count * 20)
                         .text(vIconText(true))
                         .on('click', function() {
                             togglePlot(i);
                         });
                     itemWidth = item.node().getBBox().width;
                     if (plot.symbol) {
-                        var sym = d3.svg.symbol().size(legendSymbolSize).type(plot.symbol);
-                        item.append('path')
-                            .attr('d', sym)
-                            .attr('transform', 'translate(' +  (24 + itemWidth) + ',' + (10 + i * 20) + ')')
+                        item.append('use')
+                            .attr('xlink:href', '#' + plot.symbol + '-legend')
+                            .attr('x', 24 + itemWidth)
+                            .attr('y', 10 + count * 20)
                             .attr('fill', plot.color)
                             .attr('class', 'scatter-point line-color')
                             .style('stroke', 'black')
@@ -2822,7 +2869,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         item.append('circle')
                             .attr('r', 5)
                             .attr('cx', 24 + itemWidth)
-                            .attr('cy', 10 + i * 20)
+                            .attr('cy', 10 + count * 20)
                             .style('stroke', plot.color)
                             .style('fill', plot.color);
                     }
@@ -2830,8 +2877,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     item.append('text')
                         .attr('class', 'focus-text')
                         .attr('x', 12 + itemWidth)
-                        .attr('y', 16 + i * 20)
+                        .attr('y', 16 + count * 20)
                         .text(plot.label);
+                    count++;
                 });
                 return count;
             }
@@ -2847,6 +2895,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (domainIndex < 0) {
                         includeForDomain.push(pIndex);
                     }
+                }
+                if (childPlots[pIndex]) {
+                    childPlots[pIndex].forEach(function (cIndex) {
+                        includeDomain(cIndex, doInclude);
+                    });
                 }
             }
 
@@ -2895,20 +2948,19 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function setPlotVisible(pIndex, isVisible) {
                 // disable last toggle - meaningless to show no plots
-                if (includeForDomain.length == 1 && includeForDomain[0] == pIndex) {
+                if (! canToggle(pIndex)) {
                     return;
                 }
-                plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                vIcon(pIndex).text(vIconText(isVisible));
+                ([pIndex].concat(childPlots[pIndex] || [])).forEach(function (i) {
+                    plotPath(i).style('opacity', isVisible ? 1.0 : 0.0);
+                    vIcon(i).text(vIconText(isVisible));
+                });
 
                 if ($scope.axes.y.plots && $scope.axes.y.plots[pIndex]) {
                     includeDomain(pIndex, isVisible);
-                    if (includeForDomain.length == 1) {
-                        vIcon(includeForDomain[0]).style('fill', '#aaaaaa');
-                    }
-                    else {
-                        selectAll('.sr-plot-legend .plot-visibility').style('fill', null);
-                    }
+                    includeForDomain.forEach(function (ip) {
+                        vIcon(ip).style('fill', canToggle(ip) ? null : '#aaaaaa');
+                    });
                     $scope.recalculateYDomain();
                     $scope.resize();
                 }
@@ -2922,13 +2974,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             function togglePlot(pIndex) {
                 setPlotVisible(pIndex, isPlotVisible(pIndex));
-                (childPlots[pIndex] || []).forEach(function (i) {
-                    setPlotVisible(i, isPlotVisible(i));
-                });
             }
 
             function vIcon(pIndex) {
-                return d3.select(selectAll('.sr-plot-legend .plot-visibility')[0][pIndex]);
+                return d3.select('.sr-plot-legend .sr-plot-legend-item[index=\'' + pIndex + '\'] .plot-visibility');
             }
 
             function vIconText(isVisible) {
@@ -3039,6 +3088,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
                 $scope.axes.y.plots = plots;
                 var legendCount = createLegend(plots);
+
+                buildSymbols(plots, viewport, symbolSize, 'data');
+
                 plots.forEach(function(plot, ip) {
                     var color = plotting.colorsFromHexString(plot.color, 1.0);
 
@@ -3071,13 +3123,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .selectAll('.scatter-point')
                                 .data(plot.points)
                                 .enter()
-                                .append('path')
-                                .attr('d', sym)
+                                .append('use')
+                                .attr('xlink:href', '#' + plot.symbol + '-data')
                                 .attr('x', $scope.plotGraphLine(ip).x())
                                 .attr('y', $scope.plotGraphLine(ip).y())
-                                .attr('transform', function (d) {
-                                    return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
-                                })
                                 .attr('class', 'scatter-point line-color')
                                 .style('fill', function (d, j) {
                                     return rgbaToCSS(pointColorMod[j]);
@@ -3120,13 +3169,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .attr('class', 'param-plot').selectAll('.data-point')
                                 .data(plot.points)
                                 .enter()
-                                    .append('path')
-                                    .attr('d', sym)
+                                    .append('use')
+                                    .attr('xlink:href', '#' + plot.symbol + '-data')
                                     .attr('x', $scope.plotGraphLine(ip).x())
                                     .attr('y', $scope.plotGraphLine(ip).y())
-                                    .attr('transform', function (d) {
-                                        return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
-                                    })
                                     .attr('class', 'data-point line-color')
                                     .style('fill', rgbaToCSS(plotColorMod[ip]))
                                     .style('stroke', 'black')
@@ -3242,10 +3288,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             }
                             if ($scope.axes.y.plots[i].symbol) {
                                 pt.attr('x', $scope.plotGraphLine(i).x())
-                                    .attr('y', $scope.plotGraphLine(i).y())
-                                    .attr('transform', function (d) {
-                                        return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
-                                    });
+                                    .attr('y', $scope.plotGraphLine(i).y());
                             }
                             else {
                                 pt.attr('cx', $scope.plotGraphLine(i).x())
