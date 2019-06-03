@@ -86,8 +86,8 @@
             "notes": ["Notes", "Text", ""]
         },
          "beamPositionReport": {
-            "numHistory": ["Time Window (sec)", "Float", 0.0, "enter 0 to view entire history", 0.0],
-            "samplePeriod": ["Sample Period (sec)", "Integer", 1, "", 1]
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5]
         },
         "beamSteering": {
             "useSteering": ["Use Steering", "Boolean", "0"],
@@ -101,8 +101,8 @@
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
         "correctorSettingReport": {
-            "numHistory": ["Time Window (sec)", "Float", 0.0, "enter 0 to view entire history", 0.0],
-            "samplePeriod": ["Sample Period (sec)", "Integer", 1, "", 1],
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5],
             "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
         "epicsServerAnimation": {
