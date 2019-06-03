@@ -231,51 +231,46 @@ def get_beam_pos_report(run_dir, data):
 
 
 def get_centroid_report(run_dir, data):
+    report = data.models[data.report]
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     bpms = None
-
     if monitor_file.exists():
         history, num_records, start_time = _read_monitor_file(monitor_file, True)
         if len(history):
             bpms = _bpm_readings_for_plots(data, history, start_time)
-
-    if not bpms:
-        return {
-            'error': 'no beam position history'
-        }
-
     x = []
     y = []
     t = []
-    z = _position_of_element(data, data.models[data.report]['_id'])
-
-    cx = bpms['x']
-    cy = bpms['y']
-    cz = bpms['z']
-    ct = bpms['t']
-
-    c_idx = cz.index(z)
-
-    for t_idx, time in enumerate(ct):
-        xv = cx[t_idx][c_idx]
-        yv = cy[t_idx][c_idx]
-        t.append(time)
-        x.append(xv)
-        y.append(yv)
-
-    #TODO(pjm): set reasonable history limit
-    _MAX_BPM_POINTS = 50
-    if len(t) > _MAX_BPM_POINTS:
-        cutoff = len(t) - _MAX_BPM_POINTS
-        t = t[cutoff:]
-        x = x[cutoff:]
-        y = y[cutoff:]
-
+    z = _position_of_element(data, report['_id'])
+    if bpms:
+        cx = bpms['x']
+        cy = bpms['y']
+        cz = bpms['z']
+        ct = bpms['t']
+        c_idx = cz.index(z)
+        for t_idx, time in enumerate(ct):
+            xv = cx[t_idx][c_idx]
+            yv = cy[t_idx][c_idx]
+            t.append(time)
+            x.append(xv)
+            y.append(yv)
+        #TODO(pjm): set reasonable history limit
+        _MAX_BPM_POINTS = 10
+        if len(t) > _MAX_BPM_POINTS:
+            cutoff = len(t) - _MAX_BPM_POINTS
+            t = t[cutoff:]
+            x = x[cutoff:]
+            y = y[cutoff:]
+    else:
+        # put the point outside the plot
+        x = [1]
+        y = [1]
+        c_idx = _watch_index(data, report['_id'])
     color = _SETTINGS_PLOT_COLORS[c_idx % len(_SETTINGS_PLOT_COLORS)]
     c_mod = _hex_color_to_rgb(color)
     c_mod[3] = 0.2
     plots = [
-        {
+            {
             'points': y,
             'label': 'y [m]',
             'style': 'line',
@@ -284,7 +279,7 @@ def get_centroid_report(run_dir, data):
         },
     ]
     return template_common.parameter_plot(x, plots, data.models[data.report], {
-        'title': 'z = {}m ({}s - {}s)'.format(z, t[0], t[-1]),
+        'title': 'z = {}m'.format(z),
         'y_label': '',
         'x_label': 'x [m]',
         'aspectRatio': 1.0,
@@ -453,6 +448,8 @@ def models_related_to_report(data):
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
+    if 'watchpointReport' in r:
+        res += ['beamSteering', 'epicsServerAnimation']
     return res
 
 
@@ -590,7 +587,10 @@ def _bpm_readings_for_plots(data, history, start_time):
                 if a_t in t:
                     continue
                 d_ts = a_t - t
-                prev_dt = min([dt for dt in (a_t - t) if dt > 0])
+                deltas = [dt for dt in (a_t - t) if dt > 0]
+                if not len(deltas):
+                    return None
+                prev_dt = min(deltas)
                 dt_idx = np.where(d_ts == prev_dt)[0][0] + 1
                 if dt_idx < np.alen(t):
                     t = np.insert(t, dt_idx, a_t)
@@ -1274,3 +1274,17 @@ def _update_epics_kicker(data):
         values.append(float(data['kicker']['{}kick'.format(f)]))
     update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
     return {}
+
+
+def _watch_index(data, watch_id):
+    count = 0
+    watch_ids = {}
+    for el in data.models.elements:
+        if el.type == 'WATCH':
+            watch_ids[el._id] = True
+    for id in data.models.beamlines[0]['items']:
+        if id in watch_ids:
+            if watch_id == id:
+                return count
+            count += 1
+    assert False, 'no watch for id: {}'.format(watch_id)

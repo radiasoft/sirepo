@@ -232,12 +232,12 @@ def model_defaults(name, schema):
     return res
 
 
-def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None, x_range=None, y_range=None):
+def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = {
         'x_points': x,
-        'x_range': x_range if x_range is not None else [min(x), max(x)],
+        'x_range': [min(x), max(x)],
         'plots': plots,
-        'y_range': compute_plot_color_and_range(plots, plot_colors, y_range),
+        'y_range': compute_plot_color_and_range(plots, plot_colors),
     }
     if 'plotRangeType' in model:
         if model.plotRangeType == 'fixed':

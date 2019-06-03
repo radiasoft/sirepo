@@ -3117,6 +3117,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
                             viewport.append('g')
                                 .attr('index', ip)
+                                .attr('data-color', rgbaToCSS(plotColorMod[ip]))
                                 .attr('class', 'param-plot').selectAll('.data-point')
                                 .data(plot.points)
                                 .enter()

@@ -33,6 +33,9 @@ SIREPO.appFieldEditors = [
       '<div data-trim-button="" data-model-name="modelName" data-model="model" data-field="field"></div>',
     '</div>',
 ].join('');
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="bpmPlot" data-bpm-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+];
 SIREPO.lattice = {
     elementColor: {},
     elementPic: {
@@ -203,25 +206,21 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             WATCH: [],
             KICKER: []
         };
-
-        var watchCount = 0;
-        var kickerCount = 0;
         appState.models.elements.forEach(function(el) {
             var t = el.type;
-            if (Object.keys(self.monitorToModelFields).indexOf(t) < 0) {
+            if (! self.monitorToModelFields[t]) {
                 return;
             }
+            var count = self.monitorToModelFields[t].length + 1;
             var map = {};
             if (t === 'WATCH') {
-                watchCount += 1;
                 ['hpos', 'vpos'].forEach(function(pos) {
-                    map[pos] = 'bpm' + watchCount + '_' + pos;
+                    map[pos] = 'bpm' + count + '_' + pos;
                 });
             }
             else if (t === 'KICKER') {
-                kickerCount += 1;
                 ['hkick', 'vkick'].forEach(function(pos) {
-                    map[pos] ='corrector' + kickerCount
+                    map[pos] ='corrector' + count
                         + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
                 });
             }
@@ -255,24 +254,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         if (! appState.isLoaded()) {
             return;
         }
-
-        /*
-        ['correctorSettingAnimation'].forEach(function(name) {
-            frameCache.setFrameCount(0, name);
-        });
-        if (data.startTime && ! data.error) {
-            ['correctorSettingAnimation'].forEach(function(modelName) {
-                appState.models[modelName].startTime = data.startTime;
-                appState.saveQuietly(modelName);
-            });
-            if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
-                ['correctorSettingAnimation'].forEach(function(name) {
-                    frameCache.setFrameCount(1, name);
-                });
-            }
-        }
-        */
-
         if (data.summaryData) {
             updateFromMonitorValues(data.summaryData.monitorValues);
             if (data.summaryData.optimizationValues) {
@@ -368,34 +349,36 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     function updateFromMonitorValues(monitorValues) {
-        var watchCount = 0;
-        var kickerCount = 0;
-        var count = 0;
+        var countByType = {
+            WATCH: 0,
+            KICKER: 0,
+        };
         var isSteering = isSteeringBeam() || wantFinalKickerUpdate;
         wantFinalKickerUpdate = false;
-
         appState.models.elements.forEach(function(el) {
-            if (Object.keys(self.monitorToModelFields).indexOf(el.type) < 0) {
+            if (! self.monitorToModelFields[el.type]) {
                 return;
             }
-            if (el.type === 'WATCH') {
-                watchCount += 1;
-                count = watchCount - 1;
+            if (el.type == 'KICKER' && ! isSteering) {
+                return;
             }
-            else if (isSteering && el.type === 'KICKER') {
-                kickerCount += 1;
-                count = kickerCount - 1;
-                ['hkick', 'vkick'].forEach(function(pos) {
-                    var field = 'corrector' + kickerCount
-                        + (pos == 'hkick' ? '_HCurrent' : '_VCurrent');
-                    el[pos] = monitorValues[field];
-                    appState.models[el.type + el._id] = el;
-                });
-                appState.saveQuietly(el.type + el._id);
-            }
+            var count = countByType[el.type]++;
             var map = self.monitorToModelFields[el.type][count];
+            var hasChanged = false;
             for (var f in map) {
-                el[map[f]] = monitorValues[f];
+                var v = monitorValues[map[f]];
+                if (el[f] != v) {
+                    el[f] = v;
+                    hasChanged = true;
+                }
+            }
+            if (hasChanged) {
+                appState.models[el.type + el._id] = el;
+                appState.saveQuietly(el.type + el._id);
+                if (el.type == 'WATCH') {
+                    // let the parameter plot know a new point is available
+                    $scope.$broadcast('sr-pointData-' + self.watchpointReportName(el._id), [el.hpos, el.vpos]);
+                }
             }
         });
     }
@@ -815,8 +798,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               '<app-header-right-sim-loaded>',
 		'<div data-sim-sections="">',
                   '<li class="sim-section" data-ng-class="{active: nav.isActive(\'analysis\')}"><a href data-ng-click="nav.openSection(\'analysis\')"><span class="glyphicon glyphicon-tasks"></span> Analysis</a></li>',
-                  //TODO(pjm): disable on alpha for now
-                  // '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
+                  '<li class="sim-section" data-ng-class="{active: nav.isActive(\'controls\')}"><a href data-ng-click="nav.openSection(\'controls\')"><span class="glyphicon glyphicon-dashboard"></span> Controls</a></li>',
 		'</div>',
               '</app-header-right-sim-loaded>',
               '<app-settings>',
@@ -915,29 +897,29 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
-    return {
-        scope: {
-            parentController: '<',
-        },
-        template: [
-            //'<div data-webcon-lattice=""></div>',
-            '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
-        ].join(''),
-        controller: function($scope) {
-            $scope.$on('beamPositionReport.changed', function () {
-                //srdbg('beamPositionReport.changed');
-                var toSave = [];
-                ($scope.parentController.watches || []).forEach(function (w) {
-                    var rpt = $scope.parentController.watchpointReportName(w.id);
-                    appState.models[rpt].lastUpdateTime = Date.now();
-                    toSave.push(rpt);
-                });
-                appState.saveChanges(toSave);
-            });
-        },
-    };
-});
+// SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+//     return {
+//         scope: {
+//             parentController: '<',
+//         },
+//         template: [
+//             //'<div data-webcon-lattice=""></div>',
+//             '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
+//         ].join(''),
+//         controller: function($scope) {
+//             $scope.$on('beamPositionReport.changed', function () {
+//                 //srdbg('beamPositionReport.changed');
+//                 var toSave = [];
+//                 ($scope.parentController.watches || []).forEach(function (w) {
+//                     var rpt = $scope.parentController.watchpointReportName(w.id);
+//                     appState.models[rpt].lastUpdateTime = Date.now();
+//                     toSave.push(rpt);
+//                 });
+//                 appState.saveChanges(toSave);
+//             });
+//         },
+//     };
+// });
 
 SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     return {
@@ -1319,6 +1301,70 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
             });
 
             $($window).resize($scope.windowResize);
+        },
+    };
+});
+
+SIREPO.app.directive('bpmMonitor', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelData: '=bpmMonitor',
+        },
+        controller: function($scope) {
+            var modelName = $scope.modelData.modelKey;
+            var plotScope;
+
+            function pushAndTrim(points, p) {
+                //TODO(pjm): use schema constant and share with template.webcon
+                var MAX_BPM_POINTS = 10;
+                points.push(p);
+                if (points.length > MAX_BPM_POINTS) {
+                    points = points.slice(points.length - MAX_BPM_POINTS);
+                }
+                return points;
+            }
+
+            $scope.$on('sr-pointData-' + modelName, function(event, point) {
+                if (! plotScope || point == undefined) {
+                    return;
+                }
+                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
+                    return;
+                }
+
+                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
+                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
+                points = pushAndTrim(points, point[1]);
+
+                var symbolSize = 144.0;
+                var sym = d3.svg.symbol().size(symbolSize / 2.0).type('circle');
+                var ip = 0;
+
+                plotScope.select('.plot-viewport path').datum(points);
+
+                var fill = plotScope.select('g.param-plot').attr('data-color');
+                plotScope.select('g.param-plot').selectAll('.data-point')
+                    .data(points)
+                    .enter()
+                    .append('path')
+                    .attr('d', sym)
+                    .attr('x', plotScope.plotGraphLine(ip).x())
+                    .attr('y', plotScope.plotGraphLine(ip).y())
+                    .attr('transform', function (d) {
+                        return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
+                    })
+                    .attr('class', 'data-point line-color')
+                    .style('fill', fill)
+                    .style('stroke', 'black')
+                    .style('stroke-width', 0.5);
+                plotScope.refresh();
+            });
+
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+            });
+
         },
     };
 });
