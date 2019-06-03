@@ -3125,8 +3125,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .enter()
                                 .append('use')
                                 .attr('xlink:href', '#' + plot.symbol + '-data')
-                                .attr('x', $scope.plotGraphLine(ip).x())
-                                .attr('y', $scope.plotGraphLine(ip).y())
                                 .attr('class', 'scatter-point line-color')
                                 .style('fill', function (d, j) {
                                     return rgbaToCSS(pointColorMod[j]);
@@ -3142,8 +3140,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .data(plot.points)
                                 .enter()
                                 .append('circle')
-                                .attr('cx', $scope.plotGraphLine(ip).x())
-                                .attr('cy', $scope.plotGraphLine(ip).y())
                                 .attr('r', circleRadius)
                                 .style('fill', function (d, j) {
                                     return clusterInfo ? clusterInfo.scale(clusterInfo.group[j]) : plot.color;
@@ -3163,7 +3159,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             p.style('stroke-dasharray', (plot.dashes));
                         }
                         if (plot.symbol) {
-                            sym = d3.svg.symbol().size(symbolSize / 2.0).type(plot.symbol);
                             viewport.append('g')
                                 .attr('index', ip)
                                 .attr('data-color', rgbaToCSS(plotColorMod[ip]))
@@ -3172,8 +3167,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                                 .enter()
                                     .append('use')
                                     .attr('xlink:href', '#' + plot.symbol + '-data')
-                                    .attr('x', $scope.plotGraphLine(ip).x())
-                                    .attr('y', $scope.plotGraphLine(ip).y())
                                     .attr('class', 'data-point line-color')
                                     .style('fill', rgbaToCSS(plotColorMod[ip]))
                                     .style('stroke', 'black')
@@ -3202,7 +3195,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     setPlotVisible(ip, true);
                 });
 
-                //$scope.axes.y.plots = plots;
                 for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
                     if (fpIndex < plots.length) {
                         $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;

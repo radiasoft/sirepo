@@ -498,11 +498,6 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
                 self.watches.push(m);
                 // this to remove panel editor
                 SIREPO.APP_SCHEMA.view[m.modelKey] = {advanced: []};
-                var wName = self.watchpointReportName(m.id);
-                if (! appState.models[wName]) {
-                    var wm = appState.cloneModel('WATCH' + m.id);
-                    appState.models[wName] = appState.setModelDefaults(wm, 'watchpointReport');
-                }
             }
             else if (element.type == 'KICKER') {
                 self.editorColumns.push([m]);
@@ -897,29 +892,29 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
     };
 });
 
-// SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
-//     return {
-//         scope: {
-//             parentController: '<',
-//         },
-//         template: [
-//             //'<div data-webcon-lattice=""></div>',
-//             '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
-//         ].join(''),
-//         controller: function($scope) {
-//             $scope.$on('beamPositionReport.changed', function () {
-//                 //srdbg('beamPositionReport.changed');
-//                 var toSave = [];
-//                 ($scope.parentController.watches || []).forEach(function (w) {
-//                     var rpt = $scope.parentController.watchpointReportName(w.id);
-//                     appState.models[rpt].lastUpdateTime = Date.now();
-//                     toSave.push(rpt);
-//                 });
-//                 appState.saveChanges(toSave);
-//             });
-//         },
-//     };
-// });
+SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+    return {
+        scope: {
+            parentController: '<',
+        },
+        template: [
+            //'<div data-webcon-lattice=""></div>',
+            '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.$on('beamPositionReport.changed', function () {
+                //srdbg('beamPositionReport.changed');
+                var toSave = [];
+                ($scope.parentController.watches || []).forEach(function (w) {
+                    var rpt = $scope.parentController.watchpointReportName(w.id);
+                    appState.models[rpt].lastUpdateTime = Date.now();
+                    toSave.push(rpt);
+                });
+                appState.saveChanges(toSave);
+            });
+        },
+    };
+});
 
 SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     return {
@@ -1332,30 +1327,19 @@ SIREPO.app.directive('bpmMonitor', function(appState) {
                 if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
                     return;
                 }
-
                 var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
                 plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
                 points = pushAndTrim(points, point[1]);
 
-                var symbolSize = 144.0;
-                var sym = d3.svg.symbol().size(symbolSize / 2.0).type('circle');
-                var ip = 0;
-
-                plotScope.select('.plot-viewport path').datum(points);
-
-                var fill = plotScope.select('g.param-plot').attr('data-color');
+                //TODO(pjm): refactor with parameterPlot.load() to share code
+                plotScope.select('.plot-viewport path.line').datum(points);
                 plotScope.select('g.param-plot').selectAll('.data-point')
                     .data(points)
                     .enter()
-                    .append('path')
-                    .attr('d', sym)
-                    .attr('x', plotScope.plotGraphLine(ip).x())
-                    .attr('y', plotScope.plotGraphLine(ip).y())
-                    .attr('transform', function (d) {
-                        return 'translate(' + d3.select(this).attr('x') + ',' + d3.select(this).attr('y') + ')';
-                    })
+                    .append('use')
+                    .attr('xlink:href', '#circle-data')
                     .attr('class', 'data-point line-color')
-                    .style('fill', fill)
+                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
                     .style('stroke', 'black')
                     .style('stroke-width', 0.5);
                 plotScope.refresh();

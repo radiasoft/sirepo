@@ -91,7 +91,7 @@
         },
         "beamSteering": {
             "useSteering": ["Use Steering", "Boolean", "0"],
-            "steeringMethod": ["Steering Method", "SteeringMethod", "polyfit"]
+            "steeringMethod": ["Steering Method", "SteeringMethod", "nmead"]
         },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],

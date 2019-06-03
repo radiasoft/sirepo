@@ -144,6 +144,16 @@ def fixup_old_data(data):
         data.models.hiddenReport.subreports = []
     if 'beamlines' not in data.models:
         _init_default_beamline(data)
+    for el in data.models.elements:
+        # create a watchpointReport for each WATCH element
+        if el['type'] == 'WATCH':
+            name = 'watchpointReport{}'.format(el['_id'])
+            if name not in data.models:
+                m = pkcollections.Dict({
+                    '_id': el['_id'],
+                })
+                data.models[name] = m
+                template_common.update_model_defaults(m, 'watchpointReport', _SCHEMA)
     template_common.organize_example(data)
 
 
@@ -210,15 +220,9 @@ def get_application_data(data):
 
 def get_beam_pos_report(run_dir, data):
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    if not monitor_file.exists():
-        return {
-            'error': 'no beam position history'
-        }
+    assert monitor_file.exists(), 'no beam position history'
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
-    if len(history) == 0:
-        return {
-            'error': 'no beam position history'
-        }
+    assert len(history) > 0, 'no beam position history'
     x_label = 'z [m]'
 
     x, plots, colors = _beam_pos_plots(data, history, start_time)
@@ -395,9 +399,7 @@ def get_settings_report(run_dir, data):
 
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
     if not monitor_file.exists():
-        return {
-            'error': 'no settings history'
-        }
+        assert False, 'no settings history'
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
