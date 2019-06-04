@@ -1347,6 +1347,7 @@ SIREPO.app.directive('bpmMonitor', function(appState) {
 
             $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
                 plotScope = event.targetScope;
+                plotScope.isZoomXY = true;
             });
 
         },
