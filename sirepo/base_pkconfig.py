@@ -15,7 +15,15 @@ def beta():
 
 
 def dev():
-    return {}
+    return {
+        'sirepo': {
+            'runner_daemon': {
+                'docker_process': {
+                    'dev_env_in_container': True,
+                },
+            },
+        },
+    }
 
 def prod():
     return {}
