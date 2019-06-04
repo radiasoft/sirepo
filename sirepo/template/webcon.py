@@ -807,9 +807,6 @@ def _fit_to_equation(x, y, equation, var, params):
     syms = sympy.symbols(sym_str)
     sym_curve_l = sympy.lambdify(syms, sym_curve, 'numpy')
 
-    # feed a uniform x distribution to the function?  or sort?
-    #x_uniform = np.linspace(np.min(x), np.max(x), 100)
-
     p_vals, pcov = scipy.optimize.curve_fit(sym_curve_l, x, y, maxfev=500000)
     sigma = np.sqrt(np.diagonal(pcov))
 
@@ -840,10 +837,8 @@ def _fit_to_equation(x, y, equation, var, params):
     latex_label = sympy.latex(y_fit_rounded, mode='inline')
     #TODO(pjm): round rather than truncate?
     latex_label = re.sub(r'(\.\d{4})\d+', r'\1', latex_label)
-    y_fit_l(x)
-    y_fit_min_l(x)
-    y_fit_max_l(x)
-    return y_fit_l(x), y_fit_min_l(x), y_fit_max_l(x), p_vals, sigma, latex_label
+    x_uniform = np.linspace(np.min(x), np.max(x), 100)
+    return x_uniform, y_fit_l(x_uniform), y_fit_min_l(x_uniform), y_fit_max_l(x_uniform), p_vals, sigma, latex_label
 
 
 def _generate_parameters_file(run_dir, data):
@@ -884,7 +879,7 @@ def _get_fit_report(report, plot_data, col_info):
     col2 = _safe_index(col_info, report.y1)
     x_vals = plot_data[:, col1] * col_info['scale'][col1]
     y_vals = plot_data[:, col2] * col_info['scale'][col2]
-    fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
+    fit_x, fit_y, fit_y_min, fit_y_max, param_vals, param_sigmas, latex_label = _fit_to_equation(
         x_vals,
         y_vals,
         report.fitEquation,
@@ -899,15 +894,18 @@ def _get_fit_report(report, plot_data, col_info):
         },
         {
             'points': fit_y.tolist(),
+            'x_points': fit_x.tolist(),
             'label': 'fit',
         },
         {
             'points': fit_y_min.tolist(),
+            'x_points': fit_x.tolist(),
             'label': 'confidence',
             '_parent': 'confidence'
         },
         {
             'points': fit_y_max.tolist(),
+            'x_points': fit_x.tolist(),
             'label': '',
             '_parent': 'confidence'
         }
