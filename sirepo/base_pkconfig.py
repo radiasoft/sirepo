@@ -6,6 +6,9 @@ u"""Default config
 """
 from __future__ import absolute_import, division, print_function
 
+# Note: sirepo intentionally keeps this file empty. For discussion see:
+#   https://github.com/radiasoft/sirepo/pull/1707#discussion_r290323080
+
 def alpha():
     return {}
 
@@ -15,15 +18,7 @@ def beta():
 
 
 def dev():
-    return {
-        'sirepo': {
-            'runner_daemon': {
-                'docker_process': {
-                    'dev_env_in_container': True,
-                },
-            },
-        },
-    }
+    return {}
 
 def prod():
     return {}

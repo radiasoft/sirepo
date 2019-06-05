@@ -70,7 +70,7 @@ async def _make_container(run_dir, working_dir, quoted_bash_cmd, job_type):
     name = _container_name(run_dir, job_type)
     await _container_clear(name)
     mounts = []
-    if cfg.dev_env_in_container:
+    if cfg.mount_dev_env_into_container:
         # https://docker-py.readthedocs.io/en/stable/api.html#docker.types.Mount
         # https://docs.docker.com/storage/bind-mounts/
         mounts += [
@@ -189,5 +189,9 @@ async def run_extract_job(run_dir, cmd, backend_info):
 
 
 cfg = pkconfig.init(
-    dev_env_in_container=(False, bool, 'mount host dev environment into container'),
+    mount_dev_env_into_container=(
+        True if pkconfig.channel_in('dev') else False,
+        bool,
+        'mount host ~/.pyenv and ~/src into container',
+    ),
 )
