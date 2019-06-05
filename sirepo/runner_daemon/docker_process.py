@@ -7,6 +7,7 @@ u"""sirepo package
 from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import mpi
@@ -68,15 +69,45 @@ async def _make_container(run_dir, working_dir, quoted_bash_cmd, job_type):
     extra_env = {'SIREPO_MPI_CORES': str(mpi.cfg.cores)}
     name = _container_name(run_dir, job_type)
     await _container_clear(name)
+    mounts = []
+    if cfg.mount_dev_env_into_container:
+        # https://docker-py.readthedocs.io/en/stable/api.html#docker.types.Mount
+        # https://docs.docker.com/storage/bind-mounts/
+        mounts += [
+            docker.types.Mount(
+                target="/home/vagrant/.pyenv",
+                source="/home/vagrant/.pyenv",
+                type="bind",
+                read_only=True,
+            ),
+            # If you used pip install -e, then the pyenv environment contains
+            # direct references to the src dir.
+            docker.types.Mount(
+                target="/home/vagrant/src",
+                source="/home/vagrant/src",
+                type="bind",
+                read_only=True,
+            ),
+        ]
+    # This goes after the dev_env_in_container settings, because run_dir may
+    # be a subdirectory of /home/vagrant/src, so we want the run_dir mount to
+    # be layered on top of the /home/vagrant/src mount.
+    mounts += [
+        docker.types.Mount(
+            target=str(run_dir),
+            source=str(working_dir),
+            type="bind",
+            read_only=False,
+        ),
+    ]
+
     # XX TODO: limits on cpu, disk, networking
     return await trio.run_sync_in_worker_thread(
         functools.partial(
             _DOCKER.containers.run,
             'radiasoft/sirepo',
             docker_cmd,
-            # Mount the host's working_dir at run_dir inside the container
-            # {host path: {'bind': container path, 'mode': 'rw'}}
-            volumes={str(working_dir): {'bind': str(run_dir), 'mode': 'rw'}},
+            mounts=mounts,
             # This path is interpreted inside the container, so it really uses
             # working_dir as the working dir:
             working_dir=str(run_dir),
@@ -155,3 +186,12 @@ async def run_extract_job(run_dir, cmd, backend_info):
         )
     finally:
         await trio.run_sync_in_worker_thread(container.remove)
+
+
+cfg = pkconfig.init(
+    mount_dev_env_into_container=(
+        True if pkconfig.channel_in('dev') else False,
+        bool,
+        'mount host ~/.pyenv and ~/src into container',
+    ),
+)
