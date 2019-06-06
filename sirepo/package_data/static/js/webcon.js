@@ -126,6 +126,21 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
         panelState.clear('analysisReport' + id);
     };
 
+    self.tokenizeEquation = function(eq) {
+        var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs', 'pi'];
+        return (eq || '').split(/[-+*/^|%().0-9\s]/)
+            .filter(function (t) {
+                return t.length > 0 &&
+                    reserved.indexOf(t.toLowerCase()) < 0;
+        });
+    };
+
+    self.tokenizeParams = function(val) {
+        return (val || '').split(/\s*,\s*/).filter(function (t) {
+            return t.length > 0;
+        });
+    };
+
     return self;
 });
 
@@ -841,6 +856,59 @@ SIREPO.app.directive('beamSteeringResults', function(appState) {
     };
 });
 
+SIREPO.app.directive('bpmMonitor', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelData: '=bpmMonitor',
+        },
+        controller: function($scope) {
+            var modelName = $scope.modelData.modelKey;
+            var plotScope;
+
+            function pushAndTrim(points, p) {
+                //TODO(pjm): use schema constant and share with template.webcon
+                var MAX_BPM_POINTS = 10;
+                points.push(p);
+                if (points.length > MAX_BPM_POINTS) {
+                    points = points.slice(points.length - MAX_BPM_POINTS);
+                }
+                return points;
+            }
+
+            $scope.$on('sr-pointData-' + modelName, function(event, point) {
+                if (! plotScope || point == undefined) {
+                    return;
+                }
+                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
+                    return;
+                }
+                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
+                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
+                points = pushAndTrim(points, point[1]);
+
+                //TODO(pjm): refactor with parameterPlot.load() to share code
+                plotScope.select('.plot-viewport path.line').datum(points);
+                plotScope.select('g.param-plot').selectAll('.data-point')
+                    .data(points)
+                    .enter()
+                    .append('use')
+                    .attr('xlink:href', '#circle-data')
+                    .attr('class', 'data-point line-color')
+                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
+                    .style('stroke', 'black')
+                    .style('stroke-width', 0.5);
+                plotScope.refresh();
+            });
+
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+            });
+
+        },
+    };
+});
+
 SIREPO.app.directive('clusterFields', function(appState, webconService) {
     return {
         restrict: 'A',
@@ -1053,7 +1121,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     };
 });
 
-SIREPO.app.directive('equation', function(appState, webconService) {
+SIREPO.app.directive('equation', function(appState, webconService, $timeout) {
     return {
         scope: {
             model: '=',
@@ -1063,36 +1131,85 @@ SIREPO.app.directive('equation', function(appState, webconService) {
         template: [
             '<div>',
                 '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
+                '<input type="checkbox" data-ng-model="model[\'autoFill\']" data-ng-change="validateAll()"> Auto-fill variables',
             '</div>',
         ].join(''),
         controller: function ($scope) {
-            $scope.webconservice = webconService;
 
-            //srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
+            var defaultFitVars = ['x', 'y', 'z', 't'];
 
-            // function tokenizeEquation() {
-            //     var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
-            //TODO(pjm): jshint doesn't like the regular expression for some reason
-            //     var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
-            //         .filter(function (t) {
-            //             return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
-            //     });
-            //     //tokens = tokens.filter(function (t) {
-            //     //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
-            //     //});
-            //     return tokens;
-            // }
+            function tokenizeEquation() {
+                return webconService.tokenizeEquation($scope.model[$scope.field]);
+            }
+
+            function extractParams() {
+
+                var params = webconService.tokenizeParams($scope.model.fitParameters).sort();
+                var tokens = tokenizeEquation().filter(function (t) {
+                    return t !== $scope.model.fitVariable;
+                });
+
+                // remove parameters no longer in the equation
+                params.reverse().forEach(function (p, i) {
+                    if (tokens.indexOf(p) < 0) {
+                        params.splice(i, 1);
+                    }
+                });
+
+                // add tokens not represented
+                tokens.forEach(function (t) {
+                    if (params.indexOf(t) < 0) {
+                        params.push(t);
+                    }
+                });
+                params.sort();
+
+                return params;
+            }
+
+            function extractVar() {
+                var tokens = tokenizeEquation();
+                var indVar = $scope.model.fitVariable;
+
+                if (! indVar|| tokens.indexOf(indVar) < 0) {
+                    indVar = null;
+                    tokens.forEach(function (t) {
+                        if (indVar) {
+                            return;
+                        }
+                        if (defaultFitVars.indexOf(t) >= 0) {
+                            indVar = t;
+                        }
+                    });
+                }
+                return indVar;
+            }
+
+            //$scope.autoFillEnabled = true;
 
             $scope.validateAll = function() {
+                if ($scope.model.autoFill) {
+                    // allow time for models to be set before validating
+                    $timeout(function () {
+                        $scope.model.fitVariable = extractVar();
+                        $scope.model.fitParameters = extractParams().join(',');
+                    });
+                }
+
                 $scope.form.$$controls.forEach(function (c) {
+                    c.$setDirty();
                     c.$validate();
                 });
             };
+
+            if ($scope.model.autoFill === null) {
+                $scope.model.autoFill = true;
+            }
         },
     };
 });
 
-SIREPO.app.directive('equationVariables', function() {
+SIREPO.app.directive('equationVariables', function(webconService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -1108,7 +1225,6 @@ SIREPO.app.directive('equationVariables', function() {
             '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
         controller: function($scope, $element) {
-            $scope.equation = $scope.model.fitEquation;
         },
     };
 });
@@ -1130,7 +1246,7 @@ SIREPO.app.directive('fftReport', function(appState) {
             $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
                 var str = '';
                 data.freqs.forEach(function (wi, i) {
-                    if(str == '') {
+                    if (str == '') {
                         str = 'Found frequncies: ';
                     }
                     var w = wi[1];
@@ -1196,24 +1312,20 @@ SIREPO.app.directive('trimButton', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
+SIREPO.app.directive('validVariableOrParam', function(webconService, utilities) {
     return {
         restrict: 'A',
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel) {
 
             // set dirty on load to catch invalid variables that might have been saved
-            if(! ngModel.$valid) {
+            if (! ngModel.$valid) {
                 ngModel.$setDirty();
-            }
-
-            function tokens() {
-                return (ngModel.$viewValue || '').split(/\s*,\s*/);
             }
 
             function isUnique (val, arr) {
                 var i = arr.indexOf(val);
-                if(i < 0) {
+                if (i < 0) {
                     throw val + ': Value not in array';
                 }
                 return i === arr.lastIndexOf(val);
@@ -1221,19 +1333,19 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
 
             function validateParam(p) {
                 scope.warningText = '';
-                if(! /^[a-zA-Z]+$/.test(p)) {
+                if (! /^[a-zA-Z]+$/.test(p)) {
                     scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
                     return false;
                 }
-                if(! scope.isVariable && p === scope.model.fitVariable) {
+                if (! scope.isVariable && p === scope.model.fitVariable) {
                     scope.warningText = p + ' is an independent variable';
                     return false;
                 }
-                if(scope.model.fitEquation && scope.model.fitEquation.indexOf(p) < 0) {
+                if (webconService.tokenizeEquation(scope.model.fitEquation).indexOf(p) < 0) {
                     scope.warningText = p + ' does not appear in the equation';
                     return false;
                 }
-                if(! isUnique(p, tokens())) {
+                if (! isUnique(p, webconService.tokenizeParams(ngModel.$viewValue))) {
                     scope.warningText = p + ' is duplicated';
                     return false;
                 }
@@ -1241,15 +1353,16 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
                 return true;
             }
 
-            ngModel.$validators.validTokens = (function (v) {
-                return tokens()
-                    .filter(function (p) {
-                        return p.length > 0;
-                    })
+            ngModel.$validators.validTokens = function (v) {
+                if (! v) {
+                    scope.warningText = '';
+                    return false;
+                }
+                return webconService.tokenizeParams(v)
                     .reduce(function (valid, p) {
                         return valid && validateParam(p);
                     }, true);
-            });
+            };
         },
     };
 });
@@ -1300,55 +1413,3 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
     };
 });
 
-SIREPO.app.directive('bpmMonitor', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelData: '=bpmMonitor',
-        },
-        controller: function($scope) {
-            var modelName = $scope.modelData.modelKey;
-            var plotScope;
-
-            function pushAndTrim(points, p) {
-                //TODO(pjm): use schema constant and share with template.webcon
-                var MAX_BPM_POINTS = 10;
-                points.push(p);
-                if (points.length > MAX_BPM_POINTS) {
-                    points = points.slice(points.length - MAX_BPM_POINTS);
-                }
-                return points;
-            }
-
-            $scope.$on('sr-pointData-' + modelName, function(event, point) {
-                if (! plotScope || point == undefined) {
-                    return;
-                }
-                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
-                    return;
-                }
-                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
-                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
-                points = pushAndTrim(points, point[1]);
-
-                //TODO(pjm): refactor with parameterPlot.load() to share code
-                plotScope.select('.plot-viewport path.line').datum(points);
-                plotScope.select('g.param-plot').selectAll('.data-point')
-                    .data(points)
-                    .enter()
-                    .append('use')
-                    .attr('xlink:href', '#circle-data')
-                    .attr('class', 'data-point line-color')
-                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
-                    .style('stroke', 'black')
-                    .style('stroke-width', 0.5);
-                plotScope.refresh();
-            });
-
-            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
-                plotScope = event.targetScope;
-            });
-
-        },
-    };
-});
