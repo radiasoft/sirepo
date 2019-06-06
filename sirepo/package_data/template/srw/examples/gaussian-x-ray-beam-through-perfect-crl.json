@@ -31,7 +31,7 @@
                 "position": 300,
                 "radius": 0.00025,
                 "refractiveIndex": "2.215551e-6",
-                "shape": 1,
+                "shape": "1",
                 "title": "CRL",
                 "type": "crl",
                 "verticalApertureSize": 1,

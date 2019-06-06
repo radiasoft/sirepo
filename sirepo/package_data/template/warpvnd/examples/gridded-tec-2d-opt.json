@@ -145,7 +145,7 @@
             ],
             "objective": "efficiency",
             "timeLimit": 120,
-            "tolerance": 0.01
+            "tolerance": 0.001
         },
         "optimizerAnimation": {
             "colorMap": "viridis",

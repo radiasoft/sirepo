@@ -10,12 +10,12 @@ from pykern import pkconfig
 from pykern import pkcollections
 import copy
 
-#: Codes on beta and prod
-_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'shadow', 'hellweg', 'warpvnd', 'rs4pi', 'jspec', 'synergia')
+
+#: Codes on beta and prod;'shadow' is unsupported on F29 for now
+_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'warpvnd', 'rs4pi', 'jspec', 'synergia', 'zgoubi')
 
 #: Codes on dev and alpha
-_ALPHA_CODES = ('myapp', 'adm', 'zgoubi', 'flash')
-
+_ALPHA_CODES = ('myapp', 'adm', 'flash', 'webcon')
 
 #: All possible codes
 _ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES
@@ -56,7 +56,7 @@ def _codes(want_all=None):
 
 
 cfg = pkconfig.init(
-    api_modules=((), tuple, 'optional api modules, e.g. bluesky'),
+    api_modules=((), tuple, 'optional api modules, e.g. status'),
     runner_daemon=(False, bool, 'use the runner daemon'),
     #TODO(robnagler) make sim_type config
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),

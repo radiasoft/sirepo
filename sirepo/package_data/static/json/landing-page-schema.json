@@ -27,15 +27,6 @@
                 "url":""
             }
         },
-        "genesis": {
-            "url": "/static/html/landing-page-genesis.html",
-            "codeTitle": "Genesis",
-            "infoPanelTitle": "Genesis",
-            "mediaConfig": {
-                "title": "Genesis on Sirepo",
-                "url":""
-            }
-        },
         "jspec": {
             "url": "/static/html/landing-page-jspec.html",
             "codeURL": "/jspec",
@@ -48,7 +39,7 @@
         },
         "jupyter": {
             "url": "/static/html/landing-page-jupyter.html",
-            "codeURL": "/#/jupyter",
+            "codeURL": "/old#/jupyter",
             "codeTitle": "Jupyter Hub",
             "infoPanelTitle": "RadiaSoft JupyterHub Server",
             "mediaConfig": {
@@ -148,6 +139,9 @@
             }
         },
         "zgoubi": {
+            "url": "/static/html/landing-page-zgoubi.html",
+            "codeURL": "/zgoubi",
+            "codeTitle": "Zgoubi",
             "infoPanelTitle": "ZGOUBI",
             "mediaConfig": {
                 "title": "Zgoubi Sirepo",

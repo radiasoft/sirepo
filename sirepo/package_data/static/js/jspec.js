@@ -78,12 +78,6 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.enableField('electronBeam', 'gamma', false);
     }
 
-    function processIntrabeamScatteringMethod() {
-        var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
-        panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
-        panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
-    }
-
     function processIonBeamType() {
         panelState.showField('ionBeam', 'rms_bunch_length', appState.models.ionBeam.beam_type == 'bunched');
     }
@@ -94,12 +88,6 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         panelState.showField('ring', 'elegantTwiss', latticeSource == 'elegant');
         panelState.showField('ring', 'elegantSirepo', latticeSource == 'elegant-sirepo');
     }
-
-    self.handleModalShown = function(name) {
-        if (name == 'rateCalculationReport') {
-            processIntrabeamScatteringMethod();
-        }
-    };
 
     self.showTwissEditor = function() {
         panelState.showModalEditor('twissReport');
@@ -114,7 +102,6 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
         appState.watchModelFields($scope, ['ionBeam.beam_type'], processIonBeamType);
         appState.watchModelFields($scope, ['electronBeam.shape', 'electronBeam.beam_type'], processElectronBeamShape);
         appState.watchModelFields($scope, ['electronBeam.beam_type'], processElectronBeamType);
-        appState.watchModelFields($scope, ['intrabeamScatteringRate.longitudinalMethod'], processIntrabeamScatteringMethod);
         appState.watchModelFields($scope, ['ring.latticeSource'], processLatticeSource);
         appState.watchModelFields($scope, ['ionBeam.mass', 'ionBeam.kinetic_energy'], processGamma);
     });
@@ -244,9 +231,11 @@ SIREPO.app.directive('elegantSimList', function(appState, requestSender, $window
                 if ($scope.model && $scope.model[$scope.field]) {
                     //TODO(pjm): this depends on the visualization route being present in both jspec and elegant apps
                     // need meta data for a page in another app
-                    var url = '/elegant#' + requestSender.formatUrlLocal('visualization', {
-                        ':simulationId': $scope.model[$scope.field],
-                    });
+                    var url = requestSender.formatUrlLocal(
+                        'visualization',
+                        {':simulationId': $scope.model[$scope.field]},
+                        'elegant'
+                    );
                     $window.open(url, '_blank');
                 }
             };
@@ -311,6 +300,28 @@ SIREPO.app.directive('rateCalculationPanel', function(appState, plotting) {
         },
     };
 });
+
+SIREPO.app.directive('srRatecalculationreportEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+            function processIntrabeamScatteringMethod() {
+                var method = appState.models.intrabeamScatteringRate.longitudinalMethod;
+                panelState.showField('intrabeamScatteringRate', 'nz', method == 'nz');
+                panelState.showField('intrabeamScatteringRate', 'log_c', method == 'log_c');
+            }
+
+            $scope.$on('sr-tabSelected', processIntrabeamScatteringMethod);
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields(
+                    $scope, ['intrabeamScatteringRate.longitudinalMethod'],
+                    processIntrabeamScatteringMethod);
+            });
+        },
+    };
+});
+
 
 SIREPO.app.directive('twissFileField', function(appState, panelState) {
     return {

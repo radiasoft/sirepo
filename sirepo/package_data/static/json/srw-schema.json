@@ -76,10 +76,6 @@
             ["t", "Twiss"],
             ["m", "Moments"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BrightnessComponent": [
             ["k-tuning", "K Tuning"],
             ["spectral-detuning", "Spectral Detuning"]
@@ -293,6 +289,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
+            ["a", "Arbitrary Magnetic Field"],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -561,6 +558,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "intensityReport": {
@@ -631,6 +629,7 @@
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "photonEnergyBandWidth": ["Photon Energy Band Width [eV]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
         },
@@ -655,12 +654,14 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "precision": ["Relative Precision", "Float"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Power Density Computation Method", "PowerDensityMethod"],
             "horizontalPointCount": ["Number of Points vs Horizontal Position", "Integer", 100],
             "verticalPointCount": ["Number of Points vs Vertical Position", "Integer", 100],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "propagationParameters": {
@@ -733,6 +734,9 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "magneticField": ["Magnetic Field Treatment", "MagneticField"],
+            "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
+	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
+	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
             "photonEnergy": ["Photon Energy [eV]", "Float"],
             "polarization": ["Polarization Component to Extract", "Polarization"],
             "precision": ["Relative Precision", "Float", 0.01],
@@ -742,6 +746,7 @@
             "verticalPosition": ["Vertical Center Position [mm]", "Float"],
             "verticalRange": ["Range of Vertical Position [mm]", "Float"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "sphericalMirror": {
@@ -818,6 +823,11 @@
             "horizontalDeflectingParameter": ["Horizontal Deflecting Parameter (K)", "Float"],
             "verticalDeflectingParameter": ["Vertical Deflecting Parameter (K)", "Float"]
         },
+        "arbitraryMagField": {
+            "interpolationOrder": ["Interpolation Order", "Float", 1],
+            "longitudinalPosition": ["Longitudinal Central Position [m]", "Float", 0],
+            "magneticFile": ["Magnetic Data File", "ArbitraryFieldFile", "ivu21_srx_g6_2c.dat"]
+        },
         "watch": {
             "title": ["Element Name", "SafePath", "Watchpoint"],
             "position": ["Nominal Position [m]", "Float"]
@@ -829,6 +839,7 @@
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "zonePlate": {
@@ -1266,7 +1277,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1399,7 +1411,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1451,7 +1464,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1566,15 +1580,18 @@
                     "notes"
                 ]],
                 ["Accuracy", [
-                    "magneticField",
-                    "precision"
+                    "method",
+                    "precision",
+                    "initialPosition",
+                    "finalPosition"
                 ]],
                 ["Scale", [
                     "intensityPlotsWidth",
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },
@@ -1742,6 +1759,15 @@
             ],
             "advanced": []
         },
+        "arbitraryMagField": {
+            "title": "Arbitrary Magnetic Field",
+            "basic": [
+                "longitudinalPosition",
+                "magneticFile",
+                "interpolationOrder"
+            ],
+            "advanced": []
+        },
         "watch": {
             "title": "Watchpoint",
             "basic": [],
@@ -1766,7 +1792,8 @@
                     "intensityPlotsScale"
                 ]],
                 ["Other", [
-                    "colorMap"
+                    "colorMap",
+                    "aspectRatio"
                 ]]
             ]
         },

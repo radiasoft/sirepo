@@ -13,10 +13,11 @@ import re
 pytest.importorskip('srwl_bl')
 
 def test_generate_all_optics():
+    fc = _setup_client()
+    from sirepo.template import srw
     from sirepo import srunit
     from sirepo.template import srw
     name = 'srw-all-optics'
-    fc = _setup_client()
     fn = pkunit.data_dir().join('{}.json'.format(name))
     (json, stream) = srunit.file_as_stream(fn)
     sim = fc.sr_post_form(
@@ -31,8 +32,8 @@ def test_generate_all_optics():
 
 
 def test_generate_python():
-    from sirepo.template import srw
     fc = _setup_client()
+    from sirepo.template import srw
 
     for name in ('NSLS-II CHX beamline', 'Sample from Image', 'Boron Fiber (CRL with 3 lenses)', 'Tabulated Undulator Example', 'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors', 'NSLS-II SRX beamline', 'NSLS-II ESM beamline', 'Mask example', 'NSLS-II SMI beamline'):
         sim = fc.sr_sim_data(srw.SIM_TYPE, name)
@@ -47,7 +48,6 @@ def _generate_source(fc, sim, name):
             'simulation_id': sim['models']['simulation']['simulationId'],
             'simulation_type': sim['simulationType'],
         },
-        raw_response=True,
     )
     filename = '{}.py'.format(name.lower())
     filename = re.sub(r'\s', '-', filename)
@@ -59,8 +59,7 @@ def _generate_source(fc, sim, name):
 
 
 def _setup_client():
-    from sirepo.template import srw
     from sirepo import srunit
-    fc = srunit.flask_client()
-    fc.get('/{}'.format(srw.SIM_TYPE))
+    fc = srunit.flask_client(sim_types='srw')
+    fc.sr_login_as_guest('srw')
     return fc

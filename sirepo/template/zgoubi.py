@@ -10,13 +10,17 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common
+from sirepo.template import template_common, zgoubi_importer
+import copy
 import io
+import jinja2
 import locale
 import math
 import numpy as np
 import py.path
 import re
+import werkzeug
+import zipfile
 
 SIM_TYPE = 'zgoubi'
 
@@ -57,9 +61,13 @@ _ANIMATION_FIELD_INFO = {
     'S': ['s [m]', 0.01],
     'time': ['t [s]', 1],
     'RET': ['RF Phase [rad]', 1],
-    'DPR': ['dp/p [eV/c]', 1e6],
-    "ENEKI": ["Kenetic Energy [eV]", 1e6],
-    "ENERG": ["Energy [eV]", 1e6],
+    'DPR': ['dp/p', 1e6],
+    'ENEKI': ['Kenetic Energy [eV]', 1e6],
+    'ENERG': ['Energy [eV]', 1e6],
+    'IPASS': ['Turn Number', 1],
+    'SX': ['Spin X', 1],
+    'SY': ['Spin Y', 1],
+    'SZ': ['Spin Z', 1],
 }
 
 _PYZGOUBI_FIELD_MAP = {
@@ -109,21 +117,28 @@ _TWISS_SUMMARY_LABELS = {
 def background_percent_complete(report, run_dir, is_running):
     errors = ''
     if not is_running:
-        data_file = run_dir.join(_ZGOUBI_DATA_FILE)
-        if data_file.exists():
-            col_names, rows = _read_data_file(data_file)
-            ipasses = _ipasses_for_data(col_names, rows)
+        out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
+        count = 0
+        if out_file.exists():
+            out = simulation_db.read_json(out_file)
+            if 'frame_count' in out:
+                count = out.frame_count
+        if not count:
+            count = read_frame_count(run_dir)
+        if count:
             return {
                 'percentComplete': 100,
-                'frameCount': len(ipasses) + 1,
+                'frameCount': count,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
-    return {
+    res = {
         'percentComplete': 0,
         'frameCount': 0,
-        'error': errors,
     }
+    if errors:
+        res['errors'] = errors
+    return res
 
 
 def column_data(col, col_names, rows):
@@ -147,6 +162,7 @@ def fixup_old_data(data):
             'bunchAnimation2',
             'energyAnimation',
             'particle',
+            'particleCoordinate',
             'simulationSettings',
             'opticsReport',
             'twissReport',
@@ -156,6 +172,14 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if 'coordinates' not in data.models.bunch:
+        data.models.bunch.coordinates = []
+    if 'spntrk' in data.models.simulationSettings:
+        for f in ('spntrk', 'S_X', 'S_Y', 'S_Z'):
+            if f in data.models.simulationSettings:
+                data.models.bunch[f] = data.models.simulationSettings[f]
+                del data.models.simulationSettings[f]
+    template_common.organize_example(data)
 
 
 def get_animation_name(data):
@@ -165,6 +189,8 @@ def get_animation_name(data):
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
+    if data['method'] == 'tosca_info':
+        return _tosca_info(data)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -173,8 +199,19 @@ def get_simulation_frame(run_dir, data, model_data):
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
+def import_file(request, lib_dir=None, tmp_dir=None):
+    f = request.files['file']
+    filename = werkzeug.secure_filename(f.filename)
+    data = zgoubi_importer.import_file(f.read())
+    return data
+
+
 def lib_files(data, source_lib):
-    return []
+    res = []
+    for el in data.models.elements:
+        if el.type == 'TOSCA' and el.magnetFile:
+            res.append(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
@@ -204,13 +241,22 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     report = data['report']
     if 'bunchReport' in report or 'twissReport' in report or 'opticsReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            save_report_data(data, report_info.run_dir)
+            save_report_data(data, run_dir)
+
+
+def read_frame_count(run_dir):
+    data_file = run_dir.join(_ZGOUBI_DATA_FILE)
+    if data_file.exists():
+        col_names, rows = _read_data_file(data_file)
+        ipasses = _ipasses_for_data(col_names, rows)
+        return len(ipasses) + 1
+    return 0
 
 
 def remove_last_frame(run_dir):
@@ -219,6 +265,7 @@ def remove_last_frame(run_dir):
 
 def save_report_data(data, run_dir):
     report_name = data['report']
+    error = ''
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
@@ -227,8 +274,12 @@ def save_report_data(data, run_dir):
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
+            points = column_data(report[f], col_names, rows)
+            if any(map(lambda x: math.isnan(x), points)):
+                error = 'Twiss data could not be computed for {}'.format(
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]))
             plots.append({
-                'points': column_data(report[f], col_names, rows),
+                'points': points,
                 'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
             })
         #TODO(pjm): use template_common
@@ -260,6 +311,10 @@ def save_report_data(data, run_dir):
             }
     else:
         raise RuntimeError('unknown report: {}'.format(report_name))
+    if error:
+        res = {
+            'error': error,
+        }
     simulation_db.write_result(
         res,
         run_dir=run_dir,
@@ -279,6 +334,16 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
         run_dir.join(python_file),
         _generate_parameters_file(data),
     )
+    # unzip the required magnet files
+    for el in data.models.elements:
+        if el.type != 'TOSCA':
+            continue
+        filename = str(run_dir.join(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        if _is_zip_file(filename):
+            with zipfile.ZipFile(filename, 'r') as z:
+                for info in z.infolist():
+                    if info.filename in el.fileNames:
+                        z.extract(info, str(run_dir))
 
 
 def _compute_range_across_frames(run_dir, data):
@@ -310,13 +375,15 @@ def _element_value(el, field):
     converter = _MODEL_UNITS.get(el['type'], {}).get(field, None)
     return converter(el[field]) if converter else el[field]
 
+
 def _extract_animation(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
         data,
         {
             '1': ['x', 'y', 'histogramBins', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            '2': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
+            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'startTime'],
         },
     )
     is_frame_0 = False
@@ -339,10 +406,27 @@ def _extract_animation(run_dir, data, model_data):
     ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
+    let_index = int(col_names.index('LET'))
+    if report['particleNumber'] != 'all':
+        let_search = "'{}'".format(int(report['particleNumber']) - 1)
+
+    count = 0
     for row in all_rows:
-        if int(row[ipass_index]) == ipass:
+        if report['showAllFrames'] == '1':
+            if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
+                if row[let_index] != let_search:
+                    continue
             rows.append(row)
-    return _extract_bunch_data(model, col_names, rows, 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass))
+        elif int(row[ipass_index]) == ipass:
+            rows.append(row)
+    if report['showAllFrames'] == '1':
+        title = 'All Frames'
+        if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
+            title += ', Particle {}'.format(report['particleNumber'])
+    else:
+        title = 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass)
+    return _extract_bunch_data(model, col_names, rows, title)
+
 
 def _extract_bunch_data(report, col_names, rows, title):
     x_info = _ANIMATION_FIELD_INFO[report['x']]
@@ -354,7 +438,7 @@ def _extract_bunch_data(report, col_names, rows, title):
         'y_label': y_info[0],
         'title': title,
         'z_label': 'Number of Particles',
-    });
+    })
 
 
 def _generate_beamline(data, beamline_map, element_map, beamline_id):
@@ -382,6 +466,20 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             res += 'line.add(core.FAKE_ELEM(""" \'YMY\'\n"""))\n'
         elif el['type'] == 'SEXTUPOL':
             res += _generate_element(el, 'QUADRUPO')
+        elif el['type'] == 'SCALING':
+            form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
+            _MAX_SCALING_FAMILY = 5
+            count = 0
+            scale_values = ''
+            for idx in range(1, _MAX_SCALING_FAMILY + 1):
+                # NAMEF1, SCL1
+                if el['NAMEF{}'.format(idx)] != 'none':
+                    count += 1
+                    scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
+            if el.IOPT == '1' and count > 0:
+                res += form.format(el.IOPT, count, scale_values)
+        elif el['type'] == 'TOSCA':
+            res += _generate_element_tosca(el)
         else:
             assert el['type'] in _MODEL_UNITS, 'Unsupported element: {}'.format(el['type'])
             res += _generate_element(el)
@@ -417,16 +515,88 @@ def _generate_element(el, schema_type=None):
     return res
 
 
+_MAGNET_TYPE_TO_MOD = {
+    'cartesian': {
+        '2d-sf': '0',
+        '2d-sf-ags': '3',
+        '2d-sf-ags-p': '3.1',
+        '2d-mf-f': '15.{{ fileCount }}',
+        '3d-mf-2v': '0',
+        '3d-mf-1v': '1',
+        '3d-sf-2v': '12',
+        '3d-sf-1v': '12.1',
+        '3d-2f-8v': '12.2',
+        '3d-mf-f': '15.{{ fileCount }}',
+    },
+    'cylindrical': {
+        '2d-mf-f': '25.{{ fileCount }}',
+        '3d-sf-4v': '20',
+        '2d-mf-f-2v': '22.{{ fileCount }}',
+        '3d-mf-f-2v': '22.{{ fileCount }}',
+        '3d-sf': '24',
+    },
+}
+
+def _generate_element_tosca(el):
+    el = copy.deepcopy(el)
+    el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
+    if '{{ fileCount }}' in el['MOD']:
+        el['MOD'] = el['MOD'].replace('{{ fileCount }}', str(el['fileCount']))
+        el['hasFields'] = True
+    if '-sf' in el.magnetType or ('-f' in el.magnetType and el['fileCount'] == 1):
+        filename = el['magnetFile']
+        if _is_zip_file(filename):
+            filename = el['fileNames'][0]
+            assert filename, 'missing file name from zip for single file magnet'
+        el['fileNames'] = [template_common.lib_file_name('TOSCA', 'magnetFile', filename)]
+    else:
+        if '-f' in el.magnetType:
+            file_count = el.fileCount
+        elif el.magnetType == '3d-mf-2v':
+            file_count = math.floor((el.IZ + 1) / 2)
+        elif el.magnetType == '3d-mf-1v':
+            file_count = el.IZ
+        else:
+            assert false, 'unhandled magnetType: {}'.format(el.magnetType)
+        el['fileNames'] = el['fileNames'][:int(file_count)]
+    for f in _MODEL_UNITS['TOSCA']:
+        el[f] = _element_value(el, f)
+    template = '''
+ 'TOSCA'
+0 0
+{{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
+{{ name -}}
+{%- if flipX == '1' %} FLIP {% endif -%}
+{%- if headerLineCount > 0 %} HEADER_{{ headerLineCount }} {% endif -%}
+{%- if zeroBXY == '1' %} ZroBXY {% endif -%}
+{%- if normalizeHelix == '1' %} RHIC_helix {% endif %}
+{{ IX }} {{ IY }} {{ IZ }} {{ MOD -}}
+{%- if hasFields %} {{ field1 }} {{ field2 }} {{ field3 }} {{ field4 }}{% endif %}
+{%- for fileName in fileNames %}
+{{ fileName -}}
+{% endfor %}
+{{ ID }} {{ A }} {{ B }} {{ C }} {{ Ap }} {{ Bp }} {{ Cp }} {{ App }} {{ Bpp }} {{ Cpp }}
+{{ IORDRE }}
+{{ XPAS }}
+{% if meshType == 'cartesian' -%}
+{{ KPOS }} {{ XCE }} {{ YCE }} {{ ALE }}
+{% else -%}
+{{ KPOS }}
+{{ RE }} {{ TE }} {{ RS }} {{ TS }}
+{% endif %}
+'''
+    return 'line.add(core.FAKE_ELEM("""{}"""))\n'.format(jinja2.Template(template).render(el))
+
+
 def _generate_parameters_file(data):
     v = template_common.flatten_data(data.models, {})
     report = data.report if 'report' in data else ''
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
+    v['bunchCoordinates'] = data.models.bunch.coordinates
     res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-    # if 'opticsReport' in report:
-    #     return res + template_common.render_jinja(SIM_TYPE, v, 'optics.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
@@ -523,6 +693,11 @@ def _init_model_units():
             'XCE': _cm,
             'YCE': _cm,
         },
+        'TOSCA': {
+            'XPAS': _xpas,
+            'XCE': _cm,
+            'YCE': _cm,
+        },
     }
 
 
@@ -538,6 +713,10 @@ def _ipasses_for_data(col_names, rows):
         if ipass not in res:
             res.append(ipass)
     return res
+
+
+def _is_zip_file(path):
+    return re.search(r'\.zip$', str(path), re.IGNORECASE)
 
 
 def _parse_zgoubi_log(run_dir):
@@ -570,15 +749,16 @@ def _read_data_file(path):
     mode = 'title'
     col_names = []
     rows = []
-    #TODO(pjm): need pykern method for reading by line rather than bring whole datafile into memory
-    with io.open(str(path), encoding=locale.getpreferredencoding()) as f:
-        for num, line in enumerate(f):
+    with pkio.open_text(str(path)) as f:
+        for line in f:
             if mode == 'title':
                 if not re.search(r'^\@', line):
                     mode = 'header'
                 continue
             # work-around odd header/value "! optimp.f" int twiss output
             line = re.sub(r'\!\s', '', line)
+            # remove space from quoted values
+            line = re.sub(r"'(\S*)\s*'", r"'\1'", line)
             if mode == 'header':
                 # header row starts with '# <letter>'
                 if re.search(r'^#\s+[a-zA-Z]', line):
@@ -590,7 +770,7 @@ def _read_data_file(path):
                     continue
                 row = re.split('\s+', re.sub(r'^\s+', '', line))
                 rows.append(row)
-    rows.pop()
+    #rows.pop()
     return col_names, rows
 
 
@@ -608,6 +788,68 @@ def _read_twiss_header(run_dir):
                     v = float(v)
                 res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
     return res
+
+
+def _tosca_info(data):
+    # determine the list of available files (from zip if necessary)
+    # compute the tosca length from datafile
+    tosca = data['tosca']
+    #TODO(pjm): keep a cache on the tosca model?
+    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(template_common.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
+    if not datafile.exists():
+        return {
+            'error': 'missing or invalid file: {}'.format(tosca['magnetFile']),
+        }
+    error = None
+    length = None
+    if _is_zip_file(datafile):
+        with zipfile.ZipFile(str(datafile), 'r') as z:
+            filenames = []
+            if 'fileNames' not in tosca or not tosca['fileNames']:
+                tosca['fileNames'] = []
+            for info in z.infolist():
+                filenames.append(info.filename)
+                if not length and info.filename in tosca['fileNames']:
+                    length, error = _tosca_length(tosca, z.read(info).splitlines())
+                    if length:
+                        error = None
+    else:
+        filenames = [tosca['magnetFile']]
+        with pkio.open_text(str(datafile)) as f:
+            length, error = _tosca_length(tosca, f)
+    if error:
+        return {
+            'error': error
+        }
+    return {
+        'toscaInfo': {
+            'toscaLength': length,
+            'fileList': sorted(filenames) if filenames else None,
+            'magnetFile': tosca['magnetFile'],
+        },
+    }
+
+
+def _tosca_length(tosca, lines):
+    col2 = []
+    count = 0
+    for line in lines:
+        count += 1
+        if count <= tosca['headerLineCount']:
+            continue
+        # some columns may not have spaces between values, ex:
+        #  -1.2000E+02 0.0000E+00-3.5000E+01 3.1805E-03-1.0470E+01 2.0089E-03-2.4481E-15
+        line = re.sub(r'(E[+\-]\d+)(\-)', r'\1 \2', line, flags=re.IGNORECASE)
+        values = line.split()
+        if len(values) > 2:
+            try:
+                col2.append(float(values[2]))
+            except ValueError:
+                pass
+    if not len(col2):
+        return None, 'missing column 2 data in file: {}'.format(tosca['magnetFile'])
+    #TODO(pjm): need to apply TOSCA coordinate unit conversion?
+    return (max(col2) - min(col2)) / 100.0, None
 
 
 _MODEL_UNITS = _init_model_units()

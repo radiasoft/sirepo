@@ -11,8 +11,6 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
-from srwl_uti_cryst import srwl_uti_cryst_pl_sp, srwl_uti_cryst_pol_f
-from srwlib import SRWLMagFldH, SRWLMagFldU
 import bnlcrl.pkcli.simulate
 import copy
 import glob
@@ -21,6 +19,7 @@ import numpy as np
 import os
 import py.path
 import re
+import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
 import srwlib
@@ -79,6 +78,7 @@ _FILE_TYPE_EXTENSIONS = {
     'mirror': ['dat', 'txt'],
     'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
     'undulatorTable': ['zip'],
+    'arbitraryField': ['dat', 'txt'],
 }
 
 _LOG_DIR = '__srwl_logs__'
@@ -88,7 +88,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -313,7 +313,7 @@ def extract_report_data(filename, model_data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('arbitraryMagField', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -336,6 +336,16 @@ def fixup_old_data(data):
             data['models']['intensityReport']['method'] = '2'
         else:
             data['models']['intensityReport']['method'] = '0'
+    # default sourceIntensityReport.method based on source type
+    if 'method' not in data['models']['sourceIntensityReport']:
+        if _is_undulator_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '1'
+        elif _is_dipole_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'
+        elif _is_arbitrary_source(data['models']['simulation']):
+            data['models']['sourceIntensityReport']['method'] = '2'
+        else:
+            data['models']['sourceIntensityReport']['method'] = '0'
     if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
         data['models']['simulationStatus'] = pkcollections.Dict()
     if 'facility' in data['models']['simulation']:
@@ -541,7 +551,10 @@ def lib_files(data, source_lib):
         res.append(dm['mirrorReport']['heightProfileFile'])
     if _uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
+            pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
+    if _is_arbitrary_source(dm.simulation):
+        res.append(dm.arbitraryMagField.magneticFile)
     if _is_beamline_report(report):
         for m in dm.beamline:
             for k, v in _SCHEMA.model[m.type].items():
@@ -571,6 +584,7 @@ def models_related_to_report(data):
     res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
         'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
+        'arbitraryMagField',
     ]
     if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
@@ -613,12 +627,14 @@ def models_related_to_report(data):
 
 
 def new_simulation(data, new_simulation_data):
-    source = new_simulation_data['sourceType']
-    data['models']['simulation']['sourceType'] = source
-    if source == 'g':
+    sim = data['models']['simulation']
+    sim['sourceType'] = new_simulation_data['sourceType']
+    if _is_gaussian_source(sim):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
-    elif source == 'm':
+    elif _is_dipole_source(sim):
         data['models']['intensityReport']['method'] = "2"
+    elif _is_arbitrary_source(sim):
+        data['models']['sourceIntensityReport']['method'] = "2"
     elif _is_tabulated_undulator_source(data['models']['simulation']):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
@@ -678,17 +694,17 @@ def prepare_for_save(data):
     return data
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     if data['report'] in ('brillianceReport', 'mirrorReport'):
         return
     #TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
-    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, report_info.run_dir)
+    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
-        output_file = report_info.run_dir.join(get_filename_for_model(data['report']))
+        output_file = run_dir.join(get_filename_for_model(data['report']))
         if output_file.exists():
             res = extract_report_data(str(output_file), data)
-            simulation_db.write_result(res, run_dir=report_info.run_dir)
+            simulation_db.write_result(res, run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
@@ -773,7 +789,7 @@ def validate_file(file_type, path):
         # undulator magnetic data file
         #TODO(pjm): add additional zip file validation
         try:
-            template_common.validate_safe_zip(str(path), '.', validate_magnet_data_file)
+            _validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
             return err.message
     elif file_type == 'sample':
@@ -848,6 +864,7 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
+    pkdc('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data, run_dir=run_dir)
@@ -947,8 +964,8 @@ def _compute_crystal_init(model):
             xrh = crystal_parameters['xrh']
             xih = crystal_parameters['xih']
         elif re.search('(SRW)', material_raw):
-            dc = srwl_uti_cryst_pl_sp(millerIndices, material)
-            xr0, xi0, xrh, xih = srwl_uti_cryst_pol_f(energy, millerIndices, material)
+            dc = srwl_uti_cryst.srwl_uti_cryst_pl_sp(millerIndices, material)
+            xr0, xi0, xrh, xih = srwl_uti_cryst.srwl_uti_cryst_pol_f(energy, millerIndices, material)
         else:
             dc = xr0 = xi0 = xrh = xih = None
 
@@ -1209,6 +1226,8 @@ def _fixup_beamline(data):
             if 'diffractionAngle' not in item:
                 allowed_angles = [x[0] for x in _SCHEMA['enum']['DiffractionPlaneAngle']]
                 item['diffractionAngle'] = _find_closest_angle(item['grazingAngle'] or 0, allowed_angles)
+                if item['tvx'] == '':
+                    item['tvx'] = item['tvy'] = 0
                 _compute_crystal_grazing_angle(item)
 
         if item['type'] == 'sample':
@@ -1405,7 +1424,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     data['models']['intensityReport']['magneticField'] = magnetic_field
     data['models']['sourceIntensityReport']['magneticField'] = magnetic_field
     data['models']['trajectoryReport']['magneticField'] = magnetic_field
-
+    data['models']['powerDensityReport']['magneticField'] = magnetic_field
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
@@ -1481,8 +1500,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
         # The MagnMeasZip class defined above has convenient properties we can use here
         mmz = MagnMeasZip(src_zip)
-        zindex = template_common.zip_path_for_file(mmz.z, mmz.index_file)
-        zdata = map(lambda fn: template_common.zip_path_for_file(mmz.z, fn), mmz.dat_files)
+        zindex = _zip_path_for_file(mmz.z, mmz.index_file)
+        zdata = map(lambda fn: _zip_path_for_file(mmz.z, fn), mmz.dat_files)
         # extract only the index file and the data files it lists
         mmz.z.extract(zindex, target_dir)
         for df in zdata:
@@ -1498,7 +1517,6 @@ def _generate_srw_main(data, plot_reports):
     run_all = report == _RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
-        'source_type, mag = srwl_bl.setup_source(v)',
     ]
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
@@ -1532,6 +1550,17 @@ def _generate_srw_main(data, plot_reports):
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
     if plot_reports or not _is_background_report(report):
+        #TODO(pjm): work-around for #1593
+        content.append('mag = None')
+        content.append("if v.rs_type == 'm':")
+        for line in (
+                'mag = srwlib.SRWLMagFldC()',
+                'mag.arXc.append(0)',
+                'mag.arYc.append(0)',
+                'mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))',
+                'mag.arZc.append(v.mp_zc)',
+        ):
+            content.append('    {}'.format(line))
         content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
     return '\n'.join(['    {}'.format(x) for x in content])
 
@@ -1619,6 +1648,10 @@ def _is_beamline_report(report):
     if not report or template_common.is_watchpoint(report) or report in ['multiElectronAnimation', _RUN_ALL_MODEL]:
         return True
     return False
+
+
+def _is_arbitrary_source(sim):
+    return sim['sourceType'] == 'a'
 
 
 def _is_dipole_source(sim):
@@ -1757,7 +1790,7 @@ def _process_image(data):
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     return pkcollections.Dict({
-        'magneticField': 2 if _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
+        'magneticField': 2 if source_type == 'a' or _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
 
 
@@ -1766,11 +1799,11 @@ def _process_undulator_definition(model):
     try:
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
-            und = SRWLMagFldU([SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
+            und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
             model['undulator_parameter'] = und.get_K()
         elif model['undulator_definition'] == 'K':
             # Convert K to B:
-            und = SRWLMagFldU([], float(model['undulator_period']))
+            und = srwlib. SRWLMagFldU([], float(model['undulator_period']))
             model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
         return model
     except Exception:
@@ -1800,8 +1833,8 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
             y_resize = float(width_pixels) / float(y_range[2])
         pkdlog('Size before: {}  Dimensions: {}, Resize: [{}, {}]', ar2d.size, ar2d.shape, y_resize, x_resize)
         try:
-            from scipy.ndimage import zoom
-            ar2d = zoom(ar2d, [y_resize, x_resize], order=1)
+            from scipy import ndimage
+            ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
             # Remove for #670, this may be required for certain reports?
             # if scale == 'linear':
             #     ar2d[np.where(ar2d < 0.)] = 0.0
@@ -1891,5 +1924,90 @@ def _validate_propagation(prop):
     for i in range(len(prop)):
         prop[i] = int(prop[i]) if i in (0, 1, 3, 4) else float(prop[i])
 
+def _validate_safe_zip(zip_file_name, target_dir='.', *args):
+    """Determine whether a zip file is safe to extract from
+
+    Performs the following checks:
+
+        - Each file must end up at or below the target directory
+        - Files must be 100MB or smaller
+        - If possible to determine, disallow "non-regular" and executable files
+        - Existing files cannot be overwritten
+
+    Args:
+        zip_file_name (str): name of the zip file to examine
+        target_dir (str): name of the directory to extract into (default to current directory)
+        *args: list of validator functions taking a zip file as argument and returning True or False and a string
+    Throws:
+        AssertionError if any test fails, otherwise completes silently
+    """
+    import zipfile
+    import os
+
+    def path_is_sub_path(path, dir_name):
+        real_dir = os.path.realpath(dir_name)
+        end_path = os.path.realpath(real_dir + '/' + path)
+        return end_path.startswith(real_dir)
+
+    def file_exists_in_dir(file_name, dir_name):
+        return os.path.exists(os.path.realpath(dir_name + '/' + file_name))
+
+    def file_attrs_ok(attrs):
+
+        # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
+        if attrs < 2 << 16:
+            return True
+
+        # UNIX file attributes live in the top two bytes
+        mask = attrs >> 16
+        is_file_or_dir = mask & (0o0100000 | 0o0040000) != 0
+        no_exec = mask & (0o0000100 | 0o0000010 | 0o0000001) == 0
+
+        return is_file_or_dir and no_exec
+
+    # 100MB
+    max_file_size = 100000000
+
+    zip_file = zipfile.ZipFile(zip_file_name)
+
+    for f in zip_file.namelist():
+
+        i = zip_file.getinfo(f)
+        s = i.file_size
+        attrs = i.external_attr
+
+        assert path_is_sub_path(f, target_dir), 'Cannot extract {} above target directory'.format(f)
+        assert s <= max_file_size, '{} too large ({} > {})'.format(f, str(s), str(max_file_size))
+        assert file_attrs_ok(attrs), '{} not a normal file or is executable'.format(f)
+        assert not file_exists_in_dir(f, target_dir), 'Cannot overwrite file {} in target directory {}'.format(f, target_dir)
+
+    for validator in args:
+        res, err_string = validator(zip_file)
+        assert res, '{} failed validator: {}'.format(os.path.basename(zip_file_name), err_string)
+
+
+def _zip_path_for_file(zf, file_to_find):
+    """Find the full path of the specified file within the zip.
+
+    For a zip zf containing:
+        foo1
+        foo2
+        bar/
+        bar/foo3
+
+    _zip_path_for_file(zf, 'foo3') will return 'bar/foo3'
+
+    Args:
+        zf(zipfile.ZipFile): the zip file to examine
+        file_to_find (str): name of the file to find
+
+    Returns:
+        The first path in the zip that matches the file name, or None if no match is found
+    """
+    import os
+
+    # Get the base file names from the zip (directories have a basename of '')
+    file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
+    return zf.namelist()[file_names_in_zip.index(file_to_find)]
 
 _init()

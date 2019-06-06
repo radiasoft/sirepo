@@ -11,11 +11,11 @@ from pykern import pkinspect
 from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import cookie
+from sirepo import auth
 from sirepo import feature_config
+from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
-from sirepo.schema import validate_fields, validate_name, validate_schema
 import copy
 import datetime
 import errno
@@ -78,7 +78,10 @@ _OLDEST_VERSION = '20140101.000001'
 _RUN_LOG_CANCEL_RE = re.compile(r'^KeyboardInterrupt$', flags=re.MULTILINE)
 
 #: Cache of schemas keyed by app name
-_SCHEMA_CACHE = {}
+_SCHEMA_CACHE = pkcollections.Dict()
+
+#: Special field to direct pseudo-subclassing of schema objects
+_SCHEMA_SUPERCLASS_FIELD = '_super'
 
 #: Status file name
 _STATUS_FILE = 'status'
@@ -237,18 +240,31 @@ def fixup_old_data(data, force=False):
 
 
 def get_schema(sim_type):
-    if sim_type in _SCHEMA_CACHE:
-        return _SCHEMA_CACHE[sim_type]
+    """Get the schema for `sim_type`
+
+    If sim_type is None, it will return the schema for the first sim_type
+    in `feature_config.cfg.sim_types`
+
+    Args:
+        sim_type (str): must be valid
+    Returns:
+        dict: Shared schem
+
+    """
+    t = sirepo.template.assert_sim_type(sim_type) if sim_type is not None \
+        else feature_config.cfg.sim_types[0]
+    if t in _SCHEMA_CACHE:
+        return _SCHEMA_CACHE[t]
     schema = read_json(
-        STATIC_FOLDER.join('json/{}-schema'.format(sim_type)))
+        STATIC_FOLDER.join('json/{}-schema'.format(t)))
 
     pkcollections.mapping_merge(schema, SCHEMA_COMMON)
     pkcollections.mapping_merge(
         schema,
-        {'feature_config': feature_config.for_sim_type(sim_type)},
+        pkcollections.Dict(feature_config=feature_config.for_sim_type(t)),
     )
-    schema.simulationType = sim_type
-    _SCHEMA_CACHE[sim_type] = schema
+    schema.simulationType = t
+    _SCHEMA_CACHE[t] = schema
 
     #TODO(mvk): improve merging common and local schema
     _merge_dicts(schema.common.dynamicFiles, schema.dynamicFiles)
@@ -258,7 +274,8 @@ def get_schema(sim_type):
         if item not in schema:
             schema[item] = pkcollections.Dict()
         _merge_dicts(schema.common[item], schema[item])
-    validate_schema(schema)
+        _merge_subclasses(schema, item)
+    srschema.validate(schema)
     return schema
 
 
@@ -352,7 +369,7 @@ def job_id(data):
         str: unique name
     """
     return '{}-{}-{}'.format(
-        cookie.get_user(),
+        auth.logged_in_user(),
         data.simulationId,
         data.report,
     )
@@ -391,10 +408,16 @@ def lib_dir_from_sim_dir(sim_dir):
     return sim_dir.join(_REL_LIB_DIR)
 
 
-def move_user_simulations(to_uid):
-    """Moves all non-example simulations for the current session into the target user's dir.
+def move_user_simulations_is_deprecated(from_uid, to_uid):
+    """Moves all non-example simulations `from_uid` into `to_uid`.
+
+    Only moves non-example simulations. Doesn't delete the from_uid.
+
+    Args:
+        from_uid (str): source user
+        to_uid (str): dest user
+
     """
-    from_uid = cookie.get_user()
     with _global_lock:
         for path in glob.glob(
                 str(user_dir_name(from_uid).join('*', '*', SIMULATION_DATA_FILE)),
@@ -436,12 +459,12 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             if find_global_simulation(sim_type, sid):
                 global_sid = sid
         if global_sid:
-            raise CopyRedirect({
-                'redirect': {
-                    'simulationId': global_sid,
-                    'userCopySimulationId': user_copy_sid,
-                },
-            })
+            raise CopyRedirect(pkcollections.Dict(
+                redirect=pkcollections.Dict(
+                    simulationId=global_sid,
+                    userCopySimulationId=user_copy_sid,
+                ),
+            ))
         util.raise_not_found(
             '{}/{}: global simulation not found',
             sim_type,
@@ -506,34 +529,47 @@ def poll_seconds(data):
     return 2 if is_parallel(data) else 1
 
 
-def prepare_simulation(data):
+def prepare_simulation(data, tmp_dir=None):
     """Create and install files, update parameters, and generate command.
 
-    Copies files into the simulation directory (``run_dir``).
+    Copies files into the simulation directory (``run_dir``), or (if
+    specified) a ``tmp_dir``.
     Updates the parameters in ``data`` and save.
     Generate the pkcli command to pass to task runner.
 
     Args:
         data (dict): report and model parameters
+        tmp_dir (py.path.local):
     Returns:
         list, py.path: pkcli command, simulation directory
     """
-    run_dir = simulation_run_dir(data, remove_dir=True)
-    #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
-    #   probably can only do with celery.
-    pkio.mkdir_parent(run_dir)
-    write_status('pending', run_dir)
+    if tmp_dir is None:
+        # This is the legacy (pre-runner-daemon) code path
+        run_dir = simulation_run_dir(data, remove_dir=True)
+        #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
+        #   probably can only do with celery.
+        pkio.mkdir_parent(run_dir)
+        out_dir = run_dir
+        # Only done on the legacy path, because the runner daemon owns the
+        # status file.
+        write_status('pending', out_dir)
+    else:
+        # This is the runner-daemon code path -- tmp_dir is always given, as a
+        # new temporary directory we have to create.
+        run_dir = simulation_run_dir(data)
+        pkio.mkdir_parent(tmp_dir)
+        out_dir = tmp_dir
     sim_type = data['simulationType']
     sid = parse_sid(data)
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, run_dir)
+    template_common.copy_lib_files(data, None, out_dir)
 
-    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+    write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
     template.write_parameters(
         data,
-        run_dir=run_dir,
+        run_dir=out_dir,
         is_parallel=is_p,
     )
     cmd = [
@@ -547,16 +583,16 @@ def prepare_simulation(data):
 
 def process_simulation_list(res, path, data):
     sim = data['models']['simulation']
-    res.append({
-        'simulationId': _sid_from_path(path),
-        'name': sim['name'],
-        'folder': sim['folder'],
-        'last_modified': datetime.datetime.fromtimestamp(
+    res.append(pkcollections.Dict(
+        simulationId=_sid_from_path(path),
+        name=sim['name'],
+        folder=sim['folder'],
+        last_modified=datetime.datetime.fromtimestamp(
             os.path.getmtime(str(path))
         ).strftime('%Y-%m-%d %H:%M'),
-        'isExample': sim['isExample'] if 'isExample' in sim else False,
-        'simulation': sim,
-    })
+        isExample=sim['isExample'] if 'isExample' in sim else False,
+        simulation=sim,
+    ))
 
 
 def read_json(filename):
@@ -608,10 +644,10 @@ def read_result(run_dir):
     if err:
         return None, err
     if not res:
-        res = {}
+        res = pkcollections.Dict()
     if 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = {'state': 'canceled'}
+        res = pkcollections.Dict(state='canceled')
     return res, None
 
 
@@ -716,7 +752,8 @@ def save_simulation_json(data, do_validate=True):
         pass
     data = fixup_old_data(data)[0]
     s = data.models.simulation
-    fn = sim_data_file(data.simulationType, s.simulationId)
+    sim_type = data.simulationType
+    fn = sim_data_file(sim_type, s.simulationId)
     with _global_lock:
         need_validate = True
         try:
@@ -728,8 +765,16 @@ def save_simulation_json(data, do_validate=True):
         except Exception:
             pass
         if need_validate and do_validate:
-            _validate_name(data)
-            validate_fields(data, get_schema(data.simulationType))
+            srschema.validate_name(
+                data,
+                iterate_simulation_datafiles(
+                    sim_type,
+                    lambda res, _, d: res.append(d),
+                    pkcollections.Dict({'simulation.folder': s.folder}),
+                ),
+                SCHEMA_COMMON.common.constants.maxSimCopies
+            )
+            srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
@@ -841,6 +886,20 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def user_create(login_callback):
+    """Create a user and initialize the directory
+
+    Returns:
+        str: New user id
+    """
+    uid = _random_id(user_dir_name())['id']
+    # Must logged in before calling simulation_dir
+    login_callback(uid)
+    for simulation_type in feature_config.cfg.sim_types:
+        _create_example_and_lib_files(simulation_type)
+    return uid
 
 
 def user_dir_name(uid=None):
@@ -977,9 +1036,11 @@ def _files_in_schema(schema):
 
 
 def _find_user_simulation_copy(simulation_type, sid):
-    rows = iterate_simulation_datafiles(simulation_type, process_simulation_list, {
-        'simulation.outOfSessionSimulationId': sid,
-    })
+    rows = iterate_simulation_datafiles(
+        simulation_type,
+        process_simulation_list,
+        pkcollections.Dict({'simulation.outOfSessionSimulationId': sid}),
+    )
     if len(rows):
         return rows[0]['simulationId']
     return None
@@ -1025,6 +1086,25 @@ def _merge_dicts(base, derived, depth=-1):
         except TypeError:
             # The value in question is not itself a dict, move on
             pass
+
+
+def _merge_subclasses(schema, item):
+    for m in schema[item]:
+        has_super = False
+        s = schema[item][m]
+        try:
+            has_super = _SCHEMA_SUPERCLASS_FIELD in s
+        except TypeError:
+            # Ignore non-indexable types
+            continue
+        if has_super:
+            i = s[_SCHEMA_SUPERCLASS_FIELD]
+            s_item = i[1]
+            s_class = i[2]
+            assert s_item in schema, util.err(s_item, 'No such field in schema')
+            assert s_item == item, util.err(s_item, 'Superclass must be in same section of schema {}', item)
+            assert s_class in schema[s_item], util.err(s_class, 'No such superclass')
+            _merge_dicts(schema[item][s_class], s)
 
 
 def _pkg_relative_path_static(file_dir, file_name):
@@ -1144,59 +1224,11 @@ def _user_dir():
     Returns:
         str: unique id for user from flask session
     """
-    uid = cookie.get_user(checked=False)
-    if not uid:
-        uid = _user_dir_create()
+    uid = auth.logged_in_user()
     d = user_dir_name(uid)
     if d.check():
         return d
-    # flask session might have been deleted (in dev) so "logout" and "login"
-    uid = _user_dir_create()
-    return user_dir_name(uid)
-
-
-def _user_dir_create():
-    """Create a user and initialize the directory
-
-    Returns:
-        str: New user id
-    """
-    uid = _random_id(user_dir_name())['id']
-    # Must set before calling simulation_dir
-    cookie.set_user(uid)
-    for simulation_type in feature_config.cfg.sim_types:
-        _create_example_and_lib_files(simulation_type)
-    return uid
-
-
-def _validate_name(data):
-    """Validate and if necessary uniquify name
-
-    Args:
-        data (dict): what to validate
-    """
-    s = data.models.simulation
-    sim_type = data.simulationType
-    sim_id = s.simulationId
-    n = s.name
-    f = s.folder
-    starts_with = pkcollections.Dict()
-    for d in iterate_simulation_datafiles(
-        sim_type,
-        lambda res, _, d: res.append(d),
-        {'simulation.folder': f},
-    ):
-        n2 = d.models.simulation.name
-        if n2.startswith(n) and d.models.simulation.simulationId != sim_id:
-            starts_with[n2] = d.models.simulation.simulationId
-    i = 2
-    max = SCHEMA_COMMON.common.constants.maxSimCopies
-    n2 = data.models.simulation.name
-    while n2 in starts_with:
-        n2 = '{} {}'.format(data.models.simulation.name, i)
-        i += 1
-    assert i - 1 <= max, util.err(n, 'Too many copies: {} > {}', i - 1, max)
-    data.models.simulation.name = n2
+    auth.user_dir_not_found(uid)
 
 
 _init()

@@ -15,7 +15,7 @@ import re
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
+_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
 _DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
 _MRAD_FIELDS = ['AUTOREF.ALE']
 #TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
@@ -25,10 +25,12 @@ _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'd
 def import_file(text):
     data = simulation_db.default_data(_SIM_TYPE)
     #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
-    title, elements = zgoubi_parser.parse_file(text, 1)
+    title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
     title = re.sub(r'\s+', ' ', title)
     title = re.sub(r'^\s+|\s+$', '', title)
     data['models']['simulation']['name'] = title if title else 'zgoubi'
+    if len(unhandled_elements):
+        data['models']['simulation']['warnings'] = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
     elegant_common.sort_elements_and_beamlines(data)
@@ -117,7 +119,14 @@ def _validate_field(model, field, model_info):
     elif field == 'XPAS':
         #TODO(pjm): need special handling, may be in #00|00|00 format
         if not re.search(r'\#', model[field]):
-            model[field] = str(float(model[field]) * 0.01)
+            v = float(model[field])
+            if v > 1e10:
+                # old step size format
+                m = re.search(r'^0*(\d+)\.0*(\d+)', model[field])
+                assert m, 'XPAS failed to parse step size: {}'.format(model[field])
+                model[field] = '#{}|{}|{}'.format(m.group(2), m.group(1), m.group(2))
+            else:
+                model[field] = str(v * 0.01)
     elif field_type in _SCHEMA['enum']:
         for v in _SCHEMA['enum'][field_type]:
             if v[0] == model[field]:

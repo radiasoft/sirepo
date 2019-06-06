@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 from scipy.optimize import minimize
 import numpy as np
+import os
 import re
 import scipy
 import subprocess
@@ -26,20 +27,47 @@ def wrapper(parameters, bounds, constraints, cache):
         #TODO(pjm): use format function
         command += ' {:.8E}'.format(parameters[c])
     if command in cache:
-        efficiency = cache[command]
+        result = cache[command]
     else:
         print(command)
         sys.stdout.flush()
+        if os.path.exists('{{ optimizerStatusFile }}'):
+            os.remove('{{ optimizerStatusFile }}')
+        #TODO(pjm): change command to an array and try without shell=True
         run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, error = run_warp.communicate()
-        assert not error, error
-        m = re.search(r'efficiency:\s+(.*)', out)
-        assert m, 'efficiency not found'
-        efficiency = - float(m.group(1))
-        cache[command] = efficiency
-    with open('{{ optimizerOutputFile }}', 'a') as f:
-        f.write(' '.join(map(lambda x: '{:.6E}'.format(x), parameters)) + ' {:.6f}\n'.format(- efficiency))
-    return efficiency
+        output = {
+            'steps': 0,
+            'time': 0,
+            'tolerance': 0,
+            'result': 0,
+        }
+        #TODO(pjm): put sr-opt somewhere common
+        # read warp output, parse out lines beginning with sr-opt
+        for line in iter(run_warp.stdout.readline, b''):
+            if re.search(r'^sr-opt:\s*', line):
+                line = re.sub(r'^sr-opt:\s*|\n$', '', line)
+                print(' {}'.format(line))
+                sys.stdout.flush()
+                for m in re.finditer(r'\b(\w+=.*?)(?:\s|$)', line):
+                    name, value = m.group(1).split('=')
+                    output[name] = float(value)
+                with open('{{ optimizerStatusFile }}', 'a') as f:
+                    f.write(_result_line(parameters, output))
+        run_warp.wait()
+        result = output['result']
+        cache[command] = result
+        with open('{{ optimizerOutputFile }}', 'a') as f:
+            f.write(_result_line(parameters, output))
+    return - result
+
+
+def _result_line(parameters, output):
+    # steps, time, tolerance, result, p1, ... pn
+    return ' '.join(
+        map(lambda x: '{:.0f}'.format(output[x]), ('steps', 'time'))
+        + map(lambda x: '{:.6E}'.format(output[x]), ('tolerance', 'result'))
+        + map(lambda x: '{:.6E}'.format(x), parameters)
+    ) + '\n'
 
 
 def build_simplex(bounds):

@@ -15,7 +15,7 @@
       <div class="panel panel-info">
         <div class="panel-heading"><span class="sr-panel-heading">Conductor Types</span></div>
         <div class="panel-body">
-          <div class="pull-right">
+          <div data-ng-show="! source.usesSTL()" class="pull-right">
             <button class="btn btn-info btn-xs" data-ng-click="source.createConductorType('box')" accesskey="N"><span class="glyphicon glyphicon-plus"></span> <u>N</u>ew Conductor Type</button>
           </div>
           <div data-conductor-table="" data-controller="source"></div>
@@ -33,7 +33,9 @@
 <div data-modal-editor="" view-name="beam" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="simulationGrid" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="fieldComparisonReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="box" data-parent-controller="source"></div>
+<!--<div data-modal-editor="" view-name="box" data-parent-controller="source"></div>-->
+<div data-modal-editor="" view-name="conductor" data-parent-controller="source"></div>
+<div data-ng-if="source.usesSTL()" data-modal-editor="" view-name="stl" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="conductorPosition" data-parent-controller="source"></div>
 
 <div data-confirmation-modal="" data-id="sr-delete-conductorType-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductorType()">Delete <strong>{{ source.deleteWarning.name }}</strong>? {{ source.deleteWarning.message }}</div>

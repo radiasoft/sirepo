@@ -12,7 +12,6 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
-        'Flask-BasicAuth',
         'Flask-OAuthlib',
         'Flask-Mail',
         'Flask_SQLAlchemy',
@@ -22,6 +21,7 @@ pykern.pksetup.setup(
         'celery==3.1.23',
         'cryptography',
         'flower==0.8.4',
+        'futures',
         'kombu==3.0.35',
         'numconv',
         'numpy',
@@ -32,8 +32,11 @@ pykern.pksetup.setup(
         # requests-oauthlib-1.2.0 forces oauthlib-3.0.0 but Flask-OAuthlib
         # requires oauthlib<3.0.0.
         'requests-oauthlib==1.1.0',
+        'scikit-learn==0.20',
+        'sympy',
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',
+        'docker; python_version >= "3"',
    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',

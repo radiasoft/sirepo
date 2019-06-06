@@ -17,11 +17,13 @@ WRITE OFF
 
 {{ beamlineElements -}}
 
+line.add(core.MARKER("#End"))
+
 line.add(core.FAKE_ELEM("""
 'FIT2'
 2 save
-1 30 0 [-1.,1.] ! vary Y-ref
-1 31 0 [-100.,100.] ! vary T-ref
+1 30 0 [-10.,10.] ! vary Y-ref
+1 31 0 [-200.,200.] ! vary T-ref
 2 1e-11 9999
 3.1 1 2 #End 0. 1. 0 ! particle 1: Y initial = Y final
 3.1 1 3 #End 0. 1. 0 ! particle 1: T initial = T final

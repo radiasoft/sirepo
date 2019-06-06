@@ -1,4 +1,12 @@
 
+{% if bunch_spntrk == '1' %}
+line.add(core.FAKE_ELEM("""
+'SPNTRK'
+4.1
+{{ bunch_S_X }} {{ bunch_S_Y }} {{ bunch_S_Z }}
+"""))
+{% endif %}
+
 {{ beamlineElements -}}
 line.add(core.FAKE_ELEM("""
 'FAISTORE'

@@ -4,6 +4,7 @@ line.add(core.FAKE_ELEM("""
 1 1
 WRITE OFF
 """))
+{% if bunch_method == 'MCOBJET3' %}
 line.add(core.FAKE_ELEM("""
 'MCOBJET'
 {{ bunch_rigidity }}
@@ -16,6 +17,18 @@ line.add(core.FAKE_ELEM("""
 {{ bunch_alpha_X }} {{ bunch_beta_X }} {{ bunch_emit_X }} {{ bunch_n_cutoff_X }} {{ bunch_n_cutoff2_X }}
 123456 234567 345678
 """))
+{% else %}
+line.add(core.FAKE_ELEM("""
+'OBJET'
+{{ bunch_rigidity }}
+2.1
+{{ bunch_particleCount2 }} 1
+{% for i in range(bunch_particleCount2) %}
+{{ bunchCoordinates[i]['Y'] }} {{ bunchCoordinates[i]['T'] }} {{ bunchCoordinates[i]['Z'] }} {{ bunchCoordinates[i]['P'] }} {{ bunchCoordinates[i]['X'] }} {{ bunchCoordinates[i]['D'] }} '{{ i }}'
+{% endfor %}
+{{ '1 ' * bunch_particleCount2 }}
+"""))
+{% endif %}
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
 {{ particleDef }}

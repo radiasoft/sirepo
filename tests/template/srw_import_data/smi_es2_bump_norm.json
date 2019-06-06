@@ -538,13 +538,13 @@
         "undulator": {
             "horizontalAmplitude": 0.0,
             "horizontalInitialPhase": 0.0,
-            "horizontalSymmetry": 1,
+            "horizontalSymmetry": "1",
             "length": 2.7945,
             "longitudinalPosition": 0.6,
             "period": 23.0,
             "verticalAmplitude": 0.955,
             "verticalInitialPhase": 0.0,
-            "verticalSymmetry": -1
+            "verticalSymmetry": "-1"
         },
         "watchpointReport1": {
             "characteristic": 0,

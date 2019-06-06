@@ -20,6 +20,7 @@ import os.path
 import py.path
 import re
 
+
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
@@ -31,58 +32,18 @@ _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _OPTIMIZER_OUTPUT_FILE = 'opt.out'
 _OPTIMIZER_RESULT_FILE = 'opt.json'
+_OPTIMIZER_STATUS_FILE = 'opt-run.out'
+_OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.npy'
 _PARTICLE_PERIOD = 100
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
-    files = _h5_file_list(run_dir, 'currentAnimation')
-    if (is_running and len(files) < 2) or (not run_dir.exists()):
-        return {
-            'percentComplete': 0,
-            'frameCount': 0,
-        }
-    if len(files) == 0:
-        return {
-            'percentComplete': 100,
-            'frameCount': 0,
-            'error': 'simulation produced no frames',
-            'state': 'error',
-        }
-    file_index = len(files) - 1
-    res = {
-        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
-    }
-    # look at 2nd to last file if running, last one may be incomplete
-    if is_running:
-        file_index -= 1
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    percent_complete = 0
-    if data.models.simulation.egun_mode == '1':
-        status_file = run_dir.join(_EGUN_STATUS_FILE)
-        if status_file.exists():
-            with open(str(status_file), 'r') as f:
-                m = re.search('([\d\.]+)\s*/\s*(\d+)', f.read())
-            if m:
-                percent_complete = float(m.group(1)) / int(m.group(2))
-        egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
-        if egun_current_file.exists():
-            v = np.load(str(egun_current_file))
-            res['egunCurrentFrameCount'] = len(v)
-    else:
-        percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
-
-    if percent_complete < 0:
-        percent_complete = 0
-    elif percent_complete > 1.0:
-        percent_complete = 1.0
-    res['percentComplete'] = percent_complete * 100
-    res['frameCount'] = file_index + 1
-    return res
+    return _simulation_percent_complete(run_dir, is_running)
 
 
 def fixup_old_data(data):
@@ -104,28 +65,32 @@ def fixup_old_data(data):
             'simulation',
             'simulationGrid',
     ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'joinEvery' in data['models']['particle3d']:
-        del data['models']['particle3d']['joinEvery']
-    for c in data['models']['conductorTypes']:
+        if m not in data.models:
+            data.models[m] = {}
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    if 'joinEvery' in data.models.particle3d:
+        del data.models.particle3d['joinEvery']
+    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
+    for c in types:
+        if c is None:
+            continue
         if 'isConductor' not in c:
-            c['isConductor'] = '1' if c['voltage'] > 0 else '0'
-        template_common.update_model_defaults(c, 'box', _SCHEMA)
-    for c in data['models']['conductors']:
+            c.isConductor = '1' if c.voltage > 0 else '0'
+        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
+    for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    if 'fieldComparisonReport' not in data['models']:
-        grid = data['models']['simulationGrid']
-        data['models']['fieldComparisonReport'] = {
+    if 'fieldComparisonReport' not in data.models:
+        grid = data.models.simulationGrid
+        data.models.fieldComparisonReport = {
             'dimension': 'x',
-            'xCell1': int(grid['num_x'] / 3.),
-            'xCell2': int(grid['num_x'] / 2.),
-            'xCell3': int(grid['num_x'] * 2. / 3),
-            'zCell1': int(grid['num_z'] / 2.),
-            'zCell2': int(grid['num_z'] * 2. / 3),
-            'zCell3': int(grid['num_z'] * 4. / 5),
+            'xCell1': int(grid.num_x / 3.),
+            'xCell2': int(grid.num_x / 2.),
+            'xCell3': int(grid.num_x * 2. / 3),
+            'zCell1': int(grid.num_z / 2.),
+            'zCell2': int(grid.num_z * 2. / 3),
+            'zCell3': int(grid.num_z * 4. / 5),
         }
+    template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir):
@@ -252,6 +217,15 @@ def models_related_to_report(data):
     return res
 
 
+def new_simulation(data, new_simulation_data):
+    if 'conductorFile' in new_simulation_data:
+        c_file = new_simulation_data.conductorFile
+        if c_file:
+            # verify somehow?
+            data.models.simulation.conductorFile = c_file
+            data.models.simulationGrid.simulation_mode = '3d'
+
+
 def open_data_file(run_dir, model_name, file_index=None):
     """Opens data file_index'th in run_dir
 
@@ -271,9 +245,8 @@ def open_data_file(run_dir, model_name, file_index=None):
     return res
 
 
-def prepare_output_file(report_info, data):
+def prepare_output_file(run_dir, data):
     if data['report'] == 'fieldComparisonReport':
-        run_dir = report_info.run_dir
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
@@ -487,7 +460,7 @@ def _extract_field(field, data, data_file):
         'x_label': 'z [m]',
         'y_label': 'x [m]',
         'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'aspect_ratio': 6.0 / 14,
+        'aspectRatio': 6.0 / 14,
         'z_matrix': values.tolist(),
     }
 
@@ -497,14 +470,20 @@ def _extract_impact_density(run_dir, data):
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    width = 0
 
     dx = plot_info['dx']
+    dy = 0
     dz = plot_info['dz']
-    gated_ids = plot_info['gated_ids']
+
+    if _is_3D(data):
+        dy = 0 #plot_info['dy']
+        width = _meters(grid.channel_width)
+
+    gated_ids = plot_info['gated_ids'] if 'gated_ids' in plot_info else []
     lines = []
 
     for i in gated_ids:
@@ -527,8 +506,11 @@ def _extract_impact_density(run_dir, data):
         'title': 'Impact Density',
         'x_range': [0, plate_spacing],
         'y_range': [-radius, radius],
+        'z_range': [-width / 2., width / 2.],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
+        'z_label': 'y [m]',
+        'density': plot_info['density'] if 'density' in plot_info else [],
         'density_lines': lines,
         'v_min': plot_info['min'],
         'v_max': plot_info['max'],
@@ -542,8 +524,9 @@ def _read_optimizer_output(run_dir):
         return None, None
     try:
         values = np.loadtxt(str(opt_file))
-        if len(values) and len(values[0]):
-            pass
+        if len(values):
+            if len(values.shape) == 1:
+                values = np.array([values])
         else:
             return None, None
     except TypeError:
@@ -551,55 +534,46 @@ def _read_optimizer_output(run_dir):
     except ValueError:
         return None, None
 
-    visited = {}
     res = []
     best_row = None
+    # steps, time, tolerance, result, p1, ... pn
     for v in values:
-        k = str(v)
-        if k not in visited:
-            visited[k] = True
-            res.append(v)
-            if best_row is None or v[-1] > best_row[-1]:
-                best_row = v
+        res.append(v)
+        if best_row is None or v[_OPT_RESULT_INDEX] > best_row[_OPT_RESULT_INDEX]:
+            best_row = v
     return np.array(res), best_row
 
 
 def _extract_optimization_results(run_dir, data, args):
     x_index = int(args.x or '0')
     y_index = int(args.y or '0')
+    # steps, time, tolerance, result, p1, ... pn
     res, best_row = _read_optimizer_output(run_dir)
+    field_info = res[:,:4]
+    field_values = res[:,4:]
     fields = data.models.optimizer.fields
     if x_index > len(fields) - 1:
         x_index = 0
     if y_index > len(fields) - 1:
         y_index = 0
-    x = res[:, x_index]
-    y = res[:, y_index]
+    x = field_values[:, x_index]
+    y = field_values[:, y_index]
     if x_index == y_index:
         y = np.zeros(len(y))
-    score = res[:, -1]
-    res = np.column_stack((x, y, score))
-    summary_data = None
-    result_file = run_dir.join(_OPTIMIZER_RESULT_FILE)
-    if result_file.exists():
-        summary_data = simulation_db.read_json(result_file)
-    else:
-        best_row = best_row.tolist();
-        summary_data = {
-            'fun': best_row.pop(),
-            'x': best_row,
-        }
-    summary_data['fields'] = fields
+    score = field_info[:, _OPT_RESULT_INDEX]
     return {
         'title': '',
-        'x_range': _add_margin([min(x), max(x)]),
-        'points': res.tolist(),
-        'y_range': _add_margin([min(y), max(y)]),
         'v_min': min(score),
         'v_max': max(score),
+        'x_range': _add_margin([min(x), max(x)]),
+        'y_range': _add_margin([min(y), max(y)]),
         'x_field': fields[x_index].field,
         'y_field': fields[y_index].field,
-        'summaryData': summary_data,
+        'optimizerPoints': field_values.tolist(),
+        'optimizerInfo': field_info.tolist(),
+        'x_index': x_index,
+        'y_index': y_index,
+        'fields': map(lambda x: x.field, fields),
     }
 
 
@@ -671,6 +645,7 @@ def _generate_optimizer_file(data, v):
         opt.bounds = [opt.minimum, opt.maximum]
         _compute_delta_for_field(data, opt.bounds, f)
     v['optField'] = data.models.optimizer.fields
+    v['optimizerStatusFile'] = _OPTIMIZER_STATUS_FILE
     v['optimizerOutputFile'] = _OPTIMIZER_OUTPUT_FILE
     v['optimizerResultFile'] = _OPTIMIZER_RESULT_FILE
     return _render_jinja('optimizer', v)
@@ -749,9 +724,8 @@ def _meters(v):
 def _non_opt_fields_to_array(model):
     res = []
     for f in model:
-        if _is_opt_field(f):
-            continue
-        res.append(model[f])
+        if not _is_opt_field(f):
+            res.append(model[f])
     return res
 
 
@@ -762,10 +736,46 @@ def _optimizer_percent_complete(run_dir, is_running):
             'frameCount': 0,
         }
     res, best_row = _read_optimizer_output(run_dir)
+    summary_data = None
+    frame_count = 0
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    optimizer = data.models.optimizer
     if res is not None:
+        frame_count = len(res)
+        if not is_running:
+            result_file = run_dir.join(_OPTIMIZER_RESULT_FILE)
+            if result_file.exists():
+                summary_data = simulation_db.read_json(result_file)
+        if not summary_data:
+            best_row = best_row.tolist();
+            summary_data = {
+                'fun': best_row[3],
+                'x': best_row[4:],
+            }
+        summary_data['fields'] = optimizer.fields
+    if is_running:
+        status_file = run_dir.join(_OPTIMIZER_STATUS_FILE)
+        if status_file.exists():
+            try:
+                if not summary_data:
+                    summary_data = {}
+                rows = np.loadtxt(str(status_file))
+                if len(rows.shape) == 1:
+                    rows = np.array([rows])
+                summary_data['statusRows'] = rows.tolist()
+                summary_data['fields'] = optimizer.fields
+                summary_data['frameCount'] = frame_count
+                summary_data['initialSteps'] = optimizer.initialSteps
+                summary_data['optimizerSteps'] = optimizer.optimizerSteps
+            except TypeError:
+                pass
+            except ValueError:
+                pass
+    if summary_data:
         return {
             'percentComplete': 0 if is_running else 100,
-            'frameCount': len(res),
+            'frameCount': frame_count,
+            'summary': summary_data,
         }
     if is_running:
         return {
@@ -774,7 +784,7 @@ def _optimizer_percent_complete(run_dir, is_running):
         }
     #TODO(pjm): determine optimization error
     return {
-        'percentComplete': 100,
+        'percentComplete': 0,
         'frameCount': 0,
         'error': 'optimizer produced no data',
         'state': 'error',
@@ -790,6 +800,8 @@ def _particle_line_has_slope(curr, next, prev, i1, i2):
 def _prepare_conductors(data):
     type_by_id = {}
     for ct in data.models.conductorTypes:
+        if ct is None:
+            continue
         type_by_id[ct.id] = ct
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
@@ -797,6 +809,8 @@ def _prepare_conductors(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
     for c in data.models.conductors:
+        if c.conductorTypeId not in type_by_id:
+            continue
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])
@@ -841,6 +855,51 @@ def _replace_optimize_variables(data, v):
         else:
             v['{}_{}'.format(m, f)] = value
 
+
+def _simulation_percent_complete(run_dir, is_running):
+    files = _h5_file_list(run_dir, 'currentAnimation')
+    if (is_running and len(files) < 2) or (not run_dir.exists()):
+        return {
+            'percentComplete': 0,
+            'frameCount': 0,
+        }
+    if len(files) == 0:
+        return {
+            'percentComplete': 100,
+            'frameCount': 0,
+            'error': 'simulation produced no frames',
+            'state': 'error',
+        }
+    file_index = len(files) - 1
+    res = {
+        'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
+    }
+    # look at 2nd to last file if running, last one may be incomplete
+    if is_running:
+        file_index -= 1
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    percent_complete = 0
+    if data.models.simulation.egun_mode == '1':
+        status_file = run_dir.join(_EGUN_STATUS_FILE)
+        if status_file.exists():
+            with open(str(status_file), 'r') as f:
+                m = re.search('([\d\.]+)\s*/\s*(\d+)', f.read())
+            if m:
+                percent_complete = float(m.group(1)) / int(m.group(2))
+        egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
+        if egun_current_file.exists():
+            v = np.load(str(egun_current_file))
+            res['egunCurrentFrameCount'] = len(v)
+    else:
+        percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
+
+    if percent_complete < 0:
+        percent_complete = 0
+    elif percent_complete > 1.0:
+        percent_complete = 1.0
+    res['percentComplete'] = percent_complete * 100
+    res['frameCount'] = file_index + 1
+    return res
 
 
 def _slope(x1, y1, x2, y2):

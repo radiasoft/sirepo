@@ -1,4 +1,9 @@
 {
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -48,9 +53,9 @@
         "AutorefFormat": [
             ["4", "Equivalent to CHANGREF"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
+        "BunchMethod": [
+            ["MCOBJET3", "Random Distribution"],
+            ["OBJET2.1", "Specific Coordinates"]
         ],
         "CaviteFormat": [
             ["0", "Element inactive"],
@@ -76,12 +81,21 @@
             ["2", "Element Misaligned"],
             ["3", "Adjust Entrance and Exit Frame"]
         ],
+        "ElementAlignmentMultipol": [
+            ["1", "Element Aligned"],
+            ["2", "Element Misaligned"],
+            ["3", "Adjust Entrance and Exit Frame"]
+        ],
         "EnergyPlotVariable": [
             ["time", "t"],
             ["ENEKI", "Kenetic Energy"],
             ["ENERG", "Energy"],
             ["RET", "Synchrotron RF Phase (phi-ph_s)"],
-            ["DPR", "Synchrotron dp/p"]
+            ["DPR", "Synchrotron dp/p"],
+            ["IPASS", "Turn Number"],
+            ["SX", "Spin X"],
+            ["SY", "Spin Y"],
+            ["SZ", "Spin Z"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -90,6 +104,18 @@
             ["10", "10"],
             ["15", "15"],
             ["20", "20"]
+        ],
+        "IntegrationBoundary": [
+            ["0", "None"],
+            ["1", "Exit boundary"],
+            ["-1", "Entry boundary"],
+            ["2", "Entry and exit boundary"],
+            ["3", "Entry and 2 exit boundaries"]
+        ],
+        "MeshPolynomialInterpolation": [
+            ["2", "Second order with 9 point grid"],
+            ["25", "Second order with 25 point grid"],
+            ["4", "Fourth order with 25 point grid"]
         ],
         "OpticsParameter": [
             ["x", "x [m]"],
@@ -125,6 +151,12 @@
             ["Length", "Length"],
             ["Deviation", "Deviation"]
         ],
+        "ScalingFamily": [
+            ["none", "None"],
+            ["BEND", "BEND"],
+            ["MULTIPOL", "MULTIPOL"],
+            ["QUADRUPO", "QUADRUPO"]
+        ],
         "OpticsOptionalParameter": [
             ["none", "None"],
             ["x", "x [m]"],
@@ -159,6 +191,31 @@
             ["S", "|S|"],
             ["Length", "Length"],
             ["Deviation", "Deviation"]
+        ],
+        "ParticleSelector": [
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"]
+        ],
+        "ParticleOptionalSelector": [
+            ["all", "All"],
+            ["1", "1"],
+            ["2", "2"],
+            ["3", "3"],
+            ["4", "4"],
+            ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"]
         ],
         "ParticleType": [
             ["ELECTRON", "Electron"],
@@ -219,6 +276,25 @@
             ["phiy2pi", "Vertical phase advance"],
             ["btl", "Longitudinal beta [m]"],
             ["alfl", "Longitudinal alpha"]
+        ],
+        "TOSCAMagnetType": [
+            ["2d-sf", "2-D"],
+            ["2d-sf-ags", "2-D AGS Main Magnet"],
+            ["2d-sf-ags-p", "2-D AGS Main Magnet, Perturbed"],
+            ["2d-mf-f", "2-D Multi-file with field"],
+            ["3d-mf-2v", "3-D Multi-file, Half Volume"],
+            ["3d-mf-1v", "3-D Multi-file, Full Volume"],
+            ["3d-sf-2v", "3-D Single-file, Half Volume"],
+            ["3d-sf-1v", "3-D Single-file, Full Volume"],
+            ["3d-sf-8v", "3-D Single-file, One Eighth Volume"],
+            ["3d-mf-f", "3-D Multi-file with field"],
+            ["3d-sf-4v", "3-D Single-file, One Fourth Volume"],
+            ["2d-mf-f-2v", "2-D Multi-file with field, Half Volume"],
+            ["3d-mf-f-2v", "3-D Multi-file with field, Half Volume"]
+        ],
+        "TOSCAMeshType": [
+            ["cartesian", "Cartesian"],
+            ["cylindrical", "Cylindrical"]
         ]
     },
     "model": {
@@ -235,8 +311,11 @@
             "Tau": ["COM Life-time [s]", "Float", 1e99]
         },
         "bunch": {
+            "method": ["Bunch Method", "BunchMethod", "MCOBJET3"],
             "rigidity": ["Reference Rigidity", "Float", 1000.0, "BORO"],
             "particleCount": ["Number of Particles", "Integer", 1000, "IMAX", 1, 10000],
+            "particleCount2": ["Number of Particles", "Integer", 1, "IMAX", 1, 10],
+            "particleSelector": ["Particle Number", "ParticleSelector", "1"],
             "KY": ["Probability Y", "ProbabilityDensity", "2"],
             "KT": ["Probability Y'", "ProbabilityDensity", "2"],
             "KZ": ["Probability Z", "ProbabilityDensity", "2"],
@@ -268,12 +347,18 @@
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0],
+            "spntrk": ["Include Spin Tracking", "Boolean", "0"],
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "T"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -281,12 +366,15 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Z"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "P"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -294,6 +382,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
@@ -307,6 +396,8 @@
             "x": ["Coordinate", "EnergyPlotVariable", "ENERG"],
             "y": ["Coordinate", "EnergyPlotVariable", "time"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
+            "showAllFrames": ["Show All Frames on One Plot", "Boolean", "0"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
@@ -314,6 +405,7 @@
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "opticsReport": {
@@ -323,12 +415,20 @@
             "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
+        "particleCoordinate": {
+            "Y": ["Y [m]", "Float", 0.0],
+            "T": ["Y' [rad]", "Float", 0.0],
+            "Z": ["Z [m]", "Float", 0.0],
+            "P": ["Z' [rad]", "Float", 0.0],
+            "X": ["X [m]", "Float", 0.0],
+            "D": ["D ($B\\rho/\\text{BORO}$)", "Float", 1.0]
+        },
         "simulationStatus": {},
         "simulation": {
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "npass": ["Number of Runs", "Integer", 10, "", 1],
+            "npass": ["Number of Turns", "Integer", 10, "", 1],
             "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
         },
         "twissReport": {
@@ -407,7 +507,7 @@
         },
         "MARKER": {
             "name": ["Name", "ValidatedString"],
-            "plt": ["Save Particle Data", "Boolean", "1"]
+            "plt": ["Save Particle Data", "Boolean", "0"]
         },
         "MULTIPOL": {
             "name": ["Name", "ValidatedString"],
@@ -500,6 +600,20 @@
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
+        "SCALING": {
+            "name": ["Name", "ValidatedString"],
+            "IOPT": ["Active", "Boolean", "1"],
+            "NAMEF1": ["Family Name", "ScalingFamily", "none"],
+            "SCL1": ["Scale", "Float", 1.0],
+            "NAMEF2": ["Family Name", "ScalingFamily", "none"],
+            "SCL2": ["Scale", "Float", 1.0],
+            "NAMEF3": ["Family Name", "ScalingFamily", "none"],
+            "SCL3": ["Scale", "Float", 1.0],
+            "NAMEF4": ["Family Name", "ScalingFamily", "none"],
+            "SCL4": ["Scale", "Float", 1.0],
+            "NAMEF5": ["Family Name", "ScalingFamily", "none"],
+            "SCL5": ["Scale", "Float", 1.0]
+        },
         "SEXTUPOL": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"],
@@ -527,6 +641,49 @@
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
         },
+        "TOSCA": {
+            "name": ["Name", "ValidatedString"],
+            "BNORM": ["Field Unit Conversion Coefficient", "Float", 1.0, "BNORM"],
+            "XN": ["X Coordinate Unit Conversion Coefficient", "Float", 1.0, "XN, YN, ZN"],
+            "YN": ["Y Coordinate Unit Conversion Coefficient", "Float", 1.0, "YN"],
+            "ZN": ["Z Coordinate Unit Conversion Coefficient", "Float", 1.0, "ZN"],
+            "flipX": ["Flip X Field Map", "Boolean", "0"],
+            "headerLineCount": ["Header Line Count", "Integer", 0],
+            "zeroBXY": ["Zero Bx, By where Z=0", "Boolean", "0"],
+            "normalizeHelix": ["Normalize BNORM to Helix Current", "Boolean", "0"],
+            "IX": ["X Number of Mesh Nodes", "Integer", 1, "IX, IY, IZ", 1],
+            "IY": ["Y Number of Mesh Nodes", "Integer", 1, "IY", 1],
+            "IZ": ["Z Number of Mesh Nodes", "Integer", 1, "IZ", 1],
+            "meshType": ["Mesh Type", "TOSCAMeshType", "cartesian"],
+            "magnetType": ["Field Map Type", "TOSCAMagnetType", "2d-sf"],
+            "fileCount": ["File Count", "Integer", 1, "", 1, 4],
+            "field1": ["Field 1", "Float", 0, "a(1)"],
+            "field2": ["Field 2", "Float", 0, "a(2)"],
+            "field3": ["Field 3", "Float", 0, "a(3)"],
+            "field4": ["Field 4", "Float", 0, "a(4)"],
+            "magnetFile": ["Magnet File", "InputFile", "", "Use a single file or a zip file of multiple files"],
+            "fileNames": ["File Names", "FileNameArray"],
+            "ID": ["Integration Boundary", "IntegrationBoundary", "0", "ID"],
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "Ap": ["A'", "Float", 0],
+            "Bp": ["B'", "Float", 0],
+            "Cp": ["C'", "Float", 0],
+            "App": ["A''", "Float", 0],
+            "Bpp": ["B''", "Float", 0],
+            "Cpp": ["C''", "Float", 0],
+            "IORDRE": ["Polynomial Interpolation", "MeshPolynomialInterpolation", "2", "IORDRE"],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"],
+            "RE": ["Incoming Frame Radius [m]", "Float", 0, "RE"],
+            "TE": ["Incoming Frame Angle [rad]", "Float", 0, "TE"],
+            "RS": ["Exit Frame Radius [m]", "Float", 0, "RS"],
+            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"]
+        },
         "YMY": {
             "name": ["Name", "ValidatedString"]
         }
@@ -548,11 +705,24 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "particleCount",
-                    "match_twiss_parameters",
-                    "simulation.visualizationBeamlineId"
+                    "method",
+                    "spntrk",
+                    [
+                        ["X", [
+                            "S_X"
+                        ]],
+                        ["Y", [
+                            "S_Y"
+                        ]],
+                        ["Z", [
+                            "S_Z"
+                        ]]
+                    ]
                 ]],
                 ["Distribution", [
+                    "particleCount",
+                    "match_twiss_parameters",
+                    "simulation.visualizationBeamlineId",
                     [
                         ["Probability Density", [
                             "KY",
@@ -606,6 +776,16 @@
                             "DP"
                         ]]
                     ]
+                ]],
+                ["Coordinates", [
+                    "particleCount2",
+                    "particleSelector",
+                    "particleCoordinate.Y",
+                    "particleCoordinate.T",
+                    "particleCoordinate.Z",
+                    "particleCoordinate.P",
+                    "particleCoordinate.X",
+                    "particleCoordinate.D"
                 ]]
             ],
             "advanced": []
@@ -627,7 +807,10 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],
@@ -659,7 +842,10 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],
@@ -695,7 +881,7 @@
             ]
         },
         "energyAnimation": {
-            "title": "Energy",
+            "title": "Energy and Spin",
             "advanced": [
                 ["Main", [
                     [
@@ -707,7 +893,10 @@
                         ]]
                     ],
                     "histogramBins",
+                    "showAllFrames",
+                    "particleSelector",
                     "framesPerSecond",
+                    "aspectRatio",
                     "colorMap",
                     "notes"
                 ]],
@@ -740,8 +929,8 @@
             "title": "Simulation Settings",
             "basic": [
                 "simulation.visualizationBeamlineId",
-                "simulationSettings.npass",
-                "simulationSettings.ip"
+                "npass",
+                "ip"
             ],
             "advanced": []
         },
@@ -1012,6 +1201,24 @@
                 ]]
             ]
         },
+        "SCALING": {
+            "title": "SCALING",
+            "description": "Power supplies and R.F. function generator",
+            "advanced": [
+                "name",
+                "IOPT",
+                "NAMEF1",
+                "SCL1",
+                "NAMEF2",
+                "SCL2",
+                "NAMEF3",
+                "SCL3",
+                "NAMEF4",
+                "SCL4",
+                "NAMEF5",
+                "SCL5"
+            ]
+        },
         "SEXTUPOL": {
             "title": "SEXTUPOL",
             "description": "Sextupole magnet",
@@ -1050,6 +1257,77 @@
                             "CS_5"
                         ]]
                     ]
+                ]]
+            ]
+        },
+        "TOSCA": {
+            "title": "TOSCA",
+            "description": "2-D and 3-D Cartesian or cylindrical mesh field map",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    [
+                        ["X", [
+                            "IX"
+                        ]],
+                        ["Y", [
+                            "IY"
+                        ]],
+                        ["Z", [
+                            "IZ"
+                        ]]
+                    ],
+                    "meshType",
+                    "magnetType",
+                    "XPAS",
+                    "KPOS",
+                    "XCE",
+                    "YCE",
+                    "ALE",
+                    "RE",
+                    "TE",
+                    "RS",
+                    "TS"
+                ]],
+                ["Magnet Files", [
+                    "magnetFile",
+                    "fileCount",
+                    "field1",
+                    "field2",
+                    "field3",
+                    "field4",
+                    "fileNames",
+                    "headerLineCount",
+                    "flipX",
+                    "zeroBXY"
+                ]],
+                ["Unit Conversion", [
+                    "BNORM",
+                    [
+                        ["X", [
+                            "XN"
+                        ]],
+                        ["Y", [
+                            "YN"
+                        ]],
+                        ["Z", [
+                            "ZN"
+                        ]]
+                    ],
+                    "normalizeHelix"
+                ]],
+                ["Integration Boundary", [
+                    "ID",
+                    "A",
+                    "B",
+                    "C",
+                    "Ap",
+                    "Bp",
+                    "Cp",
+                    "App",
+                    "Bpp",
+                    "Cpp",
+                    "IORDRE"
                 ]]
             ]
         },

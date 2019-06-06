@@ -13,12 +13,12 @@ from pykern import pkresource
 from pykern import pkrunpy
 from pykern import pkcollections
 from pykern.pkdebug import pkdlog, pkdexc
-from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
 import ast
 import inspect
 import py
 import py.path
 import re
+import srwl_bl
 import traceback
 
 try:
@@ -40,7 +40,7 @@ class SRWParser(object):
         if arguments:
             import shlex
             arguments = shlex.split(arguments)
-        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
+        self.var_param = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
         self.get_files()
         if self.initial_lib_dir:
             self.replace_mirror_files()
@@ -170,9 +170,9 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['orientation'] = 'x'
 
         data['material'] = 'Unknown'
-        data['h'] = 1
-        data['k'] = 1
-        data['l'] = 1
+        data['h'] = '1'
+        data['k'] = '1'
+        data['l'] = '1'
         try:
             data['energy'] = obj.aux_energy
         except Exception:
@@ -583,7 +583,7 @@ def _name(user_filename):
 
 def _parsed_dict(v, op):
     import sirepo.template.srw
-    std_options = Struct(**_list2dict(srwl_uti_std_options()))
+    std_options = Struct(**_list2dict(srwl_bl.srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)
 
@@ -619,7 +619,7 @@ def _parsed_dict(v, op):
     predefined_beams = sirepo.template.srw.get_predefined_beams()
 
     # Default electron beam:
-    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):
+    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and v.gbm_pen == 0):
         source_type = 'u'
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
@@ -656,13 +656,13 @@ def _parsed_dict(v, op):
         undulator = pkcollections.Dict({
             'horizontalAmplitude': _default_value('und_bx', v, std_options, 0.0),
             'horizontalInitialPhase': _default_value('und_phx', v, std_options, 0.0),
-            'horizontalSymmetry': _default_value('und_sx', v, std_options, 1.0),
+            'horizontalSymmetry': str(int(_default_value('und_sx', v, std_options, 1.0))),
             'length': _default_value('und_len', v, std_options, 1.5),
             'longitudinalPosition': _default_value('und_zc', v, std_options, 1.305),
             'period': _default_value('und_per', v, std_options, 0.021) * 1e3,
             'verticalAmplitude': _default_value('und_by', v, std_options, 0.88770981) if hasattr(v, 'und_by') else _default_value('und_b', v, std_options, 0.88770981),
             'verticalInitialPhase': _default_value('und_phy', v, std_options, 0.0),
-            'verticalSymmetry': _default_value('und_sy', v, std_options, -1),
+            'verticalSymmetry': str(int(_default_value('und_sy', v, std_options, -1))),
         })
 
         gaussianBeam = pkcollections.Dict({

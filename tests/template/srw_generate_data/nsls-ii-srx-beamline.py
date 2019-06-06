@@ -284,6 +284,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
 
 
+
 #---Calculation Types
     # Electron Trajectory
     ['tr', '', '', 'calculate electron trajectory', 'store_true'],
@@ -350,7 +351,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['pw_meth', 'i', 1, 'power density computation method (1- "near field", 2- "far field")'],
     ['pw_zst', 'f', 0., 'initial longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
     ['pw_zfi', 'f', 0., 'final longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
-    ['pw_mag', 'i', 1, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
+    ['pw_mag', 'i', 2, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
     ['pw_fn', 's', 'res_pow.dat', 'file name for saving calculated power density distribution'],
     ['pw_pl', 's', '', 'plot the resulting power density distribution in a graph: ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
@@ -371,7 +372,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_ry', 'f', 0.0013, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', 100, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', 0.1, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', 1, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', 0.01, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', 1, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', 6, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
@@ -399,7 +400,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_r', 'f', 20.0, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
-    ['source_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+    ['rs_type', 's', 't', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 
 #---Beamline optics:
     # S0: aperture
@@ -602,7 +603,6 @@ def setup_magnetic_measurement_files(filename, v):
 
 def main():
     v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=True)
-    source_type, mag = srwl_bl.setup_source(v)
     setup_magnetic_measurement_files("magn_meas_srx.zip", v)
     op = set_optics(v)
     v.ss = True
@@ -617,6 +617,13 @@ def main():
     v.tr_pl = 'xz'
     v.ws = True
     v.ws_pl = 'xy'
+    mag = None
+    if v.rs_type == 'm':
+        mag = srwlib.SRWLMagFldC()
+        mag.arXc.append(0)
+        mag.arYc.append(0)
+        mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))
+        mag.arZc.append(v.mp_zc)
     srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 

@@ -8,6 +8,7 @@ describe('components: mathRendering', function() {
         expect(mathRendering.textContainsMath('$c$')).toEqual(true);
         expect(mathRendering.textContainsMath(' $c$')).toEqual(true);
         expect(mathRendering.textContainsMath('$c$ ')).toEqual(true);
+        expect(mathRendering.textContainsMath('$-c$ ')).toEqual(true);
         expect(mathRendering.textContainsMath('$ c $')).toEqual(false);
         expect(mathRendering.textContainsMath('$c $')).toEqual(false);
         expect(mathRendering.textContainsMath('$ c$')).toEqual(false);
