@@ -1185,8 +1185,6 @@ SIREPO.app.directive('equation', function(appState, webconService, $timeout) {
                 return indVar;
             }
 
-            //$scope.autoFillEnabled = true;
-
             $scope.validateAll = function() {
                 if ($scope.model.autoFill) {
                     // allow time for models to be set before validating
