@@ -3267,25 +3267,26 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
 
                 $scope.select('.plot-viewport').selectAll('.line')
-                    .each(function (d, i) {
-                        d3.select(this).attr('d', $scope.plotGraphLine(i));
+                    .each(function (d) {
+                        var ip = parseInt(d3.select(this).attr('index'));
+                        d3.select(this).attr('d', $scope.plotGraphLine(ip));
                     });
 
                 $scope.select('.plot-viewport').selectAll('g.param-plot')
-                    .each(function (d, i) {
+                    .each(function (d, ip) {
                         var sp = d3.select(this).selectAll('.scatter-point');
                         var dp = d3.select(this).selectAll('.data-point');
                         [sp, dp].forEach(function (pt) {
                             if (! pt) {
                                 return;
                             }
-                            if ($scope.axes.y.plots[i].symbol) {
-                                pt.attr('x', $scope.plotGraphLine(i).x())
-                                    .attr('y', $scope.plotGraphLine(i).y());
+                            if ($scope.axes.y.plots[ip].symbol) {
+                                pt.attr('x', $scope.plotGraphLine(ip).x())
+                                    .attr('y', $scope.plotGraphLine(ip).y());
                             }
                             else {
-                                pt.attr('cx', $scope.plotGraphLine(i).x())
-                                    .attr('cy', $scope.plotGraphLine(i).y());
+                                pt.attr('cx', $scope.plotGraphLine(ip).x())
+                                    .attr('cy', $scope.plotGraphLine(ip).y());
                             }
                         });
                 });
