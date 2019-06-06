@@ -789,7 +789,7 @@ SIREPO.app.service('plot2dService', function(layoutService, panelState, plotting
             if (isFullSize) {
                 $scope.setYDomain();
             }
-            else if ($scope.recalculateYDomain) {
+            else if ($scope.recalculateYDomain && ! $scope.isZoomXY) {
                 $scope.recalculateYDomain();
             }
             $scope.select($scope.zoomContainer)

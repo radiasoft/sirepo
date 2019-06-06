@@ -19,6 +19,7 @@ import math
 import numpy as np
 import os
 import os.path
+import random
 import re
 import scipy.fftpack
 import scipy.optimize
@@ -452,7 +453,8 @@ def models_related_to_report(data):
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
     if 'watchpointReport' in r:
-        res += ['beamSteering', 'epicsServerAnimation']
+        # alwasy recompute the watchpoing (bpm) reports
+        res += [random.random()]
     return res
 
 

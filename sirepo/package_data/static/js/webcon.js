@@ -855,59 +855,6 @@ SIREPO.app.directive('beamSteeringResults', function(appState) {
     };
 });
 
-SIREPO.app.directive('bpmMonitor', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            modelData: '=bpmMonitor',
-        },
-        controller: function($scope) {
-            var modelName = $scope.modelData.modelKey;
-            var plotScope;
-
-            function pushAndTrim(points, p) {
-                //TODO(pjm): use schema constant and share with template.webcon
-                var MAX_BPM_POINTS = 10;
-                points.push(p);
-                if (points.length > MAX_BPM_POINTS) {
-                    points = points.slice(points.length - MAX_BPM_POINTS);
-                }
-                return points;
-            }
-
-            $scope.$on('sr-pointData-' + modelName, function(event, point) {
-                if (! plotScope || point == undefined) {
-                    return;
-                }
-                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
-                    return;
-                }
-                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
-                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
-                points = pushAndTrim(points, point[1]);
-
-                //TODO(pjm): refactor with parameterPlot.load() to share code
-                plotScope.select('.plot-viewport path.line').datum(points);
-                plotScope.select('g.param-plot').selectAll('.data-point')
-                    .data(points)
-                    .enter()
-                    .append('use')
-                    .attr('xlink:href', '#circle-data')
-                    .attr('class', 'data-point line-color')
-                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
-                    .style('stroke', 'black')
-                    .style('stroke-width', 0.5);
-                plotScope.refresh();
-            });
-
-            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
-                plotScope = event.targetScope;
-            });
-
-        },
-    };
-});
-
 SIREPO.app.directive('clusterFields', function(appState, webconService) {
     return {
         restrict: 'A',
@@ -1414,3 +1361,56 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
     };
 });
 
+SIREPO.app.directive('bpmMonitor', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelData: '=bpmMonitor',
+        },
+        controller: function($scope) {
+            var modelName = $scope.modelData.modelKey;
+            var plotScope;
+
+            function pushAndTrim(points, p) {
+                //TODO(pjm): use schema constant and share with template.webcon
+                var MAX_BPM_POINTS = 10;
+                points.push(p);
+                if (points.length > MAX_BPM_POINTS) {
+                    points = points.slice(points.length - MAX_BPM_POINTS);
+                }
+                return points;
+            }
+
+            $scope.$on('sr-pointData-' + modelName, function(event, point) {
+                if (! plotScope || point == undefined) {
+                    return;
+                }
+                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
+                    return;
+                }
+                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
+                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
+                points = pushAndTrim(points, point[1]);
+
+                //TODO(pjm): refactor with parameterPlot.load() to share code
+                plotScope.select('.plot-viewport path.line').datum(points);
+                plotScope.select('g.param-plot').selectAll('.data-point')
+                    .data(points)
+                    .enter()
+                    .append('use')
+                    .attr('xlink:href', '#circle-data')
+                    .attr('class', 'data-point line-color')
+                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
+                    .style('stroke', 'black')
+                    .style('stroke-width', 0.5);
+                plotScope.refresh();
+            });
+
+            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
+                plotScope = event.targetScope;
+                plotScope.isZoomXY = true;
+            });
+
+        },
+    };
+});
