@@ -1077,7 +1077,7 @@ SIREPO.app.directive('equation', function(appState, webconService, $timeout) {
         template: [
             '<div>',
                 '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
-                '<input type="checkbox" data-ng-model="model[\'autoFill\']" data-ng-change="validateAll()"> Auto-fill variables',
+                '<input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables',
             '</div>',
         ].join(''),
         controller: function ($scope) {
