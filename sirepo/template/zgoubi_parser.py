@@ -19,6 +19,11 @@ _CHANGREF_MAP = {
     'ZR': 'ALE',
 }
 
+_IGNORE_ELEMENTS = [
+    'faisceau',
+    'images',
+]
+
 #TODO(pjm): remove when we have updated to latest zgoubi
 _NEW_PARTICLE_TYPES = {
     'POSITRON': {
@@ -36,6 +41,7 @@ def parse_file(zgoubi_text, max_id=0):
     # skip first documentation line
     title = lines.pop(0)
     parser.increment_line_number()
+    unhandled_elements = {}
     current_command = None
     for line in lines:
         parser.increment_line_number()
@@ -47,7 +53,7 @@ def parse_file(zgoubi_text, max_id=0):
         keyword = _parse_keyword(line)
         if keyword:
             if current_command:
-                _add_command(parser, current_command, elements)
+                _add_command(parser, current_command, elements, unhandled_elements)
             if keyword == 'END' or keyword == 'FIN':
                 current_command = None
                 break
@@ -58,15 +64,19 @@ def parse_file(zgoubi_text, max_id=0):
             line = line.lstrip()
             current_command.append(line.split())
     assert current_command is None, 'missing END element'
-    return title, elements
+    return title, elements, sorted(unhandled_elements.keys())
 
 
-def _add_command(parser, command, elements):
+def _add_command(parser, command, elements, unhandled_elements):
     command_type = command[0][0]
+    if command_type.lower() in _IGNORE_ELEMENTS:
+        return
     method = '_zgoubi_{}'.format(command_type).lower()
     if method not in globals():
-        pkdlog('unknown zgoubi element: {}', method)
-        return
+        unhandled_elements[command_type] = True
+        # replace the element with a zero length drift
+        command = [['DRIFT', 'DUMMY {}'.format(command_type)], ['0']]
+        method = '_zgoubi_drift'
     el = globals()[method](command)
     if el:
         if type(el) == list:
@@ -96,7 +106,7 @@ def _parse_command_line(element, line, line_def):
         if k[0] == '*':
             k = k[1:]
             if not len(line):
-                break;
+                break
         element[k] = line.pop(0)
     return element
 

@@ -36,6 +36,12 @@ def run(cfg_dir):
             res = template.get_analysis_report(py.path.local(cfg_dir), data)
         elif 'fftReport' in data.report:
             res = template.get_fft(py.path.local(cfg_dir), data)
+        elif 'correctorSettingReport' in data.report:
+            res = template.get_settings_report(py.path.local(cfg_dir), data)
+        elif 'beamPositionReport' in data.report:
+            res = template.get_beam_pos_report(py.path.local(cfg_dir), data)
+        elif 'watchpointReport' in data.report:
+            res = template.get_centroid_report(py.path.local(cfg_dir), data)
         else:
             assert False, 'unknown report: {}'.format(data.report)
         simulation_db.write_result(res)
@@ -81,7 +87,10 @@ def _cost_function(values, server_address, periodic_callback):
     # periodic_callback() either waits for the remote EPICS or runs a local sim which populates local EPICS
     periodic_callback(server_address)
     readings = template.read_epics_values(server_address, template.BPM_FIELDS)
-    cost = np.sum((np.array(readings) * 1000.) ** 2)
+    #cost = np.sum((np.array(readings) * 1000.) ** 2)
+    cost = np.sum((np.array(
+        [readings[4] - readings[6], readings[5] - readings[7], readings[6], readings[7]]
+    ) * 1000.) ** 2)
     return cost
 
 
@@ -101,7 +110,7 @@ def _optimize_nelder_mead(server_address, periodic_callback):
             'maxiter': 500,
             'maxfev': 500,
         },
-        tol=1e-9,
+        tol=1e-4,
         args=(server_address, periodic_callback,),
     )
     pkdlog('optimization results: {}', opt)

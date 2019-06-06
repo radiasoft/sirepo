@@ -2246,18 +2246,18 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
-                  '<input class="form-control" data-ng-model="data.displayName" required/>',
+                  '<input name="guestName" class="form-control" data-ng-model="data.displayName" required/>',
                   '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="submit()" class="btn btn-primary">Submit</button>',
+                 '<button data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="form.$invalid">Submit</button>',
               '</div>',
             '</form>',
         ].join(''),
         controller: function($scope) {
             function handleResponse(data) {
-                if (data.state == 'ok') {
+                if (data.state === 'ok') {
                     $scope.showWarning = false;
                     $window.location.href = requestSender.formatUrl(
                         'root',
@@ -2284,6 +2284,7 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
         link: function(scope, element) {
             // get the angular form from within the transcluded content
             scope.form = element.find('input').eq(0).controller('form');
+            scope.form.guestName.$setDirty();
         }
     };
 });

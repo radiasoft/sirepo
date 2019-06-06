@@ -265,6 +265,7 @@ def remove_last_frame(run_dir):
 
 def save_report_data(data, run_dir):
     report_name = data['report']
+    error = ''
     if 'twissReport' in report_name or 'opticsReport' in report_name:
         enum_name = _REPORT_ENUM_INFO[report_name]
         report = data['models'][report_name]
@@ -273,8 +274,12 @@ def save_report_data(data, run_dir):
         for f in ('y1', 'y2', 'y3'):
             if report[f] == 'none':
                 continue
+            points = column_data(report[f], col_names, rows)
+            if any(map(lambda x: math.isnan(x), points)):
+                error = 'Twiss data could not be computed for {}'.format(
+                    template_common.enum_text(_SCHEMA, enum_name, report[f]))
             plots.append({
-                'points': column_data(report[f], col_names, rows),
+                'points': points,
                 'label': template_common.enum_text(_SCHEMA, enum_name, report[f]),
             })
         #TODO(pjm): use template_common
@@ -306,6 +311,10 @@ def save_report_data(data, run_dir):
             }
     else:
         raise RuntimeError('unknown report: {}'.format(report_name))
+    if error:
+        res = {
+            'error': error,
+        }
     simulation_db.write_result(
         res,
         run_dir=run_dir,

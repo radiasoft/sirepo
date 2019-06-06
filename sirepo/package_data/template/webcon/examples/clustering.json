@@ -1,0 +1,405 @@
+{
+    "models": {
+        "KICKER10": {
+            "_id": 10,
+            "hkick": 0,
+            "name": "HV_KICKER_1",
+            "type": "KICKER",
+            "vkick": 0
+        },
+        "KICKER12": {
+            "_id": 12,
+            "hkick": 0,
+            "name": "HV_KICKER_2",
+            "type": "KICKER",
+            "vkick": 0
+        },
+        "KICKER13": {
+            "_id": 13,
+            "hkick": 0,
+            "name": "HV_KICKER_3",
+            "type": "KICKER",
+            "vkick": 0
+        },
+        "KICKER14": {
+            "_id": 14,
+            "hkick": 0,
+            "name": "HV_KICKER_4",
+            "type": "KICKER",
+            "vkick": 0
+        },
+        "QUAD24": {
+            "_id": 24,
+            "k1": -5,
+            "l": 0.05,
+            "name": "F_QUAD_1",
+            "type": "QUAD"
+        },
+        "QUAD25": {
+            "_id": 25,
+            "k1": 5,
+            "l": 0.05,
+            "name": "D_QUAD_1",
+            "type": "QUAD"
+        },
+        "QUAD30": {
+            "_id": 30,
+            "k1": -5,
+            "l": 0.05,
+            "name": "F_QUAD_2",
+            "type": "QUAD"
+        },
+        "QUAD31": {
+            "_id": 31,
+            "k1": 5,
+            "l": 0.05,
+            "name": "D_QUAD_2",
+            "type": "QUAD"
+        },
+        "WATCH27": {
+            "_id": 27,
+            "filename": "1",
+            "name": "BPM_2",
+            "type": "WATCH"
+        },
+        "WATCH28": {
+            "_id": 28,
+            "filename": "1",
+            "name": "BPM_3",
+            "type": "WATCH"
+        },
+        "WATCH29": {
+            "_id": 29,
+            "filename": "1",
+            "name": "BPM_4",
+            "type": "WATCH"
+        },
+        "WATCH9": {
+            "_id": 9,
+            "filename": "1",
+            "name": "BPM_1",
+            "type": "WATCH"
+        },
+        "analysisData": {
+            "columnInfo": {
+                "header_row_count": 1,
+                "names": [
+                    "x",
+                    " y"
+                ],
+                "scale": [
+                    1,
+                    1
+                ],
+                "units": [
+                    "",
+                    ""
+                ]
+            },
+            "file": "clustering_demo.csv"
+        },
+        "analysisReport": {
+            "action": null,
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.05,
+            "clusterFields": [
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 1,
+            "clusterScaleMin": -1,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport1": {
+            "action": "cluster",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.05,
+            "clusterFields": [
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 1,
+            "clusterScaleMin": -1,
+            "fitEquation": "a * x + b",
+            "fitParameters": "a,b",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "trim",
+                    "trimField": "0",
+                    "trimMax": 3.6,
+                    "trimMin": -3.58
+                }
+            ],
+            "id": 1,
+            "notes": "",
+            "trimField": "0",
+            "trimMax": 3.6,
+            "trimMin": -3.58,
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport2": {
+            "action": "fit",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.05,
+            "clusterFields": [
+                true,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 1,
+            "clusterScaleMin": -1,
+            "fitEquation": "a * x + b + c * x ** 2",
+            "fitParameters": "a,b,c",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "trim",
+                    "trimField": "0",
+                    "trimMax": 3.6,
+                    "trimMin": -3.58
+                },
+                {
+                    "action": "cluster",
+                    "clusterCount": 3,
+                    "clusterDbscanEps": 0.05,
+                    "clusterFields": [
+                        true,
+                        true
+                    ],
+                    "clusterIndex": 3,
+                    "clusterKmeansInit": 2,
+                    "clusterMethod": "dbscan",
+                    "clusterRandomSeed": 12341234,
+                    "clusterScaleMax": 1,
+                    "clusterScaleMin": -1
+                }
+            ],
+            "id": 2,
+            "notes": "",
+            "trimField": "0",
+            "trimMax": 3.6,
+            "trimMin": -3.58,
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "beamPositionAnimation": {},
+        "beamPositionReport": {
+            "numHistory": 0,
+            "samplePeriod": 1
+        },
+        "beamSteering": {
+            "steeringMethod": "polyfit",
+            "useSteering": "0"
+        },
+        "beamlines": [
+            {
+                "id": 1,
+                "items": [
+                    8,
+                    8,
+                    10,
+                    8,
+                    8,
+                    9,
+                    8,
+                    8,
+                    8,
+                    8,
+                    12,
+                    8,
+                    8,
+                    27,
+                    8,
+                    8,
+                    8,
+                    24,
+                    8,
+                    8,
+                    25,
+                    8,
+                    8,
+                    8,
+                    13,
+                    8,
+                    8,
+                    28,
+                    8,
+                    8,
+                    8,
+                    8,
+                    14,
+                    8,
+                    8,
+                    29,
+                    8,
+                    8,
+                    8,
+                    30,
+                    8,
+                    8,
+                    31,
+                    8
+                ],
+                "name": "beamline"
+            }
+        ],
+        "bunch": {
+            "centroid_x": 0.001,
+            "centroid_xp": 0,
+            "centroid_y": 0.001,
+            "centroid_yp": 0,
+            "p_central_mev": 1001
+        },
+        "correctorSettingAnimation": {},
+        "correctorSettingReport": {
+            "numHistory": 0,
+            "plotOrder": "time",
+            "samplePeriod": 1
+        },
+        "elements": [
+            {
+                "_id": 8,
+                "l": 0.1,
+                "name": "drift",
+                "type": "DRIF"
+            },
+            {
+                "_id": 10,
+                "hkick": 0,
+                "name": "HV_KICKER_1",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 12,
+                "hkick": 0,
+                "name": "HV_KICKER_2",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 13,
+                "hkick": 0,
+                "name": "HV_KICKER_3",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 14,
+                "hkick": 0,
+                "name": "HV_KICKER_4",
+                "type": "KICKER",
+                "vkick": 0
+            },
+            {
+                "_id": 24,
+                "k1": -5,
+                "l": 0.05,
+                "name": "F_QUAD_1",
+                "type": "QUAD"
+            },
+            {
+                "_id": 25,
+                "k1": 5,
+                "l": 0.05,
+                "name": "D_QUAD_1",
+                "type": "QUAD"
+            },
+            {
+                "_id": 30,
+                "k1": -5,
+                "l": 0.05,
+                "name": "F_QUAD_2",
+                "type": "QUAD"
+            },
+            {
+                "_id": 31,
+                "k1": 5,
+                "l": 0.05,
+                "name": "D_QUAD_2",
+                "type": "QUAD"
+            },
+            {
+                "_id": 9,
+                "filename": "1",
+                "name": "BPM_1",
+                "type": "WATCH"
+            },
+            {
+                "_id": 27,
+                "filename": "1",
+                "name": "BPM_2",
+                "type": "WATCH"
+            },
+            {
+                "_id": 28,
+                "filename": "1",
+                "name": "BPM_3",
+                "type": "WATCH"
+            },
+            {
+                "_id": 29,
+                "filename": "1",
+                "name": "BPM_4",
+                "type": "WATCH"
+            }
+        ],
+        "epicsServerAnimation": {
+            "connectToServer": "0",
+            "serverAddress": "",
+            "serverType": "local"
+        },
+        "fftReport": {},
+        "fftReport1": {
+            "analysisReport": "analysisReport1"
+        },
+        "fftReport2": {
+            "analysisReport": "analysisReport2"
+        },
+        "hiddenReport": {
+            "subreports": [
+                1,
+                2
+            ]
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "isExample": true,
+            "name": "Clustering Demo",
+            "notes": "",
+            "simulationId": "0dhwsPz2",
+            "simulationSerial": 1559250681953361
+        },
+        "simulationStatus": {},
+        "watchpointReport": {}
+    },
+    "simulationType": "webcon",
+    "version": "20190529.225417"
+}

@@ -25,10 +25,12 @@ _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'd
 def import_file(text):
     data = simulation_db.default_data(_SIM_TYPE)
     #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
-    title, elements = zgoubi_parser.parse_file(text, 1)
+    title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
     title = re.sub(r'\s+', ' ', title)
     title = re.sub(r'^\s+|\s+$', '', title)
     data['models']['simulation']['name'] = title if title else 'zgoubi'
+    if len(unhandled_elements):
+        data['models']['simulation']['warnings'] = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
     elegant_common.sort_elements_and_beamlines(data)

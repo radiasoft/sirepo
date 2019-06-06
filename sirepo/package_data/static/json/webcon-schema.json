@@ -4,6 +4,9 @@
             "localRoute": "analysis"
         }
     },
+    "constants": {
+        "inProgressText": "Working"
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -45,6 +48,10 @@
             ["local", "Local"],
             ["remote", "Remote"]
         ],
+        "SettingsPlotOrder": [
+            ["time", "By Time"],
+            ["position", "By Position"]
+        ],
         "SteeringMethod": [
             ["nmead", "Nelder-Mead"],
             ["polyfit", "Linear Response Matrix"]
@@ -78,11 +85,13 @@
             "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
             "notes": ["Notes", "Text", ""]
         },
-        "beamPositionAnimation": {
+         "beamPositionReport": {
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5]
         },
         "beamSteering": {
             "useSteering": ["Use Steering", "Boolean", "0"],
-            "steeringMethod": ["Steering Method", "SteeringMethod", "polyfit"]
+            "steeringMethod": ["Steering Method", "SteeringMethod", "nmead"]
         },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],
@@ -91,7 +100,10 @@
             "centroid_y": ["Y [m]", "Float", 0.001],
             "centroid_yp": ["Y' [rad]", "Float", 0]
         },
-        "correctorSettingAnimation": {
+        "correctorSettingReport": {
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5],
+            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
         },
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
@@ -110,6 +122,13 @@
             "k1": ["Strength [1/m²]", "MiniFloat", 0]
         },
         "WATCH": {
+        },
+        "watchpointReport": {
+            "plotRangeType": ["Range", "PlotRangeType", "fixed"],
+            "horizontalSize": ["Horizontal Size", "Float", 0.003],
+            "verticalSize": ["Vertical Size", "Float", 0.003],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0]
         }
     },
     "view": {
@@ -181,9 +200,13 @@
             ],
             "advanced": []
         },
-        "beamPositionAnimation": {
+        "beamPositionReport": {
             "title": "Beam Position",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "numHistory",
+                "samplePeriod"
+            ]
         },
         "beamSteering": {
             "title": "Beam Steering",
@@ -204,9 +227,14 @@
             ],
             "advanced": []
         },
-        "correctorSettingAnimation": {
+        "correctorSettingReport": {
             "title": "Corrector Settings",
-            "advanced": []
+            "basic": [],
+            "advanced": [
+                "numHistory",
+                "samplePeriod",
+                "plotOrder"
+            ]
         },
         "epicsServerAnimation": {
             "title": "EPICS Server",
@@ -231,8 +259,8 @@
             "advanced": []
         },
         "WATCH": {
-            "basic": [],
-            "advanced": []
+        },
+        "watchpointReport": {
         }
     }
 }
