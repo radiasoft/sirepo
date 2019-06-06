@@ -5,7 +5,10 @@
         }
     },
     "constants": {
-        "inProgressText": "Working"
+        "inProgressText": "Working",
+        "allowedEquationOps": [
+          "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan"
+        ]
     },
     "dynamicFiles": {
         "sirepoLibs": {
@@ -74,7 +77,7 @@
             "clusterRandomSeed": ["Random Seed", "Integer", 12341234],
             "clusterKmeansInit": ["KMeans Number of Runs", "Integer", 2, "Number of time the k-means algorithm will be run with different centroid seeds. The final results will be the best output of n_init consecutive runs in terms of inertia.", 2, 20],
             "clusterDbscanEps": ["DBSCAN Max Sample Distance", "Float", 0.1, "The maximum distance between two samples for them to be considered as in the same neighborhood."],
-            "fitEquation": ["Equation to Fit", "Equation", "a * x + b"],
+            "fitEquation": ["Equation to Fit", "Equation", "a * x + b", "Functions limited to trig, exp, log, abs. Use 'pi' for π. Variable and parameter names limited to 1 letter"],
             "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
             "fitVariable": ["Independent Variable", "EquationVariables", "x"],
             "trimField": ["Trim Field", "AnalysisParameter"],

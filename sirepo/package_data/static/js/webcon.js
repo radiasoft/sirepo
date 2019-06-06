@@ -127,11 +127,10 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
     };
 
     self.tokenizeEquation = function(eq) {
-        var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs', 'pi'];
         return (eq || '').split(/[-+*/^|%().0-9\s]/)
             .filter(function (t) {
                 return t.length > 0 &&
-                    reserved.indexOf(t.toLowerCase()) < 0;
+                    SIREPO.APP_SCHEMA.constants.allowedEquationOps.indexOf(t) < 0;
         });
     };
 
@@ -1345,6 +1344,10 @@ SIREPO.app.directive('validVariableOrParam', function(webconService, utilities) 
                 }
                 if (! isUnique(p, webconService.tokenizeParams(ngModel.$viewValue))) {
                     scope.warningText = p + ' is duplicated';
+                    return false;
+                }
+                if (p.length > 1) {
+                    scope.warningText = p + ': use single character';
                     return false;
                 }
 
