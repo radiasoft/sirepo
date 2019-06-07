@@ -370,7 +370,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         ensureDomain: function(domain) {
-            if (domain[0] == domain[1]) {
+            if (domain && (domain[0] == domain[1])) {
                 domain[0] -= (domain[0] || 1);
                 domain[1] += (domain[1] || 1);
             }

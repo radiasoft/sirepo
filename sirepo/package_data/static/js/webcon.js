@@ -912,21 +912,8 @@ SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache,
             parentController: '<',
         },
         template: [
-            //'<div data-webcon-lattice=""></div>',
             '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
         ].join(''),
-        controller: function($scope) {
-            $scope.$on('beamPositionReport.changed', function () {
-                //srdbg('beamPositionReport.changed');
-                var toSave = [];
-                ($scope.parentController.watches || []).forEach(function (w) {
-                    var rpt = $scope.parentController.watchpointReportName(w.id);
-                    appState.models[rpt].lastUpdateTime = Date.now();
-                    toSave.push(rpt);
-                });
-                appState.saveChanges(toSave);
-            });
-        },
     };
 });
 

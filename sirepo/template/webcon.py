@@ -230,7 +230,7 @@ def get_beam_pos_report(run_dir, data):
     x, plots, colors = _beam_pos_plots(data, history, start_time)
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': '',
+        'y_label': '[m]',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -413,7 +413,7 @@ def get_settings_report(run_dir, data):
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'rad',
+        'y_label': '[rad]',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -452,8 +452,8 @@ def models_related_to_report(data):
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
-    if 'watchpointReport' in r:
-        # alwasy recompute the watchpoing (bpm) reports
+    if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
+        # always recompute the EPICS reports
         res += [random.random()]
     return res
 
