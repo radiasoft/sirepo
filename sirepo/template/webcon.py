@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import StringIO
 import copy
@@ -803,6 +804,18 @@ def _epics_dir(sim_id):
 
 def _fit_to_equation(x, y, equation, var, params):
     # TODO: must sanitize input - sympy uses eval
+
+    # These security measures taken so far:
+    #     Whitelist of allowed functions and other symbols as defined in the schema
+    #     Variable and parameters must be 1 alphabetic character
+
+    eq_ops = [t for t in _tokenize_equation(equation) if t != var and t not in params]
+    eq_ops_rejected = [op for op in eq_ops if op not in _SCHEMA.constants.allowedEquationOps]
+    assert len(eq_ops_rejected) == 0, util.err(eq_ops_rejected, 'operation fobidden')
+    assert _validate_eq_var(var), util.err(var, 'invalid variable name')
+    assert all([_validate_eq_var(p) for p in re.split(r'\s*,\s*', params)]),\
+        util.err(params, 'invalid parameter name(s)')
+
     sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
 
@@ -1267,6 +1280,10 @@ def _setting_plots_by_time(data, history, start_time):
     return np.array([current_time - time_window, current_time]), plots, c
 
 
+def _tokenize_equation(eq):
+    return [t for t in re.split(r'[-+*/^|%().0-9\s]', (eq if eq is not None else '')) if len(t) > 0]
+
+
 def _update_epics_kicker(data):
     epics_settings = data.epicsServerAnimation
     # data validation is done by casting values to int() or float()
@@ -1279,6 +1296,10 @@ def _update_epics_kicker(data):
         values.append(float(data['kicker']['{}kick'.format(f)]))
     update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
     return {}
+
+
+def _validate_eq_var(val):
+    return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
 
 
 def _watch_index(data, watch_id):
