@@ -546,10 +546,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
-        //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
-        //'correctorSettingAnimation': [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime']
-    });
+    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
 
     return self;
 });
@@ -906,14 +903,22 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+SIREPO.app.directive('refreshButton', function(appState) {
     return {
         scope: {
-            parentController: '<',
+            modelName: '@refreshButton',
         },
         template: [
-            '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
+            '<div class="pull-right btn-default btn" data-ng-click="refreshReport()">',
+              '<span class="glyphicon glyphicon-refresh"></span>',
+            '</div>',
         ].join(''),
+        controller: function($scope) {
+            $scope.refreshReport = function() {
+                appState.models[$scope.modelName].refreshTime = Date.now();
+                appState.saveChanges($scope.modelName);
+            };
+        },
     };
 });
 
@@ -924,7 +929,8 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
         },
         template: [
             '<div data-report-panel="parameter" data-model-name="correctorSettingReport">',
-            '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
+              '<div data-refresh-button="correctorSettingReport"></div>',
+              '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -934,7 +940,6 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
             var history = [];
             var spread = [40.0, 0];
 
-            //$scope.modelName = 'correctorSettingAnimation';
             $scope.modelName = 'correctorSettingReport';
             $scope.spreadView = false;
 
@@ -990,19 +995,6 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
                 if ($scope.spreadView) {
                     doSpread();
                 }
-            });
-
-            /*
-            $scope.$on('correctorSettingAnimation.summaryData', function (e, data) {
-                //srdbg('correctorSettingAnimation sum data', data);
-                if (! $scope.showSpreadButton()) {
-                    return;
-                }
-            });
-            */
-            //$scope.$on('modelChanged', update);
-            $scope.$on('epicsServerAnimation.changed', function (e, data) {
-                //srdbg('check state', appState.models.epicsServerAnimation.connectToServer);
             });
 
             function doSpread(doAnimate) {
@@ -1310,7 +1302,6 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
             '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
               '<div class="webcon-lattice">',
                 '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
-                '<div data-ng-if="isLoaded()" style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
               '</div>',
             '</div>',
         ].join(''),
