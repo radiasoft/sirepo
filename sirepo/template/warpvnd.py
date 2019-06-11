@@ -654,7 +654,7 @@ def _generate_optimizer_file(data, v):
 def _generate_parameters_file(data):
     v = None
     template_common.validate_models(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['densityFile'] = _DENSITY_FILE
@@ -670,7 +670,7 @@ def _generate_parameters_file(data):
     v['isOptimize'] = data['report'] == 'optimizerAnimation'
     if v['isOptimize']:
         _replace_optimize_variables(data, v)
-    res = _render_jinja('base', v)
+    res += _render_jinja('base', v)
     if data['report'] == 'animation':
         if data['models']['simulation']['egun_mode'] == '1':
             v['egunStatusFile'] = _EGUN_STATUS_FILE

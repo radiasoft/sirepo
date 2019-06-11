@@ -29,7 +29,6 @@ import sklearn.mixture
 import sklearn.preprocessing
 import sympy
 
-
 SIM_TYPE = 'webcon'
 
 BPM_FIELDS = [
@@ -878,7 +877,7 @@ def _generate_parameters_file(run_dir, data):
             el.vkick = '{' + 'vagrant_corrector{}_VCurrent'.format(count) + '}'
     if run_dir:
         np.save(str(run_dir.join(CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     from sirepo.template import elegant
     #TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
@@ -886,7 +885,7 @@ def _generate_parameters_file(run_dir, data):
     v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
     v['BPM_FIELDS'] = BPM_FIELDS
     v['CURRENT_FIELDS'] = CURRENT_FIELDS
-    return template_common.render_jinja(SIM_TYPE, v)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _get_fit_report(report, plot_data, col_info):

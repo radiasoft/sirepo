@@ -640,7 +640,7 @@ def _generate_nlinsert_elements(model, state, callback):
 
 def _generate_parameters_file(data):
     _validate_data(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
     v['bunchFileName'] = OUTPUT_FILE['bunchReport']
@@ -649,7 +649,7 @@ def _generate_parameters_file(data):
     if data.models.bunch.distribution == 'file':
         v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
     v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
-    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
     if 'bunchReport' in report or 'twissReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
