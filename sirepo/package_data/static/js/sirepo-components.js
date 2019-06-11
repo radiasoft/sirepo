@@ -609,7 +609,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService) {
     };
 });
 
-SIREPO.app.directive('fileField', function(appState, errorService, panelState, requestSender, $http) {
+SIREPO.app.directive('fileField', function(errorService, panelState, requestSender, $http) {
     return {
         restrict: 'A',
         transclude: true,
@@ -690,7 +690,6 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
                             }
                         },
                         {
-                            simulationId: appState.models.simulation.simulationId,
                             simulationType: SIREPO.APP_SCHEMA.simulationType,
                             fileType: $scope.fileType,
                             fileName: $scope.deleteItem,
@@ -702,7 +701,7 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
             $scope.downloadFileUrl = function() {
                 if ($scope.model) {
                     return requestSender.formatUrl('downloadFile', {
-                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_id>': 'unused',
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<filename>': SIREPO.APP_NAME == 'srw'
                             ? $scope.model[$scope.fileField]
@@ -735,9 +734,6 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
                 return false;
             };
             $scope.itemList = function() {
-                if (! appState.isLoaded()) {
-                    return null;
-                }
                 if (! $scope.fileType) {
                     $scope.fileType = $scope.modelName + '-' + $scope.fileField;
                 }
@@ -749,8 +745,7 @@ SIREPO.app.directive('fileField', function(appState, errorService, panelState, r
                     requestSender.formatUrl('listFiles', {
                         '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
                         '<file_type>': $scope.fileType,
-                        // unused param
-                        '<simulation_id>': appState.models.simulation.simulationId,
+                        '<simulation_id>': 'unused',
                     }), sortList);
                 return null;
             };
@@ -908,7 +903,7 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                       '<form>',
                         '<div class="form-group">',
                           '<label>Select File</label>',
-                          '<input type="file" data-file-model="inputFile" accept="{{ acceptTypes() }}" />',
+                          '<input type="file" data-file-model="inputFile" data-ng-attr-accept="{{ acceptTypes() }}" />',
                           '<div class="text-warning" style="white-space: pre-line"><strong>{{ fileUploadError }}</strong></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
@@ -986,7 +981,6 @@ SIREPO.app.directive('fileUploadDialog', function(appState, fileUpload, panelSta
                 scope.isConfirming = false;
                 scope.isUploading = false;
                 scope.fileUploadError = '';
-                scope.inputFile = null;
                 $(element).find("input[type='file']").val(null);
             });
             scope.$on('$destroy', function() {
@@ -1907,6 +1901,7 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
 SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
+        transclude: true,
         scope: {
             title: '@',
             description: '@',
@@ -1930,6 +1925,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                           '<input id="file-import" type="file" data-file-model="inputFile" data-ng-attr-accept="{{ fileFormats }}">',
                           '<br />',
                           '<div class="text-warning"><strong>{{ fileUploadError }}</strong></div>',
+                          '<div data-ng-transclude=""></div>',
                         '</div>',
                         '<div data-ng-if="isUploading" class="col-sm-6 pull-right">Please Wait...</div>',
                         '<div class="clearfix"></div>',
@@ -1968,6 +1964,8 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
                         $scope.isUploading = false;
                         if (data.error) {
                             $scope.fileUploadError = data.error;
+                            // used by sub components to display additional data entry fields
+                            $scope.errorData = data;
                         }
                         else {
                             $('#simulation-import').modal('hide');
@@ -1981,6 +1979,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
             $(element).on('show.bs.modal', function() {
                 $('#file-import').val(null);
                 scope.fileUploadError = '';
+                delete scope.errorData;
                 scope.isUploading = false;
             });
             scope.$on('$destroy', function() {

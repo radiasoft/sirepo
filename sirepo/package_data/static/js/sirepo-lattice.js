@@ -1035,7 +1035,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         x += radius;
                         newAngle = latticeService.radiansToDegrees(angle);
                         pos.radius = radius;
-                        if (item.type == 'CHANGREF') {
+                        if (item.type == 'CHANGREF' && ! $scope.flatten) {
                             adjustPosition(pos, item.XCE, -item.YCE);
                         }
                     }

@@ -150,6 +150,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
+    #TODO(pjm): simulation_id is an unused argument
     lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(filename)
     p = lib.join(filename)
@@ -207,7 +208,7 @@ def api_favicon():
 
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
-    # simulation_id is an unused argument
+    #TODO(pjm): simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
     res = []
     exclude = None
@@ -350,6 +351,8 @@ def api_importFile(simulation_type=None):
                 simulation_db.simulation_lib_dir(simulation_type),
                 simulation_db.tmp_dir(),
             )
+            if 'error' in data:
+                return http_reply.gen_json(data)
         #TODO(robnagler) need to validate folder
         data.models.simulation.folder = flask.request.form['folder']
         data.models.simulation.isExample = False
