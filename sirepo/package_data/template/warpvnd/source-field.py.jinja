@@ -14,7 +14,6 @@ solverE.mgverbose = 1 #further reduce output upon stepping - prevents websocket 
 solverE.mgmaxiters = 20000 #rough approximation needed for initial solve to converge
 wp.package("w3d")
 wp.generate()
-#solverE.mgmaxiters = 20000
 
 #------
 
@@ -71,10 +70,7 @@ except AssertionError as e:
 
 #Grab Phi from the solver and average over the transverse (x) plane
 Phi = solverE.getphi()
-#print('!PHI LEN {} {} {}'.format(len(Phi), len(Phi[0]), len(Phi[0][0])))
-#print('!PHI {}'.format(Phi.tolist()))
 flat_Phi = -1.*np.mean(Phi,0) #Needs to be made negative
-#print('!FLAT_PHI {}'.format(flat_Phi))
 
 #Generate an interpolating function for smooth particle integration
 Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
