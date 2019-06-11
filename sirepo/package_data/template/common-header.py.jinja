@@ -1,3 +1,4 @@
+{% if notes | length %}
 """
 {% for key in notes %}
 {{ key[0] }} notes:
@@ -5,3 +6,4 @@
 
 {% endfor %}
 """
+{% endif %}

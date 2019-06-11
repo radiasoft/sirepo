@@ -501,7 +501,7 @@ def _get_notes(data):
     notes = []
     for key in data.keys():
         match = re.search(r'^(.+)_notes$', key)
-        if match:
+        if match and data[key]:
             n_key = match.group(1)
             k = n_key[0].capitalize() + n_key[1:]
             k_words = [word for word in re.split(r'([A-Z][a-z]*)', k) if word != '']
