@@ -23,11 +23,14 @@ _CHANGREF_MAP = {
 _IGNORE_ELEMENTS = [
     'faisceau',
     'faistore',
-    'matrix',
-    'images',
     'fit',
+    'images',
+    'matrix',
+    'optics',
+    'options',
     'rebelote',
     'spnprt',
+    'twiss',
 ]
 
 _MAX_COORDINATES = 10
@@ -455,8 +458,8 @@ def _zgoubi_spntrk(command):
             'KSO',
             'S_X S_Y S_Z',
         ])
+        del res['KSO']
     res['type'] = 'SPNTRK'
-    del res['KSO']
     return res
 
 

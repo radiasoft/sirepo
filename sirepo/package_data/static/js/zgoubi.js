@@ -199,11 +199,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
 
     function processParticleSelector() {
         var bunch = appState.models.bunch;
-        var count = bunch.particleCount2;
-        if (! bunch.coordinates) {
-            bunch.coordinates = [];
-        }
-        for (var i = 0; i < count; i++) {
+        for (var i = 0; i < bunch.particleCount2; i++) {
             if (! bunch.coordinates[i]) {
                 bunch.coordinates[i] = appState.setModelDefaults({}, 'particleCoordinate');
             }

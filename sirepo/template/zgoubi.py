@@ -173,7 +173,12 @@ def fixup_old_data(data):
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'coordinates' not in data.models.bunch:
-        data.models.bunch.coordinates = []
+        bunch = data.models.bunch
+        bunch.coordinates = []
+        for idx in range(bunch.particleCount2):
+            coord = {}
+            template_common.update_model_defaults(coord, 'particleCoordinate', _SCHEMA)
+            bunch.coordinates.append(coord)
     if 'spntrk' in data.models.simulationSettings:
         for f in ('spntrk', 'S_X', 'S_Y', 'S_Z'):
             if f in data.models.simulationSettings:
@@ -199,10 +204,10 @@ def get_simulation_frame(run_dir, data, model_data):
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read())
+    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
     return data
 
 
@@ -237,7 +242,7 @@ def parse_error_log(run_dir):
     return None
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model=None):
     return _generate_parameters_file(data)
 
 

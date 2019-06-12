@@ -5,6 +5,7 @@ u"""zgoubi datafile parser
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
@@ -23,9 +24,13 @@ _DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
 _MRAD_FIELDS = ['AUTOREF.ALE']
 #TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
 _CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR']
+_UNIT_TEST_MODE = False
 
 
-def import_file(text):
+def import_file(text, unit_test_mode=False):
+    if unit_test_mode:
+        global _UNIT_TEST_MODE
+        _UNIT_TEST_MODE = unit_test_mode
     data = simulation_db.default_data(_SIM_TYPE)
     #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
     title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
@@ -218,6 +223,8 @@ def _validate_field(model, field, model_info):
 
 
 def _validate_file_names(model, file_names):
+    if _UNIT_TEST_MODE:
+        return
     #TODO(pjm): currently specific to TOSCA element, but could be generalizaed on model['type']
     # flatten filenames, search indiviual and zip files which contains all files, set magnetFile if found
     for idx in range(len(file_names)):
