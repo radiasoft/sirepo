@@ -46,6 +46,11 @@
         }
     },
     "enum": {
+        "Axes": [
+            ["xz", "X-Z"],
+            ["xy", "X-Y"],
+            ["yz", "Y-Z"]
+        ],
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
@@ -146,7 +151,9 @@
         },
         "fieldReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "axes": ["Axes", "Axes", "xz"],
+            "slice": ["Slice", "Range", 0.0]
         },
         "impactDensityAnimation": {
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
@@ -313,6 +320,8 @@
         "fieldReport": {
             "title": "Field Report",
             "advanced": [
+                "axes",
+                "slice",
                 "colorMap",
                 "notes"
             ]

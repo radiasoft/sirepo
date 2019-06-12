@@ -487,6 +487,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
+              '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
+                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field"></div>',
+              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -2635,6 +2638,23 @@ SIREPO.app.directive('optimizeFloat', function(appState, panelState) {
                 }
                 appState.saveChanges('optimizer');
             };
+        },
+    };
+});
+
+SIREPO.app.directive('rangeSlider', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+            field: '=',
+        },
+        template: [
+            '<input type="range" data-ng-attr-min="min" data-ng-attr-max="max"></input>',
+        ].join(''),
+        controller: function($scope) {
+
         },
     };
 });

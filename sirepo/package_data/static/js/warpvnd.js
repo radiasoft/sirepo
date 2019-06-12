@@ -361,6 +361,7 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
+        panelState.showField('fieldReport', 'orientation', is3d);
     }
 
     self.isWaitingForSTL = false;
@@ -681,6 +682,7 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
         },
     };
 });
+
 SIREPO.app.directive('conductorTable', function(appState, warpvndService) {
     return {
         restrict: 'A',
@@ -1992,6 +1994,67 @@ SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
             appState.whenModelsLoaded($scope, function() {
                 $scope.$watch('simState.summaryData', updateStats);
             });
+        },
+    };
+});
+
+SIREPO.app.directive('potentialReport', function(appState, panelState, plotting, warpvndService, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldReport">',
+                //'<button class="btn btn-default" data-ng-click>X-Z</button>',
+                //'<button class="btn btn-default">X-Y</button>',
+                //'<button class="btn btn-default">Y-Z</button>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            $scope.sliceRange = [0, 1];
+            //appState.whenModelsLoaded($scope, function() {
+            //    panelState.enableField('fieldReport', 'orientation', warpvndService.is3D());
+            //    setSliceRange();
+            //});
+
+            function updateAxes() {
+                srdbg('updae axes stuff');
+                var model = appState.models[$scope.modelName];
+                updateSliceRange();
+            }
+
+
+            function updateSliceRange() {
+                srdbg('setSliceRange');
+                var model = appState.models[$scope.modelName];
+                var axes = model.orientation;
+                var grid = appState.models.simulationGrid;
+                var otherAxis = '';
+                var step = 1;
+
+                if (axes === 'xz') {
+                    $scope.sliceRange = [-grid.channel_width / 2.0, grid.channel_width / 2.0];
+                    otherAxis = 'y';
+                }
+                else if (axes === 'xy') {
+                    $scope.sliceRange = [0, grid.plate_spacing];
+                    otherAxis = 'y';
+                }
+                else {
+                    $scope.sliceRange = [-grid.channel_height / 2.0, grid.channel_height / 2.0];
+                    otherAxis = 'y';
+                }
+                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_MIN] = $scope.sliceRange[0];
+                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_MAX] = $scope.sliceRange[1];
+
+                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_LABEL] = 'Slice ' + otherAxis;
+            }
+
+            appState.watchModelFields($scope, ['fieldReport.axes'], updateAxes);
+            //appState.watchModelFields($scope, ['fieldReport.slice'], updateRange);
+
         },
     };
 });
