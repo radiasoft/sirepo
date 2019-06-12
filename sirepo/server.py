@@ -353,6 +353,9 @@ def api_importFile(simulation_type=None):
             )
             if 'error' in data:
                 return http_reply.gen_json(data)
+            if 'version' in data:
+                # this will force the fixups to run when saved
+                del data['version']
         #TODO(robnagler) need to validate folder
         data.models.simulation.folder = flask.request.form['folder']
         data.models.simulation.isExample = False
