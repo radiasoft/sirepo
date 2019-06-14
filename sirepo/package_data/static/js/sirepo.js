@@ -156,7 +156,7 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, requestSender, requestQueue, fileManager, $document, $rootScope, $interval) {
+SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue, requestSender, $document, $interval, $rootScope, $window) {
     var self = {
         models: {},
     };
@@ -407,7 +407,14 @@ SIREPO.app.factory('appState', function(errorService, requestSender, requestQueu
     self.listSimulations = function(search, op) {
         requestSender.sendRequest(
             'listSimulations',
-            op,
+            function(data) {
+                if (data.errorRedirect) {
+                    $window.location.href = data.errorRedirect;
+                }
+                else {
+                    op(data);
+                }
+            },
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
                 search: search,

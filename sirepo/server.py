@@ -555,6 +555,9 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
+        err_redirect = _verify_user_dir(simulation_type)
+        if err_redirect:
+            return err_redirect
         data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'prepare_for_client'):
@@ -613,6 +616,12 @@ def api_listSimulations():
     data = _parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
+    err_redirect = _verify_user_dir(sim_type)
+    if err_redirect:
+        return http_reply.gen_json({
+            'state': 'error',
+            'errorRedirect': err_redirect.headers.get('Location'),
+        })
     simulation_db.verify_app_directory(sim_type)
     return http_reply.gen_json(
         sorted(
@@ -1087,6 +1096,17 @@ def _validate_serial(data):
         'error': 'invalidSerial',
         'simulationData': res,
     })
+
+
+def _verify_user_dir(sim_type):
+    # if user dir has been deleted, log out the user #1714
+    from sirepo import auth
+    uid = auth.logged_in_user()
+    if not simulation_db.user_dir_name(uid).check():
+        pkdlog('Force log out, user has no user_dir: {}', uid)
+        #TODO(pjm): call http_reply to format route?
+        return flask.redirect('/auth-logout/' + sim_type)
+    return None
 
 
 def static_dir(dir_name):
