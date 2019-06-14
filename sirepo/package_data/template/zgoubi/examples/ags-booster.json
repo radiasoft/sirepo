@@ -1322,7 +1322,6 @@
         "simulation": {
             "activeBeamlineId": 1,
             "folder": "/",
-            "isInitialized": true,
             "name": "AGS Booster",
             "simulationId": "V9zrBNzs",
             "simulationSerial": 1552086008690679,

@@ -577,7 +577,6 @@
             "activeBeamlineId": 13,
             "folder": "/Examples",
             "isExample": true,
-            "isInitialized": true,
             "name": "Electron Model FFAG Ring",
             "simulationId": "deZ8jUNn",
             "simulationSerial": 1558646417975506,
