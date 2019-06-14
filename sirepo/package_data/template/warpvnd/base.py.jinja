@@ -4,9 +4,12 @@ warpoptions.ignoreUnknownArgs = True
 
 
 import numpy as np
+import pykern
 import sys
 import warp as wp
 import rswarp
+
+from pykern import pkcollections
 
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
@@ -42,7 +45,7 @@ kb_J = constants.k #Boltzmann constant in J/K
 
 #-----
 
-diagDir = 'diags/xzsolver/hdf5/'
+diag_dir = 'diags/xzsolver/hdf5/'
 
 #------
 
@@ -359,7 +362,7 @@ scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 particleperiod = {{ particlePeriod }}
 particle_diagnostic_0 = ParticleDiagnostic(period=particleperiod, top=wp.top, w3d=wp.w3d,
                                            species={species.name: species for species in wp.listofallspecies},
-                                           comm_world=wp.comm_world, lparallel_output=False, write_dir=diagDir[:-5])
+                                           comm_world=wp.comm_world, lparallel_output=False, write_dir=diag_dir[:-5])
 fieldperiod = {{ particlePeriod }}
 efield_diagnostic_0 = FieldDiagnostic.ElectrostaticFields(solver=solverE, top=wp.top, w3d=wp.w3d, comm_world=wp.comm_world,
                                                           period=fieldperiod)

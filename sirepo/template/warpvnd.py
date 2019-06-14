@@ -37,7 +37,8 @@ _OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.npy'
 _PARTICLE_PERIOD = 100
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap']
+_POTENTIAL_FILE = 'potential.npy'
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
@@ -111,6 +112,82 @@ def generate_field_comparison_report(data, run_dir):
         'y_range': y_range,
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
+    }
+
+
+def generate_field_report(data, run_dir):
+
+    grid = data.models.simulationGrid
+    plate_spacing = grid.plate_spacing * 1e-6
+    radius = grid.channel_width / 2. * 1e-6
+    height = grid.channel_height / 2. * 1e-6
+
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+
+    f = str(py.path.local(run_dir).join(_POTENTIAL_FILE))
+    potential = np.load(f, allow_pickle=True)
+
+    if len(potential.shape) == 2:
+        values = potential[:grid.num_x + 1, :grid.num_z + 1]
+    else:
+        # 3d results
+        phi_slice = data.models.fieldReport.slice
+        axes = data.models.fieldReport.axes
+        if axes == 'xz':
+            values = potential[
+                     :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
+                     ]
+        elif axes == 'xy':
+            values = potential[
+                     :, :,_get_slice_index(phi_slice, 0., dz, grid.num_z - 1)
+                     ]
+        else:
+            values = potential[
+                     _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
+                     ]
+
+    axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
+    axes = axes if axes is not None else 'xz'
+    slice = data.models.fieldReport.slice
+    x_max = len(values[0])
+    y_max = len(values)
+    if axes == 'xz':
+        xr = [0, plate_spacing, x_max]
+        yr = [- radius, radius, y_max]
+        x_label = 'z [m]'
+        y_label = 'x [m]'
+        ar = 6.0 / 14
+        other_axis = 'y'
+    elif axes == 'xy':
+        xr = [- height, height, x_max]
+        yr = [- radius, radius, y_max]
+        x_label = 'y [m]'
+        y_label = 'x [m]'
+        ar = radius / height,
+        other_axis = 'z'
+    else:
+        xr = [0, plate_spacing, x_max]
+        yr = [- height, height, y_max]
+        x_label = 'z [m]'
+        y_label = 'y [m]'
+        ar = 6.0 / 14
+        other_axis = 'x'
+
+    if np.isnan(values).any():
+        return {
+            'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
+        }
+    return {
+        'aspectRatio': ar,
+        'x_range': xr,
+        'y_range': yr,
+        'x_label': x_label,
+        'y_label': y_label,
+        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, slice),
+        'z_matrix': values.tolist(),
+        'frequency_title': 'Volts'
     }
 
 
@@ -200,6 +277,7 @@ def lib_files(data, source_lib):
     res = template_common.filename_to_path(res, source_lib or simulation_db.simulation_lib_dir(data.simulationType))
     return res
 
+
 def models_related_to_report(data):
     """What models are required for this data['report']
 
@@ -249,11 +327,14 @@ def open_data_file(run_dir, model_name, file_index=None):
 
 
 def prepare_output_file(run_dir, data):
-    if data['report'] == 'fieldComparisonReport':
+    if data.report == 'fieldComparisonReport' or data.report == 'fieldReport':
         fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if fn.exists():
             fn.remove()
-            simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
+            if data.report == 'fieldComparisonReport':
+                simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
+            else:
+                simulation_db.write_result(generate_field_report(data, run_dir), run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
@@ -290,10 +371,6 @@ def write_parameters(data, run_dir, is_parallel):
             run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
             txt,
         )
-
-
-def _stl_file(conductor_type):
-    return template_common.lib_file_name('stl', 'file', conductor_type.file)
 
 
 def _add_margin(bounds):
@@ -340,13 +417,33 @@ def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, li
     pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
+def _compute_delta_for_field(data, bounds, field):
+    #TODO(pjm): centralize list of meter fields
+    if field in ('xLength', 'yLength', 'zLength', 'xCenter', 'yCenter', 'zCenter'):
+        bounds[0] = _meters(bounds[0])
+        bounds[1] = _meters(bounds[1])
+    delta = {
+        'z': _grid_delta(data, 'plate_spacing', 'num_z'),
+        'x': _grid_delta(data, 'channel_width', 'num_x'),
+        'y': _grid_delta(data, 'channel_height', 'num_y'),
+    }
+    m = re.search(r'^(\w)Center$', field)
+    if m:
+        dim = m.group(1)
+        bounds += [delta[dim], False]
+        return;
+    _DEFAULT_SIZE = data.models.optimizer.continuousFieldSteps
+    res = (bounds[1] - bounds[0]) / _DEFAULT_SIZE
+    bounds += [res if res else bounds[1], True]
+
+
 def _create_plots(dimension, data, values, x_range):
     params = data['models']['fieldComparisonReport']
     y_range = None
     visited = {}
     plots = []
     #TODO(pjm): keep in sync with warpvnd.js cell colors
-    color = ['#ff0000', '#00ff00', '#0000ff']
+    color = _SCHEMA.constants.cellColors
     max_index = values.shape[1] if dimension == 'x' else values.shape[0]
     x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
     for i in (1, 2, 3):
@@ -524,33 +621,6 @@ def _extract_impact_density(run_dir, data):
     }
 
 
-def _read_optimizer_output(run_dir):
-    # only considers unique points as steps
-    opt_file = run_dir.join(_OPTIMIZER_OUTPUT_FILE)
-    if not opt_file.exists():
-        return None, None
-    try:
-        values = np.loadtxt(str(opt_file))
-        if len(values):
-            if len(values.shape) == 1:
-                values = np.array([values])
-        else:
-            return None, None
-    except TypeError:
-        return None, None
-    except ValueError:
-        return None, None
-
-    res = []
-    best_row = None
-    # steps, time, tolerance, result, p1, ... pn
-    for v in values:
-        res.append(v)
-        if best_row is None or v[_OPT_RESULT_INDEX] > best_row[_OPT_RESULT_INDEX]:
-            best_row = v
-    return np.array(res), best_row
-
-
 def _extract_optimization_results(run_dir, data, args):
     x_index = int(args.x or '0')
     y_index = int(args.y or '0')
@@ -619,30 +689,21 @@ def _extract_particle(run_dir, data, limit):
     }
 
 
+def _find_by_id(container, id):
+    for c in container:
+        if str(c.id) == str(id):
+            return c
+    assert False, 'missing id: {} in container'.format(id)
+
+
+def _get_slice_index(x, min_x, dx, max_index):
+    return min(max_index, max(0, int(round((x - min_x) / dx))))
+
+
 def _grid_delta(data, length_field, count_field):
     grid = data.models.simulationGrid
     #TODO(pjm): already converted to meters
     return grid[length_field] / grid[count_field]
-
-
-def _compute_delta_for_field(data, bounds, field):
-    #TODO(pjm): centralize list of meter fields
-    if field in ('xLength', 'yLength', 'zLength', 'xCenter', 'yCenter', 'zCenter'):
-        bounds[0] = _meters(bounds[0])
-        bounds[1] = _meters(bounds[1])
-    delta = {
-        'z': _grid_delta(data, 'plate_spacing', 'num_z'),
-        'x': _grid_delta(data, 'channel_width', 'num_x'),
-        'y': _grid_delta(data, 'channel_height', 'num_y'),
-    }
-    m = re.search(r'^(\w)Center$', field)
-    if m:
-        dim = m.group(1)
-        bounds += [delta[dim], False]
-        return;
-    _DEFAULT_SIZE = data.models.optimizer.continuousFieldSteps
-    res = (bounds[1] - bounds[0]) / _DEFAULT_SIZE
-    bounds += [res if res else bounds[1], True]
 
 
 def _generate_optimizer_file(data, v):
@@ -664,6 +725,7 @@ def _generate_parameters_file(data):
     v = template_common.flatten_data(data['models'], {})
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
+    v['potentialFile'] = _POTENTIAL_FILE
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductors'] = _prepare_conductors(data)
@@ -700,13 +762,6 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
-
-
-def _find_by_id(container, id):
-    for c in container:
-        if str(c.id) == str(id):
-            return c
-    assert False, 'missing id: {} in container'.format(id)
 
 
 def _is_3D(data):
@@ -801,6 +856,16 @@ def _optimizer_percent_complete(run_dir, is_running):
     }
 
 
+def _parse_optimize_field(text):
+    # returns (model_name, field_name, container_name, id)
+    m, f = text.split('.')
+    container, id = None, None
+    if re.search(r'#', m):
+        name, id = m.split('#')
+        container = 'conductors' if name == 'conductorPosition' else 'conductorTypes'
+    return m, f, container, id
+
+
 def _particle_line_has_slope(curr, next, prev, i1, i2):
     return abs(
         _slope(curr[i1], curr[i2], next[i1], next[i2]) - _slope(prev[i1], prev[i2], curr[i1], curr[i2])
@@ -833,18 +898,35 @@ def _prepare_conductors(data):
     return data.models.conductors
 
 
+def _read_optimizer_output(run_dir):
+    # only considers unique points as steps
+    opt_file = run_dir.join(_OPTIMIZER_OUTPUT_FILE)
+    if not opt_file.exists():
+        return None, None
+    try:
+        values = np.loadtxt(str(opt_file))
+        if len(values):
+            if len(values.shape) == 1:
+                values = np.array([values])
+        else:
+            return None, None
+    except TypeError:
+        return None, None
+    except ValueError:
+        return None, None
+
+    res = []
+    best_row = None
+    # steps, time, tolerance, result, p1, ... pn
+    for v in values:
+        res.append(v)
+        if best_row is None or v[_OPT_RESULT_INDEX] > best_row[_OPT_RESULT_INDEX]:
+            best_row = v
+    return np.array(res), best_row
+
+
 def _render_jinja(template, v):
     return template_common.render_jinja(SIM_TYPE, v, '{}.py'.format(template))
-
-
-def _parse_optimize_field(text):
-    # returns (model_name, field_name, container_name, id)
-    m, f = text.split('.')
-    container, id = None, None
-    if re.search(r'#', m):
-        name, id = m.split('#')
-        container = 'conductors' if name == 'conductorPosition' else 'conductorTypes'
-    return m, f, container, id
 
 
 def _replace_optimize_variables(data, v):
@@ -921,3 +1003,8 @@ def _slope(x1, y1, x2, y2):
         # treat no slope as flat for comparison
         return 0
     return (y2 - y1) / (x2 - x1)
+
+
+def _stl_file(conductor_type):
+    return template_common.lib_file_name('stl', 'file', conductor_type.file)
+

@@ -1998,7 +1998,7 @@ SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
     };
 });
 
-SIREPO.app.directive('potentialReport', function(appState, panelState, plotting, warpvndService, $rootScope) {
+SIREPO.app.directive('potentialReport', function(appState, panelState, plotting, warpvndService, utilities) {
     return {
         restrict: 'A',
         scope: {
@@ -2006,55 +2006,76 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
         },
         template: [
             '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldReport">',
-                //'<button class="btn btn-default" data-ng-click>X-Z</button>',
-                //'<button class="btn btn-default">X-Y</button>',
-                //'<button class="btn btn-default">Y-Z</button>',
             '</div>',
         ].join(''),
         controller: function($scope) {
 
+            var lastAxes = 'xz';
+            var slider;
+
             $scope.sliceRange = [0, 1];
-            //appState.whenModelsLoaded($scope, function() {
-            //    panelState.enableField('fieldReport', 'orientation', warpvndService.is3D());
-            //    setSliceRange();
-            //});
+            $scope.step = 1;
 
             function updateAxes() {
-                srdbg('updae axes stuff');
                 var model = appState.models[$scope.modelName];
                 updateSliceRange();
             }
 
-
             function updateSliceRange() {
-                srdbg('setSliceRange');
+
+                if (! slider) {
+                    return;
+                }
+
                 var model = appState.models[$scope.modelName];
-                var axes = model.orientation;
+                var axes = model.axes || 'xz';
                 var grid = appState.models.simulationGrid;
-                var otherAxis = '';
-                var step = 1;
+                var otherAxis = 'Y';
 
                 if (axes === 'xz') {
-                    $scope.sliceRange = [-grid.channel_width / 2.0, grid.channel_width / 2.0];
-                    otherAxis = 'y';
+                    $scope.sliceRange = [-grid.channel_height / 2.0, grid.channel_height / 2.0];
+                    otherAxis = 'Y';
+                    $scope.step = grid.channel_height / grid.num_y;
                 }
                 else if (axes === 'xy') {
                     $scope.sliceRange = [0, grid.plate_spacing];
-                    otherAxis = 'y';
+                    otherAxis = 'Z';
+                    $scope.step = grid.plate_spacing / grid.num_z;
                 }
                 else {
-                    $scope.sliceRange = [-grid.channel_height / 2.0, grid.channel_height / 2.0];
-                    otherAxis = 'y';
+                    $scope.sliceRange = [-grid.channel_width / 2.0, grid.channel_width / 2.0];
+                    otherAxis = 'X';
+                    $scope.step = grid.channel_width / grid.num_x;
                 }
-                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_MIN] = $scope.sliceRange[0];
-                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_MAX] = $scope.sliceRange[1];
+                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + otherAxis);
 
-                SIREPO.APP_SCHEMA.model.fieldReport['slice'][SIREPO.INFO_INDEX_LABEL] = 'Slice ' + otherAxis;
+                slider.attr('min', $scope.sliceRange[0]);
+                slider.attr('max', $scope.sliceRange[1]);
+                slider.attr('step', $scope.step);
+
+                //$scope.model.slice = Math.max($scope.model.slice, $scope.sliceRange[0]);
+                //$scope.model.slice = Math.min($scope.model.slice, $scope.sliceRange[1]);
+
             }
 
+            appState.whenModelsLoaded($scope, function () {
+                $scope.model = appState.models[$scope.modelName];
+                $scope.model.units = 'µm';
+            });
             appState.watchModelFields($scope, ['fieldReport.axes'], updateAxes);
-            //appState.watchModelFields($scope, ['fieldReport.slice'], updateRange);
+            appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateAxes);
 
+            // the DOM for editors does not exist until they appear, so we must show/hide fields this way
+            $scope.$on('fieldReport.editor.show', function () {
+                if (! slider) {
+                    slider = $('#fieldReport-slice-range');
+                }
+
+                panelState.showField('fieldReport', 'axes', warpvndService.is3D());
+                panelState.showField('fieldReport', 'slice', warpvndService.is3D());
+
+                updateSliceRange();
+            });
         },
     };
 });

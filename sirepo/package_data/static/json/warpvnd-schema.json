@@ -3,7 +3,8 @@
         "nonZeroVoltsColor": "#6992ff",
         "particleTrackColor": "#4682b4",
         "reflectedParticleTrackColor": "#d04836",
-        "zeroVoltsColor": "#f3d4c8"
+        "zeroVoltsColor": "#f3d4c8",
+        "cellColors": ["#ff0000", "#00ff00", "#0000ff"]
     },
     "dynamicFiles": {
         "externalLibs": {

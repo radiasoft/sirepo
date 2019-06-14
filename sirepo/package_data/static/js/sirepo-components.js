@@ -488,7 +488,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
-                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field"></div>',
+                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-units="model.units"></div>',
               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
@@ -2646,12 +2646,13 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     return {
         restrict: 'A',
         scope: {
+            field: '=',
             model: '=',
             modelName: '=',
-            field: '=',
         },
         template: [
-            '<input type="range" data-ng-attr-min="min" data-ng-attr-max="max"></input>',
+            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]">',
+            '<span>{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
 
