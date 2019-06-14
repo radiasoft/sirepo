@@ -1,11 +1,24 @@
 
-{% if bunch_spntrk == '1' %}
+{% if SPNTRK_KSO == '1' %}
 line.add(core.FAKE_ELEM("""
 'SPNTRK'
 4.1
-{{ bunch_S_X }} {{ bunch_S_Y }} {{ bunch_S_Z }}
+{{ SPNTRK_S_X }} {{ SPNTRK_S_Y }} {{ SPNTRK_S_Z }}
 """))
 {% endif %}
+
+{% if SRLOSS_KSR == '1' %}
+line.add(core.FAKE_ELEM("""
+'SRLOSS'
+1
+{% if SRLOSS_applyToAll == '1' %}
+all
+{% else %}
+{{ SRLOSS_keyword }}
+{% endif %}
+1   123456
+"""))
+{% endif -%}
 
 {{ beamlineElements -}}
 line.add(core.FAKE_ELEM("""
