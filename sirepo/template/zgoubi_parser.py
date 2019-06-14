@@ -454,18 +454,20 @@ def _zgoubi_solenoid(command):
 def _zgoubi_spinr(command):
     iopt = command[1][0]
     if iopt == '0':
-        return _parse_command(command, ['IOPT'])
-    if iopt == '1':
-        return _parse_command(command, [
+        format = ['IOPT']
+    elif iopt == '1':
+        format = [
             'IOPT',
             'phi mu'
-        ])
-    if iopt == '2':
-        return _parse_command(command, [
+        ]
+    elif iopt == '2':
+        format = [
             'IOPT',
-            'mu B B_0 C_0 C_1 C_2 C_3',
-        ]);
-    assert False, 'unknown SPINR IOPT: {}'.format(iopt)
+            'phi B B_0 C_0 C_1 C_2 C_3',
+        ]
+    else:
+        assert False, 'unknown SPINR IOPT: {}'.format(iopt)
+    return _parse_command(command, format)
 
 
 def _zgoubi_spntrk(command):
