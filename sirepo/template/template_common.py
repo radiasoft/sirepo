@@ -165,7 +165,7 @@ def filename_to_path(files, source_lib):
 
 
 def generate_parameters_file(data):
-    v = flatten_data(data['models'], {})
+    v = flatten_data(data['models'], pkcollections.Dict({}))
     v['notes'] = _get_notes(v)
     res = render_jinja('.', v, name='common-header.py')
     return res, v
