@@ -2250,7 +2250,7 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="form.$invalid">Submit</button>',
+                 '<button data-ng-click="submit()" class="btn btn-primary" data-ng-disabled="! data.displayName">Submit</button>',
               '</div>',
             '</form>',
         ].join(''),
@@ -2280,11 +2280,6 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
                 );
             };
         },
-        link: function(scope, element) {
-            // get the angular form from within the transcluded content
-            scope.form = element.find('input').eq(0).controller('form');
-            scope.form.guestName.$setDirty();
-        }
     };
 });
 
