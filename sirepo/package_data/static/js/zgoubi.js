@@ -16,7 +16,7 @@ SIREPO.appFieldEditors = [
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
 ].join('');
-
+SIREPO.appImportText = 'Import a zgoubi.dat datafile';
 SIREPO.lattice = {
     elementColor: {
         CHANGREF: 'orange',
@@ -30,9 +30,9 @@ SIREPO.lattice = {
         drift: ['DRIFT'],
         magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
-        solenoid: [],
+        solenoid: ['SOLENOID'],
         watch: ['MARKER'],
-        zeroLength: ['SCALING', 'YMY'],
+        zeroLength: ['SCALING', 'SPINR', 'YMY'],
     },
 };
 
@@ -89,11 +89,11 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'TOSCA', 'YMY'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
     var scaling = {};
 
     function updateScaling() {
-        var MAX_SCALING_FAMILY = 5;
+        var MAX_SCALING_FAMILY = 6;
         scaling = {};
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
@@ -116,7 +116,13 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 field *= scaling[item.type];
             }
             var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
-            item.travelLength = latticeService.arcLength(computedAngle, item.l);
+            if (item.type == 'BEND') {
+                item.travelLength = latticeService.arcLength(computedAngle, item.l);
+            }
+            else {
+                // only BEND seems to use the arcLength
+                item.travelLength = item.l;
+            }
 
             if (item.KPOS == '2') {
                 //TODO(pjm): support misalignment YCE, ALE
@@ -215,7 +221,13 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
     }
 
     function processSpinTracking() {
-        panelState.showRow('bunch', 'S_X', appState.models.bunch.spntrk == '1');
+        panelState.showRow('SPNTRK', 'S_X', appState.models.SPNTRK.KSO == '1');
+    }
+
+    function processSRLoss() {
+        var srLoss = appState.models.SRLOSS;
+        panelState.showField('SRLOSS', 'applyToAll', srLoss.KSR == '1');
+        panelState.showField('SRLOSS', 'keyword', srLoss.KSR == '1' && srLoss.applyToAll == '0');
     }
 
     self.handleModalShown = function(name) {
@@ -224,6 +236,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
             processParticleType();
             processBunchMethod();
             processSpinTracking();
+            processSRLoss();
             zgoubiService.processParticleCount2('bunch');
         }
     };
@@ -236,8 +249,10 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
             zgoubiService.processParticleCount2('bunch');
         });
         appState.watchModelFields($scope, ['bunch.particleSelector'], processParticleSelector);
-        appState.watchModelFields($scope, ['bunch.spntrk'], processSpinTracking);
+        appState.watchModelFields($scope, ['SPNTRK.KSO'], processSpinTracking);
+        appState.watchModelFields($scope, ['SRLOSS.KSR', 'SRLOSS.applyToAll'], processSRLoss);
         processSpinTracking();
+        processSRLoss();
         processParticleType();
         processBunchMethod();
         processParticleSelector();
@@ -412,6 +427,31 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     };
 
     return self;
+});
+
+SIREPO.app.directive('srSpinrEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processFields() {
+                if (! appState.models.SPINR) {
+                    return;
+                }
+                var option = appState.models.SPINR.IOPT;
+                panelState.showField('SPINR', 'phi', option == 1 || option == 2);
+                panelState.showField('SPINR', 'mu', option == 1);
+                ['B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3'].forEach(function(f) {
+                    panelState.showField('SPINR', f, option == 2);
+                });
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['SPINR.IOPT'], processFields);
+                processFields();
+            });
+        },
+    };
 });
 
 SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {

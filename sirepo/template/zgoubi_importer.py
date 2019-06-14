@@ -19,11 +19,11 @@ import zipfile
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS']
+_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'SOLENOID.IL', 'TOSCA.IC', 'TOSCA.IL', 'TOSCA.mod', 'TOSCA.TITL']
 _DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
 _MRAD_FIELDS = ['AUTOREF.ALE']
 #TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
-_CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR']
+_CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR', 'RE', 'RS', 'A', 'B', 'C', 'ZS']
 _UNIT_TEST_MODE = False
 
 
@@ -132,16 +132,11 @@ def _validate_and_dedup_elements(data, elements):
         'missingFiles': [],
     }
     for el in elements:
-        if el['type'] == 'SPNTRK':
-            del el['type']
-            el['spntrk'] = '1'
-            data['models']['bunch'].update(el)
-            continue
         _validate_model(el['type'], el, info['missingFiles'])
         if 'name' in el:
             name = el['name']
             #TODO(pjm): don't de-duplicate certain types
-            if el['type'] != 'MARKER':
+            if el['type'] != 'MARKER' and not re.search(r'^DUMMY ', name):
                 del el['name']
             if el not in info['elements']:
                 current_id += 1

@@ -157,14 +157,16 @@ def extract_first_twiss_row(run_dir):
 
 def fixup_old_data(data):
     for m in [
+            'SPNTRK',
+            'SRLOSS',
             'bunch',
             'bunchAnimation',
             'bunchAnimation2',
             'energyAnimation',
+            'opticsReport',
             'particle',
             'particleCoordinate',
             'simulationSettings',
-            'opticsReport',
             'twissReport',
             'twissReport2',
             'twissSummaryReport',
@@ -179,11 +181,15 @@ def fixup_old_data(data):
             coord = {}
             template_common.update_model_defaults(coord, 'particleCoordinate', _SCHEMA)
             bunch.coordinates.append(coord)
-    if 'spntrk' in data.models.simulationSettings:
-        for f in ('spntrk', 'S_X', 'S_Y', 'S_Z'):
-            if f in data.models.simulationSettings:
-                data.models.bunch[f] = data.models.simulationSettings[f]
-                del data.models.simulationSettings[f]
+    # move spntrk from simulationSettings (older) or bunch if present
+    for m in ('simulationSettings', 'bunch'):
+        if 'spntrk' in data.models[m]:
+            data.models.SPNTRK.KSO = data.models[m].spntrk
+            del data.models[m]['spntrk']
+            for f in ('S_X', 'S_Y', 'S_Z'):
+                if f in data.models[m]:
+                    data.models.SPNTRK[f] = data.models[m][f]
+                    del data.models[m][f]
     template_common.organize_example(data)
 
 
@@ -483,6 +489,18 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
                     scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
+        elif el['type'] == 'SPINR':
+            form = 'line.add(core.FAKE_ELEM(""" \'SPINR\'\n{}\n{} {} {} {} {} {} {}\n"""))\n'
+            values = ['IOPT']
+            if el.IOPT in ('0', '1'):
+                values += ('phi', 'mu', '', '', '', '', '')
+            elif el.IOP == '2':
+                values += ('phi', 'B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3')
+            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
+        elif el['type'] == 'SOLENOID':
+            form = 'line.add(core.FAKE_ELEM(""" \'SOLENOID\'\n0\n{} {} {} {}\n{} {}\n{}\n{} {} {} {}\n"""))\n'
+            values = ('l', 'R_0', 'B_0', 'MODL', 'X_E', 'X_S', 'XPAS', 'KPOS', 'XCE', 'YCE', 'ALE')
+            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
         elif el['type'] == 'TOSCA':
             res += _generate_element_tosca(el)
         else:
@@ -683,10 +701,24 @@ def _init_model_units():
             'XCE': _cm,
             'YCE': _cm,
         },
-        'TOSCA': {
+        'SOLENOID': {
+            'l': _cm,
+            'R_0': _cm,
+            'X_E': _cm,
+            'X_S': _cm,
             'XPAS': _xpas,
             'XCE': _cm,
             'YCE': _cm,
+        },
+        'TOSCA': {
+            'A': _cm,
+            'B': _cm,
+            'C': _cm,
+            'XPAS': _xpas,
+            'XCE': _cm,
+            'YCE': _cm,
+            'RE': _cm,
+            'RS': _cm,
         },
     }
 

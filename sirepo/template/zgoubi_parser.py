@@ -286,7 +286,7 @@ def _zgoubi_changref(command):
                 el2[_CHANGREF_MAP[name]] = value
                 res.append(el2)
             else:
-                pkdlog('zgoubi CHANGEREF skipping: {}={}', name, value)
+                pkdlog('zgoubi CHANGREF skipping: {}={}', name, value)
         return res
     res = _parse_command(command, [
         'XCE YCE ALE',
@@ -440,13 +440,45 @@ def _zgoubi_sextupol(command):
     return _zgoubi_quadrupo(command)
 
 
+def _zgoubi_solenoid(command):
+    res = _parse_command(command, [
+        'IL',
+        'l R_0 B_0 *MODL',
+        'X_E X_S',
+        'XPAS',
+        'KPOS XCE YCE ALE',
+    ])
+    return res
+
+
+def _zgoubi_spinr(command):
+    iopt = command[1][0]
+    if iopt == '0':
+        return _parse_command(command, ['IOPT'])
+    if iopt == '1':
+        return _parse_command(command, [
+            'IOPT',
+            'phi mu'
+        ])
+    if iopt == '2':
+        return _parse_command(command, [
+            'IOPT',
+            'mu B B_0 C_0 C_1 C_2 C_3',
+        ]);
+    assert False, 'unknown SPINR IOPT: {}'.format(iopt)
+
+
 def _zgoubi_spntrk(command):
     kso = command[1][0]
     res = {
+        'KSO': '1',
         'S_X': 0,
         'S_Y': 0,
         'S_Z': 0,
+        'type': 'SPNTRK',
     }
+    if kso == '0':
+        res['KSO'] = '0'
     if kso == '1':
         res['S_X'] = 1
     elif kso == '2':
@@ -458,8 +490,26 @@ def _zgoubi_spntrk(command):
             'KSO',
             'S_X S_Y S_Z',
         ])
-        del res['KSO']
-    res['type'] = 'SPNTRK'
+        if res['KSO'] != '0':
+            res['KSO'] = '1'
+        if 'name' in res:
+            del res['name']
+    return res
+
+
+def _zgoubi_srloss(command):
+    res = _parse_command(command, [
+        'KSR',
+        'STR1',
+    ])
+    res['KSR'] = re.sub(r'\..*$', '', res['KSR'])
+    if res['STR1'] == 'all':
+        res['applyToAll'] = '1'
+    else:
+        res['keyword'] = res['STR1']
+    del res['STR1']
+    if 'name' in res:
+        del res['name']
     return res
 
 
@@ -488,10 +538,6 @@ def _zgoubi_tosca(command):
     else:
         _parse_command_line(res, command[8 + file_count], 'KPOS')
         _parse_command_line(res, command[9 + file_count], 'RE TE RS TS')
-    del res['IC']
-    del res['IL']
-    del res['mod']
-    del res['TITL']
     return res
 
 
