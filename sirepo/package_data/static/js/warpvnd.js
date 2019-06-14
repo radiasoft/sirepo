@@ -803,7 +803,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
         templateUrl: '/static/html/conductor-grid.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
             //TODO(pjm): keep in sync with pkcli/warpvnd.py color
-            var CELL_COLORS = ['red', 'green', 'blue'];
+            var CELL_COLORS = SIREPO.APP_SCHEMA.constants.cellColors;
             var ASPECT_RATIO = 6.0 / 14;
             var insetWidthPct = 0.07;
             var insetMargin = 16.0;
