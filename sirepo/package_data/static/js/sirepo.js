@@ -42,7 +42,6 @@ angular.element(document).ready(function() {
             });
     }
 
-
     $.ajax({
         url: '/simulation-schema' + SIREPO.SOURCE_CACHE_KEY,
         data: {
@@ -708,7 +707,6 @@ SIREPO.app.factory('notificationService', function(cookieService, $sce) {
         }
 
         if (! cookieService.cleanExpiredCookie(cookieDef(notification))) {
-            cookieService.checkFirstVisit();
             var vcd = SIREPO.APP_SCHEMA.cookies.firstVisit;
             var vc = cookieService.getCookie(vcd);
             var lstVisitDays = vc.t - cookieService.timeoutOrDefault(vcd);
@@ -1329,12 +1327,26 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $location, $interval, $q) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
-    var srException = null;
+
+    function checkCookieRedirect(event, route) {
+        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
+            return;
+        }
+        var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
+        if (prevRoute) {
+            cookieService.removeCookie(SIREPO.APP_SCHEMA.cookies.previousRoute);
+            var parts = prevRoute.split(' ');
+            if (parts[0] == SIREPO.APP_SCHEMA.simulationType) {
+                event.preventDefault();
+                $location.path(parts[1]);
+            }
+        }
+    }
 
     function logError(data, status) {
         var err = SIREPO.APP_SCHEMA.customErrors[status];
@@ -1383,6 +1395,11 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
         }
         return url;
+    }
+
+    function saveCookieRedirect(route) {
+        var v = SIREPO.APP_SCHEMA.simulationType + ' ' + route;
+        cookieService.addCookie(SIREPO.APP_SCHEMA.cookies.previousRoute, v);
     }
 
     // Started from serializeValue in angular, but need more specialization.
@@ -1472,19 +1489,15 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             });
     };
 
-    self.getSRException = function(routeName) {
-        // returns and clears the current srException if matches routeName
-        var res = srException;
-        if (!res || res.routeName != routeName) {
-            return null;
-        }
-        srException = null;
-        return res;
-    };
-
     self.handleSRException = function(data) {
-        srException = data.srException;
-        srException.previousURL = $location.url();
+        var srException = data.srException;
+        if (srException.routeName == 'login') {
+            // save return route after login on client
+            var prevRoute = $location.url();
+            if (prevRoute != '/' + srException.routeName) {
+                saveCookieRedirect(prevRoute);
+            }
+        }
         self.localRedirect(srException.routeName, srException.params);
         return;
     };
@@ -1596,6 +1609,8 @@ SIREPO.app.factory('requestSender', function(errorService, localRoutes, $http, $
             },
             thisErrorCallback);
     };
+
+    $rootScope.$on('$routeChangeStart', checkCookieRedirect);
 
     return self;
 });
@@ -2577,28 +2592,25 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoginController', function (authState, authService) {
+SIREPO.app.controller('LoginController', function (authService) {
     var self = this;
-    self.authState = authState;
     self.authService = authService;
 });
 
-SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, authState, requestSender) {
+SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, requestSender) {
     var self = this;
-    self.authState = authState;
     var m = $route.current.params.method || '';
     self.method = m;
     if (m == 'guest' || m == 'github') {
-        var t = appState.ucfirst(m);
         self.msg = 'Logging in via ' + m + '. Please wait...';
         $window.location.href = requestSender.formatUrl(
-            'auth' + t + 'Login',
+            'auth' + appState.ucfirst(m) + 'Login',
             {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
         );
         return;
     }
     else if (m == 'email') {
-        self.message = '<strong>Logging in</strong>';
+        // handled by the emailLogin directive
     }
     else {
         self.msg = '';
@@ -2607,11 +2619,9 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
     }
 });
 
-SIREPO.app.controller('LoginFailController', function ($route, $sce, appState, authState, requestSender) {
+SIREPO.app.controller('LoginFailController', function (appState, requestSender, $route, $sce) {
     var self = this;
-    self.authState = authState;
-    var m = $route.current.params.method || '';
-    var t = $sce.getTrustedHtml(appState.ucfirst(m));
+    var t = $sce.getTrustedHtml(appState.ucfirst($route.current.params.method || ''));
     var r = $route.current.params.reason || '';
     var l = '<a href="' + requestSender.formatUrlLocal('login')
         + '">Please try to login again.</a>';
@@ -2629,7 +2639,7 @@ SIREPO.app.controller('LoginFailController', function ($route, $sce, appState, a
     }
 });
 
-SIREPO.app.controller('SimulationsController', function (activeSection, appState, errorService, fileManager, notificationService, panelState, requestSender, cookieService, $cookies, $location, $rootScope, $scope, $window, $sce) {
+SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {
     var self = this;
 
     $rootScope.$broadcast('simulationUnloaded');
@@ -2918,10 +2928,8 @@ SIREPO.app.controller('SimulationsController', function (activeSection, appState
         }
     };
 
-    cookieService.fixup();
     var lv = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.listView);
     self.isIconView = (lv == null ? true : lv);
-    //cookieService.unfix();
     clearModels();
     $scope.$on('simulation.changed', function() {
         self.isWaitingForSim = true;
@@ -3031,50 +3039,32 @@ SIREPO.app.factory('cookieService', function($cookies) {
     };
 
     svc.addCookie = function (cookieDef, value) {
-        add(cookieDef.name, value || cookieDef.value, this.timeoutOrDefault(cookieDef));
-    };
-
-    svc.checkFirstVisit = function () {
-        if(! this.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
-            this.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
-        }
+        add(cookieDef.name, value || cookieDef.value, svc.timeoutOrDefault(cookieDef));
     };
 
     svc.cleanExpiredCookie = function (cookieDef) {
-        if(! cookieDef) {
+        var cobj = get(cookieDef.name);
+        if (cobj && cobj.t && parseInt(cobj.t) < new Date().getTime() / oneDayMillis) {
+            remove(name);
             return null;
         }
-        return cleanExpired(cookieDef.name);
-    };
-
-    svc.fixup = function () {
-        for(var cname in cookieMap) {
-            var c = $cookies.get(cname);
-            if(angular.isDefined(c)) {
-                this.addCookie(cookieMap[cname]);
-                $cookies.remove(cname);
-            }
-        }
+        return cobj;
     };
 
     svc.getCookie = function (cookieDef) {
         return get(cookieDef.name);
     };
 
-    svc.getCookieMap = function () {
-        return cookieMap;
-    };
-
     svc.getCookieValue = function (cookieDef) {
-        var cobj = this.getCookie(cookieDef);
-        if(! cobj) {
+        var cobj = svc.getCookie(cookieDef);
+        if (! cobj) {
             return null;
         }
         var val = cobj.v;
-        if(cookieDef.valType.toLowerCase() === 'b') {
+        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'b') {
             return val.toLowerCase() === 'true';
         }
-        if(cookieDef.valType.toLowerCase() === 'n') {
+        if (cookieDef.valType && cookieDef.valType.toLowerCase() === 'n') {
             return parseFloat(val);
         }
         return val;
@@ -3086,13 +3076,6 @@ SIREPO.app.factory('cookieService', function($cookies) {
 
     svc.timeoutOrDefault = function (cookieDef) {
         return cookieDef.timeout || fiveYearsDays;
-    };
-
-    // replace the old cookies for testing
-    svc.unfix = function () {
-        for(var cname in cookieMap) {
-            $cookies.put(cname, 'TEST');
-        }
     };
 
     // to reduce the string size, and because that's usually as accurate as we need,
@@ -3112,13 +3095,20 @@ SIREPO.app.factory('cookieService', function($cookies) {
         writeSRCookie(cobj);
     }
 
-    function cleanExpired(name) {
-        var cobj = get(name);
-        if(cobj && cobj.t && parseInt(cobj.t) < new Date().getTime() / oneDayMillis) {
-            remove(name);
-            return null;
+    function checkFirstVisit() {
+        if (! svc.cleanExpiredCookie(SIREPO.APP_SCHEMA.cookies.firstVisit)) {
+            svc.addCookie(SIREPO.APP_SCHEMA.cookies.firstVisit);
         }
-        return cobj;
+    }
+
+    function fixupOldCookies() {
+        for(var cname in cookieMap) {
+            var c = $cookies.get(cname);
+            if(angular.isDefined(c)) {
+                svc.addCookie(cookieMap[cname]);
+                $cookies.remove(cname);
+            }
+        }
     }
 
     function get(name) {
@@ -3173,6 +3163,9 @@ SIREPO.app.factory('cookieService', function($cookies) {
             {expires: new Date(new Date().getTime() + fiveYearsMillis)}
         );
     }
+
+    fixupOldCookies();
+    checkFirstVisit();
 
     return svc;
 });
