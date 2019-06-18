@@ -180,6 +180,7 @@ def dict_to_h5(d, hf, path=None):
             try:
                 p = '{}/{}'.format(path, i)
                 hf.create_dataset(p, data=d[i])
+                pkdp('Added path {}', p)
             except TypeError:
                 dict_to_h5(d[i], hf, path=p)
     except KeyError:
@@ -187,6 +188,7 @@ def dict_to_h5(d, hf, path=None):
             p = '{}/{}'.format(path, k)
             try:
                 hf.create_dataset(p, data=d[k])
+                pkdp('Added path {}', p)
             except TypeError:
                 dict_to_h5(d[k], hf, path=p)
 
@@ -196,13 +198,23 @@ def h5_to_dict(hf, path=None):
     if path is None:
         path = '/'
     for k in hf[path]:
-        p = '{}/{}'.format(path, k)
-        pkdp('add {} to {}', k, d)
         try:
-            d[k] = hf[k]
-        except TypeError:
-            pkdp('recursing on {}', k)
-            d[k] = h5_to_dict(hf[k])
+            d[k] = hf[path][k][()].tolist()
+        except AttributeError:
+            p = '{}/{}'.format(path, k)
+            d[k] = h5_to_dict(hf, path=p)
+
+    # replace dicts with arrays on a 2nd pass
+    d_keys = d.keys()
+    try:
+        indices = [int(k) for k in d_keys]
+        d_arr = [None] * len(indices)
+        for i in indices:
+            d_arr[i] = d[str(i)]
+        d = d_arr
+    except ValueError:
+        # keys not all integers, we're done
+        pass
     return d
 
 

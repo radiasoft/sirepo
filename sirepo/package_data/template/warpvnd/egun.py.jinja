@@ -1,4 +1,5 @@
 
+from sirepo.template import template_common
 from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
 
 #prevent GIST from starting upon setup
@@ -45,7 +46,7 @@ def update_status_file(num, save_current=False):
         else:
             v = np.load(current_file)
             v = np.append(v, [curr], axis=0)
-        np.save(tmp_file, v)
+        np.save(tmp_file, v, allow_pickle=True)
         os.rename(tmp_file + '.npy', current_file)
 
 update_status_file(0.25)
@@ -71,4 +72,14 @@ for ID in pids[:MAX_TRAJECTORIES]:
     particles[0][2].append(yvals)
 
 update_status_file(ITERATIONS + 1)
-np.save('{{ particleFile }}', particles)
+#np.save('{{ particleFile }}', particles, allow_pickle=True)
+print('!EGUN PART SAVE')
+hf = h5py.File('{{ particleFile }}')
+template_common.dict_to_h5(
+    {
+        'kept': particles,
+        'lost': []
+    },
+    hf, path='particle'
+)
+hf.close()

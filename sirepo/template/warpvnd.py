@@ -468,8 +468,8 @@ def _extract_field(field, data, data_file):
 def _extract_impact_density(run_dir, data):
     #plot_info = np.load(str(run_dir.join(_DENSITY_FILE)), allow_pickle=True).tolist()
     hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
-    plot_info = template_common.h5_to_dict(hf)
-    pkdp('!PI {}', plot_info)
+    plot_info = template_common.h5_to_dict(hf, path='density')
+    #pkdp('!PI {}', plot_info)
     hf.close()
     if 'error' in plot_info:
         return plot_info
@@ -584,8 +584,10 @@ def _extract_optimization_results(run_dir, data, args):
 def _extract_particle(run_dir, data, limit):
     #TODO(mvk): allowing pickle is insecure in numpy 1.10 - 1.16 but is required to load data.
     hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
-    kept_electrons = _extract_particles_from_dataset(hf['particle/kept'])
-    lost_electrons = _extract_particles_from_dataset(hf['particle/lost'])
+    d = template_common.h5_to_dict(hf, 'particle')
+    #pkdp('!PARTICELD {}', d)
+    kept_electrons = d['kept']
+    lost_electrons = d['lost']
     hf.close()
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
@@ -616,15 +618,6 @@ def _extract_particle(run_dir, data, limit):
         'lost_z': lost_z
     }
 
-
-def _extract_particles_from_dataset(ds):
-    electrons = [[], [], []]
-    for k in ds.keys():
-        i = int(k)
-        for j in ds[k].keys():
-            d = ds[k][j]
-            electrons[i].append(d[...])
-    return electrons
 
 def _grid_delta(data, length_field, count_field):
     grid = data.models.simulationGrid
