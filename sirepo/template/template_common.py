@@ -11,6 +11,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import h5py
 import hashlib
 import json
 import numpy as np
@@ -169,6 +170,40 @@ def generate_parameters_file(data):
     v['notes'] = _get_notes(v)
     res = render_jinja('.', v, name='common-header.py')
     return res, v
+
+
+def dict_to_h5(d, hf, path=None):
+    if path is None:
+        path = ''
+    try:
+        for i in range(len(d)):
+            try:
+                p = '{}/{}'.format(path, i)
+                hf.create_dataset(p, data=d[i])
+            except TypeError:
+                dict_to_h5(d[i], hf, path=p)
+    except KeyError:
+        for k in d:
+            p = '{}/{}'.format(path, k)
+            try:
+                hf.create_dataset(p, data=d[k])
+            except TypeError:
+                dict_to_h5(d[k], hf, path=p)
+
+
+def h5_to_dict(hf, path=None):
+    d = {}
+    if path is None:
+        path = '/'
+    for k in hf[path]:
+        p = '{}/{}'.format(path, k)
+        pkdp('add {} to {}', k, d)
+        try:
+            d[k] = hf[k]
+        except TypeError:
+            pkdp('recursing on {}', k)
+            d[k] = h5_to_dict(hf[k])
+    return d
 
 
 def heatmap(values, model, plot_fields=None):

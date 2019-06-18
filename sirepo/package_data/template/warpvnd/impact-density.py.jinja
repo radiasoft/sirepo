@@ -1,6 +1,8 @@
 
-from rswarp.diagnostics import ImpactDensity
 import math
+from rswarp.diagnostics import ImpactDensity
+from sirepo.template import template_common
+
 
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
 # the initial values in each coord array and a "slope" in each array dimension
@@ -132,4 +134,8 @@ except AssertionError as e:
     density_results = {
         'error': message,
     }
-np.save('{{ densityFile }}', density_results)
+#np.save('{{ densityFile }}', density_results, allow_pickle=True)
+#print('density {}'.format(density_results))
+hf = h5py.File('{{ densityFile }}')
+template_common.dict_to_h5(density_results, hf, path='density')
+hf.close()

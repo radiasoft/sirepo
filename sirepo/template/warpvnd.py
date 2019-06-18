@@ -27,7 +27,8 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
-_DENSITY_FILE = 'density.npy'
+#_DENSITY_FILE = 'density.npy'
+_DENSITY_FILE = 'density.h5'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _OPTIMIZER_OUTPUT_FILE = 'opt.out'
@@ -35,7 +36,7 @@ _OPTIMIZER_RESULT_FILE = 'opt.json'
 _OPTIMIZER_STATUS_FILE = 'opt-run.out'
 _OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
-_PARTICLE_FILE = 'particles.npy'
+_PARTICLE_FILE = 'particles.h5'
 _PARTICLE_PERIOD = 100
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
@@ -338,8 +339,7 @@ def _create_plots(dimension, data, values, x_range):
     y_range = None
     visited = {}
     plots = []
-    #TODO(pjm): keep in sync with warpvnd.js cell colors
-    color = ['red', 'green', 'blue']
+    color = _SCHEMA.constants.cellColors
     max_index = values.shape[1] if dimension == 'x' else values.shape[0]
     x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
     for i in (1, 2, 3):
@@ -429,7 +429,7 @@ def _extract_current_results(data, curr, data_time):
 
 
 def _extract_egun_current(data, data_file, frame_index):
-    v = np.load(str(data_file))
+    v = np.load(str(data_file), allow_pickle=True)
     if frame_index >= len(v):
         frame_index = -1;
     # the first element in the array is the time, the rest are the current measurements
@@ -466,7 +466,11 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_impact_density(run_dir, data):
-    plot_info = np.load(str(run_dir.join(_DENSITY_FILE))).tolist()
+    #plot_info = np.load(str(run_dir.join(_DENSITY_FILE)), allow_pickle=True).tolist()
+    hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
+    plot_info = template_common.h5_to_dict(hf)
+    pkdp('!PI {}', plot_info)
+    hf.close()
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
@@ -578,12 +582,13 @@ def _extract_optimization_results(run_dir, data, args):
 
 
 def _extract_particle(run_dir, data, limit):
-    v = np.load(str(run_dir.join(_PARTICLE_FILE)))
-    kept_electrons = v[0]
-    lost_electrons = v[1]
+    #TODO(mvk): allowing pickle is insecure in numpy 1.10 - 1.16 but is required to load data.
+    hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
+    kept_electrons = _extract_particles_from_dataset(hf['particle/kept'])
+    lost_electrons = _extract_particles_from_dataset(hf['particle/lost'])
+    hf.close()
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
     radius = _meters(grid['channel_width'] / 2.)
     half_height = grid['channel_height'] if 'channel_height' in grid else 5.
     half_height = _meters(half_height / 2.)
@@ -611,6 +616,15 @@ def _extract_particle(run_dir, data, limit):
         'lost_z': lost_z
     }
 
+
+def _extract_particles_from_dataset(ds):
+    electrons = [[], [], []]
+    for k in ds.keys():
+        i = int(k)
+        for j in ds[k].keys():
+            d = ds[k][j]
+            electrons[i].append(d[...])
+    return electrons
 
 def _grid_delta(data, length_field, count_field):
     grid = data.models.simulationGrid
@@ -888,7 +902,7 @@ def _simulation_percent_complete(run_dir, is_running):
                 percent_complete = float(m.group(1)) / int(m.group(2))
         egun_current_file = run_dir.join(_EGUN_CURRENT_FILE)
         if egun_current_file.exists():
-            v = np.load(str(egun_current_file))
+            v = np.load(str(egun_current_file), allow_pickle=True)
             res['egunCurrentFrameCount'] = len(v)
     else:
         percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
