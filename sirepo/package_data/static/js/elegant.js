@@ -75,6 +75,7 @@ SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
 SIREPO.lattice = {
+    canReverseBeamline: true,
     elementColor: {
         BMAPXY: 'magenta',
         FTABLE: 'magenta',
