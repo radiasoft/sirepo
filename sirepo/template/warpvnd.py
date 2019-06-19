@@ -27,7 +27,6 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
-#_DENSITY_FILE = 'density.npy'
 _DENSITY_FILE = 'density.h5'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
@@ -466,10 +465,8 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_impact_density(run_dir, data):
-    #plot_info = np.load(str(run_dir.join(_DENSITY_FILE)), allow_pickle=True).tolist()
     hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
     plot_info = template_common.h5_to_dict(hf, path='density')
-    #pkdp('!PI {}', plot_info)
     hf.close()
     if 'error' in plot_info:
         return plot_info

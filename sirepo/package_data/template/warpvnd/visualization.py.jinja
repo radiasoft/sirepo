@@ -110,10 +110,5 @@ template_common.dict_to_h5(
     },
     hf, path='particle'
 )
-#for i in range(3):
-#    for j, arr in enumerate(kept_electrons[i]):
-#        hf.create_dataset('particle/kept/{}/{}'.format(i, j), data=arr)
-#    for j, arr in enumerate(lost_electrons[i]):
-#        hf.create_dataset('particle/lost/{}/{}'.format(i, j), data=arr)
 hf.close()
 
