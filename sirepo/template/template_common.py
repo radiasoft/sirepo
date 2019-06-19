@@ -11,7 +11,6 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import h5py
 import hashlib
 import json
 import numpy as np
