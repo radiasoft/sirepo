@@ -579,7 +579,6 @@ def _extract_optimization_results(run_dir, data, args):
 
 
 def _extract_particle(run_dir, data, limit):
-    #TODO(mvk): allowing pickle is insecure in numpy 1.10 - 1.16 but is required to load data.
     hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
     d = template_common.h5_to_dict(hf, 'particle')
     kept_electrons = d['kept']
