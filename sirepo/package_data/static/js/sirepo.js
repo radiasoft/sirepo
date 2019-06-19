@@ -986,13 +986,17 @@ SIREPO.app.factory('authService', function(appState, authState, requestSender) {
     return self;
 });
 
-SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, validationService, $compile, $rootScope, $timeout, $window) {
+SIREPO.app.factory('panelState', function(appState, requestSender, simulationQueue, utilities, validationService, $compile, $rootScope, $timeout, $window) {
     // Tracks the data, error, hidden and loading values
     var self = {};
     var panels = {};
     var pendingRequests = {};
     var queueItems = {};
     var waitForUICallbacks = null;
+    var windowResize = utilities.debounce(function() {
+        $rootScope.$broadcast('sr-window-resize');
+    }, 250);
+
 
     $rootScope.$on('clearCache', function() {
         self.clear();
@@ -1302,7 +1306,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         // needed to resize a hidden report and other panels
         if (appState.isReportModelName(name)) {
-            $($window).trigger('resize');
+            windowResize();
         }
     };
 
@@ -1323,6 +1327,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             });
         }
     };
+
+    $($window).resize(windowResize);
 
     return self;
 });

@@ -1235,7 +1235,7 @@ SIREPO.app.directive('trimButton', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('validVariableOrParam', function(webconService, utilities) {
+SIREPO.app.directive('validVariableOrParam', function(webconService) {
     return {
         restrict: 'A',
         require: 'ngModel',
@@ -1294,7 +1294,7 @@ SIREPO.app.directive('validVariableOrParam', function(webconService, utilities) 
     };
 });
 
-SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
+SIREPO.app.directive('webconLattice', function(appState) {
     return {
         restrict: 'A',
         scope: {},
@@ -1308,19 +1308,15 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
         controller: function($scope) {
             var axis, latticeScope;
 
-            $scope.isLoaded = appState.isLoaded;
-
-            $scope.windowResize = utilities.debounce(function() {
+            function windowResize() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);
                     latticeScope.updateFixedAxis(axis, 0);
                     $scope.$applyAsync();
                 }
-            }, 250);
+            }
 
-            $scope.$on('$destroy', function() {
-                $($window).off('resize', $scope.windowResize);
-            });
+            $scope.isLoaded = appState.isLoaded;
 
             $scope.$on('sr-latticeLinked', function(event) {
                 latticeScope = event.targetScope;
@@ -1331,10 +1327,10 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
                     domain: [0, 3.4],
                 };
                 axis.scale.domain(axis.domain);
-                $scope.windowResize();
+                windowResize();
             });
 
-            $($window).resize($scope.windowResize);
+            $scope.$on('sr-window-resize', windowResize);
         },
     };
 });
