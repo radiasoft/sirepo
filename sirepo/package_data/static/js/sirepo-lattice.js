@@ -1264,7 +1264,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (var i = 0; i < beamlineItems.length; i++) {
                     var bid = beamlineItems[i];
                     if (beamlineCache[bid]) {
-                        return beamlineContainsElement(beamlineCache[bid], id, beamlineCache);
+                        if (beamlineContainsElement(beamlineCache[bid], id, beamlineCache)) {
+                            return true;
+                        }
+                        delete beamlineCache[bid];
                     }
                 }
                 return false;
