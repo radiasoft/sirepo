@@ -27,7 +27,7 @@ WANT_BROWSER_FRAME_CACHE = True
 
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
-_DENSITY_FILE = 'density.npy'
+_DENSITY_FILE = 'density.h5'
 _EGUN_CURRENT_FILE = 'egun-current.npy'
 _EGUN_STATUS_FILE = 'egun-status.txt'
 _OPTIMIZER_OUTPUT_FILE = 'opt.out'
@@ -35,9 +35,9 @@ _OPTIMIZER_RESULT_FILE = 'opt.json'
 _OPTIMIZER_STATUS_FILE = 'opt-run.out'
 _OPT_RESULT_INDEX = 3
 _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
-_PARTICLE_FILE = 'particles.npy'
+_PARTICLE_FILE = 'particles.h5'
 _PARTICLE_PERIOD = 100
-_POTENTIAL_FILE = 'potential.npy'
+_POTENTIAL_FILE = 'potential.h5'
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
@@ -127,7 +127,9 @@ def generate_field_report(data, run_dir):
     dz = grid.plate_spacing / grid.num_z
 
     f = str(py.path.local(run_dir).join(_POTENTIAL_FILE))
-    potential = np.load(f, allow_pickle=True)
+    hf = h5py.File(f, 'r')
+    potential = np.array(template_common.h5_to_dict(hf, path='potential'))
+    hf.close()
 
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
@@ -442,7 +444,6 @@ def _create_plots(dimension, data, values, x_range):
     y_range = None
     visited = {}
     plots = []
-    #TODO(pjm): keep in sync with warpvnd.js cell colors
     color = _SCHEMA.constants.cellColors
     max_index = values.shape[1] if dimension == 'x' else values.shape[0]
     x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
@@ -570,7 +571,9 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_impact_density(run_dir, data):
-    plot_info = np.load(str(run_dir.join(_DENSITY_FILE)), allow_pickle=True).tolist()
+    hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
+    plot_info = template_common.h5_to_dict(hf, path='density')
+    hf.close()
     if 'error' in plot_info:
         return plot_info
     #TODO(pjm): consolidate these parameters into one routine used by all reports
@@ -655,12 +658,13 @@ def _extract_optimization_results(run_dir, data, args):
 
 
 def _extract_particle(run_dir, data, limit):
-    v = np.load(str(run_dir.join(_PARTICLE_FILE)), allow_pickle=True)
-    kept_electrons = v[0]
-    lost_electrons = v[1]
+    hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
+    d = template_common.h5_to_dict(hf, 'particle')
+    kept_electrons = d['kept']
+    lost_electrons = d['lost']
+    hf.close()
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
     radius = _meters(grid['channel_width'] / 2.)
     half_height = grid['channel_height'] if 'channel_height' in grid else 5.
     half_height = _meters(half_height / 2.)
@@ -722,7 +726,8 @@ def _generate_optimizer_file(data, v):
 def _generate_parameters_file(data):
     v = None
     template_common.validate_models(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
+    v['report'] = data['report']
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['potentialFile'] = _POTENTIAL_FILE

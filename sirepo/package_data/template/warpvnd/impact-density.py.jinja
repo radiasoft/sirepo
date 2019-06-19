@@ -1,6 +1,10 @@
 
-from rswarp.diagnostics import ImpactDensity
 import math
+from rswarp.diagnostics import ConductorTemplates
+from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
+from rswarp.diagnostics import ImpactDensity
+from sirepo.template import template_common
+
 
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
 # the initial values in each coord array and a "slope" in each array dimension
@@ -39,21 +43,14 @@ try:
             'max': plot_density.cmap_normalization.vmax,
         }
     else:
-        {% if usesSTL %}
-        density_results = {
-            'dx': plot_density.dx,
-            'dy': plot_density.dy,
-            'dz': plot_density.dz,
-            'density': [],
-            'min': 0,
-            'max': 1,
-        }
-        {% else %}
         i_data = []
         for i in plot_density.conductors:
             c_data = []
             c = plot_density.conductors[i]
             {% if is3D %}
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                # STL not supported yet
+                continue
             coord_keys = ['x', 'y', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
             for (x, y, z, s) in d:
@@ -134,7 +131,6 @@ try:
             'min': min_s,
             'max': max_s,
         }
-        {% endif %}
 
 except AssertionError as e:
     message = e.message
@@ -143,4 +139,6 @@ except AssertionError as e:
     density_results = {
         'error': message,
     }
-np.save('{{ densityFile }}', density_results)
+hf = h5py.File('{{ densityFile }}')
+template_common.dict_to_h5(density_results, hf, path='density')
+hf.close()

@@ -1,4 +1,6 @@
 
+from sirepo.template import template_common
+
 #prevent GIST from starting upon setup
 wp.top.lprntpara = False
 wp.top.lpsplots = False
@@ -20,9 +22,11 @@ wp.generate()
 #------
 
 #Need to compute the potential first
+print('!POT FOR RPT {{ report }}')
 potential = solverE.getphi()
-print('!SAVING TO {{ potentialFile }}')
-np.save('{{ potentialFile }}', potential, allow_pickle=True)
+hf = h5py.File('{{ potentialFile }}')
+template_common.dict_to_h5(potential, hf, path='potential')
+hf.close()
 
 X_CELLS = NUM_X
 Y_CELLS = NUM_Y

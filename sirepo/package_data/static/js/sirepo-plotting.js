@@ -3632,6 +3632,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 );
                 return vtkPlotting.coordMapper(t2.compose(t1).compose(scaleTransform));
             }
+
             function setupConductor(bundle, conductor, type) {
                 var reader = bundle.source;
                 var actor = bundle.actor;
@@ -3652,6 +3653,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 actor.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(actor);
                 stlActors[conductor.id] = actor;
+            }
+
+            function getSTLActors() {
+                var arr = [];
+                for (var id in stlActors) {
+                    arr.push(stlActors[id]);
+                }
+                return arr;
             }
 
             var cFactor = 1000000.0;
@@ -4773,6 +4782,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             $scope.toggleConductors = function() {
                 $scope.showConductors = ! $scope.showConductors;
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
+                vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
             };
             $scope.toggleImpactDensity = function() {
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
