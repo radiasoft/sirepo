@@ -134,8 +134,6 @@ except AssertionError as e:
     density_results = {
         'error': message,
     }
-#np.save('{{ densityFile }}', density_results, allow_pickle=True)
-#print('density {}'.format(density_results))
 hf = h5py.File('{{ densityFile }}')
 template_common.dict_to_h5(density_results, hf, path='density')
 hf.close()

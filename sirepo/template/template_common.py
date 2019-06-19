@@ -180,7 +180,6 @@ def dict_to_h5(d, hf, path=None):
             try:
                 p = '{}/{}'.format(path, i)
                 hf.create_dataset(p, data=d[i])
-                pkdp('Added path {}', p)
             except TypeError:
                 dict_to_h5(d[i], hf, path=p)
     except KeyError:
@@ -188,7 +187,6 @@ def dict_to_h5(d, hf, path=None):
             p = '{}/{}'.format(path, k)
             try:
                 hf.create_dataset(p, data=d[k])
-                pkdp('Added path {}', p)
             except TypeError:
                 dict_to_h5(d[k], hf, path=p)
 
