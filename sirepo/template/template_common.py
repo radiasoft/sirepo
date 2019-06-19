@@ -11,6 +11,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import h5py
 import hashlib
 import json
 import numpy as np
@@ -169,6 +170,50 @@ def generate_parameters_file(data):
     v['notes'] = _get_notes(v)
     res = render_jinja('.', v, name='common-header.py')
     return res, v
+
+
+def dict_to_h5(d, hf, path=None):
+    if path is None:
+        path = ''
+    try:
+        for i in range(len(d)):
+            try:
+                p = '{}/{}'.format(path, i)
+                hf.create_dataset(p, data=d[i])
+            except TypeError:
+                dict_to_h5(d[i], hf, path=p)
+    except KeyError:
+        for k in d:
+            p = '{}/{}'.format(path, k)
+            try:
+                hf.create_dataset(p, data=d[k])
+            except TypeError:
+                dict_to_h5(d[k], hf, path=p)
+
+
+def h5_to_dict(hf, path=None):
+    d = {}
+    if path is None:
+        path = '/'
+    for k in hf[path]:
+        try:
+            d[k] = hf[path][k][()].tolist()
+        except AttributeError:
+            p = '{}/{}'.format(path, k)
+            d[k] = h5_to_dict(hf, path=p)
+
+    # replace dicts with arrays on a 2nd pass
+    d_keys = d.keys()
+    try:
+        indices = [int(k) for k in d_keys]
+        d_arr = [None] * len(indices)
+        for i in indices:
+            d_arr[i] = d[str(i)]
+        d = d_arr
+    except ValueError:
+        # keys not all integers, we're done
+        pass
+    return d
 
 
 def heatmap(values, model, plot_fields=None):
