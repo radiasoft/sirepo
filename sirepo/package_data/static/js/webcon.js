@@ -126,6 +126,20 @@ SIREPO.app.factory('webconService', function(appState, panelState) {
         panelState.clear('analysisReport' + id);
     };
 
+    self.tokenizeEquation = function(eq) {
+        return (eq || '').split(/[-+*/^|%().0-9\s]/)
+            .filter(function (t) {
+                return t.length > 0 &&
+                    SIREPO.APP_SCHEMA.constants.allowedEquationOps.indexOf(t) < 0;
+        });
+    };
+
+    self.tokenizeParams = function(val) {
+        return (val || '').split(/\s*,\s*/).filter(function (t) {
+            return t.length > 0;
+        });
+    };
+
     return self;
 });
 
@@ -532,10 +546,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {
-        //TODO(pjm): add beamPositionAnimation and correctorSettingAnimation info here
-        //'correctorSettingAnimation': [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime']
-    });
+    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
 
     return self;
 });
@@ -892,26 +903,21 @@ SIREPO.app.directive('clusterFields', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('controlBeamPositionReport', function(appState, frameCache, panelState, plotting, requestSender, simulationQueue, webconService) {
+SIREPO.app.directive('refreshButton', function(appState) {
     return {
         scope: {
-            parentController: '<',
+            modelName: '@refreshButton',
         },
         template: [
-            //'<div data-webcon-lattice=""></div>',
-            '<div data-report-panel="parameter" data-model-name="beamPositionReport"></div>',
+            '<div class="pull-right btn-default btn" data-ng-click="refreshReport()">',
+              '<span class="glyphicon glyphicon-refresh"></span>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.$on('beamPositionReport.changed', function () {
-                //srdbg('beamPositionReport.changed');
-                var toSave = [];
-                ($scope.parentController.watches || []).forEach(function (w) {
-                    var rpt = $scope.parentController.watchpointReportName(w.id);
-                    appState.models[rpt].lastUpdateTime = Date.now();
-                    toSave.push(rpt);
-                });
-                appState.saveChanges(toSave);
-            });
+            $scope.refreshReport = function() {
+                appState.models[$scope.modelName].refreshTime = Date.now();
+                appState.saveChanges($scope.modelName);
+            };
         },
     };
 });
@@ -923,7 +929,8 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
         },
         template: [
             '<div data-report-panel="parameter" data-model-name="correctorSettingReport">',
-            '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
+              '<div data-refresh-button="correctorSettingReport"></div>',
+              '<button class="btn btn-default" data-ng-show="showSpreadButton()" data-ng-click="toggleSpreadView()">{{ spreadButtonText() }}</button>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
@@ -933,7 +940,6 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
             var history = [];
             var spread = [40.0, 0];
 
-            //$scope.modelName = 'correctorSettingAnimation';
             $scope.modelName = 'correctorSettingReport';
             $scope.spreadView = false;
 
@@ -991,19 +997,6 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
                 }
             });
 
-            /*
-            $scope.$on('correctorSettingAnimation.summaryData', function (e, data) {
-                //srdbg('correctorSettingAnimation sum data', data);
-                if (! $scope.showSpreadButton()) {
-                    return;
-                }
-            });
-            */
-            //$scope.$on('modelChanged', update);
-            $scope.$on('epicsServerAnimation.changed', function (e, data) {
-                //srdbg('check state', appState.models.epicsServerAnimation.connectToServer);
-            });
-
             function doSpread(doAnimate) {
                 d3self.selectAll('.param-plot')
                     .each(function (p) {
@@ -1053,7 +1046,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     };
 });
 
-SIREPO.app.directive('equation', function(appState, webconService) {
+SIREPO.app.directive('equation', function(appState, webconService, $timeout) {
     return {
         scope: {
             model: '=',
@@ -1063,36 +1056,83 @@ SIREPO.app.directive('equation', function(appState, webconService) {
         template: [
             '<div>',
                 '<input type="text" data-ng-change="validateAll()" data-ng-model="model[field]" class="form-control" required>',
+                '<input type="checkbox" data-ng-model="model.autoFill" data-ng-change="validateAll()"> Auto-fill variables',
             '</div>',
         ].join(''),
         controller: function ($scope) {
-            $scope.webconservice = webconService;
 
-            //srdbg('eq', $scope.model[$scope.field], 'tokens', tokenizeEquation());
+            var defaultFitVars = ['x', 'y', 'z', 't'];
 
-            // function tokenizeEquation() {
-            //     var reserved = ['sin', 'cos', 'tan', 'csc', 'sec', 'cot', 'exp', 'abs'];
-            //TODO(pjm): jshint doesn't like the regular expression for some reason
-            //     var tokens = $scope.model[$scope.field].split(/[-+*/^|%().0-9\s+]/)
-            //         .filter(function (t) {
-            //             return t.length > 0 && reserved.indexOf(t.toLowerCase()) < 0;
-            //     });
-            //     //tokens = tokens.filter(function (t) {
-            //     //    return tokens.indexOf(t) === tokens.lastIndexOf(t);
-            //     //});
-            //     return tokens;
-            // }
+            function tokenizeEquation() {
+                return webconService.tokenizeEquation($scope.model[$scope.field]);
+            }
+
+            function extractParams() {
+
+                var params = webconService.tokenizeParams($scope.model.fitParameters).sort();
+                var tokens = tokenizeEquation().filter(function (t) {
+                    return t !== $scope.model.fitVariable;
+                });
+
+                // remove parameters no longer in the equation
+                params.reverse().forEach(function (p, i) {
+                    if (tokens.indexOf(p) < 0) {
+                        params.splice(i, 1);
+                    }
+                });
+
+                // add tokens not represented
+                tokens.forEach(function (t) {
+                    if (params.indexOf(t) < 0) {
+                        params.push(t);
+                    }
+                });
+                params.sort();
+
+                return params;
+            }
+
+            function extractVar() {
+                var tokens = tokenizeEquation();
+                var indVar = $scope.model.fitVariable;
+
+                if (! indVar|| tokens.indexOf(indVar) < 0) {
+                    indVar = null;
+                    tokens.forEach(function (t) {
+                        if (indVar) {
+                            return;
+                        }
+                        if (defaultFitVars.indexOf(t) >= 0) {
+                            indVar = t;
+                        }
+                    });
+                }
+                return indVar;
+            }
 
             $scope.validateAll = function() {
+                if ($scope.model.autoFill) {
+                    // allow time for models to be set before validating
+                    $timeout(function () {
+                        $scope.model.fitVariable = extractVar();
+                        $scope.model.fitParameters = extractParams().join(',');
+                    });
+                }
+
                 $scope.form.$$controls.forEach(function (c) {
+                    c.$setDirty();
                     c.$validate();
                 });
             };
+
+            if ($scope.model.autoFill === null) {
+                $scope.model.autoFill = true;
+            }
         },
     };
 });
 
-SIREPO.app.directive('equationVariables', function() {
+SIREPO.app.directive('equationVariables', function(webconService, $timeout) {
     return {
         restrict: 'A',
         scope: {
@@ -1108,7 +1148,6 @@ SIREPO.app.directive('equationVariables', function() {
             '<div class="sr-input-warning" data-ng-show="warningText.length > 0">{{warningText}}</div>',
         ].join(''),
         controller: function($scope, $element) {
-            $scope.equation = $scope.model.fitEquation;
         },
     };
 });
@@ -1130,7 +1169,7 @@ SIREPO.app.directive('fftReport', function(appState) {
             $scope.$on($scope.modelKey + '.summaryData', function (e, data) {
                 var str = '';
                 data.freqs.forEach(function (wi, i) {
-                    if(str == '') {
+                    if (str == '') {
                         str = 'Found frequncies: ';
                     }
                     var w = wi[1];
@@ -1196,24 +1235,20 @@ SIREPO.app.directive('trimButton', function(appState, webconService) {
     };
 });
 
-SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
+SIREPO.app.directive('validVariableOrParam', function(webconService) {
     return {
         restrict: 'A',
         require: 'ngModel',
         link: function(scope, element, attrs, ngModel) {
 
             // set dirty on load to catch invalid variables that might have been saved
-            if(! ngModel.$valid) {
+            if (! ngModel.$valid) {
                 ngModel.$setDirty();
-            }
-
-            function tokens() {
-                return (ngModel.$viewValue || '').split(/\s*,\s*/);
             }
 
             function isUnique (val, arr) {
                 var i = arr.indexOf(val);
-                if(i < 0) {
+                if (i < 0) {
                     throw val + ': Value not in array';
                 }
                 return i === arr.lastIndexOf(val);
@@ -1221,40 +1256,45 @@ SIREPO.app.directive('validVariableOrParam', function(appState, webconService) {
 
             function validateParam(p) {
                 scope.warningText = '';
-                if(! /^[a-zA-Z]+$/.test(p)) {
+                if (! /^[a-zA-Z]+$/.test(p)) {
                     scope.warningText = (scope.isVariable ? 'Variables' : 'Parameters') + ' must be alphabetic';
                     return false;
                 }
-                if(! scope.isVariable && p === scope.model.fitVariable) {
+                if (! scope.isVariable && p === scope.model.fitVariable) {
                     scope.warningText = p + ' is an independent variable';
                     return false;
                 }
-                if(scope.model.fitEquation && scope.model.fitEquation.indexOf(p) < 0) {
+                if (webconService.tokenizeEquation(scope.model.fitEquation).indexOf(p) < 0) {
                     scope.warningText = p + ' does not appear in the equation';
                     return false;
                 }
-                if(! isUnique(p, tokens())) {
+                if (! isUnique(p, webconService.tokenizeParams(ngModel.$viewValue))) {
                     scope.warningText = p + ' is duplicated';
+                    return false;
+                }
+                if (p.length > 1) {
+                    scope.warningText = p + ': use single character';
                     return false;
                 }
 
                 return true;
             }
 
-            ngModel.$validators.validTokens = (function (v) {
-                return tokens()
-                    .filter(function (p) {
-                        return p.length > 0;
-                    })
+            ngModel.$validators.validTokens = function (v) {
+                if (! v) {
+                    scope.warningText = '';
+                    return false;
+                }
+                return webconService.tokenizeParams(v)
                     .reduce(function (valid, p) {
                         return valid && validateParam(p);
                     }, true);
-            });
+            };
         },
     };
 });
 
-SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
+SIREPO.app.directive('webconLattice', function(appState) {
     return {
         restrict: 'A',
         scope: {},
@@ -1262,26 +1302,21 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
             '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
               '<div class="webcon-lattice">',
                 '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
-                '<div data-ng-if="isLoaded()" style="margin-bottom: 1em">TODO: beamline labels will go in these rows, aligned under elements</div>',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
             var axis, latticeScope;
 
-            $scope.isLoaded = appState.isLoaded;
-
-            $scope.windowResize = utilities.debounce(function() {
+            function windowResize() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);
                     latticeScope.updateFixedAxis(axis, 0);
                     $scope.$applyAsync();
                 }
-            }, 250);
+            }
 
-            $scope.$on('$destroy', function() {
-                $($window).off('resize', $scope.windowResize);
-            });
+            $scope.isLoaded = appState.isLoaded;
 
             $scope.$on('sr-latticeLinked', function(event) {
                 latticeScope = event.targetScope;
@@ -1292,10 +1327,10 @@ SIREPO.app.directive('webconLattice', function(appState, utilities, $window) {
                     domain: [0, 3.4],
                 };
                 axis.scale.domain(axis.domain);
-                $scope.windowResize();
+                windowResize();
             });
 
-            $($window).resize($scope.windowResize);
+            $scope.$on('sr-window-resize', windowResize);
         },
     };
 });

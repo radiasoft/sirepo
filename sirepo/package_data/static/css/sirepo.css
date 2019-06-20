@@ -77,6 +77,9 @@
     .sr-user-item {
         color: #008a00;
     }
+    .sr-import-item {
+      color: rgb(51, 51, 51);
+    }
     .sr-example-item {
         font-size: 14px;
         position: absolute;

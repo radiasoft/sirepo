@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOTTING_LINE_CSV_EVENT = 'plottingLineoutCSV';
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;
@@ -370,7 +370,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         ensureDomain: function(domain) {
-            if (domain[0] == domain[1]) {
+            if (domain && (domain[0] == domain[1])) {
                 domain[0] -= (domain[0] || 1);
                 domain[1] += (domain[1] || 1);
             }
@@ -468,10 +468,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 requestData = initPlot(scope);
             }
 
-            scope.windowResize = utilities.debounce(function() {
-                scope.resize();
-            }, 250);
-
             // also emit so scopes in either direction can see
             scope.broadcastEvent = function(args) {
                 scope.$broadcast('sr-plotEvent', args);
@@ -482,7 +478,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.destroy();
                 $(d3.select(scope.element).select('svg').node()).off();
                 scope.element = null;
-                $($window).off('resize', scope.windowResize);
             });
 
             scope.$on(
@@ -495,13 +490,18 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     panelState.clear(scope.modelName);
                     requestData();
                 });
+
             scope.isLoading = function() {
                 if (scope.isAnimation) {
                     return false;
                 }
                 return panelState.isLoading(scope.modelName);
             };
-            $($window).resize(scope.windowResize);
+
+            scope.$on('sr-window-resize', function() {
+                scope.resize();
+            });
+
             // #777 catch touchstart on outer svg nodes to prevent browser zoom on ipad
             $(d3.select(scope.element).select('svg').node()).on('touchstart touchmove', function(event) {
                 event.preventDefault();
@@ -619,14 +619,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.element = element[0];
             var requestData = initAnimation(scope);
 
-            scope.windowResize = utilities.debounce(function() {
-                scope.resize();
-            }, 250);
-
             scope.$on('$destroy', function() {
                 scope.destroy();
                 scope.element = null;
-                $($window).off('resize', scope.windowResize);
             });
 
             scope.$on(
@@ -642,7 +637,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             scope.isLoading = function() {
                 return panelState.isLoading(scope.modelName);
             };
-            $($window).resize(scope.windowResize);
+            scope.$on('sr-window-resize', function() {
+                scope.resize();
+            });
 
             scope.init();
             if (appState.isLoaded()) {

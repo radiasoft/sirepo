@@ -75,6 +75,7 @@ SIREPO.appDownloadLinks = [
     '<li><a href data-ng-href="{{ dataFileURL(\'csv\') }}">CSV Data File</a></li>',
 ].join('');
 SIREPO.lattice = {
+    canReverseBeamline: true,
     elementColor: {
         BMAPXY: 'magenta',
         FTABLE: 'magenta',
@@ -1124,7 +1125,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, elegantService, f
                             '<br /><br />',
                           '</div>',
                           '<div data-ng-show="isState(\'missing-files\')">',
-                            '<p>Please upload the files below which are referenced in the', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
+                            '<p>Please upload the files below which are referenced in the ', SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName, ' file.</p>',
                             '<div class="form-group" data-ng-repeat="item in missingFiles">',
                               '<div class="col-sm-8 col-sm-offset-1">',
                                 '<span data-ng-if="item[5] && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span> ',

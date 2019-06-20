@@ -521,7 +521,6 @@
         "simulation": {
             "activeBeamlineId": 12,
             "folder": "/",
-            "isInitialized": true,
             "name": "SATURNE 3 GeV Synchrotron",
             "simulationId": "vg9DNbFt",
             "simulationSerial": 1553728252400221,

@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template.line_parser import LineParser
 import copy
+import math
 import re
 
 _COMMAND_INDEX_POS = 110
@@ -21,8 +22,18 @@ _CHANGREF_MAP = {
 
 _IGNORE_ELEMENTS = [
     'faisceau',
+    'faistore',
+    'fit',
     'images',
+    'matrix',
+    'optics',
+    'options',
+    'rebelote',
+    'spnprt',
+    'twiss',
 ]
+
+_MAX_COORDINATES = 10
 
 #TODO(pjm): remove when we have updated to latest zgoubi
 _NEW_PARTICLE_TYPES = {
@@ -65,6 +76,23 @@ def parse_file(zgoubi_text, max_id=0):
             current_command.append(line.split())
     assert current_command is None, 'missing END element'
     return title, elements, sorted(unhandled_elements.keys())
+
+
+def parse_float(v):
+    # replace fortran double precision format with normal exponential notation
+    return float(re.sub(r'd|D', 'e', str(v)))
+
+
+def tosca_file_count(el):
+    if '-sf' in el.magnetType or ('-f' in el.magnetType and el['fileCount'] == 1):
+        return 1
+    if '-f' in el.magnetType:
+        return el.fileCount
+    if el.magnetType == '3d-mf-2v':
+        return int(math.floor((int(el.IZ) + 1) / 2))
+    if el.magnetType == '3d-mf-1v':
+        return int(el.IZ)
+    assert False, 'unhandled magnetType: {}'.format(el.magnetType)
 
 
 def _add_command(parser, command, elements, unhandled_elements):
@@ -116,6 +144,69 @@ def _parse_keyword(line):
     if m:
         return m.group(1).upper()
     return None
+
+
+def _parse_tosca_mesh_and_magnet_type(res):
+    match = re.match(r'(\d+)\.(\d+)', res.mod)
+    if match:
+        mod = int(match.group(1))
+        mod2 = int(match.group(2))
+    else:
+        mod = int(res.mod)
+        mod2 = 0
+    res.meshType = 'cartesian' if mod < 20 else 'cylindrical'
+    res.magnetType = '2d' if res.IZ == '1' else '3d'
+    if mod == 12 and mod2 == 2:
+        res.magnetType += '-2f'
+    elif mod == 0:
+        res.magnetType += '-sf' if res.magnetType == '2d' else '-mf'
+    elif mod in (3, 12, 20, 24):
+        res.magnetType += '-sf'
+    elif mod in (1, 15, 25, 22):
+        res.magnetType += '-mf'
+    else:
+        assert False, 'unsupported TOSCA, MOD: {}'.format(res.mod)
+    if mod == 3:
+        res.magnetType += '-ags'
+        if mod2 == 1:
+            res.magnetType += '-p'
+    elif mod in (15, 22, 25):
+        res.magnetType += '-f'
+    if mod == 1 or (mod == 12 and mod2 == 1):
+        res.magnetType += '-1v'
+    elif mod == 22 or (mod == 0 and res.IZ != '1') or (mod == 12 and not mod2):
+        res.magnetType += '-2v'
+    elif mod == 12 and mod2 == 2:
+        res.magnetType += '-8v'
+    elif mod == 20:
+        res.magnetType += '-4v'
+    res.fileCount = mod2
+
+
+def _parse_tosca_title(res, title):
+    m = re.match(r'\bFLIP\b', title)
+    if m:
+        res.flipX = '1'
+        title = re.sub('\bFLIP\b', ' ', title)
+    m = re.match(r'\bHEADER_(\d+)', title)
+    if m:
+        res.headerLineCount = int(m.group(1))
+        title = re.sub(r'\bHEADER_\d+\b', ' ', title)
+    else:
+        # tosca default header line count...
+        res.headerLineCount = 8
+    m = re.match(r'\bZroBXY\b', title)
+    if m:
+        res.zeroBXY = '1'
+        title = re.sub('\bZroBXY\b', ' ', title)
+    m = re.match(r'\bRHIC_helix\b', title)
+    if m:
+        res.normalizeHelix = '1'
+        title = re.sub('\bRHIC_helix\b', ' ', title)
+    if 'name' not in res:
+        title = re.sub(r'^\s+|\s+$', '', title)
+        title = re.sub(r'\s+', ' ', title)
+        res.name = title
 
 
 def _strip_command_index(line):
@@ -187,7 +278,7 @@ def _zgoubi_changref(command):
         res = []
         for i in range(int(len(command[1]) / 2)):
             name = command[1][i * 2]
-            value = float(command[1][i * 2 + 1])
+            value = parse_float(command[1][i * 2 + 1])
             if value == 0:
                 continue
             if name in _CHANGREF_MAP:
@@ -195,7 +286,7 @@ def _zgoubi_changref(command):
                 el2[_CHANGREF_MAP[name]] = value
                 res.append(el2)
             else:
-                pkdlog('zgoubi CHANGEREF skipping: {}={}', name, value)
+                pkdlog('zgoubi CHANGREF skipping: {}={}', name, value)
         return res
     res = _parse_command(command, [
         'XCE YCE ALE',
@@ -248,17 +339,20 @@ def _zgoubi_objet(command):
         del res['name']
     res['type'] = 'bunch'
     if kobj == '2' or kobj == '2.1':
+        imax = int(command[3][0])
         coordinates = []
-        for i in range(4, len(command) - 1):
-            coord = _parse_command_line({}, command[i], 'Y T Z P X D')
+        for idx in range(imax):
+            coord = _parse_command_line({}, command[4 + idx], 'Y T Z P X D')
             for k in coord:
-                coord[k] = float(coord[k])
+                coord[k] = parse_float(coord[k])
                 if kobj == '2':
                     if k in ('Y', 'Z', 'S'):
                         coord[k] *= 1e-2
                     elif k in ('T', 'P'):
                         coord[k] *= 1e-3
             coordinates.append(coord)
+        if len(coordinates) > _MAX_COORDINATES:
+            coordinates = coordinates[:_MAX_COORDINATES]
         res.particleCount2 = len(coordinates)
         res.method = 'OBJET2.1'
         res.coordinates = coordinates
@@ -279,10 +373,10 @@ def _zgoubi_mcobjet(command):
         'alpha_X beta_X emit_X n_cutoff_X *n_cutoff2_X',
         # 'IR1 IR2 IR3',
     ])
-    if 'n_cutoff2_Y' in res and float(res['n_cutoff_Y']) >= 0:
+    if 'n_cutoff2_Y' in res and parse_float(res['n_cutoff_Y']) >= 0:
         res['DT'] = res['DY']
         res['DY'] = res['n_cutoff2_Y']
-    if 'n_cutoff2_Z' in res and float(res['n_cutoff_Z']) >= 0:
+    if 'n_cutoff2_Z' in res and parse_float(res['n_cutoff_Z']) >= 0:
         res['DP'] = res['DZ']
         res['DZ'] = res['n_cutoff2_Z']
     del res['KOBJ']
@@ -325,6 +419,7 @@ def _zgoubi_quadrupo(command):
 
 
 def _zgoubi_scaling(command):
+    #TODO(pjm): access IOPT and NFAM directly from command before calling _parse_command
     command2 = copy.deepcopy(command)
     pattern = [
         'IOPT NFAM',
@@ -343,6 +438,109 @@ def _zgoubi_scaling(command):
 
 def _zgoubi_sextupol(command):
     return _zgoubi_quadrupo(command)
+
+
+def _zgoubi_solenoid(command):
+    res = _parse_command(command, [
+        'IL',
+        'l R_0 B_0 *MODL',
+        'X_E X_S',
+        'XPAS',
+        'KPOS XCE YCE ALE',
+    ])
+    return res
+
+
+def _zgoubi_spinr(command):
+    iopt = command[1][0]
+    if iopt == '0':
+        format = ['IOPT']
+    elif iopt == '1':
+        format = [
+            'IOPT',
+            'phi mu'
+        ]
+    elif iopt == '2':
+        format = [
+            'IOPT',
+            'phi B B_0 C_0 C_1 C_2 C_3',
+        ]
+    else:
+        assert False, 'unknown SPINR IOPT: {}'.format(iopt)
+    return _parse_command(command, format)
+
+
+def _zgoubi_spntrk(command):
+    kso = command[1][0]
+    res = {
+        'KSO': '1',
+        'S_X': 0,
+        'S_Y': 0,
+        'S_Z': 0,
+        'type': 'SPNTRK',
+    }
+    if kso == '0':
+        res['KSO'] = '0'
+    if kso == '1':
+        res['S_X'] = 1
+    elif kso == '2':
+        res['S_Y'] = 1
+    elif kso == '3':
+        res['S_Z'] = 1
+    elif re.search(r'^4', kso):
+        res = _parse_command(command, [
+            'KSO',
+            'S_X S_Y S_Z',
+        ])
+        if res['KSO'] != '0':
+            res['KSO'] = '1'
+        if 'name' in res:
+            del res['name']
+    return res
+
+
+def _zgoubi_srloss(command):
+    res = _parse_command(command, [
+        'KSR',
+        'STR1',
+    ])
+    res['KSR'] = re.sub(r'\..*$', '', res['KSR'])
+    if res['STR1'] == 'all':
+        res['applyToAll'] = '1'
+    else:
+        res['keyword'] = res['STR1']
+    del res['STR1']
+    if 'name' in res:
+        del res['name']
+    return res
+
+
+def _zgoubi_tosca(command):
+    title = ' '.join(command[3])
+    res = _parse_command(command, [
+        'IC IL',
+        'BNORM XN YN ZN',
+        'TITL',
+        'IX IY IZ mod *field1 *field2 *field3 *field4',
+    ])
+    _parse_tosca_mesh_and_magnet_type(res)
+    _parse_tosca_title(res, title)
+    res.fileNames = []
+    file_count = tosca_file_count(res)
+    for idx in range(file_count):
+        el = {}
+        #TODO(pjm): _parse_command_line() should remove line, can then remove 5 offset
+        _parse_command_line(el, command[5 + idx], 'FNAME')
+        res.fileNames.append(el['FNAME'])
+    _parse_command_line(res, command[5 + file_count], 'ID A B C *Ap *Bp *Cp *App *Bpp *Cpp')
+    _parse_command_line(res, command[6 + file_count], 'IORDRE')
+    _parse_command_line(res, command[7 + file_count], 'XPAS')
+    if res.meshType == 'cartesian':
+        _parse_command_line(res, command[8 + file_count], 'KPOS XCE YCE ALE')
+    else:
+        _parse_command_line(res, command[8 + file_count], 'KPOS')
+        _parse_command_line(res, command[9 + file_count], 'RE TE RS TS')
+    return res
 
 
 def _zgoubi_ymy(command):

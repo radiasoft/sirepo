@@ -16,8 +16,7 @@ SIREPO.appFieldEditors = [
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
 ].join('');
-SIREPO.appImportText = 'Import an zgoubi.dat file';
-
+SIREPO.appImportText = 'Import a zgoubi.dat datafile';
 SIREPO.lattice = {
     elementColor: {
         CHANGREF: 'orange',
@@ -31,9 +30,9 @@ SIREPO.lattice = {
         drift: ['DRIFT'],
         magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
-        solenoid: [],
+        solenoid: ['SOLENOID'],
         watch: ['MARKER'],
-        zeroLength: ['SCALING', 'YMY'],
+        zeroLength: ['SCALING', 'SPINR', 'YMY'],
     },
 };
 
@@ -45,7 +44,9 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select an zgoubi.dat file." data-file-formats=".dat,.res"></div>',
+            '<div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select a zgoubi.dat file." data-file-formats=".dat,.res">',
+              '<div data-zgoubi-import-options=""></div>',
+            '</div>',
         ].join(''),
     };
 });
@@ -88,11 +89,11 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'TOSCA', 'YMY'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
     var scaling = {};
 
     function updateScaling() {
-        var MAX_SCALING_FAMILY = 5;
+        var MAX_SCALING_FAMILY = 6;
         scaling = {};
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
@@ -115,7 +116,13 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 field *= scaling[item.type];
             }
             var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
-            item.travelLength = latticeService.arcLength(computedAngle, item.l);
+            if (item.type == 'BEND') {
+                item.travelLength = latticeService.arcLength(computedAngle, item.l);
+            }
+            else {
+                // only BEND seems to use the arcLength
+                item.travelLength = item.l;
+            }
 
             if (item.KPOS == '2') {
                 //TODO(pjm): support misalignment YCE, ALE
@@ -198,11 +205,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
 
     function processParticleSelector() {
         var bunch = appState.models.bunch;
-        var count = bunch.particleCount2;
-        if (! bunch.coordinates) {
-            bunch.coordinates = [];
-        }
-        for (var i = 0; i < count; i++) {
+        for (var i = 0; i < bunch.particleCount2; i++) {
             if (! bunch.coordinates[i]) {
                 bunch.coordinates[i] = appState.setModelDefaults({}, 'particleCoordinate');
             }
@@ -218,7 +221,13 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
     }
 
     function processSpinTracking() {
-        panelState.showRow('bunch', 'S_X', appState.models.bunch.spntrk == '1');
+        panelState.showRow('SPNTRK', 'S_X', appState.models.SPNTRK.KSO == '1');
+    }
+
+    function processSRLoss() {
+        var srLoss = appState.models.SRLOSS;
+        panelState.showField('SRLOSS', 'applyToAll', srLoss.KSR == '1');
+        panelState.showField('SRLOSS', 'keyword', srLoss.KSR == '1' && srLoss.applyToAll == '0');
     }
 
     self.handleModalShown = function(name) {
@@ -227,6 +236,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
             processParticleType();
             processBunchMethod();
             processSpinTracking();
+            processSRLoss();
             zgoubiService.processParticleCount2('bunch');
         }
     };
@@ -239,8 +249,10 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
             zgoubiService.processParticleCount2('bunch');
         });
         appState.watchModelFields($scope, ['bunch.particleSelector'], processParticleSelector);
-        appState.watchModelFields($scope, ['bunch.spntrk'], processSpinTracking);
+        appState.watchModelFields($scope, ['SPNTRK.KSO'], processSpinTracking);
+        appState.watchModelFields($scope, ['SRLOSS.KSR', 'SRLOSS.applyToAll'], processSRLoss);
         processSpinTracking();
+        processSRLoss();
         processParticleType();
         processBunchMethod();
         processParticleSelector();
@@ -417,6 +429,31 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     return self;
 });
 
+SIREPO.app.directive('srSpinrEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processFields() {
+                if (! appState.models.SPINR) {
+                    return;
+                }
+                var option = appState.models.SPINR.IOPT;
+                panelState.showField('SPINR', 'phi', option == 1 || option == 2);
+                panelState.showField('SPINR', 'mu', option == 1);
+                ['B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3'].forEach(function(f) {
+                    panelState.showField('SPINR', f, option == 2);
+                });
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['SPINR.IOPT'], processFields);
+                processFields();
+            });
+        },
+    };
+});
+
 SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -461,7 +498,7 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
         controller: function($scope) {
 
             function getTosca() {
-                if (appState.isLoaded()) {
+                if (appState.isLoaded() && appState.models.TOSCA) {
                     if (! appState.models.TOSCA.fileNames) {
                         appState.models.TOSCA.fileNames = [];
                     }
@@ -604,6 +641,7 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                 appState.watchModelFields($scope, ['TOSCA.fileCount'], processFileCount);
                 appState.watchModelFields($scope, ['TOSCA.ID'], processIntegrationBoundary);
                 appState.watchModelFields($scope, ['TOSCA.magnetFile'], processMagnetFile);
+                processMagnetFile();
             });
         },
     };
@@ -707,6 +745,82 @@ SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {
         link: function link(scope, element) {
             scope.modelName = 'twissSummaryReport';
             plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+
+SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        template: [
+            '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
+            '<div style="margin-bottom: 1ex">{{ additionalFileText() }}</div>',
+            '<input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">',
+            '<div data-ng-if="uploadDatafile()"></div>',
+            '</div>',
+        ].join(''),
+
+        controller: function($scope) {
+            var parentScope = $scope.$parent;
+            var missingFiles;
+            $scope.toscaFile = {
+                file: {},
+            };
+
+            $scope.additionalFileText = function() {
+                if (missingFiles) {
+                    return 'Please upload a zip file which contains the following TOSCA input files: '
+                        + missingFiles.join(', ');
+                }
+            };
+
+            $scope.uploadDatafile = function() {
+                if ($scope.toscaFile.file.name) {
+                    parentScope.isUploading = true;
+                    fileUpload.uploadFileToUrl(
+                        $scope.toscaFile.file,
+                        null,
+                        requestSender.formatUrl(
+                            'uploadFile',
+                            {
+                                '<simulation_id>': 'unused',
+                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                                '<file_type>': 'TOSCA-magnetFile',
+                            }),
+                        function(data) {
+                            parentScope.isUploading = false;
+                            if (data.error) {
+                                parentScope.fileUploadError = data.error;
+                                return;
+                            }
+                            parentScope.fileUploadError = null;
+                        });
+                    $scope.toscaFile.file = {};
+                }
+                return false;
+            };
+
+            $scope.hasMissingFiles = function() {
+                if (parentScope.fileUploadError) {
+                    if (parentScope.errorData && parentScope.errorData.missingFiles) {
+                        var set = {};
+                        parentScope.errorData.missingFiles.forEach(function(err) {
+                            err.TOSCA.forEach(function(name) {
+                                set[name] = 1;
+                            });
+                        });
+                        missingFiles = Object.keys(set).sort(function(a, b) {
+                            return a.localeCompare(b);
+                        });
+                        delete parentScope.errorData;
+                    }
+                }
+                else {
+                    missingFiles = null;
+                }
+                return missingFiles && missingFiles.length;
+            };
         },
     };
 });

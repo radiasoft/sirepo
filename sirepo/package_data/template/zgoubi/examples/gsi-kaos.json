@@ -316,7 +316,6 @@
             "activeBeamlineId": 2,
             "folder": "/Examples",
             "isExample": true,
-            "isInitialized": true,
             "name": "GSI KAOS Spectrometer with TOSCA",
             "simulationId": "xEPrYiQG",
             "simulationSerial": 1558652579837101,

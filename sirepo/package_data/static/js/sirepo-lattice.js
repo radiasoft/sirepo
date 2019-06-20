@@ -522,17 +522,17 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
         restrict: 'A',
         scope: {},
         template: [
-            '<div data-ng-if="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
+            '<div data-ng-show="showEditor()" class="panel panel-info" style="margin-bottom: 0">',
               '<div class="panel-heading"><span class="sr-panel-heading">Beamline Editor - {{ beamlineName() }}</span>',
                 '<div class="sr-panel-options pull-right">',
                   '<a href data-ng-click="showBeamlineNameModal()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a> ',
                 '</div>',
               '</div>',
-              '<div style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
+              '<div data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body sr-lattice-editor-panel" data-ng-drop="true" data-ng-drag-stop="dragStop($data)" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">',
                 '<p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em></small></p>',
-                '<div data-ng-repeat="item in beamlineItems" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
+                '<div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">',
                   '<div style="display: inline-block;" class="sr-editor-item-hover">',
-                    '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="{\'sr-item-selected\': isSelected(item), \'sr-lattice-icon\': isBeamline(item)}"><span>{{ itemName(item) }}</span></div>',
+                    '<div data-ng-drag="true" data-ng-drag-data="item" data-ng-dblclick="editItem(item)" data-ng-click="selectItem(item)" class="badge sr-lattice-item sr-badge-icon" data-ng-class="{\'sr-item-selected\': selectedItem == item, \'sr-lattice-icon\': item.isBeamline}"><span>{{ item.name }}</span></div>',
                     ' <span class="sr-lattice-close-icon glyphicon glyphicon-remove-circle" title="Delete Element" data-ng-click="deleteItem(item)"></span>',
                   '</div>',
                 '</div>',
@@ -549,6 +549,38 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             var activeBeamline = null;
             var dragCanceled = false;
             var dropSuccess = false;
+            var isBeamlineCache = {};
+            var itemNameCache = {};
+
+            function isBeamline(id) {
+                var res = isBeamlineCache[id];
+                if (res === undefined) {
+                    var el = latticeService.elementForId(id);
+                    res = el.type ? false : true;
+                    isBeamlineCache[id] = res;
+                }
+                return res;
+            }
+
+            function itemName(id) {
+                var res = itemNameCache[id];
+                if (res === undefined) {
+                    res = latticeService.nameForId(id);
+                    res = (id < 0 ? '-' : '') + res;
+                    // cache is cleared below if item model is changed
+                    itemNameCache[id] = res;
+                }
+                return res;
+            }
+
+            function newBeamlineItem(id, itemId) {
+                return {
+                    id: id,
+                    itemId: itemId,
+                    isBeamline: isBeamline(id),
+                    name: itemName(id),
+                };
+            }
 
             function updateBeamline() {
                 var items = [];
@@ -649,10 +681,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 if (data.id == activeBeamline.id) {
                     return;
                 }
-                var item = {
-                    id: data.id || data._id,
-                    itemId: appState.maxId($scope.beamlineItems, 'itemId') + 1,
-                };
+                var item = newBeamlineItem(data.id || data._id, appState.maxId($scope.beamlineItems, 'itemId') + 1);
                 $scope.beamlineItems.push(item);
                 $scope.selectItem(item);
                 updateBeamline();
@@ -660,8 +689,11 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
 
             $scope.editorHeight = function() {
                 var w = $($window);
-                var el = $('.sr-lattice-editor-panel');
-                return (w.height() - el.offset().top - 15) + 'px';
+                var el = $scope.element;
+                if (el) {
+                    return (w.height() - el.offset().top - 15) + 'px';
+                }
+                return '0';
             };
 
             $scope.editItem = function(item) {
@@ -670,24 +702,13 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                     latticeService.editElement(el.type, el);
                 }
                 else {
-                    // reverse the beamline
-                    item.id = -item.id;
-                    updateBeamline();
+                    if (SIREPO.lattice.canReverseBeamline) {
+                        // reverse the beamline
+                        item.id = -item.id;
+                        item.name = itemName(item.id);
+                        updateBeamline();
+                    }
                 }
-            };
-
-            $scope.isBeamline = function(item) {
-                var el = latticeService.elementForId(item.id);
-                return el.type ? false : true;
-            };
-
-            $scope.isSelected = function(item) {
-                return $scope.selectedItem == item;
-            };
-
-            $scope.itemName = function(item) {
-                item.name = latticeService.nameForId(item.id);
-                return (item.id < 0 ? '-' : '') + item.name;
             };
 
             $scope.onKeyDown = function(e) {
@@ -726,21 +747,33 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 activeBeamline = beamline;
                 $scope.selectItem();
                 $scope.beamlineItems = [];
-                var itemId = 1;
-                for (var i = 0; i < activeBeamline.items.length; i++) {
-                    $scope.beamlineItems.push({
-                        id: activeBeamline.items[i],
-                        itemId: itemId++,
-                    });
-                }
+                activeBeamline.items.forEach(function(id, idx) {
+                    $scope.beamlineItems.push(newBeamlineItem(id, idx + 1));
+                });
                 return true;
             };
+
+            $scope.$on('modelChanged', function(e, name) {
+                if (appState.models[name] && appState.models[name]._id) {
+                    var id = appState.models[name]._id;
+                    if (itemNameCache[id]) {
+                        delete itemNameCache[id];
+                        $scope.beamlineItems.forEach(function(item) {
+                            if (item.id == id) {
+                                item.name = itemName(id);
+                            }
+                        });
+                    }
+                }
+            });
+
         },
-        link: function(scope) {
+        link: function(scope, element) {
             $document.on('keydown', scope.onKeyDown);
             scope.$on('$destroy', function() {
                 $document.off('keydown', scope.onKeyDown);
             });
+            scope.element = $(element).find('.sr-lattice-editor-panel').first();
         }
     };
 });
@@ -927,6 +960,11 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 pos.y += rpnValue(y) * Math.cos(radAngle);
             }
 
+            function itemTrackHash(item, group, length, angle) {
+                return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
+                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0);
+            }
+
             function subScaleWatch() {
                 var xsMax = 50;
                 return {
@@ -1031,11 +1069,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             element: item,
                             color: getPicColor(item, 'blue'),
                             points: points,
+                            trackHash: itemTrackHash(item, group, length, angle),
                         });
                         x += radius;
                         newAngle = latticeService.radiansToDegrees(angle);
                         pos.radius = radius;
-                        if (item.type == 'CHANGREF') {
+                        if (item.type == 'CHANGREF' && ! $scope.flatten) {
                             adjustPosition(pos, item.XCE, -item.YCE);
                         }
                     }
@@ -1190,6 +1229,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.y = pos.y - groupItem.height / 2;
                         }
                         maxHeight = Math.max(maxHeight, groupItem.height);
+                        groupItem.trackHash = itemTrackHash(item, group, length);
                         group.items.push(groupItem);
                         x += length;
                     }
@@ -1205,6 +1245,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 if ($scope.flatten) {
                     newAngle = 0;
                 }
+                group.trackHash = $scope.svgGroups.length + ' ' + group.items.map(function(item) {
+                    return item.trackHash;
+                }).join(' ');
                 pos.angle += newAngle;
             }
 
@@ -1221,7 +1264,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 for (var i = 0; i < beamlineItems.length; i++) {
                     var bid = beamlineItems[i];
                     if (beamlineCache[bid]) {
-                        return beamlineContainsElement(beamlineCache[bid], id, beamlineCache);
+                        if (beamlineContainsElement(beamlineCache[bid], id, beamlineCache)) {
+                            return true;
+                        }
+                        delete beamlineCache[bid];
                     }
                 }
                 return false;
@@ -1522,26 +1568,35 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 $scope.xOffset = leftMargin - leftPoint;
             };
 
+            function renderBeamline(forceUpdate) {
+                // only show the loading message for simulations with a lot of elements
+                $scope.isLoading = appState.models.elements.length > 25;
+                panelState.waitForUI(function() {
+                    $scope.isLoading = false;
+                    loadItemsFromBeamline(forceUpdate);
+                });
+            }
+
             appState.whenModelsLoaded($scope, function() {
                 calculateInitialBeamlineMetrics();
-                loadItemsFromBeamline();
+                renderBeamline();
 
                 $scope.$on('modelChanged', function(e, name) {
                     if (name == 'beamlines') {
-                        loadItemsFromBeamline();
+                        renderBeamline();
                     }
                     if (name == 'rpnVariables') {
-                        loadItemsFromBeamline(true);
+                        renderBeamline(true);
                     }
                     if (appState.models[name] && appState.models[name]._id) {
                         if (beamlineContainsElement(beamlineItems, appState.models[name]._id)) {
-                            loadItemsFromBeamline(true);
+                            renderBeamline(true);
                         }
                     }
                 });
 
                 $scope.$on('activeBeamlineChanged', function() {
-                    loadItemsFromBeamline();
+                    renderBeamline();
                     resetZoomAndPan();
                 });
             });
@@ -1741,10 +1796,6 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                 return isNested[beamline.id];
             };
 
-            $scope.$on('$destroy', function() {
-                $($window).off('resize', windowResize);
-            });
-
             appState.whenModelsLoaded($scope, function() {
                 $scope.$on('beamlines.changed', function() {
                     computeNesting();
@@ -1754,7 +1805,7 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                     descriptionCache = {};
                 });
                 $scope.$on('activeBeamlineChanged', computeNesting);
-                $($window).resize(windowResize);
+                $scope.$on('sr-window-resize',  windowResize);
                 computeNesting();
                 windowResize();
             });
@@ -1822,13 +1873,13 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
               '</thead>',
               '<tbody data-ng-repeat="category in tree track by category.name">',
                 '<tr>',
-                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': isExpanded(category), \'glyphicon-collapse-down\': ! isExpanded(category)}"></span> <b>{{ category.name }}</b></td>',
+                  '<td style="cursor: pointer" colspan="4" data-ng-click="toggleCategory(category)" ><span class="glyphicon" data-ng-class="{\'glyphicon-collapse-up\': ! category.isCollapsed, \'glyphicon-collapse-down\': category.isCollapsed}"></span> <b>{{ category.name }}</b></td>',
                 '</tr>',
-                '<tr data-ng-show="isExpanded(category)" data-ng-repeat="element in category.elements track by element._id">',
+                '<tr data-ng-show="! category.isCollapsed" data-ng-repeat="element in category.elements track by element._id">',
                   '<td style="padding-left: 1em"><div class="badge sr-badge-icon"><span data-ng-drag="true" data-ng-drag-data="element">{{ element.name }}</span></div></td>',
-                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ elementDescription(element) }}</span></td>',
+                  '<td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>',
                   '<td style="text-align: right">{{ elementLength(element) }}</td>',
-                  '<td style="text-align: right">{{ elementBend(element, \'&nbsp;\') }}<span data-ng-if="elementBend(element)">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
+                  '<td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>',
                 '</tr>',
               '</tbody>',
             '</table>',
@@ -1839,57 +1890,15 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
             var collapsedElements = {};
             var descriptionCache = {};
 
-            function loadTree() {
-                //TODO(pjm): merge new tree with existing to avoid un-needed UI updates
-                $scope.tree = [];
-                descriptionCache = {};
-                var category = null;
-                var elements = appState.applicationState().elements;
-
-                for (var i = 0; i < elements.length; i++) {
-                    var element = elements[i];
-                    if (! category || category.name != element.type) {
-                        category = {
-                            name: element.type,
-                            elements: [],
-                        };
-                        $scope.tree.push(category);
-                    }
-                    category.elements.push(element);
+            function computeBend(element) {
+                var angle = element.angle;
+                if (angular.isDefined(angle)) {
+                    element.isBend = true;
+                    element.bend = latticeService.angleFormat(angle);
                 }
             }
 
-            $scope.elementInUse = function(element) {
-                return latticeService.getBeamlinesWhichContainId(element._id).length > 0;
-            };
-            $scope.deleteElement = function(element) {
-                latticeService.deleteElementPrompt('elements', element);
-            };
-
-            $scope.editElement = function(type, item) {
-                var el = latticeService.elementForId(item._id);
-                return latticeService.editElement(type, el);
-            };
-            $scope.copyElement = function(element) {
-                var elementCopy = latticeService.getNextElement(element.type);
-                for(var prop in element) {
-                    if(prop != '_id' && prop != 'name') {
-                        elementCopy[prop] = element[prop];
-                    }
-                }
-                // element does not exist yet so cannot use local edit
-                latticeService.editElement(elementCopy.type, elementCopy);
-            };
-
-            $scope.elementBend = function(element, defaultValue) {
-                var angle = element.angle;
-                if (angular.isDefined(angle)) {
-                    return latticeService.angleFormat(angle);
-                }
-                return defaultValue;
-            };
-
-            $scope.elementDescription = function(element) {
+            function elementDescription(element) {
                 if (! element) {
                     return 'null';
                 }
@@ -1915,18 +1924,55 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                 }
                 descriptionCache[element._id] = res;
                 return res;
+            }
+
+            function loadTree() {
+                $scope.tree = [];
+                descriptionCache = {};
+                var category = null;
+                appState.applicationState().elements.forEach(function(element) {
+                    if (! category || category.name != element.type) {
+                        category = {
+                            name: element.type,
+                            elements: [],
+                            isCollapsed: collapsedElements[element.type],
+                        };
+                        $scope.tree.push(category);
+                    }
+                    var clonedElement = appState.clone(element);
+                    computeBend(clonedElement);
+                    clonedElement.description = elementDescription(clonedElement);
+                    category.elements.push(clonedElement);
+                });
+            }
+
+            $scope.deleteElement = function(element) {
+                latticeService.deleteElementPrompt('elements', element);
+            };
+
+            $scope.editElement = function(type, item) {
+                var el = latticeService.elementForId(item._id);
+                return latticeService.editElement(type, el);
+            };
+
+            $scope.copyElement = function(element) {
+                var elementCopy = latticeService.getNextElement(element.type);
+                for(var prop in element) {
+                    if(prop != '_id' && prop != 'name') {
+                        elementCopy[prop] = element[prop];
+                    }
+                }
+                // element does not exist yet so cannot use local edit
+                latticeService.editElement(elementCopy.type, elementCopy);
             };
 
             $scope.elementLength = function(element) {
                 return latticeService.numFormat(element.l, 'm');
             };
 
-            $scope.isExpanded = function(category) {
-                return ! collapsedElements[category.name];
-            };
-
             $scope.toggleCategory = function(category) {
-                collapsedElements[category.name] = ! collapsedElements[category.name];
+                category.isCollapsed = ! category.isCollapsed;
+                collapsedElements[category.name] = category.isCollapsed;
             };
 
             $scope.$on('modelChanged', function(e, name) {

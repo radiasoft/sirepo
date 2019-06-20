@@ -22,7 +22,7 @@ def set_optics(v=None):
                     thickness=1e-05,
                     delta=3.738856e-05,
                     atten_len=3.38902e-06,
-                    is_save_images=True,
+                    is_save_images=False,
                     prefix='op_sample1'))
 
     pp = []

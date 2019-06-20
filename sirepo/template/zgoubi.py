@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common, zgoubi_importer
+from sirepo.template import template_common, zgoubi_importer, zgoubi_parser
 import copy
 import io
 import jinja2
@@ -157,14 +157,16 @@ def extract_first_twiss_row(run_dir):
 
 def fixup_old_data(data):
     for m in [
+            'SPNTRK',
+            'SRLOSS',
             'bunch',
             'bunchAnimation',
             'bunchAnimation2',
             'energyAnimation',
+            'opticsReport',
             'particle',
             'particleCoordinate',
             'simulationSettings',
-            'opticsReport',
             'twissReport',
             'twissReport2',
             'twissSummaryReport',
@@ -173,12 +175,21 @@ def fixup_old_data(data):
             data.models[m] = pkcollections.Dict({})
         template_common.update_model_defaults(data.models[m], m, _SCHEMA)
     if 'coordinates' not in data.models.bunch:
-        data.models.bunch.coordinates = []
-    if 'spntrk' in data.models.simulationSettings:
-        for f in ('spntrk', 'S_X', 'S_Y', 'S_Z'):
-            if f in data.models.simulationSettings:
-                data.models.bunch[f] = data.models.simulationSettings[f]
-                del data.models.simulationSettings[f]
+        bunch = data.models.bunch
+        bunch.coordinates = []
+        for idx in range(bunch.particleCount2):
+            coord = {}
+            template_common.update_model_defaults(coord, 'particleCoordinate', _SCHEMA)
+            bunch.coordinates.append(coord)
+    # move spntrk from simulationSettings (older) or bunch if present
+    for m in ('simulationSettings', 'bunch'):
+        if 'spntrk' in data.models[m]:
+            data.models.SPNTRK.KSO = data.models[m].spntrk
+            del data.models[m]['spntrk']
+            for f in ('S_X', 'S_Y', 'S_Z'):
+                if f in data.models[m]:
+                    data.models.SPNTRK[f] = data.models[m][f]
+                    del data.models[m][f]
     template_common.organize_example(data)
 
 
@@ -190,7 +201,7 @@ def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
     if data['method'] == 'tosca_info':
-        return _tosca_info(data)
+        return zgoubi_importer.tosca_info(data['tosca'])
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -199,10 +210,10 @@ def get_simulation_frame(run_dir, data, model_data):
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
-def import_file(request, lib_dir=None, tmp_dir=None):
+def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     f = request.files['file']
     filename = werkzeug.secure_filename(f.filename)
-    data = zgoubi_importer.import_file(f.read())
+    data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
     return data
 
 
@@ -237,7 +248,7 @@ def parse_error_log(run_dir):
     return None
 
 
-def python_source_for_model(data, model):
+def python_source_for_model(data, model=None):
     return _generate_parameters_file(data)
 
 
@@ -339,7 +350,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
         if el.type != 'TOSCA':
             continue
         filename = str(run_dir.join(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
-        if _is_zip_file(filename):
+        if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
                     if info.filename in el.fileNames:
@@ -478,6 +489,18 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
                     scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
+        elif el['type'] == 'SPINR':
+            form = 'line.add(core.FAKE_ELEM(""" \'SPINR\'\n{}\n{} {} {} {} {} {} {}\n"""))\n'
+            values = ['IOPT']
+            if el.IOPT in ('0', '1'):
+                values += ('phi', 'mu', '', '', '', '', '')
+            elif el.IOP == '2':
+                values += ('phi', 'B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3')
+            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
+        elif el['type'] == 'SOLENOID':
+            form = 'line.add(core.FAKE_ELEM(""" \'SOLENOID\'\n0\n{} {} {} {}\n{} {}\n{}\n{} {} {} {}\n"""))\n'
+            values = ('l', 'R_0', 'B_0', 'MODL', 'X_E', 'X_S', 'XPAS', 'KPOS', 'XCE', 'YCE', 'ALE')
+            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
         elif el['type'] == 'TOSCA':
             res += _generate_element_tosca(el)
         else:
@@ -543,31 +566,16 @@ def _generate_element_tosca(el):
     if '{{ fileCount }}' in el['MOD']:
         el['MOD'] = el['MOD'].replace('{{ fileCount }}', str(el['fileCount']))
         el['hasFields'] = True
-    if '-sf' in el.magnetType or ('-f' in el.magnetType and el['fileCount'] == 1):
-        filename = el['magnetFile']
-        if _is_zip_file(filename):
-            filename = el['fileNames'][0]
-            assert filename, 'missing file name from zip for single file magnet'
-        el['fileNames'] = [template_common.lib_file_name('TOSCA', 'magnetFile', filename)]
-    else:
-        if '-f' in el.magnetType:
-            file_count = el.fileCount
-        elif el.magnetType == '3d-mf-2v':
-            file_count = math.floor((el.IZ + 1) / 2)
-        elif el.magnetType == '3d-mf-1v':
-            file_count = el.IZ
-        else:
-            assert false, 'unhandled magnetType: {}'.format(el.magnetType)
-        el['fileNames'] = el['fileNames'][:int(file_count)]
+    file_count = zgoubi_parser.tosca_file_count(el)
+    el['fileNames'] = el['fileNames'][:file_count]
     for f in _MODEL_UNITS['TOSCA']:
         el[f] = _element_value(el, f)
     template = '''
  'TOSCA'
 0 0
 {{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
-{{ name -}}
+{{ name }} HEADER_{{ headerLineCount -}}
 {%- if flipX == '1' %} FLIP {% endif -%}
-{%- if headerLineCount > 0 %} HEADER_{{ headerLineCount }} {% endif -%}
 {%- if zeroBXY == '1' %} ZroBXY {% endif -%}
 {%- if normalizeHelix == '1' %} RHIC_helix {% endif %}
 {{ IX }} {{ IY }} {{ IZ }} {{ MOD -}}
@@ -589,12 +597,12 @@ def _generate_element_tosca(el):
 
 
 def _generate_parameters_file(data):
-    v = template_common.flatten_data(data.models, {})
+    res, v = template_common.generate_parameters_file(data)
     report = data.report if 'report' in data else ''
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
     v['bunchCoordinates'] = data.models.bunch.coordinates
-    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
     v['outputFile'] = _ZGOUBI_DATA_FILE
@@ -693,10 +701,24 @@ def _init_model_units():
             'XCE': _cm,
             'YCE': _cm,
         },
-        'TOSCA': {
+        'SOLENOID': {
+            'l': _cm,
+            'R_0': _cm,
+            'X_E': _cm,
+            'X_S': _cm,
             'XPAS': _xpas,
             'XCE': _cm,
             'YCE': _cm,
+        },
+        'TOSCA': {
+            'A': _cm,
+            'B': _cm,
+            'C': _cm,
+            'XPAS': _xpas,
+            'XCE': _cm,
+            'YCE': _cm,
+            'RE': _cm,
+            'RS': _cm,
         },
     }
 
@@ -713,10 +735,6 @@ def _ipasses_for_data(col_names, rows):
         if ipass not in res:
             res.append(ipass)
     return res
-
-
-def _is_zip_file(path):
-    return re.search(r'\.zip$', str(path), re.IGNORECASE)
 
 
 def _parse_zgoubi_log(run_dir):
@@ -788,68 +806,6 @@ def _read_twiss_header(run_dir):
                     v = float(v)
                 res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
     return res
-
-
-def _tosca_info(data):
-    # determine the list of available files (from zip if necessary)
-    # compute the tosca length from datafile
-    tosca = data['tosca']
-    #TODO(pjm): keep a cache on the tosca model?
-    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(template_common.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
-    if not datafile.exists():
-        return {
-            'error': 'missing or invalid file: {}'.format(tosca['magnetFile']),
-        }
-    error = None
-    length = None
-    if _is_zip_file(datafile):
-        with zipfile.ZipFile(str(datafile), 'r') as z:
-            filenames = []
-            if 'fileNames' not in tosca or not tosca['fileNames']:
-                tosca['fileNames'] = []
-            for info in z.infolist():
-                filenames.append(info.filename)
-                if not length and info.filename in tosca['fileNames']:
-                    length, error = _tosca_length(tosca, z.read(info).splitlines())
-                    if length:
-                        error = None
-    else:
-        filenames = [tosca['magnetFile']]
-        with pkio.open_text(str(datafile)) as f:
-            length, error = _tosca_length(tosca, f)
-    if error:
-        return {
-            'error': error
-        }
-    return {
-        'toscaInfo': {
-            'toscaLength': length,
-            'fileList': sorted(filenames) if filenames else None,
-            'magnetFile': tosca['magnetFile'],
-        },
-    }
-
-
-def _tosca_length(tosca, lines):
-    col2 = []
-    count = 0
-    for line in lines:
-        count += 1
-        if count <= tosca['headerLineCount']:
-            continue
-        # some columns may not have spaces between values, ex:
-        #  -1.2000E+02 0.0000E+00-3.5000E+01 3.1805E-03-1.0470E+01 2.0089E-03-2.4481E-15
-        line = re.sub(r'(E[+\-]\d+)(\-)', r'\1 \2', line, flags=re.IGNORECASE)
-        values = line.split()
-        if len(values) > 2:
-            try:
-                col2.append(float(values[2]))
-            except ValueError:
-                pass
-    if not len(col2):
-        return None, 'missing column 2 data in file: {}'.format(tosca['magnetFile'])
-    #TODO(pjm): need to apply TOSCA coordinate unit conversion?
-    return (max(col2) - min(col2)) / 100.0, None
 
 
 _MODEL_UNITS = _init_model_units()

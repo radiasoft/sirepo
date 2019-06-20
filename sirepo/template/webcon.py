@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
+from sirepo import util
 from sirepo.template import template_common
 import StringIO
 import copy
@@ -27,7 +28,6 @@ import sklearn.metrics.pairwise
 import sklearn.mixture
 import sklearn.preprocessing
 import sympy
-
 
 SIM_TYPE = 'webcon'
 
@@ -229,7 +229,7 @@ def get_beam_pos_report(run_dir, data):
     x, plots, colors = _beam_pos_plots(data, history, start_time)
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': '',
+        'y_label': '[m]',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -412,7 +412,7 @@ def get_settings_report(run_dir, data):
         x_label = 'z [m]'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
-        'y_label': 'rad',
+        'y_label': '[rad]',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
@@ -451,8 +451,8 @@ def models_related_to_report(data):
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
-    if 'watchpointReport' in r:
-        # alwasy recompute the watchpoing (bpm) reports
+    if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
+        # always recompute the EPICS reports
         res += [random.random()]
     return res
 
@@ -803,6 +803,18 @@ def _epics_dir(sim_id):
 
 def _fit_to_equation(x, y, equation, var, params):
     # TODO: must sanitize input - sympy uses eval
+
+    # These security measures taken so far:
+    #     Whitelist of allowed functions and other symbols as defined in the schema
+    #     Variable and parameters must be 1 alphabetic character
+
+    eq_ops = [t for t in _tokenize_equation(equation) if t != var and t not in params]
+    eq_ops_rejected = [op for op in eq_ops if op not in _SCHEMA.constants.allowedEquationOps]
+    assert len(eq_ops_rejected) == 0, util.err(eq_ops_rejected, 'operation fobidden')
+    assert _validate_eq_var(var), util.err(var, 'invalid variable name')
+    assert all([_validate_eq_var(p) for p in re.split(r'\s*,\s*', params)]),\
+        util.err(params, 'invalid parameter name(s)')
+
     sym_curve = sympy.sympify(equation)
     sym_str = var + ' ' + ' '.join(params)
 
@@ -865,7 +877,7 @@ def _generate_parameters_file(run_dir, data):
             el.vkick = '{' + 'vagrant_corrector{}_VCurrent'.format(count) + '}'
     if run_dir:
         np.save(str(run_dir.join(CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     from sirepo.template import elegant
     #TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
@@ -873,7 +885,7 @@ def _generate_parameters_file(run_dir, data):
     v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
     v['BPM_FIELDS'] = BPM_FIELDS
     v['CURRENT_FIELDS'] = CURRENT_FIELDS
-    return template_common.render_jinja(SIM_TYPE, v)
+    return res + template_common.render_jinja(SIM_TYPE, v)
 
 
 def _get_fit_report(report, plot_data, col_info):
@@ -1267,6 +1279,10 @@ def _setting_plots_by_time(data, history, start_time):
     return np.array([current_time - time_window, current_time]), plots, c
 
 
+def _tokenize_equation(eq):
+    return [t for t in re.split(r'[-+*/^|%().0-9\s]', (eq if eq is not None else '')) if len(t) > 0]
+
+
 def _update_epics_kicker(data):
     epics_settings = data.epicsServerAnimation
     # data validation is done by casting values to int() or float()
@@ -1279,6 +1295,10 @@ def _update_epics_kicker(data):
         values.append(float(data['kicker']['{}kick'.format(f)]))
     update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
     return {}
+
+
+def _validate_eq_var(val):
+    return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
 
 
 def _watch_index(data, watch_id):

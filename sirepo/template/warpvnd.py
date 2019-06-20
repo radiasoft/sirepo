@@ -727,7 +727,6 @@ def _generate_parameters_file(data):
     v = None
     template_common.validate_models(data, _SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    v['report'] = data['report']
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['potentialFile'] = _POTENTIAL_FILE

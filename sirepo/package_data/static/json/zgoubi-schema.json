@@ -155,7 +155,17 @@
             ["none", "None"],
             ["BEND", "BEND"],
             ["MULTIPOL", "MULTIPOL"],
-            ["QUADRUPO", "QUADRUPO"]
+            ["QUADRUPO", "QUADRUPO"],
+            ["SOLENOID", "SOLENOID"]
+        ],
+        "SolenoidMethod": [
+            ["1", "r-extrapolation from on-axis field model"],
+            ["2", "elliptic integrals method"]
+        ],
+        "SpinrFormat": [
+            ["0", "Element inactive"],
+            ["1", "Axis and spin precession angle values"],
+            ["2", "Axis and spin precession angle follows Lorentz factor"]
         ],
         "OpticsOptionalParameter": [
             ["none", "None"],
@@ -347,11 +357,7 @@
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
             "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0],
-            "spntrk": ["Include Spin Tracking", "Boolean", "0"],
-            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
-            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
-            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
@@ -612,7 +618,9 @@
             "NAMEF4": ["Family Name", "ScalingFamily", "none"],
             "SCL4": ["Scale", "Float", 1.0],
             "NAMEF5": ["Family Name", "ScalingFamily", "none"],
-            "SCL5": ["Scale", "Float", 1.0]
+            "SCL5": ["Scale", "Float", 1.0],
+            "NAMEF6": ["Family Name", "ScalingFamily", "none"],
+            "SCL6": ["Scale", "Float", 1.0]
         },
         "SEXTUPOL": {
             "name": ["Name", "ValidatedString"],
@@ -640,6 +648,43 @@
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
+        "SOLENOID": {
+            "name": ["Name", "ValidatedString"],
+            "l": ["Length [m]", "Float", 0.0, "XL"],
+            "R_0": ["Radius [m]", "Float", 0.0, "R_0"],
+            "B_0": ["Asymptotic Field [kG]", "Float", 0.0, "B_0"],
+            "MODL": ["Solenoid Method", "SolenoidMethod", "1", "MODL"],
+            "X_E": ["Entrance Integration Zone [m]", "Float", 0.0],
+            "X_S": ["Exit Integration Zone [m]", "Float", 0.0],
+            "XPAS": ["Integration Step [m]", "String", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
+            "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
+            "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
+        "SPINR": {
+            "name": ["Name", "ValidatedString"],
+            "IOPT": ["Spin Rotation Format", "SpinrFormat", "1", "IOPT"],
+            "phi": ["Angle in (X, Y) plane between the spin precession axis [deg]", "Float", 0, "$\\phi$"],
+            "mu": ["Spin Precession angle around that axis [deg]", "Float", 0, "$\\mu$"],
+            "B": ["B", "Float", 0, "Lorentz factor: $\\mu(\\gamma) = \\left(\\frac{B}{B_0}\\right)^2 \\times \\left( C_0 + \\frac{C_1}{\\gamma} + \\frac{C_2}{\\gamma^2} + \\frac{C_3}{\\gamma^3} \\right)$"],
+            "B_0": ["B_0", "Float", 0, "$B_0$"],
+            "C_0": ["C_0", "Float", 0, "$C_0$"],
+            "C_1": ["C_1", "Float", 0, "$C_1$"],
+            "C_2": ["C_2", "Float", 0, "$C_2$"],
+            "C_3": ["C_3", "Float", 0, "$C_3$"]
+        },
+        "SPNTRK": {
+            "KSO": ["Include Spin Tracking", "Boolean", "0", "SPNTRK.KSO"],
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
+        },
+        "SRLOSS": {
+            "KSR": ["Include synchrotron radiation energy loss", "Boolean", "0", "SRLOSS.KSR"],
+            "applyToAll": ["Apply to all elements", "Boolean", "0"],
+            "keyword": ["Element Name", "String", "BEND", "Apply SR loss to specific element keyword"]
         },
         "TOSCA": {
             "name": ["Name", "ValidatedString"],
@@ -705,19 +750,7 @@
                     "particle.G",
                     "particle.Tau",
                     "rigidity",
-                    "method",
-                    "spntrk",
-                    [
-                        ["X", [
-                            "S_X"
-                        ]],
-                        ["Y", [
-                            "S_Y"
-                        ]],
-                        ["Z", [
-                            "S_Z"
-                        ]]
-                    ]
+                    "method"
                 ]],
                 ["Distribution", [
                     "particleCount",
@@ -786,6 +819,23 @@
                     "particleCoordinate.P",
                     "particleCoordinate.X",
                     "particleCoordinate.D"
+                ]],
+                ["Spin and SR Loss", [
+                    "SPNTRK.KSO",
+                    [
+                        ["X", [
+                            "SPNTRK.S_X"
+                        ]],
+                        ["Y", [
+                            "SPNTRK.S_Y"
+                        ]],
+                        ["Z", [
+                            "SPNTRK.S_Z"
+                        ]]
+                    ],
+                    "SRLOSS.KSR",
+                    "SRLOSS.applyToAll",
+                    "SRLOSS.keyword"
                 ]]
             ],
             "advanced": []
@@ -1258,6 +1308,49 @@
                         ]]
                     ]
                 ]]
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "description": "Solenoid",
+            "advanced": [
+                "name",
+                "l",
+                "R_0",
+                "B_0",
+                "MODL",
+                "X_E",
+                "X_S",
+                "XPAS",
+                "KPOS",
+                "XCE",
+                "YCE",
+                "ALE"
+            ]
+        },
+        "SPINR": {
+            "title": "SPINR",
+            "description": "Spin rotation",
+            "advanced": [
+                "name",
+                "IOPT",
+                "phi",
+                "mu",
+                "B",
+                "B_0",
+                "C_0",
+                "C_1",
+                "C_2",
+                "C_3"
+            ]
+        },
+        "SRLOSS": {
+            "title": "SRLOSS",
+            "description": "Synchrotron radiation energy loss",
+            "advanced": [
+                "KSR",
+                "applyToAll",
+                "keyword"
             ]
         },
         "TOSCA": {

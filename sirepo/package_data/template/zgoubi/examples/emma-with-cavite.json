@@ -387,7 +387,6 @@
             "activeBeamlineId": 21,
             "folder": "/",
             "isExample": false,
-            "isInitialized": true,
             "name": "EMMA with CAVITE",
             "outOfSessionSimulationId": "",
             "simulationId": "Cohox8LT",

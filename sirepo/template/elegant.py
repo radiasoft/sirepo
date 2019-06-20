@@ -272,16 +272,16 @@ def generate_lattice(data, filename_map, beamline_map, v):
 
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     v['rpn_variables'] = _generate_variables(data)
 
     if is_parallel:
-        return _generate_full_simulation(data, v)
+        return res + _generate_full_simulation(data, v)
 
     if 'report' in data and data['report'] == 'twissReport':
-        return _generate_twiss_simulation(data, v)
+        return res + _generate_twiss_simulation(data, v)
 
-    return _generate_bunch_simulation(data, v)
+    return res + _generate_bunch_simulation(data, v)
 
 
 def get_animation_name(data):

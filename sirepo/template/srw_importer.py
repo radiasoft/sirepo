@@ -8,71 +8,48 @@ SRW objects.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
 from pykern import pkrunpy
-from pykern import pkcollections
-from pykern.pkdebug import pkdlog, pkdexc
+from pykern.pkdebug import pkdlog, pkdexc, pkdp
 import ast
 import inspect
-import py
 import py.path
 import re
 import srwl_bl
-import traceback
 
-try:
-    import cPickle as pickle
-except Exception:
-    import pickle
-
-js_dir = py.path.local(pkresource.filename('static/js'))
+_JS_DIR = py.path.local(pkresource.filename('static/js'))
 
 
 class SRWParser(object):
     def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
-        self.lib_dir = lib_dir
-        self.initial_lib_dir = lib_dir
-        self.list_of_files = None
-        self.optics_func_name = optics_func_name
+        self.lib_dir = py.path.local(lib_dir)
         m = pkrunpy.run_path_as_module(script)
-        varParam = getattr(m, 'varParam')
         if arguments:
             import shlex
             arguments = shlex.split(arguments)
-        self.var_param = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
-        self.get_files()
-        if self.initial_lib_dir:
-            self.replace_mirror_files()
-            self.replace_image_files()
+        self.var_param = srwl_bl.srwl_uti_parse_options(m.varParam, use_sys_argv=False, args=arguments)
+        self.replace_mirror_files()
+        self.replace_image_files()
         try:
-            self.optics = getattr(m, self.optics_func_name)(self.var_param)
+            self.optics = getattr(m, optics_func_name)(self.var_param)
         except ValueError as e:
             if re.search('could not convert string to float', e.message):
                 self.replace_mirror_files('mirror_2d.dat')
-                self.optics = getattr(m, self.optics_func_name)(self.var_param)
-
+                self.optics = getattr(m, optics_func_name)(self.var_param)
         self.data = _parsed_dict(self.var_param, self.optics)
         self.data.models.simulation.name = _name(user_filename)
 
-    def get_files(self):
-        self.list_of_files = []
-        for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                self.list_of_files.append(self.var_param.__dict__[key])
-            # TODO(robnagler) this directory has to be a constant; imports
-            #   don't have control of their environment
-            if key.find('fdir') >= 0:
-                self.lib_dir = py.path.local(self.var_param.__dict__[key])
-
     def replace_mirror_files(self, mirror_file='mirror_1d.dat'):
         for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                if getattr(self.var_param, key) != '':
-                    self.var_param.__dict__[key] = mirror_file
-            if key.find('fdir') >= 0:
-                self.var_param.__dict__[key] = str(self.initial_lib_dir)
-        self.get_files()
+            if key == 'fdir':
+                self.var_param.__dict__[key] = str(self.lib_dir)
+            if re.search(r'\_ofn$', key):
+                self.var_param.__dict__[key] = ''
+            if re.search(r'\_(h|i)fn$', key):
+                if getattr(self.var_param, key) != '' and getattr(self.var_param, key) != 'None':
+                    self.var_param.__dict__[key] = str(self.lib_dir.join(mirror_file))
 
     def replace_image_files(self, image_file='sample.tif'):
         for key in self.var_param.__dict__.keys():
@@ -470,7 +447,7 @@ def _get_default_drift():
     """
 
     try:
-        with open(js_dir + '/srw.js') as f:
+        with open(_JS_DIR + '/srw.js') as f:
             file_content = f.read()
     except Exception:
         file_content = ''
