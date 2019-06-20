@@ -193,8 +193,11 @@ def get_simulation_frame(run_dir, data, model_data):
 
 
 def lib_files(data, source_lib):
-    """No lib files"""
-    return []
+    res = []
+    for m in data.models.conductorTypes:
+        if m.type == 'stl':
+            res.append(template_common.lib_file_name('stl', 'file', m.file))
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):
