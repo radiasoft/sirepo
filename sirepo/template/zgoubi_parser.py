@@ -14,12 +14,6 @@ import re
 
 _COMMAND_INDEX_POS = 110
 
-_CHANGREF_MAP = {
-    'XS': 'XCE',
-    'YS': 'YCE',
-    'ZR': 'ALE',
-}
-
 _IGNORE_ELEMENTS = [
     'faisceau',
     'faistore',
@@ -272,26 +266,24 @@ def _zgoubi_cavite(command):
 
 def _zgoubi_changref(command):
     if re.search(r'^(X|Y|Z)', command[1][0]):
-        # convert new format CHANGREF to a series of old format elements
-        el = _parse_command_header(command)
-        el['XCE'] = el['YCE'] = el['ALE'] = 0
-        res = []
+        # new format CHANGREF --> CHANGREF2
+        res = _parse_command_header(command)
+        res['type'] = 'CHANGREF2'
+        res['subElements'] = []
         for i in range(int(len(command[1]) / 2)):
-            name = command[1][i * 2]
-            value = parse_float(command[1][i * 2 + 1])
-            if value == 0:
-                continue
-            if name in _CHANGREF_MAP:
-                el2 = el.copy()
-                el2[_CHANGREF_MAP[name]] = value
-                res.append(el2)
-            else:
-                pkdlog('zgoubi CHANGREF skipping: {}={}', name, value)
+            v = parse_float(command[1][i * 2 + 1])
+            if v != 0:
+                res['subElements'].append(pkcollections.Dict({
+                    'type': 'CHANGREF_VALUE',
+                    'transformType': command[1][i * 2],
+                    'transformValue': v,
+                }))
+        if not len(res['subElements']):
+            return None
         return res
-    res = _parse_command(command, [
+    return _parse_command(command, [
         'XCE YCE ALE',
     ])
-    return res
 
 
 def _zgoubi_drift(command):

@@ -72,6 +72,15 @@
             ["1", "1"],
             ["2", "2"]
         ],
+        "ChangRef2Transform": [
+            ["none", "None"],
+            ["XS", "X Shift [m]"],
+            ["YS", "Y Shift [m]"],
+            ["ZS", "Z Shift [m]"],
+            ["XR", "X Rotate [rad]"],
+            ["YR", "Y Rotate [rad]"],
+            ["ZR", "Z Rotate [rad]"]
+        ],
         "ElementAlignment": [
             ["1", "Element Aligned"],
             ["2", "Element Misaligned"]
@@ -506,6 +515,14 @@
             "XCE": ["Longitudinal Shift [m]", "Float", 0.0, "XCE"],
             "YCE": ["Transverse Shift [m]", "Float", 0.0, "YCE"],
             "ALE": ["Z-axis Rotation [rad]", "Float", 0.0, "ALE"]
+        },
+        "CHANGREF2": {
+            "name": ["Name", "ValidatedString"],
+            "subElements": ["Transforms", "Changref2Array"]
+        },
+        "CHANGREF_VALUE": {
+            "transformType": ["Transform", "ChangRef2Transform"],
+            "transformValue": ["Value", "Float", 0.0]
         },
         "DRIFT": {
             "name": ["Name", "ValidatedString"],
@@ -1098,6 +1115,14 @@
                 "XCE",
                 "YCE",
                 "ALE"
+            ]
+        },
+        "CHANGREF2": {
+            "title": "CHANGEREF",
+            "description": "Transformation to a new reference frame",
+            "advanced": [
+                "name",
+                "subElements"
             ]
         },
         "DRIFT": {

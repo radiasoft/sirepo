@@ -11,19 +11,17 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common, zgoubi_parser
 from sirepo.template import template_common
+from sirepo.template.template_common import ModelUnits
 import glob
-import math
 import os.path
 import re
 import zipfile
 
+MODEL_UNITS = None
+
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'SOLENOID.IL', 'TOSCA.IC', 'TOSCA.IL', 'TOSCA.mod', 'TOSCA.TITL']
-_DEGREE_TO_RADIAN_FIELDS = ['CHANGREF.ALE']
-_MRAD_FIELDS = ['AUTOREF.ALE']
-#TODO(pjm): consolidate this with template.zgoubi _MODEL_UNITS, use one definition
-_CM_FIELDS = ['l', 'X_E', 'LAM_E', 'X_S', 'LAM_S', 'XCE', 'YCE', 'R_0', 'dY', 'dZ', 'dS', 'YR', 'ZR', 'SR', 'RE', 'RS', 'A', 'B', 'C', 'ZS']
+_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'CHANGREF2.subElements', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'SOLENOID.IL', 'TOSCA.IC', 'TOSCA.IL', 'TOSCA.mod', 'TOSCA.TITL']
 _UNIT_TEST_MODE = False
 
 
@@ -89,6 +87,131 @@ def tosca_info(tosca):
             'magnetFile': tosca['magnetFile'],
         },
     }
+
+
+def _init_model_units():
+    # Convert element units (m, rad) to the required zgoubi units (cm, mrad, degrees)
+
+    def _changref2(transforms, is_native):
+        # list of cm or deg values
+        for t in transforms:
+            if t.transformType == 'none':
+                continue
+            if t.transformType in ('XS', 'YS', 'ZS'):
+                t.transformValue = ModelUnits.scale_value(t.transformValue, 'cm_to_m', is_native)
+            elif t.transformType in ('XR', 'YR', 'ZR'):
+                t.transformValue = ModelUnits.scale_value(t.transformValue, 'deg_to_rad', is_native)
+            else:
+                assert False, 'invalid transformType: {}'.format(t.transformType)
+        return transforms
+
+    def _marker_plot(v, is_native):
+        if is_native:
+            return v
+        else:
+            return '"{}"'.format('.plt' if int(v) else '')
+
+    def _xpas(v, is_native):
+        if is_native:
+            if re.search(r'\#', v):
+                return v
+            v = zgoubi_parser.parse_float(v)
+            if v > 1e10:
+                # old step size format
+                m = re.search(r'^0*(\d+)\.0*(\d+)', v)
+                assert m, 'XPAS failed to parse step size: {}'.format(v)
+                return '#{}|{}|{}'.format(m.group(2), m.group(1), m.group(2))
+        else:
+            if re.search(r'\#', str(v)):
+                v = re.sub(r'^#', '', v)
+                return '[{}]'.format(','.join(v.split('|')))
+        return ModelUnits.scale_value(v, 'cm_to_m', is_native)
+
+    return ModelUnits({
+        'AUTOREF': {
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+            'ALE': 'mrad_to_rad',
+        },
+        'BEND': {
+            'l': 'cm_to_m',
+            'X_E': 'cm_to_m',
+            'LAM_E': 'cm_to_m',
+            'X_S': 'cm_to_m',
+            'LAM_S': 'cm_to_m',
+            'XPAS': _xpas,
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'CAVITE': {
+        },
+        'CHANGREF': {
+            'ALE': 'deg_to_rad',
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'CHANGREF2': {
+            'subElements': _changref2,
+        },
+        'DRIFT': {
+            'l': 'cm_to_m',
+        },
+        'MARKER': {
+            'plt': _marker_plot,
+        },
+        'MULTIPOL': {
+            'l': 'cm_to_m',
+            'R_0': 'cm_to_m',
+            'X_E': 'cm_to_m',
+            'LAM_E': 'cm_to_m',
+            'X_S': 'cm_to_m',
+            'LAM_S': 'cm_to_m',
+            'XPAS': _xpas,
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'QUADRUPO': {
+            'l': 'cm_to_m',
+            'R_0': 'cm_to_m',
+            'X_E': 'cm_to_m',
+            'LAM_E': 'cm_to_m',
+            'X_S': 'cm_to_m',
+            'XPAS': _xpas,
+            'LAM_S': 'cm_to_m',
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'SEXTUPOL': {
+            'l': 'cm_to_m',
+            'R_0': 'cm_to_m',
+            'X_E': 'cm_to_m',
+            'LAM_E': 'cm_to_m',
+            'X_S': 'cm_to_m',
+            'XPAS': _xpas,
+            'LAM_S': 'cm_to_m',
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'SOLENOID': {
+            'l': 'cm_to_m',
+            'R_0': 'cm_to_m',
+            'X_E': 'cm_to_m',
+            'X_S': 'cm_to_m',
+            'XPAS': _xpas,
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+        },
+        'TOSCA': {
+            'A': 'cm_to_m',
+            'B': 'cm_to_m',
+            'C': 'cm_to_m',
+            'XPAS': _xpas,
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+            'RE': 'cm_to_m',
+            'RS': 'cm_to_m',
+        },
+    })
 
 
 def _tosca_length(tosca, lines):
@@ -187,28 +310,10 @@ def _validate_field(model, field, model_info):
     field_type = field_info[1]
     if field_type == 'Float':
         model[field] = zgoubi_parser.parse_float(model[field])
-        mf = '{}.{}'.format(model['type'], field)
-        if mf in _DEGREE_TO_RADIAN_FIELDS:
-            model[field] *= math.pi / 180.0
-        elif mf in _MRAD_FIELDS:
-            model[field] /= 1000.0
-        elif field in _CM_FIELDS and model['type'] != 'CAVITE':
-            model[field] *= 0.01
     elif field_type == 'Integer':
         model[field] = int(model[field])
     elif field_type == 'FileNameArray':
         return _validate_file_names(model, model[field])
-    elif field == 'XPAS':
-        #TODO(pjm): need special handling, may be in #00|00|00 format
-        if not re.search(r'\#', model[field]):
-            v = zgoubi_parser.parse_float(model[field])
-            if v > 1e10:
-                # old step size format
-                m = re.search(r'^0*(\d+)\.0*(\d+)', model[field])
-                assert m, 'XPAS failed to parse step size: {}'.format(model[field])
-                model[field] = '#{}|{}|{}'.format(m.group(2), m.group(1), m.group(2))
-            else:
-                model[field] = str(v * 0.01)
     elif field_type in _SCHEMA['enum']:
         for v in _SCHEMA['enum'][field_type]:
             if v[0] == model[field]:
@@ -261,6 +366,7 @@ def _validate_model(model_type, model, missing_files):
     model_info = _SCHEMA['model'][model_type]
     if 'name' in model_info and 'name' not in model:
         model['name'] = ''
+    MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
         if f == 'label2':
             continue
@@ -269,3 +375,6 @@ def _validate_model(model_type, model, missing_files):
         err = _validate_field(model, f, model_info)
         if err:
             missing_files.append(err)
+
+
+MODEL_UNITS = _init_model_units()

@@ -43,8 +43,6 @@ _INITIAL_PHASE_MAP = {
     'time': 'to',
 }
 
-_MODEL_UNITS = None
-
 _ANIMATION_FIELD_INFO = {
     'Do1': [u'dp/p₀', 1],
     'Yo': [u'Y₀ [m]', 0.01],
@@ -68,6 +66,81 @@ _ANIMATION_FIELD_INFO = {
     'SX': ['Spin X', 1],
     'SY': ['Spin Y', 1],
     'SZ': ['Spin Z', 1],
+}
+
+#TODO(pjm): move to jinja file?
+_FAKE_ELEMENT_TEMPLATES = {
+    'AUTOREF': '''
+ 'AUTOREF' {{ name }}
+{{ I }}
+{{ XCE }} {{ YCE }} {{ ALE }}
+''',
+    'CAVITE': '''
+ 'CAVITE' {{ name }}
+{{ IOPT }}
+{% if IOPT in ('0', '1', '2', '3') -%}
+{{ L }} {{ h }}
+{{ V }} {{ sig_s }}
+{%- elif IOPT == '7' -%}
+{{ L }} {{ f_RF }}
+{{ V }} {{ sig_s }}
+{%- elif IOPT == '10' -%}
+{{ l }} {{ f_RF }} {{ ID }}
+{{ V }} {{ sig_s }} {{ IOP }}
+{%- endif -%}
+''',
+    'CHANGREF2': '''
+ 'CHANGREF' {{ name }}
+{% for transform in subElements -%}
+{%- if transform['transformType'] == 'none' -%}
+{%- if subElements|length == 1 -%}
+ XS 0
+{%- endif %}
+{%- else %}
+ {{- transform.transformType }} {{ transform.transformValue }}{{ ' ' -}}
+{%- endif -%}
+{%- endfor %}
+''',
+    'SOLENOID': '''
+ 'SOLENOID'
+0
+{{ l }} {{ R_0 }} {{ B_0 }} {{ MODL }}
+{{ X_E }} {{ X_S }}
+{{ XPAS }}
+{{ KPOS }} {{ XCE }} {{ YCE }} {{ ALE }}
+''',
+    'SPINR': '''
+ 'SPINR' {{ name }}
+{{ IOPT }}
+{% if IOPT in ('0', '1') -%}
+{{ phi }} {{ mu }}
+{% else -%}
+{{ phi }} {{ B }} {{ B_0 }} {{ C_0 }} {{ C_1 }} {{ C_2 }} {{ C_3 }}
+{% endif -%}
+''',
+    'TOSCA': '''
+ 'TOSCA' {{ name }}
+0 0
+{{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
+{{ name }} HEADER_{{ headerLineCount -}}
+{%- if flipX == '1' %} FLIP {% endif -%}
+{%- if zeroBXY == '1' %} ZroBXY {% endif -%}
+{%- if normalizeHelix == '1' %} RHIC_helix {% endif %}
+{{ IX }} {{ IY }} {{ IZ }} {{ MOD -}}
+{%- if hasFields %} {{ field1 }} {{ field2 }} {{ field3 }} {{ field4 }}{% endif %}
+{%- for fileName in fileNames %}
+{{ fileName -}}
+{% endfor %}
+{{ ID }} {{ A }} {{ B }} {{ C }} {{ Ap }} {{ Bp }} {{ Cp }} {{ App }} {{ Bpp }} {{ Cpp }}
+{{ IORDRE }}
+{{ XPAS }}
+{% if meshType == 'cartesian' -%}
+{{ KPOS }} {{ XCE }} {{ YCE }} {{ ALE }}
+{%- else -%}
+{{ KPOS }}
+{{ RE }} {{ TE }} {{ RS }} {{ TS }}
+{% endif -%}
+''',
 }
 
 _PYZGOUBI_FIELD_MAP = {
@@ -382,11 +455,6 @@ def _compute_range_across_frames(run_dir, data):
     return res
 
 
-def _element_value(el, field):
-    converter = _MODEL_UNITS.get(el['type'], {}).get(field, None)
-    return converter(el[field]) if converter else el[field]
-
-
 def _extract_animation(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
@@ -459,27 +527,15 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             res += _generate_beamline(data, beamline_map, element_map, item_id)
             continue
         el = element_map[item_id]
-        if el['type'] == 'AUTOREF':
-            res += 'line.add(core.FAKE_ELEM(""" \'AUTOREF\'\n{}\n{} {} {}\n"""))\n'.format(
-                el.I, _element_value(el, 'XCE'), _element_value(el, 'YCE'), _element_value(el, 'ALE'))
-        elif el['type'] == 'CAVITE':
-            form = 'line.add(core.FAKE_ELEM(""" \'CAVITE\'\n{}\n{} {} {}\n{} {} {}\n"""))\n'
-            values = ['IOPT']
-            if el.IOPT in ('0', '1', '2', '3'):
-                values += ('L', 'h', '', 'V', 'sig_s', '')
-            elif el.IOPT == '7':
-                values += ('L', 'f_RF', '', 'V', 'sig_s', '')
-            elif el.IOPT == '10':
-                values += ('l', 'f_RF', 'ID', 'V', 'sig_s', 'IOP')
-            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
-        elif el['type'] == 'YMY':
-            #TODO(pjm): looks like YMY is supported in pyzoubi?
-            res += 'line.add(core.FAKE_ELEM(""" \'YMY\'\n"""))\n'
-        elif el['type'] == 'SEXTUPOL':
-            res += _generate_element(el, 'QUADRUPO')
+        if el['type'] == 'TOSCA':
+            _prepare_tosca_element(el)
+        if el['type'] == 'SEXTUPOL':
+            res += _generate_pyzgoubi_element(el, 'QUADRUPO')
         elif el['type'] == 'SCALING':
+            #TODO(pjm): convert to fake element jinja template
             form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
-            _MAX_SCALING_FAMILY = 5
+            #TODO(pjm): keep in sync with zgoubi.js
+            _MAX_SCALING_FAMILY = 6
             count = 0
             scale_values = ''
             for idx in range(1, _MAX_SCALING_FAMILY + 1):
@@ -489,23 +545,11 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
                     scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
-        elif el['type'] == 'SPINR':
-            form = 'line.add(core.FAKE_ELEM(""" \'SPINR\'\n{}\n{} {} {} {} {} {} {}\n"""))\n'
-            values = ['IOPT']
-            if el.IOPT in ('0', '1'):
-                values += ('phi', 'mu', '', '', '', '', '')
-            elif el.IOP == '2':
-                values += ('phi', 'B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3')
-            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
-        elif el['type'] == 'SOLENOID':
-            form = 'line.add(core.FAKE_ELEM(""" \'SOLENOID\'\n0\n{} {} {} {}\n{} {}\n{}\n{} {} {} {}\n"""))\n'
-            values = ('l', 'R_0', 'B_0', 'MODL', 'X_E', 'X_S', 'XPAS', 'KPOS', 'XCE', 'YCE', 'ALE')
-            res += form.format(*(map(lambda x: _element_value(el, x) if len(x) else '', values)))
-        elif el['type'] == 'TOSCA':
-            res += _generate_element_tosca(el)
+        elif el['type'] in _FAKE_ELEMENT_TEMPLATES:
+            res += 'line.add(core.FAKE_ELEM("""{}\n"""))\n'.format(
+                jinja2.Template(_FAKE_ELEMENT_TEMPLATES[el['type']]).render(el))
         else:
-            assert el['type'] in _MODEL_UNITS, 'Unsupported element: {}'.format(el['type'])
-            res += _generate_element(el)
+            res += _generate_pyzgoubi_element(el)
     return res
 
 
@@ -516,8 +560,8 @@ def _generate_beamline_elements(report, data):
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl
     element_map = {}
-    for el in data.models.elements:
-        element_map[el._id] = el
+    for el in copy.deepcopy(data.models.elements):
+        element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
     if report == 'twissReport':
         beamline_id = sim['activeBeamlineId']
     else:
@@ -527,13 +571,13 @@ def _generate_beamline_elements(report, data):
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
 
-def _generate_element(el, schema_type=None):
+def _generate_pyzgoubi_element(el, schema_type=None):
     res = 'line.add(core.{}("{}"'.format(el.type, el.name)
     for f in _SCHEMA.model[schema_type or el.type]:
         #TODO(pjm): need ignore list
         if f == 'name' or f == 'order' or f == 'format':
             continue
-        res += ', {}={}'.format(_PYZGOUBI_FIELD_MAP.get(f, f), _element_value(el, f))
+        res += ', {}={}'.format(_PYZGOUBI_FIELD_MAP.get(f, f), el[f])
     res += '))\n'
     return res
 
@@ -560,41 +604,6 @@ _MAGNET_TYPE_TO_MOD = {
     },
 }
 
-def _generate_element_tosca(el):
-    el = copy.deepcopy(el)
-    el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
-    if '{{ fileCount }}' in el['MOD']:
-        el['MOD'] = el['MOD'].replace('{{ fileCount }}', str(el['fileCount']))
-        el['hasFields'] = True
-    file_count = zgoubi_parser.tosca_file_count(el)
-    el['fileNames'] = el['fileNames'][:file_count]
-    for f in _MODEL_UNITS['TOSCA']:
-        el[f] = _element_value(el, f)
-    template = '''
- 'TOSCA'
-0 0
-{{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
-{{ name }} HEADER_{{ headerLineCount -}}
-{%- if flipX == '1' %} FLIP {% endif -%}
-{%- if zeroBXY == '1' %} ZroBXY {% endif -%}
-{%- if normalizeHelix == '1' %} RHIC_helix {% endif %}
-{{ IX }} {{ IY }} {{ IZ }} {{ MOD -}}
-{%- if hasFields %} {{ field1 }} {{ field2 }} {{ field3 }} {{ field4 }}{% endif %}
-{%- for fileName in fileNames %}
-{{ fileName -}}
-{% endfor %}
-{{ ID }} {{ A }} {{ B }} {{ C }} {{ Ap }} {{ Bp }} {{ Cp }} {{ App }} {{ Bpp }} {{ Cpp }}
-{{ IORDRE }}
-{{ XPAS }}
-{% if meshType == 'cartesian' -%}
-{{ KPOS }} {{ XCE }} {{ YCE }} {{ ALE }}
-{% else -%}
-{{ KPOS }}
-{{ RE }} {{ TE }} {{ RS }} {{ TS }}
-{% endif %}
-'''
-    return 'line.add(core.FAKE_ELEM("""{}"""))\n'.format(jinja2.Template(template).render(el))
-
 
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
@@ -616,111 +625,6 @@ def _generate_particle(particle):
     if particle.particleType == 'Other':
         return '{} {} {} {} 0'.format(particle.M, particle.Q, particle.G, particle.Tau)
     return particle.particleType
-
-
-def _init_model_units():
-    # Convert element units (m, rad) to the required zgoubi units (cm, mrad, degrees)
-
-    def _cm(meters):
-        return float(meters) * 100
-
-    def _degrees(radians):
-        return float(radians) * 180 / math.pi
-
-    def _marker_plot(v):
-        return '"{}"'.format('.plt' if int(v) else '')
-
-    def _mrad(mrad):
-        return float(mrad) * 1000
-
-    def _xpas(v):
-        if re.search(r'^#', v):
-            v = re.sub(r'^#', '', v)
-            return '[{}]'.format(','.join(v.split('|')))
-        return str(_cm(float(v)))
-
-    return {
-        'AUTOREF': {
-            'XCE': _cm,
-            'YCE': _cm,
-            'ALE': _mrad,
-        },
-        'BEND': {
-            'l': _cm,
-            'X_E': _cm,
-            'LAM_E': _cm,
-            'X_S': _cm,
-            'LAM_S': _cm,
-            'XPAS': _xpas,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'CAVITE': {
-        },
-        'CHANGREF': {
-            'ALE': _degrees,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'DRIFT': {
-            'l': _cm,
-        },
-        'MARKER': {
-            'plt': _marker_plot,
-        },
-        'MULTIPOL': {
-            'l': _cm,
-            'R_0': _cm,
-            'X_E': _cm,
-            'LAM_E': _cm,
-            'X_S': _cm,
-            'LAM_S': _cm,
-            'XPAS': _xpas,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'QUADRUPO': {
-            'l': _cm,
-            'R_0': _cm,
-            'X_E': _cm,
-            'LAM_E': _cm,
-            'X_S': _cm,
-            'XPAS': _xpas,
-            'LAM_S': _cm,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'SEXTUPOL': {
-            'l': _cm,
-            'R_0': _cm,
-            'X_E': _cm,
-            'LAM_E': _cm,
-            'X_S': _cm,
-            'XPAS': _xpas,
-            'LAM_S': _cm,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'SOLENOID': {
-            'l': _cm,
-            'R_0': _cm,
-            'X_E': _cm,
-            'X_S': _cm,
-            'XPAS': _xpas,
-            'XCE': _cm,
-            'YCE': _cm,
-        },
-        'TOSCA': {
-            'A': _cm,
-            'B': _cm,
-            'C': _cm,
-            'XPAS': _xpas,
-            'XCE': _cm,
-            'YCE': _cm,
-            'RE': _cm,
-            'RS': _cm,
-        },
-    }
 
 
 def _initial_phase_field(field):
@@ -760,6 +664,15 @@ def _parse_zgoubi_log(run_dir):
             if num in element_by_num:
                 res += '  element # {}: {}\n'.format(num, element_by_num[num])
     return res
+
+
+def _prepare_tosca_element(el):
+    el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
+    if '{{ fileCount }}' in el['MOD']:
+        el['MOD'] = el['MOD'].replace('{{ fileCount }}', str(el['fileCount']))
+        el['hasFields'] = True
+    file_count = zgoubi_parser.tosca_file_count(el)
+    el['fileNames'] = el['fileNames'][:file_count]
 
 
 def _read_data_file(path):
@@ -806,6 +719,3 @@ def _read_twiss_header(run_dir):
                     v = float(v)
                 res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
     return res
-
-
-_MODEL_UNITS = _init_model_units()
