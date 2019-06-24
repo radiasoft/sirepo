@@ -2974,7 +2974,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function vIcon(pIndex) {
-                return d3.select('.sr-plot-legend .sr-plot-legend-item[index=\'' + pIndex + '\'] .plot-visibility');
+                return $scope.select('.sr-plot-legend .sr-plot-legend-item[index=\'' + pIndex + '\'] .plot-visibility');
             }
 
             function vIconText(isVisible) {
