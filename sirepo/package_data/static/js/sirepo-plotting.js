@@ -3186,10 +3186,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (! $scope.focusPoints[ip]) {
                         $scope.focusPoints[ip] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
                     }
-
-                    // make sure everything is visible when reloading
-                    includeDomain(ip, true);
-                    setPlotVisible(ip, true);
                 });
 
                 for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
@@ -3212,6 +3208,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         : 20;
                 $scope.margin.bottom = 50 + 20 * legendCount;
                 $scope.updatePlot(json);
+                plots.forEach(function(plot, ip) {
+                    // make sure everything is visible when reloading
+                    includeDomain(ip, true);
+                    setPlotVisible(ip, true);
+                });
             };
 
             $scope.recalculateYDomain = function() {
