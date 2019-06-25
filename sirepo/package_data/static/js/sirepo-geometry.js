@@ -20,7 +20,7 @@ SIREPO.app.service('geometry', function(utilities) {
         for(var i in edges) {
             edge = edges[i];
             section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
-            if(section) {
+            if (section) {
                 return {
                     full: edge,
                     clipped: section,
@@ -43,7 +43,7 @@ SIREPO.app.service('geometry', function(utilities) {
         return '[' +
             arr.map(function (e) {
                 var strFn = e.str;
-                if(! strFn) {
+                if (! strFn) {
                     return '<OBJ>';
                 }
                 return strFn();
@@ -58,7 +58,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 // since we do math to see if the point satisfies the line's equation,
                 // we need to specify how close we can get to account for rounding errors
                 var t = tolerance || 0.0001;
-                if(this.slope() === Infinity) {
+                if (this.slope() === Infinity) {
                     return equalWithin(p.x, point1.x, t);  //Math.abs(p.x - point1.x) <= t;
                 }
                 var y = this.slope() * p.x + this.intercept();
@@ -66,7 +66,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return equalWithin(p.y, y, t); //Math.abs(p.y - y) <= t;
             },
             equals: function (l2) {
-                if(this.slope() === Infinity && l2.slope() === Infinity) {
+                if (this.slope() === Infinity && l2.slope() === Infinity) {
                     return this.points()[0].x === l2.points()[0].x;
                 }
                 return this.slope() === l2.slope() && this.intercept() === l2.intercept();
@@ -75,16 +75,16 @@ SIREPO.app.service('geometry', function(utilities) {
                 return point1.y - point1.x * this.slope();
             },
             intersection: function (l2) {
-                if(this.slope() === l2.slope()) {
-                    if(this.equals(l2)) {
+                if (this.slope() === l2.slope()) {
+                    if (this.equals(l2)) {
                         return this.points()[0];
                     }
                     return null;
                 }
-                if(this.slope() === Infinity) {
+                if (this.slope() === Infinity) {
                     return svc.point(point1.x, l2.slope() * point1.x + l2.intercept());
                 }
-                if(l2.slope() === Infinity) {
+                if (l2.slope() === Infinity) {
                     return svc.point(l2.points()[0].x, this.slope() * l2.points()[0].x + this.intercept());
                 }
                 return svc.point(
@@ -93,10 +93,10 @@ SIREPO.app.service('geometry', function(utilities) {
                 );
             },
             comparePoint: function(p) {
-                if(this.containsPoint(p)) {
+                if (this.containsPoint(p)) {
                     return 0;
                 }
-                if(this.slope() === Infinity) {
+                if (this.slope() === Infinity) {
                     return p.x > point1.x ? 1 : -1;
                 }
                 var y = this.slope() * p.x + this.intercept();
@@ -222,12 +222,12 @@ SIREPO.app.service('geometry', function(utilities) {
     };
 
     this.matrixEquals = function(m1, m2) {
-        if(m1.length !== m2.length) {
+        if (m1.length !== m2.length) {
             return false;
         }
         for(var i in m1) {
             for(var j in m2) {
-                if(! equalWithin(m1[i][j], m2[i][j])) {
+                if (! equalWithin(m1[i][j], m2[i][j])) {
                     return false;
                 }
             }
@@ -296,7 +296,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return 2 + (angular.isDefined(z) ? 1 : 0);
             },
             dist: function (p2) {
-                if(this.dimension() != p2.dimension()) {
+                if (this.dimension() != p2.dimension()) {
                     throw 'Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension();
                 }
                 return Math.sqrt(
@@ -361,7 +361,7 @@ SIREPO.app.service('geometry', function(utilities) {
             containsRect: function (r) {
                 var crn = r.corners();
                 for(var i in crn) {
-                    if(! this.containsPoint(crn[i])) {
+                    if (! this.containsPoint(crn[i])) {
                         return false;
                     }
                 }
@@ -396,7 +396,7 @@ SIREPO.app.service('geometry', function(utilities) {
                     var rside = rs[i];
                     for(var j in ts) {
                         var tside = ts[j];
-                        if(rside.intersection(tside)) {
+                        if (rside.intersection(tside)) {
                             return true;
                         }
                     }
@@ -438,7 +438,7 @@ SIREPO.app.service('geometry', function(utilities) {
     // Sort (with optional reversal) the point array by the values in the given dimension;
     // Array is cloned first so the original is unchanged
     this.sortInDimension = function (points, dim, doReverse) {
-        if(! points || ! points.length) {
+        if (! points || ! points.length) {
             throw svc.geomObjArrStr(points) + ': Invalid points';
         }
         return points.slice(0).sort(function (p1, p2) {
@@ -498,21 +498,21 @@ SIREPO.app.service('geometry', function(utilities) {
         xform.matrix = matrix || identityMatrix;
 
         var l = xform.matrix.length;
-        if(l > 3 || l < 1) {
+        if (l > 3 || l < 1) {
             throw errMsg('Matrix has bad size (' + l + ')');
         }
-        if(! xform.matrix.reduce(function (ok, row) {
+        if (! xform.matrix.reduce(function (ok, row) {
                 return ok && row.length == l;
             }, true)
         ) {
             throw errMsg('Matrix is not square');
         }
-        if(det(xform.matrix) === 0) {
+        if (det(xform.matrix) === 0) {
             throw errMsg('Matrix is not invertable');
         }
 
         xform.compose = function (otherXForm) {
-            if(otherXForm.matrix.length !== l) {
+            if (otherXForm.matrix.length !== l) {
                 throw errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length);
             }
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
@@ -563,12 +563,12 @@ SIREPO.app.service('geometry', function(utilities) {
     this.transpose = function (matrix) {
         var m = [];
         var l = matrix.length;
-        if(! l ) {
+        if (! l ) {
             return m;
         }
         // convert 1 x l into l x 1
         var ll = matrix[0].length;
-        if(ll == 0) {
+        if (ll == 0) {
             matrix.forEach(function (entry) {
                 m.push([entry]);
             });
@@ -623,7 +623,7 @@ SIREPO.app.service('geometry', function(utilities) {
 
     function sectionOfEdgeInBounds(edge, boundingRect, dim, reverse) {
 
-        if(! edge) {
+        if (! edge) {
             return null;
         }
 
@@ -637,7 +637,7 @@ SIREPO.app.service('geometry', function(utilities) {
 
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
-        if(projectedEnds.length == 0) {
+        if (projectedEnds.length == 0) {
             return null;
         }
 
@@ -650,18 +650,18 @@ SIREPO.app.service('geometry', function(utilities) {
         var uap = utilities.unique(allPoints, function (p1, p2) {
             return p1.equals(p2);
         });
-        if(uap.length < 2) {  // need 2 points to define the line segment
+        if (uap.length < 2) {  // need 2 points to define the line segment
             return null;
         }
         var section = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
 
-        if(edgeEndsInBounds.length === 0) {
+        if (edgeEndsInBounds.length === 0) {
             return section;
         }
 
         // if the edge is showing and the line segment is too short (here half the length of the actual edge),
         // do not use it
-        if(section.length() / edge.length() > 0.5) {
+        if (section.length() / edge.length() > 0.5) {
             return section;
         }
         return null;

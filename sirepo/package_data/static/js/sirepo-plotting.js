@@ -4161,7 +4161,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 // wait to initialize after the render so the world to viewport transforms are ready
                 vpOutline.initializeWorld();
-                
+
                 refresh(true);
             };
 
