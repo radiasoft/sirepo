@@ -12,6 +12,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="FileNameArray" data-ng-class="fieldClass">',
       '<div data-magnet-files="" data-model="model" data-field="field"></div>',
     '</div>',
+    '<div data-ng-switch-when="Changref2Array" class="col-sm-7">',
+      '<div data-changref2-fields="" data-model="model" data-field="field"></div>',
+    '</div>',
 ].join('');
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
@@ -20,13 +23,14 @@ SIREPO.appImportText = 'Import a zgoubi.dat datafile';
 SIREPO.lattice = {
     elementColor: {
         CHANGREF: 'orange',
+        CHANGREF_VALUE: 'orange',
         QUADRUPO: 'tomato',
         SEXTUPOL: 'lightgreen',
         TOSCA: 'cornflowerblue',
     },
     elementPic: {
         aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'MULTIPOL'],
+        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'MULTIPOL'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
@@ -89,7 +93,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var self = this;
     self.latticeService = latticeService;
     self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
+    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
     var scaling = {};
 
     function updateScaling() {
@@ -140,6 +144,16 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
 
         if (item.type == 'CHANGREF') {
             item.angle = - item.ALE;
+        }
+        else if (item.type == 'CHANGREF2') {
+            item.subElements.forEach(function(el) {
+                if (el.transformType == 'ZR') {
+                    el.angle = - el.transformValue;
+                }
+            });
+            if (item.subElements.length > 1 && item.subElements[item.subElements.length - 1].transformType == 'none') {
+                item.subElements.pop();
+            }
         }
         else if (item.type == 'MULTIPOL') {
             item.color = '';
@@ -429,31 +443,6 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     return self;
 });
 
-SIREPO.app.directive('srSpinrEditor', function(appState, panelState) {
-    return {
-        restrict: 'A',
-        controller: function($scope) {
-
-            function processFields() {
-                if (! appState.models.SPINR) {
-                    return;
-                }
-                var option = appState.models.SPINR.IOPT;
-                panelState.showField('SPINR', 'phi', option == 1 || option == 2);
-                panelState.showField('SPINR', 'mu', option == 1);
-                ['B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3'].forEach(function(f) {
-                    panelState.showField('SPINR', f, option == 2);
-                });
-            }
-
-            appState.whenModelsLoaded($scope, function() {
-                appState.watchModelFields($scope, ['SPINR.IOPT'], processFields);
-                processFields();
-            });
-        },
-    };
-});
-
 SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
     return {
         restrict: 'A',
@@ -486,6 +475,31 @@ SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
 
             appState.whenModelsLoaded($scope, function() {
                 appState.watchModelFields($scope, ['CAVITE.IOPT'], processFields);
+                processFields();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srSpinrEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processFields() {
+                if (! appState.models.SPINR) {
+                    return;
+                }
+                var option = appState.models.SPINR.IOPT;
+                panelState.showField('SPINR', 'phi', option == 1 || option == 2);
+                panelState.showField('SPINR', 'mu', option == 1);
+                ['B', 'B_0', 'C_0', 'C_1', 'C_2', 'C_3'].forEach(function(f) {
+                    panelState.showField('SPINR', f, option == 2);
+                });
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['SPINR.IOPT'], processFields);
                 processFields();
             });
         },
@@ -538,7 +552,6 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
 
             function processMagnetFile() {
                 var tosca = getTosca();
-                //console.log('process magnet file:', tosca);
                 if (tosca) {
                     //TODO(pjm): error message if zip file required and regular file supplied
                     requestSender.getApplicationData(
@@ -643,6 +656,64 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                 appState.watchModelFields($scope, ['TOSCA.magnetFile'], processMagnetFile);
                 processMagnetFile();
             });
+        },
+    };
+});
+
+SIREPO.app.directive('changref2Fields', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: [
+            '<div class="form-group form-group-sm">',
+            '<div class="col-sm-5">',
+            '<div class="text-center"><b>Type</b></div>',
+            '</div>',
+            '<div class="col-sm-6">',
+            '<div class="text-center"><b>Amount</b></div>',
+            '</div>',
+            '</div>',
+            '<div data-ng-repeat="idx in fieldRows()">',
+              '<div class="form-group form-group-sm">',
+                '<div data-field-editor="\'transformType\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]"></div>',
+                '<div data-field-editor="\'transformValue\'" data-model-name="\'CHANGREF_VALUE\'" data-model="model[field][idx]" data-field-size="6"></div>',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+            var MAX_FIELDS = 9;
+            var range = d3.range(1);
+            $scope.subType = 'CHANGREF_VALUE';
+
+            $scope.fieldRows = function() {
+                if (! appState.isLoaded() || ! $scope.model) {
+                    return null;
+                }
+                if (! $scope.model[$scope.field]) {
+                    $scope.model[$scope.field] = [];
+                }
+                var values = $scope.model[$scope.field];
+                for (var i = values.length - 2; i >= 0; i--) {
+                    // remove none rows, except last one
+                    if (values[i].transformType == 'none') {
+                        values.splice(i, 1);
+                    }
+                }
+                if (values.length == 0 || (values.length < MAX_FIELDS && values[values.length - 1].transformType != 'none')) {
+                    values.push({
+                        'type': $scope.subType,
+                        'transformType': 'none',
+                        'transformValue': 0,
+                    });
+                }
+                if (range.length != values.length) {
+                    range = d3.range(values.length);
+                }
+                return range;
+            };
         },
     };
 });

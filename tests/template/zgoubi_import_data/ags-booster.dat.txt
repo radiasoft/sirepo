@@ -608,10 +608,11 @@ line.add(core.MULTIPOL("QH", R_8=0.0, R_9=0.0, S_3=3.0, X_E=0.0, S_5=0.0, S_4=1.
 line.add(core.DRIFT("DRIF9", XL=29.9367))
 line.add(core.BEND("SBEN71", CS_5=0.0, X_E=0.0, CS_3=0.3904, CS_2=-0.5572, CS_1=1.8639, CS_0=0.2401, W_E=0.0, CS_4=0.0, X_S=0.0, W_S=0.0, C_1=1.8639, C_0=0.2401, C_3=0.3904, C_2=-0.5572, C_5=0.0, C_4=0.0, KPOS=3, XPAS=1.0, Sk=0.0, ALE=0.0, YCE=0.0, XCE=0.0, LAM_E=0.0, XL=120.96161, B1=0.72121043, LAM_S=0.0))
 line.add(core.BEND("SBEN72", CS_5=0.0, X_E=0.0, CS_3=0.3904, CS_2=-0.5572, CS_1=1.8639, CS_0=0.2401, W_E=0.0, CS_4=0.0, X_S=0.0, W_S=0.0, C_1=1.8639, C_0=0.2401, C_3=0.3904, C_2=-0.5572, C_5=0.0, C_4=0.0, KPOS=3, XPAS=1.0, Sk=0.0, ALE=0.0, YCE=0.0, XCE=0.0, LAM_E=0.0, XL=120.96161, B1=0.72121043, LAM_S=0.0))
-line.add(core.FAKE_ELEM(""" 'CAVITE'
+line.add(core.FAKE_ELEM("""
+ 'CAVITE' accelerating
 0
-201.775016 4.0 
-30000.0 0.0 
+201.775016 4.0
+30000.0 0.0
 """))
 line.add(core.MARKER("#End", label2=""))
 line.add(core.FAKE_ELEM("""

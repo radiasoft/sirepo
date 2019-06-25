@@ -277,11 +277,10 @@ def get_simulation_frame(run_dir, data, model_data):
 
 def lib_files(data, source_lib):
     res = []
-    for ct in data.models.conductorTypes:
-        if 'file' in ct and ct.file:
-            res.append(_stl_file(ct))
-    res = template_common.filename_to_path(res, source_lib or simulation_db.simulation_lib_dir(data.simulationType))
-    return res
+    for m in data.models.conductorTypes:
+        if m.type == 'stl':
+            res.append(template_common.lib_file_name('stl', 'file', m.file))
+    return template_common.filename_to_path(res, source_lib)
 
 
 def models_related_to_report(data):

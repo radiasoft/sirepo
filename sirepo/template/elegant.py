@@ -1123,9 +1123,10 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
     if element_schema:
         if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field_name]):
-            v, err = _parse_expr(model[field_name], state['rpnVariables'])
-            if not err:
-                state['cache'][model[field_name]] = v
+            if model[field_name] not in state['cache']:
+                v, err = _parse_expr(model[field_name], state['rpnVariables'])
+                if not err:
+                    state['cache'][model[field_name]] = v
 
 
 def _map_commands_to_lattice(data):

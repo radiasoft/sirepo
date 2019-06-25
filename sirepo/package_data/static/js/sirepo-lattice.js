@@ -67,7 +67,8 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     }
 
     function isElementModel(name) {
-        return name == name.toUpperCase();
+        var schema = SIREPO.APP_SCHEMA.model[name];
+        return schema && 'name' in schema && name == name.toUpperCase();
     }
 
     function showDeleteWarning(type, element, beamlines) {
@@ -1077,6 +1078,14 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         if (item.type == 'CHANGREF' && ! $scope.flatten) {
                             adjustPosition(pos, item.XCE, -item.YCE);
                         }
+                        else if (item.type == 'CHANGREF_VALUE' && ! $scope.flatten) {
+                            if (item.transformType == 'XS') {
+                                adjustPosition(pos, item.transformValue, 0);
+                            }
+                            else if (item.transformType == 'YS') {
+                                adjustPosition(pos, 0, -item.transformValue);
+                            }
+                        }
                     }
                     else {
                         var groupItem = {
@@ -1313,7 +1322,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     }
                     var item = explodedItems[i];
                     var picType = getPicType(item.type);
-                    if (picType != 'drift') {
+                    //TODO(pjm): CHANGREF is zgoubi-specific
+                    if (picType != 'drift' && item.type.indexOf('CHANGREF') < 0) {
                         pos.count++;
                     }
                     if (isAngleItem(picType)) {
@@ -1343,7 +1353,12 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                     var id = items[i];
                     var item = latticeService.elementForId(id);
                     if (item.type) {
-                        res.push(item);
+                        if (item.subElements) {
+                            $.merge(res, item.subElements);
+                        }
+                        else {
+                            res.push(item);
+                        }
                     }
                     else {
                         explodeItems(item.items, res, id < 0);
@@ -1915,10 +1930,21 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, $
                     }
                     if (angular.isDefined(element[f]) && angular.isDefined(schema[f])) {
                         if (schema[f][1] == 'OutputFile' && element[f]) {
-                            res += (res.length ? ',' : '') + f + '=' + element.name + '.' + f + '.sdds';
+                            //TODO(pjm): elegant specific
+                            res += f + '=' + element.name + '.' + f + '.sdds ';
                         }
                         else if (schema[f][2] != element[f]) {
-                            res += (res.length ? ',' : '') + f + '=' + element[f];
+                            var v = element[f];
+                            if (angular.isArray(v)) {
+                                //TODO(pjm): zgoubi specific
+                                for (var j = 0; j < v.length; j++) {
+                                    var item = v[j];
+                                    res += item.transformType + '=' + item.transformValue + ' ';
+                                }
+                            }
+                            else {
+                                res += f + '=' + v + ' ';
+                            }
                         }
                     }
                 }

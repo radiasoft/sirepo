@@ -14,12 +14,14 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import h5py
 import hashlib
 import json
+import math
 import numpy as np
 import os.path
 import py.path
 import re
 import sirepo.template
 import subprocess
+import types
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
@@ -46,6 +48,84 @@ _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
+
+
+class ModelUnits:
+    """
+    Convert model fields from native to sirepo format, or from sirepo to native
+    format.
+
+    Examples
+    --------
+
+    def _xpas(value, is_native):
+        # custom field conversion code would go here
+        return value
+
+    mu = ModelUnits({
+        'CHANGREF': {
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+            'ALE': 'deg_to_rad',
+            'XPAS': _xpas,
+        },
+    })
+    m = mu.scale_from_native('CHANGREF', {
+        'XCE': 2,
+        'YCE': 0,
+        'ALE': 8,
+        'XPAS': '#20|20|20',
+    })
+    assert m['XCE'] == 2e-2
+    assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
+    assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
+
+    """
+
+    # handler for common units, native --> sirepo scale
+    _COMMON_HANDLERS = {
+        'cm_to_m': 1e-2,
+        'mrad_to_rad': 1e-3,
+        'deg_to_rad': math.pi / 180,
+    }
+
+    def __init__(self, unit_def):
+        """
+        Parameters
+        ----------
+        unit_def: dict
+            Map of model name to field handlers
+        """
+        self.unit_def = unit_def
+
+    def scale_from_native(self, name, model):
+        """ Scale values from native values into sirepo units. """
+        return self.__scale_model(name, model, True)
+
+    def scale_to_native(self, name, model):
+        """ Scale values from sirepo units to native values. """
+        return self.__scale_model(name, model, False)
+
+    @staticmethod
+    def scale_value(value, scale_type, is_native):
+        """ Scale one value using the specified handler. """
+        handler = ModelUnits._COMMON_HANDLERS.get(scale_type, scale_type)
+        if isinstance(handler, float):
+            return float(value) * (handler if is_native else 1 / handler)
+        assert isinstance(handler, types.FunctionType), \
+            'Unknown unit scale: {}'.format(handler)
+        return handler(value, is_native)
+
+    def __scale_model(self, name, model, is_native):
+        if name in self.unit_def:
+            for field in self.unit_def[name]:
+                if field not in model:
+                    continue
+                model[field] = self.scale_value(
+                    model[field],
+                    self.unit_def[name][field],
+                    is_native)
+        return model
 
 
 def compute_field_range(args, compute_range):
