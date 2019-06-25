@@ -34,6 +34,8 @@ WANT_BROWSER_FRAME_CACHE = False
 #: Simulation type
 SIM_TYPE = 'srw'
 
+_ARBITRARY_FIELD_COL_COUNT = 3
+
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
@@ -498,6 +500,16 @@ def get_data_file(run_dir, model, frame, **kwargs):
     raise RuntimeError('output file unknown for model: {}'.format(model))
 
 
+def get_file_list(file_type):
+    lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
+    res = []
+    for ext in extensions_for_file_type(file_type):
+        for f in glob.glob(str(lib_dir.join(ext))):
+            if os.path.isfile(f) and _test_file_type(file_type, f):
+                res.append(os.path.basename(f))
+    return res
+
+
 def get_filename_for_model(model):
     if template_common.is_watchpoint(model):
         model = _WATCHPOINT_REPORT_NAME
@@ -787,7 +799,6 @@ def validate_file(file_type, path):
             return 'invalid file format: {}'.format(e)
     elif file_type == 'undulatorTable':
         # undulator magnetic data file
-        #TODO(pjm): add additional zip file validation
         try:
             _validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
@@ -796,6 +807,8 @@ def validate_file(file_type, path):
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
+    if not _test_file_type(file_type, path):
+        return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
 
 
@@ -1883,6 +1896,22 @@ def _save_user_model_list(model_name, beam_list):
 
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
+
+
+def _test_file_type(file_type, file_path):
+    # special handling for mirror and arbitraryField - scan for first data row and count columns
+    if file_type not in ('mirror', 'arbitraryField'):
+        return True
+    with pkio.open_text(str(file_path)) as f:
+        for line in f:
+            if re.search(r'^\s*#', line):
+                continue
+            col_count = len(line.split())
+            if col_count > 0:
+                if file_type == 'arbitraryField':
+                    return col_count == _ARBITRARY_FIELD_COL_COUNT
+                return col_count != _ARBITRARY_FIELD_COL_COUNT
+    return False
 
 
 def _unique_name(items, field, template):
