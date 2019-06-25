@@ -289,7 +289,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["a", "Arbitrary Magnetic Field"],
+            ["a", "Electron Beam with Arbitrary Magnetic Field"],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -325,6 +325,10 @@
             ["BetaZ", "Longitudinal Beta"],
             ["None", "None"]
         ],
+        "TransmissionImage": [
+            ["0", "Zero"],
+            ["1", "Same as on Image Boundary"]
+        ],
         "UndulatorType": [
             ["u_i", "Idealized"],
             ["u_t", "Tabulated"]
@@ -347,7 +351,7 @@
             "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
             "reportType": ["Report Type", "BrillianceReportType", "0"],
-            "brightnessComponent": ["Scan Type", "BrightnessComponent", "k-tuning"],
+            "brightnessComponent": ["Scan Type", "BrightnessComponet", "k-tuning"],
             "energyDelta": ["Energy Delta [eV]", "Float", 10, "", 1, 1000],
             "harmonic": ["Harmonic", "HarmonicList", "5"],
             "notes": ["Notes", "Text", ""]
@@ -704,6 +708,7 @@
             "tileImage": ["Tile Sample?", "Boolean", "0", "Tile the cut area of the image with the provided number of rows and columns"],
             "tileRows": ["Number of Rows", "Integer", 1],
             "tileColumns": ["Number of Columns", "Integer", 1],
+            "transmissionImage": ["Transmission Outside Image", "TransmissionImage", "1"],
             "shiftX": ["Horizontal Shift [pixels]", "Integer", 0],
             "shiftY": ["Vertical Shift [pixels]", "Integer", 0],
             "invert": ["Invert Image Colors", "Boolean", "0"],
@@ -733,7 +738,7 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
+            "magneticField": ["Magnetic Field Tratment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
 	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
 	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
@@ -1486,6 +1491,7 @@
                     "tileRows",
                     "tileColumns",
                     "cropArea",
+		    "transmissionImage",
                     [
                         ["Horizontal", [
                             "areaXStart",
@@ -1498,7 +1504,7 @@
                             "shiftY"
                         ]]
                     ],
-                    "outputImageFormat"
+		    "outputImageFormat"
                 ]],
                 ["Physical Properties", [
                     "resolution",

@@ -47,7 +47,7 @@
 {% elif item.type == 'sample' %}
     {{- fields(item, 's', ('imageFile', 'outputImageFormat')) }}
     {{- fields(item, 'f', ('position', 'resolution', 'thickness', 'refractiveIndex', 'attenuationLength', 'horizontalCenterCoordinate', 'verticalCenterCoordinate', 'rotateAngle', 'cutoffBackgroundNoise')) }}
-    {{- fields(item, 'i', ('cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateReshape', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'shiftX', 'shiftY', 'invert')) }}
+    {{- fields(item, 'i', ('cropArea', 'transmissionImage', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateReshape', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'shiftX', 'shiftY', 'invert')) }}
 {% elif item.type == 'sphericalMirror' %}
     {{- fields(item, 's', ('heightProfileFile', 'orientation')) }}
     {{- fields(item, 'f', ('radius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification', 'horizontalOffset', 'verticalOffset')) }}
