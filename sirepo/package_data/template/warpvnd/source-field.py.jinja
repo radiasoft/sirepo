@@ -15,14 +15,13 @@ solverE.mgverbose = 1 #further reduce output upon stepping - prevents websocket 
 # omega = 2./(1. + np.sin(np.pi/min(NUM_X+1,NUM_Z+1)))
 # solverE.mgparam = omega
 
-solverE.mgmaxiters = 20000 #rough approximation needed for initial solve to converge
+solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
 wp.package("w3d")
 wp.generate()
 
 #------
 
 #Need to compute the potential first
-print('!POT FOR RPT {{ report }}')
 potential = solverE.getphi()
 hf = h5py.File('{{ potentialFile }}')
 template_common.dict_to_h5(potential, hf, path='potential')
