@@ -16,6 +16,9 @@ SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="XCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
     '</div>',
+    '<div data-ng-switch-when="YCell" data-ng-class="fieldClass">',
+      '<div data-cell-selector=""></div>',
+    '</div>',
     '<div data-ng-switch-when="ZCell" data-ng-class="fieldClass">',
       '<div data-cell-selector=""></div>',
     '</div>',
@@ -328,10 +331,15 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     }
 
     function updateFieldComparison() {
-        var isX = appState.models.fieldComparisonReport.dimension == 'x';
+        var dim = appState.models.fieldComparisonReport.dimension;
+        var dims = warpvndService.is3D() ? ['x', 'y', 'z'] : ['x', 'z'];
         ['1', '2', '3'].forEach(function(i) {
-            panelState.showField('fieldComparisonReport', 'xCell' + i, ! isX);
-            panelState.showField('fieldComparisonReport', 'zCell' + i, isX);
+            dims.forEach(function (d) {
+                panelState.showField('fieldComparisonReport', d + 'Cell' + i, dim != d);
+            });
+            if (! warpvndService.is3D()) {
+                panelState.showField('fieldComparisonReport', 'yCell' + i, false);
+            }
         });
     }
 
@@ -361,7 +369,8 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
-        panelState.showField('fieldReport', 'orientation', is3d);
+        panelState.showField('fieldReport', 'axes', is3d);
+        panelState.showEnum('fieldComparisonReport', 'dimension', 'y', is3d);
     }
 
     self.isWaitingForSTL = false;
@@ -656,6 +665,14 @@ SIREPO.app.directive('cellSelector', function(appState, plotting, warpvndService
                     cells = [];
                     if ($scope.info[1] == 'XCell') {
                         warpvndService.getXRange().forEach(function(v, index) {
+                            cells.push({
+                                id: index,
+                                name: Math.round(v * 1000) + ' nm',
+                            });
+                        });
+                    }
+                    else if ($scope.info[1] == 'YCell') {
+                        warpvndService.getYRange().forEach(function(v, index) {
                             cells.push({
                                 id: index,
                                 name: Math.round(v * 1000) + ' nm',
@@ -2015,54 +2032,57 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             $scope.sliceRange = [0, 1];
             $scope.step = 1;
 
-            function updateAxes() {
-                var model = appState.models[$scope.modelName];
-                updateSliceRange();
+            function rangeForAxes(axes) {
+                var grid = appState.models.simulationGrid;
+                if (axes == 'yz') {
+                    return [-grid.channel_width / 2.0, grid.channel_width / 2.0];
+                }
+                else if (axes === 'xy') {
+                    return [0, grid.plate_spacing];
+                }
+                else {
+                    return [-grid.channel_height / 2.0, grid.channel_height / 2.0];
+                }
             }
 
             function updateSliceRange() {
+
+
+                var model = appState.models[$scope.modelName];
+                var axes = model.axes || 'xz';
+                var grid = appState.models.simulationGrid;
+                var otherAxis = 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
+
+                var lastRange = rangeForAxes(lastAxes);
+
+                $scope.sliceRange = rangeForAxes(axes);
+                $scope.step = ($scope.sliceRange[1] - $scope.sliceRange[0]) / grid['num_' + otherAxis];
+
+                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + otherAxis.toUpperCase());
 
                 if (! slider) {
                     return;
                 }
 
-                var model = appState.models[$scope.modelName];
-                var axes = model.axes || 'xz';
-                var grid = appState.models.simulationGrid;
-                var otherAxis = 'Y';
-
-                if (axes === 'xz') {
-                    $scope.sliceRange = [-grid.channel_height / 2.0, grid.channel_height / 2.0];
-                    otherAxis = 'Y';
-                    $scope.step = grid.channel_height / grid.num_y;
-                }
-                else if (axes === 'xy') {
-                    $scope.sliceRange = [0, grid.plate_spacing];
-                    otherAxis = 'Z';
-                    $scope.step = grid.plate_spacing / grid.num_z;
-                }
-                else {
-                    $scope.sliceRange = [-grid.channel_width / 2.0, grid.channel_width / 2.0];
-                    otherAxis = 'X';
-                    $scope.step = grid.channel_width / grid.num_x;
-                }
-                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + otherAxis);
-
                 slider.attr('min', $scope.sliceRange[0]);
                 slider.attr('max', $scope.sliceRange[1]);
                 slider.attr('step', $scope.step);
 
-                //$scope.model.slice = Math.max($scope.model.slice, $scope.sliceRange[0]);
-                //$scope.model.slice = Math.min($scope.model.slice, $scope.sliceRange[1]);
-
-            }
+                if (lastAxes != axes) {
+                    var pct = $scope.model.slice / ((lastRange[1] - lastRange[0]));
+                    var newVal = slider.attr('min') + pct * (slider.attr('max') - slider.attr('min'));
+                    //slider[0].value = Math.max(Math.min(newVal, $scope.sliceRange[1]), $scope.sliceRange[0]);
+                    lastAxes = axes;
+                }
+           }
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.model.units = 'µm';
             });
-            appState.watchModelFields($scope, ['fieldReport.axes'], updateAxes);
-            appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateAxes);
+
+            appState.watchModelFields($scope, ['fieldReport.axes'], updateSliceRange);
+            appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSliceRange);
 
             // the DOM for editors does not exist until they appear, so we must show/hide fields this way
             $scope.$on('fieldReport.editor.show', function () {
@@ -2274,7 +2294,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         */
                         /******/
 
-                        //srdbg('indices', indices);
                         var xc = indices.map(function (i) {
                             return o[0] + sk[0] * i;
                         });
@@ -2282,7 +2301,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             return o[1] + sk[1] * i;
                         });
                         var coords = geometry.transpose([zc, xc]);
-                        //srdbg('coords', coords);
                         var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
                         var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
@@ -2573,6 +2591,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
         ].join(''),
         controller: function($scope, $element) {
 
+            var fcr =  appState.models.fieldComparisonReport;
+
+            var CELL_COLORS = SIREPO.APP_SCHEMA.constants.cellColors;
             $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;
 
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
@@ -2600,6 +2621,59 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 depth: 1,
             };
             var xfactor = 1;
+
+            /*
+            function addCarats() {
+
+            }
+
+            function caratData() {
+                var zRange = warpvndService.getZRange();
+                var xRange = warpvndService.getXRange();
+                var res = [];
+                [1, 2, 3].forEach(function(i) {
+                    res.push(caratField(i, 'x', zRange));
+                    res.push(caratField(i, 'z', xRange));
+                });
+                return res;
+            }
+
+            function caratField(index, dimension, range) {
+                var field = (dimension == 'x' ? 'z': 'x') + 'Cell' + index;
+                if (fcr[field] > range.length) {
+                    fcr[field] = range.length - 1;
+                }
+                return {
+                    index: index,
+                    field: field,
+                    pos: fcr[field],
+                    dimension: dimension,
+                    range: range,
+                };
+            }
+
+            function drawCarats() {
+                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector').remove();
+                d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector')
+                    .data(caratData())
+                    .enter().append('path')
+                    .attr('class', 'warpvnd-cell-selector')
+                    .attr('d', function(d) {
+                        return d.dimension == 'x'
+                            ? 'M0,-14L7,0 -7,0Z'
+                            : 'M0,-7L0,7 14,0Z';
+                    })
+                    .style('cursor', function(d) {
+                        return d.dimension == 'x' ? 'ew-resize' : 'ns-resize';
+                    })
+                    .style('fill', function(d) {
+                        return CELL_COLORS[d.index - 1];
+                    })
+                    .call(updateCarat)
+                    .call(dragCarat).append('title')
+                    .text(caratText);
+            }
+            */
 
             function addConductors() {
                 var typeMap = warpvndService.conductorTypeMap();

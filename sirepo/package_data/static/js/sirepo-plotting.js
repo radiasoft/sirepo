@@ -3634,15 +3634,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var reader = bundle.source;
                 var actor = bundle.actor;
                 var bounds = reader.getOutputData().getBounds();
-                // offsets are in coords set by the stl data - convert to meters
-                var xOffset = toMetersFactor * (bounds[0] + (bounds[1] - bounds[0]) / 2);
-                var yOffset = toMetersFactor * (bounds[2] + (bounds[3] - bounds[2]) / 2);
-                var zOffset = toMetersFactor * (bounds[4] + (bounds[5] - bounds[4]) / 2);
+                var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
+                var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
+                var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
                 // the conductor centers are in microns
                 var offsetPos = [
-                    1e-6 * conductor.xCenter - xOffset,
-                    1e-6 * conductor.yCenter - yOffset,
-                    1e-6 * conductor.zCenter - zOffset
+                    toMicronFactor * conductor.xCenter - xOffset,
+                    toMicronFactor * conductor.yCenter - yOffset,
+                    toMicronFactor * conductor.zCenter - zOffset
                 ];
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                 actor.addPosition(offsetPos);
@@ -4784,6 +4783,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             $scope.toggleImpactDensity = function() {
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
                 $scope.showConductors = ! $scope.showImpactDensity;
+                vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
                 refresh();
             };
 

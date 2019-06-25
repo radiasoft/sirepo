@@ -80,17 +80,22 @@ def fixup_old_data(data):
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
+    grid = data.models.simulationGrid
     if 'fieldComparisonReport' not in data.models:
-        grid = data.models.simulationGrid
         data.models.fieldComparisonReport = {
             'dimension': 'x',
-            'xCell1': int(grid.num_x / 3.),
+            'xCell1': 0,
             'xCell2': int(grid.num_x / 2.),
-            'xCell3': int(grid.num_x * 2. / 3),
-            'zCell1': int(grid.num_z / 2.),
-            'zCell2': int(grid.num_z * 2. / 3),
-            'zCell3': int(grid.num_z * 4. / 5),
+            'xCell3': grid.num_x,
+            'zCell1': 0,
+            'zCell2': int(grid.num_z / 2.),
+            'zCell3': grid.num_z,
         }
+    # assume if one is missing all are
+    if 'yCell1' not in data.models.fieldComparisonReport:
+        data.models.fieldComparisonReport['yCell1'] = 0
+        data.models.fieldComparisonReport['yCell2'] = int(grid.num_y / 2.) if _is_3D(data) else 0
+        data.models.fieldComparisonReport['yCell3'] = grid.num_y if _is_3D(data) else 0
     template_common.organize_example(data)
 
 
@@ -152,6 +157,8 @@ def generate_field_report(data, run_dir):
 
     axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
     axes = axes if axes is not None else 'xz'
+    other_axis = re.sub('[' + axes + ']', '', 'xyz')
+
     slice = data.models.fieldReport.slice
     x_max = len(values[0])
     y_max = len(values)
@@ -161,21 +168,18 @@ def generate_field_report(data, run_dir):
         x_label = 'z [m]'
         y_label = 'x [m]'
         ar = 6.0 / 14
-        other_axis = 'y'
     elif axes == 'xy':
         xr = [- height, height, x_max]
         yr = [- radius, radius, y_max]
         x_label = 'y [m]'
         y_label = 'x [m]'
         ar = radius / height,
-        other_axis = 'z'
     else:
         xr = [0, plate_spacing, x_max]
         yr = [- height, height, y_max]
         x_label = 'z [m]'
         y_label = 'y [m]'
         ar = 6.0 / 14
-        other_axis = 'x'
 
     if np.isnan(values).any():
         return {
@@ -793,7 +797,7 @@ def _meters(v):
 def _non_opt_fields_to_array(model):
     res = []
     for f in model:
-        if not _is_opt_field(f):
+        if not _is_opt_field(f) and f not in _REPORT_STYLE_FIELDS:
             res.append(model[f])
     return res
 
