@@ -7,7 +7,6 @@ l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from sirepo.template.line_parser import LineParser
 import copy
 import math
 import re
@@ -40,16 +39,13 @@ _NEW_PARTICLE_TYPES = {
 }
 
 def parse_file(zgoubi_text, max_id=0):
-    parser = LineParser(max_id)
     lines = zgoubi_text.replace('\r', '').split('\n')
     elements = []
     # skip first documentation line
     title = lines.pop(0)
-    parser.increment_line_number()
     unhandled_elements = {}
     current_command = None
     for line in lines:
-        parser.increment_line_number()
         line = re.sub(r'\!.*$', '', line)
         line = re.sub(r'^\s+', '', line)
         line = re.sub(r'\s+$', '', line)
@@ -58,7 +54,7 @@ def parse_file(zgoubi_text, max_id=0):
         keyword = _parse_keyword(line)
         if keyword:
             if current_command:
-                _add_command(parser, current_command, elements, unhandled_elements)
+                _add_command(current_command, elements, unhandled_elements)
             if keyword == 'END' or keyword == 'FIN':
                 current_command = None
                 break
@@ -89,7 +85,7 @@ def tosca_file_count(el):
     assert False, 'unhandled magnetType: {}'.format(el.magnetType)
 
 
-def _add_command(parser, command, elements, unhandled_elements):
+def _add_command(command, elements, unhandled_elements):
     command_type = command[0][0]
     if command_type.lower() in _IGNORE_ELEMENTS:
         return
@@ -120,6 +116,12 @@ def _parse_command_header(command):
         # don't parse line numbers into name or label2
         if f in res and re.search(r'^\d+$', res[f]):
             del res[f]
+    if 'label2' in res:
+        if 'name' in res:
+            res['name'] = '{} {}'.format(res['name'], res['label2'])
+        else:
+            res['name'] = res['label2']
+        del res['label2']
     return res
 
 
@@ -129,6 +131,8 @@ def _parse_command_line(element, line, line_def):
             k = k[1:]
             if not len(line):
                 break
+        assert len(line), 'Element "{} {}": missing "{}" value for line def: {}'.format(
+            element['type'], element.get('name', ''), k, line_def)
         element[k] = line.pop(0)
     return element
 
@@ -418,7 +422,7 @@ def _zgoubi_scaling(command):
     ]
     res = _parse_command(command, pattern)
     for idx in range(1, int(res['NFAM']) + 1):
-        pattern.append('NAMEF{}'.format(idx))
+        pattern.append('NAMEF{} *LBL{}'.format(idx, idx))
         pattern.append('ignore'.format(idx))
         pattern.append('SCL{}'.format(idx))
         pattern.append('ignore'.format(idx))

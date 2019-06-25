@@ -21,6 +21,7 @@ SIREPO.appReportTypes = [
 ].join('');
 SIREPO.appImportText = 'Import a zgoubi.dat datafile';
 SIREPO.lattice = {
+    invalidElementName: /[#*'",]/g,
     elementColor: {
         CHANGREF: 'orange',
         CHANGREF_VALUE: 'orange',
@@ -97,7 +98,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     var scaling = {};
 
     function updateScaling() {
-        var MAX_SCALING_FAMILY = 6;
+        var MAX_SCALING_FAMILY = 7;
         scaling = {};
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {

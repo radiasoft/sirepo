@@ -82,7 +82,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ L }} {{ h }}
 {{ V }} {{ sig_s }}
 {%- elif IOPT == '7' -%}
-{{ L }} {{ f_RF }}
+0 {{ f_RF }}
 {{ V }} {{ sig_s }}
 {%- elif IOPT == '10' -%}
 {{ l }} {{ f_RF }} {{ ID }}
@@ -535,14 +535,15 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             #TODO(pjm): convert to fake element jinja template
             form = 'line.add(core.FAKE_ELEM(""" \'SCALING\'\n{} {}\n{}"""))\n'
             #TODO(pjm): keep in sync with zgoubi.js
-            _MAX_SCALING_FAMILY = 6
+            _MAX_SCALING_FAMILY = 7
             count = 0
             scale_values = ''
             for idx in range(1, _MAX_SCALING_FAMILY + 1):
                 # NAMEF1, SCL1
                 if el['NAMEF{}'.format(idx)] != 'none':
                     count += 1
-                    scale_values += '{}\n-1\n{}\n1\n'.format(el['NAMEF{}'.format(idx)], el['SCL{}'.format(idx)])
+                    scale_values += '{} {}\n-1\n{}\n1\n'.format(
+                        el['NAMEF{}'.format(idx)], el['LBL{}'.format(idx)], el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
         elif el['type'] in _FAKE_ELEMENT_TEMPLATES:
@@ -673,6 +674,10 @@ def _prepare_tosca_element(el):
         el['hasFields'] = True
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
+
+    filename = template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
+        el['fileNames'][0] = template_common.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path):
