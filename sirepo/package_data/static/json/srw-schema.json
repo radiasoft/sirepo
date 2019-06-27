@@ -865,6 +865,15 @@
         }
     },
     "view": {
+        "arbitraryMagField": {
+            "title": "Arbitrary Magnetic Field",
+	    "basic": [],
+            "advanced": [
+                "longitudinalPosition",
+                "magneticFile",
+                "interpolationOrder"
+            ]
+        },
         "aperture": {
             "title": "Aperture",
             "basic": [],
@@ -1197,7 +1206,8 @@
         },
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "photonEnergy",
                 "energyPerPulse",
                 "polarization",
@@ -1218,8 +1228,7 @@
                         "waistAngleY"
                     ]]
                 ]
-            ],
-            "advanced": []
+            ]
         },
         "grating": {
             "title": "Grating",
@@ -1743,7 +1752,8 @@
         },
         "undulator": {
             "title": "Idealized Undulator",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "period",
                 "length",
                 "longitudinalPosition",
@@ -1762,17 +1772,7 @@
                         "verticalSymmetry"
                     ]]
                 ]
-            ],
-            "advanced": []
-        },
-        "arbitraryMagField": {
-            "title": "Arbitrary Magnetic Field",
-            "basic": [
-                "longitudinalPosition",
-                "magneticFile",
-                "interpolationOrder"
-            ],
-            "advanced": []
+            ]
         },
         "watch": {
             "title": "Watchpoint",
