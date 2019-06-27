@@ -1653,10 +1653,11 @@
         },
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "undulatorSelector",
                 "name",
-                "undulatorType",
+		"undulatorType",
                 "gap",
                 "phase",
                 "undulator.period",
@@ -1678,8 +1679,7 @@
                         "undulator.verticalSymmetry"
                     ]]
                 ]
-            ],
-            "advanced": []
+            ]
         },
         "toroidalMirror": {
             "title": "Toroid Mirror",
