@@ -1400,12 +1400,12 @@
         },
         "multipole": {
             "title": "Dipole",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "field",
                 "length",
-                "distribution"
-            ],
-            "advanced": []
+		"distribution"
+            ]
         },
         "multiElectronAnimation": {
             "title": "Partially Coherent Intensity Report",
