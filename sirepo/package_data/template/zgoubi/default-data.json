@@ -1,42 +1,7 @@
 {
     "models": {
         "beamlines": [],
-        "bunch": {
-            "D0": 1,
-            "DP": 0,
-            "DT": 0.069794038,
-            "DY": 0.0018133426,
-            "DZ": 0,
-            "KD": "2",
-            "KP": "2",
-            "KT": "2",
-            "KX": "2",
-            "KY": "2",
-            "KZ": "2",
-            "P0": 0,
-            "T0": 0,
-            "X0": 0,
-            "Y0": 0,
-            "Z0": 0,
-            "alpha_X": 0,
-            "alpha_Y": 1.6759384,
-            "alpha_Z": -1.2249858,
-            "beta_X": 1,
-            "beta_Y": 0.24074147,
-            "beta_Z": 0.2562679,
-            "emit_X": 1e-06,
-            "emit_Y": 1e-06,
-            "emit_Z": 1e-06,
-            "match_twiss_parameters": "0",
-            "n_cutoff2_X": 0,
-            "n_cutoff2_Y": 0,
-            "n_cutoff2_Z": 0,
-            "n_cutoff_X": 3,
-            "n_cutoff_Y": 3,
-            "n_cutoff_Z": 3,
-            "particleCount": 1000,
-            "rigidity": 4869.14813176
-        },
+        "bunch": {},
         "bunchAnimation": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
@@ -102,9 +67,7 @@
             "simulationId": "NE4pnakI",
             "simulationSerial": 1542066443718959
         },
-        "simulationSettings": {
-            "npass": 10
-        },
+        "simulationSettings": {},
         "twissReport": {
             "includeLattice": "1",
             "notes": "",

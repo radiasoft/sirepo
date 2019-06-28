@@ -269,9 +269,11 @@ def _validate_and_dedup_elements(data, elements):
             beamline.append(info['ids'][info['elements'].index(el)])
         else:
             if el['type'] in data['models']:
-                pkdlog('replacing existing {} model', el['type'])
-            template_common.update_model_defaults(el, el['type'], _SCHEMA)
-            data['models'][el['type']] = el
+                pkdlog('updating existing {} model', el['type'])
+                data['models'][el['type']].update(el)
+            else:
+                template_common.update_model_defaults(el, el['type'], _SCHEMA)
+                data['models'][el['type']] = el
     _validate_model('bunch', data['models']['bunch'], info['missingFiles'])
     return info
 

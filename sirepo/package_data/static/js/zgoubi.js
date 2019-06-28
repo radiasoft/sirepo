@@ -316,6 +316,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             });
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
+                updateTunesReport(data.startTime, data.showTunesReport);
             }
         }
         frameCache.setFrameCount(data.frameCount || 0);
@@ -326,7 +327,21 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         panelState.showField(modelName, 'framesPerSecond', model.showAllFrames == '0');
         panelState.showField(
             modelName, 'particleSelector',
-            model.showAllFrames == '1' && appState.models.bunch.method == 'OBJET2.1');
+            modelName == 'tunesReport'
+                || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
+    }
+
+    function updateTunesReport(startTime, showTunesReport) {
+        // tunesReport is tied to the current animation data
+        // only show if particle count is <= 10 and number of turnes is >= 10
+        var tunesReport = appState.models.tunesReport;
+        if (tunesReport.startTime != startTime) {
+            tunesReport.showTunesReport = showTunesReport;
+            // need to wait for report to become visible so it can respond to changes
+            panelState.waitForUI(function() {
+                appState.saveChanges('tunesReport');
+            });
+        }
     }
 
     self.bunchReportHeading = function(name) {
@@ -339,6 +354,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             processShowAllFrames(name);
             zgoubiService.processParticleCount2(name);
         }
+    };
+
+    self.showTunesReport = function() {
+        return ! self.simState.isProcessing() && self.simState.hasFrames() && appState.models.tunesReport.showTunesReport;
     };
 
     self.startSimulation = function() {
@@ -432,9 +451,23 @@ SIREPO.app.factory('magnetService', function() {
 
 SIREPO.app.factory('zgoubiService', function(appState, panelState) {
     var self = {};
+    //TODO(pjm): could be determined from schema ParticleSelector enum
+    var MAX_FILTER_PLOT_PARTICLES = 10;
+
+    function particleCount() {
+        var bunch = appState.models.bunch;
+        if (bunch.method == 'MCOBJET3') {
+            return bunch.particleCount;
+        }
+        return bunch.particleCount2;
+    }
+
+    self.showParticleSelector = function() {
+        return particleCount() <= MAX_FILTER_PLOT_PARTICLES;
+    };
 
     self.processParticleCount2 = function(model) {
-        var count = appState.models.bunch.particleCount2;
+        var count = particleCount();
         SIREPO.APP_SCHEMA.enum.ParticleSelector.forEach(function(info) {
             var value = info[SIREPO.ENUM_INDEX_VALUE];
             panelState.showEnum(model, 'particleSelector', value, parseInt(value) <= count);
@@ -656,6 +689,24 @@ SIREPO.app.directive('srToscaEditor', function(appState, magnetService, panelSta
                 appState.watchModelFields($scope, ['TOSCA.ID'], processIntegrationBoundary);
                 appState.watchModelFields($scope, ['TOSCA.magnetFile'], processMagnetFile);
                 processMagnetFile();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srTunesreportEditor', function(appState, panelState, zgoubiService) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processFields() {
+                panelState.showField('tunesReport', 'plotAxis', appState.models.tunesReport.particleSelector == 'all');
+                zgoubiService.processParticleCount2('tunesReport');
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['tunesReport.particleSelector'], processFields);
+                processFields();
             });
         },
     };

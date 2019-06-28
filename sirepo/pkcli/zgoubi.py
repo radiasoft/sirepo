@@ -9,12 +9,14 @@ from pykern import pkio
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+import os
 import py.path
 import re
 import sirepo.template.zgoubi as template
 import subprocess
 
 _EXE_PATH = 'zgoubi'
+_TUNES_PATH = 'tunesFromFai'
 
 _TWISS_TO_BUNCH_FIELD = {
     'btx': 'beta_Y',
@@ -31,7 +33,13 @@ _ZGOUBI_FIT_FILE = 'zgoubi.FIT.out.dat'
 
 
 def run(cfg_dir):
-    data = _bunch_match_twiss(cfg_dir)
+    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+    report = data['report']
+    if report == 'tunesReport':
+        _run_tunes_report(cfg_dir, data)
+        return
+    # bunchReport, twissReport and twissReport2
+    _bunch_match_twiss(cfg_dir, data)
     _run_zgoubi(cfg_dir)
     template.save_report_data(data, py.path.local(cfg_dir))
 
@@ -43,7 +51,7 @@ def run_background(cfg_dir):
         res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
     else:
         try:
-            _bunch_match_twiss(cfg_dir)
+            _bunch_match_twiss(cfg_dir, data)
             _run_zgoubi(cfg_dir)
             res['frame_count'] = template.read_frame_count(py.path.local(cfg_dir))
         except Exception as e:
@@ -51,8 +59,7 @@ def run_background(cfg_dir):
     simulation_db.write_result(res)
 
 
-def _bunch_match_twiss(cfg_dir):
-    data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+def _bunch_match_twiss(cfg_dir, data):
     bunch = data.models.bunch
     if bunch.match_twiss_parameters == '1' and ('bunchReport' in data.report or data.report == 'animation'):
         report = data['report']
@@ -92,6 +99,16 @@ def _estimated_output_file_size(data):
         count = bunch.particleCount2
     settings = data.models.simulationSettings
     return 1000 * settings.npass / (settings.ip or 1) * float(count)
+
+
+def _run_tunes_report(cfg_dir, data):
+    with pkio.save_chdir(cfg_dir):
+        exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
+        pkio.write_text(template.TUNES_INPUT_FILE, tunes_file)
+        #TODO(pjm): uses datafile from animation directory
+        os.symlink('../animation/zgoubi.fai', 'zgoubi.fai')
+        subprocess.call([_TUNES_PATH])
+        simulation_db.write_result(template.extract_tunes_report(cfg_dir, data))
 
 
 def _run_zgoubi(cfg_dir, python_file=template_common.PARAMETERS_PYTHON_FILE):

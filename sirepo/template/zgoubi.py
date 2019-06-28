@@ -28,9 +28,16 @@ BUNCH_SUMMARY_FILE = 'bunch.json'
 
 WANT_BROWSER_FRAME_CACHE = True
 
+TUNES_INPUT_FILE = 'tunesFromFai.In'
+
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
+#TODO(pjm): could be determined from schema ParticleSelector enum
+_MAX_FILTER_PLOT_PARTICLES = 10
+
+_TUNES_FILE = 'tunesFromFai_spctra.Out'
 
 _ZGOUBI_DATA_FILE = 'zgoubi.fai'
 
@@ -41,6 +48,28 @@ _ZGOUBI_TWISS_FILE = 'zgoubi.TWISS.out'
 _INITIAL_PHASE_MAP = {
     'D1': 'Do1',
     'time': 'to',
+}
+
+_MAGNET_TYPE_TO_MOD = {
+    'cartesian': {
+        '2d-sf': '0',
+        '2d-sf-ags': '3',
+        '2d-sf-ags-p': '3.1',
+        '2d-mf-f': '15.{{ fileCount }}',
+        '3d-mf-2v': '0',
+        '3d-mf-1v': '1',
+        '3d-sf-2v': '12',
+        '3d-sf-1v': '12.1',
+        '3d-2f-8v': '12.2',
+        '3d-mf-f': '15.{{ fileCount }}',
+    },
+    'cylindrical': {
+        '2d-mf-f': '25.{{ fileCount }}',
+        '3d-sf-4v': '20',
+        '2d-mf-f-2v': '22.{{ fileCount }}',
+        '3d-mf-f-2v': '22.{{ fileCount }}',
+        '3d-sf': '24',
+    },
 }
 
 _ANIMATION_FIELD_INFO = {
@@ -191,17 +220,22 @@ def background_percent_complete(report, run_dir, is_running):
     errors = ''
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
+        show_tunes_report = False
         count = 0
         if out_file.exists():
             out = simulation_db.read_json(out_file)
             if 'frame_count' in out:
                 count = out.frame_count
+            data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
+                and data.models.simulationSettings.npass >= 10
         if not count:
             count = read_frame_count(run_dir)
         if count:
             return {
                 'percentComplete': 100,
                 'frameCount': count,
+                'showTunesReport': show_tunes_report,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
@@ -228,6 +262,62 @@ def extract_first_twiss_row(run_dir):
     return col_names, rows[0]
 
 
+def extract_tunes_report(run_dir, data):
+    report = data.models.tunesReport
+    assert report.turnStart < data.models.simulationSettings.npass, \
+        'Turn Start is greater than Number of Turns'
+    col_names, rows = _read_data_file(py.path.local(run_dir).join(_TUNES_FILE), mode='header')
+    # actual columns appear at end of each data line, not in file header
+    col_names = ['qx', 'amp_x', 'qy', 'amp_y', 'ql', 'amp_l', 'kpa', 'kpb', 'kt', 'nspec']
+    plots = []
+    x = []
+
+    if report.particleSelector == 'all':
+        axis = report.plotAxis
+        title = template_common.enum_text(_SCHEMA, 'TunesAxis', axis)
+        x_idx = col_names.index('q{}'.format(axis))
+        y_idx = col_names.index('amp_{}'.format(axis))
+        p_idx = col_names.index('nspec')
+        current_p = -1
+        for row in rows:
+            p = row[p_idx]
+            if current_p != p:
+                current_p = p
+                plots.append({
+                    'points': [],
+                    'label': 'Particle {}'.format(current_p),
+                })
+            x.append(float(row[x_idx]))
+            plots[-1]['points'].append(float(row[y_idx]))
+    else:
+        title = 'Tunes, Particle {}'.format(report.particleSelector)
+        for axis in ('x', 'y'):
+            x_idx = col_names.index('q{}'.format(axis))
+            y_idx = col_names.index('amp_{}'.format(axis))
+            points = []
+            for row in rows:
+                if axis == 'x':
+                    x.append(float(row[x_idx]))
+                points.append(float(row[y_idx]))
+            plots.append({
+                'points': [],
+                'label': template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
+                'points': points,
+            })
+
+    # normalize each plot to 1.0 and show amplitude in label
+    for plot in plots:
+        maxp = max(plot['points'])
+        plot['points'] = (np.array(plot['points']) / maxp).tolist()
+        plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
+
+    return template_common.parameter_plot(x, plots, {}, {
+        'title': title,
+        'y_label': '',
+        'x_label': 'x',
+    }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
+
+
 def fixup_old_data(data):
     for m in [
             'SPNTRK',
@@ -240,6 +330,7 @@ def fixup_old_data(data):
             'particle',
             'particleCoordinate',
             'simulationSettings',
+            'tunesReport',
             'twissReport',
             'twissReport2',
             'twissSummaryReport',
@@ -302,6 +393,8 @@ def models_related_to_report(data):
     r = data['report']
     if r == get_animation_name(data):
         return []
+    if r == 'tunesReport':
+        return [r, 'bunchAnimation.startTime']
     res = ['particle', 'bunch']
     if 'bunchReport' in r:
         if data.models.bunch.match_twiss_parameters == '1':
@@ -485,23 +578,24 @@ def _extract_animation(run_dir, data, model_data):
     ipass = int(ipasses[frame_index - 1])
     rows = []
     ipass_index = int(col_names.index('IPASS'))
-    let_index = int(col_names.index('LET'))
-    if report['particleNumber'] != 'all':
-        let_search = "'{}'".format(int(report['particleNumber']) - 1)
+    it_index = int(col_names.index('IT'))
+    it_filter = None
+    if _particle_count(model_data) <= _MAX_FILTER_PLOT_PARTICLES:
+        if report['particleNumber'] != 'all':
+            it_filter = report['particleNumber']
 
     count = 0
     for row in all_rows:
         if report['showAllFrames'] == '1':
-            if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
-                if row[let_index] != let_search:
-                    continue
+            if it_filter and row[it_index] != it_filter:
+                continue
             rows.append(row)
         elif int(row[ipass_index]) == ipass:
             rows.append(row)
     if report['showAllFrames'] == '1':
         title = 'All Frames'
-        if model_data.models.bunch.method == 'OBJET2.1' and report['particleNumber'] != 'all':
-            title += ', Particle {}'.format(report['particleNumber'])
+        if it_filter:
+            title += ', Particle {}'.format(it_filter)
     else:
         title = 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass)
     return _extract_bunch_data(model, col_names, rows, title)
@@ -518,6 +612,12 @@ def _extract_bunch_data(report, col_names, rows, title):
         'title': title,
         'z_label': 'Number of Particles',
     })
+
+
+def _format_exp(v):
+    res = '{:.4e}'.format(v)
+    res = re.sub(r'e\+00$', '', res)
+    return res
 
 
 def _generate_beamline(data, beamline_map, element_map, beamline_id):
@@ -539,11 +639,11 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
             count = 0
             scale_values = ''
             for idx in range(1, _MAX_SCALING_FAMILY + 1):
-                # NAMEF1, SCL1
-                if el['NAMEF{}'.format(idx)] != 'none':
+                # NAMEF1, SCL1, LBL1
+                if el.get('NAMEF{}'.format(idx), 'none') != 'none':
                     count += 1
                     scale_values += '{} {}\n-1\n{}\n1\n'.format(
-                        el['NAMEF{}'.format(idx)], el['LBL{}'.format(idx)], el['SCL{}'.format(idx)])
+                        el['NAMEF{}'.format(idx)], el.get('LBL{}'.format(idx), ''), el['SCL{}'.format(idx)])
             if el.IOPT == '1' and count > 0:
                 res += form.format(el.IOPT, count, scale_values)
         elif el['type'] in _FAKE_ELEMENT_TEMPLATES:
@@ -583,32 +683,11 @@ def _generate_pyzgoubi_element(el, schema_type=None):
     return res
 
 
-_MAGNET_TYPE_TO_MOD = {
-    'cartesian': {
-        '2d-sf': '0',
-        '2d-sf-ags': '3',
-        '2d-sf-ags-p': '3.1',
-        '2d-mf-f': '15.{{ fileCount }}',
-        '3d-mf-2v': '0',
-        '3d-mf-1v': '1',
-        '3d-sf-2v': '12',
-        '3d-sf-1v': '12.1',
-        '3d-2f-8v': '12.2',
-        '3d-mf-f': '15.{{ fileCount }}',
-    },
-    'cylindrical': {
-        '2d-mf-f': '25.{{ fileCount }}',
-        '3d-sf-4v': '20',
-        '2d-mf-f-2v': '22.{{ fileCount }}',
-        '3d-mf-f-2v': '22.{{ fileCount }}',
-        '3d-sf': '24',
-    },
-}
-
-
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     report = data.report if 'report' in data else ''
+    if report == 'tunesReport':
+        return template_common.render_jinja(SIM_TYPE, v, TUNES_INPUT_FILE)
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
     v['bunchCoordinates'] = data.models.bunch.coordinates
@@ -667,6 +746,13 @@ def _parse_zgoubi_log(run_dir):
     return res
 
 
+def _particle_count(data):
+    bunch = data.models.bunch
+    if bunch.method == 'MCOBJET3':
+        return bunch.particleCount
+    return bunch.particleCount2
+
+
 def _prepare_tosca_element(el):
     el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
     if '{{ fileCount }}' in el['MOD']:
@@ -680,9 +766,8 @@ def _prepare_tosca_element(el):
         el['fileNames'][0] = template_common.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
-def _read_data_file(path):
+def _read_data_file(path, mode='title'):
     # mode: title -> header -> data
-    mode = 'title'
     col_names = []
     rows = []
     with pkio.open_text(str(path)) as f:
@@ -697,16 +782,15 @@ def _read_data_file(path):
             line = re.sub(r"'(\S*)\s*'", r"'\1'", line)
             if mode == 'header':
                 # header row starts with '# <letter>'
-                if re.search(r'^#\s+[a-zA-Z]', line):
+                if re.search(r'^\s*#\s+[a-zA-Z]', line):
                     col_names = re.split('\s+', line)
                     col_names = map(lambda x: re.sub(r'\W|_', '', x), col_names[1:])
                     mode = 'data'
             elif mode == 'data':
-                if re.search('^#', line):
+                if re.search('^\s*#', line):
                     continue
                 row = re.split('\s+', re.sub(r'^\s+', '', line))
                 rows.append(row)
-    #rows.pop()
     return col_names, rows
 
 

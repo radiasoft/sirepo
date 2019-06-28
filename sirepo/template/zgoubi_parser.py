@@ -15,13 +15,11 @@ _COMMAND_INDEX_POS = 110
 
 _IGNORE_ELEMENTS = [
     'faisceau',
-    'faistore',
     'fit',
     'images',
     'matrix',
     'optics',
     'options',
-    'rebelote',
     'spnprt',
     'twiss',
 ]
@@ -207,6 +205,13 @@ def _parse_tosca_title(res, title):
         res.name = title
 
 
+def _remove_fields(model, fields):
+    for f in fields:
+        if f in model:
+            del model[f]
+    return model
+
+
 def _strip_command_index(line):
     # strip the command index if present
     if len(line) >= _COMMAND_INDEX_POS:
@@ -302,6 +307,16 @@ def _zgoubi_esl(command):
     return res
 
 
+def _zgoubi_faistore(command):
+    res = _parse_command(command, [
+        'file',
+        'ip',
+    ])
+    _remove_fields(res, ['name', 'file'])
+    res['type'] = 'simulationSettings'
+    return res
+
+
 def _zgoubi_marker(command):
     res = _parse_command_header(command)
     res['plt'] = '0'
@@ -330,9 +345,7 @@ def _zgoubi_objet(command):
         'KOBJ'
     ])
     kobj = res['KOBJ']
-    del res['KOBJ']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['KOBJ', 'name'])
     res['type'] = 'bunch'
     if kobj == '2' or kobj == '2.1':
         imax = int(command[3][0])
@@ -375,9 +388,7 @@ def _zgoubi_mcobjet(command):
     if 'n_cutoff2_Z' in res and parse_float(res['n_cutoff_Z']) >= 0:
         res['DP'] = res['DZ']
         res['DZ'] = res['n_cutoff2_Z']
-    del res['KOBJ']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['KOBJ', 'name'])
     res['type'] = 'bunch'
     return res
 
@@ -395,8 +406,7 @@ def _zgoubi_particul(command):
         if res['particleType'] in _NEW_PARTICLE_TYPES:
             res.update(_NEW_PARTICLE_TYPES[res['particleType']])
             res['particleType'] = 'Other'
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['name'])
     res['type'] = 'particle'
     return res
 
@@ -413,6 +423,14 @@ def _zgoubi_quadrupo(command):
         'KPOS XCE YCE ALE',
     ])
 
+def _zgoubi_rebelote(command):
+    res = _parse_command(command, [
+        'npass',
+    ])
+    res['npass'] = int(res['npass']) + 1
+    res['type'] = 'simulationSettings'
+    return res
+
 
 def _zgoubi_scaling(command):
     #TODO(pjm): access IOPT and NFAM directly from command before calling _parse_command
@@ -427,8 +445,7 @@ def _zgoubi_scaling(command):
         pattern.append('SCL{}'.format(idx))
         pattern.append('ignore'.format(idx))
     res = _parse_command(command2, pattern)
-    del res['NFAM']
-    del res['ignore']
+    _remove_fields(res, ['NFAM', 'ignore'])
     return res
 
 
@@ -490,8 +507,7 @@ def _zgoubi_spntrk(command):
         ])
         if res['KSO'] != '0':
             res['KSO'] = '1'
-        if 'name' in res:
-            del res['name']
+        _remove_fields(res, ['name'])
     return res
 
 
@@ -505,9 +521,7 @@ def _zgoubi_srloss(command):
         res['applyToAll'] = '1'
     else:
         res['keyword'] = res['STR1']
-    del res['STR1']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['STR1', 'name'])
     return res
 
 

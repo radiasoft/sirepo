@@ -267,6 +267,11 @@
             ["2", "Exponential"],
             ["3", "Kinematic"]
         ],
+        "TunesAxis": [
+            ["x", "Horizontal Tunes"],
+            ["y", "Vertical Tunes"],
+            ["l", "Longitudinal Tunes"]
+        ],
         "TwissParameter": [
             ["btx", "Horizontal beta [m]"],
             ["alfx", "Horizontal alpha"],
@@ -446,6 +451,17 @@
             "npass": ["Number of Turns", "Integer", 10, "", 1],
             "ip": ["Diagnostic Interval", "Integer", 1, "", 1]
         },
+        "tunesReport": {
+            "plotAxis": ["Axis to Plot", "TunesAxis", "x"],
+            "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
+            "turnStart": ["Turn Start", "Integer", 0, "", 0, 10000],
+            "turnCount": ["Turn Count", "Integer", 10000, "", 1, 10000],
+            "nuMin": ["Nu Min", "Float", 0.0],
+            "nuMax": ["Nu Max", "Float", 0.5],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.75"],
+            "startTime": ["", "String"],
+            "notes": ["Notes", "Text", ""]
+        },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "btx"],
             "y2": ["Y2 Value", "TwissOptionalParameter", "bty"],
@@ -535,7 +551,7 @@
         "MULTIPOL": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"],
-            "R_0": ["Radius at Pole Tip [m]", "Float", 0.0, "R_0"],
+            "R_0": ["Radius at Pole Tip [m]", "Float", 0.1, "R_0"],
             "B_1": ["Dipole", "Float", 0.0],
             "B_2": ["Quadrupole", "Float", 0.0],
             "B_3": ["Sextupole", "Float", 0.0],
@@ -599,7 +615,7 @@
         "QUADRUPO": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"],
-            "R_0": ["Radius at Pole Tip [m]", "Float", 0.0, "R_0"],
+            "R_0": ["Radius at Pole Tip [m]", "Float", 0.1, "R_0"],
             "B_0": ["Field at Pole Tip [kG]", "Float", 0.0, "B_0"],
             "X_E": ["Entrance Integration Zone [m]", "Float", 0.0],
             "LAM_E": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
@@ -651,7 +667,7 @@
         "SEXTUPOL": {
             "name": ["Name", "ValidatedString"],
             "l": ["Length [m]", "Float", 0.0, "XL"],
-            "R_0": ["Radius at Pole Tip [m]", "Float", 0.0, "R_0"],
+            "R_0": ["Radius at Pole Tip [m]", "Float", 0.1, "R_0"],
             "B_0": ["Field at Pole Tip [kG]", "Float", 0.0, "B_0"],
             "X_E": ["Entrance Integration Zone [m]", "Float", 0.0],
             "LAM_E": ["Entrance Fringe Field Extent [m]", "Float", 0.0],
@@ -1014,6 +1030,20 @@
             "title": "Simulation Status",
             "advanced": []
         },
+        "tunesReport": {
+            "title": "Tunes",
+            "advanced": [
+                "particleSelector",
+                "plotAxis",
+                "turnStart",
+                "turnCount",
+                "nuMin",
+                "nuMax",
+                "aspectRatio",
+                "notes"
+            ]
+        },
+
         "twissSettings": {
             "title": "Simulation Settings",
             "basic": [

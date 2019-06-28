@@ -478,10 +478,10 @@
             }
         ],
         "energyAnimation": {
-            "aspectRatio": "0.5",
+            "aspectRatio": "0.5625",
             "colorMap": "contrast",
             "framesPerSecond": "2",
-            "histogramBins": 500,
+            "histogramBins": 300,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "isRunning": 0,
@@ -532,6 +532,17 @@
             "spntrk": "1"
         },
         "simulationStatus": {},
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.7,
+            "nuMin": 0.54,
+            "particleSelector": "1",
+            "plotAxis": "x",
+            "showTunesReport": true,
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
