@@ -1104,6 +1104,7 @@ SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
                 appState.watchModelFields(
                     $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
                     srwService.updateSimulationGridFields);
+                srwService.updateSimulationGridFields();
             });
         },
     };
