@@ -473,6 +473,8 @@ def report_parameters_hash(data):
 def report_fields(data, report_name, style_fields):
     # if the model has "style" fields, then return the full list of non-style fields
     # otherwise returns the report name (which implies all model fields)
+    if report_name not in data.models:
+        return [report_name]
     m = data.models[report_name]
     for style_field in style_fields:
         if style_field not in m:
@@ -497,8 +499,10 @@ def resource_dir(sim_type):
     return _RESOURCE_DIR.join(sim_type)
 
 
-def update_model_defaults(model, name, schema):
+def update_model_defaults(model, name, schema, dynamic=None):
     defaults = model_defaults(name, schema)
+    if dynamic is not None:
+        defaults.update(dynamic)
     for f in defaults:
         if f not in model:
             model[f] = defaults[f]

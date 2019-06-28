@@ -240,6 +240,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
                     successCallback: function (resp) {
                         if (resp.error && resp.error == 'invalidSerial') {
                             srlog(resp.simulationData.models.simulation.simulationId, ': update collision newSerial=', resp.simulationData.models.simulation.simulationSerial, '; refreshing');
+                            srdbg('rq refresh', resp.simulationData);
                             refreshSimulationData(resp.simulationData);
                             errorService.alertText("Another browser updated this simulation.This window's state has been refreshed. Please retry your action.");
                         }
@@ -902,6 +903,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         else {
             requestFunction();
         }
+    };
+
+    self.hasFrames = function(modelName) {
+        if (modelName) {
+            return self.getFrameCount(modelName) > 0;
+        }
+        return self.getFrameCount() > 0;
     };
 
     self.isLoaded = function() {

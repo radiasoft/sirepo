@@ -6,7 +6,7 @@ var srdbg = SIREPO.srdbg;
 SIREPO.PLOT_3D_CONFIG = {
     'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
 };
-SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation'];
+SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="conductorGrid" data-conductor-grid="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
     '<div data-ng-switch-when="impactDensity" data-impact-density-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
@@ -224,7 +224,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
 });
 
 
-SIREPO.app.controller('SourceController', function (appState, warpvndService, panelState, vtkPlotting, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, vtkPlotting, warpvndService, $scope) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
@@ -331,14 +331,17 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
     }
 
     function updateFieldComparison() {
-        var dim = appState.models.fieldComparisonReport.dimension;
+        //var dim = appState.models.fieldComparisonReport.dimension;
+        var dim = appState.models.fieldComparisonAnimation.dimension;
         var dims = warpvndService.is3D() ? ['x', 'y', 'z'] : ['x', 'z'];
         ['1', '2', '3'].forEach(function(i) {
             dims.forEach(function (d) {
-                panelState.showField('fieldComparisonReport', d + 'Cell' + i, dim != d);
+                //panelState.showField('fieldComparisonReport', d + 'Cell' + i, dim != d);
+                panelState.showField('fieldComparisonAnimation', d + 'Cell' + i, dim != d);
             });
             if (! warpvndService.is3D()) {
-                panelState.showField('fieldComparisonReport', 'yCell' + i, false);
+                //panelState.showField('fieldComparisonReport', 'yCell' + i, false);
+                panelState.showField('fieldComparisonAnimation', 'yCell' + i, false);
             }
         });
     }
@@ -369,8 +372,10 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
-        panelState.showField('fieldReport', 'axes', is3d);
-        panelState.showEnum('fieldComparisonReport', 'dimension', 'y', is3d);
+        //panelState.showField('fieldReport', 'axes', is3d);
+        panelState.showField('fieldCalcAnimation', 'axes', is3d);
+        //panelState.showEnum('fieldComparisonReport', 'dimension', 'y', is3d);
+        panelState.showEnum('fieldComparisonAnimation', 'dimension', 'y', is3d);
     }
 
     self.isWaitingForSTL = false;
@@ -461,9 +466,18 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
 
     self.handleModalShown = function(name) {
         updateAllFields();
-        if (name == 'fieldComparisonReport') {
+        //if (name == 'fieldComparisonReport') {
+        if (name == 'fieldComparisonAnimation') {
             updateFieldComparison();
         }
+    };
+
+    self.hasFrames = function(modelName) {
+        return frameCache.hasFrames(modelName);
+    };
+
+    self.is3D = function() {
+        return warpvndService.is3D();
     };
 
     self.usesSTL = function() {
@@ -513,7 +527,8 @@ SIREPO.app.controller('SourceController', function (appState, warpvndService, pa
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
-        appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
+        //appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
+        appState.watchModelFields($scope, ['fieldComparisonAnimation.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
             var t = i[SIREPO.INFO_INDEX_TYPE];
             appState.watchModelFields($scope, [t + '.isConductor'], function () {
@@ -920,13 +935,17 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function caratField(index, dimension, range) {
                 var field = (dimension == 'x' ? 'z': 'x') + 'Cell' + index;
-                if (appState.models.fieldComparisonReport[field] > range.length) {
-                    appState.models.fieldComparisonReport[field] = range.length - 1;
+                //if (appState.models.fieldComparisonReport[field] > range.length) {
+                //    appState.models.fieldComparisonReport[field] = range.length - 1;
+                //}
+                if (appState.models.fieldComparisonAnimation[field] > range.length) {
+                    appState.models.fieldComparisonAnimation[field] = range.length - 1;
                 }
                 return {
                     index: index,
                     field: field,
-                    pos: appState.models.fieldComparisonReport[field],
+                    //pos: appState.models.fieldComparisonReport[field],
+                    pos: appState.models.fieldComparisonAnimation[field],
                     dimension: dimension,
                     range: range,
                 };
@@ -956,10 +975,15 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function d3DragEndCarat(d) {
-                if (d.pos != appState.models.fieldComparisonReport[d.field]) {
-                    appState.models.fieldComparisonReport[d.field] = d.pos;
-                    appState.models.fieldComparisonReport.dimension = d.dimension;
-                    appState.saveChanges('fieldComparisonReport');
+                //if (d.pos != appState.models.fieldComparisonReport[d.field]) {
+                //    appState.models.fieldComparisonReport[d.field] = d.pos;
+                //    appState.models.fieldComparisonReport.dimension = d.dimension;
+                //    appState.saveChanges('fieldComparisonReport');
+                //}
+                if (d.pos != appState.models.fieldComparisonAnimation[d.field]) {
+                    appState.models.fieldComparisonAnimation[d.field] = d.pos;
+                    appState.models.fieldComparisonAnimation.dimension = d.dimension;
+                    appState.saveChanges('fieldComparisonAnimation');
                 }
             }
 
@@ -1661,7 +1685,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     plateSpacing = appState.models.simulationGrid.plate_spacing;
                     replot();
                 });
-                $scope.$on('fieldComparisonReport.changed', replot);
+                //$scope.$on('fieldComparisonReport.changed', replot);
+                $scope.$on('fieldComparisonAnimation.changed', replot);
             });
         },
         link: function link(scope, element) {
@@ -1669,6 +1694,62 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
         },
     };
 });
+
+SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        scope: {
+            modelName: '@fieldCalculationAnimation',
+        },
+        template: [
+            '<div data-simple-panel="{{ modelName }}">',
+                '<div data-sim-status-panel="simState""></div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+
+            var SINGLE_PLOTS = ['fieldCalcAnimation', 'fieldComparisonAnimation'];
+            $scope.panelState = panelState;
+
+            function buildAnimArgs(name, version) {
+                var args = [SIREPO.ANIMATION_ARGS_VERSION + version]
+                    .concat(SIREPO.APP_SCHEMA.animationArgs[name]);
+                args.push('startTime');
+                return args;
+            }
+
+            function handleStatus(data) {
+                SINGLE_PLOTS.forEach(function(name) {
+                    frameCache.setFrameCount(0, name);
+                });
+                if (data.startTime && ! data.error) {
+                    SINGLE_PLOTS.forEach(function(modelName) {
+                        appState.models[modelName].startTime = data.startTime;
+                        appState.saveQuietly(modelName);
+                    });
+                    if (data.percentComplete === 100 && ! $scope.simState.isProcessing()) {
+                        SINGLE_PLOTS.forEach(function(name) {
+                            frameCache.setFrameCount(1, name);
+                        });
+                    }
+                }
+                frameCache.setFrameCount(data.frameCount);
+            }
+
+            $scope.startSimulation = function() {
+                $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
+            };
+
+
+            $scope.simState = persistentSimulation.initSimulationState($scope, 'fieldCalculationAnimation', handleStatus, {
+                fieldCalcAnimation: buildAnimArgs('fieldCalcAnimation', '1'),
+                fieldComparisonAnimation: buildAnimArgs('fieldComparisonAnimation', '1'),
+            });
+        },
+    };
+});
+
 
 SIREPO.app.directive('optimizationForm', function(appState, panelState, warpvndService) {
     return {
@@ -2014,6 +2095,21 @@ SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
     };
 });
 
+SIREPO.app.directive('fieldComparison', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div data-report-panel="parameter" data-request-priority="0" data-model-name="fieldComparisonAnimation">',
+            '</div>',
+        ].join(''),
+        controller: function($scope) {
+        },
+    };
+});
+
 SIREPO.app.directive('potentialReport', function(appState, panelState, plotting, warpvndService, utilities) {
     return {
         restrict: 'A',
@@ -2021,7 +2117,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             modelName: '@',
         },
         template: [
-            '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldReport">',
+            '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldCalcAnimation">',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2047,9 +2143,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
             function updateSliceRange() {
 
-
-                var model = appState.models[$scope.modelName];
-                var axes = model.axes || 'xz';
+                var axes = $scope.model.axes || 'xz';
                 var grid = appState.models.simulationGrid;
                 var otherAxis = 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
 
@@ -2081,17 +2175,22 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                 $scope.model.units = 'µm';
             });
 
-            appState.watchModelFields($scope, ['fieldReport.axes'], updateSliceRange);
+            //appState.watchModelFields($scope, ['fieldReport.axes'], updateSliceRange);
+            appState.watchModelFields($scope, ['fieldCalcAnimation.axes'], updateSliceRange);
             appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSliceRange);
 
             // the DOM for editors does not exist until they appear, so we must show/hide fields this way
-            $scope.$on('fieldReport.editor.show', function () {
+            //$scope.$on('fieldReport.editor.show', function () {
+            $scope.$on('fieldCalcAnimation.editor.show', function () {
                 if (! slider) {
-                    slider = $('#fieldReport-slice-range');
+                    //slider = $('#fieldReport-slice-range');
+                    slider = $('#fieldCalcAnimation-slice-range');
                 }
 
-                panelState.showField('fieldReport', 'axes', warpvndService.is3D());
-                panelState.showField('fieldReport', 'slice', warpvndService.is3D());
+                //panelState.showField('fieldReport', 'axes', warpvndService.is3D());
+                //panelState.showField('fieldReport', 'slice', warpvndService.is3D());
+                panelState.showField('fieldCalcAnimation', 'axes', warpvndService.is3D());
+                panelState.showField('fieldCalcAnimation', 'slice', warpvndService.is3D());
 
                 updateSliceRange();
             });

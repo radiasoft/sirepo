@@ -25,6 +25,7 @@ COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 
+_FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.h5'
@@ -44,7 +45,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
-    return _simulation_percent_complete(run_dir, is_running)
+    return _simulation_percent_complete(report, run_dir, is_running)
 
 
 def fixup_old_data(data):
@@ -56,6 +57,9 @@ def fixup_old_data(data):
         }
     for m in [
             'egunCurrentAnimation',
+            'fieldCalcAnimation',
+            'fieldCalculationAnimation',
+            'fieldComparisonAnimation',
             'fieldReport',
             'impactDensityAnimation',
             'optimizer',
@@ -68,7 +72,7 @@ def fixup_old_data(data):
     ]:
         if m not in data.models:
             data.models[m] = {}
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
     types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
@@ -80,27 +84,28 @@ def fixup_old_data(data):
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    grid = data.models.simulationGrid
-    if 'fieldComparisonReport' not in data.models:
-        data.models.fieldComparisonReport = {
-            'dimension': 'x',
-            'xCell1': 0,
-            'xCell2': int(grid.num_x / 2.),
-            'xCell3': grid.num_x,
-            'zCell1': 0,
-            'zCell2': int(grid.num_z / 2.),
-            'zCell3': grid.num_z,
-        }
-    # assume if one is missing all are
-    if 'yCell1' not in data.models.fieldComparisonReport:
-        data.models.fieldComparisonReport['yCell1'] = 0
-        data.models.fieldComparisonReport['yCell2'] = int(grid.num_y / 2.) if _is_3D(data) else 0
-        data.models.fieldComparisonReport['yCell3'] = grid.num_y if _is_3D(data) else 0
+    #grid = data.models.simulationGrid
+    #for r in ['fieldComparisonAnimation', 'fieldComparisonReport']:
+    #    if r not in data.models:
+    #        data.models[r] = {
+    #            'dimension': 'x',
+    #            'xCell1': 0,
+    #            'xCell2': int(grid.num_x / 2.),
+    #            'xCell3': grid.num_x,
+    #            'zCell1': 0,
+    #            'zCell2': int(grid.num_z / 2.),
+    #            'zCell3': grid.num_z,
+    #        }
+    #    # assume if one is missing all are
+    #    if 'yCell1' not in data.models[r]:
+    #        data.models[r]['yCell1'] = 0
+    #        data.models[r]['yCell2'] = int(grid.num_y / 2.) if _is_3D(data) else 0
+    #        data.models[r]['yCell3'] = grid.num_y if _is_3D(data) else 0
     template_common.organize_example(data)
 
 
-def generate_field_comparison_report(data, run_dir):
-    params = data['models']['fieldComparisonReport']
+def generate_field_comparison_report(data, run_dir, args=None):
+    params = args if args is not None else data['models']['fieldComparisonReport']
     dimension = params['dimension']
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
@@ -120,7 +125,7 @@ def generate_field_comparison_report(data, run_dir):
     }
 
 
-def generate_field_report(data, run_dir):
+def generate_field_report(data, run_dir, args=None):
 
     grid = data.models.simulationGrid
     plate_spacing = grid.plate_spacing * 1e-6
@@ -136,12 +141,14 @@ def generate_field_report(data, run_dir):
     potential = np.array(template_common.h5_to_dict(hf, path='potential'))
     hf.close()
 
+    axes = args.axes if args is not None else data.models.fieldReport.axes
+    axes = axes if _is_3D(data) else 'xz'
+    axes = axes if axes is not None else 'xz'
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
         # 3d results
         phi_slice = data.models.fieldReport.slice
-        axes = data.models.fieldReport.axes
         if axes == 'xz':
             values = potential[
                      :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
@@ -155,11 +162,11 @@ def generate_field_report(data, run_dir):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
-    axes = axes if axes is not None else 'xz'
+    #axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
+    #axes = axes if axes is not None else 'xz'
     other_axis = re.sub('[' + axes + ']', '', 'xyz')
 
-    slice = data.models.fieldReport.slice
+    slice = args.slice if args is not None else data.models.fieldReport.slice
     x_max = len(values[0])
     y_max = len(values)
     if axes == 'xz':
@@ -197,9 +204,12 @@ def generate_field_report(data, run_dir):
     }
 
 
+# use concept of "runner" animation?
 def get_animation_name(data):
     if data['modelName'] == 'optimizerAnimation':
         return data['modelName']
+    if data['modelName'] in _FIELD_ANIMATIONS:
+        return 'fieldCalculationAnimation'
     return 'animation'
 
 
@@ -254,6 +264,8 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 
 
 def get_simulation_frame(run_dir, data, model_data):
+    md = pkcollections.Dict(model_data)
+    pkdp('!FRAME FROM {}', data['modelName'])
     frame_index = int(data['frameIndex'])
     if data['modelName'] == 'currentAnimation':
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
@@ -272,6 +284,15 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'optimizerAnimation':
         args = template_common.parse_animation_args(data, {'': ['x', 'y']})
         return _extract_optimization_results(run_dir, model_data, args)
+    if data['modelName'] == 'fieldCalcAnimation':
+        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
+        pkdp('!FCA args {}', args)
+        return generate_field_report(md, run_dir, args=args)
+    if data['modelName'] == 'fieldComparisonAnimation':
+        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
+        pkdp('!FCMPA args {}', args)
+        #wp.step(COMPARISON_STEP_SIZE)
+        return generate_field_comparison_report(md, run_dir)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -298,8 +319,10 @@ def models_related_to_report(data):
     for container in ('conductors', 'conductorTypes'):
         for m in data.models[container]:
             res.append(_non_opt_fields_to_array(m))
-    if data['report'] != 'fieldComparisonReport':
-        res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
+    #if data['report'] != 'fieldComparisonReport':
+    #if data.report == 'fieldReport' or data.report == 'fieldComparisonReport':
+    #    res.append('fieldCalculation')
+    res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
 
 
@@ -322,6 +345,7 @@ def open_data_file(run_dir, model_name, file_index=None):
     Returns:
         OrderedMapping: various parameters
     """
+    pkdp('!WARP OPEN DF {}', model_name)
     files = _h5_file_list(run_dir, model_name)
     res = pkcollections.OrderedMapping()
     res.num_frames = len(files)
@@ -347,7 +371,8 @@ def python_source_for_model(data, model):
 
 
 def remove_last_frame(run_dir):
-    for m in ('currentAnimation', 'fieldAnimation'):
+    for m in ('currentAnimation', 'fieldAnimation', 'fieldCalculationAnimation'):
+        pkdp('!WARP REMOVE DF {}', m)
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
@@ -443,7 +468,7 @@ def _compute_delta_for_field(data, bounds, field):
 
 
 def _create_plots(dimension, data, values, x_range):
-    params = data['models']['fieldComparisonReport']
+    params = data['models']['fieldComparisonAnimation']
     y_range = None
     visited = {}
     plots = []
@@ -487,6 +512,25 @@ def _cull_particle_point(curr, next, prev):
        or _particle_line_has_slope(curr, next, prev, 1, 2):
         return False
     return True
+
+
+# defaults that depend on the current data
+def _dynamic_defaults(data, model):
+    if model == 'fieldComparisonAnimation' or model == 'fieldComparisonReport':
+        grid = data.models.simulationGrid
+        return {
+            'dimension': 'x',
+            'xCell1': 0,
+            'xCell2': int(grid.num_x / 2.),
+            'xCell3': grid.num_x,
+            'yCell1': 0,
+            'yCell2': int(grid.num_y / 2.) if _is_3D(data) else 0,
+            'yCell3': grid.num_y if _is_3D(data) else 0,
+            'zCell1': 0,
+            'zCell2': int(grid.num_z / 2.),
+            'zCell3': grid.num_z,
+        }
+    return None
 
 
 def _extract_current(data, data_file):
@@ -733,6 +777,7 @@ def _generate_parameters_file(data):
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['potentialFile'] = _POTENTIAL_FILE
+    v['stepSize'] = COMPARISON_STEP_SIZE
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['conductors'] = _prepare_conductors(data)
@@ -759,12 +804,14 @@ def _generate_parameters_file(data):
     elif data['report'] == 'optimizerAnimation':
         res += _render_jinja('parameters-optimize', v)
     else:
+        pkdp('!GEN PARAM FIELD {}', data.report)
         res += _render_jinja('source-field', v)
         #res += _render_jinja('source-field-test', v)
     return res, v
 
 
 def _h5_file_list(run_dir, model_name):
+    pkdp('!WARP H5 LIST {}', model_name)
     return pkio.walk_tree(
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
@@ -959,7 +1006,18 @@ def _replace_optimize_variables(data, v):
             v['{}_{}'.format(m, f)] = value
 
 
-def _simulation_percent_complete(run_dir, is_running):
+def _simulation_percent_complete(report, run_dir, is_running):
+    if report == 'fieldCalculationAnimation':
+        if run_dir.join(_POTENTIAL_FILE).exists():
+            return pkcollections.Dict({
+                'percentComplete': 100,
+                'frameCount': 1,
+            })
+        return pkcollections.Dict({
+            'percentComplete': 0,
+            'frameCount': 0,
+        })
+    pkdp('!WARP SIM PCTT GET DF currentAnimation')
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {

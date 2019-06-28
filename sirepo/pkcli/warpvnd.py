@@ -16,6 +16,7 @@ import sirepo.template.warpvnd as template
 
 
 def run(cfg_dir):
+    pkdp('!WARP RUN FG')
     with pkio.save_chdir(cfg_dir):
         exec(_script(), locals(), locals())
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
