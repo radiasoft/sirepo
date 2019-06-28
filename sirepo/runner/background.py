@@ -23,7 +23,7 @@ import time
 # See https://github.com/radiasoft/sirepo/issues/1323
 # We also remove SIREPO_ and PYKERN vars, because we shouldn't
 # need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
+_EXEC_ENV_REMOVE = re.compile('^(PMI_|OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 class BackgroundJob(runner.JobBase):
