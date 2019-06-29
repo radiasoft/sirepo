@@ -2537,6 +2537,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             var aspectRatio = 1.0;
             var canvas, ctx, amrLine, heatmap, mouseMovePoint, pointer, zoom;
+            var globalMin = 0.0;
+            var globalMax = 1.0;
             var cacheCanvas, imageData;
             var colorbar;
             var axes = {
@@ -2634,8 +2636,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function setColorScale() {
-                var plotMin = plotting.min2d(heatmap);
-                var plotMax = plotting.max2d(heatmap);
+                var plotMin = globalMin != null ? globalMin : plotting.min2d(heatmap);
+                var plotMax = globalMax != null ? globalMax : plotting.max2d(heatmap);
                 if (plotMin == plotMax) {
                     plotMax = (plotMin || 1e-6) * 10;
                 }
@@ -2698,6 +2700,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 $scope.dataCleared = false;
                 aspectRatio = plotting.getAspectRatio($scope.modelName, json);
                 heatmap = appState.clone(json.z_matrix).reverse();
+                globalMin = json.global_min;
+                globalMax = json.global_max;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
                 $.each(axes, function(dim, axis) {

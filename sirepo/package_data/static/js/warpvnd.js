@@ -142,6 +142,16 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         scale: [1e-12, 1e-9, 1e-6, 1e-3]
     };
 
+    self.activeComparisonReport = function() {
+        //return self.is3D() ? 'fieldComparisonAnimation' : 'fieldComparisonReport';
+        return 'fieldComparisonAnimation';
+    };
+
+    self.activeFieldReport = function() {
+        //return warpvndService.is3D() ? 'fieldCalcAnimation' : 'fieldReport';
+        return 'fieldCalcAnimation';
+    };
+
     self.allow3D = function() {
         return SIREPO.APP_SCHEMA.feature_config.allow_3d_mode;
     };
@@ -332,16 +342,17 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     function updateFieldComparison() {
         //var dim = appState.models.fieldComparisonReport.dimension;
-        var dim = appState.models.fieldComparisonAnimation.dimension;
+        var rpt = warpvndService.activeComparisonReport();
+        var dim = appState.models[rpt].dimension;
         var dims = warpvndService.is3D() ? ['x', 'y', 'z'] : ['x', 'z'];
         ['1', '2', '3'].forEach(function(i) {
             dims.forEach(function (d) {
                 //panelState.showField('fieldComparisonReport', d + 'Cell' + i, dim != d);
-                panelState.showField('fieldComparisonAnimation', d + 'Cell' + i, dim != d);
+                panelState.showField(rpt, d + 'Cell' + i, dim != d);
             });
             if (! warpvndService.is3D()) {
                 //panelState.showField('fieldComparisonReport', 'yCell' + i, false);
-                panelState.showField('fieldComparisonAnimation', 'yCell' + i, false);
+                panelState.showField(rpt, 'yCell' + i, false);
             }
         });
     }
@@ -375,7 +386,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         //panelState.showField('fieldReport', 'axes', is3d);
         panelState.showField('fieldCalcAnimation', 'axes', is3d);
         //panelState.showEnum('fieldComparisonReport', 'dimension', 'y', is3d);
-        panelState.showEnum('fieldComparisonAnimation', 'dimension', 'y', is3d);
+        panelState.showEnum(warpvndService.activeComparisonReport(), 'dimension', 'y', is3d);
     }
 
     self.isWaitingForSTL = false;
@@ -467,7 +478,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     self.handleModalShown = function(name) {
         updateAllFields();
         //if (name == 'fieldComparisonReport') {
-        if (name == 'fieldComparisonAnimation') {
+        if (name == warpvndService.activeComparisonReport()) {
             updateFieldComparison();
         }
     };
@@ -482,6 +493,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     self.usesSTL = function() {
         return ! ! (appState.models.simulation || {}).conductorFile;
+    };
+
+    self.updateFieldComparison = function() {
+        updateSimulationMode();
+        updateFieldComparison();
     };
 
     $scope.$on('cancelChanges', function(e, name) {
@@ -528,7 +544,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         //appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
-        appState.watchModelFields($scope, ['fieldComparisonAnimation.dimension'], updateFieldComparison);
+        appState.watchModelFields($scope, [warpvndService.activeComparisonReport() + '.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
             var t = i[SIREPO.INFO_INDEX_TYPE];
             appState.watchModelFields($scope, [t + '.isConductor'], function () {
@@ -934,18 +950,19 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function caratField(index, dimension, range) {
+                var rpt = warpvndService.activeComparisonReport()
                 var field = (dimension == 'x' ? 'z': 'x') + 'Cell' + index;
                 //if (appState.models.fieldComparisonReport[field] > range.length) {
                 //    appState.models.fieldComparisonReport[field] = range.length - 1;
                 //}
-                if (appState.models.fieldComparisonAnimation[field] > range.length) {
-                    appState.models.fieldComparisonAnimation[field] = range.length - 1;
+                if (appState.models[rpt][field] > range.length) {
+                    appState.models[rpt][field] = range.length - 1;
                 }
                 return {
                     index: index,
                     field: field,
                     //pos: appState.models.fieldComparisonReport[field],
-                    pos: appState.models.fieldComparisonAnimation[field],
+                    pos: appState.models[rpt][field],
                     dimension: dimension,
                     range: range,
                 };
@@ -980,10 +997,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 //    appState.models.fieldComparisonReport.dimension = d.dimension;
                 //    appState.saveChanges('fieldComparisonReport');
                 //}
-                if (d.pos != appState.models.fieldComparisonAnimation[d.field]) {
-                    appState.models.fieldComparisonAnimation[d.field] = d.pos;
-                    appState.models.fieldComparisonAnimation.dimension = d.dimension;
-                    appState.saveChanges('fieldComparisonAnimation');
+                var rpt = warpvndService.activeComparisonReport();
+                if (d.pos != appState.models[rpt][d.field]) {
+                    appState.models[rpt][d.field] = d.pos;
+                    appState.models[rpt].dimension = d.dimension;
+                    appState.saveChanges(rpt);
                 }
             }
 
@@ -1112,7 +1130,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
             }
 
-            function drawCarats() {
+            function drawCarats(dim) {
+                var info = plotInfoForDimension(dim);
                 d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector').remove();
                 d3.select('.plot-viewport').selectAll('.warpvnd-cell-selector')
                     .data(caratData())
@@ -1686,7 +1705,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     replot();
                 });
                 //$scope.$on('fieldComparisonReport.changed', replot);
-                $scope.$on('fieldComparisonAnimation.changed', replot);
+                $scope.$on(warpvndService.activeComparisonReport() + '.changed', replot);
             });
         },
         link: function link(scope, element) {
@@ -2095,18 +2114,25 @@ SIREPO.app.directive('optimizationResults', function(appState, warpvndService) {
     };
 });
 
-SIREPO.app.directive('fieldComparison', function() {
+SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
     return {
         restrict: 'A',
         scope: {
             modelName: '@',
+            parentController: '<',
         },
         template: [
             '<div data-report-panel="parameter" data-request-priority="0" data-model-name="fieldComparisonAnimation">',
             '</div>',
-        ].join(''),
+       ].join(''),
         controller: function($scope) {
-        },
+            $scope.svc = warpvndService;
+            appState.whenModelsLoaded($scope, function () {
+                $scope.$on($scope.modelName + '.editor.show', function () {
+                    $scope.parentController.updateFieldComparison();
+                });
+            });
+       },
     };
 });
 
@@ -2161,6 +2187,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                 slider.attr('min', $scope.sliceRange[0]);
                 slider.attr('max', $scope.sliceRange[1]);
                 slider.attr('step', $scope.step);
+                srdbg('slice range', $scope.sliceRange, 'step', $scope.step);
 
                 if (lastAxes != axes) {
                     var pct = $scope.model.slice / ((lastRange[1] - lastRange[0]));
@@ -2690,7 +2717,8 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
         ].join(''),
         controller: function($scope, $element) {
 
-            var fcr =  appState.models.fieldComparisonReport;
+            var rpt = warpvndService.activeComparisonReport();
+            var fcr =  appState.models[rpt];
 
             var CELL_COLORS = SIREPO.APP_SCHEMA.constants.cellColors;
             $scope.defaultColor = SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor;

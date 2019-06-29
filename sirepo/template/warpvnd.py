@@ -84,42 +84,47 @@ def fixup_old_data(data):
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    #grid = data.models.simulationGrid
-    #for r in ['fieldComparisonAnimation', 'fieldComparisonReport']:
-    #    if r not in data.models:
-    #        data.models[r] = {
-    #            'dimension': 'x',
-    #            'xCell1': 0,
-    #            'xCell2': int(grid.num_x / 2.),
-    #            'xCell3': grid.num_x,
-    #            'zCell1': 0,
-    #            'zCell2': int(grid.num_z / 2.),
-    #            'zCell3': grid.num_z,
-    #        }
-    #    # assume if one is missing all are
-    #    if 'yCell1' not in data.models[r]:
-    #        data.models[r]['yCell1'] = 0
-    #        data.models[r]['yCell2'] = int(grid.num_y / 2.) if _is_3D(data) else 0
-    #        data.models[r]['yCell3'] = grid.num_y if _is_3D(data) else 0
     template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir, args=None):
-    params = args if args is not None else data['models']['fieldComparisonReport']
+    pkdp('!GEN F CMP ARGS {}', args)
+    params = args if args is not None else data['models']['fieldComparisonAnimation']
+    grid = data['models']['simulationGrid']
     dimension = params['dimension']
+    pkdp('!GEN F CMP DIM {}', dimension)
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
+        if dimension == 'x':
+            v = values[:, int(grid.num_y / 2.) if _is_3D(data) else 0, int(grid.num_z / 2.)]
+        if dimension == 'y':
+            v = values[int(grid.num_x / 2.), :, int(grid.num_z / 2.)]
+        if dimension == 'z':
+            v = values[int(grid.num_x / 2.), int(grid.num_y / 2.) if _is_3D(data) else 0, :]
+
         values = values[:, 0, :]
+    pkdp('!F CMP VALS {} N {} M {}', values, len(values), len(values[0]))
+    pkdp('!F DIM {} VALS {} N {}', dimension, v, len(v))
+
     radius = _meters(data['models']['simulationGrid']['channel_width'] / 2.)
+    half_height = _meters(grid['channel_height'] / 2.)
     x_range = [-radius, radius]
-    z_range = [0, _meters(data['models']['simulationGrid']['plate_spacing'])]
-    plots, y_range = _create_plots(dimension, data, values, z_range if dimension == 'x' else x_range)
+    y_range = [-half_height, half_height]
+    z_range = [0, _meters(grid['plate_spacing'])]
+    if dimension == 'x':
+        r = x_range
+    elif dimension == 'y':
+        r = y_range
+    else:
+        r = z_range
+    plots, plot_y_range = _create_plots(dimension, params, values, z_range if dimension == 'x' else x_range)
+    #plots, plot_y_range = _create_plots(dimension, params, v, r)
     plot_range = x_range if dimension == 'x' else z_range
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
         'x_label': '{} [m]'.format(dimension),
-        'y_range': y_range,
+        'y_range': plot_y_range,
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
     }
@@ -144,11 +149,12 @@ def generate_field_report(data, run_dir, args=None):
     axes = args.axes if args is not None else data.models.fieldReport.axes
     axes = axes if _is_3D(data) else 'xz'
     axes = axes if axes is not None else 'xz'
+    phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
+
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
         # 3d results
-        phi_slice = data.models.fieldReport.slice
         if axes == 'xz':
             values = potential[
                      :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
@@ -162,11 +168,8 @@ def generate_field_report(data, run_dir, args=None):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    #axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
-    #axes = axes if axes is not None else 'xz'
     other_axis = re.sub('[' + axes + ']', '', 'xyz')
 
-    slice = args.slice if args is not None else data.models.fieldReport.slice
     x_max = len(values[0])
     y_max = len(values)
     if axes == 'xz':
@@ -198,8 +201,10 @@ def generate_field_report(data, run_dir, args=None):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, slice),
+        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, phi_slice),
         'z_matrix': values.tolist(),
+        'global_min': np.min(potential),
+        'global_max': np.max(potential),
         'frequency_title': 'Volts'
     }
 
@@ -291,8 +296,7 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'fieldComparisonAnimation':
         args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
         pkdp('!FCMPA args {}', args)
-        #wp.step(COMPARISON_STEP_SIZE)
-        return generate_field_comparison_report(md, run_dir)
+        return generate_field_comparison_report(md, run_dir, args=args)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -345,7 +349,6 @@ def open_data_file(run_dir, model_name, file_index=None):
     Returns:
         OrderedMapping: various parameters
     """
-    pkdp('!WARP OPEN DF {}', model_name)
     files = _h5_file_list(run_dir, model_name)
     res = pkcollections.OrderedMapping()
     res.num_frames = len(files)
@@ -372,7 +375,6 @@ def python_source_for_model(data, model):
 
 def remove_last_frame(run_dir):
     for m in ('currentAnimation', 'fieldAnimation', 'fieldCalculationAnimation'):
-        pkdp('!WARP REMOVE DF {}', m)
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
@@ -467,27 +469,42 @@ def _compute_delta_for_field(data, bounds, field):
     bounds += [res if res else bounds[1], True]
 
 
-def _create_plots(dimension, data, values, x_range):
-    params = data['models']['fieldComparisonAnimation']
+#TODO(mvk): slices
+def _create_plots(dimension, params, values, x_range):
+    #params = data['models']['fieldComparisonAnimation']
+    other_axes = re.sub('[' + dimension + ']', '', 'xyz')
+    pkdp('!PLOTS dim {} axes {}', dimension, other_axes)
     y_range = None
     visited = {}
     plots = []
     color = _SCHEMA.constants.cellColors
     max_index = values.shape[1] if dimension == 'x' else values.shape[0]
+    #max_index = len(values) - 1
+    pkdp('!PLOTS RANGE {} SHAPE {} MAX {}', x_range, values.shape, max_index)
     x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
+    #x_points = np.linspace(x_range[0], x_range[1], len(values))
     for i in (1, 2, 3):
+        for axis in other_axes:
+            g = '{}Cell{}'.format(axis, i)
+            j = params[g]
+            #pkdp('!AXIS {} CELL {} J {}', axis, g, j)
         f = '{}Cell{}'.format('z' if dimension == 'x' else 'x', i)
-        index = params[f]
+        index = int(params[f])
+        pkdp('!CELL {} I {}', f, index)
         if index >= max_index:
+            pkdp('!PLOTS I {} OVER MAX {}', index, max_index)
             index = max_index - 1
         if index in visited:
+            pkdp('!PLOTS ALREADY VISITED I {}', index)
             continue
         visited[index] = True
         if dimension == 'x':
             points = values[:, index].tolist()
         else:
             points = values[index, :].tolist()
-        if dimension == 'x':
+        #points = values.tolist()
+        pkdp('!PLOTS PTS {} N {}', points, len(points))
+        if dimension == 'x' or dimension == 'y':
             pos = u'{:.3f} µm'.format(x_points[index] * 1e6)
         else:
             pos = '{:.0f} nm'.format(x_points[index] * 1e9)
@@ -748,6 +765,7 @@ def _find_by_id(container, id):
 
 
 def _get_slice_index(x, min_x, dx, max_index):
+    pkdp('!SLICE INDEX val {} min val {} dx {} max {}: {}', x, min_x, dx, max_index, min(max_index, max(0, int(round((x - min_x) / dx)))))
     return min(max_index, max(0, int(round((x - min_x) / dx))))
 
 
@@ -811,7 +829,6 @@ def _generate_parameters_file(data):
 
 
 def _h5_file_list(run_dir, model_name):
-    pkdp('!WARP H5 LIST {}', model_name)
     return pkio.walk_tree(
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
@@ -1017,7 +1034,6 @@ def _simulation_percent_complete(report, run_dir, is_running):
             'percentComplete': 0,
             'frameCount': 0,
         })
-    pkdp('!WARP SIM PCTT GET DF currentAnimation')
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {

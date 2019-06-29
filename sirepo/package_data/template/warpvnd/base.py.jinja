@@ -22,6 +22,8 @@ from scipy import constants
 from warp.data_dumping.openpmd_diag import ParticleDiagnostic
 from warp.field_solvers.generateconductors import XPlane, YPlane, ZPlane, Box, Sphere
 
+print('START BASE')
+
 {% if isOptimize %}
 def parse_opts():
     res = {}
@@ -333,6 +335,8 @@ extractor_voltage = vacuum_level
 # --- Anode Location
 zplate = Z_MAX # --- plate location
 
+print('ADD CONDS')
+
 conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
@@ -372,3 +376,4 @@ wp.installafterstep(efield_diagnostic_0.write)
 {% endif %}
 
 #------
+print('END BASE')
