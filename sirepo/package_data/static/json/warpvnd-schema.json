@@ -47,6 +47,11 @@
         }
     },
     "enum": {
+        "Axes": [
+            ["xz", "X-Z"],
+            ["xy", "X-Y"],
+            ["yz", "Y-Z"]
+        ],
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
@@ -61,6 +66,7 @@
         ],
         "Dimension": [
             ["x", "X"],
+            ["y", "Y"],
             ["z", "Z"]
         ],
         "Field": [
@@ -140,6 +146,9 @@
             "xCell1": ["X Position 1", "XCell"],
             "xCell2": ["X Position 2", "XCell"],
             "xCell3": ["X Position 3", "XCell"],
+            "yCell1": ["Y Position 1", "YCell"],
+            "yCell2": ["Y Position 2", "YCell"],
+            "yCell3": ["Y Position 3", "YCell"],
             "zCell1": ["Z Position 1", "ZCell"],
             "zCell2": ["Z Position 2", "ZCell"],
             "zCell3": ["Z Position 3", "ZCell"],
@@ -147,7 +156,9 @@
         },
         "fieldReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "axes": ["Axes", "Axes", "xz"],
+            "slice": ["Slice", "Range", 0.0]
         },
         "impactDensityAnimation": {
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
@@ -305,6 +316,9 @@
                 "xCell1",
                 "xCell2",
                 "xCell3",
+                "yCell1",
+                "yCell2",
+                "yCell3",
                 "zCell1",
                 "zCell2",
                 "zCell3",
@@ -314,6 +328,8 @@
         "fieldReport": {
             "title": "Field Report",
             "advanced": [
+                "axes",
+                "slice",
                 "colorMap",
                 "notes"
             ]

@@ -1,21 +1,26 @@
 from __future__ import absolute_import, division, print_function
-
 import warpoptions
 warpoptions.ignoreUnknownArgs = True
 
 import h5py
 import numpy as np
-import os
+import pykern
 import sys
 import warp as wp
-
 import rswarp
-from warp.data_dumping.openpmd_diag import ParticleDiagnostic
+
+from pykern import pkcollections
+
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
 from rswarp.cathode import injectors
+from rswarp.stlconductor import stlconductor
+from rswarp.stlconductor.stlconductor import *
 
 from scipy import constants
+
+from warp.data_dumping.openpmd_diag import ParticleDiagnostic
+from warp.field_solvers.generateconductors import XPlane, YPlane, ZPlane, Box, Sphere
 
 {% if isOptimize %}
 def parse_opts():
@@ -40,7 +45,7 @@ kb_J = constants.k #Boltzmann constant in J/K
 
 #-----
 
-diagDir = 'diags/xzsolver/hdf5/'
+diag_dir = 'diags/xzsolver/hdf5/'
 
 #------
 
@@ -63,7 +68,9 @@ NUM_Y = {{ simulationGrid_num_y }}
 NUM_Z = {{ simulationGrid_num_z }}
 
 #z step size
-dz =  (Z_MAX - Z_MIN)/NUM_Z
+dx = (X_MAX - X_MIN)/NUM_X
+dy = (Y_MAX - Y_MIN)/NUM_Y
+dz = (Z_MAX - Z_MIN)/NUM_Z
 
 #------
 
@@ -76,7 +83,7 @@ wp.w3d.solvergeom = wp.w3d.XZgeom
 
 # Set boundary conditions
 # Longitudinal conditions overriden by conducting plates
-wp.w3d.bound0  = wp.neumann
+wp.w3d.bound0  = wp.dirichlet
 wp.w3d.boundnz = wp.dirichlet
 wp.w3d.boundxy = wp.periodic
 # Particles boundary conditions
@@ -326,23 +333,26 @@ extractor_voltage = vacuum_level
 # --- Anode Location
 zplate = Z_MAX # --- plate location
 
-# Create source conductors
-source = wp.ZPlane(zcent=wp.w3d.zmmin,zsign=-1.,voltage=0.)
-wp.installconductor(source, dfill=wp.largepos)
-
-# Create ground plate
-plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate)
-wp.installconductor(plate,dfill=wp.largepos)
-
 conductors = [
 {% for c in conductors %}
+{% if c.conductor_type.type == 'stl' %}
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ loop.index }})
+{% else %}
     wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}),
+{% endif %}
 {% endfor %}
 ]
 
 for c in conductors:
-    if c.voltage != 0.0:
-        wp.installconductor(c)
+    wp.installconductor(c, dfill=wp.largepos)
+
+# Create source conductors
+source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= len(conductors) + 1)
+wp.installconductor(source, dfill=wp.largepos)
+
+# Create ground plate
+plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= len(conductors) + 2)
+wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
@@ -352,7 +362,7 @@ scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 particleperiod = {{ particlePeriod }}
 particle_diagnostic_0 = ParticleDiagnostic(period=particleperiod, top=wp.top, w3d=wp.w3d,
                                            species={species.name: species for species in wp.listofallspecies},
-                                           comm_world=wp.comm_world, lparallel_output=False, write_dir=diagDir[:-5])
+                                           comm_world=wp.comm_world, lparallel_output=False, write_dir=diag_dir[:-5])
 fieldperiod = {{ particlePeriod }}
 efield_diagnostic_0 = FieldDiagnostic.ElectrostaticFields(solver=solverE, top=wp.top, w3d=wp.w3d, comm_world=wp.comm_world,
                                                           period=fieldperiod)

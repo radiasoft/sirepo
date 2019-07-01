@@ -1217,6 +1217,11 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         setPanelValue(name, 'error', error);
     };
 
+    self.setFieldLabel = function(model, field, text) {
+        $('.' + utilities.modelFieldID(model, field)  + ' .control-label label')
+            .text(text);
+    };
+
     self.showEnum = function(model, field, value, isShown) {
         var eType = SIREPO.APP_SCHEMA.enum[appState.modelInfo(model)[field][SIREPO.INFO_INDEX_TYPE]];
         var optionIndex = -1;
@@ -1267,8 +1272,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     self.showModalEditor = function(modelKey, template, scope) {
         var editorId = '#' + self.modalId(modelKey);
+        var showEvent = modelKey + '.editor.show';
         if ($(editorId).length) {
             $(editorId).modal('show');
+            $rootScope.$broadcast(showEvent);
         }
         else {
             if (! template) {
@@ -1278,6 +1285,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             //TODO(pjm): timeout hack, other jquery can't find the element
             self.waitForUI(function() {
                 $(editorId).modal('show');
+                $rootScope.$broadcast(showEvent);
             });
         }
     };

@@ -1,5 +1,7 @@
 
 import math
+from rswarp.diagnostics import ConductorTemplates
+from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
 from sirepo.template import template_common
 
@@ -46,6 +48,9 @@ try:
             c_data = []
             c = plot_density.conductors[i]
             {% if is3D %}
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                # STL not supported yet
+                continue
             coord_keys = ['x', 'y', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
             for (x, y, z, s) in d:

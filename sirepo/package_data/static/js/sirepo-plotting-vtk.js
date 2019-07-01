@@ -7,6 +7,11 @@ SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
 
     var self = {};
+    var stlReaders = {};
+
+    self.addSTLReader = function(file, reader) {
+        stlReaders[file] = reader;
+    };
 
     self.adjustContainerSize = function(container, rect, ctrAspectRatio, thresholdPct) {
         var fsAspectRatio = window.screen.availWidth / window.screen.availHeight;
@@ -30,7 +35,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         // "Bundles" a source, mapper, and actor together
         function actorBundle(source) {
             var m = vtk.Rendering.Core.vtkMapper.newInstance();
-            if(source) {
+            if (source) {
                 m.setInputConnection(source.getOutputPort());
             }
             var a = vtk.Rendering.Core.vtkActor.newInstance();
@@ -95,7 +100,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
                 var b = actorBundle(src);
-                if(labOrigin && labP1 && labP2) {
+                if (labOrigin && labP1 && labP2) {
                     this.setPlane(b, labOrigin, labP1, labP2);
                 }
                 return b;
@@ -113,6 +118,41 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 ab.actor.getProperty().setLighting(false);
                 return ab;
             },
+            buildSTL: function(file, callback) {
+                var cm = this;
+                var r = self.getSTLReader(file);
+
+                if (r) {
+                    setSTL(r);
+                    return;
+                }
+                self.loadSTLFile(file).then(function (r) {
+                    r.loadData()
+                        .then(function (res) {
+                            self.addSTLReader(file, r);
+                            setSTL(r);
+                        }, function (reason) {
+                            throw file + ': Error loading data from .stl file: ' + reason;
+                        }
+                    ).catch(function (e) {
+                        errorService.alertText(e);
+                    });
+                });
+
+                function setSTL(r) {
+                    var b = actorBundle(r);
+                    var a = b.actor;
+                    var userMatrix = [];
+                    cm.xform.matrix.forEach(function (row) {
+                        userMatrix = userMatrix.concat(row);
+                        userMatrix.push(0);
+                    });
+                    userMatrix = userMatrix.concat([0, 0, 0, 1]);
+                    a.setUserMatrix(userMatrix);
+                    callback(b);
+                }
+
+            },
             setPlane: function(planeBundle, labOrigin, labP1, labP2) {
                 var vo = labOrigin ? this.xform.doTransform(labOrigin) : [0, 0, 0];
                 var vp1 = labP1 ? this.xform.doTransform(labP1) : [0, 0, 1];
@@ -122,6 +162,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 planeBundle.source.setPoint2(vp2[0], vp2[1], vp2[2]);
             },
         };
+    };
+
+    self.clearSTLReaders = function() {
+        stlReaders = {};
+    };
+
+    self.getSTLReader = function(file) {
+        return stlReaders[file];
     };
 
     self.isSTLFileValid = function(file) {
@@ -165,6 +213,11 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             });
     };
 
+    self.removeSTLReader = function(file) {
+        if (stlReaders[file]) {
+            delete stlReaders[file];
+        }
+    };
 
     self.stlFileType = 'stl-file';
 
@@ -222,7 +275,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
         vpObj.source = vtkSource;
         vpObj.wCoord = worldCoord;
-        vpObj.worldCorners = [];
+        vpObj.worldCorners = wCorners();  //[];
         vpObj.worldEdges = {};
 
         vpObj.viewportCorners = [];
@@ -260,7 +313,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 var compCount = 0;
                 for(var i in geometry.basis) {
                     var otherDim = geometry.basis[i];
-                    if(otherDim === dim) {
+                    if (otherDim === dim) {
                         continue;
                     }
                     var otherEdges = vpObj.vpEdgesForDimension(otherDim);
@@ -269,7 +322,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                         for(var k = 0; k <= 1; ++k) {
                             var n = edge.line().comparePoint(otherEdgeCorners[k]);
                             compCount += n;
-                            if(n !== 0) {
+                            if (n !== 0) {
                                 numCorners++;
                             }
                         }
@@ -281,7 +334,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         };
 
         vpObj.initializeWorld = function() {
-            if(! vpObj.worldReady) {
+            if (! vpObj.worldReady) {
                 vpObj.worldReady = true;
             }
         };
@@ -340,6 +393,21 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             return ex;
         };
 
+        function wCorners() {
+            // [x0, x1, y0, y1, z0, z1]
+            var b = vpObj.source.getOutputData().getBounds();
+            return [
+                geometry.pointFromArr([b[0], b[2], b[4]]),
+                geometry.pointFromArr([b[0], b[2], b[5]]),
+                geometry.pointFromArr([b[0], b[3], b[4]]),
+                geometry.pointFromArr([b[0], b[3], b[5]]),
+                geometry.pointFromArr([b[1], b[2], b[4]]),
+                geometry.pointFromArr([b[1], b[2], b[5]]),
+                geometry.pointFromArr([b[1], b[3], b[4]]),
+                geometry.pointFromArr([b[1], b[3], b[5]])
+            ];
+        }
+
         return vpObj;
     };
 
@@ -352,7 +420,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
         var initWorldFn = box.initializeWorld;
         box.initializeWorld = function () {
-            if(! box.worldReady) {
+            if (! box.worldReady) {
                 box.worldCorners = wCorners();
                 box.worldEdges = wEdges();
             }
@@ -477,14 +545,14 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.addActor = function(renderer, actor) {
-        if(! actor) {
+        if (! actor) {
             return;
         }
         renderer.addActor(actor);
     };
 
     self.removeActors = function(renderer, actorArr) {
-        if(! actorArr ) {
+        if (! actorArr ) {
             return;
         }
         actorArr.forEach(function(actor) {
@@ -494,7 +562,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     };
 
     self.removeActor = function(renderer, actor) {
-        if(! actor ) {
+        if (! actor ) {
             return;
         }
         renderer.removeActor(actor);
@@ -509,7 +577,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
     self.showActor = function(renderWindow, a, doShow, visibleOpacity, hiddenOpacity, waitToRender) {
         a.getProperty().setOpacity(doShow ? visibleOpacity || 1.0 : hiddenOpacity || 0.0);
-        if(! waitToRender) {
+        if (! waitToRender) {
             renderWindow.render();
         }
     };
@@ -521,6 +589,16 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         vtkCoord.setValue(point.coords());
         var lCoord = vtkCoord.getComputedLocalDisplayValue();
         return geometry.point(lCoord[0] / pixels, lCoord[1] / pixels);
+    };
+
+    self.vtkUserMatrixFromMatrix = function(matrix) {
+        var um = [];
+        matrix.forEach(function (row) {
+            um = um.concat(row);
+            um.push(0);
+        });
+        um = um.concat([0, 0, 0, 1]);
+        return um;
     };
 
     self.worldCoordFromLocal = function (coord, point, view) {

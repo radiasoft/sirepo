@@ -296,4 +296,54 @@ describe('geometry', function() {
 
    }));
 
+   it('should pass [minors]: ', inject(function(geometry) {
+
+       var m1 = [
+           [1, 2, 3],
+           [3, 4, 5],
+           [5, 6, 4]
+       ];
+       var mn00 = [
+           [4, 5],
+           [6, 4]
+       ];
+       var mn01 = [
+           [3, 5],
+           [5, 4]
+       ];
+       expect(geometry.matrixEquals(mn00, geometry.matrixMinor(m1, 0, 0))).toBeTruthy();
+       expect(geometry.matrixEquals(mn01, geometry.matrixMinor(m1, 0, 1))).toBeTruthy();
+
+   }));
+
+   it('should pass [invert]: ', inject(function(geometry) {
+
+       var I = [
+           [1, 0, 0],
+           [0, 1, 0],
+           [0, 0, 1]
+       ];
+       var tI = geometry.transform(I);
+       var IInv = geometry.matrixInvert(I);
+       var tIINV = geometry.transform(IInv);
+
+       // identity is its own inverse
+       expect(geometry.matrixEquals(I, IInv)).toBeTruthy();
+
+       var m1 = [
+           [1, 0, 3],
+           [4, 5, 6],
+           [7, 8, 9]
+       ];
+       var m1Inv = geometry.matrixInvert(m1);
+       var m2 = [
+           [0.25, -2, 1.25],
+           [-0.5, 1, -0.5],
+           [0.25, 2/3, -5/12]
+       ];
+       expect(geometry.matrixEquals(m1Inv, m2)).toBeTruthy();
+
+
+   }));
+
 });

@@ -14,43 +14,41 @@ SIREPO.app.service('geometry', function(utilities) {
         z: [0, 0, 1]
     };
 
-    // Used for both 2d and 3d
-    this.point = function(x, y, z) {
-        return {
-            x: x || 0,
-            y: y || 0,
-            z: z || 0,
-            coords: function () {
-                return [this.x, this.y, this.z];
-            },
-            dimension: function() {
-                return 2 + (angular.isDefined(z) ? 1 : 0);
-            },
-            dist: function (p2) {
-                if(this.dimension() != p2.dimension()) {
-                    throw 'Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension();
-                }
-                return Math.sqrt(
-                    (p2.x - this.x) * (p2.x - this.x) +
-                    (p2.y - this.y) * (p2.y - this.y) +
-                    (p2.z - this.z) * (p2.z - this.z)
-                );
-            },
-            equals: function (p2) {
-                var t = 0.0001;
-                return this.dimension() == p2.dimension() &&
-                    Math.abs(this.x - p2.x) <= t && Math.abs(this.y - p2.y) <= t && Math.abs(this.z - p2.z) <= t;
-            },
-            isInRect: function (r) {
-                return r.containsPoint(this);
-            },
-            str: function () {
-                return '(' + this.coords() + ')';  // + ' dimension ' + this.dimension();
+    this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
+        var edge;
+        var section;
+        for(var i in edges) {
+            edge = edges[i];
+            section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
+            if (section) {
+                return {
+                    full: edge,
+                    clipped: section,
+                    index: i
+                };
             }
-        };
+        }
+        return null;
     };
-    this.pointFromArr = function (arr) {
-        return this.point(arr[0], arr[1], arr[2]);
+
+    // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
+    this.extrema = function(points, dim, doReverse) {
+        var arr = svc.sortInDimension(points, dim, doReverse);
+        return arr.filter(function (point) {
+            return point[dim] == arr[0][dim];
+        });
+    };
+
+    this.geomObjArrStr = function(arr) {
+        return '[' +
+            arr.map(function (e) {
+                var strFn = e.str;
+                if (! strFn) {
+                    return '<OBJ>';
+                }
+                return strFn();
+        }) +
+            ']';
     };
 
     // 2d only
@@ -60,14 +58,15 @@ SIREPO.app.service('geometry', function(utilities) {
                 // since we do math to see if the point satisfies the line's equation,
                 // we need to specify how close we can get to account for rounding errors
                 var t = tolerance || 0.0001;
-                if(this.slope() === Infinity) {
-                    return Math.abs(p.x - point1.x) <= t;
+                if (this.slope() === Infinity) {
+                    return equalWithin(p.x, point1.x, t);  //Math.abs(p.x - point1.x) <= t;
                 }
                 var y = this.slope() * p.x + this.intercept();
-                return Math.abs(p.y - y) <= t;
+
+                return equalWithin(p.y, y, t); //Math.abs(p.y - y) <= t;
             },
             equals: function (l2) {
-                if(this.slope() === Infinity && l2.slope() === Infinity) {
+                if (this.slope() === Infinity && l2.slope() === Infinity) {
                     return this.points()[0].x === l2.points()[0].x;
                 }
                 return this.slope() === l2.slope() && this.intercept() === l2.intercept();
@@ -76,16 +75,16 @@ SIREPO.app.service('geometry', function(utilities) {
                 return point1.y - point1.x * this.slope();
             },
             intersection: function (l2) {
-                if(this.slope() === l2.slope()) {
-                    if(this.equals(l2)) {
+                if (this.slope() === l2.slope()) {
+                    if (this.equals(l2)) {
                         return this.points()[0];
                     }
                     return null;
                 }
-                if(this.slope() === Infinity) {
+                if (this.slope() === Infinity) {
                     return svc.point(point1.x, l2.slope() * point1.x + l2.intercept());
                 }
-                if(l2.slope() === Infinity) {
+                if (l2.slope() === Infinity) {
                     return svc.point(l2.points()[0].x, this.slope() * l2.points()[0].x + this.intercept());
                 }
                 return svc.point(
@@ -94,10 +93,10 @@ SIREPO.app.service('geometry', function(utilities) {
                 );
             },
             comparePoint: function(p) {
-                if(this.containsPoint(p)) {
+                if (this.containsPoint(p)) {
                     return 0;
                 }
-                if(this.slope() === Infinity) {
+                if (this.slope() === Infinity) {
                     return p.x > point1.x ? 1 : -1;
                 }
                 var y = this.slope() * p.x + this.intercept();
@@ -201,6 +200,129 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
+    this.matrixDet = function(matrix) {
+        var d = 0;
+        var len = matrix.length;
+        if (len === 2) {
+            d = matrix[0][0] * matrix[1][1] - matrix[1][0] * matrix[0][1];
+            return d;
+        }
+        for(var i in matrix) {
+            var t = 1;
+            var s = 1;
+            for(var j in matrix) {
+                var k = (i + j) % len;
+                var l = (i + len - j) % len;
+                t *= matrix[j][k];
+                s *= matrix[j][l];
+            }
+            d += (t - s);
+        }
+        return d;
+    };
+
+    this.matrixEquals = function(m1, m2) {
+        if (m1.length !== m2.length) {
+            return false;
+        }
+        for(var i in m1) {
+            for(var j in m2) {
+                if (! equalWithin(m1[i][j], m2[i][j])) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    this.matrixInvert = function(matrix) {
+        var d = svc.matrixDet(matrix);
+        if (! d) {
+            return null;
+        }
+        var mx = svc.transpose(matrix);
+        var inv = [];
+        for (var i = 0; i < mx.length; ++i) {
+            var row = mx[i];
+            var invRow = [];
+            var mult = 1;
+            for(var j = 0; j < mx.length; ++j) {
+                mult = Math.pow(-1,i + j);
+                invRow.push((mult / d) * svc.matrixDet(svc.matrixMinor(mx, i, j)));
+            }
+            inv.push(invRow);
+        }
+        return inv;
+    };
+
+    this.matrixMinor = function(matrix, row, col) {
+        var m = [];
+        for(var i = 0; i < matrix.length; ++i) {
+            var r = [];
+            for(var j = 0; j < matrix.length; ++j) {
+                if (i != row && j != col) {
+                    r.push(matrix[i][j]);
+                }
+            }
+            if (r.length > 0) {
+                m.push(r);
+            }
+        }
+        return m;
+    };
+
+    this.matrixMult = function(m1, m2) {
+        var m = [];
+        for(var i in m1) {
+            var c = [];
+            for(var j in m2) {
+                c.push(m2[j][i]);
+            }
+            m.push(svc.vectorMult(m1, c));
+        }
+        return svc.transpose(m);
+    };
+
+    // Used for both 2d and 3d
+    this.point = function(x, y, z) {
+        return {
+            x: x || 0,
+            y: y || 0,
+            z: z || 0,
+            coords: function () {
+                return [this.x, this.y, this.z];
+            },
+            dimension: function() {
+                return 2 + (angular.isDefined(z) ? 1 : 0);
+            },
+            dist: function (p2) {
+                if (this.dimension() != p2.dimension()) {
+                    throw 'Points in array have different dimensions: ' + this.dimension() + ' != ' + p2.dimension();
+                }
+                return Math.sqrt(
+                    (p2.x - this.x) * (p2.x - this.x) +
+                    (p2.y - this.y) * (p2.y - this.y) +
+                    (p2.z - this.z) * (p2.z - this.z)
+                );
+            },
+            equals: function (p2) {
+                var t = 0.0001;
+                return this.dimension() == p2.dimension() &&
+                    Math.abs(this.x - p2.x) <= t && Math.abs(this.y - p2.y) <= t && Math.abs(this.z - p2.z) <= t;
+            },
+            isInRect: function (r) {
+                return r.containsPoint(this);
+            },
+            str: function () {
+                return '(' + this.coords() + ')';  // + ' dimension ' + this.dimension();
+            }
+        };
+    };
+
+    this.pointFromArr = function (arr) {
+        return this.point(arr[0], arr[1], arr[2]);
+    };
+
     // 2d only
     this.rect = function(diagPoint1, diagPoint2) {
         return {
@@ -239,7 +361,7 @@ SIREPO.app.service('geometry', function(utilities) {
             containsRect: function (r) {
                 var crn = r.corners();
                 for(var i in crn) {
-                    if(! this.containsPoint(crn[i])) {
+                    if (! this.containsPoint(crn[i])) {
                         return false;
                     }
                 }
@@ -274,7 +396,7 @@ SIREPO.app.service('geometry', function(utilities) {
                     var rside = rs[i];
                     for(var j in ts) {
                         var tside = ts[j];
-                        if(rside.intersection(tside)) {
+                        if (rside.intersection(tside)) {
                             return true;
                         }
                     }
@@ -313,6 +435,18 @@ SIREPO.app.service('geometry', function(utilities) {
         };
     };
 
+    // Sort (with optional reversal) the point array by the values in the given dimension;
+    // Array is cloned first so the original is unchanged
+    this.sortInDimension = function (points, dim, doReverse) {
+        if (! points || ! points.length) {
+            throw svc.geomObjArrStr(points) + ': Invalid points';
+        }
+        return points.slice(0).sort(function (p1, p2) {
+            // throws an exception if the points have different dimensions
+            p1.dist(p2);
+            return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
+        });
+    };
 
     this.transform = function (matrix) {
 
@@ -323,23 +457,9 @@ SIREPO.app.service('geometry', function(utilities) {
         ];
         var xform = {};
 
-
         // simple 3d operations, no need to import a whole matrix library
         function det(matrix) {
-            var d = 0;
-            var len = matrix.length;
-            for(var i in matrix) {
-                var t = 1;
-                var s = 1;
-                for(var j in matrix) {
-                    var k = (i + j) % len;
-                    var l = (i + len - j) % len;
-                    t *= matrix[j][k];
-                    s *= matrix[j][l];
-                }
-                d += (t - s);
-            }
-            return d;
+            return svc.matrixDet(matrix);
         }
 
         function trans(matrix) {
@@ -378,21 +498,21 @@ SIREPO.app.service('geometry', function(utilities) {
         xform.matrix = matrix || identityMatrix;
 
         var l = xform.matrix.length;
-        if(l > 3 || l < 1) {
+        if (l > 3 || l < 1) {
             throw errMsg('Matrix has bad size (' + l + ')');
         }
-        if(! xform.matrix.reduce(function (ok, row) {
+        if (! xform.matrix.reduce(function (ok, row) {
                 return ok && row.length == l;
             }, true)
         ) {
             throw errMsg('Matrix is not square');
         }
-        if(det(xform.matrix) === 0) {
+        if (det(xform.matrix) === 0) {
             throw errMsg('Matrix is not invertable');
         }
 
         xform.compose = function (otherXForm) {
-            if(otherXForm.matrix.length !== l) {
+            if (otherXForm.matrix.length !== l) {
                 throw errMsg('Matrices must be same size (' + l + ' != ' + otherXForm.matrix.length);
             }
             return svc.transform(matrixMult(xform.matrix, otherXForm.matrix));
@@ -416,14 +536,11 @@ SIREPO.app.service('geometry', function(utilities) {
         };
 
         xform.equals = function(otherXForm) {
-            for(var i in xform.matrix) {
-                for(var j in xform.matrix) {
-                    if(xform.matrix[i][j] != otherXForm.matrix[i][j])  {
-                        return false;
-                    }
-                }
-            }
-            return true;
+            return svc.matrixEquals(xform.matrix, otherXForm.matrix);
+        };
+
+        xform.inverse = function() {
+            return svc.transform(svc.matrixInvert(xform.matrix));
         };
 
         xform.str = function () {
@@ -446,12 +563,12 @@ SIREPO.app.service('geometry', function(utilities) {
     this.transpose = function (matrix) {
         var m = [];
         var l = matrix.length;
-        if(! l ) {
+        if (! l ) {
             return m;
         }
         // convert 1 x l into l x 1
         var ll = matrix[0].length;
-        if(ll == 0) {
+        if (ll == 0) {
             matrix.forEach(function (entry) {
                 m.push([entry]);
             });
@@ -498,26 +615,15 @@ SIREPO.app.service('geometry', function(utilities) {
     };
 
 
-    this.bestEdgeAndSectionInBounds = function (edges, boundingRect, dim, reverse) {
-        var edge;
-        var section;
-        for(var i in edges) {
-            edge = edges[i];
-            section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
-            if(section) {
-                return {
-                    full: edge,
-                    clipped: section,
-                    index: i
-                };
-            }
-        }
-        return null;
-    };
+    // numbers are to be considered equal if they differ by less than this
+    function equalWithin(val1, val2, tolerance) {
+        var tol = tolerance || 0.0001;
+        return Math.abs(val2 - val1) < tol;
+    }
 
     function sectionOfEdgeInBounds(edge, boundingRect, dim, reverse) {
 
-        if(! edge) {
+        if (! edge) {
             return null;
         }
 
@@ -531,7 +637,7 @@ SIREPO.app.service('geometry', function(utilities) {
 
         // if the selected edge does not intersect the boundary, it
         // means both ends are off screen; so, reject it
-        if(projectedEnds.length == 0) {
+        if (projectedEnds.length == 0) {
             return null;
         }
 
@@ -544,54 +650,22 @@ SIREPO.app.service('geometry', function(utilities) {
         var uap = utilities.unique(allPoints, function (p1, p2) {
             return p1.equals(p2);
         });
-        if(uap.length < 2) {  // need 2 points to define the line segment
+        if (uap.length < 2) {  // need 2 points to define the line segment
             return null;
         }
         var section = svc.lineSegmentFromArr(svc.sortInDimension(uap, dim, reverse));
 
-        if(edgeEndsInBounds.length === 0) {
+        if (edgeEndsInBounds.length === 0) {
             return section;
         }
 
         // if the edge is showing and the line segment is too short (here half the length of the actual edge),
         // do not use it
-        if(section.length() / edge.length() > 0.5) {
+        if (section.length() / edge.length() > 0.5) {
             return section;
         }
         return null;
     }
 
-    // Returns the point(s) that have the smallest (reverse == false) or largest value in the given dimension
-    this.extrema = function(points, dim, doReverse) {
-        var arr = svc.sortInDimension(points, dim, doReverse);
-        return arr.filter(function (point) {
-            return point[dim] == arr[0][dim];
-        });
-    };
-
-    this.geomObjArrStr = function(arr) {
-        return '[' +
-            arr.map(function (e) {
-                var strFn = e.str;
-                if(! strFn) {
-                    return '<OBJ>';
-                }
-                return strFn();
-        }) +
-            ']';
-    };
-
-    // Sort (with optional reversal) the point array by the values in the given dimension;
-    // Array is cloned first so the original is unchanged
-    this.sortInDimension = function (points, dim, doReverse) {
-        if(! points || ! points.length) {
-            throw svc.geomObjArrStr(points) + ': Invalid points';
-        }
-        return points.slice(0).sort(function (p1, p2) {
-            // throws an exception if the points have different dimensions
-            p1.dist(p2);
-            return (doReverse ? -1 : 1) * (p1[dim] - p2[dim]) / Math.abs(p1[dim] - p2[dim]);
-        });
-    };
     
 });
