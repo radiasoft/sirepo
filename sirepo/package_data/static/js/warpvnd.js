@@ -966,7 +966,9 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             function caratField(elev, index, dimension, range) {
                 var rpt = warpvndService.activeComparisonReport();
                 var cell = 'Cell' + index;
-                var field = (elev === ELEVATIONS.front ? (dimension == 'x' ? 'z': 'x') : (dimension == 'y' ? 'z': 'y')) + cell;
+                var field = (elev === ELEVATIONS.front ?
+                    (dimension == 'x' ? 'z': 'x') :
+                    (dimension == 'y' ? 'z': 'y')) + cell;
                 if (appState.models[rpt][field] > range.length) {
                     appState.models[rpt][field] = range.length - 1;
                 }
@@ -1150,7 +1152,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             : 'M0,-7L0,7 14,0Z';
                     })
                     .style('cursor', function(d) {
-                        return d.dimension === 'x' ? 'ew-resize' : 'ns-resize';
+                        return d.dimension === 'x' || d.dimension === 'y' ? 'ew-resize' : 'ns-resize';
                     })
                     .style('fill', function(d) {
                         return CELL_COLORS[d.index - 1];
