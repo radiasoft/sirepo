@@ -58,10 +58,6 @@ def fixup_old_data(data):
         }
     for m in [
             'egunCurrentAnimation',
-            'fieldCalcAnimation',
-            'fieldCalculationAnimation',
-            'fieldComparisonAnimation',
-            'fieldReport',
             'impactDensityAnimation',
             'optimizer',
             'optimizerAnimation',
@@ -70,6 +66,10 @@ def fixup_old_data(data):
             'particleAnimation',
             'simulation',
             'simulationGrid',
+            'fieldCalcAnimation',
+            'fieldCalculationAnimation',
+            'fieldComparisonAnimation',
+            'fieldReport',
     ]:
         if m not in data.models:
             data.models[m] = {}
