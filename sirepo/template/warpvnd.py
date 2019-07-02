@@ -462,14 +462,14 @@ def _create_plots(dimension, params, values, ranges):
     plots = []
     color = _SCHEMA.constants.cellColors
     label_fmts = {
-        'x':  u'{:.3f} µm',
-        'y': u'{:.3f} µm',
-        'z': '{:.0f} nm'
+        'x': u'{:.0f} nm',
+        'y': u'{:.0f} nm',
+        'z': u'{:.3f} µm'
     }
     label_factors = {
-        'x': 1e6,
-        'y': 1e6,
-        'z': 1e9
+        'x': 1e9,
+        'y': 1e9,
+        'z': 1e6
     }
     x_points = {}
     for axis_idx, axis in enumerate(all_axes):
