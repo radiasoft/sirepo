@@ -26,6 +26,7 @@ SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 
 _FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
+_FIELD_ESTIMATE_FILE = 'estimates.json'
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.h5'
@@ -212,9 +213,9 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'compute_simulation_steps':
-        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
+        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldCalculationAnimation')
         if run_dir.exists():
-            res = simulation_db.read_result(run_dir)[0]
+            res = simulation_db.read_json(run_dir.join(_FIELD_ESTIMATE_FILE))
             if res and 'tof_expected' in res:
                 return {
                     'timeOfFlight': res['tof_expected'],
@@ -788,6 +789,7 @@ def _generate_parameters_file(data):
     v['stepSize'] = COMPARISON_STEP_SIZE
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
+    v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
     v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)

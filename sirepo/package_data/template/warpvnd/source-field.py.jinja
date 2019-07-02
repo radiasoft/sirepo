@@ -1,11 +1,12 @@
 
+from sirepo import simulation_db
 from sirepo.template import template_common
 
 #prevent GIST from starting upon setup
 wp.top.lprntpara = False
 wp.top.lpsplots = False
 
-field_results = pkcollections.Dict()
+field_estimates = pkcollections.Dict()
 
 wp.top.verbosity = 1 # Reduce solver verbosity
 solverE.mgverbose = 1 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
@@ -84,8 +85,9 @@ Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
 
 e_cross = sources.compute_crossing_fraction(CATHODE_TEMP, Phi_approx, zmesh)
 
-field_results.tof_expected = tof_expected
-field_results.steps_expected = steps_expected
-field_results.e_cross = e_cross
+field_estimates.tof_expected = tof_expected
+field_estimates.steps_expected = steps_expected
+field_estimates.e_cross = e_cross
+simulation_db.write_json('{{ estimateFile }}', field_estimates)
 
 wp.step({{ stepSize }})

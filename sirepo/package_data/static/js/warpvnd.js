@@ -383,9 +383,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
-        //panelState.showField('fieldReport', 'axes', is3d);
         panelState.showField('fieldCalcAnimation', 'axes', is3d);
-        //panelState.showEnum('fieldComparisonReport', 'dimension', 'y', is3d);
         panelState.showEnum(warpvndService.activeComparisonReport(), 'dimension', 'y', is3d);
     }
 
@@ -858,7 +856,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 top: 'top'
             };
 
-            var grid = appState.models.simulationGrid;
             var insetWidthPct = 0.07;
             var insetMargin = 16.0;
 
@@ -903,6 +900,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             };
 
             function alignShapeOnGrid(shape) {
+                var grid = appState.models.simulationGrid;
                 var numX = grid.num_x;
                 var n = toMicron(grid.channel_width / (numX * 2));
                 var yCenter = shape.y - shape.height / 2;
@@ -1032,6 +1030,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function d3DragLine() {
+                var grid = appState.models.simulationGrid;
                 var oldPlaneLine = planeLine;
                 planeLine = axes.z.scale.invert(d3.event.y);
                 var depth = toMicron(grid.channel_height / 2.0);
@@ -1077,6 +1076,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 if (shape.elev == ELEVATIONS.top) {
                     return true;
                 }
+                var grid = appState.models.simulationGrid;
                 var numX = grid.num_x;  // number of vertical cells
                 var halfChannel = toMicron(grid.channel_width/2.0);
                 var cellHeight = toMicron(grid.channel_width / numX);  // height of one cell
@@ -1107,6 +1107,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawCathodeAndAnode(elev) {
+                var grid = appState.models.simulationGrid;
                 var info = plotInfoForElevation(elev);
                 var viewport = select(info.viewportClass);
                 viewport.selectAll('.warpvnd-plate').remove();
@@ -1163,6 +1164,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function drawConductors(typeMap, elev) {
+                var grid = appState.models.simulationGrid;
                 var info = plotInfoForElevation(elev);
                 var shapes = [];
                 appState.models.conductors
@@ -1345,6 +1347,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     select('.z-plot-viewport .overlay').attr('class', 'overlay mouse-move-ew');
                 }
 
+                var grid = appState.models.simulationGrid;
                 var channel = toMicron(grid.channel_width);
                 axes.y.grid.tickValues(plotting.linearlySpacedArray(-channel / 2, channel / 2, grid.num_x + 1));
                 var depth = toMicron(grid.channel_height);
@@ -1367,6 +1370,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function replot() {
+                var grid = appState.models.simulationGrid;
                 plateSize = toMicron(plateSpacing) / 15;
                 var newXDomain = [-plateSize, toMicron(plateSpacing) + plateSize];
                 if (! axes.x.domain || ! appState.deepEquals(axes.x.domain, newXDomain)) {
@@ -1419,7 +1423,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function updateCarat(selection) {
-
+                var grid = appState.models.simulationGrid;
                 selection.attr('transform', function(d) {
                     var vertAxis = d.elev === ELEVATIONS.front ? axes.y : axes.z;
                     if (d.dimension === 'x' || d.dimension === 'y') {
@@ -1623,6 +1627,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     appState.whenModelsLoaded($scope, $scope.init);
                     return;
                 }
+                var grid = appState.models.simulationGrid;
                 plateSpacing = grid.plate_spacing;
                 select('svg').attr('height', plotting.initialHeight($scope));
                 $.each(axes, function(dim, axis) {
@@ -1670,6 +1675,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.tileInsetSize = function() {
                 var w = 0;
                 var h = 0;
+                var grid = appState.models.simulationGrid;
                 if($scope.isDomainTiled) {
                     w = insetWidthPct * $scope.width;
                     h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
@@ -1704,6 +1710,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             appState.whenModelsLoaded($scope, function() {
                 $scope.is3dPreview = $scope.source.usesSTL();
+                var grid = appState.models.simulationGrid;
                 $scope.$on('cancelChanges', function(e, name) {
                     if (name == 'conductors') {
                         replot();
@@ -1714,7 +1721,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     plateSpacing = grid.plate_spacing;
                     replot();
                 });
-                //$scope.$on('fieldComparisonReport.changed', replot);
                 $scope.$on(warpvndService.activeComparisonReport() + '.changed', replot);
             });
         },
@@ -2994,7 +3000,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 ];
                 a.addPosition(offsetPos);
                 a.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
-                //stlActor.getProperty().setEdgeVisibility(true);
+                //a.getProperty().setEdgeVisibility(true);
                 a.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(a);
                 stlActors[conductor.id] = a;
