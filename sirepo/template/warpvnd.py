@@ -88,38 +88,30 @@ def fixup_old_data(data):
 
 
 def generate_field_comparison_report(data, run_dir, args=None):
-    pkdp('!GEN F CMP ARGS {}', args)
     params = args if args is not None else data['models']['fieldComparisonAnimation']
     grid = data['models']['simulationGrid']
     dimension = params['dimension']
-    pkdp('!GEN F CMP DIM {}', dimension)
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
-        if dimension == 'x':
-            v = values[:, int(grid.num_y / 2.) if _is_3D(data) else 0, int(grid.num_z / 2.)]
-        if dimension == 'y':
-            v = values[int(grid.num_x / 2.), :, int(grid.num_z / 2.)]
-        if dimension == 'z':
-            v = values[int(grid.num_x / 2.), int(grid.num_y / 2.) if _is_3D(data) else 0, :]
-
-        values = values[:, 0, :]
-    pkdp('!F CMP VALS {} N {} M {}', values, len(values), len(values[0]))
-    pkdp('!F DIM {} VALS {} N {}', dimension, v, len(v))
+        values = values[()]
 
     radius = _meters(data['models']['simulationGrid']['channel_width'] / 2.)
     half_height = _meters(grid['channel_height'] / 2.)
+    ranges = {
+        'x': [-radius, radius],
+        'y': [-half_height, half_height],
+        'z': [0, _meters(grid['plate_spacing'])]
+    }
     x_range = [-radius, radius]
     y_range = [-half_height, half_height]
     z_range = [0, _meters(grid['plate_spacing'])]
     if dimension == 'x':
-        r = x_range
+        plot_range = x_range
     elif dimension == 'y':
-        r = y_range
+        plot_range = y_range
     else:
-        r = z_range
-    plots, plot_y_range = _create_plots(dimension, params, values, z_range if dimension == 'x' else x_range)
-    #plots, plot_y_range = _create_plots(dimension, params, v, r)
-    plot_range = x_range if dimension == 'x' else z_range
+        plot_range = z_range
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges)
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -270,7 +262,6 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 
 def get_simulation_frame(run_dir, data, model_data):
     md = pkcollections.Dict(model_data)
-    pkdp('!FRAME FROM {}', data['modelName'])
     frame_index = int(data['frameIndex'])
     if data['modelName'] == 'currentAnimation':
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
@@ -291,11 +282,9 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_optimization_results(run_dir, model_data, args)
     if data['modelName'] == 'fieldCalcAnimation':
         args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
-        pkdp('!FCA args {}', args)
         return generate_field_report(md, run_dir, args=args)
     if data['modelName'] == 'fieldComparisonAnimation':
         args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
-        pkdp('!FCMPA args {}', args)
         return generate_field_comparison_report(md, run_dir, args=args)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
@@ -323,9 +312,6 @@ def models_related_to_report(data):
     for container in ('conductors', 'conductorTypes'):
         for m in data.models[container]:
             res.append(_non_opt_fields_to_array(m))
-    #if data['report'] != 'fieldComparisonReport':
-    #if data.report == 'fieldReport' or data.report == 'fieldComparisonReport':
-    #    res.append('fieldCalculation')
     res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
 
@@ -469,50 +455,55 @@ def _compute_delta_for_field(data, bounds, field):
     bounds += [res if res else bounds[1], True]
 
 
-#TODO(mvk): slices
-def _create_plots(dimension, params, values, x_range):
-    #params = data['models']['fieldComparisonAnimation']
-    other_axes = re.sub('[' + dimension + ']', '', 'xyz')
-    pkdp('!PLOTS dim {} axes {}', dimension, other_axes)
+def _create_plots(dimension, params, values, ranges):
+    all_axes = 'xyz'
+    other_axes = re.sub('[' + dimension + ']', '', all_axes)
     y_range = None
-    visited = {}
     plots = []
     color = _SCHEMA.constants.cellColors
-    max_index = values.shape[1] if dimension == 'x' else values.shape[0]
-    #max_index = len(values) - 1
-    pkdp('!PLOTS RANGE {} SHAPE {} MAX {}', x_range, values.shape, max_index)
-    x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
-    #x_points = np.linspace(x_range[0], x_range[1], len(values))
-    for i in (1, 2, 3):
-        for axis in other_axes:
-            g = '{}Cell{}'.format(axis, i)
-            j = params[g]
-            #pkdp('!AXIS {} CELL {} J {}', axis, g, j)
-        f = '{}Cell{}'.format('z' if dimension == 'x' else 'x', i)
-        index = int(params[f])
-        pkdp('!CELL {} I {}', f, index)
-        if index >= max_index:
-            pkdp('!PLOTS I {} OVER MAX {}', index, max_index)
-            index = max_index - 1
-        if index in visited:
-            pkdp('!PLOTS ALREADY VISITED I {}', index)
+    label_fmts = {
+        'x':  u'{:.3f} µm',
+        'y': u'{:.3f} µm',
+        'z': '{:.0f} nm'
+    }
+    label_factors = {
+        'x': 1e6,
+        'y': 1e6,
+        'z': 1e9
+    }
+    x_points = {}
+    for axis_idx, axis in enumerate(all_axes):
+        if axis not in other_axes:
             continue
-        visited[index] = True
+        x_points[axis] = np.linspace(ranges[axis][0], ranges[axis][1], values.shape[axis_idx])
+    for i in (1, 2, 3):
+        other_indices = {}
+        for axis_idx, axis in enumerate(all_axes):
+            if axis not in other_axes:
+                continue
+            f = '{}Cell{}'.format(axis, i)
+            index = int(params[f])
+            max_index = values.shape[axis_idx]
+            if index >= max_index:
+                index = max_index - 1
+            other_indices[axis] = index
         if dimension == 'x':
-            points = values[:, index].tolist()
+            points = values[:, other_indices['y'], other_indices['z']].tolist()
+        elif dimension == 'y':
+            points = values[other_indices['x'], :, other_indices['z']].tolist()
         else:
-            points = values[index, :].tolist()
-        #points = values.tolist()
-        pkdp('!PLOTS PTS {} N {}', points, len(points))
-        if dimension == 'x' or dimension == 'y':
-            pos = u'{:.3f} µm'.format(x_points[index] * 1e6)
-        else:
-            pos = '{:.0f} nm'.format(x_points[index] * 1e9)
+            points = values[other_indices['x'], other_indices['y'], :].tolist()
+
+        label = ''
+        for axis in other_indices:
+            v = x_points[axis][other_indices[axis]]
+            pos = label_fmts[axis].format(v * label_factors[axis])
+            label = label + u'{} Location {} '.format(axis.upper(), pos)
         plots.append({
             'points': points,
             #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': color[i - 1],
-            'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
+            'label': label
         })
         if y_range:
             y_range[0] = min(y_range[0], min(points))
@@ -765,7 +756,6 @@ def _find_by_id(container, id):
 
 
 def _get_slice_index(x, min_x, dx, max_index):
-    pkdp('!SLICE INDEX val {} min val {} dx {} max {}: {}', x, min_x, dx, max_index, min(max_index, max(0, int(round((x - min_x) / dx)))))
     return min(max_index, max(0, int(round((x - min_x) / dx))))
 
 
@@ -822,7 +812,6 @@ def _generate_parameters_file(data):
     elif data['report'] == 'optimizerAnimation':
         res += _render_jinja('parameters-optimize', v)
     else:
-        pkdp('!GEN PARAM FIELD {}', data.report)
         res += _render_jinja('source-field', v)
         #res += _render_jinja('source-field-test', v)
     return res, v
