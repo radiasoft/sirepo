@@ -103,15 +103,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'y': [-half_height, half_height],
         'z': [0, _meters(grid['plate_spacing'])]
     }
-    x_range = [-radius, radius]
-    y_range = [-half_height, half_height]
-    z_range = [0, _meters(grid['plate_spacing'])]
-    if dimension == 'x':
-        plot_range = x_range
-    elif dimension == 'y':
-        plot_range = y_range
-    else:
-        plot_range = z_range
+    plot_range = ranges[dimension]
     plots, plot_y_range = _create_plots(dimension, params, values, ranges)
     return {
         'title': 'Comparison of E {}'.format(dimension),
