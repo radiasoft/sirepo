@@ -2613,7 +2613,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             // if we have stl-type conductors, we might need to rescale the grid for drawing
             // (easier and faster than scaling the data)
             var toMetersFactor = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
-            var toMicronFactor = 1e-6;
+            var toMicronFactor = 1.0;
             var gridOffsets = [0, 0, 0];
             var domain = {
                 width: 1,
