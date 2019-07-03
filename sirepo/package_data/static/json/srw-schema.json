@@ -352,6 +352,18 @@
             "harmonic": ["Harmonic", "HarmonicList", "5"],
             "notes": ["Notes", "Text", ""]
         },
+        "coherenceXAnimation": {
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
+        "coherenceYAnimation": {
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
             "position": ["Nominal Position [m]", "Float"],
@@ -631,7 +643,8 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
-            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
+            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
+            "calcCoherence": ["Calculate Degree of Coherence in addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -893,6 +906,34 @@
                 "energyPointCount",
                 "reportType",
                 "notes"
+            ]
+        },
+        "coherenceXAnimation": {
+            "title": "Degree of Coherence vs. X",
+            "basic": [],
+            "advanced": [
+                ["Scale", [
+                    "intensityPlotsWidth",
+                    "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap",
+                    "aspectRatio"
+                ]]
+            ]
+        },
+        "coherenceYAnimation": {
+            "title": "Degree of Coherence vs. Y",
+            "basic": [],
+            "advanced": [
+                ["Scale", [
+                    "intensityPlotsWidth",
+                    "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap",
+                    "aspectRatio"
+                ]]
             ]
         },
         "crl": {
@@ -1404,6 +1445,7 @@
                     "numberOfMacroElectrons",
                     "integrationMethod",
                     "photonEnergyBandWidth",
+                    "calcCoherence",
                     "notes"
                 ]],
                 ["Scale", [
