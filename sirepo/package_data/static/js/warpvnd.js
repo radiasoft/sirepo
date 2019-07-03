@@ -347,11 +347,9 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         var dims = warpvndService.is3D() ? ['x', 'y', 'z'] : ['x', 'z'];
         ['1', '2', '3'].forEach(function(i) {
             dims.forEach(function (d) {
-                //panelState.showField('fieldComparisonReport', d + 'Cell' + i, dim != d);
                 panelState.showField(rpt, d + 'Cell' + i, dim != d);
             });
             if (! warpvndService.is3D()) {
-                //panelState.showField('fieldComparisonReport', 'yCell' + i, false);
                 panelState.showField(rpt, 'yCell' + i, false);
             }
         });
@@ -500,7 +498,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     $scope.$on('cancelChanges', function(e, name) {
         if (isModelConductorType(name)) {
-        //if (name == 'box') {
             appState.removeModel(name);
             appState.cancelChanges('conductorTypes');
         }
@@ -541,7 +538,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
-        //appState.watchModelFields($scope, ['fieldComparisonReport.dimension'], updateFieldComparison);
         appState.watchModelFields($scope, [warpvndService.activeComparisonReport() + '.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
             var t = i[SIREPO.INFO_INDEX_TYPE];
@@ -2217,20 +2213,14 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                 $scope.model.units = 'µm';
             });
 
-            //appState.watchModelFields($scope, ['fieldReport.axes'], updateSliceRange);
             appState.watchModelFields($scope, ['fieldCalcAnimation.axes'], updateSliceRange);
             appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSliceRange);
 
             // the DOM for editors does not exist until they appear, so we must show/hide fields this way
-            //$scope.$on('fieldReport.editor.show', function () {
             $scope.$on('fieldCalcAnimation.editor.show', function () {
                 if (! slider) {
-                    //slider = $('#fieldReport-slice-range');
                     slider = $('#fieldCalcAnimation-slice-range');
                 }
-
-                //panelState.showField('fieldReport', 'axes', warpvndService.is3D());
-                //panelState.showField('fieldReport', 'slice', warpvndService.is3D());
                 panelState.showField('fieldCalcAnimation', 'axes', warpvndService.is3D());
                 panelState.showField('fieldCalcAnimation', 'slice', warpvndService.is3D());
 
