@@ -991,7 +991,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             ) + ' for Finite Emittance Electron Beam';
         }
         else {
-            repName = title + ' Report';
+            repName = title;
         }
         repName += ', ' + distance;
         tag.text(repName);

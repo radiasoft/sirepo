@@ -893,7 +893,7 @@
             ]
         },
         "brillianceReport": {
-            "title": "Brightness Report",
+            "title": "Brightness",
             "basic": [],
             "advanced": [
                 "brightnessComponent",
@@ -1302,7 +1302,7 @@
             ]
         },
         "initialIntensityReport": {
-            "title": "Initial Intensity Report",
+            "title": "Initial Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1324,7 +1324,7 @@
             ]
         },
         "intensityReport": {
-            "title": "Single-Electron Spectrum Report",
+            "title": "Single-Electron Spectrum",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1435,7 +1435,7 @@
             "advanced": []
         },
         "multiElectronAnimation": {
-            "title": "Partially Coherent Intensity Report",
+            "title": "Partially Coherent Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1478,7 +1478,7 @@
             ]
         },
         "powerDensityReport": {
-            "title": "Power Density Report",
+            "title": "Power Density",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1596,7 +1596,7 @@
             "advanced": []
         },
         "sourceIntensityReport": {
-            "title": "Intensity Report",
+            "title": "Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1758,7 +1758,7 @@
             ]
         },
         "trajectoryReport": {
-            "title": "Electron Trajectory Report",
+            "title": "Electron Trajectory",
             "basic": [],
             "advanced": [
                 "timeMomentEstimation",
@@ -1819,7 +1819,7 @@
             ]
         },
         "watchpointReport": {
-            "title": "Watchpoint Report",
+            "title": "Watchpoint",
             "basic": [],
             "advanced": [
                 ["Main", [
