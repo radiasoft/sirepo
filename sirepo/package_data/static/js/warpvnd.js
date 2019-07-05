@@ -265,8 +265,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
                 var bounds = r.getOutputData().getBounds();
                 t.scale = initScale(bounds);
                 t.zLength = normalizeToum(Math.abs(bounds[5] - bounds[4]), t.scale);
-                t.xLength = normalizeToum(Math.abs(bounds[3] - bounds[2]), t.scale);
-                t.yLength = normalizeToum(Math.abs(bounds[1] - bounds[0]), t.scale);
+                t.xLength = normalizeToum(Math.abs(bounds[1] - bounds[0]), t.scale);
+                t.yLength = normalizeToum(Math.abs(bounds[3] - bounds[2]), t.scale);
                 appState.models.simulationGrid.plate_spacing = Math.max(appState.models.simulationGrid.plate_spacing, t.zLength);
                 appState.models.simulationGrid.channel_width = Math.max(appState.models.simulationGrid.channel_width, t.xLength);
                 appState.models.simulationGrid.channel_height = Math.max(appState.models.simulationGrid.channel_height, t.yLength);
@@ -276,8 +276,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
                         id: appState.maxId(appState.models.conductors) + 1,
                         conductorTypeId: t.id,
                         zCenter: normalizeToum(bounds[4], t.scale) + t.zLength / 2.0,
-                        xCenter: normalizeToum(bounds[2], t.scale) + t.xLength / 2.0,
-                        yCenter: normalizeToum(bounds[0], t.scale) + t.yLength / 2.0,
+                        xCenter: normalizeToum(bounds[0], t.scale) + t.xLength / 2.0,
+                        yCenter: normalizeToum(bounds[2], t.scale) + t.yLength / 2.0,
                     };
                     appState.models.conductors.push(c);
                     appState.saveChanges('conductors');
@@ -473,7 +473,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     self.handleModalShown = function(name) {
         updateAllFields();
-        //if (name == 'fieldComparisonReport') {
         if (name == warpvndService.activeComparisonReport()) {
             updateFieldComparison();
         }
@@ -1164,9 +1163,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var info = plotInfoForElevation(elev);
                 var shapes = [];
                 appState.models.conductors
-                    .filter(function (c) {
-                        return warpvndService.getConductorType(c) === 'box';
-                    }).forEach(function(conductorPosition, cpi) {
+                    .forEach(function(conductorPosition) {
                         var conductorType = typeMap[conductorPosition.conductorTypeId];
                         var w = toMicron(conductorType.zLength);
                         var h = toMicron(conductorType[info.lengthField]);
@@ -1694,9 +1691,9 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             };
 
             $scope.toggle3dPreview = function() {
-                if(! $scope.source.usesSTL()) {
+                //if(! $scope.source.usesSTL()) {
                     $scope.is3dPreview = !$scope.is3dPreview;
-                }
+                //}
             };
 
             $scope.toggleTiledDomain = function() {
@@ -2745,7 +2742,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             // if we have stl-type conductors, we might need to rescale the grid for drawing
             // (easier and faster than scaling the data)
             var toMetersFactor = Math.min.apply(null, warpvndService.stlScaleRanges.scale);
-            var toMicronFactor = 1e-6;
+            var toMicronFactor = 1.0;
             var gridOffsets = [0, 0, 0];
             var domain = {
                 width: 1,
@@ -2929,7 +2926,13 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 refresh();
             }
 
-            var labMatrix = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
+            //var labMatrix = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
+            var labMatrix = [
+                0, 1, 0, 0,
+                0, 0, -1, 0,
+                1, 0, 0, 0,
+                0, 0, 0, 1
+            ];  //stl
             //var labMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];  //unit
 
             function loadConductor(conductor, type) {
@@ -3373,8 +3376,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
             function buildSTLCoordMapper(scale) {
                 var t1 = geometry.transform([
-                    [0, 0, 1],
                     [0, 1, 0],
+                    [0, 0, -1],
                     [1, 0, 0]
                 ]);
                 var t2 = geometry.transform(
@@ -3396,8 +3399,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
                 // the conductor centers are in microns
                 var offsetPos = [
-                    toMicronFactor * conductor.xCenter - xOffset,
                     toMicronFactor * conductor.yCenter - yOffset,
+                    toMicronFactor * conductor.xCenter - xOffset,
                     toMicronFactor * conductor.zCenter - zOffset
                 ];
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
