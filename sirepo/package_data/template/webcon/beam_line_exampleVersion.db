@@ -1,6 +1,0 @@
-record(lsi, "$(user):beam_line_example:version") {
-    field(DTYP, "beam_line_example version")
-    field(DESC, "Version string")
-    field(SIZV, "$(SIZV=200)")
-    field(PINI, "YES")
-}
