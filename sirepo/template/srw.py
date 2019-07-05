@@ -264,8 +264,8 @@ def extract_report_data(filename, model_data):
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Degree of Coherence'], ['m', 'm', '']],
+        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Degree of Coherence'], ['m', 'm', '']],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
@@ -1867,13 +1867,15 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
-
+    z_label = z_label
+    if z_units:
+        z_label += ' [' + z_units + ']'
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
-        'z_label': _superscript(z_label + ' [' + z_units + ']'),
+        'z_label': _superscript(z_label),
         'title': info['title'],
         'subtitle': info['subtitle'],
         'z_matrix': ar2d.tolist(),
