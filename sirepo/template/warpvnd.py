@@ -157,6 +157,7 @@ def generate_field_report(data, run_dir, args=None):
 
     x_max = len(values[0])
     y_max = len(values)
+    vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
     if axes == 'xz':
         xr = [0, plate_spacing, x_max]
         yr = [- radius, radius, y_max]
@@ -188,8 +189,8 @@ def generate_field_report(data, run_dir, args=None):
         'y_label': y_label,
         'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, phi_slice),
         'z_matrix': values.tolist(),
-        'global_min': np.min(potential),
-        'global_max': np.max(potential),
+        'global_min': np.min(potential) if vals_equal else None,
+        'global_max': np.max(potential) if vals_equal else None,
         'frequency_title': 'Volts'
     }
 
