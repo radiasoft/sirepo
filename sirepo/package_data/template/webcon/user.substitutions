@@ -1,9 +1,0 @@
-# Example substitutions file
-
-file "beam_line_settings.db" {
-    { user = "vagrant" }
-}
-
-file "beam_line_readings.db" {
-    { user = "vagrant" }
-}

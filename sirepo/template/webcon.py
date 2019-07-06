@@ -32,25 +32,25 @@ import sympy
 SIM_TYPE = 'webcon'
 
 BPM_FIELDS = [
-    'vagrant:bpm1:hpos',
-    'vagrant:bpm1:vpos',
-    'vagrant:bpm2:hpos',
-    'vagrant:bpm2:vpos',
-    'vagrant:bpm3:hpos',
-    'vagrant:bpm3:vpos',
-    'vagrant:bpm4:hpos',
-    'vagrant:bpm4:vpos',
+    'sr_epics:bpm1:hpos',
+    'sr_epics:bpm1:vpos',
+    'sr_epics:bpm2:hpos',
+    'sr_epics:bpm2:vpos',
+    'sr_epics:bpm3:hpos',
+    'sr_epics:bpm3:vpos',
+    'sr_epics:bpm4:hpos',
+    'sr_epics:bpm4:vpos',
 ]
 
 CURRENT_FIELDS = [
-    'vagrant:corrector1:HCurrent',
-    'vagrant:corrector1:VCurrent',
-    'vagrant:corrector2:HCurrent',
-    'vagrant:corrector2:VCurrent',
-    'vagrant:corrector3:HCurrent',
-    'vagrant:corrector3:VCurrent',
-    'vagrant:corrector4:HCurrent',
-    'vagrant:corrector4:VCurrent',
+    'sr_epics:corrector1:HCurrent',
+    'sr_epics:corrector1:VCurrent',
+    'sr_epics:corrector2:HCurrent',
+    'sr_epics:corrector2:VCurrent',
+    'sr_epics:corrector3:HCurrent',
+    'sr_epics:corrector3:VCurrent',
+    'sr_epics:corrector4:HCurrent',
+    'sr_epics:corrector4:VCurrent',
 ]
 
 
@@ -431,12 +431,8 @@ def lib_files(data, source_lib):
     report = data.report if 'report' in data else None
     if report == 'epicsServerAnimation':
         res += [
-	    'beam_line_readings.db',
-            'beam_line_example.dbd',
-            'beam_line_exampleVersion.db',
-            'beam_line_settings.db',
+            'beam_line_example.db',
             'epics-boot.cmd',
-            'user.substitutions',
         ]
     elif data.models.analysisData.file:
         res.append(_analysis_data_file(data))
@@ -873,8 +869,8 @@ def _generate_parameters_file(run_dir, data):
         if el.type == 'KICKER':
             kicker_values += [el.hkick, el.vkick]
             count += 1
-            el.hkick = '{' + 'vagrant_corrector{}_HCurrent'.format(count) + '}'
-            el.vkick = '{' + 'vagrant_corrector{}_VCurrent'.format(count) + '}'
+            el.hkick = '{' + 'sr_epics_corrector{}_HCurrent'.format(count) + '}'
+            el.vkick = '{' + 'sr_epics_corrector{}_VCurrent'.format(count) + '}'
     if run_dir:
         np.save(str(run_dir.join(CURRENT_FILE)), np.array([CURRENT_FIELDS, kicker_values]))
     res, v = template_common.generate_parameters_file(data)
@@ -1156,7 +1152,7 @@ def _read_monitor_file(monitor_path, history=False):
         t = datetime.strptime(timestamp.strip(), '%Y-%m-%d %H:%M:%S.%f')
         min_time = min(min_time, t)
         var_value = m.group(3)
-        var_name = re.sub(r'^vagrant:', '', var_name)
+        var_name = re.sub(r'^sr_epics:', '', var_name)
         var_name = re.sub(r':', '_', var_name)
         if not history:
             monitor_values[var_name] = float(var_value)
@@ -1286,7 +1282,7 @@ def _tokenize_equation(eq):
 def _update_epics_kicker(data):
     epics_settings = data.epicsServerAnimation
     # data validation is done by casting values to int() or float()
-    prefix = 'vagrant:corrector{}:'.format(int(data['epics_field']))
+    prefix = 'sr_epics:corrector{}:'.format(int(data['epics_field']))
     fields = []
     values = []
     for f in 'h', 'v':
