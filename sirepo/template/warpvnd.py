@@ -25,6 +25,8 @@ COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 
+_FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
+_FIELD_ESTIMATE_FILE = 'estimates.json'
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
 _DENSITY_FILE = 'density.h5'
@@ -44,7 +46,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
-    return _simulation_percent_complete(run_dir, is_running)
+    return _simulation_percent_complete(report, run_dir, is_running)
 
 
 def fixup_old_data(data):
@@ -56,7 +58,6 @@ def fixup_old_data(data):
         }
     for m in [
             'egunCurrentAnimation',
-            'fieldReport',
             'impactDensityAnimation',
             'optimizer',
             'optimizerAnimation',
@@ -65,10 +66,14 @@ def fixup_old_data(data):
             'particleAnimation',
             'simulation',
             'simulationGrid',
+            'fieldCalcAnimation',
+            'fieldCalculationAnimation',
+            'fieldComparisonAnimation',
+            'fieldReport',
     ]:
         if m not in data.models:
             data.models[m] = {}
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
     types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
@@ -80,47 +85,37 @@ def fixup_old_data(data):
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    grid = data.models.simulationGrid
-    if 'fieldComparisonReport' not in data.models:
-        data.models.fieldComparisonReport = {
-            'dimension': 'x',
-            'xCell1': 0,
-            'xCell2': int(grid.num_x / 2.),
-            'xCell3': grid.num_x,
-            'zCell1': 0,
-            'zCell2': int(grid.num_z / 2.),
-            'zCell3': grid.num_z,
-        }
-    # assume if one is missing all are
-    if 'yCell1' not in data.models.fieldComparisonReport:
-        data.models.fieldComparisonReport['yCell1'] = 0
-        data.models.fieldComparisonReport['yCell2'] = int(grid.num_y / 2.) if _is_3D(data) else 0
-        data.models.fieldComparisonReport['yCell3'] = grid.num_y if _is_3D(data) else 0
     template_common.organize_example(data)
 
 
-def generate_field_comparison_report(data, run_dir):
-    params = data['models']['fieldComparisonReport']
+def generate_field_comparison_report(data, run_dir, args=None):
+    params = args if args is not None else data['models']['fieldComparisonAnimation']
+    grid = data['models']['simulationGrid']
     dimension = params['dimension']
     with h5py.File(str(py.path.local(run_dir).join(_COMPARISON_FILE))) as f:
         values = f['data/{}/meshes/E/{}'.format(COMPARISON_STEP_SIZE, dimension)]
-        values = values[:, 0, :]
+        values = values[()]
+
     radius = _meters(data['models']['simulationGrid']['channel_width'] / 2.)
-    x_range = [-radius, radius]
-    z_range = [0, _meters(data['models']['simulationGrid']['plate_spacing'])]
-    plots, y_range = _create_plots(dimension, data, values, z_range if dimension == 'x' else x_range)
-    plot_range = x_range if dimension == 'x' else z_range
+    half_height = _meters(grid['channel_height'] / 2.)
+    ranges = {
+        'x': [-radius, radius],
+        'y': [-half_height, half_height],
+        'z': [0, _meters(grid['plate_spacing'])]
+    }
+    plot_range = ranges[dimension]
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges)
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
         'x_label': '{} [m]'.format(dimension),
-        'y_range': y_range,
+        'y_range': plot_y_range,
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
     }
 
 
-def generate_field_report(data, run_dir):
+def generate_field_report(data, run_dir, args=None):
 
     grid = data.models.simulationGrid
     plate_spacing = grid.plate_spacing * 1e-6
@@ -136,12 +131,15 @@ def generate_field_report(data, run_dir):
     potential = np.array(template_common.h5_to_dict(hf, path='potential'))
     hf.close()
 
+    axes = args.axes if args is not None else data.models.fieldReport.axes
+    axes = axes if _is_3D(data) else 'xz'
+    axes = axes if axes is not None else 'xz'
+    phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
+
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
         # 3d results
-        phi_slice = data.models.fieldReport.slice
-        axes = data.models.fieldReport.axes
         if axes == 'xz':
             values = potential[
                      :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
@@ -155,13 +153,11 @@ def generate_field_report(data, run_dir):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    axes = data.models.fieldReport.axes if _is_3D(data) else 'xz'
-    axes = axes if axes is not None else 'xz'
     other_axis = re.sub('[' + axes + ']', '', 'xyz')
 
-    slice = data.models.fieldReport.slice
     x_max = len(values[0])
     y_max = len(values)
+    vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
     if axes == 'xz':
         xr = [0, plate_spacing, x_max]
         yr = [- radius, radius, y_max]
@@ -191,23 +187,28 @@ def generate_field_report(data, run_dir):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, slice),
+        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, phi_slice),
         'z_matrix': values.tolist(),
+        'global_min': np.min(potential) if vals_equal else None,
+        'global_max': np.max(potential) if vals_equal else None,
         'frequency_title': 'Volts'
     }
 
 
+# use concept of "runner" animation?
 def get_animation_name(data):
     if data['modelName'] == 'optimizerAnimation':
         return data['modelName']
+    if data['modelName'] in _FIELD_ANIMATIONS:
+        return 'fieldCalculationAnimation'
     return 'animation'
 
 
 def get_application_data(data):
     if data['method'] == 'compute_simulation_steps':
-        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldReport')
+        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldCalculationAnimation')
         if run_dir.exists():
-            res = simulation_db.read_result(run_dir)[0]
+            res = simulation_db.read_json(run_dir.join(_FIELD_ESTIMATE_FILE))
             if res and 'tof_expected' in res:
                 return {
                     'timeOfFlight': res['tof_expected'],
@@ -254,6 +255,7 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 
 
 def get_simulation_frame(run_dir, data, model_data):
+    md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
     if data['modelName'] == 'currentAnimation':
         data_file = open_data_file(run_dir, data['modelName'], frame_index)
@@ -272,6 +274,12 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'optimizerAnimation':
         args = template_common.parse_animation_args(data, {'': ['x', 'y']})
         return _extract_optimization_results(run_dir, model_data, args)
+    if data['modelName'] == 'fieldCalcAnimation':
+        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
+        return generate_field_report(md, run_dir, args=args)
+    if data['modelName'] == 'fieldComparisonAnimation':
+        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
+        return generate_field_comparison_report(md, run_dir, args=args)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
@@ -298,8 +306,7 @@ def models_related_to_report(data):
     for container in ('conductors', 'conductorTypes'):
         for m in data.models[container]:
             res.append(_non_opt_fields_to_array(m))
-    if data['report'] != 'fieldComparisonReport':
-        res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
+    res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
     return res
 
 
@@ -347,7 +354,7 @@ def python_source_for_model(data, model):
 
 
 def remove_last_frame(run_dir):
-    for m in ('currentAnimation', 'fieldAnimation'):
+    for m in ('currentAnimation', 'fieldAnimation', 'fieldCalculationAnimation'):
         files = _h5_file_list(run_dir, m)
         if len(files) > 0:
             pkio.unchecked_remove(files[-1])
@@ -442,35 +449,55 @@ def _compute_delta_for_field(data, bounds, field):
     bounds += [res if res else bounds[1], True]
 
 
-def _create_plots(dimension, data, values, x_range):
-    params = data['models']['fieldComparisonReport']
+def _create_plots(dimension, params, values, ranges):
+    all_axes = 'xyz'
+    other_axes = re.sub('[' + dimension + ']', '', all_axes)
     y_range = None
-    visited = {}
     plots = []
     color = _SCHEMA.constants.cellColors
-    max_index = values.shape[1] if dimension == 'x' else values.shape[0]
-    x_points = np.linspace(x_range[0], x_range[1], values.shape[1] if dimension == 'x' else values.shape[0])
-    for i in (1, 2, 3):
-        f = '{}Cell{}'.format('z' if dimension == 'x' else 'x', i)
-        index = params[f]
-        if index >= max_index:
-            index = max_index - 1
-        if index in visited:
+    label_fmts = {
+        'x': u'{:.0f} nm',
+        'y': u'{:.0f} nm',
+        'z': u'{:.3f} µm'
+    }
+    label_factors = {
+        'x': 1e9,
+        'y': 1e9,
+        'z': 1e6
+    }
+    x_points = {}
+    for axis_idx, axis in enumerate(all_axes):
+        if axis not in other_axes:
             continue
-        visited[index] = True
+        x_points[axis] = np.linspace(ranges[axis][0], ranges[axis][1], values.shape[axis_idx])
+    for i in (1, 2, 3):
+        other_indices = {}
+        for axis_idx, axis in enumerate(all_axes):
+            if axis not in other_axes:
+                continue
+            f = '{}Cell{}'.format(axis, i)
+            index = int(params[f])
+            max_index = values.shape[axis_idx]
+            if index >= max_index:
+                index = max_index - 1
+            other_indices[axis] = index
         if dimension == 'x':
-            points = values[:, index].tolist()
+            points = values[:, other_indices['y'], other_indices['z']].tolist()
+        elif dimension == 'y':
+            points = values[other_indices['x'], :, other_indices['z']].tolist()
         else:
-            points = values[index, :].tolist()
-        if dimension == 'x':
-            pos = u'{:.3f} µm'.format(x_points[index] * 1e6)
-        else:
-            pos = '{:.0f} nm'.format(x_points[index] * 1e9)
+            points = values[other_indices['x'], other_indices['y'], :].tolist()
+
+        label = ''
+        for axis in other_indices:
+            v = x_points[axis][other_indices[axis]]
+            pos = label_fmts[axis].format(v * label_factors[axis])
+            label = label + u'{} Location {} '.format(axis.upper(), pos)
         plots.append({
             'points': points,
             #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
             'color': color[i - 1],
-            'label': u'{} Location {}'.format('Z' if dimension == 'x' else 'X', pos),
+            'label': label
         })
         if y_range:
             y_range[0] = min(y_range[0], min(points))
@@ -487,6 +514,25 @@ def _cull_particle_point(curr, next, prev):
        or _particle_line_has_slope(curr, next, prev, 1, 2):
         return False
     return True
+
+
+# defaults that depend on the current data
+def _dynamic_defaults(data, model):
+    if model == 'fieldComparisonAnimation' or model == 'fieldComparisonReport':
+        grid = data.models.simulationGrid
+        return {
+            'dimension': 'x',
+            'xCell1': 0,
+            'xCell2': int(grid.num_x / 2.),
+            'xCell3': grid.num_x,
+            'yCell1': 0,
+            'yCell2': int(grid.num_y / 2.) if _is_3D(data) else 0,
+            'yCell3': grid.num_y if _is_3D(data) else 0,
+            'zCell1': 0,
+            'zCell2': int(grid.num_z / 2.),
+            'zCell3': grid.num_z,
+        }
+    return None
 
 
 def _extract_current(data, data_file):
@@ -733,8 +779,10 @@ def _generate_parameters_file(data):
     v['particlePeriod'] = _PARTICLE_PERIOD
     v['particleFile'] = _PARTICLE_FILE
     v['potentialFile'] = _POTENTIAL_FILE
+    v['stepSize'] = COMPARISON_STEP_SIZE
     v['densityFile'] = _DENSITY_FILE
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
+    v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
     v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
@@ -959,7 +1007,17 @@ def _replace_optimize_variables(data, v):
             v['{}_{}'.format(m, f)] = value
 
 
-def _simulation_percent_complete(run_dir, is_running):
+def _simulation_percent_complete(report, run_dir, is_running):
+    if report == 'fieldCalculationAnimation':
+        if run_dir.join(_POTENTIAL_FILE).exists():
+            return pkcollections.Dict({
+                'percentComplete': 100,
+                'frameCount': 1,
+            })
+        return pkcollections.Dict({
+            'percentComplete': 0,
+            'frameCount': 0,
+        })
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
