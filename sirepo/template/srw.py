@@ -235,6 +235,9 @@ def extensions_for_file_type(file_type):
 
 
 def extract_report_data(filename, model_data):
+    #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
+    if re.search(r'/res_int_pr_me_dc.\.dat', filename):
+        _fix_file_header(filename)
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
@@ -1297,6 +1300,27 @@ def _fixup_electron_beam(data):
             float(data['models']['undulator']['period']) / 1000.0,
         )
     return data
+
+
+def _fix_file_header(filename):
+    # fixes file header for coherenceXAnimation and coherenceYAnimation reports
+    rows = []
+    with pkio.open_text(filename) as f:
+        for line in f:
+            rows.append(line)
+            if len(rows) == 10:
+                if rows[4] == rows[7]:
+                    # already fixed up
+                    return
+                if re.search(r'^\#0 ', rows[4]):
+                    rows[4] = rows[7]
+                    rows[5] = rows[8]
+                    rows[6] = rows[9]
+                else:
+                    rows[7] = rows[4]
+                    rows[8] = rows[5]
+                    rows[9] = rows[6]
+    pkio.write_text(filename, ''.join(rows))
 
 
 def _generate_beamline_optics(report, models, last_id):
