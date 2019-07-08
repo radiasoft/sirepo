@@ -210,27 +210,20 @@ def api_favicon():
 def api_listFiles(simulation_type, simulation_id, file_type):
     #TODO(pjm): simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
-    res = []
-    exclude = None
-    #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        template = sirepo.template.import_module(simulation_type)
-        search = template.extensions_for_file_type(file_type)
-        if file_type == 'sample':
-            exclude = '_processed.tif'
+        #TODO(pjm): special handling for srw, file_type not included in filename
+        res = sirepo.template.import_module(simulation_type).get_file_list(file_type)
     else:
+        res = []
         search = ['{}.*'.format(file_type)]
-    d = simulation_db.simulation_lib_dir(simulation_type)
-    for extension in search:
-        for f in glob.glob(str(d.join(extension))):
-            if exclude and re.search(exclude, f):
-                continue
-            if os.path.isfile(f):
-                filename = os.path.basename(f)
-                if not simulation_type == 'srw':
+        d = simulation_db.simulation_lib_dir(simulation_type)
+        for extension in search:
+            for f in glob.glob(str(d.join(extension))):
+                if os.path.isfile(f):
+                    filename = os.path.basename(f)
                     # strip the file_type prefix
                     filename = filename[len(file_type) + 1:]
-                res.append(filename)
+                    res.append(filename)
     res.sort()
     return http_reply.gen_json(res)
 

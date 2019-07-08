@@ -7,7 +7,6 @@ l:copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from sirepo.template.line_parser import LineParser
 import copy
 import math
 import re
@@ -16,13 +15,11 @@ _COMMAND_INDEX_POS = 110
 
 _IGNORE_ELEMENTS = [
     'faisceau',
-    'faistore',
     'fit',
     'images',
     'matrix',
     'optics',
     'options',
-    'rebelote',
     'spnprt',
     'twiss',
 ]
@@ -40,16 +37,13 @@ _NEW_PARTICLE_TYPES = {
 }
 
 def parse_file(zgoubi_text, max_id=0):
-    parser = LineParser(max_id)
     lines = zgoubi_text.replace('\r', '').split('\n')
     elements = []
     # skip first documentation line
     title = lines.pop(0)
-    parser.increment_line_number()
     unhandled_elements = {}
     current_command = None
     for line in lines:
-        parser.increment_line_number()
         line = re.sub(r'\!.*$', '', line)
         line = re.sub(r'^\s+', '', line)
         line = re.sub(r'\s+$', '', line)
@@ -58,7 +52,7 @@ def parse_file(zgoubi_text, max_id=0):
         keyword = _parse_keyword(line)
         if keyword:
             if current_command:
-                _add_command(parser, current_command, elements, unhandled_elements)
+                _add_command(current_command, elements, unhandled_elements)
             if keyword == 'END' or keyword == 'FIN':
                 current_command = None
                 break
@@ -89,7 +83,7 @@ def tosca_file_count(el):
     assert False, 'unhandled magnetType: {}'.format(el.magnetType)
 
 
-def _add_command(parser, command, elements, unhandled_elements):
+def _add_command(command, elements, unhandled_elements):
     command_type = command[0][0]
     if command_type.lower() in _IGNORE_ELEMENTS:
         return
@@ -120,6 +114,12 @@ def _parse_command_header(command):
         # don't parse line numbers into name or label2
         if f in res and re.search(r'^\d+$', res[f]):
             del res[f]
+    if 'label2' in res:
+        if 'name' in res:
+            res['name'] = '{} {}'.format(res['name'], res['label2'])
+        else:
+            res['name'] = res['label2']
+        del res['label2']
     return res
 
 
@@ -129,6 +129,8 @@ def _parse_command_line(element, line, line_def):
             k = k[1:]
             if not len(line):
                 break
+        assert len(line), 'Element "{} {}": missing "{}" value for line def: {}'.format(
+            element['type'], element.get('name', ''), k, line_def)
         element[k] = line.pop(0)
     return element
 
@@ -201,6 +203,13 @@ def _parse_tosca_title(res, title):
         title = re.sub(r'^\s+|\s+$', '', title)
         title = re.sub(r'\s+', ' ', title)
         res.name = title
+
+
+def _remove_fields(model, fields):
+    for f in fields:
+        if f in model:
+            del model[f]
+    return model
 
 
 def _strip_command_index(line):
@@ -298,6 +307,16 @@ def _zgoubi_esl(command):
     return res
 
 
+def _zgoubi_faistore(command):
+    res = _parse_command(command, [
+        'file',
+        'ip',
+    ])
+    _remove_fields(res, ['name', 'file'])
+    res['type'] = 'simulationSettings'
+    return res
+
+
 def _zgoubi_marker(command):
     res = _parse_command_header(command)
     res['plt'] = '0'
@@ -326,9 +345,7 @@ def _zgoubi_objet(command):
         'KOBJ'
     ])
     kobj = res['KOBJ']
-    del res['KOBJ']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['KOBJ', 'name'])
     res['type'] = 'bunch'
     if kobj == '2' or kobj == '2.1':
         imax = int(command[3][0])
@@ -371,9 +388,7 @@ def _zgoubi_mcobjet(command):
     if 'n_cutoff2_Z' in res and parse_float(res['n_cutoff_Z']) >= 0:
         res['DP'] = res['DZ']
         res['DZ'] = res['n_cutoff2_Z']
-    del res['KOBJ']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['KOBJ', 'name'])
     res['type'] = 'bunch'
     return res
 
@@ -391,8 +406,7 @@ def _zgoubi_particul(command):
         if res['particleType'] in _NEW_PARTICLE_TYPES:
             res.update(_NEW_PARTICLE_TYPES[res['particleType']])
             res['particleType'] = 'Other'
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['name'])
     res['type'] = 'particle'
     return res
 
@@ -409,6 +423,14 @@ def _zgoubi_quadrupo(command):
         'KPOS XCE YCE ALE',
     ])
 
+def _zgoubi_rebelote(command):
+    res = _parse_command(command, [
+        'npass',
+    ])
+    res['npass'] = int(res['npass']) + 1
+    res['type'] = 'simulationSettings'
+    return res
+
 
 def _zgoubi_scaling(command):
     #TODO(pjm): access IOPT and NFAM directly from command before calling _parse_command
@@ -418,13 +440,12 @@ def _zgoubi_scaling(command):
     ]
     res = _parse_command(command, pattern)
     for idx in range(1, int(res['NFAM']) + 1):
-        pattern.append('NAMEF{}'.format(idx))
+        pattern.append('NAMEF{} *LBL{}'.format(idx, idx))
         pattern.append('ignore'.format(idx))
         pattern.append('SCL{}'.format(idx))
         pattern.append('ignore'.format(idx))
     res = _parse_command(command2, pattern)
-    del res['NFAM']
-    del res['ignore']
+    _remove_fields(res, ['NFAM', 'ignore'])
     return res
 
 
@@ -486,8 +507,7 @@ def _zgoubi_spntrk(command):
         ])
         if res['KSO'] != '0':
             res['KSO'] = '1'
-        if 'name' in res:
-            del res['name']
+        _remove_fields(res, ['name'])
     return res
 
 
@@ -501,9 +521,7 @@ def _zgoubi_srloss(command):
         res['applyToAll'] = '1'
     else:
         res['keyword'] = res['STR1']
-    del res['STR1']
-    if 'name' in res:
-        del res['name']
+    _remove_fields(res, ['STR1', 'name'])
     return res
 
 

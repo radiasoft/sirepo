@@ -180,7 +180,7 @@ def _run_epics(data):
     host, port = _find_free_port()
     server_address = '{}:{}'.format(host, port)
     #TODO(pjm): process management
-    _subprocess(server_address, 'beam_line_example epics-boot.cmd > epics.log')
+    _subprocess(server_address, 'softIoc epics-boot.cmd > epics.log')
     return server_address
 
 

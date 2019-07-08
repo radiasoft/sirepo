@@ -62,7 +62,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
     function fixModelName(modelName) {
         var m = appState.models[modelName];
         // remove invalid characters
-        m.name = m.name.replace(/[\s#*'",]/g, '');
+        m.name = m.name.replace(SIREPO.lattice.invalidElementName || /[\s#*'",]/g, '');
         return;
     }
 

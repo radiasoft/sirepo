@@ -34,6 +34,8 @@ WANT_BROWSER_FRAME_CACHE = False
 #: Simulation type
 SIM_TYPE = 'srw'
 
+_ARBITRARY_FIELD_COL_COUNT = 3
+
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
@@ -41,6 +43,8 @@ _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 _DATA_FILE_FOR_MODEL = pkcollections.Dict({
+    'coherenceXAnimation': {'filename': 'res_int_pr_me_dcx.dat', 'dimension': 3},
+    'coherenceYAnimation': {'filename': 'res_int_pr_me_dcy.dat', 'dimension': 3},
     'fluxAnimation': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'fluxReport': {'filename': 'res_spec_me.dat', 'dimension': 2},
     'initialIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
@@ -187,6 +191,9 @@ def background_percent_complete(report, run_dir, is_running):
             # let the client know which flux method was used for the output
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             res['method'] = data['models']['fluxAnimation']['method']
+        if report == 'multiElectronAnimation':
+            # let client know that degree of coherence reports are also available
+            res['calcCoherence'] = run_dir.join(get_filename_for_model('coherenceXAnimation')).exists()
         res.update({
             'frameCount': 1,
             'frameId': t,
@@ -257,6 +264,8 @@ def extract_report_data(filename, model_data):
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
@@ -313,7 +322,7 @@ def extract_report_data(filename, model_data):
 
 def fixup_old_data(data):
     """Fixup data to match the most recent schema."""
-    for m in ('arbitraryMagField', 'brillianceReport', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
+    for m in ('arbitraryMagField', 'brillianceReport', 'coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
@@ -432,6 +441,9 @@ def fixup_old_data(data):
 
 
 def get_animation_name(data):
+    if data['modelName'] in ('coherenceXAnimation', 'coherenceYAnimation'):
+        # degree of coherence reports are calculated out of the multiElectronAnimation directory
+        return 'multiElectronAnimation'
     return data['modelName']
 
 
@@ -498,6 +510,16 @@ def get_data_file(run_dir, model, frame, **kwargs):
     raise RuntimeError('output file unknown for model: {}'.format(model))
 
 
+def get_file_list(file_type):
+    lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
+    res = []
+    for ext in extensions_for_file_type(file_type):
+        for f in glob.glob(str(lib_dir.join(ext))):
+            if os.path.isfile(f) and _test_file_type(file_type, f):
+                res.append(os.path.basename(f))
+    return res
+
+
 def get_filename_for_model(model):
     if template_common.is_watchpoint(model):
         model = _WATCHPOINT_REPORT_NAME
@@ -514,7 +536,7 @@ def get_simulation_frame(run_dir, data, model_data):
         m = model_data.models[data['report']]
         m.intensityPlotsWidth = args.intensityPlotsWidth
         m.intensityPlotsScale = args.intensityPlotsScale
-    return extract_report_data(str(run_dir.join(get_filename_for_model(data['report']))), model_data)
+    return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
 
 
 def import_file(request, lib_dir, tmp_dir):
@@ -787,7 +809,6 @@ def validate_file(file_type, path):
             return 'invalid file format: {}'.format(e)
     elif file_type == 'undulatorTable':
         # undulator magnetic data file
-        #TODO(pjm): add additional zip file validation
         try:
             _validate_safe_zip(str(path), '.', validate_magnet_data_file)
         except AssertionError as err:
@@ -796,6 +817,8 @@ def validate_file(file_type, path):
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
+    if not _test_file_type(file_type, path):
+        return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
 
 
@@ -1883,6 +1906,22 @@ def _save_user_model_list(model_name, beam_list):
 
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
+
+
+def _test_file_type(file_type, file_path):
+    # special handling for mirror and arbitraryField - scan for first data row and count columns
+    if file_type not in ('mirror', 'arbitraryField'):
+        return True
+    with pkio.open_text(str(file_path)) as f:
+        for line in f:
+            if re.search(r'^\s*#', line):
+                continue
+            col_count = len(line.split())
+            if col_count > 0:
+                if file_type == 'arbitraryField':
+                    return col_count == _ARBITRARY_FIELD_COL_COUNT
+                return col_count != _ARBITRARY_FIELD_COL_COUNT
+    return False
 
 
 def _unique_name(items, field, template):

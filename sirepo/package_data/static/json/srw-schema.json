@@ -352,6 +352,18 @@
             "harmonic": ["Harmonic", "HarmonicList", "5"],
             "notes": ["Notes", "Text", ""]
         },
+        "coherenceXAnimation": {
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
+        "coherenceYAnimation": {
+            "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
+            "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
+            "colorMap": ["Color Map", "ColorMap", "grayscale"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"]
+        },
         "crl": {
             "title": ["Element Name", "String", "CRL"],
             "position": ["Nominal Position [m]", "Float"],
@@ -631,7 +643,8 @@
             "colorMap": ["Color Map", "ColorMap", "grayscale"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
-            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0]
+            "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
+            "calcCoherence": ["Calculate Degree of Coherence in addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
@@ -880,7 +893,7 @@
             ]
         },
         "brillianceReport": {
-            "title": "Brightness Report",
+            "title": "Brightness",
             "basic": [],
             "advanced": [
                 "brightnessComponent",
@@ -893,6 +906,34 @@
                 "energyPointCount",
                 "reportType",
                 "notes"
+            ]
+        },
+        "coherenceXAnimation": {
+            "title": "Degree of Coherence vs. X",
+            "basic": [],
+            "advanced": [
+                ["Scale", [
+                    "intensityPlotsWidth",
+                    "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap",
+                    "aspectRatio"
+                ]]
+            ]
+        },
+        "coherenceYAnimation": {
+            "title": "Degree of Coherence vs. Y",
+            "basic": [],
+            "advanced": [
+                ["Scale", [
+                    "intensityPlotsWidth",
+                    "intensityPlotsScale"
+                ]],
+                ["Other", [
+                    "colorMap",
+                    "aspectRatio"
+                ]]
             ]
         },
         "crl": {
@@ -1261,7 +1302,7 @@
             ]
         },
         "initialIntensityReport": {
-            "title": "Initial Intensity Report",
+            "title": "Initial Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1283,7 +1324,7 @@
             ]
         },
         "intensityReport": {
-            "title": "Single-Electron Spectrum Report",
+            "title": "Single-Electron Spectrum",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1394,7 +1435,7 @@
             "advanced": []
         },
         "multiElectronAnimation": {
-            "title": "Partially Coherent Intensity Report",
+            "title": "Partially Coherent Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1404,6 +1445,7 @@
                     "numberOfMacroElectrons",
                     "integrationMethod",
                     "photonEnergyBandWidth",
+                    "calcCoherence",
                     "notes"
                 ]],
                 ["Scale", [
@@ -1436,7 +1478,7 @@
             ]
         },
         "powerDensityReport": {
-            "title": "Power Density Report",
+            "title": "Power Density",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1554,7 +1596,7 @@
             "advanced": []
         },
         "sourceIntensityReport": {
-            "title": "Intensity Report",
+            "title": "Intensity",
             "basic": [],
             "advanced": [
                 ["Main", [
@@ -1716,7 +1758,7 @@
             ]
         },
         "trajectoryReport": {
-            "title": "Electron Trajectory Report",
+            "title": "Electron Trajectory",
             "basic": [],
             "advanced": [
                 "timeMomentEstimation",
@@ -1777,7 +1819,7 @@
             ]
         },
         "watchpointReport": {
-            "title": "Watchpoint Report",
+            "title": "Watchpoint",
             "basic": [],
             "advanced": [
                 ["Main", [

@@ -5,7 +5,7 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
+SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 SIREPO.PLOTTING_SHOW_FWHM = true;
 //TODO(pjm): provide API for this, keyed by field type
@@ -54,6 +54,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     appDataService.applicationMode = null;
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
+    self.showCalcCoherence = false;
 
     // override appDataService functions
     appDataService.appDataForReset = function() {
@@ -128,6 +129,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     self.isTabulatedUndulatorWithMagenticFile = function() {
         return self.isTabulatedUndulator() && appState.models.tabulatedUndulator.undulatorType == 'u_t';
+    };
+
+    self.setShowCalcCoherence = function(isShown) {
+        self.showCalcCoherence = isShown;
     };
 
     self.showBrillianceReport = function() {
@@ -587,7 +592,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     });
 
     appState.whenModelsLoaded($scope, function() {
-
+        srwService.setShowCalcCoherence(false);
         // set the single electron state based on the stored coherence value
         if(beamlineService.coherence) {
             if (appState.models.beamline.length == 0) {
@@ -986,7 +991,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             ) + ' for Finite Emittance Electron Beam';
         }
         else {
-            repName = title + ' Report';
+            repName = title;
         }
         repName += ', ' + distance;
         tag.text(repName);
@@ -1104,6 +1109,7 @@ SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
                 appState.watchModelFields(
                     $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
                     srwService.updateSimulationGridFields);
+                srwService.updateSimulationGridFields();
             });
         },
     };
@@ -1783,7 +1789,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, persistentSimulation, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -1866,6 +1872,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     $scope.frameCount++;
                     frameCache.setFrameCount($scope.frameCount);
                     frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                    srwService.setShowCalcCoherence(data.calcCoherence);
                 }
             }
 
@@ -1917,9 +1924,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyMultiElectronModel();
             });
 
+            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields);
             $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
-                multiElectronAnimation: $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields),
+                multiElectronAnimation: coherentArgs,
                 fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
+                coherenceXAnimation: coherentArgs,
+                coherenceYAnimation: coherentArgs,
             });
        },
     };

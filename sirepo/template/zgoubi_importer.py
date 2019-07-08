@@ -115,8 +115,8 @@ def _init_model_units():
         if is_native:
             if re.search(r'\#', v):
                 return v
-            v = zgoubi_parser.parse_float(v)
-            if v > 1e10:
+            v2 = zgoubi_parser.parse_float(v)
+            if v2 > 1e10:
                 # old step size format
                 m = re.search(r'^0*(\d+)\.0*(\d+)', v)
                 assert m, 'XPAS failed to parse step size: {}'.format(v)
@@ -269,9 +269,11 @@ def _validate_and_dedup_elements(data, elements):
             beamline.append(info['ids'][info['elements'].index(el)])
         else:
             if el['type'] in data['models']:
-                pkdlog('replacing existing {} model', el['type'])
-            template_common.update_model_defaults(el, el['type'], _SCHEMA)
-            data['models'][el['type']] = el
+                pkdlog('updating existing {} model', el['type'])
+                data['models'][el['type']].update(el)
+            else:
+                template_common.update_model_defaults(el, el['type'], _SCHEMA)
+                data['models'][el['type']] = el
     _validate_model('bunch', data['models']['bunch'], info['missingFiles'])
     return info
 
@@ -284,7 +286,6 @@ def _validate_element_names(data, info):
         el['_id'] = info['ids'][idx]
         name = info['names'][idx]
         name = re.sub(r'\\', '_', name)
-        name = re.sub(r'\d+$', '', name)
         name = re.sub(r'(\_|\#)$', '', name)
         if not name:
             name = el['type'][:2]
@@ -368,8 +369,6 @@ def _validate_model(model_type, model, missing_files):
         model['name'] = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
-        if f == 'label2':
-            continue
         if '{}.{}'.format(model_type, f) in _IGNORE_FIELDS:
             continue
         err = _validate_field(model, f, model_info)

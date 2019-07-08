@@ -40,7 +40,7 @@ line.add(core.FAKE_ELEM("""
 0.00071 1.0 1.0 1.0
 QPOLE HEADER_8
 44 21 1 0
-gsiq0.map
+TOSCA-magnetFile.gsiq0.map
 0 0.0 0.0 0.0 0 0 0 0 0 0
 2
 3.1
@@ -52,7 +52,7 @@ line.add(core.FAKE_ELEM("""
 0.00097245 1.0 1.0 1.0
 DIPOLE HEADER_8
 47 37 1 0
-gsid0.map
+TOSCA-magnetFile.gsid0.map
 1 0.0 1.0 117.0 0 0 0 0 0 0
 2
 3.1
