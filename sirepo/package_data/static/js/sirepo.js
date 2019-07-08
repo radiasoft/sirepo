@@ -904,6 +904,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         }
     };
 
+    self.hasFrames = function(modelName) {
+        if (modelName) {
+            return self.getFrameCount(modelName) > 0;
+        }
+        return self.getFrameCount() > 0;
+    };
+
     self.isLoaded = function() {
         return appState.isLoaded();
     };

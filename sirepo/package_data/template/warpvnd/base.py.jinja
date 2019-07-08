@@ -344,7 +344,8 @@ conductors = [
 ]
 
 for c in conductors:
-    wp.installconductor(c, dfill=wp.largepos)
+    if c.voltage != 0:
+        wp.installconductor(c, dfill=wp.largepos)
 
 # Create source conductors
 source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= len(conductors) + 1)
@@ -372,3 +373,4 @@ wp.installafterstep(efield_diagnostic_0.write)
 {% endif %}
 
 #------
+
