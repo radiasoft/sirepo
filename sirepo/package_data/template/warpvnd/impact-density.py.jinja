@@ -3,7 +3,6 @@ import math
 from rswarp.diagnostics import ConductorTemplates
 from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
-from sirepo.template import template_common
 
 
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
@@ -140,5 +139,5 @@ except AssertionError as e:
         'error': message,
     }
 hf = h5py.File('{{ densityFile }}')
-template_common.dict_to_h5(density_results, hf, path='density')
+dict_to_h5(density_results, hf, path='density')
 hf.close()
