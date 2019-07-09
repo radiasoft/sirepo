@@ -471,6 +471,10 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         panelState.showModalEditor(type);
     };
 
+    self.fieldReport = function() {
+        return appState.models[warpvndService.activeFieldReport()];
+    };
+
     self.handleModalShown = function(name) {
         updateAllFields();
         if (name == warpvndService.activeComparisonReport()) {
@@ -2149,10 +2153,16 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
     return {
         restrict: 'A',
         scope: {
+            model: '=',
             modelName: '@',
         },
         template: [
             '<div data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldCalcAnimation">',
+                '<div data-ng-class="utilities.modelFieldID(modelName, \'slice\')">',
+                    '<div data-label-with-tooltip="" class="control-label col-sm-5" data-ng-class="labelClass" data-label="Slice" data-tooltip=""></div>',
+                '</div>',
+                '<div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-model-name="modelName" data-model="model" data-update="changeSlice"></div>',
+                //'<div data-3d-slice-widget="" data-axis-info="axisInfo" data-slice-axis="sliceAxis" data-model="model" data-field="\'slice\'"></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
@@ -2160,9 +2170,32 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             var lastAxes = 'xz';
             var slider;
 
+            $scope.axisInfo = {
+                height: 100,
+                width: 100,
+                map: {
+                    x: 'y',
+                    y: 'z',
+                    z: 'x'
+                },
+            };
+            $scope.sliceAxis = '-';
             $scope.sliceRange = [0, 1];
             $scope.step = 1;
+            $scope.utilities = utilities;
 
+            $scope.changeSlice = function () {
+                utilities.debounce(loadSlice, 500)();
+            };
+
+            function loadSlice() {
+                appState.saveChanges($scope.modelName);
+            }
+
+            function sliceAxis(axes) {
+                return 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
+            }
+            
             function rangeForAxes(axes) {
                 var grid = appState.models.simulationGrid;
                 if (axes == 'yz') {
@@ -2180,14 +2213,15 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
                 var axes = $scope.model.axes || 'xz';
                 var grid = appState.models.simulationGrid;
-                var otherAxis = 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
+                //var sliceAxis = 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
+                $scope.sliceAxis = sliceAxis(axes);
 
                 var lastRange = rangeForAxes(lastAxes);
 
                 $scope.sliceRange = rangeForAxes(axes);
-                $scope.step = ($scope.sliceRange[1] - $scope.sliceRange[0]) / grid['num_' + otherAxis];
+                $scope.step = ($scope.sliceRange[1] - $scope.sliceRange[0]) / grid['num_' + $scope.sliceAxis];
 
-                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + otherAxis.toUpperCase());
+                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + $scope.sliceAxis.toUpperCase());
 
                 if (! slider) {
                     return;
@@ -2208,6 +2242,9 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.model.units = 'µm';
+                //panelState.showField('fieldCalcAnimation', 'slice', warpvndService.is3D());
+                slider = $('#fieldCalcAnimation-slice-range');
+                updateSliceRange();
             });
 
             appState.watchModelFields($scope, ['fieldCalcAnimation.axes'], updateSliceRange);
