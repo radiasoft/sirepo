@@ -69,6 +69,7 @@ def fixup_old_data(data):
             'fieldCalcAnimation',
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
+            'fieldComparisonReport',
             'fieldReport',
     ]:
         if m not in data.models:
@@ -1072,4 +1073,3 @@ def _slope(x1, y1, x2, y2):
 
 def _stl_file(conductor_type):
     return template_common.lib_file_name('stl', 'file', conductor_type.file)
-
