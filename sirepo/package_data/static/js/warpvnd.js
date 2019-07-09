@@ -3758,7 +3758,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     [gXMax, gYMin, gZMax]
                 );
 
-                //addSTLConductors();
 
                 var padding = 0.01;
                 var spsOrigin = startPlaneBundle.source.getOrigin();
@@ -3974,6 +3973,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vpOutline.initializeWorld();
 
                 refresh(true);
+
+                // allow the sizing to take hold and initialize the camera position
+                $timeout(resetCam, 0);
             };
 
             function mapImpactDensity() {
@@ -4200,7 +4202,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     sceneArea = sceneRect.area();
                 }
 
-                srdbg('sc r', sceneRect.points(), 'scr r', screenRect.points());
                 offscreen = ! (
                     sceneRect.intersectsRect(screenRect) ||
                     screenRect.containsRect(sceneRect) ||
@@ -4209,7 +4210,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var a = sceneRect.area() / sceneArea;
                 malSized = a < 0.1 || a > 7.5;
                 $scope.canInteract = ! offscreen && ! malSized;
-                srdbg('offscreen?', offscreen, 'mal?', malSized);
                 if ($scope.canInteract) {
                     lastCamPos = cam.getPosition();
                     lastCamViewUp = cam.getViewUp();
