@@ -276,8 +276,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
                         id: appState.maxId(appState.models.conductors) + 1,
                         conductorTypeId: t.id,
                         zCenter: normalizeToum(bounds[4], t.scale) + t.zLength / 2.0,
-                        xCenter: normalizeToum(bounds[0], t.scale) + t.xLength / 2.0,
-                        yCenter: normalizeToum(bounds[2], t.scale) + t.yLength / 2.0,
+                        xCenter: 0.0,  //normalizeToum(bounds[0], t.scale) + t.xLength / 2.0,
+                        yCenter: 0.0, //normalizeToum(bounds[2], t.scale) + t.yLength / 2.0,
                     };
                     appState.models.conductors.push(c);
                     appState.saveChanges('conductors');
@@ -1146,7 +1146,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     .enter().append('path')
                     .attr('class', 'warpvnd-cell-selector')
                     .attr('d', function(d) {
-                        //srdbg('carat datum', d);
                         return d.dimension === 'x' || d.dimension === 'y'
                             ? 'M0,-14L7,0 -7,0Z'
                             : 'M0,-7L0,7 14,0Z';
@@ -2162,10 +2161,13 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     '<div data-label-with-tooltip="" class="control-label col-sm-5" data-ng-class="labelClass" data-label="Slice" data-tooltip=""></div>',
                 '</div>',
                 '<div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-model-name="modelName" data-model="model" data-update="changeSlice"></div>',
+                //'<div class="col-sm-8">',
+                //    '<input type="checkbox" checked data-ng-click="toggleConductors()"> Show Conductors',
+                //'</div>',
                 //'<div data-3d-slice-widget="" data-axis-info="axisInfo" data-slice-axis="sliceAxis" data-model="model" data-field="\'slice\'"></div>',
             '</div>',
         ].join(''),
-        controller: function($scope) {
+        controller: function($scope, $element) {
 
             var lastAxes = 'xz';
             var slider;
@@ -2179,6 +2181,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     z: 'x'
                 },
             };
+            $scope.showConductors = true;
             $scope.sliceAxis = '-';
             $scope.sliceRange = [0, 1];
             $scope.step = 1;
@@ -2187,6 +2190,21 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             $scope.changeSlice = function () {
                 utilities.debounce(loadSlice, 500)();
             };
+
+            $scope.toggleConductors = function () {
+                $scope.showConductors = ! $scope.showConductors;
+                drawConductors();
+            };
+
+            function drawConductors() {
+                var plotRect = $($element).find('svg.sr-plot rect.mouse-rect');
+                var d3pr = d3.select('svg.sr-plot rect.mouse-rect');
+                //srdbg('found plot', plotRect, 'd3', d3pr, d3pr.attr('width'), 'x', d3pr.attr('height'));
+                appState.models.conductors.forEach(function (c) {
+                    var ct = warpvndService.findConductorType(c.conductorTypeId);
+                    //srdbg('c', c, 't', ct);
+                });
+            }
 
             function loadSlice() {
                 appState.saveChanges($scope.modelName);
@@ -2213,7 +2231,6 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
                 var axes = $scope.model.axes || 'xz';
                 var grid = appState.models.simulationGrid;
-                //var sliceAxis = 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
                 $scope.sliceAxis = sliceAxis(axes);
 
                 var lastRange = rangeForAxes(lastAxes);
@@ -2963,7 +2980,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 refresh();
             }
 
-            //var labMatrix = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];  //stl
             var labMatrix = [
                 0, 1, 0, 0,
                 0, 0, -1, 0,
@@ -3221,7 +3237,6 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
 //    vtk Z (out to in) = warp Y
-//TODO(mvk): This directive should move to sirepo-plotting-vtk
 SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, warpvndService, $timeout) {
 
     return {
@@ -4185,6 +4200,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     sceneArea = sceneRect.area();
                 }
 
+                srdbg('sc r', sceneRect.points(), 'scr r', screenRect.points());
                 offscreen = ! (
                     sceneRect.intersectsRect(screenRect) ||
                     screenRect.containsRect(sceneRect) ||
@@ -4193,6 +4209,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var a = sceneRect.area() / sceneArea;
                 malSized = a < 0.1 || a > 7.5;
                 $scope.canInteract = ! offscreen && ! malSized;
+                srdbg('offscreen?', offscreen, 'mal?', malSized);
                 if ($scope.canInteract) {
                     lastCamPos = cam.getPosition();
                     lastCamViewUp = cam.getViewUp();
