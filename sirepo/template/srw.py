@@ -235,6 +235,9 @@ def extensions_for_file_type(file_type):
 
 
 def extract_report_data(filename, model_data):
+    #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
+    if re.search(r'/res_int_pr_me_dc.\.dat', filename):
+        _fix_file_header(filename)
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
@@ -264,8 +267,8 @@ def extract_report_data(filename, model_data):
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Degree of Coherence'], ['m', 'm', '']],
+        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Degree of Coherence'], ['m', 'm', '']],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
@@ -1299,6 +1302,27 @@ def _fixup_electron_beam(data):
     return data
 
 
+def _fix_file_header(filename):
+    # fixes file header for coherenceXAnimation and coherenceYAnimation reports
+    rows = []
+    with pkio.open_text(filename) as f:
+        for line in f:
+            rows.append(line)
+            if len(rows) == 10:
+                if rows[4] == rows[7]:
+                    # already fixed up
+                    return
+                if re.search(r'^\#0 ', rows[4]):
+                    rows[4] = rows[7]
+                    rows[5] = rows[8]
+                    rows[6] = rows[9]
+                else:
+                    rows[7] = rows[4]
+                    rows[8] = rows[5]
+                    rows[9] = rows[6]
+    pkio.write_text(filename, ''.join(rows))
+
+
 def _generate_beamline_optics(report, models, last_id):
     if not _is_beamline_report(report):
         return '    pass', ''
@@ -1867,13 +1891,15 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
-
+    z_label = z_label
+    if z_units:
+        z_label += ' [' + z_units + ']'
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
-        'z_label': _superscript(z_label + ' [' + z_units + ']'),
+        'z_label': _superscript(z_label),
         'title': info['title'],
         'subtitle': info['subtitle'],
         'z_matrix': ar2d.tolist(),
