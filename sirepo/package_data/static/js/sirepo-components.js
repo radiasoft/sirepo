@@ -473,7 +473,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '</div>',
                '<div data-ng-switch-when="Boolean" class="col-sm-7">',
                  // angular has problems initializing checkboxes - ngOpen has no effect on them, but we can use it to change the state as the models load
-                 '<input class="sr-bs-toggle" data-ng-open="! model[field] || fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox" data-toggle="toggle" data-on="{{onValue}}" data-off="{{offValue}}">',
+                 '<input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">',
                '</div>',
               '<div data-ng-switch-when="ColorMap" class="col-sm-7">',
                 '<div data-color-map-menu="" class="dropdown"></div>',
@@ -2534,33 +2534,41 @@ SIREPO.app.directive('bootstrapToggle', function() {
             info: '<',
         },
         link: function(scope, element) {
-
+            var isRefreshing = false;
+            var offValue = enumValue(0, SIREPO.ENUM_INDEX_VALUE);
+            var onValue =  enumValue(1, SIREPO.ENUM_INDEX_VALUE);
             var toggle = $(element);
-            scope.isRefreshing = false;
+
+            function enumValue(index, field) {
+                return SIREPO.APP_SCHEMA.enum[scope.info[SIREPO.INFO_INDEX_TYPE]][index][field];
+            }
 
             toggle.bootstrapToggle({
-                on: scope.onValue,
-                off: scope.offValue,
+                off: enumValue(0, SIREPO.ENUM_INDEX_LABEL),
+                on: enumValue(1, SIREPO.ENUM_INDEX_LABEL),
             });
 
             toggle.change(function() {
                 // do not change the model if this was called from refreshChecked()
-                if(! scope.isRefreshing) {
-                    scope.model[scope.field] = toggle.prop('checked') ? '1' : '0';
+                if (! isRefreshing) {
+                    scope.model[scope.field] = toggle.prop('checked') ? onValue : offValue;
                     scope.$apply();
                 }
-                scope.isRefreshing = false;
+                isRefreshing = false;
             });
 
             // called by ngOpen in template - checkbox will not initialize properly otherwise.
             // must live in an object to invoke with isolated scope
             scope.fieldDelegate.refreshChecked = function() {
-                if(scope.model && scope.field) {
+                if (scope.model && scope.field) {
                     var val = scope.model[scope.field];
-                    // don't refresh the toggle state if it did not change
-                    if(toggle.prop('checked') != val) {
-                        scope.isRefreshing = true;
-                        toggle.bootstrapToggle(val != 0 ? 'on' : 'off');
+                    if (val === undefined) {
+                        val = scope.info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
+                    }
+                    var isChecked = val == onValue;
+                    if (toggle.prop('checked') != isChecked) {
+                        isRefreshing = true;
+                        toggle.bootstrapToggle(isChecked ? 'on' : 'off');
                     }
                 }
                 return true;
@@ -2573,13 +2581,6 @@ SIREPO.app.directive('bootstrapToggle', function() {
                     toggle.bootstrapToggle('destroy');
                 }
             });
-        },
-        controller: function($scope) {
-            $scope.onValue = toggleValueAlias(1);
-            $scope.offValue = toggleValueAlias(0);
-            function toggleValueAlias(on) {
-                return SIREPO.APP_SCHEMA.enum[$scope.info[SIREPO.INFO_INDEX_TYPE]][on][SIREPO.ENUM_INDEX_LABEL];
-            }
         },
     };
 });
