@@ -35,7 +35,7 @@ import werkzeug
 import werkzeug.exceptions
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg.sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: class that py.path.local() returns
