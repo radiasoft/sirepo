@@ -3345,6 +3345,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 allPoints = [];
                 var xdom = [json.x_range[0], json.x_range[1]];
                 $scope.axes.x.domain = xdom;
