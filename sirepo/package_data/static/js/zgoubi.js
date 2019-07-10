@@ -95,7 +95,7 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     self.latticeService = latticeService;
     self.advancedNames = [];
     self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
-    var scaling = {};
+    var scaling = null;
 
     function updateScaling() {
         var MAX_SCALING_FAMILY = 7;
@@ -103,7 +103,11 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
                 for (var i = 1; i <= MAX_SCALING_FAMILY; i++) {
-                    scaling[m['NAMEF' + i]] = m['SCL' + i];
+                    var key = m['NAMEF' + i];
+                    if (m['LBL' + i]) {
+                        key += '.' + m['LBL' + i];
+                    }
+                    scaling[key] = m['SCL' + i];
                 }
                 return true;
             }
@@ -111,6 +115,9 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     }
 
     function updateElementAttributes(item) {
+        if (! scaling) {
+            updateScaling();
+        }
         if ('KPOS' in item) {
             item.angle = 0;
             delete item.travelLength;
@@ -119,6 +126,9 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
             var field = item.B1 || item.B_1;
             if (scaling[item.type]) {
                 field *= scaling[item.type];
+            }
+            if (scaling[item.type + '.' + item.name]) {
+                field *= scaling[item.type + '.' + item.name];
             }
             var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
             if (item.type == 'BEND') {
@@ -179,7 +189,6 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         }
 
         if (! sim.isInitialized) {
-            updateScaling();
             appState.models.elements.map(updateElementAttributes);
             sim.isInitialized = true;
             appState.saveChanges(['elements', 'simulation']);
@@ -191,8 +200,16 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 updateElementAttributes(m);
             }
             if (m.type == 'SCALING') {
-                updateScaling();
+                scaling = null;
                 appState.models.elements.map(updateElementAttributes);
+            }
+        });
+
+        $scope.$on('elementDeleted', function(e, name, element) {
+            if (element.type == 'SCALING') {
+                scaling = null;
+                appState.models.elements.map(updateElementAttributes);
+                appState.saveChanges('elements');
             }
         });
     });
@@ -305,21 +322,32 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     var self = this;
     self.panelState = panelState;
     self.errorMessage = '';
+    self.hasPlotFile = false;
 
     function handleStatus(data) {
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
-            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
+            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
+                frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
                 updateTunesReport(data.startTime, data.showTunesReport);
             }
+            self.hasPlotFile = data.hasPlotFile;
         }
         frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    function processPlotType(modelName) {
+        var model = appState.models[modelName];
+        var isHeatmap = model.plotType != 'particle';
+        panelState.showField(modelName, 'histogramBins', isHeatmap);
+        panelState.showField(modelName, 'colorMap', isHeatmap);
+        panelState.showTab(modelName, 2, isHeatmap);
     }
 
     function processShowAllFrames(modelName) {
@@ -352,8 +380,16 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         if (appState.isAnimationModelName(name)) {
             plotRangeService.processPlotRange(self, name);
             processShowAllFrames(name);
+            processPlotType(name);
             zgoubiService.processParticleCount2(name);
         }
+    };
+
+    self.reportType = function(modelName) {
+        if (appState.isLoaded()) {
+            return appState.applicationState()[modelName].plotType;
+        }
+        return '3d';
     };
 
     self.showTunesReport = function() {
@@ -364,10 +400,12 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
+    var animationArgs = [SIREPO.ANIMATION_ARGS_VERSION + '4', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'plotType', 'startTime'];
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
-        bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
-        energyAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
+        bunchAnimation: animationArgs,
+        bunchAnimation2: animationArgs,
+        energyAnimation: animationArgs,
+        elementStepAnimation: animationArgs,
     });
 
     self.simState.errorMessage = function() {
@@ -383,12 +421,15 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         $scope.$on('simulation.changed', function(e, name) {
             $rootScope.$broadcast('activeBeamlineChanged');
         });
-        ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
+        ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
                 plotRangeService.processPlotRange(self, m);
             });
             appState.watchModelFields($scope, [m + '.showAllFrames'], function() {
                 processShowAllFrames(m);
+            });
+            appState.watchModelFields($scope, [m + '.plotType'], function() {
+                processPlotType(m);
             });
         });
     });

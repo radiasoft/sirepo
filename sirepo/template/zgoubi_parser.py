@@ -313,6 +313,8 @@ def _zgoubi_faistore(command):
         'ip',
     ])
     _remove_fields(res, ['name', 'file'])
+    if int(res['ip']) < 1:
+        res['ip'] = 1
     res['type'] = 'simulationSettings'
     return res
 

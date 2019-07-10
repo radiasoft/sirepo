@@ -21,7 +21,7 @@ MODEL_UNITS = None
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'CHANGREF2.subElements', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'SOLENOID.IL', 'TOSCA.IC', 'TOSCA.IL', 'TOSCA.mod', 'TOSCA.TITL']
+_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.NCE', 'BEND.NCS', 'CHANGREF2.subElements', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'TOSCA.IC', 'TOSCA.mod', 'TOSCA.TITL']
 _UNIT_TEST_MODE = False
 
 
@@ -105,6 +105,14 @@ def _init_model_units():
                 assert False, 'invalid transformType: {}'.format(t.transformType)
         return transforms
 
+    def _il(v, is_native):
+        if v == '0':
+            return v
+        if is_native:
+            return '1' if v == '2' else '0'
+        return '2' if v == '1' else '0'
+
+
     def _marker_plot(v, is_native):
         if is_native:
             return v
@@ -135,6 +143,7 @@ def _init_model_units():
         },
         'BEND': {
             'l': 'cm_to_m',
+            'IL': _il,
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
             'X_S': 'cm_to_m',
@@ -161,6 +170,7 @@ def _init_model_units():
         },
         'MULTIPOL': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -172,6 +182,7 @@ def _init_model_units():
         },
         'QUADRUPO': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -183,6 +194,7 @@ def _init_model_units():
         },
         'SEXTUPOL': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -194,6 +206,7 @@ def _init_model_units():
         },
         'SOLENOID': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'X_S': 'cm_to_m',
@@ -202,6 +215,7 @@ def _init_model_units():
             'YCE': 'cm_to_m',
         },
         'TOSCA': {
+            'IL': _il,
             'A': 'cm_to_m',
             'B': 'cm_to_m',
             'C': 'cm_to_m',
