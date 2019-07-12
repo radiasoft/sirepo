@@ -21,9 +21,7 @@
     </div>
     <div class="clearfix hidden-xl"></div>
     <div data-column-for-aspect-ratio="energyAnimation" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="{{ visualization.reportType('energyAnimation') }}" data-model-name="energyAnimation">
-        <div data-ng-if="visualization.isComputingRanges" class="text-center text-info">Computing plot range across frames...</div>
-      </div>
+      <div data-report-panel="{{ visualization.reportType('energyAnimation') }}" data-model-name="energyAnimation"></div>
     </div>
     <div data-column-for-aspect-ratio="elementStepAnimation" data-ng-if="visualization.hasPlotFile">
       <div data-report-panel="{{ visualization.reportType('elementStepAnimation') }}" data-model-name="elementStepAnimation"></div>

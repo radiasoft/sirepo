@@ -31,7 +31,7 @@ SIREPO.lattice = {
     },
     elementPic: {
         aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'MULTIPOL'],
+        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'MULTIPOL'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
@@ -93,8 +93,8 @@ SIREPO.app.directive('appHeader', function(latticeService) {
 SIREPO.app.controller('LatticeController', function(appState, errorService, panelState, latticeService, $scope) {
     var self = this;
     self.latticeService = latticeService;
-    self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
+    self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'FFA', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
     var scaling = null;
 
     function updateScaling() {
@@ -174,6 +174,15 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
             else if (item.B_3) {
                 item.color = SIREPO.lattice.elementColor.SEXTUPOL;
             }
+        }
+        else if (item.type == 'FFA') {
+            // FFA length matches zgoubi DSREF computation in ffagi.f
+            var firstDipole = item.dipoles[0];
+            item.l = item.RM * (
+                firstDipole.OMEGA_E - firstDipole.OMEGA_S
+                    + Math.tan(firstDipole.ACN - firstDipole.OMEGA_E)
+                    + Math.tan(item.AT - firstDipole.ACN + firstDipole.OMEGA_S));
+            item.angle = item.AT;
         }
     }
 
@@ -279,6 +288,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         appState.watchModelFields($scope, ['bunch.method'], processBunchMethod);
         appState.watchModelFields($scope, ['bunch.particleCount2'], function() {
             zgoubiService.processParticleCount2('bunch');
+            processParticleSelector();
         });
         appState.watchModelFields($scope, ['bunch.particleSelector'], processParticleSelector);
         appState.watchModelFields($scope, ['SPNTRK.KSO'], processSpinTracking);
@@ -551,6 +561,66 @@ SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
             appState.whenModelsLoaded($scope, function() {
                 appState.watchModelFields($scope, ['CAVITE.IOPT'], processFields);
                 processFields();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srFfaEditor', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processAlignment() {
+                var ffa = appState.models.FFA;
+                if (! ffa) {
+                    return;
+                }
+                panelState.showRow('FFA', 'RE', ffa.KPOS == '2');
+                panelState.showField('FFA', 'DP', ffa.KPOS == '1');
+            }
+
+            function processDipoleCount() {
+                var ffa = appState.models.FFA;
+                if (! ffa) {
+                    return;
+                }
+                SIREPO.APP_SCHEMA.enum.DipoleSelector.forEach(function(info) {
+                    var value = info[SIREPO.ENUM_INDEX_VALUE];
+                    panelState.showEnum('FFA', 'dipoleSelector', value, parseInt(value) <= ffa.N);
+                });
+            }
+
+            function processSelector() {
+                var ffa = appState.models.FFA;
+                if (! ffa) {
+                    return;
+                }
+                if (! ffa.dipoles) {
+                    ffa.dipoles = [];
+                }
+                for (var i = 0; i < ffa.N; i++) {
+                    if (! ffa.dipoles[i]) {
+                        ffa.dipoles[i] = appState.setModelDefaults({}, 'ffaDipole');
+                    }
+                }
+                appState.models.ffaDipole = ffa.dipoles[parseInt(ffa.dipoleSelector) - 1];
+            }
+
+            $scope.$on('sr-tabSelected', function() {
+                var ffa = appState.models.FFA;
+                if (! ffa) {
+                    return;
+                }
+                processSelector();
+                processDipoleCount();
+                processAlignment();
+            });
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['FFA.dipoleSelector'], processSelector);
+                appState.watchModelFields($scope, ['FFA.N'], processDipoleCount);
+                appState.watchModelFields($scope, ['FFA.KPOS'], processAlignment);
             });
         },
     };

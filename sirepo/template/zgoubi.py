@@ -34,6 +34,11 @@ ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_ELEMENT_NAME_MAP = {
+    'FFAG': 'FFA',
+    'FFAG-SPI': 'FFA-SPI',
+}
+
 #TODO(pjm): could be determined from schema ParticleSelector enum
 _MAX_FILTER_PLOT_PARTICLES = 10
 
@@ -139,6 +144,31 @@ _FAKE_ELEMENT_TEMPLATES = {
  {{- transform.transformType }} {{ transform.transformValue }}{{ ' ' -}}
 {%- endif -%}
 {%- endfor %}
+''',
+    'FFA': '''
+ 'FFAG' {{ name }}
+{{ IL }}
+{{ N }} {{ AT }} {{ RM }}
+{% for dipole in dipoles -%}
+{{ dipole.ACN }} {{ dipole.DELTA_RM }} {{ dipole.BZ_0 }} {{ dipole.K }}
+{{ dipole.G0_E }} {{ dipole.KAPPA_E }}
+0 {{ dipole.CE_0 }} {{ dipole.CE_1 }} {{ dipole.CE_2 }} {{ dipole.CE_3 }} {{ dipole.CE_4 }} {{ dipole.CE_5 }} {{ dipole.SHIFT_E }}
+{{ dipole.OMEGA_E }} {{ dipole.THETA_E }} {{ dipole.R1_E }} {{ dipole.U1_E }} {{ dipole.U2_E }} {{ dipole.R2_E }}
+{{ dipole.G0_S }} {{ dipole.KAPPA_S }}
+0 {{ dipole.CS_0 }} {{ dipole.CS_1 }} {{ dipole.CS_2 }} {{ dipole.CS_3 }} {{ dipole.CS_4 }} {{ dipole.CS_5 }} {{ dipole.SHIFT_S }}
+{{ dipole.OMEGA_S }} {{ dipole.THETA_S }} {{ dipole.R1_S }} {{ dipole.U1_S }} {{ dipole.U2_S }} {{ dipole.R2_S }}
+{{ dipole.G0_L }} {{ dipole.KAPPA_L }}
+0 {{ dipole.CL_0 }} {{ dipole.CL_1 }} {{ dipole.CL_2 }} {{ dipole.CL_3 }} {{ dipole.CL_4 }} {{ dipole.CL_5 }} {{ dipole.SHIFT_L }}
+{{ dipole.OMEGA_L }} {{ dipole.THETA_L }} {{ dipole.R1_L }} {{ dipole.U1_L }} {{ dipole.U2_L }} {{ dipole.R2_L }}
+{% endfor %}
+{{- KIRD }} {{ RESOL }}
+{{ XPAS }}
+{{ KPOS }}{{ ' ' -}}
+{%- if KPOS == '1' %}
+{{- DP }}
+{%- else %}
+{{- RE }} {{ TE }} {{ RS }} {{ TS }}
+{%- endif -%}
 ''',
     'SOLENOID': '''
  'SOLENOID'
@@ -678,20 +708,23 @@ def _extract_particle_data(report, col_names, rows, title):
         # zgoubi.plt
         kley_index = col_names.index('KLEY')
         label_index = col_names.index('LABEL1')
+        ipass_index = col_names.index('IPASS')
         names = []
-        current = None
+        current_it = None
+        current_ipass = None
         for idx in range(len(x)):
-            if current != it[idx]:
-                name = rows[idx][kley_index] + ' ' + rows[idx][label_index]
+            ipass = rows[idx][ipass_index]
+            if current_it != it[idx] or current_ipass != ipass:
+                el_type = re.sub(r'\'', '', rows[idx][kley_index])
+                name = _ELEMENT_NAME_MAP.get(el_type, el_type) + ' ' + rows[idx][label_index]
                 if name not in names:
                     names.append(name)
-                current = it[idx]
+                current_it = it[idx]
+                current_ipass = ipass
                 x_points.append([])
                 points.append([])
             x_points[-1].append(x[idx])
             points[-1].append(y[idx])
-        for idx in range(len(names)):
-            names[idx] = re.sub(r'\'', '', names[idx])
         title += ' ' + ', '.join(names)
     return {
         'title': title,
@@ -753,6 +786,10 @@ def _generate_beamline_elements(report, data):
     element_map = {}
     for el in copy.deepcopy(data.models.elements):
         element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
+        #TODO(pjm): special case for FFA dipole array
+        if 'dipoles' in el:
+            for dipole in el.dipoles:
+                zgoubi_importer.MODEL_UNITS.scale_to_native('ffaDipole', dipole)
     if report == 'twissReport':
         beamline_id = sim['activeBeamlineId']
     else:
