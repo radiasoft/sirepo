@@ -2,7 +2,15 @@
 line.add(core.OBJET5(
     BORO={{ bunch_rigidity }},
     PY=0.001, PT=0.01, PZ= 0.001, PP=0.01, PX=0.001, PD=0.0001,
+{% if bunch_method == 'MCOBJET3' %}
     DR={{ bunch_D0 }},
+{% else %}
+    YR={{ bunchCoordinates[0]['Y'] }} * 100,
+    TR={{ bunchCoordinates[0]['T'] }} * 1000,
+    ZR={{ bunchCoordinates[0]['Z'] }} * 100,
+    PR={{ bunchCoordinates[0]['P'] }} * 1000,
+    DR={{ bunchCoordinates[0]['D'] }},
+{% endif %}
 ))
 line.add(core.FAKE_ELEM("""
 'PARTICUL'
