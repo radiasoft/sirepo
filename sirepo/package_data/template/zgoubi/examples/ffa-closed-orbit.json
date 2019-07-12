@@ -55,7 +55,7 @@
                     "T": -1.09293118e-08,
                     "X": 0,
                     "Y": 5.1754312,
-                    "Z": 1e-06
+                    "Z": 1e-08
                 }
             ],
             "emit_X": 1e-06,
@@ -97,7 +97,7 @@
             "aspectRatio": "0.75",
             "colorMap": "contrast",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 100,
             "horizontalOffset": 8.359903227682214e-07,
             "horizontalSize": 3.280193544635577e-07,
             "isRunning": 0,
@@ -376,7 +376,7 @@
             "T": -1.09293118e-08,
             "X": 0,
             "Y": 5.1754312,
-            "Z": 1e-06
+            "Z": 1e-08
         },
         "simulation": {
             "activeBeamlineId": 2,

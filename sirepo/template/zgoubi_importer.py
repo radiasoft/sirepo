@@ -21,7 +21,7 @@ MODEL_UNITS = None
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.NCE', 'BEND.NCS', 'CHANGREF2.subElements', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'TOSCA.IC', 'TOSCA.mod', 'TOSCA.TITL']
+_IGNORE_FIELDS = ['bunch.coordinates', 'CHANGREF2.subElements', 'FFA.dipoles', 'TOSCA.mod']
 _UNIT_TEST_MODE = False
 
 
@@ -419,6 +419,10 @@ def _validate_model(model_type, model, missing_files):
         model['name'] = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
+        #TODO(pjm): special FFA processing
+        if f == 'dipoles':
+            for dipole in model.dipoles:
+                _validate_model('ffaDipole', dipole, missing_files)
         if '{}.{}'.format(model_type, f) in _IGNORE_FIELDS:
             continue
         err = _validate_field(model, f, model_info)

@@ -139,7 +139,7 @@
             ["0", "Analytical computation of field derivatives"],
             ["2", "Numerical interpolation of field derivatives, second degree, 9 point grid"],
             ["25", "Numerical interpolation of field derivatives, second degree, 25 point grid"],
-            ["4", "Numerical interpolation of field derivatives, forth degree, 25 point grid"]
+            ["4", "Numerical interpolation of field derivatives, fourth degree, 25 point grid"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -506,10 +506,10 @@
             "SHIFT_E": ["Entrance Fringe Shift [m]", "Float", 0.0, "shift"],
             "OMEGA_E": ["Entrance Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega^+$ or $\\omega^-$"],
             "THETA_E": ["Entrance Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
-            "R1_E": ["Entrance Radii $R_1$ [m]", "Float", 0.0],
-            "U1_E": ["Entrance Extent $U_1$ [m]", "Float", 0.0],
-            "U2_E": ["Entrance Extent $U_2$ [m]", "Float", 0.0],
-            "R2_E": ["Entrance Radii $R_2$ [m]", "Float", 0.0],
+            "R1_E": ["Entrance Radii $R_1$ [m]", "Float", 1e4],
+            "U1_E": ["Entrance Extent $U_1$ [m]", "Float", -1e4],
+            "U2_E": ["Entrance Extent $U_2$ [m]", "Float", 1e4],
+            "R2_E": ["Entrance Radii $R_2$ [m]", "Float", 1e4],
 
             "G0_S": ["Exit Fringe Field Extent $g_0$ [m]", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
             "KAPPA_S": ["Exit $\\kappa$", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
@@ -522,10 +522,10 @@
             "SHIFT_S": ["Exit Fringe Shift [m]", "Float", 0.0, "shift"],
             "OMEGA_S": ["Exit Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
             "THETA_S": ["Exit Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
-            "R1_S": ["Exit Radii $R_1$ [m]", "Float", 0.0],
-            "U1_S": ["Exit Extent $U_1$ [m]", "Float", 0.0],
-            "U2_S": ["Exit Extent $U_2$ [m]", "Float", 0.0],
-            "R2_S": ["Exit Radii $R_2$ [m]", "Float", 0.0],
+            "R1_S": ["Exit Radii $R_1$ [m]", "Float", 1e4],
+            "U1_S": ["Exit Extent $U_1$ [m]", "Float", -1e4],
+            "U2_S": ["Exit Extent $U_2$ [m]", "Float", 1e4],
+            "R2_S": ["Exit Radii $R_2$ [m]", "Float", 1e4],
 
             "G0_L": ["Lateral Fringe Field Extent $g_0$ [m]", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
             "KAPPA_L": ["Lateral $\\kappa$", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
@@ -538,10 +538,10 @@
             "SHIFT_L": ["Lateral Fringe Shift [m]", "Float", 0.0, "shift"],
             "OMEGA_L": ["Lateral Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
             "THETA_L": ["Lateral Wedge Angle [rad]", "Float", 0.0, "$\\theta$"],
-            "R1_L": ["Lateral Radii $R_1$ [m]", "Float", 0.0],
-            "U1_L": ["Lateral Extent $U_1$ [m]", "Float", 0.0],
-            "U2_L": ["Lateral Extent $U_2$ [m]", "Float", 0.0],
-            "R2_L": ["Lateral Radii $R_2$ [m]", "Float", 0.0]
+            "R1_L": ["Lateral Radii $R_1$ [m]", "Float", 1e4],
+            "U1_L": ["Lateral Extent $U_1$ [m]", "Float", -1e4],
+            "U2_L": ["Lateral Extent $U_2$ [m]", "Float", 1e4],
+            "R2_L": ["Lateral Radii $R_2$ [m]", "Float", 1e4]
         },
         "opticsReport": {
             "y1": ["Y1 Value", "OpticsParameter", "x"],
