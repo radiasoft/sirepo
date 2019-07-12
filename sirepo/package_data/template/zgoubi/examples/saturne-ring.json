@@ -206,28 +206,28 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 20,
+            "histogramBins": 21,
             "notes": "",
             "x": "Y",
             "y": "T"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 20,
+            "histogramBins": 21,
             "notes": "",
             "x": "Z",
             "y": "P"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 20,
+            "histogramBins": 21,
             "notes": "",
             "x": "Y",
             "y": "Z"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 20,
+            "histogramBins": 21,
             "notes": "",
             "x": "S",
             "y": "D1"
