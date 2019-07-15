@@ -46,6 +46,8 @@ _TUNES_FILE = 'tunesFromFai_spctra.Out'
 
 _ZGOUBI_FAI_DATA_FILE = 'zgoubi.fai'
 
+_ZGOUBI_FIT_VALUES_FILE = 'zgoubi.FITVALS.out'
+
 _ZGOUBI_PLT_DATA_FILE = 'zgoubi.plt'
 
 _ZGOUBI_LOG_FILE = 'zgoubi.res'
@@ -160,6 +162,31 @@ _FAKE_ELEMENT_TEMPLATES = {
 {{ dipole.G0_L }} {{ dipole.KAPPA_L }}
 0 {{ dipole.CL_0 }} {{ dipole.CL_1 }} {{ dipole.CL_2 }} {{ dipole.CL_3 }} {{ dipole.CL_4 }} {{ dipole.CL_5 }} {{ dipole.SHIFT_L }}
 {{ dipole.OMEGA_L }} {{ dipole.THETA_L }} {{ dipole.R1_L }} {{ dipole.U1_L }} {{ dipole.U2_L }} {{ dipole.R2_L }}
+{% endfor %}
+{{- KIRD }} {{ RESOL }}
+{{ XPAS }}
+{{ KPOS }}{{ ' ' -}}
+{%- if KPOS == '1' %}
+{{- DP }}
+{%- else %}
+{{- RE }} {{ TE }} {{ RS }} {{ TS }}
+{%- endif -%}
+''',
+    'FFA_SPI': '''
+ 'FFAG-SPI' {{ name }}
+{{ IL }}
+{{ N }} {{ AT }} {{ RM }}
+{% for dipole in dipoles -%}
+{{ dipole.ACN }} {{ dipole.DELTA_RM }} {{ dipole.BZ_0 }} {{ dipole.K }}
+{{ dipole.G0_E }} {{ dipole.KAPPA_E }}
+0 {{ dipole.CE_0 }} {{ dipole.CE_1 }} {{ dipole.CE_2 }} {{ dipole.CE_3 }} {{ dipole.CE_4 }} {{ dipole.CE_5 }} {{ dipole.SHIFT_E }}
+{{ dipole.OMEGA_E }} {{ dipole.XI_E }} 0 0 0 0
+{{ dipole.G0_S }} {{ dipole.KAPPA_S }}
+0 {{ dipole.CS_0 }} {{ dipole.CS_1 }} {{ dipole.CS_2 }} {{ dipole.CS_3 }} {{ dipole.CS_4 }} {{ dipole.CS_5 }} {{ dipole.SHIFT_S }}
+{{ dipole.OMEGA_S }} {{ dipole.XI_S }} 0 0 0 0
+{{ dipole.G0_L }} {{ dipole.KAPPA_L }}
+0 {{ dipole.CL_0 }} {{ dipole.CL_1 }} {{ dipole.CL_2 }} {{ dipole.CL_3 }} {{ dipole.CL_4 }} {{ dipole.CL_5 }} {{ dipole.SHIFT_L }}
+{{ dipole.OMEGA_L }} {{ dipole.XI_L }} 0 0 0 0
 {% endfor %}
 {{- KIRD }} {{ RESOL }}
 {{ XPAS }}
@@ -789,7 +816,7 @@ def _generate_beamline_elements(report, data):
         #TODO(pjm): special case for FFA dipole array
         if 'dipoles' in el:
             for dipole in el.dipoles:
-                zgoubi_importer.MODEL_UNITS.scale_to_native('ffaDipole', dipole)
+                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole['type'], dipole)
     if report == 'twissReport':
         beamline_id = sim['activeBeamlineId']
     else:
@@ -820,6 +847,12 @@ def _generate_parameters_file(data):
     v['bunchCoordinates'] = data.models.bunch.coordinates
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
+        v['fitYRange'] = [-10, 10]
+        if v['bunch_method'] == 'OBJET2.1':
+            y = v['bunchCoordinates'][0]['Y']
+            if y != 0:
+                # within 20% on either side of particle 0
+                v['fitYRange'] = [min(v['fitYRange'][0], y * 80), max(v['fitYRange'][1], y * 120)]
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
     v['outputFile'] = _ZGOUBI_FAI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
@@ -934,4 +967,16 @@ def _read_twiss_header(run_dir):
                 else:
                     v = float(v)
                 res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
+    # get FIT2 results for Y and Y' from zgoubi.FITVALS.out
+    path = py.path.local(run_dir).join(_ZGOUBI_FIT_VALUES_FILE)
+    col_names = None
+    rows = []
+    for line in pkio.read_text(path).split('\n'):
+        if not col_names and re.search(r'\bLMNT\b', line):
+            col_names = line.split()
+        elif col_names:
+            rows.append(line.split())
+    idx = col_names.index('FINAL')
+    res.append(['FIT2 FINAL Y', 'Closed Orbit Y [m]', float(rows[0][idx]) / 1e2])
+    res.append(['FIT2 FINAL Y\'', 'Closed Orbit Y\' [rad]', float(rows[1][idx]) / 1e3])
     return res

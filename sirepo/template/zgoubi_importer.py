@@ -21,7 +21,6 @@ MODEL_UNITS = None
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'CHANGREF2.subElements', 'FFA.dipoles', 'TOSCA.mod']
 _UNIT_TEST_MODE = False
 
 
@@ -193,7 +192,31 @@ def _init_model_units():
             'U2_L': 'cm_to_m',
             'R2_L': 'cm_to_m',
         },
+        'ffaSpiDipole': {
+            'ACN': 'deg_to_rad',
+            'DELTA_RM': 'cm_to_m',
+            'G0_E': 'cm_to_m',
+            'SHIFT_E': 'cm_to_m',
+            'OMEGA_E': 'deg_to_rad',
+            'XI_E': 'deg_to_rad',
+            'G0_S': 'cm_to_m',
+            'SHIFT_S': 'cm_to_m',
+            'OMEGA_S': 'deg_to_rad',
+            'XI_S': 'deg_to_rad',
+            'G0_L': 'cm_to_m',
+            'SHIFT_L': 'cm_to_m',
+            'OMEGA_L': 'deg_to_rad',
+            'XI_L': 'deg_to_rad',
+        },
         'FFA': {
+            'IL': _il,
+            'AT': 'deg_to_rad',
+            'RM': 'cm_to_m',
+            'XPAS': 'cm_to_m',
+            'RE': 'cm_to_m',
+            'RS': 'cm_to_m',
+        },
+        'FFA_SPI': {
             'IL': _il,
             'AT': 'deg_to_rad',
             'RM': 'cm_to_m',
@@ -215,6 +238,13 @@ def _init_model_units():
             'XPAS': _xpas,
             'XCE': 'cm_to_m',
             'YCE': 'cm_to_m',
+        },
+        'particleCoordinate': {
+            'Y': 'cm_to_m',
+            'Z': 'cm_to_m',
+            'S': 'cm_to_m',
+            'T': 'mrad_to_rad',
+            'P': 'mrad_to_rad',
         },
         'QUADRUPO': {
             'l': 'cm_to_m',
@@ -324,7 +354,6 @@ def _validate_and_dedup_elements(data, elements):
             else:
                 template_common.update_model_defaults(el, el['type'], _SCHEMA)
                 data['models'][el['type']] = el
-    _validate_model('bunch', data['models']['bunch'], info['missingFiles'])
     return info
 
 
@@ -419,11 +448,10 @@ def _validate_model(model_type, model, missing_files):
         model['name'] = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
-        #TODO(pjm): special FFA processing
-        if f == 'dipoles':
-            for dipole in model.dipoles:
-                _validate_model('ffaDipole', dipole, missing_files)
-        if '{}.{}'.format(model_type, f) in _IGNORE_FIELDS:
+        if isinstance(model[f], list):
+            for sub_model in model[f]:
+                if 'type' in sub_model:
+                    _validate_model(sub_model['type'], sub_model, missing_files)
             continue
         err = _validate_field(model, f, model_info)
         if err:

@@ -15,12 +15,16 @@ _COMMAND_INDEX_POS = 110
 
 _IGNORE_ELEMENTS = [
     'faisceau',
+    'faiscnl',
     'fit',
     'images',
     'matrix',
     'optics',
     'options',
+    'spnprnl',
     'spnprt',
+    'spnstore',
+    'system',
     'twiss',
 ]
 
@@ -136,9 +140,11 @@ def _parse_command_line(element, line, line_def):
 
 
 def _parse_keyword(line):
-    m = re.match(r"\s*'(\w+)'", line)
+    m = re.match(r"\s*'([\w\-]+)'", line)
     if m:
-        return m.group(1).upper()
+        res = m.group(1).upper()
+        res = re.sub(r'-', '_', res)
+        return res
     return None
 
 
@@ -320,29 +326,30 @@ def _zgoubi_faistore(command):
     return res
 
 
-def _zgoubi_ffag(command):
+def _zgoubi_ffag(command, dipole_type=None, dipole_def=None):
     res = _parse_command(command, [
         'IL',
         'N AT RM'
     ])
-    dipole_def = [
-        'ACN DELTA_RM BZ_0 K',
-        'G0_E KAPPA_E',
-        'NCE CE_0 CE_1 CE_2 CE_3 CE_4 CE_5 SHIFT_E',
-        'OMEGA_E THETA_E R1_E U1_E U2_E R2_E',
-        'G0_S KAPPA_S',
-        'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5 SHIFT_S',
-        'OMEGA_S THETA_S R1_S U1_S U2_S R2_S',
-        'G0_L KAPPA_L',
-        'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
-        'OMEGA_L THETA_L R1_L U1_L U2_L R2_L',
-    ]
+    if not dipole_def:
+        dipole_def = [
+            'ACN DELTA_RM BZ_0 K',
+            'G0_E KAPPA_E',
+            'NCE CE_0 CE_1 CE_2 CE_3 CE_4 CE_5 SHIFT_E',
+            'OMEGA_E THETA_E R1_E U1_E U2_E R2_E',
+            'G0_S KAPPA_S',
+            'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5 SHIFT_S',
+            'OMEGA_S THETA_S R1_S U1_S U2_S R2_S',
+            'G0_L KAPPA_L',
+            'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
+            'OMEGA_L THETA_L R1_L U1_L U2_L R2_L',
+        ]
     res['dipoles'] = []
     dipole_count = int(res['N'])
     def_size = len(dipole_def)
     for idx in range(dipole_count):
         dipole = pkcollections.Dict({
-            'type': 'ffaDipole',
+            'type': dipole_type if dipole_type else 'ffaDipole',
         })
         res['dipoles'].append(dipole)
         for line_idx in range(len(dipole_def)):
@@ -356,6 +363,23 @@ def _zgoubi_ffag(command):
         res['DP'] = res['RE']
         _remove_fields(res, ['RE', 'TE', 'RS', 'TS'])
     res['type'] = 'FFA'
+    return res
+
+
+def _zgoubi_ffag_spi(command):
+    res = _zgoubi_ffag(command, 'ffaSpiDipole', [
+        'ACN DELTA_RM BZ_0 K',
+        'G0_E KAPPA_E',
+        'NCE CE_0 CE_1 CE_2 CE_3 CE_4 CE_5 SHIFT_E',
+        'OMEGA_E XI_E',
+        'G0_S KAPPA_S',
+        'NCS CS_0 CS_1 CS_2 CS_3 CS_4 CS_5 SHIFT_S',
+        'OMEGA_S XI_S',
+        'G0_L KAPPA_L',
+        'NCL CL_0 CL_1 CL_2 CL_3 CL_4 CL_5 SHIFT_L',
+        'OMEGA_L XI_L',
+    ])
+    res['type'] = 'FFA_SPI'
     return res
 
 
@@ -395,13 +419,7 @@ def _zgoubi_objet(command):
         coordinates = []
         for idx in range(imax):
             coord = _parse_command_line({}, command[4 + idx], 'Y T Z P X D')
-            for k in coord:
-                coord[k] = parse_float(coord[k])
-                if kobj == '2':
-                    if k in ('Y', 'Z', 'S'):
-                        coord[k] *= 1e-2
-                    elif k in ('T', 'P'):
-                        coord[k] *= 1e-3
+            coord['type'] = 'particleCoordinate'
             coordinates.append(coord)
         if len(coordinates) > _MAX_COORDINATES:
             coordinates = coordinates[:_MAX_COORDINATES]
@@ -596,7 +614,7 @@ def _zgoubi_tosca(command):
     else:
         _parse_command_line(res, command[8 + file_count], 'KPOS')
         _parse_command_line(res, command[9 + file_count], 'RE TE RS TS')
-    _remove_fields(res, ['IC', 'TITL'])
+    _remove_fields(res, ['mod', 'IC', 'TITL'])
     return res
 
 

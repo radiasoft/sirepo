@@ -397,22 +397,22 @@
             "alpha_Y": ["Horizontal Alpha", "Float", 0.0],
             "beta_Y": ["Horizontal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Y": ["Horizontal Emittance", "Float", 1e-6],
-            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 3, "RMS cutoff"],
-            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0, "If Cutoff 1 is negative, fill ring from |N| to N"],
-            "DY": ["Horizontal Dispersion [m]", "Float", 0],
-            "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0],
+            "n_cutoff_Y": ["Horizontal Cutoff 1", "Float", 3.0, "RMS cutoff"],
+            "n_cutoff2_Y": ["Horizontal Cutoff 2", "Float", 0.0, "If Cutoff 1 is negative, fill ring from |N| to N"],
+            "DY": ["Horizontal Dispersion [m]", "Float", 0.0],
+            "DT": ["Horizontal Dispersion Derivative [rad]", "Float", 0.0],
             "alpha_Z": ["Vertical Alpha", "Float", 0.0],
             "beta_Z": ["Vertical Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_Z": ["Vertical Emittance", "Float", 1e-6],
-            "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 3],
-            "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0],
-            "DZ": ["Vertical Dispersion [m]", "Float", 0],
-            "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0],
-            "alpha_X": ["Longitudinal Alpha", "Float", 0],
+            "n_cutoff_Z": ["Vertical Cutoff 1", "Float", 3.0],
+            "n_cutoff2_Z": ["Vertical Cutoff 2", "Float", 0.0],
+            "DZ": ["Vertical Dispersion [m]", "Float", 0.0],
+            "DP": ["Vertical Dispersion Derivative [rad]", "Float", 0.0],
+            "alpha_X": ["Longitudinal Alpha", "Float", 0.0],
             "beta_X": ["Longitudinal Beta [m]", "Float", 1.0, "", 1e-99],
             "emit_X": ["Longitudinal Emittance", "Float", 1e-6],
-            "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3],
-            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0]
+            "n_cutoff_X": ["Longitudinal Cutoff 1", "Float", 3.0],
+            "n_cutoff2_X": ["Longitudinal Cutoff 2", "Float", 0.0]
         },
         "bunchAnimation": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "Y"],
@@ -543,6 +543,48 @@
             "U2_L": ["Lateral Extent $U_2$ [m]", "Float", 1e4],
             "R2_L": ["Lateral Radii $R_2$ [m]", "Float", 1e4]
         },
+        "ffaSpiDipole": {
+            "ACN": ["Azimuth for Dipole Positioning [rad]", "Float", 0.0, "ACN"],
+            "DELTA_RM": ["Delta RM [m]", "Float", 0.0, "$\\delta RM$"],
+            "BZ_0": ["Field at $R_M$ [kG]", "Float", 0.0, "$B_{Z0}$"],
+            "K": ["Index", "Float", 0.0, "K"],
+
+            "G0_E": ["Entrance Fringe Field Extent $g_0$ [m]", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "KAPPA_E": ["Entrance $\\kappa$", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "CE_0": ["Entrance Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CE_1": ["Entrance Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CE_2": ["Entrance Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CE_3": ["Entrance Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CE_4": ["Entrance Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CE_5": ["Entrance Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_E": ["Entrance Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_E": ["Entrance Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega^+$ or $\\omega^-$"],
+            "XI_E": ["Entrance Spiral Angle [rad]", "Float", 0.0, "$\\xi$"],
+
+            "G0_S": ["Exit Fringe Field Extent $g_0$ [m]", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "KAPPA_S": ["Exit $\\kappa$", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "CS_0": ["Exit Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CS_1": ["Exit Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CS_2": ["Exit Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CS_3": ["Exit Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CS_4": ["Exit Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CS_5": ["Exit Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_S": ["Exit Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_S": ["Exit Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
+            "XI_S": ["Exit Spiral Angle [rad]", "Float", 0.0, "$\\xi$"],
+
+            "G0_L": ["Lateral Fringe Field Extent $g_0$ [m]", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "KAPPA_L": ["Lateral $\\kappa$", "Float", 0.0, "$g = g_0(RM/R)^\\kappa$"],
+            "CL_0": ["Lateral Fringe Field Coefficients $C_0$", "Float", 0.0],
+            "CL_1": ["Lateral Fringe Field Coefficients $C_1$", "Float", 0.0],
+            "CL_2": ["Lateral Fringe Field Coefficients $C_2$", "Float", 0.0],
+            "CL_3": ["Lateral Fringe Field Coefficients $C_3$", "Float", 0.0],
+            "CL_4": ["Lateral Fringe Field Coefficients $C_4$", "Float", 0.0],
+            "CL_5": ["Lateral Fringe Field Coefficients $C_5$", "Float", 0.0],
+            "SHIFT_L": ["Lateral Fringe Shift [m]", "Float", 0.0, "shift"],
+            "OMEGA_L": ["Lateral Azimuth with Respect to ACN [rad]", "Float", 0.0, "$\\omega+$"],
+            "XI_L": ["Lateral Spiral Angle [rad]", "Float", 0.0, "$\\xi$"]
+        },
         "opticsReport": {
             "y1": ["Y1 Value", "OpticsParameter", "x"],
             "y2": ["Y2 Value", "OpticsOptionalParameter", "y"],
@@ -661,6 +703,23 @@
             "l": ["Length [m]", "Float", 0.0, "XL"]
         },
         "FFA": {
+            "name": ["Name", "ValidatedString"],
+            "dipoleSelector": ["Edit Dipole Number", "DipoleSelector", "1"],
+            "IL": ["Save Step-by-Step Coordinates and Fields", "Boolean", "0", "IL"],
+            "N": ["Number of Dipoles in the FFA", "Integer", 1, "N", 1, 10],
+            "AT": ["Total Angular Extent of the Dipole [rad]", "Float", 0.0, "AT"],
+            "RM": ["Reference Radius [m]", "Float", 0.0, "RM"],
+            "KIRD": ["Field Derivative", "FFAFieldDerivative", "0", "KIRD"],
+            "RESOL": ["Resolution", "Float", 1.0, "Resol"],
+            "XPAS": ["Integration Step [m]", "Float", "0.02", "XPAS"],
+            "KPOS": ["Alignment", "ElementAlignment", "1", "KPOS"],
+            "RE": ["Entrance Frame Radius [m]", "Float", 0, "RE"],
+            "TE": ["Entrance Frame Angle [rad]", "Float", 0, "TE"],
+            "RS": ["Exit Frame Radius [m]", "Float", 0, "RS"],
+            "TS": ["Exit Frame Angle [rad]", "Float", 0, "TS"],
+            "DP": ["Reference Relative Momentum", "Float", 0, "DP"]
+        },
+        "FFA_SPI": {
             "name": ["Name", "ValidatedString"],
             "dipoleSelector": ["Edit Dipole Number", "DipoleSelector", "1"],
             "IL": ["Save Step-by-Step Coordinates and Fields", "Boolean", "0", "IL"],
@@ -1413,6 +1472,81 @@
                             "ffaDipole.U1_S",
                             "ffaDipole.U2_S",
                             "ffaDipole.R2_S"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "FFA_SPI": {
+            "title": "FFA-SPI",
+            "description": "Spiral FFA Magnet",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "N",
+                    "AT",
+                    "RM",
+                    "KIRD",
+                    "RESOL",
+                    "XPAS",
+                    "KPOS",
+                    [
+                        ["Entrance", [
+                            "RE",
+                            "TE"
+                        ]],
+                        ["Exit", [
+                            "RS",
+                            "TS"
+                        ]]
+                    ],
+                    "DP",
+                    "IL"
+                ]],
+                ["Dipole", [
+                    "dipoleSelector",
+                    "ffaSpiDipole.ACN",
+                    "ffaSpiDipole.DELTA_RM",
+                    "ffaSpiDipole.BZ_0",
+                    "ffaSpiDipole.K"
+                ]],
+                ["Dipole Fringe Fields", [
+                    "dipoleSelector",
+                    [
+                        ["Entrance", [
+                            "ffaSpiDipole.G0_E",
+                            "ffaSpiDipole.KAPPA_E",
+                            "ffaSpiDipole.CE_0",
+                            "ffaSpiDipole.CE_1",
+                            "ffaSpiDipole.CE_2",
+                            "ffaSpiDipole.CE_3",
+                            "ffaSpiDipole.CE_4",
+                            "ffaSpiDipole.CE_5",
+                            "ffaSpiDipole.SHIFT_E"
+                        ]],
+                        ["Exit", [
+                            "ffaSpiDipole.G0_S",
+                            "ffaSpiDipole.KAPPA_S",
+                            "ffaSpiDipole.CS_0",
+                            "ffaSpiDipole.CS_1",
+                            "ffaSpiDipole.CS_2",
+                            "ffaSpiDipole.CS_3",
+                            "ffaSpiDipole.CS_4",
+                            "ffaSpiDipole.CS_5",
+                            "ffaSpiDipole.SHIFT_S"
+                        ]]
+                    ]
+                ]],
+                ["Dipole Angles", [
+                    "dipoleSelector",
+                    [
+                        ["Entrance", [
+                            "ffaSpiDipole.OMEGA_E",
+                            "ffaSpiDipole.XI_E"
+                        ]],
+                        ["Exit", [
+                            "ffaSpiDipole.OMEGA_S",
+                            "ffaSpiDipole.XI_S"
                         ]]
                     ]
                 ]]
