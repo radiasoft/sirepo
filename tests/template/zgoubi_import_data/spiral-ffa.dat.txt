@@ -1,0 +1,42 @@
+# zgoubi
+
+from zgoubi import core, utils
+import re
+
+def sext(*args, **kwargs):
+    return core.FAKE_ELEM(re.sub('QUADRUPO', 'SEXTUPOL', core.QUADRUPO(*args, **kwargs).output()))
+
+core.SEXTUPOL = sext
+
+line = core.Line('line')
+
+line.add(core.FAKE_ELEM("""
+'OPTIONS'
+1 1
+WRITE OFF
+"""))
+line.add(core.FAKE_ELEM("""
+'OBJET'
+2029.47896921
+2.1
+1 1
+0.03343943 1.2290612e-05 1e-10 0.0 0.0 1.0 '0'
+1 
+"""))
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+PROTON
+"""))
+
+
+line.add(core.DRIFT("DUMMY FFA_SPI", XL=0.0))
+line.add(core.FAKE_ELEM("""
+'FAISTORE'
+zgoubi.fai
+1
+"""))
+line.add(core.REBELOTE(K=99, NPASS=49))
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

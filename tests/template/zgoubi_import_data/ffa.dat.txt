@@ -30,7 +30,7 @@ line.add(core.FAKE_ELEM("""
 
 
 line.add(core.FAKE_ELEM("""
- 'FFAG' ffag_trip
+ 'FFAG' ffa_trip
 2
 3 30.0 540.0
 6.46499999998 0.0 -12.1744691 7.6
@@ -67,7 +67,6 @@ line.add(core.FAKE_ELEM("""
 0.25
 2 0.0 0.0 0.0 0.0
 """))
-line.add(core.DRIFT("DUMMY FAISCNL", XL=0.0))
 line.add(core.FAKE_ELEM("""
 'FAISTORE'
 zgoubi.fai

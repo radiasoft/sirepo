@@ -1,5 +1,16 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "1",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [
             {
                 "angle": 6.2831853094079655,
@@ -567,8 +578,8 @@
         "bunch": {
             "D0": 1,
             "DP": 0,
-            "DT": -0.15119515,
-            "DY": 1.1884028,
+            "DT": -0.15119513,
+            "DY": 1.1884026,
             "DZ": 0,
             "KD": "2",
             "KP": "2",
@@ -577,9 +588,9 @@
             "KY": "2",
             "KZ": "2",
             "P0": 0,
-            "T0": -1.08097544e-09,
+            "T0": -2.33412612e-09,
             "X0": 0,
-            "Y0": 1.39257195e-08,
+            "Y0": 1.04785297e-08,
             "Z0": 0,
             "alpha_X": 0,
             "alpha_Y": 0.97400552,
@@ -587,10 +598,21 @@
             "beta_X": 1,
             "beta_Y": 6.0140979,
             "beta_Z": 9.9105782,
+            "coordinates": [
+                {
+                    "D": 1,
+                    "P": 0,
+                    "T": 0,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0
+                }
+            ],
             "emit_X": 1e-06,
             "emit_Y": 1e-06,
             "emit_Z": 1e-06,
             "match_twiss_parameters": "1",
+            "method": "MCOBJET3",
             "n_cutoff2_X": 0,
             "n_cutoff2_Y": 1.1884028,
             "n_cutoff2_Z": 0,
@@ -598,32 +620,46 @@
             "n_cutoff_Y": 3,
             "n_cutoff_Z": 3,
             "particleCount": 1000,
+            "particleCount2": 1,
+            "particleSelector": "1",
             "rigidity": 1000,
             "type": "bunch"
         },
         "bunchAnimation": {
-            "colorMap": "viridis",
+            "aspectRatio": "1",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
+            "horizontalOffset": -0.0003293569157483429,
+            "horizontalSize": 0.017072552311496687,
+            "isRunning": 1,
             "notes": "",
+            "particleSelector": "all",
             "plotRangeType": "fit",
-            "verticalOffset": 0,
-            "verticalSize": 0,
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "startTime": 1563208355,
+            "verticalOffset": 7.321465303063157e-05,
+            "verticalSize": 0.0036278763562068578,
             "x": "Y",
             "y": "T"
         },
         "bunchAnimation2": {
-            "colorMap": "viridis",
+            "aspectRatio": "1",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
+            "horizontalOffset": 4.6772733996878514e-05,
+            "horizontalSize": 0.01859307636498512,
+            "isRunning": 0,
             "notes": "",
+            "particleSelector": "all",
             "plotRangeType": "fit",
-            "verticalOffset": 0,
-            "verticalSize": 0,
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "startTime": 1563208355,
+            "verticalOffset": -2.6866695872949063e-06,
+            "verticalSize": 0.0033236289208254106,
             "x": "Z",
             "y": "P"
         },
@@ -654,6 +690,25 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "1",
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "isRunning": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "3d",
+            "showAllFrames": "0",
+            "startTime": 1563208355,
+            "verticalOffset": 0,
+            "verticalSize": 0,
+            "x": "Y-DY",
+            "y": "T"
         },
         "elements": [
             {
@@ -999,7 +1054,7 @@
                 "color": "",
                 "l": 1.0000000000000002e-06,
                 "name": "HKIC",
-                "travelLength": null,
+                "travelLength": 1.0000000000000002e-06,
                 "type": "MULTIPOL"
             },
             {
@@ -1071,7 +1126,7 @@
                 "color": "tomato",
                 "l": 0.48501600000000006,
                 "name": "QH",
-                "travelLength": null,
+                "travelLength": 0.48501600000000006,
                 "type": "MULTIPOL"
             },
             {
@@ -1143,7 +1198,7 @@
                 "color": "tomato",
                 "l": 0.49391599999999997,
                 "name": "QV",
-                "travelLength": null,
+                "travelLength": 0.49391599999999997,
                 "type": "MULTIPOL"
             },
             {
@@ -1215,7 +1270,7 @@
                 "color": "",
                 "l": 0.1,
                 "name": "SEXT",
-                "travelLength": null,
+                "travelLength": 0.1,
                 "type": "MULTIPOL"
             },
             {
@@ -1287,22 +1342,28 @@
                 "color": "",
                 "l": 1.0000000000000002e-06,
                 "name": "VKIC",
-                "travelLength": null,
+                "travelLength": 1.0000000000000002e-06,
                 "type": "MULTIPOL"
             }
         ],
         "energyAnimation": {
-            "colorMap": "viridis",
+            "aspectRatio": "1",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
+            "horizontalOffset": -0.00023128574999999995,
+            "horizontalSize": 0.0197813005,
+            "isRunning": 0,
             "notes": "",
-            "plotRangeType": "none",
-            "verticalOffset": 0,
-            "verticalSize": 0,
-            "x": "ENERG",
-            "y": "time"
+            "particleSelector": "all",
+            "plotRangeType": "fit",
+            "plotType": "heatmap",
+            "showAllFrames": "0",
+            "startTime": 1563208355,
+            "verticalOffset": 0.9999635,
+            "verticalSize": 7.299999999998974e-05,
+            "x": "SX",
+            "y": "SZ"
         },
         "opticsReport": {
             "includeLattice": "1",
@@ -1319,12 +1380,20 @@
             "particleType": "Other",
             "type": "particle"
         },
+        "particleCoordinate": {
+            "D": 1,
+            "P": 0,
+            "T": 0,
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+        },
         "simulation": {
             "activeBeamlineId": 1,
-            "folder": "/",
+            "folder": "/Examples",
             "name": "AGS Booster",
-            "simulationId": "V9zrBNzs",
-            "simulationSerial": 1552086008690679,
+            "simulationId": "XdqBIjM8",
+            "simulationSerial": 1563208940577545,
             "visualizationBeamlineId": 1
         },
         "simulationSettings": {
@@ -1332,6 +1401,17 @@
             "npass": 10
         },
         "simulationStatus": {},
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "showTunesReport": false,
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
@@ -1349,5 +1429,5 @@
         "twissSummaryReport": {}
     },
     "simulationType": "zgoubi",
-    "version": "20190304.171906"
+    "version": "20190712.201852"
 }
