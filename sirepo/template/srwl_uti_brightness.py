@@ -98,8 +98,6 @@ def CalcFluxUnd(Ib,kx,kz,phix,phiz,n,nPer,enDetPar,relEnSpr):
     normDetun = n*N*enDetPar
     normEnSpr = n*N*relEnSpr
     ke2=kx**2+kz**2
-    phix=0 #what is phix?
-    phiz=0 #what is phiz?
     phi0=0.5*math.atan((kz**2)*math.sin(2*phix)+(kx**2)*math.sin(2*phiz)/((kz**2)*math.cos(2*phix)+(kx**2)*math.cos(2*phiz)))
     k12=(kz**2)*(math.cos(phix-phi0))**2+(kx**2)*(math.cos(phiz-phi0))**2
     k22=(kz**2)*(math.sin(phix-phi0))**2+(kx**2)*(math.sin(phiz-phi0))**2
