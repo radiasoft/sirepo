@@ -1087,14 +1087,16 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
         },
         template: [
             '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
-            '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
-            '</div>',
+              '<div class="main-title text-center">{{ title }}</div>',
+              '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
+              '</div>',
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
             var fsRenderer = null;
             var actors = [];
             var orientationMarker = null;
+            $scope.title = '';
             $scope.margin = {
                 top: 0,
                 right: 0,
@@ -1166,7 +1168,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
                 cam.setFocalPoint(0, 0, 0);
                 cam.setViewUp(0, 1, 0);
                 renderer.resetCamera();
-                cam.zoom(1.3);
+                cam.zoom(1.5);
                 orientationMarker.updateMarkerOrientation();
                 fsRenderer.getRenderWindow().render();
             }
@@ -1199,6 +1201,7 @@ SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
             };
 
             $scope.load = function(json) {
+                $scope.title = json.title;
                 actors.forEach(function(actor) {
                     fsRenderer.getRenderer().removeActor(actor);
                 });

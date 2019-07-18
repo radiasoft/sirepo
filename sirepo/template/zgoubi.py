@@ -377,12 +377,21 @@ def extract_tunes_report(run_dir, data):
                 'points': points,
             })
 
-    # normalize each plot to 1.0 and show amplitude in label
-    for plot in plots:
-        maxp = max(plot['points'])
-        if maxp != 0:
-            plot['points'] = (np.array(plot['points']) / maxp).tolist()
-        plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
+    #TODO(pjm): implement UI option for this
+    logScale = False
+
+    if logScale:
+        for plot in plots:
+            v = np.array(plot['points'])
+            v[np.where(v <= 0.)] = 1.e-23
+            plot['points'] = np.log(v).tolist()
+    else:
+        # normalize each plot to 1.0 and show amplitude in label
+        for plot in plots:
+            maxp = max(plot['points'])
+            if maxp != 0:
+                plot['points'] = (np.array(plot['points']) / maxp).tolist()
+            plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
 
     return template_common.parameter_plot(x, plots, {}, {
         'title': title,
@@ -661,6 +670,7 @@ def _extract_spin_3d(run_dir, data, model_data):
         points.append(row[y_idx])
         points.append(row[z_idx])
     return {
+        'title': 'Particle {}'.format(it_filter) if it_filter else 'All Particles',
         'points': points,
     }
 
