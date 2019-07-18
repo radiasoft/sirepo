@@ -380,7 +380,6 @@
             "title": "Field Report",
             "advanced": [
                 "axes",
-                "slice",
                 "colorMap",
                 "notes"
             ]

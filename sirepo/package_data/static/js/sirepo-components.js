@@ -2644,12 +2644,77 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             field: '=',
             model: '=',
             modelName: '=',
+            update: '&',
         },
         template: [
-            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]">',
-            '<span>{{ model[field] }}{{ model.units }}</span>',
+            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="update()()">',
+            '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
+            //if (! $scope.model) {
+            //    $scope.model = appState.models[$scope.modelName];
+            //}
+        },
+    };
+});
+
+SIREPO.app.directive('3dSliceWidget', function(appState, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            axisInfo: '<',
+            field: '=',
+            model: '=',
+            sliceAxis: '<',
+            update: '&',
+        },
+        template: [
+            '<div>',
+                '<svg data-ng-attr-height="{{ 2.0 * axisInfo.height }}" data-ng-attr-width="{{ 2.0 * axisInfo.width }}">',
+                    '<rect data-ng-attr-x="{{ xOffset(50) }}" y="0" stroke="black" fill="none" data-ng-attr-width="{{ axisInfo.width }}" data-ng-attr-height="{{ axisInfo.height }}"></rect>',
+                    //'<rect x="0" y="50" stroke="black" fill="rgba(255, 255, 255, 0.5)" width="100" height="100"></rect>',
+                    '<line data-ng-attr-x1="{{ xOffset(0) }}" y1="50"  data-ng-attr-x2="{{ xOffset(50) }}" y2="0" stroke="black"></line>',
+                    '<line data-ng-attr-x1="{{ xOffset(100) }}" y1="50" data-ng-attr-x2="{{ xOffset(150) }}" y2="0" stroke="black"></line>',
+                    '<line data-ng-attr-x1="{{ xOffset(0) }}" y1="150" data-ng-attr-x2="{{ xOffset(50) }}" y2="100" stroke="black"></line>',
+                    '<line data-ng-attr-x1="{{ xOffset(100) }}" y1="150" data-ng-attr-x2="{{ xOffset(150) }}" y2="100" stroke="black"></line>',
+                    '<rect data-ng-attr-x="{{ xOffset(0) }}" y="50" stroke="black" fill="rgba(255, 255, 255, 0.5)" data-ng-attr-width="{{ axisInfo.width }}" data-ng-attr-height="{{ axisInfo.height }}"></rect>',
+                    '<text data-ng-attr-x="{{ xOffset(50) }}" y="175" stroke="red">{{ axisInfo.xLabel }}</text>',
+                    '<text x="0" y="100">{{ axisInfo.yLabel }}</text>',
+                    '<text data-ng-attr-x="{{ xOffset(125) }}" y="125">{{ axisInfo.zLabel }}</text>',
+                    '{{ slicePlane() }}',
+                '</svg>',
+            '</div>',
+            '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
+        ].join(''),
+        controller: function($scope) {
+
+            var offsets = {
+                x: 25,
+                y: 0
+            };
+
+
+            $scope.slicePlane = function() {
+                var plotAxis = $scope.axisInfo.map[$scope.sliceAxis];
+                var x1 = $scope.xOffset(0);
+                var x2 = $scope.xOffset();
+                if (plotAxis === 'z') {
+                    return [
+                        '<g data-ng-drag="true">',
+                            '<line x1="" y1="" x2="" y2=""></line>',
+                        '</g>'
+                    ].join('');
+                }
+                return '';
+            };
+
+            $scope.xOffset = function(val) {
+                return (val || 0) + (offsets.x || 0);
+            };
+
+            $scope.yOffset = function(val) {
+                return (val || 0) + (offsets.y || 0);
+            };
 
         },
     };
