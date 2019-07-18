@@ -288,6 +288,7 @@ def background_percent_complete(report, run_dir, is_running):
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
+        show_spin_3d = False
         count = 0
         if out_file.exists():
             out = simulation_db.read_json(out_file)
@@ -296,6 +297,7 @@ def background_percent_complete(report, run_dir, is_running):
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
                 and data.models.simulationSettings.npass >= 10
+            show_spin_3d = data.models.SPNTRK.KSO == '1'
         if not count:
             count = read_frame_count(run_dir)
         if count:
@@ -305,6 +307,7 @@ def background_percent_complete(report, run_dir, is_running):
                 'percentComplete': 100,
                 'frameCount': count,
                 'showTunesReport': show_tunes_report,
+                'showSpin3d': show_spin_3d,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
@@ -399,6 +402,7 @@ def fixup_old_data(data):
             'energyAnimation',
             'opticsReport',
             'particle',
+            'particleAnimation',
             'particleCoordinate',
             'simulationSettings',
             'tunesReport',
@@ -441,10 +445,21 @@ def get_application_data(data):
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
+def get_data_file(run_dir, model, frame, options=None):
+    filename = _ZGOUBI_FAI_DATA_FILE
+    if model == 'elementStepAnimation':
+        filename = _ZGOUBI_PLT_DATA_FILE
+    path = run_dir.join(filename)
+    with open(str(path)) as f:
+        return path.basename, f.read(), 'application/octet-stream'
+
+
 def get_simulation_frame(run_dir, data, model_data):
     if re.search(r'bunchAnimation', data['modelName']) \
        or data['modelName'] in ('energyAnimation', 'elementStepAnimation'):
         return _extract_animation(run_dir, data, model_data)
+    if data['modelName'] == 'particleAnimation':
+        return _extract_spin_3d(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
@@ -620,6 +635,34 @@ def _compute_range_across_frames(run_dir, data):
         res[field][1] *= factor
         res[_initial_phase_field(field)] = res[field]
     return res
+
+
+def _extract_spin_3d(run_dir, data, model_data):
+    frame_index = int(data['frameIndex'])
+    report = template_common.parse_animation_args(
+        data,
+        {
+            '': ['isRunning', 'particleNumber', 'startTime'],
+        },
+    )
+    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+    x_idx = col_names.index('SX')
+    y_idx = col_names.index('SY')
+    z_idx = col_names.index('SZ')
+    points = []
+    it_idx = int(col_names.index('IT'))
+    it_filter = None
+    if report['particleNumber'] != 'all':
+        it_filter = report['particleNumber']
+    for row in all_rows:
+        if it_filter and it_filter != row[it_idx]:
+            continue
+        points.append(row[x_idx])
+        points.append(row[y_idx])
+        points.append(row[z_idx])
+    return {
+        'points': points,
+    }
 
 
 def _extract_animation(run_dir, data, model_data):

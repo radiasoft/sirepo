@@ -29,6 +29,9 @@
     <div data-column-for-aspect-ratio="tunesReport" data-ng-if="visualization.showTunesReport()">
       <div data-report-panel="parameter" data-model-name="tunesReport"></div>
     </div>
+    <div data-column-for-aspect-ratio="particleAnimation" data-ng-if="visualization.showSpin3d">
+      <div data-report-panel="particle3d" data-model-name="particleAnimation"></div>
+    </div>
   </div> <!-- /row -->
 </div> <!-- /container -->
 
@@ -37,3 +40,4 @@
 <div data-modal-editor="" view-name="bunchAnimation2" data-parent-controller="visualization"></div>
 <div data-modal-editor="" view-name="energyAnimation" data-parent-controller="visualization"></div>
 <div data-modal-editor="" view-name="elementStepAnimation" data-parent-controller="visualization"></div>
+<div data-modal-editor="" view-name="particleAnimation" data-parent-controller="visualization"></div>

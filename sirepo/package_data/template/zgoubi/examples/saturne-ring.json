@@ -556,6 +556,11 @@
             "particleType": "PROTON",
             "type": "particle"
         },
+        "particleAnimation": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "particleSelector": "1"
+        },
         "particleCoordinate": {
             "D": 1,
             "P": 0,

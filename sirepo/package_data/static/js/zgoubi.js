@@ -339,11 +339,12 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.panelState = panelState;
     self.errorMessage = '';
     self.hasPlotFile = false;
+    self.showSpin3d = false;
 
     function handleStatus(data) {
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
-            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation'].forEach(function(m) {
+            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation', 'particleAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
@@ -351,9 +352,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
                 frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
+                frameCache.setFrameCount(data.frameCount - 1, 'particleAnimation');
                 updateTunesReport(data.startTime, data.showTunesReport);
             }
             self.hasPlotFile = data.hasPlotFile;
+            self.showSpin3d = data.showSpin3d;
         }
         frameCache.setFrameCount(data.frameCount || 0);
     }
@@ -372,6 +375,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         panelState.showField(
             modelName, 'particleSelector',
             modelName == 'tunesReport'
+                || modelName == 'particleAnimation'
                 || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
     }
 
@@ -422,6 +426,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         bunchAnimation2: animationArgs,
         energyAnimation: animationArgs,
         elementStepAnimation: animationArgs,
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'isRunning', 'particleSelector', 'startTime'],
     });
 
     self.simState.errorMessage = function() {
@@ -1003,7 +1008,7 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
         restrict: 'A',
         template: [
             '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
-            '<div style="margin-bottom: 1ex">{{ additionalFileText() }}</div>',
+            '<div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>',
             '<input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">',
             '<div data-ng-if="uploadDatafile()"></div>',
             '</div>',
@@ -1018,8 +1023,8 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
 
             $scope.additionalFileText = function() {
                 if (missingFiles) {
-                    return 'Please upload a zip file which contains the following TOSCA input files: '
-                        + missingFiles.join(', ');
+                    return 'Please upload a zip file which contains the following TOSCA input files:'
+                        + "\n    " + missingFiles.join("\n    ");
                 }
             };
 
@@ -1069,6 +1074,144 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
                 }
                 return missingFiles && missingFiles.length;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
+            '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
+            '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var fsRenderer = null;
+            var actors = [];
+            var orientationMarker = null;
+            $scope.margin = {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            };
+
+            function addPoints(data) {
+                var numPts = data.length / 3;
+                var points = new window.Float32Array(data);
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(points, 3);
+                var mapper = vtk.Rendering.Core.vtkSphereMapper.newInstance();
+                var scale = new window.Float32Array(numPts);
+                for (var i = 0; i < numPts; i++) {
+                    scale[i] = 0.01;
+                }
+                pd.getPointData().addArray(
+                    vtk.Common.Core.vtkDataArray.newInstance({
+                        name: 'scaling',
+                        values: scale,
+                        numberOfComponents: 1,
+                    }));
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.getProperty().setLighting(false);
+                actor.getProperty().setColor(0.3, 0.4, 0.9);
+                actor.getProperty().setPointSize(4);
+                mapper.setInputData(pd);
+                mapper.setScaleArray('scaling');
+                actor.setMapper(mapper);
+                fsRenderer.getRenderer().addActor(actor);
+                return actor;
+            }
+
+            function addSphere() {
+                var sphere = vtk.Filters.Sources.vtkSphereSource.newInstance();
+                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                mapper.setInputConnection(sphere.getOutputPort());
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.setMapper(mapper);
+                actor.getProperty().setColor(0.9, 0.9, 0.9);
+                actor.getProperty().setLighting(false);
+                actor.getProperty().setOpacity(0.7);
+                sphere.set({
+                    'radius': 1,
+                    'thetaResolution': 100,
+                    'phiResolution': 100,
+                });
+                fsRenderer.getRenderer().addActor(actor);
+                return actor;
+            }
+
+            function getVtkElement() {
+                return $($element).find('.vtk-canvas-holder');
+            }
+
+            function refresh() {
+                var aspectRatio = appState.models[$scope.modelName].aspectRatio;
+                var rw = getVtkElement();
+                var width = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
+                rw.height(width * aspectRatio);
+                fsRenderer.resize();
+            }
+
+            function reset() {
+                var renderer = fsRenderer.getRenderer();
+                var cam = renderer.get().activeCamera;
+                cam.setPosition(0, 0, 1);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 1, 0);
+                renderer.resetCamera();
+                cam.zoom(1.3);
+                orientationMarker.updateMarkerOrientation();
+                fsRenderer.getRenderWindow().render();
+            }
+
+            $scope.destroy = function() {
+                getVtkElement().off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.init = function() {
+                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+                var rw = getVtkElement();
+                rw.on('dblclick', reset);
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                    {
+                        background: [1, 1, 1, 1],
+                        container: rw[0],
+                    });
+                fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: fsRenderer.getInteractor()
+                });
+                orientationMarker.setEnabled(true);
+                orientationMarker.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+            };
+
+            $scope.load = function(json) {
+                actors.forEach(function(actor) {
+                    fsRenderer.getRenderer().removeActor(actor);
+                });
+                actors.push(addPoints(json.points));
+                actors.push(addSphere());
+                reset();
+                refresh();
+            };
+
+            $scope.resize = refresh;
+        },
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
         },
     };
 });
