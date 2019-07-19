@@ -278,6 +278,10 @@
             ["fit", "Fit Data"],
             ["fixed", "Fixed"]
         ],
+        "PlotScale": [
+            ["linear", "Linear"],
+            ["log10", "Base-10 Logarithm"]
+        ],
         "PlotType": [
             ["heatmap", "Heatmap"],
             ["3d", "Heatmap with Histograms"],
@@ -617,6 +621,7 @@
         },
         "tunesReport": {
             "plotAxis": ["Axis to Plot", "TunesAxis", "x"],
+            "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "particleSelector": ["Plot Particle", "ParticleOptionalSelector", "all"],
             "turnStart": ["Turn Start", "Integer", 0, "", 0, 10000],
             "turnCount": ["Turn Count", "Integer", 10000, "", 1, 10000],
@@ -1271,6 +1276,7 @@
             "advanced": [
                 "particleSelector",
                 "plotAxis",
+                "plotScale",
                 "turnStart",
                 "turnCount",
                 "nuMin",

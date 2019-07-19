@@ -729,7 +729,7 @@ SIREPO.app.directive('colorPicker', function() {
     };
 });
 
-SIREPO.app.service('plot2dService', function(layoutService, panelState, plotting, utilities) {
+SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
 
     this.init2dPlot = function($scope, attrs) {
         var colorbar, zoom;
@@ -794,10 +794,15 @@ SIREPO.app.service('plot2dService', function(layoutService, panelState, plotting
                 .classed('mouse-move-ew', ! isFullSize);
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
+            var scale = 'linear';
+            if (appState.isLoaded() && appState.models[$scope.modelName] && appState.models[$scope.modelName].plotScale) {
+                scale = appState.models[$scope.modelName].plotScale;
+            }
             $.each($scope.axes, function(dim, axis) {
                 axis.updateLabelAndTicks({
                     width: $scope.width,
                     height: $scope.height,
+                    plotScale: dim == 'y' ? scale : null,
                 }, $scope.select);
                 axis.grid.ticks(axis.tickCount);
                 $scope.select('.' + dim + '.axis.grid').call(axis.grid);
@@ -1280,7 +1285,17 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
                 if (ZERO_REGEX.test(res)) {
                     return '0';
                 }
-                return res.replace(/e\+0$/, '');
+                res = res.replace(/e\+0$/, '');
+                if (canvasSize.plotScale && canvasSize.plotScale != 'linear') {
+                    //TODO(pjm): assuming log10 scale
+                    if (res[0] == '-') {
+                        res = '1e' + res;
+                    }
+                    else {
+                        res = '1e+' + res;
+                    }
+                }
+                return res;
             });
             self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
             return formatInfo;

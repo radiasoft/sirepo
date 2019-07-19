@@ -359,6 +359,7 @@ def extract_tunes_report(run_dir, data):
                     'points': [],
                     'label': 'Particle {}'.format(current_p),
                 })
+                x = []
             x.append(float(row[x_idx]))
             plots[-1]['points'].append(float(row[y_idx]))
     else:
@@ -372,19 +373,16 @@ def extract_tunes_report(run_dir, data):
                     x.append(float(row[x_idx]))
                 points.append(float(row[y_idx]))
             plots.append({
-                'points': [],
                 'label': template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
                 'points': points,
             })
-
-    #TODO(pjm): implement UI option for this
-    logScale = False
-
-    if logScale:
+    for plot in plots:
+        plot['label'] += ', {}'.format(_peak_x(x, plot['points']))
+    if report.plotScale == 'log10':
         for plot in plots:
             v = np.array(plot['points'])
             v[np.where(v <= 0.)] = 1.e-23
-            plot['points'] = np.log(v).tolist()
+            plot['points'] = np.log10(v).tolist()
     else:
         # normalize each plot to 1.0 and show amplitude in label
         for plot in plots:
@@ -964,6 +962,16 @@ def _particle_count(data):
     if bunch.method == 'MCOBJET3':
         return bunch.particleCount
     return bunch.particleCount2
+
+
+def _peak_x(x_points, y_points):
+    x = x_points[0]
+    max_y = y_points[0]
+    for i in xrange(len(x_points)):
+        if y_points[i] > max_y:
+            max_y = y_points[i]
+            x = x_points[i]
+    return '{:.6f}'.format(x)
 
 
 def _prepare_tosca_element(el):
