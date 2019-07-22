@@ -2222,7 +2222,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             function sliceAxis(axes) {
                 return 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
             }
-            
+
             function rangeForAxes(axes) {
                 var grid = appState.models.simulationGrid;
                 if (axes == 'yz') {
@@ -3068,6 +3068,9 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function refresh() {
+                if (! fsRenderer) {
+                    return;
+                }
                 removeActors();
                 var pointRanges = addConductors();
 
@@ -3089,9 +3092,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             }
 
             function removeActors() {
-                if (! fsRenderer) {
-                    return;
-                }
                 var renderer = fsRenderer.getRenderer();
                 renderer.getActors().forEach(function(actor) {
                     renderer.removeActor(actor);
