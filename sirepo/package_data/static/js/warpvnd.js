@@ -2190,16 +2190,15 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     z: 'x'
                 },
             };
-            $scope.showConductors = true;
+
+            //$scope.showConductors = true;
+
             $scope.sliceAxis = '-';
             $scope.sliceRange = [0, 1];
             $scope.step = 1;
             $scope.utilities = utilities;
 
-            $scope.changeSlice = function () {
-                utilities.debounce(loadSlice, 500)();
-            };
-
+            /*
             $scope.toggleConductors = function () {
                 $scope.showConductors = ! $scope.showConductors;
                 drawConductors();
@@ -2214,6 +2213,11 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     //srdbg('c', c, 't', ct);
                 });
             }
+            */
+
+            $scope.changeSlice = function () {
+                utilities.debounce(loadSlice, 500)();
+            };
 
             function loadSlice() {
                 appState.saveChanges($scope.modelName);
@@ -2222,7 +2226,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             function sliceAxis(axes) {
                 return 'xyz'.replace(new RegExp('[' + axes + ']', 'g'), '');
             }
-
+            
             function rangeForAxes(axes) {
                 var grid = appState.models.simulationGrid;
                 if (axes == 'yz') {
@@ -2240,6 +2244,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
                 var axes = $scope.model.axes || 'xz';
                 var grid = appState.models.simulationGrid;
+
                 $scope.sliceAxis = sliceAxis(axes);
 
                 var lastRange = rangeForAxes(lastAxes);
