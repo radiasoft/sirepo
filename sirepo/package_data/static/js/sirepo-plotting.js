@@ -1282,7 +1282,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             self.svgAxis.tickFormat(function(v) {
                 var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
                 // format zero values as '0'
-                if (ZERO_REGEX.test(res)) {
+                if (ZERO_REGEX.test(res) && ! canvasSize.plotScale) {
                     return '0';
                 }
                 res = res.replace(/e\+0$/, '');
