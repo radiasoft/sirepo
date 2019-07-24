@@ -4066,6 +4066,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var x = faceData.x.map(toNano);
                 var y = faceData.y.map(toNano);
                 var z = faceData.z.map(toNano);
+                //srdbg('data', d, x, y, z);
                 var dx = Math.max.apply(null, x) - Math.min.apply(null, x);
                 var dy = Math.max.apply(null, y) - Math.min.apply(null, y);
                 var dz = Math.max.apply(null, z) - Math.min.apply(null, z);
@@ -4082,31 +4083,46 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
                 var dataPoints = [];
-                var dataVertices = [];
-                for (var k = 0; k < nk - 1; ++k) {
+                var dataTris = [];
+                for (var k = 0; k < nk; ++k) {
+                    var j = 3 * k;
+                    //srdbg('adding unstr val', k);
                     var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k]))
                         .map(function (cc) {
                             return Math.floor(255*cc);
                         });
                     dataColors.push(color[0], color[1], color[2]);
-                    dataVertices.push(1);
-                    dataVertices.push(dataPoints.length / 3);
-                    var vtkPts = coordMapper.xform.doTransform([x[k], y[k], z[k]]);
+                    dataTris.push(3);
+                    dataTris.push(
+                        dataPoints.length / 3, 1 + dataPoints.length / 3, 2 + dataPoints.length / 3
+                    );
+                    var vtkPts = coordMapper.xform.doTransform([x[j], y[j], z[j]]);
+                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 1], y[j + 1], z[j + 1]]));
+                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 2], y[j + 2], z[j + 2]]));
                     for (var cx = 0; cx < vtkPts.length; ++cx) {
                         dataPoints.push(vtkPts[cx]);
                     }
+                    //srdbg('data pts', dataPoints);
+                    //srdbg('data tris', dataTris);
                 }
+                //srdbg('data pts', dataPoints);
+                //srdbg('data tris', dataTris);
+                //srdbg('num data pts', dataPoints.length);
                 var p32 = window.Float32Array.from(dataPoints);
-                var v32 = window.Uint32Array.from(dataVertices);
+                //var v32 = window.Uint32Array.from(dataVertices);
+                var t32 = window.Uint32Array.from(dataTris);
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
                     numberOfComponents: 3,
                     values: dataColors,
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                 });
                 var b = coordMapper.buildActorBundle();
+                b.actor.getProperty().setLighting(false);
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
-                pd.getVerts().setData(v32);
+                //pd.getVerts().setData(v32);
+                pd.getPolys().setData(t32);
+                //srdbg('numn polys', pd.getPolys().getNumberOfTuples());
                 b.mapper.setScalarVisibility(true);
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);

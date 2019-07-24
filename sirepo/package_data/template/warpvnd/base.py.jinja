@@ -337,8 +337,7 @@ conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
     # add scale when available in rswarp
-    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ loop.index }}, scale={{ c.conductor_type.scale }})
-    #stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ loop.index }})
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ loop.index }})
 {% else %}
     wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}),
 {% endif %}
