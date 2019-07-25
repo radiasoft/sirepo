@@ -34,12 +34,21 @@ ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
+_ELEMENT_NAME_MAP = {
+    'FFAG': 'FFA',
+    'FFAG-SPI': 'FFA-SPI',
+}
+
 #TODO(pjm): could be determined from schema ParticleSelector enum
 _MAX_FILTER_PLOT_PARTICLES = 10
 
 _TUNES_FILE = 'tunesFromFai_spctra.Out'
 
-_ZGOUBI_DATA_FILE = 'zgoubi.fai'
+_ZGOUBI_FAI_DATA_FILE = 'zgoubi.fai'
+
+_ZGOUBI_FIT_VALUES_FILE = 'zgoubi.FITVALS.out'
+
+_ZGOUBI_PLT_DATA_FILE = 'zgoubi.plt'
 
 _ZGOUBI_LOG_FILE = 'zgoubi.res'
 
@@ -82,11 +91,13 @@ _ANIMATION_FIELD_INFO = {
     'to': [u't₀', 1],
     'D1': ['dp/p', 1],
     'Y': ['Y [m]', 0.01],
+    'X': ['X [m]', 0.01],
+    'YDY': ['Y [m]', 0.01],
     'T': ['Y\' [rad]', 0.001],
     'Z': ['Z [m]', 0.01],
     'P': ['Z\' [rad]', 0.001],
     'S': ['s [m]', 0.01],
-    'time': ['t [s]', 1],
+    'time': ['t [s]', 1e-6],
     'RET': ['RF Phase [rad]', 1],
     'DPR': ['dp/p', 1e6],
     'ENEKI': ['Kenetic Energy [eV]', 1e6],
@@ -95,6 +106,12 @@ _ANIMATION_FIELD_INFO = {
     'SX': ['Spin X', 1],
     'SY': ['Spin Y', 1],
     'SZ': ['Spin Z', 1],
+    'BX': ['Bx [G]', 1000],
+    'BY': ['By [G]', 1000],
+    'BZ': ['Bz [G]', 1000],
+    'EX': ['Ex [V/m]', 1],
+    'EY': ['Ey [V/m]', 1],
+    'EZ': ['Ez [V/m]', 1],
 }
 
 #TODO(pjm): move to jinja file?
@@ -130,9 +147,59 @@ _FAKE_ELEMENT_TEMPLATES = {
 {%- endif -%}
 {%- endfor %}
 ''',
+    'FFA': '''
+ 'FFAG' {{ name }}
+{{ IL }}
+{{ N }} {{ AT }} {{ RM }}
+{% for dipole in dipoles -%}
+{{ dipole.ACN }} {{ dipole.DELTA_RM }} {{ dipole.BZ_0 }} {{ dipole.K }}
+{{ dipole.G0_E }} {{ dipole.KAPPA_E }}
+0 {{ dipole.CE_0 }} {{ dipole.CE_1 }} {{ dipole.CE_2 }} {{ dipole.CE_3 }} {{ dipole.CE_4 }} {{ dipole.CE_5 }} {{ dipole.SHIFT_E }}
+{{ dipole.OMEGA_E }} {{ dipole.THETA_E }} {{ dipole.R1_E }} {{ dipole.U1_E }} {{ dipole.U2_E }} {{ dipole.R2_E }}
+{{ dipole.G0_S }} {{ dipole.KAPPA_S }}
+0 {{ dipole.CS_0 }} {{ dipole.CS_1 }} {{ dipole.CS_2 }} {{ dipole.CS_3 }} {{ dipole.CS_4 }} {{ dipole.CS_5 }} {{ dipole.SHIFT_S }}
+{{ dipole.OMEGA_S }} {{ dipole.THETA_S }} {{ dipole.R1_S }} {{ dipole.U1_S }} {{ dipole.U2_S }} {{ dipole.R2_S }}
+{{ dipole.G0_L }} {{ dipole.KAPPA_L }}
+0 {{ dipole.CL_0 }} {{ dipole.CL_1 }} {{ dipole.CL_2 }} {{ dipole.CL_3 }} {{ dipole.CL_4 }} {{ dipole.CL_5 }} {{ dipole.SHIFT_L }}
+{{ dipole.OMEGA_L }} {{ dipole.THETA_L }} {{ dipole.R1_L }} {{ dipole.U1_L }} {{ dipole.U2_L }} {{ dipole.R2_L }}
+{% endfor %}
+{{- KIRD }} {{ RESOL }}
+{{ XPAS }}
+{{ KPOS }}{{ ' ' -}}
+{%- if KPOS == '1' %}
+{{- DP }}
+{%- else %}
+{{- RE }} {{ TE }} {{ RS }} {{ TS }}
+{%- endif -%}
+''',
+    'FFA_SPI': '''
+ 'FFAG-SPI' {{ name }}
+{{ IL }}
+{{ N }} {{ AT }} {{ RM }}
+{% for dipole in dipoles -%}
+{{ dipole.ACN }} {{ dipole.DELTA_RM }} {{ dipole.BZ_0 }} {{ dipole.K }}
+{{ dipole.G0_E }} {{ dipole.KAPPA_E }}
+0 {{ dipole.CE_0 }} {{ dipole.CE_1 }} {{ dipole.CE_2 }} {{ dipole.CE_3 }} {{ dipole.CE_4 }} {{ dipole.CE_5 }} {{ dipole.SHIFT_E }}
+{{ dipole.OMEGA_E }} {{ dipole.XI_E }} 0 0 0 0
+{{ dipole.G0_S }} {{ dipole.KAPPA_S }}
+0 {{ dipole.CS_0 }} {{ dipole.CS_1 }} {{ dipole.CS_2 }} {{ dipole.CS_3 }} {{ dipole.CS_4 }} {{ dipole.CS_5 }} {{ dipole.SHIFT_S }}
+{{ dipole.OMEGA_S }} {{ dipole.XI_S }} 0 0 0 0
+{{ dipole.G0_L }} {{ dipole.KAPPA_L }}
+0 {{ dipole.CL_0 }} {{ dipole.CL_1 }} {{ dipole.CL_2 }} {{ dipole.CL_3 }} {{ dipole.CL_4 }} {{ dipole.CL_5 }} {{ dipole.SHIFT_L }}
+{{ dipole.OMEGA_L }} {{ dipole.XI_L }} 0 0 0 0
+{% endfor %}
+{{- KIRD }} {{ RESOL }}
+{{ XPAS }}
+{{ KPOS }}{{ ' ' -}}
+{%- if KPOS == '1' %}
+{{- DP }}
+{%- else %}
+{{- RE }} {{ TE }} {{ RS }} {{ TS }}
+{%- endif -%}
+''',
     'SOLENOID': '''
  'SOLENOID'
-0
+{{ IL }}
 {{ l }} {{ R_0 }} {{ B_0 }} {{ MODL }}
 {{ X_E }} {{ X_S }}
 {{ XPAS }}
@@ -149,7 +216,7 @@ _FAKE_ELEMENT_TEMPLATES = {
 ''',
     'TOSCA': '''
  'TOSCA' {{ name }}
-0 0
+0 {{ IL }}
 {{ BNORM }} {{ XN }} {{ YN }} {{ ZN }}
 {{ name }} HEADER_{{ headerLineCount -}}
 {%- if flipX == '1' %} FLIP {% endif -%}
@@ -221,6 +288,7 @@ def background_percent_complete(report, run_dir, is_running):
     if not is_running:
         out_file = run_dir.join('{}.json'.format(template_common.OUTPUT_BASE_NAME))
         show_tunes_report = False
+        show_spin_3d = False
         count = 0
         if out_file.exists():
             out = simulation_db.read_json(out_file)
@@ -229,13 +297,17 @@ def background_percent_complete(report, run_dir, is_running):
             data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             show_tunes_report = _particle_count(data) <= _MAX_FILTER_PLOT_PARTICLES \
                 and data.models.simulationSettings.npass >= 10
+            show_spin_3d = data.models.SPNTRK.KSO == '1'
         if not count:
             count = read_frame_count(run_dir)
         if count:
+            plt_file = run_dir.join(_ZGOUBI_PLT_DATA_FILE)
             return {
+                'hasPlotFile': plt_file.exists(),
                 'percentComplete': 100,
                 'frameCount': count,
                 'showTunesReport': show_tunes_report,
+                'showSpin3d': show_spin_3d,
             }
         else:
             errors = _parse_zgoubi_log(run_dir)
@@ -287,6 +359,7 @@ def extract_tunes_report(run_dir, data):
                     'points': [],
                     'label': 'Particle {}'.format(current_p),
                 })
+                x = []
             x.append(float(row[x_idx]))
             plots[-1]['points'].append(float(row[y_idx]))
     else:
@@ -300,21 +373,28 @@ def extract_tunes_report(run_dir, data):
                     x.append(float(row[x_idx]))
                 points.append(float(row[y_idx]))
             plots.append({
-                'points': [],
                 'label': template_common.enum_text(_SCHEMA, 'TunesAxis', axis),
                 'points': points,
             })
-
-    # normalize each plot to 1.0 and show amplitude in label
     for plot in plots:
-        maxp = max(plot['points'])
-        plot['points'] = (np.array(plot['points']) / maxp).tolist()
-        plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
+        plot['label'] += ', {}'.format(_peak_x(x, plot['points']))
+    if report.plotScale == 'log10':
+        for plot in plots:
+            v = np.array(plot['points'])
+            v[np.where(v <= 0.)] = 1.e-23
+            plot['points'] = np.log10(v).tolist()
+    else:
+        # normalize each plot to 1.0 and show amplitude in label
+        for plot in plots:
+            maxp = max(plot['points'])
+            if maxp != 0:
+                plot['points'] = (np.array(plot['points']) / maxp).tolist()
+            plot['label'] += ', amplitude: {}'.format(_format_exp(maxp))
 
     return template_common.parameter_plot(x, plots, {}, {
         'title': title,
         'y_label': '',
-        'x_label': 'x',
+        'x_label': '',
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
@@ -325,9 +405,11 @@ def fixup_old_data(data):
             'bunch',
             'bunchAnimation',
             'bunchAnimation2',
+            'elementStepAnimation',
             'energyAnimation',
             'opticsReport',
             'particle',
+            'particleAnimation',
             'particleCoordinate',
             'simulationSettings',
             'tunesReport',
@@ -354,6 +436,8 @@ def fixup_old_data(data):
                 if f in data.models[m]:
                     data.models.SPNTRK[f] = data.models[m][f]
                     del data.models[m][f]
+    for el in data.models.elements:
+        template_common.update_model_defaults(el, el.type, _SCHEMA)
     template_common.organize_example(data)
 
 
@@ -368,9 +452,21 @@ def get_application_data(data):
         return zgoubi_importer.tosca_info(data['tosca'])
 
 
+def get_data_file(run_dir, model, frame, options=None):
+    filename = _ZGOUBI_FAI_DATA_FILE
+    if model == 'elementStepAnimation':
+        filename = _ZGOUBI_PLT_DATA_FILE
+    path = run_dir.join(filename)
+    with open(str(path)) as f:
+        return path.basename, f.read(), 'application/octet-stream'
+
+
 def get_simulation_frame(run_dir, data, model_data):
-    if re.search(r'bunchAnimation', data['modelName']) or data['modelName'] == 'energyAnimation':
+    if re.search(r'bunchAnimation', data['modelName']) \
+       or data['modelName'] in ('energyAnimation', 'elementStepAnimation'):
         return _extract_animation(run_dir, data, model_data)
+    if data['modelName'] == 'particleAnimation':
+        return _extract_spin_3d(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
 
@@ -428,7 +524,7 @@ def prepare_output_file(run_dir, data):
 
 
 def read_frame_count(run_dir):
-    data_file = run_dir.join(_ZGOUBI_DATA_FILE)
+    data_file = run_dir.join(_ZGOUBI_FAI_DATA_FILE)
     if data_file.exists():
         col_names, rows = _read_data_file(data_file)
         ipasses = _ipasses_for_data(col_names, rows)
@@ -479,8 +575,8 @@ def save_report_data(data, run_dir):
         }
     elif 'bunchReport' in report_name:
         report = data['models'][report_name]
-        col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
-        res = _extract_bunch_data(report, col_names, rows, '')
+        col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE))
+        res = _extract_heatmap_data(report, col_names, rows, '')
         summary_file = py.path.local(run_dir).join(BUNCH_SUMMARY_FILE)
         if summary_file.exists():
             res['summaryData'] = {
@@ -529,7 +625,7 @@ def _compute_range_across_frames(run_dir, data):
         res[v[0]] = []
     for v in _SCHEMA.enum.EnergyPlotVariable:
         res[v[0]] = []
-    col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_DATA_FILE))
+    col_names, rows = _read_data_file(py.path.local(run_dir).join(_ZGOUBI_FAI_DATA_FILE))
     for field in res:
         values = column_data(field, col_names, rows)
         initial_field = _initial_phase_field(field)
@@ -548,6 +644,35 @@ def _compute_range_across_frames(run_dir, data):
     return res
 
 
+def _extract_spin_3d(run_dir, data, model_data):
+    frame_index = int(data['frameIndex'])
+    report = template_common.parse_animation_args(
+        data,
+        {
+            '': ['isRunning', 'particleNumber', 'startTime'],
+        },
+    )
+    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
+    x_idx = col_names.index('SX')
+    y_idx = col_names.index('SY')
+    z_idx = col_names.index('SZ')
+    points = []
+    it_idx = int(col_names.index('IT'))
+    it_filter = None
+    if report['particleNumber'] != 'all':
+        it_filter = report['particleNumber']
+    for row in all_rows:
+        if it_filter and it_filter != row[it_idx]:
+            continue
+        points.append(row[x_idx])
+        points.append(row[y_idx])
+        points.append(row[z_idx])
+    return {
+        'title': 'Particle {}'.format(it_filter) if it_filter else 'All Particles',
+        'points': points,
+    }
+
+
 def _extract_animation(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     report = template_common.parse_animation_args(
@@ -555,13 +680,14 @@ def _extract_animation(run_dir, data, model_data):
         {
             '1': ['x', 'y', 'histogramBins', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'startTime'],
+            '3': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'startTime'],
+            '': ['x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleNumber', 'plotType', 'startTime'],
         },
     )
     is_frame_0 = False
     # fieldRange is store on the bunchAnimation
     model = model_data.models.bunchAnimation
-    if data['modelName'] == 'energyAnimation':
+    if data['modelName'] in ('energyAnimation', 'elementStepAnimation'):
         model.update(model_data.models.energyAnimation)
         frame_index += 1
     else:
@@ -573,7 +699,10 @@ def _extract_animation(run_dir, data, model_data):
                 report[f] = _initial_phase_field(report[f])
             frame_index = 1
     model.update(report)
-    col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_DATA_FILE))
+    if data['modelName'] == 'elementStepAnimation':
+        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_PLT_DATA_FILE))
+    else:
+        col_names, all_rows = _read_data_file(run_dir.join(_ZGOUBI_FAI_DATA_FILE))
     ipasses = _ipasses_for_data(col_names, all_rows)
     ipass = int(ipasses[frame_index - 1])
     rows = []
@@ -585,6 +714,7 @@ def _extract_animation(run_dir, data, model_data):
             it_filter = report['particleNumber']
 
     count = 0
+    el_names = []
     for row in all_rows:
         if report['showAllFrames'] == '1':
             if it_filter and row[it_index] != it_filter:
@@ -596,12 +726,17 @@ def _extract_animation(run_dir, data, model_data):
         title = 'All Frames'
         if it_filter:
             title += ', Particle {}'.format(it_filter)
+        if model.plotRangeType == 'fit':
+            # unset 'fit' plot - all frames are shown
+            model.plotRangeType = 'none'
     else:
         title = 'Initial Distribution' if is_frame_0 else 'Pass {}'.format(ipass)
-    return _extract_bunch_data(model, col_names, rows, title)
+    if 'plotType' in report and report.plotType == 'particle':
+        return _extract_particle_data(model, col_names, rows, title)
+    return _extract_heatmap_data(model, col_names, rows, title)
 
 
-def _extract_bunch_data(report, col_names, rows, title):
+def _extract_heatmap_data(report, col_names, rows, title):
     x_info = _ANIMATION_FIELD_INFO[report['x']]
     y_info = _ANIMATION_FIELD_INFO[report['y']]
     x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
@@ -612,6 +747,72 @@ def _extract_bunch_data(report, col_names, rows, title):
         'title': title,
         'z_label': 'Number of Particles',
     })
+
+
+def _2d_range(rows):
+    # returns min, max from a set of 2d data
+    # the rows may have an uneven shape, this works when np.amin(), np.amax() doesn't
+    vmax = vmin = rows[0][0]
+    for row in rows:
+        for v in row:
+            if v > vmax:
+                vmax = v
+            elif v < vmin:
+                vmin = v
+    return [vmin, vmax]
+
+
+def _extract_particle_data(report, col_names, rows, title):
+    x_info = _ANIMATION_FIELD_INFO[report['x']]
+    y_info = _ANIMATION_FIELD_INFO[report['y']]
+    x = np.array(column_data(report['x'], col_names, rows)) * x_info[1]
+    y = np.array(column_data(report['y'], col_names, rows)) * y_info[1]
+    it = column_data('IT', col_names, rows)
+    x_points = []
+    points = []
+    if 'ENEKI' in col_names:
+        # zgoubi.fai
+        points_by_num = {}
+        for idx in range(len(x)):
+            num = it[idx];
+            if num not in points_by_num:
+                points_by_num[num] = [[], []]
+            points_by_num[num][0].append(x[idx])
+            points_by_num[num][1].append(y[idx])
+        for num in points_by_num:
+            x_points.append(points_by_num[num][0])
+            points.append(points_by_num[num][1])
+    else:
+        # zgoubi.plt
+        kley_index = col_names.index('KLEY')
+        label_index = col_names.index('LABEL1')
+        ipass_index = col_names.index('IPASS')
+        names = []
+        current_it = None
+        current_ipass = None
+        for idx in range(len(x)):
+            ipass = rows[idx][ipass_index]
+            if current_it != it[idx] or current_ipass != ipass:
+                el_type = re.sub(r'\'', '', rows[idx][kley_index])
+                name = _ELEMENT_NAME_MAP.get(el_type, el_type) + ' ' + rows[idx][label_index]
+                if name not in names:
+                    names.append(name)
+                current_it = it[idx]
+                current_ipass = ipass
+                x_points.append([])
+                points.append([])
+            x_points[-1].append(x[idx])
+            points[-1].append(y[idx])
+        title += ' ' + ', '.join(names)
+    return {
+        'title': title,
+        'y_label': y_info[0],
+        'x_label': x_info[0],
+        'x_range': _2d_range(x_points),
+        'y_range': _2d_range(points),
+        'x_points': x_points,
+        'points': points,
+    }
 
 
 def _format_exp(v):
@@ -663,6 +864,10 @@ def _generate_beamline_elements(report, data):
     element_map = {}
     for el in copy.deepcopy(data.models.elements):
         element_map[el._id] = zgoubi_importer.MODEL_UNITS.scale_to_native(el.type, el)
+        #TODO(pjm): special case for FFA dipole array
+        if 'dipoles' in el:
+            for dipole in el.dipoles:
+                zgoubi_importer.MODEL_UNITS.scale_to_native(dipole['type'], dipole)
     if report == 'twissReport':
         beamline_id = sim['activeBeamlineId']
     else:
@@ -693,8 +898,14 @@ def _generate_parameters_file(data):
     v['bunchCoordinates'] = data.models.bunch.coordinates
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     if 'twissReport' in report or 'opticsReport' in report or report == 'twissSummaryReport':
+        v['fitYRange'] = [-10, 10]
+        if v['bunch_method'] == 'OBJET2.1':
+            y = v['bunchCoordinates'][0]['Y']
+            if y != 0:
+                # within 20% on either side of particle 0
+                v['fitYRange'] = [min(v['fitYRange'][0], y * 80), max(v['fitYRange'][1], y * 120)]
         return res + template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-    v['outputFile'] = _ZGOUBI_DATA_FILE
+    v['outputFile'] = _ZGOUBI_FAI_DATA_FILE
     res += template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     if 'bunchReport' in report:
         return res + template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
@@ -753,6 +964,16 @@ def _particle_count(data):
     return bunch.particleCount2
 
 
+def _peak_x(x_points, y_points):
+    x = x_points[0]
+    max_y = y_points[0]
+    for i in xrange(len(x_points)):
+        if y_points[i] > max_y:
+            max_y = y_points[i]
+            x = x_points[i]
+    return '{:.6f}'.format(x)
+
+
 def _prepare_tosca_element(el):
     el['MOD'] = _MAGNET_TYPE_TO_MOD[el.meshType][el.magnetType]
     if '{{ fileCount }}' in el['MOD']:
@@ -807,4 +1028,16 @@ def _read_twiss_header(run_dir):
                 else:
                     v = float(v)
                 res.append([values[0], _TWISS_SUMMARY_LABELS[values[0]], v])
+    # get FIT2 results for Y and Y' from zgoubi.FITVALS.out
+    path = py.path.local(run_dir).join(_ZGOUBI_FIT_VALUES_FILE)
+    col_names = None
+    rows = []
+    for line in pkio.read_text(path).split('\n'):
+        if not col_names and re.search(r'\bLMNT\b', line):
+            col_names = line.split()
+        elif col_names:
+            rows.append(line.split())
+    idx = col_names.index('FINAL')
+    res.append(['FIT2 FINAL Y', 'Closed Orbit Y [m]', float(rows[0][idx]) / 1e2])
+    res.append(['FIT2 FINAL Y\'', 'Closed Orbit Y\' [rad]', float(rows[1][idx]) / 1e3])
     return res

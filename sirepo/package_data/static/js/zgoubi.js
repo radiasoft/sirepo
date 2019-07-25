@@ -31,7 +31,7 @@ SIREPO.lattice = {
     },
     elementPic: {
         aperture: [],
-        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'MULTIPOL'],
+        bend: ['AUTOREF', 'BEND', 'CHANGREF', 'CHANGREF_VALUE', 'FFA', 'FFA_SPI', 'MULTIPOL'],
         drift: ['DRIFT'],
         magnet: ['QUADRUPO', 'SEXTUPOL', 'TOSCA'],
         rf: ['CAVITE'],
@@ -93,9 +93,9 @@ SIREPO.app.directive('appHeader', function(latticeService) {
 SIREPO.app.controller('LatticeController', function(appState, errorService, panelState, latticeService, $scope) {
     var self = this;
     self.latticeService = latticeService;
-    self.advancedNames = [];
-    self.basicNames = ['AUTOREF', 'BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR', 'TOSCA', 'YMY'];
-    var scaling = {};
+    self.advancedNames = ['AUTOREF',  'TOSCA', 'YMY'];
+    self.basicNames = ['BEND', 'CAVITE', 'CHANGREF', 'CHANGREF2', 'DRIFT', 'FFA', 'FFA_SPI', 'MARKER', 'MULTIPOL', 'QUADRUPO', 'SCALING', 'SEXTUPOL', 'SOLENOID', 'SPINR'];
+    var scaling = null;
 
     function updateScaling() {
         var MAX_SCALING_FAMILY = 7;
@@ -103,7 +103,11 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         appState.models.elements.some(function(m) {
             if (m.type == 'SCALING' && m.IOPT == '1') {
                 for (var i = 1; i <= MAX_SCALING_FAMILY; i++) {
-                    scaling[m['NAMEF' + i]] = m['SCL' + i];
+                    var key = m['NAMEF' + i];
+                    if (m['LBL' + i]) {
+                        key += '.' + m['LBL' + i];
+                    }
+                    scaling[key] = m['SCL' + i];
                 }
                 return true;
             }
@@ -111,6 +115,9 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
     }
 
     function updateElementAttributes(item) {
+        if (! scaling) {
+            updateScaling();
+        }
         if ('KPOS' in item) {
             item.angle = 0;
             delete item.travelLength;
@@ -119,6 +126,9 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
             var field = item.B1 || item.B_1;
             if (scaling[item.type]) {
                 field *= scaling[item.type];
+            }
+            if (scaling[item.type + '.' + item.name]) {
+                field *= scaling[item.type + '.' + item.name];
             }
             var computedAngle = 2 * Math.asin((field * item.l * 100)/(2 * appState.models.bunch.rigidity));
             if (item.type == 'BEND') {
@@ -165,6 +175,21 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 item.color = SIREPO.lattice.elementColor.SEXTUPOL;
             }
         }
+        else if (item.type == 'FFA') {
+            // FFA length matches zgoubi DSREF computation in ffagi.f
+            var firstDipole = item.dipoles[0];
+            item.l = item.RM * (
+                firstDipole.OMEGA_E - firstDipole.OMEGA_S
+                    + Math.tan(firstDipole.ACN - firstDipole.OMEGA_E)
+                    + Math.tan(item.AT - firstDipole.ACN + firstDipole.OMEGA_S));
+            item.angle = item.AT;
+        }
+        else if (item.type == 'FFA_SPI') {
+            // FFA length matches zgoubi DSREF computation in ffgspi.f
+            var firstDipole2 = item.dipoles[0];
+            item.l = item.RM * (firstDipole2.OMEGA_E - firstDipole2.OMEGA_S);
+            item.angle = item.AT;
+        }
     }
 
     self.titleForName = function(name) {
@@ -179,7 +204,6 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
         }
 
         if (! sim.isInitialized) {
-            updateScaling();
             appState.models.elements.map(updateElementAttributes);
             sim.isInitialized = true;
             appState.saveChanges(['elements', 'simulation']);
@@ -191,8 +215,16 @@ SIREPO.app.controller('LatticeController', function(appState, errorService, pane
                 updateElementAttributes(m);
             }
             if (m.type == 'SCALING') {
-                updateScaling();
+                scaling = null;
                 appState.models.elements.map(updateElementAttributes);
+            }
+        });
+
+        $scope.$on('elementDeleted', function(e, name, element) {
+            if (element.type == 'SCALING') {
+                scaling = null;
+                appState.models.elements.map(updateElementAttributes);
+                appState.saveChanges('elements');
             }
         });
     });
@@ -262,6 +294,7 @@ SIREPO.app.controller('SourceController', function(appState, latticeService, pan
         appState.watchModelFields($scope, ['bunch.method'], processBunchMethod);
         appState.watchModelFields($scope, ['bunch.particleCount2'], function() {
             zgoubiService.processParticleCount2('bunch');
+            processParticleSelector();
         });
         appState.watchModelFields($scope, ['bunch.particleSelector'], processParticleSelector);
         appState.watchModelFields($scope, ['SPNTRK.KSO'], processSpinTracking);
@@ -305,21 +338,35 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     var self = this;
     self.panelState = panelState;
     self.errorMessage = '';
+    self.hasPlotFile = false;
+    self.showSpin3d = false;
 
     function handleStatus(data) {
         self.errorMessage = data.error;
         if (data.startTime && ! data.error) {
-            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
+            ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation', 'particleAnimation'].forEach(function(m) {
                 plotRangeService.computeFieldRanges(self, m, data.percentComplete);
                 appState.models[m].startTime = data.startTime;
                 appState.saveQuietly(m);
             });
             if (data.frameCount) {
                 frameCache.setFrameCount(data.frameCount - 1, 'energyAnimation');
+                frameCache.setFrameCount(data.frameCount - 1, 'elementStepAnimation');
+                frameCache.setFrameCount(data.frameCount - 1, 'particleAnimation');
                 updateTunesReport(data.startTime, data.showTunesReport);
             }
+            self.hasPlotFile = data.hasPlotFile;
+            self.showSpin3d = data.showSpin3d;
         }
         frameCache.setFrameCount(data.frameCount || 0);
+    }
+
+    function processPlotType(modelName) {
+        var model = appState.models[modelName];
+        var isHeatmap = model.plotType != 'particle';
+        panelState.showField(modelName, 'histogramBins', isHeatmap);
+        panelState.showField(modelName, 'colorMap', isHeatmap);
+        panelState.showTab(modelName, 2, isHeatmap);
     }
 
     function processShowAllFrames(modelName) {
@@ -328,6 +375,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         panelState.showField(
             modelName, 'particleSelector',
             modelName == 'tunesReport'
+                || modelName == 'particleAnimation'
                 || (model.showAllFrames == '1' && zgoubiService.showParticleSelector()));
     }
 
@@ -352,8 +400,16 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         if (appState.isAnimationModelName(name)) {
             plotRangeService.processPlotRange(self, name);
             processShowAllFrames(name);
+            processPlotType(name);
             zgoubiService.processParticleCount2(name);
         }
+    };
+
+    self.reportType = function(modelName) {
+        if (appState.isLoaded()) {
+            return appState.applicationState()[modelName].plotType;
+        }
+        return '3d';
     };
 
     self.showTunesReport = function() {
@@ -364,10 +420,13 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
+    var animationArgs = [SIREPO.ANIMATION_ARGS_VERSION + '4', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'plotType', 'startTime'];
     self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
-        bunchAnimation2: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
-        energyAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'startTime'],
+        bunchAnimation: animationArgs,
+        bunchAnimation2: animationArgs,
+        energyAnimation: animationArgs,
+        elementStepAnimation: animationArgs,
+        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'isRunning', 'particleSelector', 'startTime'],
     });
 
     self.simState.errorMessage = function() {
@@ -383,12 +442,15 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         $scope.$on('simulation.changed', function(e, name) {
             $rootScope.$broadcast('activeBeamlineChanged');
         });
-        ['bunchAnimation', 'bunchAnimation2', 'energyAnimation'].forEach(function(m) {
+        ['bunchAnimation', 'bunchAnimation2', 'energyAnimation', 'elementStepAnimation'].forEach(function(m) {
             appState.watchModelFields($scope, [m + '.plotRangeType'], function() {
                 plotRangeService.processPlotRange(self, m);
             });
             appState.watchModelFields($scope, [m + '.showAllFrames'], function() {
                 processShowAllFrames(m);
+            });
+            appState.watchModelFields($scope, [m + '.plotType'], function() {
+                processPlotType(m);
             });
         });
     });
@@ -514,6 +576,74 @@ SIREPO.app.directive('srCaviteEditor', function(appState, panelState) {
         },
     };
 });
+
+// editor used by both FFA and FFA_SPI models
+function srFFAEditor(modelName) {
+
+    return function(appState, panelState) {
+        return {
+            restrict: 'A',
+            controller: function($scope) {
+                var dipoleType = modelName == 'FFA'
+                    ? 'ffaDipole'
+                    : 'ffaSpiDipole';
+                function processAlignment() {
+                    var ffa = appState.models[modelName];
+                    if (! ffa) {
+                        return;
+                    }
+                    panelState.showRow(modelName, 'RE', ffa.KPOS == '2');
+                    panelState.showField(modelName, 'DP', ffa.KPOS == '1');
+                }
+
+                function processDipoleCount() {
+                    var ffa = appState.models[modelName];
+                    if (! ffa) {
+                        return;
+                    }
+                    SIREPO.APP_SCHEMA.enum.DipoleSelector.forEach(function(info) {
+                        var value = info[SIREPO.ENUM_INDEX_VALUE];
+                        panelState.showEnum(modelName, 'dipoleSelector', value, parseInt(value) <= ffa.N);
+                    });
+                }
+
+                function processSelector() {
+                    var ffa = appState.models[modelName];
+                    if (! ffa) {
+                        return;
+                    }
+                    if (! ffa.dipoles) {
+                        ffa.dipoles = [];
+                    }
+                    for (var i = 0; i < ffa.N; i++) {
+                        if (! ffa.dipoles[i]) {
+                            ffa.dipoles[i] = appState.setModelDefaults({}, dipoleType);
+                        }
+                    }
+                    appState.models[dipoleType] = ffa.dipoles[parseInt(ffa.dipoleSelector) - 1];
+                }
+
+                $scope.$on('sr-tabSelected', function() {
+                    var ffa = appState.models[modelName];
+                    if (! ffa) {
+                        return;
+                    }
+                    processSelector();
+                    processDipoleCount();
+                    processAlignment();
+                });
+
+                appState.whenModelsLoaded($scope, function() {
+                    appState.watchModelFields($scope, [modelName + '.dipoleSelector'], processSelector);
+                    appState.watchModelFields($scope, [modelName + '.N'], processDipoleCount);
+                    appState.watchModelFields($scope, [modelName + '.KPOS'], processAlignment);
+                });
+            },
+        };
+    };
+}
+SIREPO.app.directive('srFfaEditor', srFFAEditor('FFA'));
+SIREPO.app.directive('srFfaspiEditor', srFFAEditor('FFA_SPI'));
 
 SIREPO.app.directive('srSpinrEditor', function(appState, panelState) {
     return {
@@ -878,7 +1008,7 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
         restrict: 'A',
         template: [
             '<div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">',
-            '<div style="margin-bottom: 1ex">{{ additionalFileText() }}</div>',
+            '<div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>',
             '<input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">',
             '<div data-ng-if="uploadDatafile()"></div>',
             '</div>',
@@ -893,8 +1023,8 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
 
             $scope.additionalFileText = function() {
                 if (missingFiles) {
-                    return 'Please upload a zip file which contains the following TOSCA input files: '
-                        + missingFiles.join(', ');
+                    return 'Please upload a zip file which contains the following TOSCA input files:'
+                        + "\n    " + missingFiles.join("\n    ");
                 }
             };
 
@@ -944,6 +1074,147 @@ SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) 
                 }
                 return missingFiles && missingFiles.length;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('particle3d', function(appState, plotting, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div data-ng-class="{\'sr-plot-loading\': isLoading(), \'sr-plot-cleared\': dataCleared}">',
+              '<div class="main-title text-center">{{ title }}</div>',
+              '<div class="sr-plot sr-plot-particle-3d vtk-canvas-holder">',
+              '</div>',
+            '</div>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var fsRenderer = null;
+            var actors = [];
+            var orientationMarker = null;
+            $scope.title = '';
+            $scope.margin = {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            };
+
+            function addPoints(data) {
+                var numPts = data.length / 3;
+                var points = new window.Float32Array(data);
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(points, 3);
+                var mapper = vtk.Rendering.Core.vtkSphereMapper.newInstance();
+                var scale = new window.Float32Array(numPts);
+                for (var i = 0; i < numPts; i++) {
+                    scale[i] = 0.01;
+                }
+                pd.getPointData().addArray(
+                    vtk.Common.Core.vtkDataArray.newInstance({
+                        name: 'scaling',
+                        values: scale,
+                        numberOfComponents: 1,
+                    }));
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.getProperty().setLighting(false);
+                actor.getProperty().setColor(0.3, 0.4, 0.9);
+                actor.getProperty().setPointSize(4);
+                mapper.setInputData(pd);
+                mapper.setScaleArray('scaling');
+                actor.setMapper(mapper);
+                fsRenderer.getRenderer().addActor(actor);
+                return actor;
+            }
+
+            function addSphere() {
+                var sphere = vtk.Filters.Sources.vtkSphereSource.newInstance();
+                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                mapper.setInputConnection(sphere.getOutputPort());
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.setMapper(mapper);
+                actor.getProperty().setColor(0.9, 0.9, 0.9);
+                actor.getProperty().setLighting(false);
+                actor.getProperty().setOpacity(0.7);
+                sphere.set({
+                    'radius': 1,
+                    'thetaResolution': 100,
+                    'phiResolution': 100,
+                });
+                fsRenderer.getRenderer().addActor(actor);
+                return actor;
+            }
+
+            function getVtkElement() {
+                return $($element).find('.vtk-canvas-holder');
+            }
+
+            function refresh() {
+                var aspectRatio = appState.models[$scope.modelName].aspectRatio;
+                var rw = getVtkElement();
+                var width = plotting.constrainFullscreenSize($scope, rw.width(), aspectRatio);
+                rw.height(width * aspectRatio);
+                fsRenderer.resize();
+            }
+
+            function reset() {
+                var renderer = fsRenderer.getRenderer();
+                var cam = renderer.get().activeCamera;
+                cam.setPosition(0, 0, 1);
+                cam.setFocalPoint(0, 0, 0);
+                cam.setViewUp(0, 1, 0);
+                renderer.resetCamera();
+                cam.zoom(1.5);
+                orientationMarker.updateMarkerOrientation();
+                fsRenderer.getRenderWindow().render();
+            }
+
+            $scope.destroy = function() {
+                getVtkElement().off();
+                fsRenderer.getInteractor().unbindEvents();
+                fsRenderer.delete();
+                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
+            };
+
+            $scope.init = function() {
+                document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
+                var rw = getVtkElement();
+                rw.on('dblclick', reset);
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
+                    {
+                        background: [1, 1, 1, 1],
+                        container: rw[0],
+                    });
+                fsRenderer.getRenderer().getLights()[0].setLightTypeToSceneLight();
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: fsRenderer.getInteractor()
+                });
+                orientationMarker.setEnabled(true);
+                orientationMarker.setViewportCorner(
+                    vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
+                );
+            };
+
+            $scope.load = function(json) {
+                $scope.title = json.title;
+                actors.forEach(function(actor) {
+                    fsRenderer.getRenderer().removeActor(actor);
+                });
+                actors.push(addPoints(json.points));
+                actors.push(addSphere());
+                reset();
+                refresh();
+            };
+
+            $scope.resize = refresh;
+        },
+        link: function link(scope, element) {
+            plotting.vtkPlot(scope, element);
         },
     };
 });

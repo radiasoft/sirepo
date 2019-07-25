@@ -4,12 +4,9 @@ warpoptions.ignoreUnknownArgs = True
 
 import h5py
 import numpy as np
-import pykern
 import sys
 import warp as wp
 import rswarp
-
-from pykern import pkcollections
 
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
@@ -360,6 +357,25 @@ scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
 
 #------
 
+def dict_to_h5(d, hf, path=None):
+    if path is None:
+        path = ''
+    try:
+        for i in range(len(d)):
+            try:
+                p = '{}/{}'.format(path, i)
+                hf.create_dataset(p, data=d[i])
+            except TypeError:
+                dict_to_h5(d[i], hf, path=p)
+    except KeyError:
+        for k in d:
+            p = '{}/{}'.format(path, k)
+            try:
+                hf.create_dataset(p, data=d[k])
+            except TypeError:
+                dict_to_h5(d[k], hf, path=p)
+
+
 {% if not isOptimize %}
 particleperiod = {{ particlePeriod }}
 particle_diagnostic_0 = ParticleDiagnostic(period=particleperiod, top=wp.top, w3d=wp.w3d,
@@ -374,4 +390,3 @@ wp.installafterstep(efield_diagnostic_0.write)
 {% endif %}
 
 #------
-

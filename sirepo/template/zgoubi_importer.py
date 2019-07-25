@@ -21,7 +21,6 @@ MODEL_UNITS = None
 
 _SIM_TYPE = 'zgoubi'
 _SCHEMA = simulation_db.get_schema(_SIM_TYPE)
-_IGNORE_FIELDS = ['bunch.coordinates', 'BEND.IL', 'BEND.NCE', 'BEND.NCS', 'CHANGREF2.subElements', 'MULTIPOL.IL', 'MULTIPOL.NCE', 'MULTIPOL.NCS', 'QUADRUPO.IL', 'QUADRUPO.NCE', 'QUADRUPO.NCS', 'SEXTUPOL.IL', 'SEXTUPOL.NCE', 'SEXTUPOL.NCS', 'SOLENOID.IL', 'TOSCA.IC', 'TOSCA.IL', 'TOSCA.mod', 'TOSCA.TITL']
 _UNIT_TEST_MODE = False
 
 
@@ -105,6 +104,14 @@ def _init_model_units():
                 assert False, 'invalid transformType: {}'.format(t.transformType)
         return transforms
 
+    def _il(v, is_native):
+        if v == '0':
+            return v
+        if is_native:
+            return '1' if v == '2' else '0'
+        return '2' if v == '1' else '0'
+
+
     def _marker_plot(v, is_native):
         if is_native:
             return v
@@ -135,6 +142,7 @@ def _init_model_units():
         },
         'BEND': {
             'l': 'cm_to_m',
+            'IL': _il,
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
             'X_S': 'cm_to_m',
@@ -156,11 +164,72 @@ def _init_model_units():
         'DRIFT': {
             'l': 'cm_to_m',
         },
+        'ffaDipole': {
+            'ACN': 'deg_to_rad',
+            'DELTA_RM': 'cm_to_m',
+            'G0_E': 'cm_to_m',
+            'SHIFT_E': 'cm_to_m',
+            'OMEGA_E': 'deg_to_rad',
+            'THETA_E': 'deg_to_rad',
+            'R1_E': 'cm_to_m',
+            'U1_E': 'cm_to_m',
+            'U2_E': 'cm_to_m',
+            'R2_E': 'cm_to_m',
+            'G0_S': 'cm_to_m',
+            'SHIFT_S': 'cm_to_m',
+            'OMEGA_S': 'deg_to_rad',
+            'THETA_S': 'deg_to_rad',
+            'R1_S': 'cm_to_m',
+            'U1_S': 'cm_to_m',
+            'U2_S': 'cm_to_m',
+            'R2_S': 'cm_to_m',
+            'G0_L': 'cm_to_m',
+            'SHIFT_L': 'cm_to_m',
+            'OMEGA_L': 'deg_to_rad',
+            'THETA_L': 'deg_to_rad',
+            'R1_L': 'cm_to_m',
+            'U1_L': 'cm_to_m',
+            'U2_L': 'cm_to_m',
+            'R2_L': 'cm_to_m',
+        },
+        'ffaSpiDipole': {
+            'ACN': 'deg_to_rad',
+            'DELTA_RM': 'cm_to_m',
+            'G0_E': 'cm_to_m',
+            'SHIFT_E': 'cm_to_m',
+            'OMEGA_E': 'deg_to_rad',
+            'XI_E': 'deg_to_rad',
+            'G0_S': 'cm_to_m',
+            'SHIFT_S': 'cm_to_m',
+            'OMEGA_S': 'deg_to_rad',
+            'XI_S': 'deg_to_rad',
+            'G0_L': 'cm_to_m',
+            'SHIFT_L': 'cm_to_m',
+            'OMEGA_L': 'deg_to_rad',
+            'XI_L': 'deg_to_rad',
+        },
+        'FFA': {
+            'IL': _il,
+            'AT': 'deg_to_rad',
+            'RM': 'cm_to_m',
+            'XPAS': 'cm_to_m',
+            'RE': 'cm_to_m',
+            'RS': 'cm_to_m',
+        },
+        'FFA_SPI': {
+            'IL': _il,
+            'AT': 'deg_to_rad',
+            'RM': 'cm_to_m',
+            'XPAS': 'cm_to_m',
+            'RE': 'cm_to_m',
+            'RS': 'cm_to_m',
+        },
         'MARKER': {
             'plt': _marker_plot,
         },
         'MULTIPOL': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -170,8 +239,16 @@ def _init_model_units():
             'XCE': 'cm_to_m',
             'YCE': 'cm_to_m',
         },
+        'particleCoordinate': {
+            'Y': 'cm_to_m',
+            'Z': 'cm_to_m',
+            'S': 'cm_to_m',
+            'T': 'mrad_to_rad',
+            'P': 'mrad_to_rad',
+        },
         'QUADRUPO': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -183,6 +260,7 @@ def _init_model_units():
         },
         'SEXTUPOL': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'LAM_E': 'cm_to_m',
@@ -194,6 +272,7 @@ def _init_model_units():
         },
         'SOLENOID': {
             'l': 'cm_to_m',
+            'IL': _il,
             'R_0': 'cm_to_m',
             'X_E': 'cm_to_m',
             'X_S': 'cm_to_m',
@@ -202,6 +281,7 @@ def _init_model_units():
             'YCE': 'cm_to_m',
         },
         'TOSCA': {
+            'IL': _il,
             'A': 'cm_to_m',
             'B': 'cm_to_m',
             'C': 'cm_to_m',
@@ -274,7 +354,6 @@ def _validate_and_dedup_elements(data, elements):
             else:
                 template_common.update_model_defaults(el, el['type'], _SCHEMA)
                 data['models'][el['type']] = el
-    _validate_model('bunch', data['models']['bunch'], info['missingFiles'])
     return info
 
 
@@ -369,7 +448,9 @@ def _validate_model(model_type, model, missing_files):
         model['name'] = ''
     MODEL_UNITS.scale_from_native(model_type, model)
     for f in model.keys():
-        if '{}.{}'.format(model_type, f) in _IGNORE_FIELDS:
+        if isinstance(model[f], list) and len(model[f]) and 'type' in model[f][0]:
+            for sub_model in model[f]:
+                _validate_model(sub_model['type'], sub_model, missing_files)
             continue
         err = _validate_field(model, f, model_info)
         if err:

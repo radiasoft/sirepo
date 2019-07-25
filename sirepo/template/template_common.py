@@ -301,8 +301,6 @@ def h5_to_dict(hf, path=None):
 def heatmap(values, model, plot_fields=None):
     """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
     range = None
-    if not np.any(values):
-        values = [[], []]
     if 'plotRangeType' in model:
         if model['plotRangeType'] == 'fixed':
             range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]

@@ -69,6 +69,7 @@ def fixup_old_data(data):
             'fieldCalcAnimation',
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
+            'fieldComparisonReport',
             'fieldReport',
     ]:
         if m not in data.models:
@@ -206,9 +207,10 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'compute_simulation_steps':
-        run_dir = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']).join('fieldCalculationAnimation')
-        if run_dir.exists():
-            res = simulation_db.read_json(run_dir.join(_FIELD_ESTIMATE_FILE))
+        field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
+            .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
+        if field_file.exists():
+            res = simulation_db.read_json(field_file)
             if res and 'tof_expected' in res:
                 return {
                     'timeOfFlight': res['tof_expected'],
@@ -1072,4 +1074,3 @@ def _slope(x1, y1, x2, y2):
 
 def _stl_file(conductor_type):
     return template_common.lib_file_name('stl', 'file', conductor_type.file)
-

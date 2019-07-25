@@ -188,7 +188,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
                 }
                 appState.models[type].splice(i, 1);
                 appState.saveChanges(saveModelNames);
-                $rootScope.$broadcast('elementDeleted', type);
+                $rootScope.$broadcast('elementDeleted', type, element);
                 return;
             }
         }

@@ -30,7 +30,6 @@ test_main() {
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
     test_no_h5py
-    return
     test_jshint
     if [[ -x ./node_modules/karma/bin/karma ]]; then
        ./node_modules/karma/bin/karma start etc/karma-conf.js

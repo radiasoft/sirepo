@@ -3,7 +3,6 @@
         "beamlines": [],
         "bunch": {},
         "bunchAnimation": {
-            "colorMap": "viridis",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "notes": "",
@@ -11,7 +10,6 @@
             "y": "T"
         },
         "bunchAnimation2": {
-            "colorMap": "viridis",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "notes": "",
@@ -19,28 +17,24 @@
             "y": "P"
         },
         "bunchReport1": {
-            "colorMap": "viridis",
             "histogramBins": 200,
             "notes": "",
             "x": "Y",
             "y": "T"
         },
         "bunchReport2": {
-            "colorMap": "viridis",
             "histogramBins": 200,
             "notes": "",
             "x": "Z",
             "y": "P"
         },
         "bunchReport3": {
-            "colorMap": "viridis",
             "histogramBins": 200,
             "notes": "",
             "x": "Y",
             "y": "Z"
         },
         "bunchReport4": {
-            "colorMap": "viridis",
             "histogramBins": 200,
             "notes": "",
             "x": "S",

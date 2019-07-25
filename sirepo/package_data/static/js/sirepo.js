@@ -1286,7 +1286,8 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         }
         else {
             if (! template) {
-                template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + modelKey.toLowerCase() + '-editor=""' + '></div>';
+                var name = modelKey.toLowerCase().replace('_', '');
+                template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + name + '-editor=""' + '></div>';
             }
             $('body').append($compile(template)(scope || $rootScope));
             //TODO(pjm): timeout hack, other jquery can't find the element
