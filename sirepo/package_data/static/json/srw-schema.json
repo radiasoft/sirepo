@@ -351,7 +351,7 @@
             "detuning": ["Detuning from Resonant Frequency (dE/En)", "Float", 0],
             "energyPointCount": ["Number of Energy Points", "Integer", 100],
             "reportType": ["Report Type", "BrillianceReportType", "0"],
-            "brightnessComponent": ["Scan Type", "BrightnessComponet", "k-tuning"],
+            "brightnessComponent": ["Scan Type", "BrightnessComponent", "k-tuning"],
             "energyDelta": ["Energy Delta [eV]", "Float", 10, "", 1, 1000],
             "harmonic": ["Harmonic", "HarmonicList", "5"],
             "notes": ["Notes", "Text", ""]
@@ -407,7 +407,7 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "electronBeam": {
-            "beamSelector": ["Select Beam", "BeamList"],
+            "beamSelector": ["Existing Beam", "BeamList"],
             "name": ["Beam Name", "String"],
             "energy": ["Energy [GeV]", "Float"],
             "current": ["Current [A]", "Float"],
@@ -738,7 +738,7 @@
             "horizontalRange": ["Range of Horizontal Position [mm]", "Float"],
             "intensityPlotsWidth": ["Maximum Plot Dimension [pixels]", "IntensityPlotsWidth", "0"],
             "intensityPlotsScale": ["Plot Scale", "IntensityPlotsScale", "linear"],
-            "magneticField": ["Magnetic Field Tratment", "MagneticField"],
+            "magneticField": ["Magnetic Field Treatment", "MagneticField"],
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
 	    "initialPosition": ["Initial Longitudinal Position for SR Calculation (effective if smaller than final position)", "Float", 0.0],
 	    "finalPosition": ["Final Longitudinal Position for SR Calculation (effective if larger than initial position)", "Float", 0.0],
@@ -774,7 +774,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "tabulatedUndulator": {
-            "undulatorSelector": ["Select Undulator", "UndulatorList"],
+            "undulatorSelector": ["Existing Undulator", "UndulatorList"],
             "name": ["Undulator Name", "String"],
             "undulatorType": ["Type of Undulator", "UndulatorType", "u_t"],
             "gap": ["Magnetic Gap [mm]", "Float", 6.72],
@@ -1653,7 +1653,9 @@
         },
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
-	    "basic": [],
+	    "basic": [
+	        "name"
+	        ],
             "advanced": [
                 "undulatorSelector",
                 "name",
