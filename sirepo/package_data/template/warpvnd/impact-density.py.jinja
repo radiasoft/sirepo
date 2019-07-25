@@ -173,6 +173,7 @@ try:
             {% else %}
             coord_keys = ['x', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
+            global_max = max(global_max, max_s)
             n_bins = 20
             for (x, z, s) in d:
                 h = np.histogram(s, bins=n_bins)[0]
