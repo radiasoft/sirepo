@@ -4000,6 +4000,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     // loop over faces
                     c.forEach(function (f) {
+                        var err = f.err;
+                        if (err) {
+                            errorService.alertText(err);
+                            return;
+                        }
                         if (! f.y) {
                             $scope.enableImpactDensity = false;
                             return;
@@ -4016,8 +4021,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         var d = f.dArr;
                         var nk = d.length;
                         var nl = d[0].length;
-                        var smin = plotting.min2d(d);
-                        var smax = plotting.max2d(d);
+                        var smin = impactData.v_min || plotting.min2d(d);
+                        var smax = impactData.v_max || plotting.max2d(d);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
 
                         var p1 = [
@@ -4077,8 +4082,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     Math.min.apply(null, z) + dz / 2.0
                 ];
 
-                var smin = Math.min.apply(null, d);
-                var smax = Math.max.apply(null, d);
+                var smin = impactData.v_min || Math.min.apply(null, d);
+                var smax = impactData.v_max || Math.max.apply(null, d);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
@@ -4109,7 +4114,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 //srdbg('data tris', dataTris);
                 //srdbg('num data pts', dataPoints.length);
                 var p32 = window.Float32Array.from(dataPoints);
-                //var v32 = window.Uint32Array.from(dataVertices);
                 var t32 = window.Uint32Array.from(dataTris);
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
                     numberOfComponents: 3,
@@ -4120,7 +4124,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 b.actor.getProperty().setLighting(false);
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
-                //pd.getVerts().setData(v32);
                 pd.getPolys().setData(t32);
                 //srdbg('numn polys', pd.getPolys().getNumberOfTuples());
                 b.mapper.setScalarVisibility(true);
@@ -4215,6 +4218,10 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
+                //srdbg('index', index, 'xix', fieldxIndex, 'zix', fieldzIndex, 'num hm', heatmap.length);
+                if (! index) {
+                    return plotting.colorsFromHexString('#000000', 255.0);
+                }
                 return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
             }
 

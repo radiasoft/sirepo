@@ -27,6 +27,7 @@ def _linear_fit_1d(arr):
 
 try:
     i_data = []
+    # add use_aura=True when available in rswarp
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
 
     # Old style data, keeping for the moment
@@ -46,12 +47,14 @@ try:
         }
     else:
         i_data = []
+        global_max = 0.
         for i in plot_density.conductors:
             c_data = []
             c = plot_density.conductors[i]
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            global_max = max(global_max, max_s)
             for (x, y, z, s) in d:
                 #n_bins = 20
                 #s_aves_k = []
@@ -75,11 +78,11 @@ try:
                     'dArr': s.tolist(),
                     'n': len(x)
                 }
+
                 # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
-                #TODO(mvk): use triangulation instead
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
-                    #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
-                    #print('!GOT UNSTRUCT X {} Y {} Z {} S {}'.format(x, y, z, s))
+
+                    f_data['type'] = 'unstructured'
 
                     xx = np.array([])
                     yy = np.array([])
@@ -88,33 +91,22 @@ try:
 
                     #####
 
-                    # 2d triangulation for each individual plane in z
-                    # 3d triangulation appears unreliable
-                    #uniq_z = np.unique(z)
-                    #pts = np.dstack((x, y))[0]
-
-                    ##for uz in uniq_z:
-                    #for uz_idx, uz in enumerate(uniq_z):
-                    #    if uz_idx > 0:
-                    #        break
-                    #    pts_at_z = pts[np.where(z == uz)]
-                    #    tri = scipy.spatial.Delaunay(pts_at_z)
-                    #    verts = tri.simplices
-                    #    tri_pts = tri.points
-                    #    xx = np.append(xx, x[verts])
-                    #    yy = np.append(yy, y[verts])
-                    #    zz = np.append(zz, uz * np.ones(len(verts[0]) * len(verts)))
-                    #    for vert in verts:
-                    #        ss = np.append(ss, np.mean(s[vert]))
-                    #    print('!GOT UNSTRUCT UNIQ Z {} VERTS {} X {} Y {} Z {} S {}'.format(uz, verts, xx, yy, zz, ss))
-
-                    #####
-
                     # 3d triangulation
-                    # This gives us tetrahedrons but we'll split them into triangles for vtk
+                    # This gives us tetrahedrons but we'll split them into triangles for vtk, which has not yet ported
+                    # tetras from c++ to js
                     pts = np.dstack((x, y, z))[0]
-                    tri3 = scipy.spatial.Delaunay(pts)
-                    tets = tri3.simplices
+                    try:
+                        dlny = scipy.spatial.Delaunay(pts)
+                    except scipy.spatial.qhull.QhullError:
+                        print('Cannot triangulate conductor {}'.format(c))
+                        f_data['err'] = 'Cannot triangulate conductor'
+                        c_data.append(f_data)
+                        continue
+
+                    f_data['dims'] = 3
+                    tets = dlny.simplices
+
+                    # the triangles that make up the tetrahedron
                     tris = [
                         [0, 1, 2],
                         [0, 1, 3],
@@ -128,23 +120,50 @@ try:
                             yy = np.append(yy, y[tetra_tri])
                             zz = np.append(zz, z[tetra_tri])
                             ss = np.append(ss, np.mean(s[tetra_tri]))
-                    #print('pts {} 3d tri {} 3d s {}'.format(pts, tets, ss))
-                    #print('3d tri x {} y {} z {} s {}'.format(len(xx), len(yy), len(zz), len(ss)))
-                    #print('3d tri x {} y {} z {} s {}'.format(xx, yy, zz, ss))
+                            # useful for viewing the triangulation independent of the generated color map
+                            # ss = np.append(ss, np.mean(x[tetra_tri]))
+
+                    #####
+
+                    # 2d triangulation for each individual plane in z
+                    # Use as fallback if 3d fails (?)
+                    #uniq_z = np.unique(z)
+                    #pts = np.dstack((x, y))[0]
+
+                    #for uz in uniq_z:
+                    #for uz_idx, uz in enumerate(uniq_z):
+                    #    if uz_idx > 0:
+                    #        break
+                    #    pts_at_z = pts[np.where(z == uz)]
+                    #    s_at_z = s[np.where(z == uz)]
+                    #    try:
+                    #       dlny = scipy.spatial.Delaunay(pts_at_z)
+                    #    except scipy.spatial.qhull.QhullError:
+                    #        print('Cannot triangulate conductor {}'.format(c))
+                    #        f_data['err'] = 'Cannot triangulate conductor'
+                    #        c_data.append(f_data)
+                    #        continue
+                    #    f_data['dims'] = 2
+                    #    tris = dlny.simplices
+                    #    xx = np.append(xx, pts_at_z[tris][:, :, 0])
+                    #    yy = np.append(yy, pts_at_z[tris][:, :, 1])
+                    #    # send single z value?
+                    #    zz = np.append(zz, uz * np.ones(len(tris[0]) * len(tris)))
+                    #    for tri in tris:
+                    #        ss = np.append(ss, np.mean(s_at_z[tri]))
+                    #        #ss = np.append(ss, np.mean(pts_at_z[tris][:, :, 0]))
+
+                    #####
 
                     f_data['dArr'] = ss.tolist()
                     f_data['n'] = len(ss)
 
-                    #print('!GOT UNSTRUCT')
-                    f_data['type'] = 'unstructured'
                     for cx, coord in enumerate((xx, yy, zz)):
                         #print('{}: {} ({})'.format(coord_keys[cx], coord, len(coord)))
                         f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
                     f_data['m'] = len(x[0])
-                    #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
-                    #print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
                     for cx, coord in enumerate((x, y, z)):
                         sk, sl = _linear_fit_2d(coord)
                         f_data[coord_keys[cx]] = {
@@ -196,8 +215,8 @@ try:
             {% endif %}
             'dz': plot_density.dz,
             'density': i_data,
-            'min': min_s,
-            'max': max_s,
+            'min': 0,
+            'max': global_max,
         }
 
 except AssertionError as e:
