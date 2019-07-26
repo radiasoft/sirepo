@@ -3440,4 +3440,3 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
     };
 });
-
