@@ -1262,7 +1262,7 @@ def _fixup_beamline(data):
                 item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
             if 'cropArea' not in item:
                 for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
-                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
+                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'transmissionImage',
                           'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
                     item[f] = _SCHEMA['model']['sample'][f][2]
         if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
@@ -1443,6 +1443,7 @@ def _generate_beamline_optics(report, models, last_id):
             'thickness': 'thick',
             'tipRadius': 'r_min',
             'tipWallThickness': 'wall_thick',
+            'transmissionImage': 'extTransm',
             'verticalApertureSize': 'apert_v',
             'verticalCenterPosition': 'yc',
             'verticalFocalLength': 'Fy',
@@ -1517,7 +1518,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
     if report == 'backgroundImport':
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
-
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 
     # und_g and und_ph API units are mm rather than m
@@ -1819,6 +1819,7 @@ def _process_image(data):
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
             area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
+            extTr=int(m['transmissionImage']),
             rotate_angle=float(m['rotateAngle']),
             rotate_reshape=int(m['rotateReshape']),
             cutoff_background_noise=float(m['cutoffBackgroundNoise']),
