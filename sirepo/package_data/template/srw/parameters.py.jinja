@@ -218,7 +218,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
-    ['rs_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+    ['rs_type', 's', '{{rs_type}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}
 #---Multipole
     ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],

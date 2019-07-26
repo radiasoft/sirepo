@@ -1512,6 +1512,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
 
+    v['rs_type'] = source_type
+    if _is_idealized_undulator(source_type, undulator_type):
+        v['rs_type'] = 'u'
+
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
