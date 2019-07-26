@@ -466,33 +466,17 @@
                 "use_linear_chromatic_matrix": "0"
             }
         ],
-        "elementAnimation": {
-            "histogramBins": 200,
-            "x": "x",
-            "y": "xp"
-        },
-        "elementAnimation0-1": {
-            "fileId": "0-1",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "particleID"
-            ],
-            "x": "t",
-            "y": "p"
-        },
         "elementAnimation10-5": {
-            "fileId": "10-5",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "w2",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -521,7 +505,7 @@
                     "w2.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -539,7 +523,7 @@
                     "w5.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -557,53 +541,32 @@
                     "w5.filename.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "x",
             "xFile": "w2.filename.sdds",
             "xFileId": "10-5",
-            "y": "xp",
             "y1": "xp",
             "y1File": "w2.filename.sdds",
             "y1FileId": "10-5",
-            "y2": " ",
+            "y2": "None",
             "y2File": "w2.filename.sdds",
             "y2FileId": "10-5",
-            "y3": " ",
+            "y3": "None",
             "y3File": "w2.filename.sdds",
             "y3FileId": "10-5"
         },
-        "elementAnimation10-6": {
-            "fileId": "10-6",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
-            "x": "x",
-            "y": "xp"
-        },
         "elementAnimation11-5": {
-            "fileId": "11-5",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "w3",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -632,7 +595,7 @@
                     "w3.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -650,7 +613,7 @@
                     "w5.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -668,53 +631,32 @@
                     "w5.filename.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "t",
             "xFile": "w3.filename.sdds",
             "xFileId": "11-5",
-            "y": "p",
             "y1": "p",
             "y1File": "w3.filename.sdds",
             "y1FileId": "11-5",
-            "y2": " ",
+            "y2": "None",
             "y2File": "w3.filename.sdds",
             "y2FileId": "11-5",
-            "y3": " ",
+            "y3": "None",
             "y3File": "w3.filename.sdds",
             "y3FileId": "11-5"
         },
-        "elementAnimation11-6": {
-            "fileId": "11-6",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
-            "x": "t",
-            "y": "p"
-        },
         "elementAnimation12-5": {
-            "fileId": "12-5",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "w4",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -743,7 +685,7 @@
                     "w4.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -761,7 +703,7 @@
                     "w5.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -779,53 +721,32 @@
                     "w5.filename.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "t",
             "xFile": "w4.filename.sdds",
             "xFileId": "12-5",
-            "y": "p",
             "y1": "p",
             "y1File": "w4.filename.sdds",
             "y1FileId": "12-5",
-            "y2": " ",
+            "y2": "None",
             "y2File": "w4.filename.sdds",
             "y2FileId": "12-5",
-            "y3": " ",
+            "y3": "None",
             "y3File": "w4.filename.sdds",
             "y3FileId": "12-5"
         },
-        "elementAnimation12-6": {
-            "fileId": "12-6",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
-            "x": "t",
-            "y": "p"
-        },
         "elementAnimation13-5": {
-            "fileId": "13-5",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "w5",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -854,7 +775,7 @@
                     "w5.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -872,7 +793,7 @@
                     "w5.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -890,53 +811,32 @@
                     "w5.filename.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "t",
             "xFile": "w5.filename.sdds",
             "xFileId": "13-5",
-            "y": "p",
             "y1": "p",
             "y1File": "w5.filename.sdds",
             "y1FileId": "13-5",
-            "y2": " ",
+            "y2": "None",
             "y2File": "w5.filename.sdds",
             "y2FileId": "13-5",
-            "y3": " ",
+            "y3": "None",
             "y3File": "w5.filename.sdds",
             "y3FileId": "13-5"
         },
-        "elementAnimation13-6": {
-            "fileId": "13-6",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
-            "x": "t",
-            "y": "p"
-        },
         "elementAnimation21-18": {
-            "fileId": "21-18",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "run_setup.output",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -963,7 +863,7 @@
                     "run_setup.output.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -976,7 +876,7 @@
                     "run_setup.output.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -989,35 +889,32 @@
                     "run_setup.output.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "t",
             "xFile": "run_setup.output.sdds",
             "xFileId": "21-18",
-            "y": "p",
             "y1": "p",
             "y1File": "run_setup.output.sdds",
             "y1FileId": "21-18",
-            "y2": " ",
+            "y2": "None",
             "y2File": "run_setup.output.sdds",
             "y2FileId": "21-18",
-            "y3": " ",
+            "y3": "None",
             "y3File": "run_setup.output.sdds",
             "y3FileId": "21-18"
         },
         "elementAnimation21-25": {
-            "fileId": "21-25",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "run_setup.sigma",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1170,7 +1067,7 @@
                     "run_setup.sigma.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "s1",
@@ -1248,7 +1145,7 @@
                     "twiss_output.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "s1",
@@ -1326,98 +1223,32 @@
                     "twiss_output.filename.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "ElementOccurence",
-                "s1",
-                "s12",
-                "s13",
-                "s14",
-                "s15",
-                "s16",
-                "s17",
-                "s2",
-                "s23",
-                "s24",
-                "s25",
-                "s26",
-                "s27",
-                "s3",
-                "s34",
-                "s35",
-                "s36",
-                "s37",
-                "s4",
-                "s45",
-                "s46",
-                "s47",
-                "s5",
-                "s56",
-                "s57",
-                "s6",
-                "s67",
-                "s7",
-                "ma1",
-                "ma2",
-                "ma3",
-                "ma4",
-                "ma5",
-                "ma6",
-                "ma7",
-                "minimum1",
-                "minimum2",
-                "minimum3",
-                "minimum4",
-                "minimum5",
-                "minimum6",
-                "minimum7",
-                "maximum1",
-                "maximum2",
-                "maximum3",
-                "maximum4",
-                "maximum5",
-                "maximum6",
-                "maximum7",
-                "Sx",
-                "Sxp",
-                "Sy",
-                "Syp",
-                "Ss",
-                "Sdelta",
-                "St",
-                "ex",
-                "enx",
-                "ecx",
-                "ecnx",
-                "ey",
-                "eny",
-                "ecy",
-                "ecny",
-                "betaxBeam",
-                "alphaxBeam",
-                "betayBeam",
-                "alphayBeam"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
             "xFileId": "21-25",
-            "y": "s1",
-            "y1": "Sx",
+            "y1": "s1",
             "y1File": "run_setup.sigma.sdds",
             "y1FileId": "21-25",
-            "y2": "Sy",
+            "y2": "None",
             "y2File": "run_setup.sigma.sdds",
             "y2FileId": "21-25",
-            "y3": " ",
+            "y3": "None",
             "y3File": "run_setup.sigma.sdds",
             "y3FileId": "21-25"
         },
         "elementAnimation21-3": {
-            "fileId": "21-3",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "run_setup.centroid",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1452,7 +1283,7 @@
                     "run_setup.centroid.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "Cx",
@@ -1471,7 +1302,7 @@
                     "twiss_output.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "Cx",
@@ -1490,38 +1321,32 @@
                     "twiss_output.filename.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "ElementOccurence",
-                "Cx",
-                "Cxp",
-                "Cy",
-                "Cyp",
-                "Cs",
-                "Cdelta",
-                "Particles",
-                "pCentral"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.centroid.sdds",
             "xFileId": "21-3",
-            "y": "Cx",
             "y1": "Cx",
             "y1File": "run_setup.centroid.sdds",
             "y1FileId": "21-3",
             "y2": "Cxp",
             "y2File": "run_setup.centroid.sdds",
             "y2FileId": "21-3",
-            "y3": " ",
+            "y3": "None",
             "y3File": "run_setup.centroid.sdds",
             "y3FileId": "21-3"
         },
         "elementAnimation23-13": {
-            "fileId": "23-13",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "1",
+            "notes": "",
             "panelTitle": "twiss_output",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1564,7 +1389,7 @@
                     "twiss_output.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "betax",
                     "alphax",
@@ -1587,7 +1412,7 @@
                     "twiss_output.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "betax",
                     "alphax",
@@ -1610,27 +1435,11 @@
                     "twiss_output.filename.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "betax",
-                "alphax",
-                "psix",
-                "etax",
-                "etaxp",
-                "xAperture",
-                "betay",
-                "alphay",
-                "psiy",
-                "etay",
-                "etayp",
-                "yAperture",
-                "pCentral0",
-                "ElementOccurence"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "twiss_output.filename.sdds",
             "xFileId": "23-13",
-            "y": "betax",
             "y1": "betax",
             "y1File": "twiss_output.filename.sdds",
             "y1FileId": "23-13",
@@ -1639,15 +1448,19 @@
             "y2FileId": "23-13",
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "23-13",
-            "includeLattice": true
+            "y3FileId": "23-13"
         },
         "elementAnimation5-54": {
-            "fileId": "5-54",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0.0050421450268796665,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "B1",
-            "startTime": 1532378754,
+            "plotRangeType": "fit",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1674,7 +1487,7 @@
                     "B1.output_file.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1688,7 +1501,7 @@
                     "B2.output_file.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1702,51 +1515,32 @@
                     "B2.output_file.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
+            "verticalOffset": 101.21269292084351,
+            "verticalSize": 202.42538584168702,
             "x": "s",
             "xFile": "B1.output_file.sdds",
             "xFileId": "5-54",
-            "y": "LinearDensity",
-            "y1": "LinearDensity",
+            "y1": "DeltaGamma",
             "y1File": "B1.output_file.sdds",
             "y1FileId": "5-54",
-            "y2": " ",
+            "y2": "DeltaGammaT1",
             "y2File": "B1.output_file.sdds",
             "y2FileId": "5-54",
-            "y3": " ",
+            "y3": "DeltaGammaT2",
             "y3File": "B1.output_file.sdds",
             "y3FileId": "5-54"
         },
-        "elementAnimation5-55": {
-            "fileId": "5-55",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
-            "x": "s",
-            "y": "LinearDensity"
-        },
         "elementAnimation6-54": {
-            "fileId": "6-54",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0.005057240222574151,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "B2",
-            "startTime": 1532378754,
+            "plotRangeType": "fit",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1773,7 +1567,7 @@
                     "B2.output_file.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1787,7 +1581,7 @@
                     "B2.output_file.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1801,51 +1595,32 @@
                     "B2.output_file.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
+            "verticalOffset": 148.23833571723148,
+            "verticalSize": 296.47667143446296,
             "x": "s",
             "xFile": "B2.output_file.sdds",
             "xFileId": "6-54",
-            "y": "LinearDensity",
             "y1": "LinearDensity",
             "y1File": "B2.output_file.sdds",
             "y1FileId": "6-54",
-            "y2": " ",
+            "y2": "None",
             "y2File": "B2.output_file.sdds",
             "y2FileId": "6-54",
-            "y3": " ",
+            "y3": "None",
             "y3File": "B2.output_file.sdds",
             "y3FileId": "6-54"
         },
-        "elementAnimation6-55": {
-            "fileId": "6-55",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
-            "x": "s",
-            "y": "LinearDensity"
-        },
         "elementAnimation7-54": {
-            "fileId": "7-54",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0.002745228247837261,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "B3",
-            "startTime": 1532378754,
+            "plotRangeType": "fit",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1872,7 +1647,7 @@
                     "B3.output_file.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1886,7 +1661,7 @@
                     "B4.output_file.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1900,51 +1675,32 @@
                     "B4.output_file.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
+            "verticalOffset": 349.5473129567476,
+            "verticalSize": 699.0946259134952,
             "x": "s",
             "xFile": "B3.output_file.sdds",
             "xFileId": "7-54",
-            "y": "LinearDensity",
             "y1": "LinearDensity",
             "y1File": "B3.output_file.sdds",
             "y1FileId": "7-54",
-            "y2": " ",
+            "y2": "None",
             "y2File": "B3.output_file.sdds",
             "y2FileId": "7-54",
-            "y3": " ",
+            "y3": "None",
             "y3File": "B3.output_file.sdds",
             "y3FileId": "7-54"
         },
-        "elementAnimation7-55": {
-            "fileId": "7-55",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
-            "x": "s",
-            "y": "LinearDensity"
-        },
         "elementAnimation8-54": {
-            "fileId": "8-54",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0.001261423282671551,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "B4",
-            "startTime": 1532378754,
+            "plotRangeType": "fit",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "s",
@@ -1971,7 +1727,7 @@
                     "B4.output_file.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1985,7 +1741,7 @@
                     "B4.output_file.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "LinearDensity",
                     "LinearDensityDeriv",
@@ -1999,51 +1755,32 @@
                     "B4.output_file.sdds"
                 ]
             },
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
+            "verticalOffset": 492.9198607844064,
+            "verticalSize": 985.8397215688128,
             "x": "s",
             "xFile": "B4.output_file.sdds",
             "xFileId": "8-54",
-            "y": "LinearDensity",
-            "y1": "LinearDensity",
+            "y1": "DeltaGamma",
             "y1File": "B4.output_file.sdds",
             "y1FileId": "8-54",
-            "y2": " ",
+            "y2": "DeltaGammaT1",
             "y2File": "B4.output_file.sdds",
             "y2FileId": "8-54",
-            "y3": " ",
+            "y3": "DeltaGammaT2",
             "y3File": "B4.output_file.sdds",
             "y3FileId": "8-54"
         },
-        "elementAnimation8-55": {
-            "fileId": "8-55",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "s",
-                "LinearDensity",
-                "LinearDensityDeriv",
-                "DeltaGamma",
-                "GammaDeriv",
-                "DeltaGammaT1",
-                "DeltaGammaT2"
-            ],
-            "x": "s",
-            "y": "LinearDensity"
-        },
         "elementAnimation9-5": {
-            "fileId": "9-5",
-            "framesPerSecond": 2,
+            "colorMap": "afmhot",
+            "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "0",
+            "notes": "",
             "panelTitle": "w1",
-            "startTime": 1532378754,
+            "plotRangeType": "none",
+            "startTime": 1544216288,
             "valueList": {
                 "x": [
                     "x",
@@ -2072,7 +1809,7 @@
                     "w1.filename.sdds"
                 ],
                 "y2": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -2090,7 +1827,7 @@
                     "w5.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "x",
                     "xp",
                     "y",
@@ -2108,46 +1845,20 @@
                     "w5.filename.sdds"
                 ]
             },
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "x",
             "xFile": "w1.filename.sdds",
             "xFileId": "9-5",
-            "y": "xp",
             "y1": "xp",
             "y1File": "w1.filename.sdds",
             "y1FileId": "9-5",
-            "y2": " ",
+            "y2": "None",
             "y2File": "w1.filename.sdds",
             "y2FileId": "9-5",
-            "y3": " ",
+            "y3": "None",
             "y3File": "w1.filename.sdds",
             "y3FileId": "9-5"
-        },
-        "elementAnimation9-6": {
-            "fileId": "9-6",
-            "framesPerSecond": 2,
-            "histogramBins": 200,
-            "values": [
-                "x",
-                "xp",
-                "y",
-                "yp",
-                "t",
-                "p",
-                "dt",
-                "particleID"
-            ],
-            "x": "x",
-            "y": "xp"
         },
         "elements": [
             {
@@ -2765,9 +2476,6 @@
         ],
         "panelState": {
             "hidden": [
-                "bunchReport3",
-                "bunchReport4",
-                "bunchReport2",
                 "elementAnimation6-55",
                 "elementAnimation7-55",
                 "elementAnimation9-6",

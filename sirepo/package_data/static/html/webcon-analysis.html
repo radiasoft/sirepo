@@ -1,0 +1,19 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="analysisData"></div>
+      <div data-ng-if="analysis.hasFile()">
+        <div data-report-panel="parameter" data-model-name="analysisReport">
+          <div data-analysis-actions="" data-model-name="analysisReport"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-repeat="item in analysis.subplots track by item.id">
+      <div data-report-panel="parameter" data-model-name="analysisReport" data-model-data="item" data-panel-title="{{ item.title }}">
+        <div data-analysis-actions="" data-model-name="analysisReport" data-model-data="item"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-modal-editor="" view-name="analysisReport" data-ng-repeat="item in analysis.subplots track by item.id" data-parent-controller="analysis" data-model-data="item" data-modal-title="item.title"></div>

@@ -11,4 +11,4 @@ install:
   # Avoids Travis running the default install (pip install requirements)
   - true
 script:
-  - curl radia.run | bash -s container-build
+  - curl https://radia.run | bash -s container-build

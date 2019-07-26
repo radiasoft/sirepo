@@ -38,21 +38,18 @@ def test_importer():
         'srx_bl2': ('srx', '--op_BL=2'),
         'srx_bl3': ('srx', '--op_BL=3'),
         'srx_bl4': ('srx', '--op_BL=4'),
+        'nsls-ii-esm-beamline': ('nsls-ii-esm-beamline', None),
     }
 
     dat_dir = py.path.local(pkresource.filename('template/srw/', import_python))
     with pkunit.save_chdir_work():
-        work_dir = py.path.local('.')
-        for f in glob.glob(str(dat_dir.join('mirror_*d.dat'))):
-            py.path.local(f).copy(work_dir)
-        py.path.local(str(dat_dir.join('sample.tif'))).copy(work_dir)
         for b in sorted(_TESTS.keys()):
             base_py = '{}.py'.format(_TESTS[b][0])
             code = pkio.read_text(pkunit.data_dir().join(base_py))
             actual = import_python(
                 code,
-                tmp_dir=str(work_dir),
-                lib_dir=str(work_dir),
+                tmp_dir='.',
+                lib_dir=str(dat_dir),
                 user_filename=r'c:\anything\{}.anysuffix'.format(_TESTS[b][0]),
                 arguments=_TESTS[b][1],
             )

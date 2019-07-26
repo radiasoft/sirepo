@@ -2,10 +2,10 @@
 from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
 
 #prevent GIST from starting upon setup
-top.lprntpara = false
-top.lpsplots = false
+wp.top.lprntpara = False
+wp.top.lpsplots = False
 
-top.verbosity = 0 # Reduce solver verbosity
+wp.top.verbosity = 0 # Reduce solver verbosity
 solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
 
 #Adjusting the multigrid parameter here improves convergence speed
@@ -20,8 +20,8 @@ regular_tol = 1e-6
 
 solverE.mgmaxiters = init_iters
 solverE.mgtol = init_tol
-package("w3d")
-generate()
+wp.package("w3d")
+wp.generate()
 solverE.mgtol = regular_tol
 solverE.mgmaxiters = regular_iters
 
@@ -39,13 +39,13 @@ def update_status_file(num, save_current=False):
     if save_current:
         # save current state, h5 files don't seem to capture the state
         current_file = '{{ egunCurrentFile }}'
-        curr = np.append([top.time], -1 * top.curr).flatten()
+        curr = np.append([wp.top.time], -1 * wp.top.curr).flatten()
         if (num <= 1):
             v = [curr]
         else:
             v = np.load(current_file)
             v = np.append(v, [curr], axis=0)
-        np.save(tmp_file, v)
+        np.save(tmp_file, v, allow_pickle=True)
         os.rename(tmp_file + '.npy', current_file)
 
 update_status_file(0.25)
@@ -58,19 +58,25 @@ for num in range(ITERATIONS):
 # particle trajectories
 
 #Grab the list of valid IDs
-pids = np.unique(top.pgroup.pid)
+pids = np.unique(wp.top.pgroup.pid)
 MAX_TRAJECTORIES = 100 #number of particle trajectories to plot
 #get the positions for a select number of particles to be plotted
 particles = [[[], [], []], [[], [], []]]
 for ID in pids[:MAX_TRAJECTORIES]:
-    xvals = getx()[selectparticles(ssn=int(ID))]
-    yvals = gety()[selectparticles(ssn=int(ID))]
-    zvals = getz()[selectparticles(ssn=int(ID))]
+    xvals = wp.getx()[wp.selectparticles(ssn=int(ID))]
+    yvals = wp.gety()[wp.selectparticles(ssn=int(ID))]
+    zvals = wp.getz()[wp.selectparticles(ssn=int(ID))]
     particles[0][0].append(xvals)
     particles[0][1].append(zvals)
     particles[0][2].append(yvals)
 
 update_status_file(ITERATIONS + 1)
-np.save('{{ particleFile }}', particles)
-
-{{ impactDensityCalculation }}
+hf = h5py.File('{{ particleFile }}')
+dict_to_h5(
+    {
+        'kept': particles[0],
+        'lost': particles[1]
+    },
+    hf, path='particle'
+)
+hf.close()

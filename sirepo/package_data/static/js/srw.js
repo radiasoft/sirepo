@@ -5,8 +5,9 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.appDefaultSimulationValues.simulation.sourceType = 'u';
 SIREPO.INCLUDE_EXAMPLE_FOLDERS = true;
-SIREPO.SINGLE_FRAME_ANIMATION = ['fluxAnimation', 'multiElectronAnimation'];
+SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'multiElectronAnimation'];
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
+SIREPO.PLOTTING_SHOW_FWHM = true;
 //TODO(pjm): provide API for this, keyed by field type
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamList">',
@@ -20,6 +21,9 @@ SIREPO.appFieldEditors = [
     '</div>',
     '<div data-ng-switch-when="MagneticZipFile" class="col-sm-7">',
       '<div data-file-field="field" data-file-type="undulatorTable" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Zip File"></div>',
+    '</div>',
+    '<div data-ng-switch-when="ArbitraryFieldFile" class="col-sm-7">',
+      '<div data-file-field="field" data-file-type="arbitraryField" data-model="model" data-selection-required="true" data-empty-selection-text="Select Magnetic Data File"></div>',
     '</div>',
     '<div data-ng-switch-when="MirrorFile" class="col-sm-7">',
       '<div data-mirror-file-field="" data-model="model" data-field="field" data-model-name="modelName" ></div>',
@@ -50,6 +54,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     appDataService.applicationMode = null;
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
+    self.showCalcCoherence = false;
 
     // override appDataService functions
     appDataService.appDataForReset = function() {
@@ -92,7 +97,7 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
     };
 
     self.isElectronBeam = function() {
-        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole();
+        return self.isIdealizedUndulator() || self.isTabulatedUndulator() || self.isMultipole() || self.isArbitraryMagField();
     };
 
     self.isGaussianBeam = function() {
@@ -101,6 +106,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
 
     self.isIdealizedUndulator = function() {
         return isSelected('u');
+    };
+
+    self.isArbitraryMagField = function() {
+        return isSelected('a');
     };
 
     self.isMultipole = function() {
@@ -122,6 +131,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         return self.isTabulatedUndulator() && appState.models.tabulatedUndulator.undulatorType == 'u_t';
     };
 
+    self.setShowCalcCoherence = function(isShown) {
+        self.showCalcCoherence = isShown;
+    };
+
     self.showBrillianceReport = function() {
         return self.isIdealizedUndulator();
     };
@@ -136,8 +149,6 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
             panelState.showField(f, 'horizontalPointCount', ! isAutomatic);
             panelState.showField(f, 'verticalPointCount', ! isAutomatic);
         });
-        // Always show the distance, so commenting it out:
-        // panelState.showField('simulation', 'distanceFromSource', appState.models.beamline.length === 0);
     };
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
@@ -232,12 +243,12 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     function computeCrystalInit(item) {
         if (item.material != 'Unknown') {
-            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi', 'grazingAngle']);
+            computeFields('compute_crystal_init', item, ['dSpacing', 'psi0r', 'psi0i', 'psiHr', 'psiHi', 'psiHBr', 'psiHBi']);
         }
     }
 
     function computeCrystalOrientation(item) {
-        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy']);
+        computeFields('compute_crystal_orientation', item, ['nvx', 'nvy', 'nvz', 'tvx', 'tvy', 'grazingAngle']);
     }
 
     function computeDeltaAttenCharacteristics(item) {
@@ -581,7 +592,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     });
 
     appState.whenModelsLoaded($scope, function() {
-
+        srwService.setShowCalcCoherence(false);
         // set the single electron state based on the stored coherence value
         if(beamlineService.coherence) {
             if (appState.models.beamline.length == 0) {
@@ -604,7 +615,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             beamlineService.watchBeamlineField($scope, m, ['method', 'material'], computeDeltaAttenCharacteristics);
         });
         beamlineService.watchBeamlineField($scope, 'crystal', ['material', 'energy', 'h', 'k', 'l'], computeCrystalInit, true);
-        beamlineService.watchBeamlineField($scope, 'crystal', ['grazingAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
+        beamlineService.watchBeamlineField($scope, 'crystal', ['diffractionAngle', 'dSpacing', 'asymmetryAngle', 'psi0r', 'psi0i', 'rotationAngle'], computeCrystalOrientation, true);
         beamlineService.watchBeamlineField($scope, 'sample', ['cropArea', 'tileImage', 'rotateAngle'], updateSampleFields);
         $scope.$on('beamline.changed', syncFirstElementPositionToDistanceFromSource);
         $scope.$on('simulation.changed', function() {
@@ -980,7 +991,7 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             ) + ' for Finite Emittance Electron Beam';
         }
         else {
-            repName = title + ' Report';
+            repName = title;
         }
         repName += ', ' + distance;
         tag.text(repName);
@@ -1085,15 +1096,21 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
         },
         template: [
             '<div data-common-footer="nav"></div>',
-            '<div data-modal-editor="" view-name="simulationGrid" data-parent-controller="nav"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('srSimulationgridEditor', function(appState, srwService) {
+    return {
+        restrict: 'A',
         controller: function($scope) {
-            $scope.appState = appState;
-            // hook for sampling method changes
-            $scope.nav.handleModalShown = srwService.updateSimulationGridFields;
-            $scope.$watch('appState.models.simulation.samplingMethod', srwService.updateSimulationGridFields);
-            $scope.$watch('appState.models.sourceIntensityReport.samplingMethod', srwService.updateSimulationGridFields);
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields(
+                    $scope, ['simulation.samplingMethod', 'sourceIntensityReport.samplingMethod'],
+                    srwService.updateSimulationGridFields);
+                srwService.updateSimulationGridFields();
+            });
         },
     };
 });
@@ -1122,8 +1139,8 @@ SIREPO.app.directive('appHeader', function(appState, panelState, requestSender, 
     function navHeader(mode, modeTitle) {
         return [
             '<div class="navbar-header">',
-              '<a class="navbar-brand" href="/#about"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="radiasoft"></a>',
-              '<div class="navbar-brand"><a href="/#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
+              '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
+              '<div class="navbar-brand"><a href="/old#/srw">',SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName,'</a>',
                 '<span class="hidden-xs"> - </span>',
                 '<a class="hidden-xs" href="/light#/' + mode + '" class="hidden-xs">' + modeTitle + '</a>',
                 '<span class="hidden-xs" data-ng-if="nav.sectionTitle()"> - </span>',
@@ -1772,7 +1789,7 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService, frameCache, persistentSimulation, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -1825,7 +1842,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
         controller: function($scope) {
 
             //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY'];
+            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'aspectRatio'];
             var multiElectronAnimation = null;
             $scope.frameCount = 1;
 
@@ -1855,6 +1872,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     $scope.frameCount++;
                     frameCache.setFrameCount($scope.frameCount);
                     frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                    srwService.setShowCalcCoherence(data.calcCoherence);
                 }
             }
 
@@ -1906,9 +1924,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 copyMultiElectronModel();
             });
 
+            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields);
             $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
-                multiElectronAnimation: $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields),
+                multiElectronAnimation: coherentArgs,
                 fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
+                coherenceXAnimation: coherentArgs,
+                coherenceYAnimation: coherentArgs,
             });
        },
     };

@@ -1,0 +1,82 @@
+{
+    "models": {
+        "beamlines": [],
+        "bunch": {},
+        "bunchAnimation": {
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Y",
+            "y": "T"
+        },
+        "bunchAnimation2": {
+            "framesPerSecond": "2",
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Z",
+            "y": "P"
+        },
+        "bunchReport1": {
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Y",
+            "y": "T"
+        },
+        "bunchReport2": {
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Z",
+            "y": "P"
+        },
+        "bunchReport3": {
+            "histogramBins": 200,
+            "notes": "",
+            "x": "Y",
+            "y": "Z"
+        },
+        "bunchReport4": {
+            "histogramBins": 200,
+            "notes": "",
+            "x": "S",
+            "y": "D1"
+        },
+        "elements": [],
+        "opticsReport": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "x",
+            "y2": "none",
+            "y3": "none"
+        },
+        "particle": {
+            "G": 0.0011596521811,
+            "M": 0.51099892,
+            "Q": -1.602176487e-19,
+            "Tau": 1e+99,
+            "particleType": "ELECTRON"
+        },
+        "simulation": {
+            "folder": "/",
+            "name": "default",
+            "simulationId": "NE4pnakI",
+            "simulationSerial": 1542066443718959
+        },
+        "simulationSettings": {},
+        "twissReport": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "btx",
+            "y2": "bty",
+            "y3": "Dx"
+        },
+        "twissReport2": {
+            "includeLattice": "1",
+            "notes": "",
+            "y1": "btx",
+            "y2": "bty",
+            "y3": "Dx"
+        }
+    },
+    "simulationType": "zgoubi",
+    "version": "20181109.173737"
+}

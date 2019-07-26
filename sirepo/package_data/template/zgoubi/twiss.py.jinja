@@ -1,0 +1,48 @@
+
+line.add(core.OBJET5(
+    BORO={{ bunch_rigidity }},
+    PY=0.001, PT=0.01, PZ= 0.001, PP=0.01, PX=0.001, PD=0.0001,
+{% if bunch_method == 'MCOBJET3' %}
+    DR={{ bunch_D0 }},
+{% else %}
+    YR={{ bunchCoordinates[0]['Y'] }} * 100,
+    TR={{ bunchCoordinates[0]['T'] }} * 1000,
+    ZR={{ bunchCoordinates[0]['Z'] }} * 100,
+    PR={{ bunchCoordinates[0]['P'] }} * 1000,
+    DR={{ bunchCoordinates[0]['D'] }},
+{% endif %}
+))
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+{{ particleDef }}
+"""))
+
+line.add(core.FAKE_ELEM("""
+'OPTIONS'
+1 1
+WRITE OFF
+"""))
+
+{{ beamlineElements -}}
+
+line.add(core.MARKER("#End"))
+
+line.add(core.FAKE_ELEM("""
+'FIT2'
+2 save
+1 30 0 [{{ fitYRange[0] }}, {{ fitYRange[1]}}] ! vary Y-ref
+1 31 0 [-200.,200.] ! vary T-ref
+2 1e-11 9999
+3.1 1 2 #End 0. 1. 0 ! particle 1: Y initial = Y final
+3.1 1 3 #End 0. 1. 0 ! particle 1: T initial = T final
+"""))
+
+line.add(core.FAKE_ELEM("""
+'TWISS'
+2 1. 1.
+"""))
+
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

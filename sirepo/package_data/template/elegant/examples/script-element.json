@@ -479,7 +479,7 @@
             "y": "betax",
             "yFile": "twiss_output.filename.sdds",
             "yFileId": "4-13",
-            "includeLattice": true
+            "includeLattice": "1"
         },
         "elements": [
             {
@@ -525,9 +525,6 @@
         ],
         "panelState": {
             "hidden": [
-                "bunchReport2",
-                "bunchReport3",
-                "bunchReport4",
                 "elementAnimation4-13",
                 "elementAnimation2-25"
             ]
@@ -556,8 +553,6 @@
             "simulationMode": "serial",
             "simulationSerial": 1515457075661689,
             "visualizationBeamlineId": 7
-        },
-        "simulationStatus": {
         }
     },
     "report": "bunchReport4",

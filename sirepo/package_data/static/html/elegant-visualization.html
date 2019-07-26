@@ -59,10 +59,10 @@
         <div data-parameter-table=""></div>
     </div>
     <div class="clearfix"></div>
-    <div data-ng-repeat="item in visualization.outputFiles" class="col-md-6 col-xl-4" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="{{ item.reportType }}" data-model-name="{{ item.modelName }}" data-model-data="item.modelAccess" data-panel-title="{{ appState.models[item.modelAccess.modelKey].panelTitle }}"></div>
+    <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="{{ item.reportType }}" data-model-data="item.modelAccess" data-panel-title="{{ appState.models[item.modelAccess.modelKey].panelTitle }}"></div>
     </div>
 
   </div> <!-- /row -->
 </div> <!-- /container -->
-<div data-element-animation-modal-editor="" data-ng-repeat="item in visualization.outputFiles" data-model-key="{{ item.modelAccess.modelKey }}" data-parent-controller="visualization"></div>
+<div data-element-animation-modal-editor="" data-ng-repeat="item in visualization.outputFiles" data-report-info="item"></div>

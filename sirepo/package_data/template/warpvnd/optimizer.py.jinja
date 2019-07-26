@@ -1,0 +1,121 @@
+
+from __future__ import absolute_import, division, print_function
+
+from scipy.optimize import minimize
+import numpy as np
+import os
+import re
+import scipy
+import subprocess
+import sys
+
+_MAX_VALUE = 1.0
+
+def wrapper(parameters, bounds, constraints, cache):
+    for i in range(len(parameters)):
+        b = bounds[i]
+        if parameters[i] < b[0] or parameters[i] > b[1]:
+            return _MAX_VALUE
+        if b[3]:
+            # continuous
+            parameters[i] = round((parameters[i] - b[0]) / b[2]) * b[2] + b[0]
+        else:
+            # gridded
+            parameters[i] = round(parameters[i] / b[2]) * b[2]
+    command = 'python parameters-optimize.py ' + ' '.join(map(lambda x: '{:.8E}'.format(x), parameters))
+    for c in constraints:
+        #TODO(pjm): use format function
+        command += ' {:.8E}'.format(parameters[c])
+    if command in cache:
+        result = cache[command]
+    else:
+        print(command)
+        sys.stdout.flush()
+        if os.path.exists('{{ optimizerStatusFile }}'):
+            os.remove('{{ optimizerStatusFile }}')
+        #TODO(pjm): change command to an array and try without shell=True
+        run_warp = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = {
+            'steps': 0,
+            'time': 0,
+            'tolerance': 0,
+            'result': 0,
+        }
+        #TODO(pjm): put sr-opt somewhere common
+        # read warp output, parse out lines beginning with sr-opt
+        for line in iter(run_warp.stdout.readline, b''):
+            if re.search(r'^sr-opt:\s*', line):
+                line = re.sub(r'^sr-opt:\s*|\n$', '', line)
+                print(' {}'.format(line))
+                sys.stdout.flush()
+                for m in re.finditer(r'\b(\w+=.*?)(?:\s|$)', line):
+                    name, value = m.group(1).split('=')
+                    output[name] = float(value)
+                with open('{{ optimizerStatusFile }}', 'a') as f:
+                    f.write(_result_line(parameters, output))
+        run_warp.wait()
+        result = output['result']
+        cache[command] = result
+        with open('{{ optimizerOutputFile }}', 'a') as f:
+            f.write(_result_line(parameters, output))
+    return - result
+
+
+def _result_line(parameters, output):
+    # steps, time, tolerance, result, p1, ... pn
+    return ' '.join(
+        map(lambda x: '{:.0f}'.format(output[x]), ('steps', 'time'))
+        + map(lambda x: '{:.6E}'.format(output[x]), ('tolerance', 'result'))
+        + map(lambda x: '{:.6E}'.format(x), parameters)
+    ) + '\n'
+
+
+def build_simplex(bounds):
+    b = np.copy(bounds)
+    # for bound in b:
+    #     db = (b[1] - b[0]) / 8
+    #     b[0] += db
+    #     b[1] -= db
+    sim = np.zeros((len(b) + 1, len(b)))
+    sim[0] = b[:, 0]
+    for i in range(len(b)):
+        sim[i + 1] = sim[0]
+        sim[i + 1][i] = b[i][1]
+    return sim
+
+
+# min, max, step size, is_continuous
+bounds = [
+{% for opt in optField %}
+    [{{ opt.bounds[0] }}, {{ opt.bounds[1] }}, {{ opt.bounds[2] }}, {{ opt.bounds[3] }}],
+{% endfor %}
+]
+
+constraints = [
+{% for constraint in optimizeConstraints %}
+    {{ constraint }},
+{% endfor %}
+]
+
+cache = {}
+
+result = minimize(
+    fun=wrapper,
+    x0=np.array(bounds)[:, 0],
+    method='Nelder-Mead',
+    constraints=None,
+    args=(bounds, constraints, cache),
+    options={
+        'initial_simplex': build_simplex(np.array(bounds)),
+        'adaptive': True,
+    })
+
+import json
+
+with open('{{ optimizerResultFile }}', 'w') as f:
+    json.dump({
+        'success': result.success,
+        'message': result.message,
+        'fun': - result.fun,
+        'x': result.x.tolist(),
+    }, f)

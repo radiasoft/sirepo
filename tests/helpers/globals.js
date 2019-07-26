@@ -17,6 +17,30 @@ SIREPO.APP_SCHEMA = {
             "longName": "Synchrotron Radiation Workshop",
         },
     },
+    "constants": {
+        "clientCookie": "sirepo_cookie_js",
+        "oneDayMillis": 86400000
+    },
+    "cookies": {
+        "firstVisit": {
+            "name": "1st_vis",
+            "value": "a"
+        },
+        "getStarted": {
+            "name": "strt",
+            "value": "a"
+        },
+        "listView": {
+            "name": "lv",
+            "value": false,
+            "valType": "b"
+        },
+        "login": {
+            "name": "login",
+            "value": "a",
+            "timeout": 1
+        }
+    },
     "route": {
         "copyNonSessionSimulation": "/copy-non-session-simulation",
         "copySimulation": "/copy-simulation",

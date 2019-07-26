@@ -23,7 +23,7 @@ _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'aspectRatio']
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
@@ -71,13 +71,17 @@ def fixup_old_data(data):
         x = g.cone_max
         g.cone_max = g.cone_min
         g.cone_min = x
-    if 'verticalOffset' not in data.models.initialIntensityReport:
-        for name in data['models']:
-            if name == 'initialIntensityReport' or name == 'plotXYReport' or template_common.is_watchpoint(name):
-                m = data.models[name]
-                m.overrideSize = '0'
-                m.horizontalSize = m.verticalSize = 10
-                m.horizontalOffset = m.verticalOffset = 0
+    for m in [
+            'initialIntensityReport',
+            'plotXYReport',
+    ]:
+        if m not in data.models:
+            data.models[m] = pkcollections.Dict({})
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
+    for m in data.models:
+        if template_common.is_watchpoint(m):
+            template_common.update_model_defaults(data.models[m], 'watchpointReport', _SCHEMA)
+    template_common.organize_example(data)
 
 
 def get_application_data(data):
@@ -88,7 +92,7 @@ def get_application_data(data):
             return {
                 'material_name': name,
             }
-        except:
+        except Exception:
             return {
                 'error': 'invalid material name',
             }

@@ -1,0 +1,128 @@
+{
+    "models": {
+        "analysisData": {
+            "columnInfo": {
+                "header_row_count": 0,
+                "names": [
+                    "column 1",
+                    "column 2"
+                ],
+                "scale": [
+                    1,
+                    1
+                ],
+                "units": [
+                    "",
+                    ""
+                ]
+            },
+            "file": "fft-data.csv"
+        },
+        "analysisReport": {
+            "action": "fft",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterFields": [
+                true,
+                true,
+                null,
+                true,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "a * x + b",
+            "fitParameters": "",
+            "fitVariable": "",
+            "history": [],
+            "notes": "",
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "analysisReport1": {
+            "action": "fit",
+            "clusterCount": 3,
+            "clusterDbscanEps": 0.1,
+            "clusterFields": [
+                true,
+                true,
+                null,
+                true,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                true
+            ],
+            "clusterKmeansInit": 2,
+            "clusterMethod": "dbscan",
+            "clusterRandomSeed": 12341234,
+            "clusterScaleMax": 0.8,
+            "clusterScaleMin": -0.8,
+            "fitEquation": "20 * a * sin(14 * b * x + c) + d",
+            "fitParameters": "a,b,c,d",
+            "fitVariable": "x",
+            "history": [
+                {
+                    "action": "trim",
+                    "trimField": "0",
+                    "trimMax": 2.6151443744070106,
+                    "trimMin": 0
+                }
+            ],
+            "id": 1,
+            "notes": "",
+            "trimField": "0",
+            "trimMax": 2.6151443744070106,
+            "trimMin": 0,
+            "x": "0",
+            "y1": "1",
+            "y2": "none",
+            "y3": "none"
+        },
+        "fftReport": {},
+        "fftReport1": {
+            "analysisReport": "analysisReport1"
+        },
+        "hiddenReport": {
+            "subreports": [
+                1
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/Examples",
+            "name": "Match Sine",
+            "notes": "",
+            "simulationId": "L87kXRjV",
+            "simulationSerial": 1555955116873580
+        },
+        "simulationStatus": {}
+    },
+    "simulationType": "webcon",
+    "version": "20190422.173004"
+}

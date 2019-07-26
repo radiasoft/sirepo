@@ -49,10 +49,6 @@
         "ELEGANT_ME_EV": 0.51099906
     },
     "enum": {
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BunchInputSource": [
             ["sdds_beam", "SDDS Input File"],
             ["bunched_beam", "Twiss Parameters"]
@@ -77,6 +73,11 @@
             ["yp", "yp"],
             ["t", "t"],
             ["p", "p"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
         ],
         "AmplificationFactorsPlane": [
             ["h", "Horizontal"],
@@ -365,6 +366,7 @@
             ["modified-midpoint", "Modified Midpoint"]
         ],
         "TwissParameter": [
+            ["none", "None"],
             ["betax", "betax"],
             ["alphax", "alphax"],
             ["psix", "psix"],
@@ -376,8 +378,7 @@
             ["psiy", "psiy"],
             ["etay", "etay"],
             ["etayp", "etayp"],
-            ["yAperture", "yAperture"],
-            ["none", "None"]
+            ["yAperture", "yAperture"]
         ],
         "TwlaMethod": [
             ["runge-kutta", "Runge-Kutta"],
@@ -429,8 +430,8 @@
             "inputSource": ["Bunch Source", "BunchInputSource", "bunched_beam"]
         },
         "bunch": {
-            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command."],
-            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", "1", "10000000"],
+            "p_central_mev": ["Central momentum of the beamline [MeV/c]", "RPNValue", "", "Central momentum of the beamline in MeV/c, about which expansions are done. This corresponds to p_central_mev field of the run_setup command.", 1e-99],
+            "n_particles_per_bunch": ["Particles Per Bunch", "Integer", 1, "Number of particles in each bunch (max 10,000,000)", 1, 10000000],
             "symmetrize": ["Symmetrize", "RPNBoolean", "0", "If non-zero, the distribution is symmetric under changes of sign in the coordinates. Automatically results in a zero centroid for all coordinates."],
             "centroid": ["Centroid", "Float6StringArray", "0, 0, 0, 0, 0, 0", "Centroid offsets for each of the six coordinates.", "X, X', Y, Y', T, P"],
             "time_start": ["Time Start", "RPNValue", "0.0", "The central value of the time coordinate for the bunch."],
@@ -441,23 +442,23 @@
             "enforce_rms_values": ["Enforce RMS Values", "BooleanStringArray", "0, 0, 0", "Flags, one for each plane, indicating whether to force the distribution to have the specified RMS properties.", "X, Y, Z"],
             "limit_invariants": ["Limit Invariants", "Integer", 0, "If non-zero, the distribution cutoffs are applied to the invariants, rather than to the coordinates. This is useful for gaussian beams when the distribution cutoff is small."],
             "limit_in_4d": ["Limit In 4D", "RPNBoolean", "0", "If non-zero, then the transverse distribution is taken to be a 4-d gaussian or uniform distribution. One of these must be chosen using the distribution_type control. It must be the same for x and y. This is useful, for example, if you want to make a cylindrically symmetric beam."],
-            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", ""],
-            "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", ""],
+            "emit_x": ["Horizontal Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "beta_x": ["Horizontal Beta [m]", "RPNValue", "1.0", "", 1e-99],
             "alpha_x": ["Horizontal Alpha", "RPNValue", "0.0", ""],
             "eta_x": ["Horizontal Eta", "RPNValue", "0.0", ""],
             "etap_x": ["Horizontal Etap", "RPNValue", "0.0", ""],
-            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", ""],
-            "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", ""],
+            "emit_y": ["Vertical Geometric Emittance [m]", "RPNValue", "0.0", "", 0],
+            "beta_y": ["Vertical Beta [m]", "RPNValue", "1.0", "", 1e-99],
             "alpha_y": ["Vertical Alpha", "RPNValue", "0.0", ""],
             "eta_y": ["Vertical Eta", "RPNValue", "0.0", ""],
             "etap_y": ["Vertical Etap", "RPNValue", "0.0", ""],
             "longitudinalMethod": ["Longitudinal Method", "LongitudinalBunchMethod"],
-            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", "0.0", "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0."],
-            "beta_z": ["Longitudinal Beta [m]", "RPNValue", "0.0", ""],
+            "emit_z": ["Longitudinal Geometric Emittance [m]", "RPNValue", "0.0", "Provide another way to specify the longitudinal phase space, either separately from or in combination with sigma_dp, sigma_s, and dp_s_coupling. Basically, which values elegant uses depends on what one sets to nonzero values. If one sets emit_z, then sigma_dp, sigma_s, and dp_s_coupling are ignored. If one doesn't set emit_z, then elegant uses sigma_dp and sigma_s; it additionally uses alpha_z if it is nonzero, otherwise it uses dp_s_coupling. For reference, the relationship between them is C = Σ₅₆ / √Σ₅₅Σ₆₆}} = -α / √1+α^2}. Note that to impart a chirp that results in compression for R₅₆<0 (e.g., a normal four-dipole chicane), one must have αz<0 or C>0.", 0],
+            "beta_z": ["Longitudinal Beta [m]", "RPNValue", "0.0", "", 0],
             "alpha_z": ["Longitudinal Alpha", "RPNValue", "0.0", ""],
             "sigma_s": ["Sigma s [m]", "RPNValue", "0.0", "Fractional momentum spread, δ, and bunch length. Note that sigma_s is actually the length in βz*c*t, so that for βz<<1 the length of the bunch in time will be greater than one might expect."],
             "sigma_dp": ["Sigma dp", "RPNValue", "0.0"],
-            "dp_s_coupling": ["dp s Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ)."],
+            "dp_s_coupling": ["dp s Coupling", "RPNValue", "0.0", "Specifies the coupling between s and δ, defined as ⟨ s δ ⟩/(σsσδ).", -1, 1],
             "halton_sequence": ["Halton Sequence", "BooleanStringArray", "0, 0, 0", "This provides a \"quiet-start\" feature by choosing Halton sequences in place of random number generation. There are three new variables that control this feature. halton_sequence is an array of three flags that permit turning on Halton sequence generation for the horizontal, vertical, or longitudinal planes. For example, halton_sequence[0] = 3*1 will turn on Halton sequences for all three planes, while halton_sequence[2] = 1, will turn it on for the longitudinal plane only.", "X, Y, Z"],
             "halton_radix": ["Halton Radix", "Integer6StringArray", "0, 0, 0, 0, 0, 0", "halton_radix is an array of six integers that permit giving the radix for each sequence (i.e., x, x', y, y', t, p). Each radix must be a prime number. One should never use the same prime for two sequences, unless one randomizes the order of the sequences relative to each other (see the next item). If these are left at zero, then elegant chooses values that eliminate phase-space banding to some extent. The user is cautioned to plot all coordinate combinations for the initial phase space to ensure that no unacceptable banding is present. A suggested way to use Halton sequences is to set halton_radix[0] = 2, 3, 2, 3, 2, 3 and to set randomize_order[0] = 2, 2, 2,. This avoids banding that may result from choosing larger radix values.", "X, X', Y, Y', T, P"],
             "optimized_halton": ["Optimized Halton", "RPNBoolean", "0", "optimized_halton uses the improved halton sequence. (Algorithm 659, Collected Algorithm from ACM. Derandom Algorithm is added by Hongmei CHI (CS/FSU)). It avoids the banding problem automatically and the halton_radix values are ignored."],
@@ -486,6 +487,12 @@
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "plotRangeType": ["Range", "PlotRangeType", "none"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "parameterTable": {
@@ -4027,24 +4034,38 @@
                 "name"
             ]
         },
-        "elementAnimation": {
+        "heatmapFrameAnimation": {
+            "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "histogramBins",
+                    "aspectRatio",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "parameterTable": {
@@ -4054,6 +4075,40 @@
                 "page"
             ],
             "advanced": []
+        },
+        "plotFrameAnimation": {
+            "model": "elementAnimation",
+            "title": "Output Report",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "includeLattice",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
+            ]
         },
         "simulation": {
             "title": "Simulation",

@@ -1,14 +1,30 @@
 {
+    "animationArgs": {
+        "fieldCalcAnimation": ["axes", "slice"],
+        "fieldComparisonAnimation": [
+            "dimension",
+            "xCell1",
+            "xCell2",
+            "xCell3",
+            "yCell1",
+            "yCell2",
+            "yCell3",
+            "zCell1",
+            "zCell2",
+            "zCell3"
+        ]
+    },
     "constants": {
         "nonZeroVoltsColor": "#6992ff",
-        "zeroVoltsColor": "#f3d4c8",
         "particleTrackColor": "#4682b4",
-        "reflectedParticleTrackColor": "#d04836"
+        "reflectedParticleTrackColor": "#d04836",
+        "zeroVoltsColor": "#f3d4c8",
+        "cellColors": ["#ff0000", "#008000", "#0000ff"]
     },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
-                "vtk.min.js"
+                "vtk.js"
             ]
         },
         "sirepoLibs": {
@@ -26,25 +42,37 @@
     "localRoutes": {
         "source": {
             "config": {
-                "controller": "WarpVNDSourceController as source",
+                "controller": "SourceController as source",
                 "templateUrl": "/static/html/warpvnd-source.html"
             }
         },
         "visualization": {
             "route": "/visualization/:simulationId",
             "config": {
-                "controller": "WarpVNDVisualizationController as visualization",
+                "controller": "VisualizationController as visualization",
                 "templateUrl": "static/html/warpvnd-visualization.html"
+            }
+        },
+        "optimization": {
+            "route": "/optimization/:simulationId",
+            "config": {
+                "controller": "OptimizationController as optimization",
+                "templateUrl": "/static/html/warpvnd-optimization.html"
             }
         }
     },
     "enum": {
+        "Axes": [
+            ["xz", "X-Z"],
+            ["xy", "X-Y"],
+            ["yz", "Y-Z"]
+        ],
         "BeamSpecies": [
             ["Electron", "Electron"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
+        "ConductorType": [
+            ["box", "box"],
+            ["stl", "stl"]
         ],
         "CurrentMode": [
             ["1", "User Specified"],
@@ -53,6 +81,7 @@
         ],
         "Dimension": [
             ["x", "X"],
+            ["y", "Y"],
             ["z", "Z"]
         ],
         "Field": [
@@ -67,6 +96,9 @@
             ["10", "10"],
             ["15", "15"],
             ["20", "20"]
+        ],
+        "ObjectiveFunction": [
+            ["efficiency", "Efficiency"]
         ],
         "ParticleRenderCount": [
             ["100", "100"],
@@ -84,27 +116,33 @@
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
             "x_radius": ["Beam X Radius [µm]", "Float"],
-            "beam_current": ["Beam Current [A]", "Float"],
-            "cathode_temperature": ["Cathode Temperature [K]", "Float"],
-            "cathode_work_function": ["Cathode Work Function [eV]", "Float"],
-            "anode_work_function": ["Anode Work Function [eV]", "Float"],
-            "anode_voltage": ["Anode Voltage [eV]", "Float"]
+            "beam_current": ["Beam Current [A]", "OptFloat"],
+            "cathode_temperature": ["Cathode Temperature [K]", "OptFloat"],
+            "cathode_work_function": ["Cathode Work Function [eV]", "OptFloat"],
+            "anode_work_function": ["Anode Work Function [eV]", "OptFloat"],
+            "anode_voltage": ["Anode Voltage [eV]", "OptFloat"]
         },
         "box": {
+            "_super": ["_", "model", "conductor"]
+        },
+        "conductor": {
             "name": ["Name", "String"],
-            "voltage": ["Voltage [eV]", "Float"],
-            "xLength": ["Width (X) [µm]", "Float"],
-            "zLength": ["Length (Z) [µm]", "Float"],
-            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
+            "xLength": ["Width (X) [µm]", "OptFloat"],
+            "yLength": ["Depth (Y) [µm]", "OptFloat", 0.01],
+            "zLength": ["Length (Z) [µm]", "OptFloat"],
+            "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "color": ["Color", "Color"]
+            "color": ["Color", "Color"],
+            "type": ["Type", "ConductorType", "box"]
         },
-        "conductorGridReport": {},
+        "conductorGridReport": {
+            "tileDomain": ["Show tiled domain", "Boolean", "0"]
+        },
         "conductorPosition": {
-            "xCenter": ["Center X [µm]", "Float"],
-            "zCenter": ["Center Z [µm]", "Float"],
-            "yCenter": ["Center Y [µm]", "Float", 0.0]
+            "xCenter": ["Center X [µm]", "OptFloat"],
+            "zCenter": ["Center Z [µm]", "OptFloat"],
+            "yCenter": ["Center Y [µm]", "OptFloat", 0.0]
         },
         "currentAnimation": {
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"]
@@ -118,11 +156,21 @@
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
+        "fieldCalcAnimation": {
+            "_super": ["_", "model", "fieldReport"]
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": ["_", "model", "fieldComparisonReport"]
+        },
         "fieldComparisonReport": {
             "dimension": ["Dimension", "Dimension"],
             "xCell1": ["X Position 1", "XCell"],
             "xCell2": ["X Position 2", "XCell"],
             "xCell3": ["X Position 3", "XCell"],
+            "yCell1": ["Y Position 1", "YCell"],
+            "yCell2": ["Y Position 2", "YCell"],
+            "yCell3": ["Y Position 3", "YCell"],
             "zCell1": ["Z Position 1", "ZCell"],
             "zCell2": ["Z Position 2", "ZCell"],
             "zCell3": ["Z Position 3", "ZCell"],
@@ -130,21 +178,46 @@
         },
         "fieldReport": {
             "colorMap": ["Color Map", "ColorMap", "viridis"],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "axes": ["Axes", "Axes", "xz"],
+            "slice": ["Slice", "Range", 0.0]
         },
         "impactDensityAnimation": {
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
             "notes": ["Notes", "Text", ""]
         },
+        "optimizer": {
+            "objective": ["Objective Function", "ObjectiveFunction", "efficiency"],
+            "tolerance": ["Tolerance", "Float", 0.001],
+            "timeLimit": ["Time Limit Per Run (s)", "Integer", 60],
+            "continuousFieldSteps": ["Continuous Field Divisions", "Integer", 20, "Number of times to subdivide non-gridded fields, ex. Current or Voltage"],
+            "initialSteps": ["Initial Simulation Steps", "Integer", 500],
+            "optimizerSteps": ["Optimizer Steps Between Tolerance Checks", "Integer", 250]
+        },
+        "optimizerAnimation": {
+            "x": ["Horizontal Value to Plot", "OptimizationField", 0],
+            "y": ["Vertical Value to Plot", "OptimizationField", 1],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "optimizerField": {
+            "field": ["Field", "String"],
+            "minimum": ["Minimum", "Float"],
+            "maximum": ["Maximum", "Float"]
+        },
+        "optimizerStatus": {},
         "particleAnimation": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "100"]
         },
         "particle3d": {
             "renderCount": ["Particles to Render", "ParticleRenderCount", "10"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"]
+            "colorMap": ["Field Color Map", "ColorMap", "viridis"],
+            "impactColorMap": ["Impact Color Map", "ColorMap", "coolwarm"]
         },
         "simulation": {
-            "egun_mode": ["Electron Gun Mode", "Boolean", "0"]
+            "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
+            "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
+            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
@@ -158,7 +231,16 @@
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"]
         },
-        "simulationStatus": {}
+        "simulationStatus": {},
+        "stl": {
+            "_super": ["_", "model", "conductor"],
+            "file": ["Conductor File", "FileChooser", ""],
+            "scale": ["Conductor Scale", "Float", 1e-9, "Scale factor (1e-9 - 10)", 1e-12, 10],
+            "type": ["Type", "ConductorType", "stl"],
+            "xLength": ["Width (X) [µm]", "Float"],
+            "yLength": ["Depth (Y) [µm]", "Float", 0.01],
+            "zLength": ["Length (Z) [µm]", "Float"]
+        }
     },
     "view": {
         "anode": {
@@ -194,6 +276,17 @@
                 "zLength",
                 "xLength",
                 "yLength",
+                "isConductor",
+                "permittivity",
+                "color"
+            ]
+        },
+        "conductor": {
+            "title": "Conductor",
+            "advanced": [
+                "name",
+                "type",
+                "voltage",
                 "isConductor",
                 "permittivity",
                 "color"
@@ -238,6 +331,10 @@
                 "colorMap", "notes"
             ]
         },
+        "fieldCalculationAnimation": {
+            "title": "Field Calculation Status",
+            "advanced": []
+        },
         "fieldComparisonReport": {
             "title": "Field Comparison Report",
             "advanced": [
@@ -245,6 +342,9 @@
                 "xCell1",
                 "xCell2",
                 "xCell3",
+                "yCell1",
+                "yCell2",
+                "yCell3",
                 "zCell1",
                 "zCell2",
                 "zCell3",
@@ -254,6 +354,32 @@
         "fieldReport": {
             "title": "Field Report",
             "advanced": [
+                "axes",
+                "slice",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "fieldComparisonAnimation": {
+            "title": "Field Comparison Report",
+            "advanced": [
+                "dimension",
+                "xCell1",
+                "xCell2",
+                "xCell3",
+                "yCell1",
+                "yCell2",
+                "yCell3",
+                "zCell1",
+                "zCell2",
+                "zCell3",
+                "notes"
+            ]
+        },
+        "fieldCalcAnimation": {
+            "title": "Field Report",
+            "advanced": [
+                "axes",
                 "colorMap",
                 "notes"
             ]
@@ -265,6 +391,35 @@
                 "notes"
             ]
         },
+        "optimizer": {
+            "title": "Optimization Fields",
+            "advanced": [
+                "tolerance",
+                "timeLimit",
+                "continuousFieldSteps",
+                "initialSteps",
+                "optimizerSteps"
+            ]
+        },
+        "optimizerAnimation": {
+            "title": "Optimization Path",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "colorMap",
+                "notes"
+            ]
+        },
+        "optimizerStatus": {
+            "title": "Optimization Status",
+            "advanced": []
+        },
         "particleAnimation": {
             "title": "Particle Trace",
             "advanced": [
@@ -275,7 +430,8 @@
             "title": "Particle Trace 3D",
             "advanced": [
                 "renderCount",
-                "colorMap"
+                "colorMap",
+                "impactColorMap"
             ]
         },
         "simulationGrid": {
@@ -309,6 +465,20 @@
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
                 "simulationGrid.particles_per_step"
+            ]
+        },
+        "stl": {
+            "title": "Imported Conductor",
+            "advanced": [
+                "name",
+                "zLength",
+                "xLength",
+                "yLength",
+                "scale",
+                "voltage",
+                "isConductor",
+                "permittivity",
+                "color"
             ]
         }
     }

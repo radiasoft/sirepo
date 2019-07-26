@@ -1,6 +1,6 @@
 % 3 sto  x
 % 1 x +  sto y
-% 1 y + sto z 3 * sto a
+%-1 y + sto z 3 * sto a
 %  x  y  z  +  +  sto  c
 % a y * sto    b
 D1: DRIFT,l="c 0.1 +"

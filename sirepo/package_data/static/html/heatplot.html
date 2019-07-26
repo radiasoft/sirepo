@@ -4,6 +4,7 @@
         <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
           <text class="main-title" ng-attr-x="{{ canvasSize.width / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
+          <text class="sub-title" ng-attr-x="{{ canvasSize.width / 2 }}" y="0" dy="-.5em"></text>
           <rect class="mouse-rect mouse-zoom" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
           <text class="x-base" text-anchor="end" ng-attr-x="{{ canvasSize.width + margin.right - 5 }}" ng-attr-y="{{ canvasSize.height + 40 }}"></text>
           <g class="x axis" ng-attr-transform="translate(0, {{ canvasSize.height }})">
@@ -15,6 +16,7 @@
           <g class="colorbar">
             <text class="frequency-label" ng-attr-x="{{ canvasSize.width + 25 }}" y="-5"></text>
           </g>
+          <path class="line line-amr-grid"></path>
         </g>
       </svg></div>
       <div data-animation-buttons=""></div>

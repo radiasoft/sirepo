@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JSPEC execution template.
+u"""Synergia execution template.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -9,11 +9,12 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
-from sirepo.template import template_common, elegant_lattice_importer
+from sirepo.srschema import get_enums
+from sirepo.template import template_common, elegant_common, elegant_lattice_importer
+from synergia import foundation
 import glob
 import h5py
 import math
-import numpy as np
 import py.path
 import re
 import werkzeug
@@ -36,14 +37,15 @@ _FILE_ID_SEP = '-'
 
 _IGNORE_ATTRIBUTES = ['lrad']
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'includeLattice', 'notes']
-
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _UNITS = {
     'x': 'm',
     'y': 'm',
     'z': 'm',
+    'xp': 'rad',
+    'yp': 'rad',
+    'zp': 'rad',
     'cdt': 'm',
     'xstd': 'm',
     'ystd': 'm',
@@ -103,6 +105,21 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = {}
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+    if 'bunchReport' in data['models']:
+        del data['models']['bunchReport']
+        for i in range(4):
+            m = 'bunchReport{}'.format(i + 1)
+            model = data['models'][m] = {}
+            template_common.update_model_defaults(data['models'][m], 'bunchReport', _SCHEMA)
+            if i == 0:
+                model['y'] = 'xp'
+            elif i == 1:
+                model['x'] = 'y'
+                model['y'] = 'yp'
+            elif i == 3:
+                model['x'] = 'z'
+                model['y'] = 'zp'
+    template_common.organize_example(data)
 
 
 def format_float(v):
@@ -117,14 +134,7 @@ def get_application_data(data):
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
     if data['method'] == 'compute_particle_ranges':
-        run_dir = simulation_db.simulation_run_dir({
-            'simulationType': SIM_TYPE,
-            'simulationId': data['simulationId'],
-            'report': 'animation',
-        })
-        return {
-            'fieldRange': _compute_range_across_files(run_dir),
-        }
+        return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
 
 
@@ -144,6 +154,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
+    elegant_common.sort_elements_and_beamlines(data)
     data['models']['simulation']['name'] = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
@@ -213,13 +224,10 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'animation':
         return []
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'beamlines',
-        'elements',
-    ]
-    if r == 'bunchReport':
+    res = ['beamlines', 'elements']
+    if 'bunchReport' in r:
         res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif r == 'twissReport' or r == 'twissReport2':
+    elif 'twissReport' in r:
         res += ['simulation.{}'.format(_beamline_id_for_report(r))]
     return res
 
@@ -259,8 +267,78 @@ def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 
 
+def prepare_output_file(run_dir, data):
+    report = data['report']
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, run_dir)
+
+
 def remove_last_frame(run_dir):
     pass
+
+
+def save_report_data(data, run_dir):
+    if 'bunchReport' in data['report']:
+        import synergia.bunch
+        with h5py.File(str(run_dir.join(OUTPUT_FILE['twissReport'])), 'r') as f:
+            twiss0 = dict(map(
+                lambda k: (k, format_float(f[k][0])),
+                ('alpha_x', 'alpha_y', 'beta_x', 'beta_y'),
+            ))
+        report = data.models[data['report']]
+        bunch = data.models.bunch
+        if bunch.distribution == 'file':
+            bunch_file = template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+        else:
+            bunch_file = OUTPUT_FILE['bunchReport']
+        if not run_dir.join(bunch_file).exists():
+            return
+        with h5py.File(str(run_dir.join(bunch_file)), 'r') as f:
+            x = f['particles'][:, getattr(synergia.bunch.Bunch, report['x'])]
+            y = f['particles'][:, getattr(synergia.bunch.Bunch, report['y'])]
+        res = template_common.heatmap([x, y], report, {
+            'title': '',
+            'x_label': label(report['x'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
+            'y_label': label(report['y'], _SCHEMA['enum']['PhaseSpaceCoordinate8']),
+            'summaryData': {
+                'bunchTwiss': twiss0,
+            },
+        })
+    else:
+        report_name = data['report']
+        x = None
+        plots = []
+        report = data['models'][report_name]
+        with h5py.File(str(run_dir.join(OUTPUT_FILE[report_name])), 'r') as f:
+            x = f['s'][:].tolist()
+            for yfield in ('y1', 'y2', 'y3'):
+                if report[yfield] == 'none':
+                    continue
+                name = report[yfield]
+                plots.append({
+                    'name': name,
+                    'label': label(report[yfield], _SCHEMA['enum']['TwissParameter']),
+                    'points': f[name][:].tolist(),
+                })
+        res = {
+            'title': '',
+            'x_range': [min(x), max(x)],
+            'y_range': template_common.compute_plot_color_and_range(plots),
+            'x_label': 's [m]',
+            'y_label': '',
+            'x_points': x,
+            'plots': plots,
+        }
+    simulation_db.write_result(res, run_dir=run_dir)
+
+
+def simulation_dir_name(report_name):
+    if 'bunchReport' in report_name:
+        return 'bunchReport'
+    return report_name
 
 
 def validate_file(file_type, path):
@@ -318,23 +396,23 @@ def _build_beamline_map(data):
 
 
 def _calc_bunch_parameters(bunch):
-    from synergia.foundation import Four_momentum
-    bunch_def = bunch['beam_definition']
-    mom = Four_momentum(bunch['mass'])
+    bunch_def = bunch.beam_definition
+    bunch_enums = get_enums(_SCHEMA, 'BeamDefinition')
+    mom = foundation.Four_momentum(bunch.mass)
     _calc_particle_info(bunch)
     try:
-        if bunch_def == 'energy':
-            mom.set_total_energy(bunch['energy'])
-        elif bunch_def == 'momentum':
-            mom.set_momentum(bunch['momentum'])
-        elif bunch_def == 'gamma':
-            mom.set_gamma(bunch['gamma'])
+        if bunch_def == bunch_enums.energy:
+            mom.set_total_energy(bunch.energy)
+        elif bunch_def == bunch_enums.momentum:
+            mom.set_momentum(bunch.momentum)
+        elif bunch_def == bunch_enums.gamma:
+            mom.set_gamma(bunch.gamma)
         else:
             assert False, 'invalid bunch def: {}'.format(bunch_def)
-        bunch['gamma'] = format_float(mom.get_gamma())
-        bunch['energy'] = format_float(mom.get_total_energy())
-        bunch['momentum'] = format_float(mom.get_momentum())
-        bunch['beta'] = format_float(mom.get_beta())
+        bunch.gamma = format_float(mom.get_gamma())
+        bunch.energy = format_float(mom.get_total_energy())
+        bunch.momentum = format_float(mom.get_momentum())
+        bunch.beta = format_float(mom.get_beta())
     except Exception as e:
         bunch[bunch_def] = ''
     return {
@@ -345,40 +423,37 @@ def _calc_bunch_parameters(bunch):
 def _calc_particle_info(bunch):
     from synergia.foundation import pconstants
     particle = bunch.particle
-    if particle == 'other':
+    particle_enums = get_enums(_SCHEMA, 'Particle')
+    if particle == particle_enums.other:
         return
     mass = 0
     charge = 0
-    if particle == 'proton':
+    if particle == particle_enums.proton:
         mass = pconstants.mp
         charge = pconstants.proton_charge
-    elif particle == 'antiproton':
-        mass = pconstants.mp
-        charge = pconstants.antiproton_charge
-    elif particle == 'electron':
+    # No antiprotons yet - commented out to avoid assertion error
+    #elif particle == particle_enums.antiproton:
+    #    mass = pconstants.mp
+    #    charge = pconstants.antiproton_charge
+    elif particle == particle_enums.electron:
         mass = pconstants.me
         charge = pconstants.electron_charge
-    elif particle == 'positron':
+    elif particle == particle_enums.positron:
         mass = pconstants.me
         charge = pconstants.positron_charge
-    elif particle == 'negmuon':
+    elif particle == particle_enums.negmuon:
         mass = pconstants.mmu
         charge = pconstants.muon_charge
-    elif particle == 'posmuon':
+    elif particle == particle_enums.posmuon:
         mass = pconstants.mmu
         charge = pconstants.antimuon_charge
     else:
         assert False, 'unknown particle: {}'.format(particle)
-    bunch['mass'] = mass
-    bunch['charge'] = charge
+    bunch.mass = mass
+    bunch.charge = charge
 
 
-def _compute_range_across_files(run_dir):
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    if 'bunchAnimation' not in data.models:
-        return None
-    if 'fieldRange' in data.models.bunchAnimation:
-        return data.models.bunchAnimation.fieldRange
+def _compute_range_across_files(run_dir, data):
     res = {}
     for v in _SCHEMA.enum.PhaseSpaceCoordinate6:
         res[v[0]] = []
@@ -391,8 +466,6 @@ def _compute_range_across_files(run_dir):
                     res[field][1] = max(max(values), res[field][1])
                 else:
                     res[field] = [min(values), max(values)]
-    data.models.bunchAnimation.fieldRange = res
-    simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     return res
 
 
@@ -411,24 +484,16 @@ def _extract_bunch_plot(report, frame_index, run_dir):
             return {
                 'error': 'Report not generated',
             }
-        bunch_animation = data.models.bunchAnimation
-        range = None
-        if report['plotRangeType'] == 'fixed':
-            range = [_plot_range(report, 'horizontal'), _plot_range(report, 'vertical')]
-        elif report['plotRangeType'] == 'fit' and 'fieldRange' in bunch_animation:
-            range = [bunch_animation.fieldRange[report['x']], bunch_animation.fieldRange[report['y']]]
-        hist, edges = np.histogramdd([x, y], template_common.histogram_bins(report['histogramBins']), range=range)
         tlen = f['tlen'][()]
         s_n = f['s_n'][()]
         rep = 0 if s_n == 0 else int(round(tlen / s_n))
-        return {
-            'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-            'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        model = data.models.bunchAnimation
+        model.update(report)
+        return template_common.heatmap([x, y], model, {
             'x_label': label(report['x']),
             'y_label': label(report['y']),
             'title': '{}-{} at {:.1f}m, turn {}'.format(report['x'], report['y'], tlen, rep),
-            'z_matrix': hist.T.tolist(),
-        }
+        })
 
 
 def _extract_evolution_plot(report, run_dir):
@@ -575,7 +640,7 @@ def _generate_nlinsert_elements(model, state, callback):
 
 def _generate_parameters_file(data):
     _validate_data(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     beamline_map = _build_beamline_map(data)
     v['lattice'] = _generate_lattice(data, beamline_map, v)
     v['bunchFileName'] = OUTPUT_FILE['bunchReport']
@@ -584,11 +649,11 @@ def _generate_parameters_file(data):
     if data.models.bunch.distribution == 'file':
         v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
     v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
-    res = template_common.render_jinja(SIM_TYPE, v, 'base.py')
+    res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
-    if report == 'bunchReport' or report == 'twissReport' or report == 'twissReport2':
+    if 'bunchReport' in report or 'twissReport' in report:
         res += template_common.render_jinja(SIM_TYPE, v, 'twiss.py')
-        if report == 'bunchReport':
+        if 'bunchReport' in report:
             res += template_common.render_jinja(SIM_TYPE, v, 'bunch-report.py')
     else:
         res += template_common.render_jinja(SIM_TYPE, v, 'parameters.py')
@@ -596,10 +661,15 @@ def _generate_parameters_file(data):
 
 
 def _import_bunch(lattice, data):
-    from synergia.foundation import pconstants, Reference_particle, Four_momentum
+    from synergia.foundation import pconstants
     if not lattice.has_reference_particle():
         # create a default reference particle, proton,energy=1.5
-        lattice.set_reference_particle(Reference_particle(pconstants.proton_charge, Four_momentum(pconstants.mp, 1.5)))
+        lattice.set_reference_particle(
+            foundation.Reference_particle(
+                pconstants.proton_charge,
+                foundation.Four_momentum(pconstants.mp, 1.5)
+            )
+        )
     ref = lattice.get_reference_particle()
     bunch = data['models']['bunch']
     bunch['beam_definition'] = 'gamma'
@@ -714,8 +784,6 @@ def _import_elegant_file(text):
     if 'activeBeamlineId' in elegant_sim:
         data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
         data['models']['simulation']['visualizationBeamlineId'] = elegant_sim['activeBeamlineId']
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: el['type'])
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
     return data
 
 
@@ -760,7 +828,6 @@ def _import_elements(lattice, data):
                 if attr not in _IGNORE_ATTRIBUTES:
                     pkdlog('unknown attr: {}: {}'.format(model_name, attr))
         data['models']['elements'].append(m)
-    data['models']['elements'] = sorted(data['models']['elements'], key=lambda el: (el['type'], el['name'].lower()))
 
 
 def _import_mad_file(reader, beamline_names):
@@ -880,12 +947,6 @@ def _plot_field(field):
     if m:
         return m.group(3), m.group(1), m.group(2)
     assert False, 'unknown field: {}'.format(field)
-
-
-def _plot_range(report, axis):
-    half_size = float(report['{}Size'.format(axis)]) / 2.0
-    midpoint = float(report['{}Offset'.format(axis)])
-    return [midpoint - half_size, midpoint + half_size]
 
 
 def _plot_values(h5file, field):

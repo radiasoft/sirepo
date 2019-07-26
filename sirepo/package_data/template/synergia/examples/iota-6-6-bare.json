@@ -1946,7 +1946,6 @@
             "steps_per_element": 5,
             "turn_count": 1
         },
-        "simulationStatus": {},
         "twissReport": {
             "y1": "beta_x",
             "y2": "beta_y",

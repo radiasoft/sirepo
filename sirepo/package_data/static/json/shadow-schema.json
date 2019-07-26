@@ -61,10 +61,6 @@
             ["4", "Synchrotron"],
             ["6", "Exact Synchrotron"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "BoundSource": [
             ["0", "No Filter"],
             ["2", "Aperture"]
@@ -534,21 +530,22 @@
         "histogramReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "column": ["Column", "ColumnValue"],
-            "weight": ["Weight", "ColumnWeight"],
+            "weight": ["Weight", "ColumnWeight", "22"],
             "histogramBins": ["Number of Bins", "Integer"],
             "notes": ["Notes", "Text", ""]
         },
         "initialIntensityReport": {
             "x": ["Value to Plot", "ColumnValue"],
             "y": ["Value to Plot", "ColumnValue"],
-            "weight": ["Weight", "ColumnWeight"],
+            "weight": ["Weight", "ColumnWeight", "22"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float"],
-            "verticalSize": ["Vertical Size [mm]", "Float"],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 10],
+            "verticalSize": ["Vertical Size [mm]", "Float", 10],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Offset [mm]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "mirror": {
@@ -617,14 +614,15 @@
             "distanceFromSource": ["Distance From Source [m]", "Float", 0],
             "x": ["Value to Plot", "ColumnValue"],
             "y": ["Value to Plot", "ColumnValue"],
-            "weight": ["Weight", "ColumnWeight"],
+            "weight": ["Weight", "ColumnWeight", "22"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float"],
-            "verticalSize": ["Vertical Size [mm]", "Float"],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 10],
+            "verticalSize": ["Vertical Size [mm]", "Float", 10],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Offset [mm]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "rayFilter": {
@@ -647,14 +645,15 @@
         "watchpointReport": {
             "x": ["Value to Plot", "ColumnValue"],
             "y": ["Value to Plot", "ColumnValue"],
-            "weight": ["Weight", "ColumnWeight"],
+            "weight": ["Weight", "ColumnWeight", "22"],
             "histogramBins": ["Number of Bins", "Integer"],
             "overrideSize": ["Override Plot Size", "Boolean", "0"],
-            "horizontalSize": ["Horizontal Size [mm]", "Float"],
-            "verticalSize": ["Vertical Size [mm]", "Float"],
-            "horizontalOffset": ["Horizontal Offset [mm]", "Float"],
-            "verticalOffset": ["Vertical Offset [mm]", "Float"],
+            "horizontalSize": ["Horizontal Size [mm]", "Float", 10],
+            "verticalSize": ["Vertical Size [mm]", "Float", 10],
+            "horizontalOffset": ["Horizontal Offset [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Offset [mm]", "Float", 0],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "wiggler": {
@@ -1039,6 +1038,7 @@
                         "verticalOffset"
                     ]]
                 ],
+                "aspectRatio",
                 "colorMap",
                 "notes"
             ]
@@ -1159,6 +1159,7 @@
                         "verticalOffset"
                     ]]
                 ],
+                "aspectRatio",
                 "colorMap",
                 "notes"
             ]
@@ -1202,6 +1203,7 @@
                         "verticalOffset"
                     ]]
                 ],
+                "aspectRatio",
                 "colorMap",
                 "notes"
             ]

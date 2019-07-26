@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" height="52" width="347">
+  <defs>
+    <mask id="header-mask">
+      <rect height="52" width="347" fill="white"/>
+      <path id="curve1" d="M24 0 c 0 0, 45 114, 97 0" fill="black"/>
+      <path id="curve2" d="M109 0 c 0 0, 43 114, 95 0" fill="black"/>
+      <path id="curve3" d="M193 0 c 0 0, 43 114, 96 0" fill="black"/>
+    </mask>
+  </defs>
+  <rect x="0" y="0" height="52" width="347" fill="white" mask="url(#header-mask)"/>
+</svg>

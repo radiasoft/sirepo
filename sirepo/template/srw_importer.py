@@ -8,71 +8,48 @@ SRW objects.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
 from pykern import pkrunpy
-from pykern import pkcollections
-from pykern.pkdebug import pkdlog, pkdexc
-from srwl_bl import srwl_uti_parse_options, srwl_uti_std_options
+from pykern.pkdebug import pkdlog, pkdexc, pkdp
 import ast
 import inspect
-import py
 import py.path
 import re
-import traceback
+import srwl_bl
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
-
-js_dir = py.path.local(pkresource.filename('static/js'))
+_JS_DIR = py.path.local(pkresource.filename('static/js'))
 
 
 class SRWParser(object):
     def __init__(self, script, lib_dir, user_filename, arguments, optics_func_name='set_optics'):
-        self.lib_dir = lib_dir
-        self.initial_lib_dir = lib_dir
-        self.list_of_files = None
-        self.optics_func_name = optics_func_name
+        self.lib_dir = py.path.local(lib_dir)
         m = pkrunpy.run_path_as_module(script)
-        varParam = getattr(m, 'varParam')
         if arguments:
             import shlex
             arguments = shlex.split(arguments)
-        self.var_param = srwl_uti_parse_options(varParam, use_sys_argv=False, args=arguments)
-        self.get_files()
-        if self.initial_lib_dir:
-            self.replace_mirror_files()
-            self.replace_image_files()
+        self.var_param = srwl_bl.srwl_uti_parse_options(m.varParam, use_sys_argv=False, args=arguments)
+        self.replace_mirror_files()
+        self.replace_image_files()
         try:
-            self.optics = getattr(m, self.optics_func_name)(self.var_param)
+            self.optics = getattr(m, optics_func_name)(self.var_param)
         except ValueError as e:
             if re.search('could not convert string to float', e.message):
                 self.replace_mirror_files('mirror_2d.dat')
-                self.optics = getattr(m, self.optics_func_name)(self.var_param)
-
+                self.optics = getattr(m, optics_func_name)(self.var_param)
         self.data = _parsed_dict(self.var_param, self.optics)
         self.data.models.simulation.name = _name(user_filename)
 
-    def get_files(self):
-        self.list_of_files = []
-        for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                self.list_of_files.append(self.var_param.__dict__[key])
-            # TODO(robnagler) this directory has to be a constant; imports
-            #   don't have control of their environment
-            if key.find('fdir') >= 0:
-                self.lib_dir = py.path.local(self.var_param.__dict__[key])
-
     def replace_mirror_files(self, mirror_file='mirror_1d.dat'):
         for key in self.var_param.__dict__.keys():
-            if key.find('_ifn') >= 0:
-                if getattr(self.var_param, key) != '':
-                    self.var_param.__dict__[key] = mirror_file
-            if key.find('fdir') >= 0:
-                self.var_param.__dict__[key] = str(self.initial_lib_dir)
-        self.get_files()
+            if key == 'fdir':
+                self.var_param.__dict__[key] = str(self.lib_dir)
+            if re.search(r'\_ofn$', key):
+                self.var_param.__dict__[key] = ''
+            if re.search(r'\_(h|i)fn$', key):
+                if getattr(self.var_param, key) != '' and getattr(self.var_param, key) != 'None':
+                    self.var_param.__dict__[key] = str(self.lib_dir.join(mirror_file))
 
     def replace_image_files(self, image_file='sample.tif'):
         for key in self.var_param.__dict__.keys():
@@ -170,16 +147,16 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['orientation'] = 'x'
 
         data['material'] = 'Unknown'
-        data['h'] = 1
-        data['k'] = 1
-        data['l'] = 1
+        data['h'] = '1'
+        data['k'] = '1'
+        data['l'] = '1'
         try:
             data['energy'] = obj.aux_energy
-        except:
+        except Exception:
             data['energy'] = None
         try:
             data['grazingAngle'] = obj.aux_ang_dif_pl
-        except:
+        except Exception:
             data['grazingAngle'] = 0.0
         data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
@@ -354,7 +331,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
         name = obj_arOpt[i].__class__.__name__
         try:
             next_name = obj_arOpt[i + 1].__class__.__name__
-        except:
+        except Exception:
             next_name = None
 
         if name == 'SRWLOptD':
@@ -434,7 +411,7 @@ def _get_beamline(obj_arOpt, init_distance=20.0):
 
             try:
                 names[key] += 1
-            except:
+            except Exception:
                 pass
 
             title = key + str(names[key])
@@ -470,9 +447,9 @@ def _get_default_drift():
     """
 
     try:
-        with open(js_dir + '/srw.js') as f:
+        with open(_JS_DIR + '/srw.js') as f:
             file_content = f.read()
-    except:
+    except Exception:
         file_content = ''
 
     default_drift_prop = '[0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0]'
@@ -492,7 +469,7 @@ def _get_default_drift():
                         default_drift_prop = content[i + j].replace('return ', '').replace(';', '').strip()
                         break
                 break
-    except:
+    except Exception:
         pass
 
     default_drift_prop = ast.literal_eval(default_drift_prop)
@@ -507,7 +484,7 @@ def _get_propagation(op):
         name = op.arOpt[i].__class__.__name__
         try:
             next_name = op.arOpt[i + 1].__class__.__name__
-        except:
+        except Exception:
             next_name = None
 
         if (name != 'SRWLOptD') or \
@@ -583,7 +560,7 @@ def _name(user_filename):
 
 def _parsed_dict(v, op):
     import sirepo.template.srw
-    std_options = Struct(**_list2dict(srwl_uti_std_options()))
+    std_options = Struct(**_list2dict(srwl_bl.srwl_uti_std_options()))
 
     beamline_elements = _get_beamline(op.arOpt, v.op_r)
 
@@ -594,14 +571,14 @@ def _parsed_dict(v, op):
         if not hasattr(obj, parm):
             try:
                 return getattr(std, parm)
-            except:
+            except Exception:
                 if def_val is not None:
                     return def_val
                 else:
                     return ''
         try:
             return getattr(obj, parm)
-        except:
+        except Exception:
             if def_val is not None:
                 return def_val
             else:
@@ -619,7 +596,7 @@ def _parsed_dict(v, op):
     predefined_beams = sirepo.template.srw.get_predefined_beams()
 
     # Default electron beam:
-    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and not hasattr(v, 'gbm_pen')):
+    if (hasattr(v, 'source_type') and v.source_type == 'u') or (hasattr(v, 'ebm_nm') and v.gbm_pen == 0):
         source_type = 'u'
         if v.ebm_nms == 'Day1':
             v.ebm_nms = 'Day 1'
@@ -656,13 +633,13 @@ def _parsed_dict(v, op):
         undulator = pkcollections.Dict({
             'horizontalAmplitude': _default_value('und_bx', v, std_options, 0.0),
             'horizontalInitialPhase': _default_value('und_phx', v, std_options, 0.0),
-            'horizontalSymmetry': _default_value('und_sx', v, std_options, 1.0),
+            'horizontalSymmetry': str(int(_default_value('und_sx', v, std_options, 1.0))),
             'length': _default_value('und_len', v, std_options, 1.5),
             'longitudinalPosition': _default_value('und_zc', v, std_options, 1.305),
             'period': _default_value('und_per', v, std_options, 0.021) * 1e3,
             'verticalAmplitude': _default_value('und_by', v, std_options, 0.88770981) if hasattr(v, 'und_by') else _default_value('und_b', v, std_options, 0.88770981),
             'verticalInitialPhase': _default_value('und_phy', v, std_options, 0.0),
-            'verticalSymmetry': _default_value('und_sy', v, std_options, -1),
+            'verticalSymmetry': str(int(_default_value('und_sy', v, std_options, -1))),
         })
 
         gaussianBeam = pkcollections.Dict({
@@ -812,7 +789,8 @@ def _parsed_dict(v, op):
 def _patch_mirror_profile(code, lib_dir, mirror_file='mirror_1d.dat'):
     """Patch for the mirror profile for the exported .py file from Sirepo"""
     import sirepo.template.srw
-    var_names = sirepo.template.srw.get_mirror_profile_name_list()
+    # old format mirror names
+    var_names = ['Cryst', 'ElMirror', 'Mirror', 'SphMirror', 'TorMirror']
     code_list = code.split('\n')
     for var_name in var_names:
         if var_name in ['Mirror']:
@@ -846,18 +824,18 @@ def _update_crystals(data, v):
         if data[i]['type'] == 'crystal':
             try:  # get crystal #
                 crystal_id = int(data[i]['title'].replace('Crystal', ''))
-            except:
+            except Exception:
                 crystal_id = 1
 
             try:  # update rotation angle
                 data[i]['rotationAngle'] = getattr(v, 'op_DCM_ac{}'.format(crystal_id))
-            except:
+            except Exception:
                 pass
 
             if not data[i]['energy']:
                 try:  # update energy if an old srwlib.py is used
                     data[i]['energy'] = v.op_DCM_e
-                except:
+                except Exception:
                     data[i]['energy'] = v.w_e
 
     return data

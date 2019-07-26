@@ -10,13 +10,14 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import adm
-from sirepo import api_auth
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
+from sirepo import runner_client
 from sirepo import simulation_db
+from sirepo import srdb
 from sirepo import uri_router
 from sirepo import util
 from sirepo.template import template_common
@@ -29,15 +30,13 @@ import re
 import sirepo.template
 import sys
 import time
+import uuid
 import werkzeug
 import werkzeug.exceptions
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg.sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
-
-#: Relative to current directory only in test mode
-_DEFAULT_DB_SUBDIR = 'run'
 
 #: class that py.path.local() returns
 _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
@@ -49,21 +48,15 @@ _RUN_STATES = ('pending', 'running')
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: See sirepo.srunit
-SRUNIT_TEST_IN_REQUEST = 'test_in_request'
+SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
 
 #: Default file to serve on errors
 DEFAULT_ERROR_FILE = 'server-error.html'
 
-#: Flask app instance, must be bound globally
-app = flask.Flask(
-    __name__,
-    static_folder=None,
-    template_folder=str(simulation_db.STATIC_FOLDER),
-)
-app.config.update(
-    PROPAGATE_EXCEPTIONS=True,
-)
+_ROBOTS_TXT = None
 
+#: Global app value (only here so instance not lost)
+_app = None
 
 @api_perm.require_user
 def api_copyNonSessionSimulation():
@@ -78,6 +71,8 @@ def api_copyNonSessionSimulation():
         sim_type,
         src.join(simulation_db.SIMULATION_DATA_FILE),
     )
+    if 'report' in data:
+        del data['report']
     data['models']['simulation']['isExample'] = False
     data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
     res = _save_new_and_reply(data)
@@ -95,26 +90,17 @@ def api_copyNonSessionSimulation():
 
 @api_perm.require_user
 def api_copySimulation():
-    """Takes the specified simulation and returns a newly named copy with the suffix (copy X)"""
+    """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
     req = http_request.parse_json()
-    sim_type = req['simulationType']
-    name = req['name'] if 'name' in req else None
-    folder = req['folder'] if 'folder' in req else '/'
-    data = simulation_db.read_simulation_json(sim_type, sid=req['simulationId'])
-    if not name:
-        base_name = data['models']['simulation']['name']
-        names = simulation_db.iterate_simulation_datafiles(sim_type, _simulation_name)
-        count = 0
-        while True:
-            count += 1
-            name = base_name + ' (copy{})'.format(' {}'.format(count) if count > 1 else '')
-            if name in names and count < 100:
-                continue
-            break
-    data['models']['simulation']['name'] = name
-    data['models']['simulation']['folder'] = folder
-    data['models']['simulation']['isExample'] = False
-    data['models']['simulation']['outOfSessionSimulationId'] = ''
+    sim_type = req.simulationType
+    name = req.name
+    assert name, util.err(req, 'No name in request')
+    folder = req.folder if 'folder' in req else '/'
+    data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
+    data.models.simulation.name = name
+    data.models.simulation.folder = folder
+    data.models.simulation.isExample = False
+    data.models.simulation.outOfSessionSimulationId = ''
     return _save_new_and_reply(data)
 
 
@@ -164,6 +150,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
+    #TODO(pjm): simulation_id is an unused argument
     lib = simulation_db.simulation_lib_dir(simulation_type)
     filename = werkzeug.secure_filename(filename)
     p = lib.join(filename)
@@ -221,58 +208,66 @@ def api_favicon():
 
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
-    # simulation_id is an unused argument
+    #TODO(pjm): simulation_id is an unused argument
     file_type = werkzeug.secure_filename(file_type)
-    res = []
-    exclude = None
-    #TODO(pjm): use file prefixes for srw, currently assumes mirror is *.dat and others are *.zip
     if simulation_type == 'srw':
-        template = sirepo.template.import_module(simulation_type)
-        search = template.extensions_for_file_type(file_type)
-        if file_type == 'sample':
-            exclude = '_processed.tif'
+        #TODO(pjm): special handling for srw, file_type not included in filename
+        res = sirepo.template.import_module(simulation_type).get_file_list(file_type)
     else:
+        res = []
         search = ['{}.*'.format(file_type)]
-    d = simulation_db.simulation_lib_dir(simulation_type)
-    for extension in search:
-        for f in glob.glob(str(d.join(extension))):
-            if exclude and re.search(exclude, f):
-                continue
-            if os.path.isfile(f):
-                filename = os.path.basename(f)
-                if not simulation_type == 'srw':
+        d = simulation_db.simulation_lib_dir(simulation_type)
+        for extension in search:
+            for f in glob.glob(str(d.join(extension))):
+                if os.path.isfile(f):
+                    filename = os.path.basename(f)
                     # strip the file_type prefix
                     filename = filename[len(file_type) + 1:]
-                res.append(filename)
+                    res.append(filename)
     res.sort()
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_require_user
 def api_findByName(simulation_type, application_mode, simulation_name):
+    sim_type = sirepo.template.assert_sim_type(simulation_type)
     # use the existing named simulation, or copy it from the examples
-    rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-        'simulation.name': simulation_name,
-        'simulation.isExample': True,
-    })
-    if len(rows) == 0:
-        for s in simulation_db.examples(simulation_type):
-            if s['models']['simulation']['name'] == simulation_name:
-                simulation_db.save_new_example(s)
-                rows = simulation_db.iterate_simulation_datafiles(simulation_type, simulation_db.process_simulation_list, {
-                    'simulation.name': simulation_name,
-                })
-                break
-        else:
-            raise AssertionError(util.err(simulation_name, 'simulation not found with type {}', simulation_type))
-    return javascript_redirect(
-        uri_router.format_uri(
-            simulation_type,
-            application_mode,
-            rows[0]['simulationId'],
-            simulation_db.get_schema(simulation_type)
-        )
+    rows = simulation_db.iterate_simulation_datafiles(
+        sim_type,
+        simulation_db.process_simulation_list,
+        {
+            'simulation.name': simulation_name,
+            'simulation.isExample': True,
+        },
     )
+    if len(rows) == 0:
+        for s in simulation_db.examples(sim_type):
+            if s['models']['simulation']['name'] != simulation_name:
+                continue
+            simulation_db.save_new_example(s)
+            rows = simulation_db.iterate_simulation_datafiles(
+                sim_type,
+                simulation_db.process_simulation_list,
+                {
+                    'simulation.name': simulation_name,
+                },
+            )
+            break
+        else:
+            util.raise_not_found(
+                'simulation not found by name={} type={}',
+                simulation_name,
+                sim_type,
+            )
+    # format the uri for the local route to this simulation for application_mode
+    s = simulation_db.get_schema(sim_type)
+    m = s.appModes[application_mode]
+    r = m.localRoute
+    assert r in s.localRoutes
+    u = '/{}#/{}/{}'.format(sim_type, r, rows[0].simulationId)
+    if m.includeMode:
+        u += '?application_mode={}'.format(application_mode)
+    return http_reply.gen_redirect_for_anchor(u)
 
 
 @api_perm.require_user
@@ -299,22 +294,19 @@ def api_getApplicationData(filename=''):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_user
+@api_perm.allow_cookieless_require_user
 def api_importArchive():
     """
-    Args:
-        simulation_type (str): which simulation type
     Params:
         data: what to import
     """
     import sirepo.importer
 
     data = sirepo.importer.do_form(flask.request.form)
-    return javascript_redirect(
-        '/{}#/source/{}'.format(
-            data.simulationType,
-            data.models.simulation.simulationId,
-        ),
+    return http_reply.gen_redirect_for_local_route(
+        data.simulationType,
+        route=None,
+        params={'simulationId': data.models.simulation.simulationId},
     )
 
 
@@ -352,6 +344,11 @@ def api_importFile(simulation_type=None):
                 simulation_db.simulation_lib_dir(simulation_type),
                 simulation_db.tmp_dir(),
             )
+            if 'error' in data:
+                return http_reply.gen_json(data)
+            if 'version' in data:
+                # this will force the fixups to run when saved
+                del data['version']
         #TODO(robnagler) need to validate folder
         data.models.simulation.folder = flask.request.form['folder']
         data.models.simulation.isExample = False
@@ -365,9 +362,13 @@ def api_importFile(simulation_type=None):
 
 
 @api_perm.allow_visitor
-def api_homePage():
+def api_homePage(path_info=None):
+    return api_staticFile('en/' + (path_info or 'landing.html'))
+
+
+@api_perm.allow_visitor
+def api_homePageOld():
     return _render_root_page('landing-page', pkcollections.Dict())
-light_landing_page = api_homePage
 
 
 @api_perm.require_user
@@ -375,6 +376,7 @@ def api_newSimulation():
     new_simulation_data = _parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.default_data(sim_type)
+    #TODO(pjm): update fields from schema values across new_simulation_data values
     data['models']['simulation']['name'] = new_simulation_data['name']
     data['models']['simulation']['folder'] = new_simulation_data['folder']
     if 'notes' in new_simulation_data:
@@ -404,11 +406,21 @@ def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
 
 @api_perm.allow_visitor
 def api_robotsTxt():
-    """Tell robots to go away"""
-    return flask.Response(
-        'User-agent: *\nDisallow: /\n',
-        mimetype='text/plain',
-    )
+    """Disallow the app (dev, prod) or / (alpha, beta)"""
+    global _ROBOTS_TXT
+    if not _ROBOTS_TXT:
+        # We include dev so we can test
+        if pkconfig.channel_in('prod', 'dev'):
+            u = [
+                uri_router.uri_for_api('root', params={'simulation_type': x})
+                for x in sorted(feature_config.cfg.sim_types)
+            ]
+        else:
+            u = ['/']
+        _ROBOTS_TXT = ''.join(
+            ['User-agent: *\n'] + ['Disallow: /{}\n'.format(x) for x in u],
+        )
+    return flask.Response(_ROBOTS_TXT, mimetype='text/plain')
 
 
 @api_perm.allow_visitor
@@ -417,9 +429,9 @@ def api_root(simulation_type):
         sirepo.template.assert_sim_type(simulation_type)
     except AssertionError:
         if simulation_type == 'warp':
-            return flask.redirect('/warppba', code=301)
+            return http_reply.gen_redirect_for_root('warppba', code=301)
         if simulation_type == 'fete':
-            return flask.redirect('/warpvnd', code=301)
+            return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()
@@ -431,60 +443,81 @@ def api_root(simulation_type):
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
-    # TODO(robnagler) need to have a way of listing jobs
-    # Don't bother with cache_hit check. We don't have any way of canceling
-    # if the parameters don't match so for now, always kill.
-    #TODO(robnagler) mutex required
-    if runner.job_is_processing(jid):
+    if feature_config.cfg.runner_daemon:
+        jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        # Write first, since results are write once, and we want to
-        # indicate the cancel instead of the termination error that
-        # will happen as a result of the kill.
-        simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-        runner.job_kill(jid)
-        # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-        # the last frame file may not be finished, remove it
-        t = sirepo.template.import_module(data)
-        t.remove_last_frame(run_dir)
-    # Always true from the client's perspective
-    return http_reply.gen_json({'state': 'canceled'})
+        runner_client.cancel_report_job(run_dir, jhash)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
+    else:
+        # TODO(robnagler) need to have a way of listing jobs
+        # Don't bother with cache_hit check. We don't have any way of canceling
+        # if the parameters don't match so for now, always kill.
+        #TODO(robnagler) mutex required
+        if runner.job_is_processing(jid):
+            run_dir = simulation_db.simulation_run_dir(data)
+            # Write first, since results are write once, and we want to
+            # indicate the cancel instead of the termination error that
+            # will happen as a result of the kill.
+            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            runner.job_kill(jid)
+            # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
+            # the last frame file may not be finished, remove it
+            t = sirepo.template.import_module(data)
+            if hasattr(t, 'remove_last_frame'):
+                t.remove_last_frame(run_dir)
+        # Always true from the client's perspective
+        return http_reply.gen_json({'state': 'canceled'})
 
 
 @api_perm.require_user
 def api_runSimulation():
+    from pykern import pkjson
     data = _parse_data_input(validate=True)
-    res = _simulation_run_status(data, quiet=True)
-    if (
-        (
-            not res['state'] in _RUN_STATES
-            and (res['state'] != 'completed' or data.get('forceRun', False))
-        ) or res.get('parametersChanged', True)
-    ):
-        try:
-            _start_simulation(data)
-        except runner.Collision:
-            pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
-        res = _simulation_run_status(data)
-    return http_reply.gen_json(res)
+    # if flag is set
+    # - check status
+    # - if status is bad, rewrite the run dir (XX race condition, to fix later)
+    # - then request it be started
+    if feature_config.cfg.runner_daemon:
+        jhash = template_common.report_parameters_hash(data)
+        run_dir = simulation_db.simulation_run_dir(data)
+        status = runner_client.report_job_status(run_dir, jhash)
+        already_good_status = [runner_client.JobStatus.RUNNING,
+                               runner_client.JobStatus.COMPLETED]
+        if status not in already_good_status:
+            data['simulationStatus'] = {
+                'startTime': int(time.time()),
+                'state': 'pending',
+            }
+            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
+            cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
+            runner_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
+        res = _simulation_run_status_runner_daemon(data, quiet=True)
+        return http_reply.gen_json(res)
+    else:
+        res = _simulation_run_status(data, quiet=True)
+        if (
+            (
+                not res['state'] in _RUN_STATES
+                and (res['state'] != 'completed' or data.get('forceRun', False))
+            ) or res.get('parametersChanged', True)
+        ):
+            try:
+                _start_simulation(data)
+            except runner.Collision:
+                pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
+            res = _simulation_run_status(data)
+        return http_reply.gen_json(res)
 
 
 @api_perm.require_user
 def api_runStatus():
     data = _parse_data_input()
-    return http_reply.gen_json(_simulation_run_status(data))
-
-
-@api_perm.allow_visitor
-def api_userState():
-    return _no_cache(
-        flask.Response(
-            flask.render_template(
-                'js/user-state.js',
-                user_state=api_auth.get_auth_user_state(),
-            ),
-            mimetype='application/javascript',
-        )
-    )
+    if feature_config.cfg.runner_daemon:
+        status = _simulation_run_status_runner_daemon(data)
+    else:
+        status = _simulation_run_status(data)
+    return http_reply.gen_json(status)
 
 
 @api_perm.require_user
@@ -507,9 +540,17 @@ def api_saveSimulationData():
 
 @api_perm.require_user
 def api_simulationData(simulation_type, simulation_id, pretty, section=None):
+    """First entry point for a simulation
+
+    Might be non-session simulation copy (see `simulation_db.CopyRedirect`).
+    We have to allow a non-user to get data.
+    """
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
+        err_redirect = _verify_user_dir(simulation_type)
+        if err_redirect:
+            return err_redirect
         data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'prepare_for_client'):
@@ -521,14 +562,14 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
         if pretty:
             _as_attachment(
                 resp,
-                app.config.get('JSONIFY_MIMETYPE', 'application/json'),
-                '{}.json'.format(data['models']['simulation']['name']),
+                http_reply.MIME_TYPE.json,
+                '{}.json'.format(data.models.simulation.name),
             )
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
             e.sr_response['redirect']['section'] = section
         resp = http_reply.gen_json(e.sr_response)
-    return _no_cache(resp)
+    return http_reply.headers_for_no_cache(resp)
 
 
 @api_perm.require_user
@@ -540,7 +581,17 @@ def api_simulationFrame(frame_id):
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    frame = template.get_simulation_frame(run_dir, data, model_data)
+    if feature_config.cfg.runner_daemon:
+        # XX TODO: it would be better if the frontend passed the jhash to this
+        # call. Since it doesn't, we have to read it out of the run_dir, which
+        # creates a race condition -- we might return a frame from a different
+        # version of the report than the one the frontend expects.
+        jhash = template_common.report_parameters_hash(model_data)
+        frame = runner_client.run_extract_job(
+            run_dir, jhash, 'get_simulation_frame', data,
+        )
+    else:
+        frame = template.get_simulation_frame(run_dir, data, model_data)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
@@ -549,7 +600,7 @@ def api_simulationFrame(frame_id):
         resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
         resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
     else:
-        _no_cache(resp)
+        http_reply.headers_for_no_cache(resp)
     return resp
 
 
@@ -558,6 +609,12 @@ def api_listSimulations():
     data = _parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
+    err_redirect = _verify_user_dir(sim_type)
+    if err_redirect:
+        return http_reply.gen_json({
+            'state': 'error',
+            'errorRedirect': err_redirect.headers.get('Location'),
+        })
     simulation_db.verify_app_directory(sim_type)
     return http_reply.gen_json(
         sorted(
@@ -584,14 +641,13 @@ def api_simulationSchema():
 
 
 @api_perm.allow_visitor
-def api_srLandingPage():
-    return flask.redirect('/light')
-sr_landing_page = api_srLandingPage
+def api_srwLight():
+    return _render_root_page('light', pkcollections.Dict())
 
 
 @api_perm.allow_visitor
 def api_srUnit():
-    v = getattr(app, SRUNIT_TEST_IN_REQUEST)
+    v = getattr(flask.current_app, SRUNIT_TEST_IN_REQUEST)
     if v.want_cookie:
         from sirepo import cookie
         cookie.set_sentinel()
@@ -601,7 +657,16 @@ def api_srUnit():
 
 @api_perm.allow_visitor
 def api_staticFile(path_info=None):
-    # send_from_directory uses safe_join and doesn't allow indexing.
+    """flask.send_from_directory for static folder.
+
+    Uses safe_join which doesn't allow indexing, paths with '..',
+    or absolute paths.
+
+    Args:
+        path_info (str): relative path to join
+    Returns:
+        flask.Response: flask.send_from_directory response
+    """
     return flask.send_from_directory(
         str(simulation_db.STATIC_FOLDER),
         path_info,
@@ -659,34 +724,34 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
     })
 
 
-def init(db_dir=None, uwsgi=None, use_reloader=False):
+def init(uwsgi=None, use_reloader=False):
     """Initialize globals and populate simulation dir"""
-    from sirepo import uri_router
+    global _app
 
-    if db_dir:
-        cfg.db_dir = py.path.local(db_dir)
-    else:
-        db_dir = cfg.db_dir
-    app.sirepo_db_dir = db_dir
-    simulation_db.init_by_server(app)
-    uri_router.init(app, uwsgi)
-    for err, file in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        app.register_error_handler(int(err), _handle_error)
-    runner.init(app, uwsgi, use_reloader)
-    return app
-
-
-def init_apis(app):
-    uri_router.register_api_module()
-
-
-def javascript_redirect(redirect_uri):
-    """Redirect using javascript for safari browser which doesn't support hash redirects.
-    """
-    return flask.render_template(
-        'html/javascript-redirect.html',
-        redirect_uri=redirect_uri
+    if _app:
+        return
+    #: Flask app instance, must be bound globally
+    _app = flask.Flask(
+        __name__,
+        static_folder=None,
+        template_folder=str(simulation_db.STATIC_FOLDER),
     )
+    _app.config.update(
+        PROPAGATE_EXCEPTIONS=True,
+    )
+    _app.sirepo_db_dir = cfg.db_dir
+    _app.sirepo_uwsgi = uwsgi
+    http_reply.init_by_server(_app)
+    simulation_db.init_by_server(_app)
+    uri_router.init(_app)
+    for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        _app.register_error_handler(int(e), _handle_error)
+    runner.init(_app, use_reloader)
+    return _app
+
+
+def init_apis(*args, **kwargs):
+    pass
 
 
 def _as_attachment(resp, content_type, filename):
@@ -697,27 +762,10 @@ def _as_attachment(resp, content_type, filename):
 
 @pkconfig.parse_none
 def _cfg_db_dir(value):
-    """Config value or root package's parent or cwd with _DEFAULT_SUBDIR"""
-    from pykern import pkinspect
-
-    if value:
-        assert os.path.isabs(value), \
-            '{}: SIREPO_SERVER_DB_DIR must be absolute'.format(value)
-        assert os.path.isdir(value), \
-            '{}: SIREPO_SERVER_DB_DIR must be a directory and exist'.format(value)
-        value = py.path.local(value)
-    else:
-        assert pkconfig.channel_in('dev'), \
-            'SIREPO_SERVER_DB_DIR must be configured except in DEV'
-        fn = sys.modules[pkinspect.root_package(_cfg_db_dir)].__file__
-        root = py.path.local(py.path.local(py.path.local(fn).dirname).dirname)
-        # Check to see if we are in our dev directory. This is a hack,
-        # but should be reliable.
-        if not root.join('requirements.txt').check():
-            # Don't run from an install directory
-            root = py.path.local('.')
-        value = pkio.mkdir_parent(root.join(_DEFAULT_DB_SUBDIR))
-    return value
+    """DEPRECATED"""
+    if value is not None:
+        srdb.server_init_root(value)
+    return srdb.root()
 
 
 def _cfg_time_limit(value):
@@ -733,7 +781,7 @@ def _handle_error(error):
         status_code = error.code
     try:
         error_file = simulation_db.SCHEMA_COMMON['customErrors'][str(status_code)]['url']
-    except:
+    except Exception:
         error_file = DEFAULT_ERROR_FILE
     f = flask.send_from_directory(static_dir('html'), error_file)
 
@@ -763,25 +811,18 @@ def _lib_filepath(simulation_type, filename, file_type):
     return lib.join(_lib_filename(simulation_type, filename, file_type))
 
 
-def _no_cache(resp):
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    return resp
-
-
 def _parse_data_input(validate=False):
     data = http_request.parse_json(assert_sim_type=False)
     return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _render_root_page(page, values):
-    values.source_cache_key = _source_cache_key()
-    values.app_version = simulation_db.app_version()
-    values.static_files = simulation_db.static_libs()
-    return flask.render_template(
-        'html/{}.html'.format(page),
-        **values
-    )
+    values.update(pkcollections.Dict(
+        app_version=simulation_db.app_version(),
+        source_cache_key=_source_cache_key(),
+        static_files=simulation_db.static_libs(),
+    ))
+    return http_reply.render_static(page, 'html', values, cache_ok=True)
 
 
 def _save_new_and_reply(*args):
@@ -828,6 +869,75 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
+def _simulation_run_status_runner_daemon(data, quiet=False):
+    """Look for simulation status and output
+
+    Args:
+        data (dict): request
+        quiet (bool): don't write errors to log
+
+    Returns:
+        dict: status response
+    """
+    try:
+        run_dir = simulation_db.simulation_run_dir(data)
+        jhash = template_common.report_parameters_hash(data)
+        status = runner_client.report_job_status(run_dir, jhash)
+        is_running = status is runner_client.JobStatus.RUNNING
+        rep = simulation_db.report_info(data)
+        res = {'state': status.value}
+
+        if not is_running:
+            if status is not runner_client.JobStatus.MISSING:
+                res, err = runner_client.run_extract_job(
+                    run_dir, jhash, 'result', data,
+                )
+                if err:
+                    return _simulation_error(err, 'error in read_result', run_dir)
+        if simulation_db.is_parallel(data):
+            new = runner_client.run_extract_job(
+                run_dir,
+                jhash,
+                'background_percent_complete',
+                is_running,
+            )
+            new.setdefault('percentComplete', 0.0)
+            new.setdefault('frameCount', 0)
+            res.update(new)
+        res['parametersChanged'] = rep.parameters_changed
+        if res['parametersChanged']:
+            pkdlog(
+                '{}: parametersChanged=True req_hash={} cached_hash={}',
+                rep.job_id,
+                rep.req_hash,
+                rep.cached_hash,
+            )
+        #TODO(robnagler) verify serial number to see what's newer
+        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+        if is_running:
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
+            res['nextRequest'] = {
+                'report': rep.model_name,
+                'reportParametersHash': rep.cached_hash,
+                'simulationId': rep.cached_data['simulationId'],
+                'simulationType': rep.cached_data['simulationType'],
+            }
+        pkdc(
+            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
+            rep.job_id,
+            is_running,
+            res['state'],
+            rep.cache_hit,
+            rep.cached_hash,
+            rep.req_hash,
+        )
+    except Exception:
+        return _simulation_error(pkdexc(), quiet=quiet)
+    return res
+
+
 def _simulation_run_status(data, quiet=False):
     """Look for simulation status and output
 
@@ -867,7 +977,7 @@ def _simulation_run_status(data, quiet=False):
             is_running = False
             if rep.run_dir.exists():
                 if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep, data)
+                    template.prepare_output_file(rep.run_dir, data)
                 res2, err = simulation_db.read_result(rep.run_dir)
                 if err:
                     if simulation_db.is_parallel(data):
@@ -981,12 +1091,24 @@ def _validate_serial(data):
     })
 
 
+def _verify_user_dir(sim_type):
+    # if user dir has been deleted, log out the user #1714
+    from sirepo import auth
+    uid = auth.logged_in_user()
+    if not simulation_db.user_dir_name(uid).check():
+        pkdlog('Force log out, user has no user_dir: {}', uid)
+        #TODO(pjm): call http_reply to format route?
+        return flask.redirect('/auth-logout/' + sim_type)
+    return None
+
+
 def static_dir(dir_name):
     return str(simulation_db.STATIC_FOLDER.join(dir_name))
 
 
 cfg = pkconfig.init(
-    db_dir=(None, _cfg_db_dir, 'where database resides'),
+    db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
+    backend=('local', str, 'Select runner daemon backend (e.g. "local", "docker")'),
 )

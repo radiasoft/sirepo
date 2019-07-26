@@ -177,9 +177,6 @@ lp-info a:hover {
 }
 
 lp-info-content .lp-launch-button, .jupyter-launch-button, .centered {
-  margin: auto;
-  width: fit-content;
-  width: -moz-fit-content;
   padding-top: 8px;
   padding-bottom: 12px;
 }
@@ -194,6 +191,47 @@ lp-info-content .lp-launch-button, .jupyter-launch-button, .centered {
 
 lp-info-content p {
   padding-bottom: 0.5em;
+}
+
+.lp-opportunities {
+  padding: 4px;
+  background-color: rgba(0, 0, 255, 0.1);
+  border-color: #005ca5;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 4px;
+}
+.lp-opportunities.main-page {
+  position: fixed;
+  bottom: 12px;
+  left: 8px;
+  width: 50%;
+}
+.lp-opportunities.main-page.short {
+  position: relative;
+  width: 50vw;
+}
+.lp-opportunities.app-page {
+  position: relative;
+  margin-left: -8px;
+  margin-bottom: 12px;
+}
+
+.lp-opportunities a {
+  border-bottom-style: dotted;
+  border-color: #5fbb46;
+  border-width: 1.5px;
+  padding-bottom: 1px;
+}
+
+.lp-opportunities .header {
+  font-weight: 500;
+}
+.lp-opportunities .lp-opportunity {
+  font-size: 14px;
+}
+.lp-opportunities .lp-opportunity .title {
+  font-weight: 500;
 }
 
 div[data-mode-selector]  {

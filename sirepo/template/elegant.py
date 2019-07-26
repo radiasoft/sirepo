@@ -25,8 +25,6 @@ import sdds
 import stat
 import werkzeug
 
-BUNCH_OUTPUT_FILE = 'elegant.bun'
-
 #: Simulation type
 ELEGANT_LOG_FILE = 'elegant.log'
 
@@ -66,6 +64,8 @@ _INFIX_TO_RPN = {
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
+_OUTPUT_INFO_VERSION = '2'
+
 _PLOT_TITLE = {
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
@@ -73,13 +73,19 @@ _PLOT_TITLE = {
     't-p': 'Longitudinal',
 }
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-
 _SDDS_INDEX = 0
 
-_SDDS_DOUBLE_TYPE = 1
+_SDDS_Singleton = sdds.SDDS(_SDDS_INDEX)
 
-_SDDS_STRING_TYPE = 7
+x = getattr(_SDDS_Singleton, 'SDDS_LONGDOUBLE', None)
+_SDDS_DOUBLE_TYPES = [
+    _SDDS_Singleton.SDDS_DOUBLE,
+    _SDDS_Singleton.SDDS_FLOAT,
+]
+if x is not None:
+    _SDDS_DOUBLE_TYPES.append(x)
+
+_SDDS_STRING_TYPE = _SDDS_Singleton.SDDS_STRING
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
@@ -114,10 +120,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join('animation'))):
-        animation_dir = py.path.local(target_path).join('animation')
+    if os.path.isdir(str(py.path.local(source_path).join(get_animation_name(data)))):
+        animation_dir = py.path.local(target_path).join(get_animation_name(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join('animation', '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(get_animation_name(data), '*'))):
             py.path.local(f).copy(animation_dir)
 
 
@@ -128,7 +134,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
     if x_col['err']:
         return x_col['err']
     x = x_col['values']
-    if _report_type_for_column(x_col['column_names']) == 'parameter':
+    if not _is_histogram_file(xFilename, x_col['column_names']):
         # parameter plot
         plots = []
         filename = {
@@ -138,7 +144,7 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
             'y3': xFilename,
         }
         for f in ('y1', 'y2', 'y3'):
-            if data[f] == 'none' or data[f] == ' ':
+            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
                 continue
             yfield = data[f]
             y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
@@ -146,36 +152,27 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
                 return y_col['err']
             y = y_col['values']
             plots.append({
+                'field': yfield,
                 'points': y,
                 'label': _field_label(yfield, y_col['column_def'][1]),
             })
         title = ''
         if page_count > 1:
             title = 'Plot {} of {}'.format(page_index + 1, page_count)
-        return {
+        return template_common.parameter_plot(x, plots, data, {
             'title': title,
-            'x_range': [min(x), max(x)],
             'y_label': '',
             'x_label': _field_label(xfield, x_col['column_def'][1]),
-            'x_points': x,
-            'plots': plots,
-            'y_range': template_common.compute_plot_color_and_range(plots),
-        }
+        })
     yfield = data['y1'] if 'y1' in data else data['y']
     y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
-    y = y_col['values']
-    bins = data['histogramBins']
-    hist, edges = np.histogramdd([x, y], template_common.histogram_bins(bins))
-    return {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+    return template_common.heatmap([x, y_col['values']], data, {
         'x_label': _field_label(xfield, x_col['column_def'][1]),
         'y_label': _field_label(yfield, y_col['column_def'][1]),
         'title': _plot_title(xfield, yfield, page_index, page_count),
-        'z_matrix': hist.T.tolist(),
-    }
+    })
 
 
 def fixup_old_data(data):
@@ -227,6 +224,7 @@ def fixup_old_data(data):
             bunch['centroid'] = '0,0,0,0,0,0'
     for m in data['models']['commands']:
         template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
+    template_common.organize_example(data)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -274,16 +272,16 @@ def generate_lattice(data, filename_map, beamline_map, v):
 
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
-    v = template_common.flatten_data(data['models'], {})
+    res, v = template_common.generate_parameters_file(data)
     v['rpn_variables'] = _generate_variables(data)
 
     if is_parallel:
-        return _generate_full_simulation(data, v)
+        return res + _generate_full_simulation(data, v)
 
     if 'report' in data and data['report'] == 'twissReport':
-        return _generate_twiss_simulation(data, v)
+        return res + _generate_twiss_simulation(data, v)
 
-    return _generate_bunch_simulation(data, v)
+    return res + _generate_bunch_simulation(data, v)
 
 
 def get_animation_name(data):
@@ -325,13 +323,16 @@ def get_simulation_frame(run_dir, data, model_data):
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
             '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
-            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
+            '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
+            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
         },
     )
     page_count = 0
     for info in _output_info(run_dir):
         if info['modelKey'] == data['modelName']:
             page_count = info['pageCount']
+            frame_data['fieldRange'] = info['fieldRange']
+    frame_data['y'] = frame_data['y1']
     return extract_report_data(
         _file_name_from_id(frame_data.xFileId, model_data, run_dir),
         frame_data,
@@ -361,7 +362,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == 'animation':
+    if model == get_animation_name(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -373,7 +374,7 @@ def get_data_file(run_dir, model, frame, options=None):
         source = generate_parameters_file(data, is_parallel=True)
         return 'python-source.py', source, 'text/plain'
 
-    return _sdds(BUNCH_OUTPUT_FILE)
+    return _sdds(_report_output_filename('bunchReport'))
 
 
 def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
@@ -422,7 +423,7 @@ def models_related_to_report(data):
     r = data['report']
     res = []
     if r == 'twissReport' or 'bunchReport' in r:
-        res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + ['bunch', 'bunchSource', 'bunchFile']
+        res = ['bunch', 'bunchSource', 'bunchFile']
         for f in template_common.lib_files(data):
             if f.exists():
                 res.append(f.mtime())
@@ -487,6 +488,16 @@ def prepare_for_client(data):
     return data
 
 
+def prepare_output_file(run_dir, data):
+    if data['report'] == 'twissReport' or 'bunchReport' in data['report']:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            output_file = run_dir.join(_report_output_filename(data['report']))
+            if output_file.exists():
+                save_report_data(data, run_dir)
+
+
 def python_source_for_model(data, model):
     return generate_parameters_file(data, is_parallel=True) + '''
 with open('elegant.lte', 'w') as f:
@@ -511,6 +522,23 @@ def resource_files():
         list: py.path.local objects
     """
     return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
+
+
+def save_report_data(data, run_dir):
+    report = data['models'][data['report']]
+    if data['report'] == 'twissReport':
+        report['x'] = 's'
+        report['y'] = report['y1']
+    simulation_db.write_result(
+        extract_report_data(str(run_dir.join(_report_output_filename(data['report']))), report, 0),
+        run_dir=run_dir,
+    )
+
+
+def simulation_dir_name(report_name):
+    if 'bunchReport' in report_name:
+        return 'bunchReport'
+    return report_name
 
 
 def validate_delete_file(data, filename, file_type):
@@ -776,24 +804,37 @@ def _file_info(filename, run_dir, id, output_index):
         column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
         plottable_columns = []
         double_column_count = 0
+        field_range = {}
         for col in column_names:
             col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
             if col_type < _SDDS_STRING_TYPE:
                 plottable_columns.append(col)
-            if col_type == _SDDS_DOUBLE_TYPE:
+            if col_type in _SDDS_DOUBLE_TYPES:
                 double_column_count += 1
+            field_range[col] = []
         parameter_names = sdds.sddsdata.GetParameterNames(_SDDS_INDEX)
         parameters = dict([(p, []) for p in parameter_names])
         page_count = 0
         row_counts = []
         while True:
-            page = sdds.sddsdata.ReadPage(_SDDS_INDEX)
-            if page <= 0:
+            if sdds.sddsdata.ReadPage(_SDDS_INDEX) <= 0:
                 break
             row_counts.append(sdds.sddsdata.RowCount(_SDDS_INDEX))
             page_count += 1
             for i, p in enumerate(parameter_names):
                 parameters[p].append(_safe_sdds_value(sdds.sddsdata.GetParameter(_SDDS_INDEX, i)))
+            for col in column_names:
+                values = sdds.sddsdata.GetColumn(
+                    _SDDS_INDEX,
+                    column_names.index(col),
+                )
+                if not len(values):
+                    pass
+                elif len(field_range[col]):
+                    field_range[col][0] = min(_safe_sdds_value(min(values)), field_range[col][0])
+                    field_range[col][1] = max(_safe_sdds_value(max(values)), field_range[col][1])
+                else:
+                    field_range[col] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
         return {
             'isAuxFile': False if double_column_count > 1 else True,
             'filename': filename,
@@ -805,6 +846,8 @@ def _file_info(filename, run_dir, id, output_index):
             'parameterDefinitions': _parameter_definitions(parameters),
             'plottableColumns': plottable_columns,
             'lastUpdateTime': int(os.path.getmtime(str(file_path))),
+            'isHistogram': _is_histogram_file(filename, column_names),
+            'fieldRange': field_range,
         }
     finally:
         try:
@@ -862,7 +905,7 @@ def _generate_bunch_simulation(data, v):
         if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
             v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
-    v['bunchOutputFile'] = BUNCH_OUTPUT_FILE
+    v['bunchOutputFile'] = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
@@ -954,8 +997,26 @@ def _is_error_text(text):
     return re.search(r'^warn|^error|wrong units|^fatal |no expansion for entity|unable to|warning\:|^0 particles left|^unknown token|^terminated by sig|no such file or directory|no parameter name found|Problem opening |Terminated by SIG|No filename given|^MPI_ERR', text, re.IGNORECASE)
 
 
+def _is_histogram_file(filename, columns):
+    filename = os.path.basename(filename)
+    if re.search(r'^closed_orbit.output', filename):
+        return False
+    if 'xFrequency' in columns and 'yFrequency' in columns:
+        return False
+    if ('x' in columns and 'xp' in columns) \
+       or ('y' in columns and 'yp' in columns) \
+       or ('t' in columns and 'p' in columns):
+        return True
+    return False
+
+
 def _is_ignore_error_text(text):
     return re.search(r'^warn.* does not have a parameter', text, re.IGNORECASE)
+
+
+def _is_numeric(el_type, value):
+    return el_type in ('RPNValue', 'RPNBoolean', 'Integer', 'Float') \
+        and re.search(r'^[\-\+0-9eE\.]+$', str(value))
 
 
 def _iterate_model_fields(data, state, callback):
@@ -981,26 +1042,29 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
-                if element_schema[1] == 'RPNValue':
-                    state['commands'] += '  {} = "{}",'.format(field_name, _format_rpn_value(value, is_command=True)) + "\n"
-                elif element_schema[1].endswith('StringArray'):
+                el_type = element_schema[1]
+                if el_type.endswith('StringArray'):
                     state['commands'] += '  {}[0] = {},'.format(field_name, value) + "\n"
                 else:
                     #TODO(pjm): combine with lattice file input formatting below
-                    if element_schema[1] == 'OutputFile':
+                    if el_type == 'RPNValue':
+                        value = _format_rpn_value(value, is_command=True)
+                    elif el_type == 'OutputFile':
                         value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
-                    elif element_schema[1].startswith('InputFile'):
+                    elif el_type.startswith('InputFile'):
                         value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
-                    elif element_schema[1] == 'BeamInputFile':
+                    elif el_type == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
-                    elif element_schema[1] == 'LatticeBeamlineList':
+                    elif el_type == 'LatticeBeamlineList':
                         value = state['beamline_map'][int(value)]
-                    elif element_schema[1] == 'ElegantLatticeList':
+                    elif el_type == 'ElegantLatticeList':
                         if value and value == 'Lattice':
                             value = 'elegant.lte'
                         else:
                             value = value + '.filename.lte'
-                    state['commands'] += '  {} = "{}",'.format(field_name, value) + "\n"
+                    if not _is_numeric(el_type, str(value)):
+                        value = '"{}"'.format(value)
+                    state['commands'] += '  {} = {},'.format(field_name, value) + "\n"
     else:
         state['field_index'] = 0
         if state['commands']:
@@ -1028,6 +1092,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         default_value = element_schema[2]
         if value is not None and default_value is not None:
             if str(value) != str(default_value):
+                el_type = element_schema[1]
                 if model['type'] == 'SCRIPT' and field_name == 'command':
                     for f in ('commandFile', 'commandInputFile'):
                         if f in model and model[f]:
@@ -1035,16 +1100,17 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                             value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
                     if model['commandFile']:
                         value = './' + value
-                if element_schema[1] == 'RPNValue':
+                if el_type == 'RPNValue':
                     value = _format_rpn_value(value)
-                if element_schema[1].startswith('InputFile'):
+                if el_type.startswith('InputFile'):
                     value = template_common.lib_file_name(model['type'], field_name, value)
-                    if element_schema[1] == 'InputFileXY':
+                    if el_type == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
-                elif element_schema[1] == 'OutputFile':
+                elif el_type == 'OutputFile':
                     value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
-                #TODO(pjm): don't quote numeric constants
-                state['lattice'] += '{}="{}",'.format(field_name, value)
+                if not _is_numeric(el_type, value):
+                    value = '"{}"'.format(value)
+                state['lattice'] += '{}={},'.format(field_name, value)
     else:
         state['field_index'] = 0
         if state['lattice']:
@@ -1057,9 +1123,10 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
 def _iterator_rpn_values(state, model, element_schema=None, field_name=None):
     if element_schema:
         if element_schema[1] == 'RPNValue' and elegant_lattice_importer.is_rpn_value(model[field_name]):
-            v, err = _parse_expr(model[field_name], state['rpnVariables'])
-            if not err:
-                state['cache'][model[field_name]] = v
+            if model[field_name] not in state['cache']:
+                v, err = _parse_expr(model[field_name], state['rpnVariables'])
+                if not err:
+                    state['cache'][model[field_name]] = v
 
 
 def _map_commands_to_lattice(data):
@@ -1084,7 +1151,12 @@ def _output_info(run_dir):
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
     if os.path.isfile(str(info_file)):
-        return simulation_db.read_json(info_file)
+        try:
+            res = simulation_db.read_json(info_file)
+            if len(res) == 0 or res[0].get('_version', '') == _OUTPUT_INFO_VERSION:
+                return res
+        except ValueError as e:
+            pass
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     res = []
     filename_map = _build_filename_map(data)
@@ -1095,6 +1167,8 @@ def _output_info(run_dir):
         if info:
             info['modelKey'] = 'elementAnimation{}'.format(info['id'])
             res.append(info)
+    if len(res):
+        res[0]['_version'] = _OUTPUT_INFO_VERSION
     simulation_db.write_json(info_file, res)
     return res
 
@@ -1167,15 +1241,10 @@ def _plot_title(xfield, yfield, page_index, page_count):
     return title
 
 
-#TODO(pjm): keep in sync with elegant.js reportTypeForColumns()
-def _report_type_for_column(columns):
-    if 'xFrequency' in columns and 'yFrequency' in columns:
-        return 'parameter'
-    if ('x' in columns and 'xp' in columns) \
-       or ('y' in columns and 'yp' in columns) \
-       or ('t' in columns and 'p' in columns):
-        return 'heatmap'
-    return 'parameter'
+def _report_output_filename(report):
+    if report == 'twissReport':
+        return 'twiss_output.filename.sdds'
+    return 'elegant.bun'
 
 
 def _safe_sdds_value(v):

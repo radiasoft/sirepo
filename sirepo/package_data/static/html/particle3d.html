@@ -5,14 +5,17 @@
         <div class="row">
             <div class="col-sm-6">
               <div>
-                <span style="color: steelblue; font-size: 18px;">&#x25CF;</span><span data-ng-show="hasReflected">Absorbed <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showAbsorbed, 'glyphicon-eye-close': ! showAbsorbed}"></span></a></span>
-                [Impact Points <a href="" data-ng-click="toggleImpact()"> <span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showImpact, 'glyphicon-eye-close': ! showImpact}"></span></a>]
+                <a href="" data-ng-click="toggleAbsorbed()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showAbsorbed, 'glyphicon-unchecked': ! showAbsorbed}"></span></a> Absorbed
               </div>
               <div>
-                <span data-ng-show="hasReflected" ><span style="color: #e04836; font-size: 18px;">&#x25CF;</span>Reflected <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showReflected, 'glyphicon-eye-close': ! showReflected}"></span></a></span>
+                <a href="" data-ng-click="toggleImpact()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpact, 'glyphicon-unchecked': ! showImpact}"></span></a> Impact Points
+              </div>
+              <div data-ng-show="hasReflected">
+                <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Reflected
               </div>
               <div>
-                <span style="color: #f3d4c8; font-size: 18px;">&#x25CF;</span>Conductors <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-eye-open': showConductors, 'glyphicon-eye-close': ! showConductors}"></span></a>
+                <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showConductors, 'glyphicon-unchecked': ! showConductors}"></span></a> Conductors
+                &nbsp;&nbsp;&nbsp;<span data-ng-show="enableImpactDensity"><a href=""  data-ng-click="toggleImpactDensity()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpactDensity, 'glyphicon-unchecked': ! showImpactDensity}"></span></a> Impact Density</span>
               </div>
             </div>
             <div class="col-sm-6">
@@ -25,7 +28,7 @@
         </div>
     </div>
     <!-- the canvas holder is the container for the vtk render window -->
-    <div class="vtk-canvas-holder" data-ng-style="interactionStyle()">
+    <div class="vtk-canvas-holder" data-ng-style="interactionStyle()" data-ng-show="! dataCleared">
     </div>
     <div class="vtk-info-overlay" data-ng-class="{'vtk-info-overlay-move': mode == 'move', 'vtk-info-overlay-select': mode == 'select'}" data-ng-attr-width="{{ vtkCanvasGeometry().size.width }}px" data-ng-attr-height="{{ vtkCanvasGeometry().size.height }}px" data-ng-attr-style="top:{{ vtkCanvasGeometry().pos.top }}px; left:{{ vtkCanvasGeometry().pos.left }}px;">
       <svg data-ng-attr-width="{{ vtkCanvasGeometry().size.width }}" data-ng-attr-height="{{ vtkCanvasGeometry().size.height }}">
@@ -36,7 +39,7 @@
         <text class="x axis-end high"></text>
 
         <g class="y axis"></g>
-        <text class="y-axis-label" transform="rotate(-90)"></text>
+        <text class="y-axis-label"></text>
         <text class="y axis-end low"></text>
         <text class="y axis-end high"></text>
 

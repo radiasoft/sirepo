@@ -20,11 +20,14 @@ INPUT_NAME = 'hundli.yml'
 
 OUTPUT_NAME = 'hundli.csv'
 
+_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+
 
 def fixup_old_data(data):
-    if 'heightWeightReport' not in data.models:
-        data.models.heightWeightReport = data.models.dogReport
-        del data.models['dogReport']
+    for m in _SCHEMA.model:
+        if m not in data.models:
+            data.models[m] = pkcollections.Dict({})
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -56,8 +59,9 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _generate_parameters_file(data):
-    assert data['report'] == 'heightWeightReport', \
-        'unknown report: {}'.format(data['report'])
+    if 'report' in data:
+        assert data['report'] == 'heightWeightReport', \
+            'unknown report: {}'.format(data['report'])
     v = copy.deepcopy(data['models'], pkcollections.Dict())
     v.input_name = INPUT_NAME
     v.output_name = OUTPUT_NAME

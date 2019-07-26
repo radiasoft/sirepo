@@ -44,17 +44,17 @@
         <div class="col-sm-12" data-ng-if="visualization.hasFrames('particleAnimation')">
           <div data-report-panel="particle" data-model-name="particleAnimation"></div>
         </div>
-        <div class="col-sm-12" data-ng-if="visualization.warpvndService.is3D() && visualization.hasFrames('particleAnimation')">
-          <div data-report-panel="particle3d" data-model-name="particle3d"></div>
-        </div>
       </div>
     </div>
     <div class="col-md-6" data-ng-if="visualization.hasFrames()">
       <div data-ng-if="! visualization.warpvndService.isEGunMode(true)" data-report-panel="parameter" data-model-name="currentAnimation"></div>
       <div data-ng-if="visualization.warpvndService.isEGunMode(true)" data-report-panel="parameter" data-model-name="egunCurrentAnimation"></div>
     </div>
-    <div class="col-md-6" data-ng-if="visualization.hasFrames('impactDensityAnimation')">
+    <div class="col-md-6" data-ng-if="! visualization.warpvndService.is3D() && visualization.hasFrames('impactDensityAnimation')">
       <div data-report-panel="impactDensity" data-model-name="impactDensityAnimation"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="visualization.warpvndService.is3D() && visualization.hasFrames('particleAnimation')">
+      <div data-report-panel="particle3d" data-model-name="particle3d"></div>
     </div>
   </div>
 </div>

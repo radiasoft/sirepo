@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 function Colorbar() {
     var scale, // the input scale this represents;
-        margin = {top: 5, right: 30, bottom: 25, left: 0}
+        margin = {top: 5, right: 30, bottom: 25, left: 0},
     orient = "vertical",
     origin = {
         x: 0,
@@ -42,11 +42,11 @@ function Colorbar() {
     var tickFormat = null;
 
 
-    checkScaleType = function (scale) {
+    var checkScaleType = function (scale) {
         // AFAIK, d3 scale types aren't easily accessible from the scale itself.
         // But we need to know the scale type for formatting axes properly
         //Or do we? this variable seems not to be used.
-        cop = scale.copy();
+        var cop = scale.copy();
         cop.range([0, 1]);
         cop.domain([1, 10]);
 
@@ -78,11 +78,11 @@ function Colorbar() {
 
 
             //Also creates a pointer if it doesn't exist yet.
-            pointers = fillLegend
+            var pointers = fillLegend
                 .selectAll('.pointer')
                 .data([inputNumbers]);
 
-	    pointerSVGdef = function() {
+	    var pointerSVGdef = function() {
 		return (
                 orient=="horizontal" ?
 		    'M ' + 0 +' '+ thickness + ' l -' +  pointerWidth + ' -' + pointerWidth + ' l ' + 2*pointerWidth + ' -' + 0 + ' z' :
@@ -168,7 +168,7 @@ function Colorbar() {
                 .attr("x",function(d) {return d[0]-margin.right})
                 .attr("y",function(d) {return d[1]-margin.top})
 
-	    offsetGroup = new_colorbars
+	    var offsetGroup = new_colorbars
                 .append("g")
                 .classed("colorbar", true)
 	        .attr("transform","translate(" + margin.left + "," + margin.top + ")")
@@ -204,7 +204,7 @@ function Colorbar() {
 
             var legendRange = d3.range(
                 0, barlength,
-                by=barlength / (fillLegendScale.domain().length - 1));
+                barlength / (fillLegendScale.domain().length - 1));
 
             legendRange.push(barlength);
 
@@ -215,7 +215,7 @@ function Colorbar() {
 	    }
 	    fillLegendScale.range(legendRange);
 
-            colorScaleRects = fillLegend
+            var colorScaleRects = fillLegend
                 .selectAll("rect.legend")
                 .data(d3.range(0, barlength));
 
@@ -246,7 +246,7 @@ function Colorbar() {
                 })
 
 
-            colorAxisFunction = d3.svg.axis()
+            var colorAxisFunction = d3.svg.axis()
                 .scale(fillLegendScale)
                 .orient(axis_orient);
 
@@ -257,7 +257,7 @@ function Colorbar() {
                 tickFormat = fillLegendScale.tickFormat();
             }
             else {
-                tickFormat = d3.format('s');
+                tickFormat = d3.format('.3s');
                 colorAxisFunction.tickFormat(tickFormat);
             }
 
@@ -273,7 +273,7 @@ function Colorbar() {
                 .call(colorAxisFunction);
 
             //make a title
-            titles = fillLegend.selectAll(".axis.title")
+            var titles = fillLegend.selectAll(".axis.title")
                 .data([{label: title}])
                 .attr("id", "#colorSelector")
                 .attr('transform', 'translate (0, -10)')

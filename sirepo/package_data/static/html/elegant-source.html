@@ -7,7 +7,7 @@
     <div class="clearfix"></div>
     <div data-ng-repeat="item in source.bunchReports track by item.id">
       <div class="col-md-6 col-xl-4">
-        <div data-report-panel="heatmap" data-model-name="bunchReport" data-model-data="source.modelAccess(item.id)" data-panel-title="{{ source.bunchReportHeading(item) }}"></div>
+        <div data-report-panel="heatmap" data-model-name="bunchReport" data-model-data="item" data-panel-title="{{ source.bunchReportHeading(item) }}"></div>
       </div>
       <div data-ng-if="$index % 2" class="clearfix hidden-xl"></div>
     </div>
@@ -15,5 +15,4 @@
 </div> <!-- /container -->
 
 <!-- modal dialogs -->
-<div data-modal-editor="" view-name="bunch" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="bunchReport" data-ng-repeat="item in source.bunchReports track by item.id" data-parent-controller="source" data-model-data="source.modelAccess(item.id)"></div>
+<div data-modal-editor="" view-name="bunchReport" data-ng-repeat="item in source.bunchReports track by item.id" data-model-data="item"></div>

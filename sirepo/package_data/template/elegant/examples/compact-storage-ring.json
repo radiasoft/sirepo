@@ -157,7 +157,7 @@
                 "bunch_frequency": "0.0",
                 "first_is_fiducial": "0",
                 "n_indices": "0",
-                "n_passes": "1",
+                "n_passes": 10,
                 "n_passes_fiducial": "0",
                 "n_steps": "1",
                 "reset_rf_for_each_step": "1",
@@ -239,7 +239,7 @@
                 "symmetrize": "1",
                 "time_start": "0.0",
                 "use_moments_output_values": "0",
-                "use_twiss_command_values": "0"
+                "use_twiss_command_values": "1"
             },
             {
                 "_id": 24,
@@ -850,7 +850,7 @@
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
             "y3FileId": "22-13",
-            "includeLattice": true
+            "includeLattice": "1"
         },
         "elements": [
             {
@@ -1140,11 +1140,7 @@
         ],
         "latticeGraph": {},
         "panelState": {
-            "hidden": [
-                "elementAnimation20-18",
-                "elementAnimation20-25",
-                "elementAnimation22-13"
-            ]
+            "hidden": []
         },
         "parameterTable": {
             "file": "run_setup.centroid.sdds",

@@ -20,10 +20,6 @@
         }
     },
     "enum": {
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "ElectronBeamShape": [
             ["dc_uniform", "Cylindrical"],
             ["bunched_gaussian", "Gaussian"],
@@ -202,10 +198,10 @@
             "histogramBins": ["Histogram Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "5"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
-            "horizontalSize": ["Horizontal Size [m]", "Float", 0.1],
-            "verticalSize": ["Vertical Size [m]", "Float", 0.1],
-            "horizontalOffset": ["Horizontal Offset [m]", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset [m]", "Float", 0.0],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "colorRangeType": ["Range", "ColorRangeType", "none"],
             "colorMin": ["Minimum Histogram Value", "Float", 0],
@@ -422,7 +418,7 @@
             ]
         },
         "simulationStatus": {
-            "title": "SimulationStatus",
+            "title": "Simulation Status",
             "advanced": []
         },
         "twissReport": {

@@ -1,0 +1,128 @@
+from __future__ import absolute_import, division, print_function
+
+import numpy
+import os
+import subprocess
+import time
+import sirepo.template.webcon as webcon
+
+lattice_file = """
+{{ fodoLattice -}}
+"""
+
+elegant_file = """
+&run_setup
+  centroid = "run_setup.centroid.sdds",
+  concat_order = 2,
+  lattice = "elegant.lte",
+  p_central_mev = {{ bunch_p_central_mev }},
+  print_statistics = 1,
+  use_beamline = "BEAMLINE",
+&end
+
+&run_control
+&end
+
+&bunched_beam
+  alpha_x = 1,
+  alpha_y = 1,
+  alpha_z = 0,
+  beta_x = 10,
+  beta_y = 10,
+  beta_z = 0,
+  centroid[0] = {{ bunch_centroid_x }}, {{ bunch_centroid_xp }}, {{ bunch_centroid_y }}, {{ bunch_centroid_yp }}, 0, 0,
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  emit_z = 0,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  one_random_bunch = 0,
+  sigma_dp = 0.001,
+  sigma_s = 0.00065,
+  symmetrize = 1,
+&end
+
+&track
+&end
+"""
+
+CURRENT_FIELDS = [
+{% for name in CURRENT_FIELDS %}
+    '{{ name }}',
+{% endfor %}
+]
+
+BPM_FIELDS = [
+{% for name in BPM_FIELDS %}
+    '{{ name }}',
+{% endfor %}
+]
+
+
+def read_sdds_columns(file_name, column_names, column_types, data_class=None):
+    if data_class == None:
+        class sdds_data:
+            def __init__(self,file_name,column_names):
+                self.file_name = file_name
+                self.column_names = column_names
+        data_class = sdds_data(file_name,column_names)
+    stdout, stderr = subprocess.Popen(
+        ['sdds2stream', file_name, '-col={}'.format(','.join(column_names))],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).communicate()
+    column_data = numpy.asarray(stdout.split())
+    for idx in range(len(column_names)):
+        column = column_names[idx]
+        setattr(data_class, column, column_data[idx::len(column_names)].astype(column_types[idx]))
+    return data_class
+
+
+def run_simulation(server_address):
+    settings = webcon.read_epics_values(server_address, CURRENT_FIELDS)
+    args = {}
+    for name in CURRENT_FIELDS:
+        args[name.replace(':', '_')] = settings.pop(0)
+    with open('elegant.lte', 'w') as f:
+        f.write(lattice_file.format(**args))
+    with open('elegant.ele', 'w') as f:
+        f.write(elegant_file)
+    os.system('elegant elegant.ele > elegant.log')
+
+
+def update_and_run_simulation(server_address):
+    start = time.time()
+    error = update_epics_currents(server_address)
+    if error:
+        return error
+    run_simulation(server_address)
+    error = update_epics_positions(server_address)
+    end = time.time()
+    # run at most every second, sleep if necessary
+    wait_seconds = 1. - (end - start)
+    if wait_seconds > 0 and wait_seconds < 1:
+        time.sleep(wait_seconds)
+    return error
+
+
+def update_epics_currents(server_address):
+    filename = '{{ currentFile }}'
+    if os.path.exists(filename):
+        values = numpy.load(filename)
+        os.remove(filename)
+        if not webcon.write_epics_values(server_address, values[0], values[1]):
+            return 'epics current update failed'
+    return None
+
+
+def update_epics_positions(server_address):
+    values = []
+    data = read_sdds_columns('run_setup.centroid.sdds', ['ElementType', 'Cx', 'Cy'], [str, float, float])
+    for idx in range(len(data.ElementType)):
+        if data.ElementType[idx] == 'WATCH':
+            values += [data.Cx[idx], data.Cy[idx]]
+    #TODO(pjm): only update positions which have changed, avoid extra subprocess calls
+    if not webcon.write_epics_values(server_address, BPM_FIELDS, values):
+        return 'epics bpm update failed'
+    return None

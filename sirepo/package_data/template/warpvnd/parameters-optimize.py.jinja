@@ -1,0 +1,86 @@
+
+#prevent GIST from starting upon setup
+wp.top.lprntpara = False
+wp.top.lpsplots = False
+
+def write_output_line(output):
+    print('sr-opt: ' + ' '.join(map(lambda x: '{}={}'.format(x, output[x]), output.keys())))
+
+output = {
+    'steps': 0,
+    'time': 0,
+    'tolerance': 0,
+    'result': 0,
+}
+write_output_line(output)
+
+wp.top.verbosity = 0 # Reduce solver verbosity
+solverE.mgverbose = 0 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
+solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to converge
+wp.package("w3d")
+wp.generate()
+solverE.mgmaxiters = 100
+
+import time
+
+def analyze_scraped_particles2(top, particles, conductors):
+    # reworked ConductorDiagnostics.analyze_scraped_particles
+    # to pass in full conductor list, not just the ones registered with the solver
+    cond_ids = []
+    cond_objs = []
+    lost = {}
+    for cond in conductors:
+        cond_objs.append(cond)
+        cond_ids.append(cond.condid)
+
+    for i, ids in enumerate(cond_ids):
+        lost[ids] = np.copy(cond_objs[i].lostparticles_data[:, 0:2])
+        lost[ids][:, 0] = np.ndarray.astype(np.round(lost[ids][:, 0] / top.dt), 'int')
+        lost[ids][:, 1] = np.round(-1. * lost[ids][:, 1] / particles.sw / constants.e)
+
+    return lost
+
+
+def get_lost_counts():
+    scraper_record = analyze_scraped_particles2(wp.top, beam, scraper.conductors)
+    if np.sum(scraper_record[1][:, 1]):
+        print('WARNING: source had particles')
+    plate_count = np.sum(scraper_record[2][:, 1])
+    conductor_count = 0
+    for idx in scraper_record:
+        if idx <= 2:
+            continue
+        conductor_count += np.sum(scraper_record[idx][:, 1])
+    return np.array([plate_count, conductor_count])
+
+
+#------
+
+tolerance = {{ optimizer_tolerance }}
+time_limit = {{ optimizer_timeLimit }}
+num_steps = {{ optimizer_initialSteps }}
+start_time = time.time()
+end_time = start_time + time_limit
+
+prev_result = 0
+prev_counts = np.array([0, 0])
+
+while time.time() < end_time:
+    wp.step(num_steps)
+    output['steps'] += num_steps
+    counts = get_lost_counts()
+    stats = counts - prev_counts
+    total = np.sum(stats)
+    output['result'] = stats[0] / total if total else 0
+    output['time'] = time.time() - start_time
+    if prev_result and output['result']:
+        output['tolerance'] = abs(prev_result - output['result']) / output['result']
+        write_output_line(output)
+        if output['tolerance'] <= tolerance:
+            break
+    else:
+        write_output_line(output)
+    num_steps = {{ optimizer_optimizerSteps }}
+    prev_counts = counts
+    prev_result = output['result']
+

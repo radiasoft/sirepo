@@ -1,0 +1,35 @@
+
+line.add(core.FAKE_ELEM("""
+'OPTIONS'
+1 1
+WRITE OFF
+"""))
+{% if bunch_method == 'MCOBJET3' %}
+line.add(core.FAKE_ELEM("""
+'MCOBJET'
+{{ bunch_rigidity }}
+3
+{{ bunch_particleCount }}
+{{ bunch_KY }} {{ bunch_KT }} {{ bunch_KZ }} {{ bunch_KP }} {{ bunch_KX }} {{ bunch_KD }}
+{{ bunch_Y0 }} {{ bunch_T0 }} {{ bunch_Z0 }} {{ bunch_P0 }} {{ bunch_X0 }} {{ bunch_D0 }}
+{{ bunch_alpha_Y }} {{ bunch_beta_Y }} {{ bunch_emit_Y }} {{ bunch_n_cutoff_Y }}{% if bunch_n_cutoff_Y < 0 %} {{ bunch_n_cutoff2_Y }}{% endif %} {{ bunch_DY }} {{ bunch_DT }}
+{{ bunch_alpha_Z }} {{ bunch_beta_Z }} {{ bunch_emit_Z }} {{ bunch_n_cutoff_Z }}{% if bunch_n_cutoff_Z < 0 %} {{ bunch_n_cutoff2_Z }}{% endif %} {{ bunch_DZ }} {{ bunch_DP }}
+{{ bunch_alpha_X }} {{ bunch_beta_X }} {{ bunch_emit_X }} {{ bunch_n_cutoff_X }} {{ bunch_n_cutoff2_X }}
+123456 234567 345678
+"""))
+{% else %}
+line.add(core.FAKE_ELEM("""
+'OBJET'
+{{ bunch_rigidity }}
+2.1
+{{ bunch_particleCount2 }} 1
+{% for i in range(bunch_particleCount2) %}
+{{ bunchCoordinates[i]['Y'] }} {{ bunchCoordinates[i]['T'] }} {{ bunchCoordinates[i]['Z'] }} {{ bunchCoordinates[i]['P'] }} {{ bunchCoordinates[i]['X'] }} {{ bunchCoordinates[i]['D'] }} '{{ i }}'
+{% endfor %}
+{{ '1 ' * bunch_particleCount2 }}
+"""))
+{% endif %}
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+{{ particleDef }}
+"""))

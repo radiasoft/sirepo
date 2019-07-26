@@ -51,7 +51,7 @@
                 "absoluteFocusPosition": "-8.7725",
                 "attenuationLength": "0.007313",
                 "focalDistance": "178.2502",
-                "focalPlane": 2,
+                "focalPlane": "2",
                 "horizontalApertureSize": "1",
                 "id": 6,
                 "material": "User-defined",
@@ -60,7 +60,7 @@
                 "position": "35.4",
                 "radius": "1.5e-03",
                 "refractiveIndex": "4.207568e-6",
-                "shape": 1,
+                "shape": "1",
                 "tipRadius": 1500,
                 "tipWallThickness": 80,
                 "title": "CRL1",
@@ -72,7 +72,7 @@
                 "absoluteFocusPosition": "49.1489",
                 "attenuationLength": "0.007313",
                 "focalDistance": "9.9028",
-                "focalPlane": 2,
+                "focalPlane": "2",
                 "horizontalApertureSize": "1",
                 "id": 7,
                 "material": "User-defined",
@@ -81,7 +81,7 @@
                 "position": "35.4",
                 "radius": "0.5e-03",
                 "refractiveIndex": "4.207568e-6",
-                "shape": 1,
+                "shape": "1",
                 "tipRadius": 500,
                 "tipWallThickness": 80,
                 "title": "CRL2",
@@ -559,20 +559,6 @@
             "verticalPointCount": 100,
             "verticalPosition": 0,
             "verticalRange": 1
-        },
-        "simulationStatus": {
-            "fluxAnimation": {
-                "elapsedTime": 44336,
-                "frameCount": 1,
-                "frameId": 1476981215,
-                "isStateProcessing": false,
-                "lastUpdateTime": 1476981215,
-                "parametersChanged": false,
-                "percentComplete": 100,
-                "report": "fluxAnimation",
-                "startTime": 1476936879,
-                "state": "completed"
-            }
         },
         "sourceIntensityReport": {
             "characteristic": 0,

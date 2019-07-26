@@ -1,15 +1,15 @@
-"Q": CHARGE,total="1e-9"
-"B1": CSRCSBEND,angle="0.146607657167524",bins="500",e1="0",e2="0.146607657167524",l="0.200718260855179",n_kicks="100",output_file="B1.output_file.sdds",output_interval="10",sg_halfwidth="1"
-"B2": CSRCSBEND,angle="-0.146607657167524",bins="500",e1="-0.146607657167524",e2="0",l="0.200718260855179",n_kicks="100",output_file="B2.output_file.sdds",output_interval="10",sg_halfwidth="1"
-"B3": CSRCSBEND,angle="-0.146607657167524",bins="500",e1="0",e2="-0.146607657167524",l="0.200718260855179",n_kicks="100",output_file="B3.output_file.sdds",output_interval="4",sg_halfwidth="1"
-"B4": CSRCSBEND,angle="0.146607657167524",bins="500",e1="0.146607657167524",e2="0",l="0.200718260855179",n_kicks="100",output_file="B4.output_file.sdds",output_interval="4",sg_halfwidth="1"
-"L1": CSRDRIFT,dz="0.01",l="0.758132998376353",use_stupakov="1"
-"L2": CSRDRIFT,dz="0.01",l="0.5",use_stupakov="1"
-"L3": CSRDRIFT,dz="0.01",l="1.0",use_stupakov="1"
-"PF": PFILTER,deltalimit="0.005"
-"LINA10": RFCA,change_p0="1",freq="2856e6",l="0.3",phase="90 28 -",volt="48e6 10 /"
-"LINB10": RFCA,change_p0="1",freq="2856e6",l="0.3",phase="90 6 +",volt="48e6 10 /"
-"ZWAKE": WAKE,factor="86 10 /",inputfile="WAKE-inputfile.knsl45.liwake.sdds",interpolate="1",n_bins="1024",tcolumn="t",wcolumn="W"
+"Q": CHARGE,total=1e-9
+"B1": CSRCSBEND,angle=0.146607657167524,bins=500,e1=0,e2=0.146607657167524,l=0.200718260855179,n_kicks=100,output_file="B1.output_file.sdds",output_interval=10,sg_halfwidth=1
+"B2": CSRCSBEND,angle=-0.146607657167524,bins=500,e1=-0.146607657167524,e2=0,l=0.200718260855179,n_kicks=100,output_file="B2.output_file.sdds",output_interval=10,sg_halfwidth=1
+"B3": CSRCSBEND,angle=-0.146607657167524,bins=500,e1=0,e2=-0.146607657167524,l=0.200718260855179,n_kicks=100,output_file="B3.output_file.sdds",output_interval=4,sg_halfwidth=1
+"B4": CSRCSBEND,angle=0.146607657167524,bins=500,e1=0.146607657167524,e2=0,l=0.200718260855179,n_kicks=100,output_file="B4.output_file.sdds",output_interval=4,sg_halfwidth=1
+"L1": CSRDRIFT,dz=0.01,l=0.758132998376353,use_stupakov=1
+"L2": CSRDRIFT,dz=0.01,l=0.5,use_stupakov=1
+"L3": CSRDRIFT,dz=0.01,l=1.0,use_stupakov=1
+"PF": PFILTER,deltalimit=0.005
+"LINA10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 28 -",volt="48e6 10 /"
+"LINB10": RFCA,change_p0=1,freq=2856e6,l=0.3,phase="90 6 +",volt="48e6 10 /"
+"ZWAKE": WAKE,factor="86 10 /",inputfile="WAKE-inputfile.knsl45.liwake.sdds",interpolate=1,n_bins=1024,tcolumn="t",wcolumn="W"
 "W1": WATCH,filename="w1.filename.sdds"
 "W2": WATCH,filename="w2.filename.sdds"
 "W3": WATCH,filename="w3.filename.sdds"

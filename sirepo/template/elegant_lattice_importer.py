@@ -60,10 +60,10 @@ def import_file(text, data=None):
 
     if not data:
         data = simulation_db.default_data(elegant_common.SIM_TYPE)
-    data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
-    data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
-    data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
+    data['models']['elements'] = models['elements']
+    data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']
+    elegant_common.sort_elements_and_beamlines(data)
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id

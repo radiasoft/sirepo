@@ -1,0 +1,156 @@
+
+import math
+from rswarp.diagnostics import ConductorTemplates
+from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
+from rswarp.diagnostics import ImpactDensity
+
+
+# To reduce the data, line (plane) coordinates are parametrized.  We respond with
+# the initial values in each coord array and a "slope" in each array dimension
+# rather than every coordinate in the array
+
+# use the function arr[0][0] + k * sk + l * sl (loop over k then l) to
+# get the original array value
+def _linear_fit_2d(arr):
+    sk = (arr[len(arr) - 1][0] - arr[0][0]) / (len(arr) - 1)
+    sl = (arr[0][len(arr[0]) - 1] - arr[0][0]) / (len(arr[0]) - 1)
+    return sk, sl
+
+# use the function arr[0] + k * sk (loop over k) to
+# get the original array value
+def _linear_fit_1d(arr):
+    sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1)
+    return sk
+
+try:
+    i_data = []
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
+
+    # Old style data, keeping for the moment
+    if not hasattr(plot_density, 'conductors'):
+        plot_density.gate_scraped_particles()
+        plot_density.map_density()
+        for gid in plot_density.gated_ids:
+            for side in plot_density.gated_ids[gid]:
+                del plot_density.gated_ids[gid][side]['interpolation']
+
+        density_results = {
+            'gated_ids': plot_density.gated_ids,
+            'dx': plot_density.dx,
+            'dz': plot_density.dz,
+            'min': plot_density.cmap_normalization.vmin,
+            'max': plot_density.cmap_normalization.vmax,
+        }
+    else:
+        i_data = []
+        for i in plot_density.conductors:
+            c_data = []
+            c = plot_density.conductors[i]
+            {% if is3D %}
+            # Skip stl conductors until the plotting works
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                continue
+            coord_keys = ['x', 'y', 'z']
+            min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            for (x, y, z, s) in d:
+                #n_bins = 20
+                #s_aves_k = []
+                #s_aves_l = []
+                #bin_size_k = int(math.floor(len(x) / n_bins))
+                #bin_size_l = int(math.floor(len(x[0]) / n_bins))
+                #for b in range(n_bins):
+                #    k1 = b * bin_size
+                #    k2 = (b + 1) * bin_size
+                #    s_aves_k.append(np.mean(s[k1:k2][l1:l2], axis=(0, 1)))
+                #    for bb in range(n_bins):
+                #        l1 = bb * bin_size
+                #        l2 = (bb + 1) * bin_size
+                #        #print('bin {} from {} to {}'.format(b, i1, i2))
+                h = np.histogram(s, bins=20)[0]
+                e = np.histogram(s, bins=20)[1]
+                s_aves = []
+                #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
+                #print('!GOT X {} Y {} Z {} S {}'.format(x, y, z, s))
+                f_data = {
+                    'dArr': s.tolist(),
+                    'n': len(x)
+                }
+                # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
+                #TODO(mvk): use triangulation instead
+                if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                    #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
+                    #print('!GOT UNSTRUCT X {} Y {} Z {} S {}'.format(x, y, z, s))
+                    #print('!GOT UNSTRUCT')
+                    f_data['type'] = 'unstructured'
+                    for cx, coord in enumerate((x, y, z)):
+                        f_data[coord_keys[cx]] = coord
+                else:
+                    f_data['type'] = 'plane'
+                    f_data['m'] = len(x[0])
+                    #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
+                    #print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
+                    for cx, coord in enumerate((x, y, z)):
+                        sk, sl = _linear_fit_2d(coord)
+                        f_data[coord_keys[cx]] = {
+                            'startVal': coord[0][0],
+                            'slopek': sk,
+                            'slopel': sl
+                        }
+                c_data.append(f_data)
+            {% else %}
+            coord_keys = ['x', 'z']
+            min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
+            n_bins = 20
+            for (x, z, s) in d:
+                h = np.histogram(s, bins=n_bins)[0]
+                e = np.histogram(s, bins=n_bins)[1]
+                #f_data = {
+                #    'dArr': h.tolist(),
+                #    'n': len(x)
+                #}
+                s_aves = []
+                bin_size = int(math.floor(len(x) / n_bins))
+                for b in range(n_bins):
+                    k1 = b * bin_size
+                    k2 = (b + 1) * bin_size
+                    #print('bin {} from {} to {}'.format(b, k1, k2))
+                    s_aves.append(np.mean(s[k1:k2]))
+                f_data = {
+                    'dArr': s_aves,
+                    'hist': h.tolist(),
+                    'n': len(x)
+                }
+                #print('cond {}: S aves {}'.format(i, s_aves))
+                #print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
+                #print('cond {}: S hist {} edges {}'.format(i, h, e))
+                for cx, coord in enumerate((x, z)):
+                    sk = _linear_fit_1d(coord)
+                    f_data[coord_keys[cx]] = {
+                        'startVal': coord[0],
+                        'slopek': sk
+                    }
+                c_data.append(f_data)
+            {% endif %}
+            i_data.append(c_data)
+
+        density_results = {
+            'dx': plot_density.dx,
+            {% if is3D %}
+            'dy': plot_density.dy,
+            {% endif %}
+            'dz': plot_density.dz,
+            'density': i_data,
+            'min': min_s,
+            'max': max_s,
+        }
+
+except AssertionError as e:
+    message = e.message
+    if wp.top.npslost[0] <= 0:
+        message = 'No particles made impact. Nothing to plot.'
+    density_results = {
+        'error': message,
+    }
+hf = h5py.File('{{ densityFile }}')
+dict_to_h5(density_results, hf, path='density')
+hf.close()

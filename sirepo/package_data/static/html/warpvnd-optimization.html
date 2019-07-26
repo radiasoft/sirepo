@@ -1,0 +1,20 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+      <div data-simple-panel="optimizer">
+        <div class="col-md-12">
+          <div data-optimization-form=""></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-show="optimization.hasOptFields()">
+      <div data-simple-panel="optimizerStatus">
+        <div data-sim-status-panel="optimization.simState"></div>
+        <div data-optimization-results="optimization.simState"></div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="optimization.simState.hasFrames()">
+      <div data-report-panel="optimizerPath" data-model-name="optimizerAnimation"></div>
+    </div>
+  </div>
+</div>

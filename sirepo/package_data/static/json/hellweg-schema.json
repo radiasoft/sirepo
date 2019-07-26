@@ -53,10 +53,6 @@
             ["th-ath", "Azmuthal Phase Space (theta, theta')"],
             ["phi-w", "Longitudinal Phase Space (phi, W)"]
         ],
-        "Boolean": [
-            ["0", "No"],
-            ["1", "Yes"]
-        ],
         "EnergyDistributionType": [
             ["uniform", "Uniform"],
             ["gaussian", "Gaussian"]
@@ -104,6 +100,11 @@
             ["r", "Radius (r)"],
             ["x", "Radius (x)"],
             ["y", "Radius (y)"]
+        ],
+        "PlotRangeType": [
+            ["none", "None"],
+            ["fit", "Fit Data"],
+            ["fixed", "Fixed"]
         ],
         "SaveFileFormat": [
             ["PID", "CST PID Format"],
@@ -161,6 +162,11 @@
             "histogramBins": ["Number of Bins", "Integer"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotRangeType": ["Range", "PlotRangeType", "fit"],
+            "horizontalSize": ["Horizontal Size", "Float", 0],
+            "verticalSize": ["Vertical Size", "Float", 0],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "beamHistogramAnimation": {
@@ -216,12 +222,12 @@
             "phaseDeviation": ["Phase RMS Deviation [deg]", "Float"]
         },
         "parameterAnimation": {
-            "reportType": ["Report", "ParameterReportType"],
+            "reportType": ["Report", "ParameterReportType", "wav-wmax"],
             "notes": ["Notes", "Text", ""]
         },
         "particleAnimation": {
-            "reportType": ["Report", "ParticleReportType"],
-            "renderCount": ["Particles to Render", "ParticleRenderCount"],
+            "reportType": ["Report", "ParticleReportType", "w"],
+            "renderCount": ["Particles to Render", "ParticleRenderCount", "300"],
             "notes": ["Notes", "Text", ""]
         },
         "powerElement": {
@@ -333,11 +339,26 @@
         "beamAnimation": {
             "title": "Beam Animation",
             "advanced": [
-                "reportType",
-                "histogramBins",
-                "framesPerSecond",
-                "colorMap",
-                "notes"
+                ["Main", [
+                    "reportType",
+                    "histogramBins",
+                    "framesPerSecond",
+                    "colorMap",
+                    "notes"
+                ]],
+                ["Plot Range", [
+                    "plotRangeType",
+                    [
+                        ["Horizontal", [
+                            "horizontalSize",
+                            "horizontalOffset"
+                        ]],
+                        ["Vertical", [
+                            "verticalSize",
+                            "verticalOffset"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "beamHistogramAnimation": {
@@ -345,6 +366,7 @@
             "advanced": [
                 "reportType",
                 "histogramBins",
+                "framesPerSecond",
                 "notes"
             ]
         },

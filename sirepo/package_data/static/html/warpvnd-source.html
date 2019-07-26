@@ -15,7 +15,7 @@
       <div class="panel panel-info">
         <div class="panel-heading"><span class="sr-panel-heading">Conductor Types</span></div>
         <div class="panel-body">
-          <div class="pull-right">
+          <div data-ng-show="! source.usesSTL()" class="pull-right">
             <button class="btn btn-info btn-xs" data-ng-click="source.createConductorType('box')" accesskey="N"><span class="glyphicon glyphicon-plus"></span> <u>N</u>ew Conductor Type</button>
           </div>
           <div data-conductor-table="" data-controller="source"></div>
@@ -24,16 +24,21 @@
     </div>
     <div class="col-md-8">
       <div class="row">
-        <div class="col-sm-12" data-report-panel="parameter" data-request-priority="0" data-model-name="fieldComparisonReport"></div>
-        <div class="col-sm-12" data-report-panel="heatmap" data-request-priority="2" data-model-name="fieldReport"></div>
+        <div class="col-sm-12" data-ng-show="true">
+          <div data-field-calculation-animation="fieldCalculationAnimation"></div>
+        </div>
+        <div class="col-sm-12" data-ng-if="source.hasFrames('fieldComparisonAnimation')" data-field-comparison="" data-model-name="fieldComparisonAnimation" data-parent-controller="source"></div>
+        <div class="col-sm-12" data-ng-if="source.hasFrames('fieldCalcAnimation')" data-potential-report="" data-model="source.fieldReport()" data-model-name="fieldCalcAnimation"></div>
       </div>
     </div>
+
   </div>
 </div>
 <div data-modal-editor="" view-name="beam" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="simulationGrid" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="fieldComparisonReport" data-parent-controller="source"></div>
-<div data-modal-editor="" view-name="box" data-parent-controller="source"></div>
+<div data-modal-editor="" view-name="conductor" data-parent-controller="source"></div>
+<div data-ng-if="source.usesSTL()" data-modal-editor="" view-name="stl" data-parent-controller="source"></div>
 <div data-modal-editor="" view-name="conductorPosition" data-parent-controller="source"></div>
 
 <div data-confirmation-modal="" data-id="sr-delete-conductorType-dialog" data-title="{{ source.deleteWarning.name }}" data-ok-text="Delete" data-ok-clicked="source.deleteConductorType()">Delete <strong>{{ source.deleteWarning.name }}</strong>? {{ source.deleteWarning.message }}</div>

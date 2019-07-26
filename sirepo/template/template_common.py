@@ -13,10 +13,14 @@ from pykern import pkresource
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import hashlib
 import json
-import py.path
+import math
+import numpy as np
 import os.path
+import py.path
 import re
 import sirepo.template
+import subprocess
+import types
 
 ANIMATION_ARGS_VERSION_RE = re.compile(r'v(\d+)$')
 
@@ -45,21 +49,134 @@ _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 _WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 
-def compute_plot_color_and_range(plots):
-    """ For parameter plots, assign each plot a color and compute the full y_range. """
-    y_range = None
+class ModelUnits:
+    """
+    Convert model fields from native to sirepo format, or from sirepo to native
+    format.
+
+    Examples
+    --------
+
+    def _xpas(value, is_native):
+        # custom field conversion code would go here
+        return value
+
+    mu = ModelUnits({
+        'CHANGREF': {
+            'XCE': 'cm_to_m',
+            'YCE': 'cm_to_m',
+            'ALE': 'deg_to_rad',
+            'XPAS': _xpas,
+        },
+    })
+    m = mu.scale_from_native('CHANGREF', {
+        'XCE': 2,
+        'YCE': 0,
+        'ALE': 8,
+        'XPAS': '#20|20|20',
+    })
+    assert m['XCE'] == 2e-2
+    assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
+    assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
+
+    """
+
+    # handler for common units, native --> sirepo scale
+    _COMMON_HANDLERS = {
+        'cm_to_m': 1e-2,
+        'mrad_to_rad': 1e-3,
+        'deg_to_rad': math.pi / 180,
+    }
+
+    def __init__(self, unit_def):
+        """
+        Parameters
+        ----------
+        unit_def: dict
+            Map of model name to field handlers
+        """
+        self.unit_def = unit_def
+
+    def scale_from_native(self, name, model):
+        """ Scale values from native values into sirepo units. """
+        return self.__scale_model(name, model, True)
+
+    def scale_to_native(self, name, model):
+        """ Scale values from sirepo units to native values. """
+        return self.__scale_model(name, model, False)
+
+    @staticmethod
+    def scale_value(value, scale_type, is_native):
+        """ Scale one value using the specified handler. """
+        handler = ModelUnits._COMMON_HANDLERS.get(scale_type, scale_type)
+        if isinstance(handler, float):
+            return float(value) * (handler if is_native else 1 / handler)
+        assert isinstance(handler, types.FunctionType), \
+            'Unknown unit scale: {}'.format(handler)
+        return handler(value, is_native)
+
+    def __scale_model(self, name, model, is_native):
+        if name in self.unit_def:
+            for field in self.unit_def[name]:
+                if field not in model:
+                    continue
+                model[field] = self.scale_value(
+                    model[field],
+                    self.unit_def[name][field],
+                    is_native)
+        return model
+
+
+def compute_field_range(args, compute_range):
+    """ Computes the fieldRange values for all parameters across all animation files.
+    Caches the value on the animation input file. compute_range() is called to
+    read the simulation specific datafiles and extract the ranges by field.
+    """
+    from sirepo import simulation_db
+    run_dir = simulation_db.simulation_run_dir({
+        'simulationType': args['simulationType'],
+        'simulationId': args['simulationId'],
+        'report': 'animation',
+    })
+    data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
+    res = None
+    model_name = args['modelName']
+    if model_name in data.models:
+        if 'fieldRange' in data.models[model_name]:
+            res = data.models[model_name].fieldRange
+        else:
+            res = compute_range(run_dir, data)
+            data.models[model_name].fieldRange = res
+            simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
+    return {
+        'fieldRange': res,
+    }
+
+
+def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
+    """ For parameter plots, assign each plot a color and compute the full y_range.
+    If a fixed range is provided, use that instead
+    """
+    y_range = fixed_y_range
+    colors = plot_colors if plot_colors is not None else _PLOT_LINE_COLOR
     for i in range(len(plots)):
         plot = plots[i]
-        plot['color'] = _PLOT_LINE_COLOR[i]
-        vmin = min(plot['points'])
-        vmax = max(plot['points'])
-        if y_range:
-            if vmin < y_range[0]:
-                y_range[0] = vmin
-            if vmax > y_range[1]:
-                y_range[1] = vmax
-        else:
-            y_range = [vmin, vmax]
+        plot['color'] = colors[i % len(colors)]
+        if fixed_y_range is None:
+            vmin = min(plot['points'])
+            vmax = max(plot['points'])
+            if y_range:
+                if vmin < y_range[0]:
+                    y_range[0] = vmin
+                if vmax > y_range[1]:
+                    y_range[1] = vmax
+            else:
+                y_range = [vmin, vmax]
+    # color child plots the same as parent
+    for child in [p for p in plots if '_parent' in p]:
+        parent = next((pr for pr in plots if 'label' in pr and pr['label'] == child['_parent']), None)
+        if parent is not None:
+            child['color'] = parent['color'] if 'color' in parent else '#000000'
     return y_range
 
 
@@ -90,6 +207,25 @@ def copy_lib_files(data, source, target):
             else:
                 # symlink into the run directory
                 path.mksymlinkto(f, absolute=False)
+
+
+def dict_to_h5(d, hf, path=None):
+    if path is None:
+        path = ''
+    try:
+        for i in range(len(d)):
+            try:
+                p = '{}/{}'.format(path, i)
+                hf.create_dataset(p, data=d[i])
+            except TypeError:
+                dict_to_h5(d[i], hf, path=p)
+    except KeyError:
+        for k in d:
+            p = '{}/{}'.format(path, k)
+            try:
+                hf.create_dataset(p, data=d[k])
+            except TypeError:
+                dict_to_h5(d[k], hf, path=p)
 
 
 def enum_text(schema, name, value):
@@ -124,6 +260,60 @@ def filename_to_path(files, source_lib):
         if f not in seen:
             seen.add(f)
             res.append(source_lib.join(f))
+    return res
+
+
+def generate_parameters_file(data):
+    v = flatten_data(data['models'], pkcollections.Dict({}))
+    v['notes'] = _get_notes(v)
+    res = render_jinja('.', v, name='common-header.py')
+    return res, v
+
+
+def h5_to_dict(hf, path=None):
+    d = {}
+    if path is None:
+        path = '/'
+    try:
+        for k in hf[path]:
+            try:
+                d[k] = hf[path][k][()].tolist()
+            except AttributeError:
+                p = '{}/{}'.format(path, k)
+                d[k] = h5_to_dict(hf, path=p)
+    except TypeError:
+        # assume this is a single-valued entry
+        return hf[path][()]
+    # replace dicts with arrays on a 2nd pass
+    d_keys = d.keys()
+    try:
+        indices = [int(k) for k in d_keys]
+        d_arr = [None] * len(indices)
+        for i in indices:
+            d_arr[i] = d[str(i)]
+        d = d_arr
+    except ValueError:
+        # keys not all integers, we're done
+        pass
+    return d
+
+
+def heatmap(values, model, plot_fields=None):
+    """Computes a report histogram (x_range, y_range, z_matrix) for a report model."""
+    range = None
+    if 'plotRangeType' in model:
+        if model['plotRangeType'] == 'fixed':
+            range = [_plot_range(model, 'horizontal'), _plot_range(model, 'vertical')]
+        elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
+            range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
+    hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
+    res = {
+        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        'z_matrix': hist.T.tolist(),
+    }
+    if plot_fields:
+        res.update(plot_fields)
     return res
 
 
@@ -170,6 +360,36 @@ def model_defaults(name, schema):
         if len(field_info) >= 3 and field_info[2] is not None:
             res[f] = field_info[2]
     return res
+
+
+def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
+    res = {
+        'x_points': x,
+        'x_range': [min(x), max(x)],
+        'plots': plots,
+        'y_range': compute_plot_color_and_range(plots, plot_colors),
+    }
+    if 'plotRangeType' in model:
+        if model.plotRangeType == 'fixed':
+            res['x_range'] = _plot_range(model, 'horizontal')
+            res['y_range'] = _plot_range(model, 'vertical')
+        elif model.plotRangeType == 'fit':
+            res['x_range'] = model.fieldRange[model.x]
+            for i in range(len(plots)):
+                r = model.fieldRange[plots[i]['field']]
+                if r[0] < res['y_range'][0]:
+                    res['y_range'][0] = r[0]
+                if r[1] > res['y_range'][1]:
+                    res['y_range'][1] = r[1]
+    if plot_fields:
+        res.update(plot_fields)
+    return res
+
+
+def organize_example(data):
+    if 'isExample' in data.models.simulation and data.models.simulation.isExample:
+        if data.models.simulation.folder == '/':
+            data.models.simulation.folder = '/Examples'
 
 
 def parse_animation_args(data, key_map):
@@ -246,9 +466,12 @@ def report_parameters_hash(data):
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
 
+
 def report_fields(data, report_name, style_fields):
     # if the model has "style" fields, then return the full list of non-style fields
     # otherwise returns the report name (which implies all model fields)
+    if report_name not in data.models:
+        return [report_name]
     m = data.models[report_name]
     for style_field in style_fields:
         if style_field not in m:
@@ -273,8 +496,10 @@ def resource_dir(sim_type):
     return _RESOURCE_DIR.join(sim_type)
 
 
-def update_model_defaults(model, name, schema):
+def update_model_defaults(model, name, schema, dynamic=None):
     defaults = model_defaults(name, schema)
+    if dynamic is not None:
+        defaults.update(dynamic)
     for f in defaults:
         if f not in model:
             model[f] = defaults[f]
@@ -361,91 +586,34 @@ def file_extension_ok(file_path, white_list=[], black_list=['py', 'pyc']):
             return False
     return  True
 
-def validate_safe_zip(zip_file_name, target_dir='.', *args):
-    """Determine whether a zip file is safe to extract from
 
-    Performs the following checks:
-
-        - Each file must end up at or below the target directory
-        - Files must be 100MB or smaller
-        - If possible to determine, disallow "non-regular" and executable files
-        - Existing files cannot be overwritten
+def subprocess_output(cmd, env):
+    """Run cmd and return output or None, logging errors.
 
     Args:
-        zip_file_name (str): name of the zip file to examine
-        target_dir (str): name of the directory to extract into (default to current directory)
-        *args: list of validator functions taking a zip file as argument and returning True or False and a string
-    Throws:
-        AssertionError if any test fails, otherwise completes silently
-    """
-    import zipfile
-    import os
-
-    def path_is_sub_path(path, dir_name):
-        real_dir = os.path.realpath(dir_name)
-        end_path = os.path.realpath(real_dir + '/' + path)
-        return end_path.startswith(real_dir)
-
-    def file_exists_in_dir(file_name, dir_name):
-        return os.path.exists(os.path.realpath(dir_name + '/' + file_name))
-
-    def file_attrs_ok(attrs):
-
-        # ms-dos attributes only use two bytes and don't contain much useful info, so pass them
-        if attrs < 2 << 16:
-            return True
-
-        # UNIX file attributes live in the top two bytes
-        mask = attrs >> 16
-        is_file_or_dir = mask & (0o0100000 | 0o0040000) != 0
-        no_exec = mask & (0o0000100 | 0o0000010 | 0o0000001) == 0
-
-        return is_file_or_dir and no_exec
-
-    # 100MB
-    max_file_size = 100000000
-
-    zip_file = zipfile.ZipFile(zip_file_name)
-
-    for f in zip_file.namelist():
-
-        i = zip_file.getinfo(f)
-        s = i.file_size
-        attrs = i.external_attr
-
-        assert path_is_sub_path(f, target_dir), 'Cannot extract {} above target directory'.format(f)
-        assert s <= max_file_size, '{} too large ({} > {})'.format(f, str(s), str(max_file_size))
-        assert file_attrs_ok(attrs), '{} not a normal file or is executable'.format(f)
-        assert not file_exists_in_dir(f, target_dir), 'Cannot overwrite file {} in target directory {}'.format(f, target_dir)
-
-    for validator in args:
-        res, err_string = validator(zip_file)
-        assert res, '{} failed validator: {}'.format(os.path.basename(zip_file_name), err_string)
-
-
-def zip_path_for_file(zf, file_to_find):
-    """Find the full path of the specified file within the zip.
-
-    For a zip zf containing:
-        foo1
-        foo2
-        bar/
-        bar/foo3
-
-    zip_path_for_file(zf, 'foo3') will return 'bar/foo3'
-
-    Args:
-        zf(zipfile.ZipFile): the zip file to examine
-        file_to_find (str): name of the file to find
-
+        cmd (list): what to run
     Returns:
-        The first path in the zip that matches the file name, or None if no match is found
+        str: output is None on error else a stripped string
     """
-    import os
+    err = None
+    out = None
+    try:
 
-    # Get the base file names from the zip (directories have a basename of '')
-    file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
-    return zf.namelist()[file_names_in_zip.index(file_to_find)]
+        p = subprocess.Popen(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        out, err = p.communicate()
+        if p.wait() != 0:
+            raise subprocess.CalledProcessError(returncode=p.returncode, cmd=cmd)
+    except subprocess.CalledProcessError as e:
+        pkdlog('{}: exit={} err={}', cmd, e.returncode, err)
+        return None
+    if out != None and len(out):
+        return out.strip()
+    return ''
 
 
 def watchpoint_id(report):
@@ -457,3 +625,21 @@ def watchpoint_id(report):
 
 def _escape(v):
     return re.sub("[\"'()]", '', str(v))
+
+
+def _get_notes(data):
+    notes = []
+    for key in data.keys():
+        match = re.search(r'^(.+)_notes$', key)
+        if match and data[key]:
+            n_key = match.group(1)
+            k = n_key[0].capitalize() + n_key[1:]
+            k_words = [word for word in re.split(r'([A-Z][a-z]*)', k) if word != '']
+            notes.append((' '.join(k_words), data[key]))
+    return sorted(notes, key=lambda n: n[0])
+
+
+def _plot_range(report, axis):
+    half_size = float(report['{}Size'.format(axis)]) / 2.0
+    midpoint = float(report['{}Offset'.format(axis)])
+    return [midpoint - half_size, midpoint + half_size]

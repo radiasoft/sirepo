@@ -2,20 +2,9 @@
     "models": {
         "dog": {
             "breed": "Labrador Retriever",
-            "gender": "female",
-            "height": 50,
-            "weight": 60.5
+            "gender": "female"
         },
-        "heightWeightReport": {},
-        "simulation": {
-            "folder": "/",
-            "isExample": false,
-            "name": "example",
-            "outOfSessionSimulationId": "",
-            "simulationId": "gLicZdXs",
-            "simulationSerial": 1487981155340231
-        }
+        "simulation": {}
     },
-    "simulationType": "myapp",
-    "version": "20170720.000000"
+    "simulationType": "myapp"
 }

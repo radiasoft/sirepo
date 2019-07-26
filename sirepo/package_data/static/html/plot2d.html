@@ -1,5 +1,6 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
-    <div><svg class="sr-plot">
+    <div class="latex-title"></div>
+    <div><svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
       <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
       <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
         <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
@@ -16,7 +17,7 @@
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
         <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
         <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-          <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp" data-plot-info-delegate="focusCircleDelegates[$index]"><circle r="6"></circle></g>
+          <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp"><circle r="6"></circle></g>
         <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
           <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
           <path class="line line-0"></path>
@@ -31,8 +32,8 @@
           <path class="line line-9"></path>
           <path class="line line-10"></path>
         </svg>
-        <rect class="overlay mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="focusPoints" data-hide-focus-points="hideFocusPoints()" data-plot-info-delegates="plotInfoDelegates" data-focus-strategy="focusStrategy" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
-        <svg data-popup-report="" class="popup-report" data-ng-if="focusPoints && focusPoints.length" data-focus-points="focusPoints" data-plot-info-delegate="popupDelegate" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
+        <rect class="overlay mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="focusPoints" data-focus-strategy="focusStrategy" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
+        <svg data-popup-report="" class="popup-report" data-focus-points="focusPoints" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
         </svg>
       </g>
       <g data-ng-if="wantLegend" class="sr-plot-legend" ng-attr-transform="translate(0, {{ margin.top + height + 45 }})">

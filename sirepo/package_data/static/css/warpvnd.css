@@ -1,3 +1,12 @@
+.warpvnd-inset-tile {
+  stroke: rgb(0, 0, 0);
+  stroke-width: 1px;
+  stroke-dasharray: 2;
+  fill: white;
+}
+.warpvnd-inset-tile-warning {
+  stroke: red;
+}
 .warpvnd-plate {
   stroke: rgb(228, 176, 95);
   fill: rgba(255, 146, 105, 0.3);
@@ -43,4 +52,22 @@
 }
 .table-hover > tbody > tr.warpvnd-conductor-th {
   background-color: inherit;
+}
+.warpvnd-scatter-point {
+  stroke: rgba(99, 99, 99, 0.7);
+  stroke-width: 1;
+  fill: rgb(0, 230, 0);
+  cursor: pointer;
+}
+.warpvnd-opt-point {
+  stroke: rgba(99, 99, 99, 0.7);
+  stroke-width: 2;
+  fill: white;
+}
+.warpvnd-well {
+  margin-bottom: 0;
+  margin-top: 10px;
+  padding: 9px;
+  white-space: pre;
+  background-color: white;
 }

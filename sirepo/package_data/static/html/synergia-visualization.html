@@ -4,13 +4,8 @@
       <div data-basic-editor-panel="" data-view-name="simulationSettings"></div>
     </div>
     <div class="col-md-6 col-xl-4">
-      <div class="panel panel-info">
-        <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="visualization.settingsModel"></div>
-        <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
-          <div data-sim-status-panel="visualization.simState" data-not-running-message="visualization.notRunningMessage()" data-running-message="visualization.runningMessage()"></div>
-          <div class="clearfix"></div>
-          <div data-ng-if="visualization.errorMessage"><div class="text-danger"><strong>Synergia Error:</strong></div><pre>{{ visualization.errorMessage }}</pre></div>
-        </div>
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="visualization.simState"></div>
       </div>
     </div>
     <div class="clearfix"></div>

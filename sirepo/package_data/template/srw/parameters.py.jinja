@@ -19,7 +19,6 @@ import srwl_uti_smp
 def set_optics(v=None):
 {{beamlineOptics}}
 
-
 varParam = srwl_bl.srwl_uti_ext_options([
     ['name', 's', '{{simulation_name}}', 'simulation name'],
 
@@ -79,6 +78,12 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_mfs', 's', '{{magneticMeasurementsIndexFile}}', 'name of magnetic measurements for different gaps summary file'],
 
 {% endif %}
+{% if simulation_sourceType == 'a' %}
+    ['mag_ior','f', {{arbitraryMagField_interpolationOrder}}, 'interpolation order to use for tabulated magnetic field (1<= mag_ior <= 3)'],
+    ['mag_zc','f', {{arbitraryMagField_longitudinalPosition}}, 'center longitudinal position [m]'],
+    ['mag_fn','s', '{{arbitraryMagField_magneticFile}}', 'input 3D magnetic field file name'],
+{% endif %}
+
 {% if simulation_sourceType == 'g' %}
     ['gbm_x', 'f', {{gaussianBeam_waistX}}, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', {{gaussianBeam_waistY}}, 'average vertical coordinates of waist [m]'],
@@ -164,7 +169,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['pw_meth', 'i', {{powerDensityReport_method}}, 'power density computation method (1- "near field", 2- "far field")'],
     ['pw_zst', 'f', 0., 'initial longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
     ['pw_zfi', 'f', 0., 'final longitudinal position along electron trajectory of power density distribution (effective if pow_sst < pow_sfi)'],
-    ['pw_mag', 'i', 1, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
+    ['pw_mag', 'i', {{powerDensityReport_magneticField}}, 'magnetic field to be used for power density calculation: 1- approximate, 2- accurate'],
     ['pw_fn', 's', '{{powerDensityReportFilename}}', 'file name for saving calculated power density distribution'],
     ['pw_pl', 's', '', 'plot the resulting power density distribution in a graph: ""- dont plot, "x"- vs horizontal position, "y"- vs vertical position, "xy"- vs horizontal and vertical position'],
 
@@ -185,7 +190,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['w_ry', 'f', {{simulation_verticalRange}}, 'range of vertical position [m] for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_ny', 'i', {{simulation_verticalPointCount}}, 'number of points vs vertical position for calculation of intensity distribution'],
     ['w_smpf', 'f', {{simulation_sampleFactor}}, 'sampling factor for calculation of intensity distribution vs horizontal and vertical position'],
-    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position'],
+    ['w_meth', 'i', {{energyCalculationMethod}}, 'method to use for calculation of intensity distribution vs horizontal and vertical position: 0- "manual", 1- "auto-undulator", 2- "auto-wiggler"'],
     ['w_prec', 'f', {{sourceIntensityReport_precision}}, 'relative precision for calculation of intensity distribution vs horizontal and vertical position'],
     ['w_u', 'i', {{initialIntensityReport_fieldUnits}}, 'electric field units: 0- arbitrary, 1- sqrt(Phot/s/0.1%bw/mm^2), 2- sqrt(J/eV/mm^2) or sqrt(W/mm^2), depending on representation (freq. or time)'],
     ['si_pol', 'i', {{initialIntensityReport_polarization}}, 'polarization component to extract after calculation of intensity distribution: 0- Linear Horizontal, 1- Linear Vertical, 2- Linear 45 degrees, 3- Linear 135 degrees, 4- Circular Right, 5- Circular Left, 6- Total'],
@@ -200,7 +205,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_nm', 'i', {{multiElectronAnimation_numberOfMacroElectrons}}, 'number of macro-electrons (coherent wavefronts) for calculation of multi-electron wavefront propagation'],
     ['wm_na', 'i', 5, 'number of macro-electrons (coherent wavefronts) to average on each node for parallel (MPI-based) calculation of multi-electron wavefront propagation'],
     ['wm_ns', 'i', 5, 'saving periodicity (in terms of macro-electrons / coherent wavefronts) for intermediate intensity at multi-electron wavefront propagation calculation'],
-    ['wm_ch', 'i', 0, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y'],
+    ['wm_ch', 'i', {% if multiElectronAnimation_calcCoherence == '1' %}40{% else %}0{% endif %}, 'type of a characteristic to be extracted after calculation of multi-electron wavefront propagation: #0- intensity (s0); 1- four Stokes components; 2- mutual intensity cut vs x; 3- mutual intensity cut vs y; 40- intensity(s0), mutual intensity cuts and degree of coherence vs X & Y'],
     ['wm_ap', 'i', {{multiElectronAnimation_stokesParameter}}, 'switch specifying representation of the resulting Stokes parameters: coordinate (0) or angular (1)'],
     ['wm_x0', 'f', 0, 'horizontal center position for mutual intensity cut calculation'],
     ['wm_y0', 'f', 0, 'vertical center position for mutual intensity cut calculation'],
@@ -209,15 +214,11 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['wm_am', 'i', {{multiElectronAnimation_integrationMethod}}, 'multi-electron integration approximation method: 0- no approximation (use the standard 5D integration method), 1- integrate numerically only over e-beam energy spread and use convolution to treat transverse emittance'],
     ['wm_fni', 's', '{{multiElectronAnimationFilename}}', 'file name for saving propagated multi-e intensity distribution vs horizontal and vertical position'],
 
-    {% if beamlineOpticsParameters %}
-    # Beamline optics:{{beamlineOpticsParameters}}
-    {% endif %}
-
     #to add options
     ['op_r', 'f', {{beamlineFirstElementPosition}}, 'longitudinal position of the first optical element [m]'],
 
     # Former appParam:
-    ['source_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
+    ['rs_type', 's', '{{simulation_sourceType}}', 'source type, (u) idealized undulator, (t), tabulated undulator, (m) multipole, (g) gaussian beam'],
 {% if simulation_sourceType == 'm' %}
 #---Multipole
     ['mp_field', 'f', {{multipole_field}}, 'field parameter [T] for dipole, [T/m] for quadrupole (negative means defocusing for x), [T/m^2] for sextupole, [T/m^3] for octupole'],
@@ -226,6 +227,27 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['mp_len', 'f', {{multipole_length}}, 'effective length [m]'],
     ['mp_zc', 'f', 0., 'multipole center longitudinal position [m]'],
 {% endif %}
+
+    {% if beamlineOpticsParameters %}
+#---Beamline optics:{{beamlineOpticsParameters}}
+    {% endif %}
+    #[ 0]: Auto-Resize (1) or not (0) Before propagation
+    #[ 1]: Auto-Resize (1) or not (0) After propagation
+    #[ 2]: Relative Precision for propagation with Auto-Resizing (1. is nominal)
+    #[ 3]: Allow (1) or not (0) for semi-analytical treatment of the quadratic (leading) phase terms at the propagation
+    #[ 4]: Do any Resizing on Fourier side, using FFT, (1) or not (0)
+    #[ 5]: Horizontal Range modification factor at Resizing (1. means no modification)
+    #[ 6]: Horizontal Resolution modification factor at Resizing
+    #[ 7]: Vertical Range modification factor at Resizing
+    #[ 8]: Vertical Resolution modification factor at Resizing
+    #[ 9]: Type of wavefront Shift before Resizing (not yet implemented)
+    #[10]: New Horizontal wavefront Center position after Shift (not yet implemented)
+    #[11]: New Vertical wavefront Center position after Shift (not yet implemented)
+    #[12]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Horizontal Coordinate
+    #[13]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Vertical Coordinate
+    #[14]: Optional: Orientation of the Output Optical Axis vector in the Incident Beam Frame: Longitudinal Coordinate
+    #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
+    #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ])
 
 {% if setupMagneticMeasurementFiles %}

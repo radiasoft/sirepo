@@ -1,0 +1,25 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('CapLaser')">
+      <div data-basic-editor-panel="" data-view-name="physics:sourceTerms:EnergyDeposition:Laser"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('CapLaser')">
+      <div data-basic-editor-panel="" data-view-name="physics:RadTrans"></div>
+    </div>
+    <div class="col-md-6">
+      <div data-basic-editor-panel="" data-view-name="physics:Hydro"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('CapLaser')">
+      <div data-basic-editor-panel="" data-view-name="physics:Diffuse"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('CapLaser')">
+      <div data-basic-editor-panel="" data-view-name="physics:materialProperties"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('RTFlame')">
+      <div data-basic-editor-panel="" data-view-name="physics:Gravity"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="physics.flashService.isFlashType('RTFlame')">
+      <div data-basic-editor-panel="" data-view-name="physics:sourceTerms:Flame"></div>
+    </div>
+  </div>
+</div>

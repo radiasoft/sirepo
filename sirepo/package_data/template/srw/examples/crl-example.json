@@ -14,7 +14,7 @@
                 "position": 20,
                 "radius": 0.0015,
                 "refractiveIndex": "4.207570e-6",
-                "shape": 1,
+                "shape": "1",
                 "title": "CRL",
                 "type": "crl",
                 "verticalApertureSize": 1,
@@ -231,7 +231,6 @@
             "verticalPosition": 0,
             "verticalRange": 0.4
         },
-        "simulationStatus": {},
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,

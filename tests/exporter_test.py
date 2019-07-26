@@ -7,7 +7,9 @@ u"""?
 from __future__ import absolute_import, division, print_function
 import pytest
 
+pytest.importorskip('sdds')
 pytest.importorskip('srwl_bl')
+pytest.importorskip('warpC')
 
 def test_create_zip():
     from pykern import pkio
@@ -18,8 +20,8 @@ def test_create_zip():
     import copy
     import zipfile
 
-    fc = srunit.flask_client()
-    fc.get('/srw')
+    fc = srunit.flask_client(sim_types='elegant:srw:warppba')
+    fc.sr_login_as_guest('srw')
     imported = _import(fc)
     for sim_type, sim_name, expect in imported + [
         ('elegant', 'bunchComp - fourDipoleCSR', ['WAKE-inputfile.knsl45.liwake.sdds', 'run.py', 'sirepo-data.json']),
@@ -34,7 +36,6 @@ def test_create_zip():
                 'simulation_id': sim_id,
                 'filename': 'anything.zip',
             },
-            raw_response=True,
         )
         with pkio.save_chdir(pkunit.work_dir()):
             fn = sim_name + '.zip'
@@ -51,9 +52,11 @@ def test_create_zip():
 
 
 def _import(fc):
+    from pykern.pkdebug import pkdp
     from pykern import pkio
     from pykern import pkunit
     import zipfile
+
     res = []
     for f in pkio.sorted_glob(pkunit.data_dir().join('*.zip')):
         with zipfile.ZipFile(str(f)) as z:

@@ -4,10 +4,6 @@
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
     }
-    .popover {
-      max-width: none;
-      width: 100%;
-    }
     .navbar-nav .nav-tabs {
       border-bottom: 0;
     }
@@ -81,6 +77,9 @@
     .sr-user-item {
         color: #008a00;
     }
+    .sr-import-item {
+      color: rgb(51, 51, 51);
+    }
     .sr-example-item {
         font-size: 14px;
         position: absolute;
@@ -121,6 +120,10 @@
       background-color: white;
     }
 
+    .sr-beamline-popover {
+      max-width: none;
+      width: 100%;
+    }
     .sr-beamline-element-title {
       font-size: 16px;
       font-weight: 700;
@@ -299,6 +302,7 @@
     }
     .sr-hide-report {
       opacity: 0;
+      height: 0;
     }
     .sr-panel-active {
         border-width: 1px;
@@ -345,6 +349,11 @@
       stroke: steelblue;
       stroke-width: 1px;
     }
+    .sr-plot .scatter-point {
+      fill: steelblue;
+      stroke: none;
+      cursor: pointer;
+    }
     .sr-plot path.line-0 {
       stroke-width: 1.5px;
     }
@@ -384,6 +393,10 @@
     .sr-plot path.line-color {
       fill: none;
       stroke-width: 2px;
+    }
+    .sr-plot path.line-amr-grid {
+      stroke: white;
+      opacity: 0.65;
     }
     .sr-plot circle.line-absorbed {
       fill: steelblue;
@@ -447,7 +460,7 @@
       cursor: n-resize;
     }
     .sr-plot rect.mouse-move-s {
-      cursor: sr-resize;
+      cursor: s-resize;
     }
     .sr-plot .z-axis-label {
       line-height: 160%;
@@ -472,7 +485,7 @@
     .sr-plot .popup-group {
         fill: white;
     }
-   .sr-plot .popup-group .report-window {
+    .sr-plot .popup-group .report-window {
         fill: rgba(255, 255, 255, 0.90);
         stroke: blue;
     }
@@ -481,13 +494,20 @@
         stroke: none;
         cursor: move;
     }
-    .sr-plot .popup-group .report-window-close {
+
+    .sr-plot .popup-group .report-window-title-icon {
         fill: #222;
         cursor: pointer;
         user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         -webkit-user-select: none;
+    }
+    .sr-plot .popup-group .report-window-close {
+    }
+    .sr-plot .popup-group .report-window-copy {
+        font-family: "Glyphicons Halflings";
+        fill: #337ab7;
     }
 
 
@@ -521,8 +541,8 @@
 
     /* Full-screen styles */
     div:not([data-report-panel='3d']) > .panel:-webkit-full-screen {
-        width: 75vw;
-        height: 100%;
+        width: 75vw !important;
+        height: 100% !important;
     }
     /* Firefox does its own thing */
     div:not([data-report-panel='3d']):-moz-full-screen > .panel {
@@ -548,33 +568,33 @@
     /* empty class to signify non-empty transclude - used to change layouts for some fullscreen reports */
     .has-transclude {
     }
-    div[data-report-panel="3d"] > .panel:-webkit-full-screen, div[data-report-panel="heatmap"] > .panel:-webkit-full-screen {
-        width: 60vw;
-        height: 100%;
+    div[data-report-panel='3d'] > .panel:-webkit-full-screen, div[data-report-panel='heatmap'] > .panel:-webkit-full-screen {
+        width: 60vw !important;
+        height: 100% !important;
     }
-    div[data-report-panel="3d"] > .panel:-webkit-full-screen .has-transclude {
+    div[data-report-panel='3d'] > .panel:-webkit-full-screen .has-transclude {
         display: flex;
     }
-    div[data-report-panel="3d"]:-moz-full-screen > .panel, div[data-report-panel="heatmap"]:-moz-full-screen > .panel {
+    div[data-report-panel='3d']:-moz-full-screen > .panel, div[data-report-panel='heatmap']:-moz-full-screen > .panel {
         width: 60vw;
         height: 100%;
         margin: auto;
     }
-    div[data-report-panel="3d"]:-moz-full-screen > .panel .has-transclude {
+    div[data-report-panel='3d']:-moz-full-screen > .panel .has-transclude {
         display: flex;
     }
-    div[data-report-panel="3d"] > .panel:-ms-fullscreen, div[data-report-panel="heatmap"] > .panel:-ms-fullscreen  {
+    div[data-report-panel='3d'] > .panel:-ms-fullscreen, div[data-report-panel='heatmap'] > .panel:-ms-fullscreen  {
         height: 60vh;
         height: 100%;
     }
-    div[data-report-panel="3d"] > .panel:-ms-fullscreen .has-transclude  {
+    div[data-report-panel='3d'] > .panel:-ms-fullscreen .has-transclude  {
         display: flex;
     }
-    div[data-report-panel="3d"] > .panel:fullscreen, div[data-report-panel="heatmap"] > .panel:fullscreen  {
+    div[data-report-panel='3d'] > .panel:fullscreen, div[data-report-panel='heatmap'] > .panel:fullscreen  {
         height: 60vh;
         height: 100%;
     }
-    div[data-report-panel="3d"] > .panel:fullscreen .has-transclude {
+    div[data-report-panel='3d'] > .panel:fullscreen .has-transclude {
         display: flex;
     }
 
@@ -673,9 +693,20 @@ input.ng-invalid.ng-dirty {
 .btn-invalid {
   background-color: #fad8de;
 }
-
+input.ng-invalid.ng-invalid-email {
+  background-color: transparent;
+}
+.navbar-nav > li > a.sr-logged-in {
+  background-color: #d9edf7;
+  border-radius: 20px;
+  margin: 5px;
+  padding: 11px 10px 15px 10px;
+}
+.navbar-nav > li > a.sr-logged-in:hover,
+.navbar-nav > li > a.sr-logged-in:focus {
+  background-color: #d9edf7;
+}
 .sr-help-icon {
-  margin-right: 15px;
   color: #337ab7;
   opacity: 1;
   margin-right: 10px;
@@ -683,6 +714,11 @@ input.ng-invalid.ng-dirty {
 .sr-help-icon:hover {
   color: #286090;
   opacity: 1;
+}
+.sr-help-icon.notes {
+  position: absolute;
+  bottom: 1em;
+  right: 0.5em;
 }
 
 .sr-button-bar-parent {
@@ -897,6 +933,11 @@ li.sr-model-list-item > a {
     margin-top: calc(23px + 0.75em);
 }
 
+.sr-parameter-table-row {
+  margin-bottom: 0;
+  padding: 0;
+}
+
 .sr-drop-left {
   background-color: #d9edf7;
   width: 0;
@@ -984,4 +1025,20 @@ li.sr-model-list-item > a {
 .split.split-horizontal, .gutter.gutter-horizontal {
   height: 100%;
   float: left;
+}
+
+/* katex */
+.katex {
+  font-size: 1em;
+  white-space: nowrap;
+}
+label .katex {
+  font-weight: 700;
+}
+.tooltip .katex {
+  font-size: 16px;
+  font-weight: normal;
+}
+.latex-title .katex {
+    font-size: 18px;
 }

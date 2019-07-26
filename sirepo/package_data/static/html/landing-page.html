@@ -5,24 +5,26 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <link rel="icon" href="/static/img/favicon.ico{{ cache_key }}">
-    <title data-ng-bind="landingPage.pageTitle()">Radiasoft</title>
-    <link href="/static/css/ext/bootstrap-3.3.7.min.css{{ cache_key }}" rel="stylesheet">
-    <link href="/static/css/ext/bootstrap-colxl.css{{ cache_key }}" rel="stylesheet">
+    <link rel="shortcut icon" href="/static/img/favicon.ico{{ source_cache_key }}">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png{{ source_cache_key }}">
+    <link rel="apple-touch-icon" href="/static/img/touch-icon-iphone.png{{ source_cache_key }}">
+    <title data-ng-bind="landingPage.pageTitle()">RadiaSoft</title>
+    <link href="/static/css/ext/bootstrap-3.3.7.min.css{{ source_cache_key }}" rel="stylesheet">
+    <link href="/static/css/ext/bootstrap-colxl.css{{ source_cache_key }}" rel="stylesheet">
     <link href="/static/css/ext/bootstrap-toggle.min.css{{ source_cache_key }}" rel="stylesheet">
     <link href="/static/css/ext/cookieconsent.min.css{{ source_cache_key }}" rel="stylesheet">
-    <link href="/static/css/landing-page.css{{ cache_key }}" rel="stylesheet">
+    <link href="/static/css/landing-page.css{{ source_cache_key }}" rel="stylesheet">
   </head>
   <body>
     <div class="navbar-header-top-stripe rs-blue-background" data-ng-class="{'navbar-header-top-stripe-expanded': landingPage.onMainLandingPage(), 'navbar-header-top-stripe-collapsed': ! landingPage.onMainLandingPage()}">
       <div data-ng-if="landingPage.onMainLandingPage()" lp-codes-menu=""></div>
     </div>
     <div data-ng-view></div>
-    <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ cache_key }}"></script>
-    <script src="/static/js/ext/angular.min.js{{ cache_key }}"></script>
-    <script src="/static/js/ext/angular-route.min.js{{ cache_key }}"></script>
-    <script src="/static/js/ext/jquery-2.2.4.min.js{{ cache_key }}"></script>
-    <script src="/static/js/ext/bootstrap-3.3.7.min.js{{ cache_key }}"></script>
+    <script src="/static/js/ext/ie10-viewport-bug-workaround.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/angular.min.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/angular-route.min.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/jquery-2.2.4.min.js{{ source_cache_key }}"></script>
+    <script src="/static/js/ext/bootstrap-3.3.7.min.js{{ source_cache_key }}"></script>
     <script src="/static/js/ext/cookieconsent.min.js{{ source_cache_key }}"></script>
     <script>
         var SIREPO = {

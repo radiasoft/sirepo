@@ -5,8 +5,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <link rel="icon" href="/static/img/favicon.ico{{ source_cache_key }}">
-    <title data-ng-bind="nav.pageTitle()">Radiasoft</title>
+    <link rel="shortcut icon" href="/static/img/favicon.ico{{ source_cache_key }}">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png{{ source_cache_key }}">
+    <link rel="apple-touch-icon" href="/static/img/touch-icon-iphone.png{{ source_cache_key }}">
+    <title data-ng-bind="nav.pageTitle()">RadiaSoft</title>
 {%- for c in static_files.css %}
     <link href="{{c}}{{ source_cache_key }}" rel="stylesheet">
 {%- endfor %}

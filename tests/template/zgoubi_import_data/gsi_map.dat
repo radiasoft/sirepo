@@ -1,0 +1,84 @@
+*** SPECTRO GSI
+ 'OBJET'                                                                                                      1
+2501.
+1
+1   17   1   5   1  1
+0.  5.  0.  20. 0.  0.
+0. 0. 0. 0. 0.   1.
+
+ 'ESL'                                                                                                        2
+36.
+ 'TOSCA'                                                                                                      3
+0 0
+7.1E-4  1. 1. 1.
+QPOLE
+44 21 1 0
+gsiq0.map
+0 0 0 0
+2
+3.1
+2 0 0 0
+ 'FAISCEAU'                                                                                                   4
+ 'TOSCA'                                                                                                      5
+0 0
+.97245e-3    1.  1. 1.
+DIPOLE
+47 37 1 0
+gsid0.map
+1 0 1 117.
+2
+3.1
+2 0 0 0
+ 'CHANGREF'                                                                                                   6
+0. -135.37 -45.
+ 'ESL'                                                                                                        7
+54.31
+
+ 'FAISCEAU'                                                                                                   8
+ 'IMAGES'                                                                                                     9
+
+! Using 3D map now :
+
+ 'OBJET'                                                                                                     10
+2501.
+1
+1   17   1   5   1  1
+0.  5.  0.  20. 0.  0.
+0. 0. 0. 0. 0.   1.
+
+ 'ESL'                                                                                                       11
+36.
+ 'TOSCA'                                                                                                     12
+0 0
+7.1E-4  1. 1. 1.
+QPOLE
+44 21 5 0
+gsiq0.map
+gsiq4.map
+gsiq8.map
+0 0 0 0
+2
+3.1
+2 0 0 0
+ 'FAISCEAU'                                                                                                  13
+ 'TOSCA'                                                                                                     14
+0 0
+.97245e-3    1.  1. 1.
+DIPOLE
+47 37 5 0
+gsid0.map
+gsid4.map
+gsid8.map
+1 0 1 117.
+2
+3.1
+2 0 0 0
+ 'CHANGREF'                                                                                                  15
+0. -135.37 -45.
+ 'ESL'                                                                                                       16
+54.31
+
+ 'FAISCEAU'                                                                                                  17
+ 'IMAGES'                                                                                                    18
+
+ 'END'                                                                                                       19

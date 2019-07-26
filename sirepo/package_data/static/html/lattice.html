@@ -1,18 +1,19 @@
-<div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}">
+<div style="position: relative;">
+  <div class="lead" style="position: absolute; left: 0; top: 0;" data-ng-if="isLoading"><span class="glyphicon glyphicon-hourglass"></span> Updating Lattice...</div>
   <div ng-attr-style="{{ ::plotStyle }}"><svg class="sr-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
       <rect ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" style="fill: none;"></rect>
       <g ng-attr-transform="translate({{ ::margin }},{{ ::margin }})">
         <g class="sr-zoom-plot">
           <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ xScale }},{{ yScale }})">
             <!-- render drifts first, lowest z index -->
-            <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
-              <g ng-repeat="item in ::group.items" ng-dblclick="itemClicked(item.element)">
+            <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
+              <g ng-repeat="item in ::group.items track by item.trackHash" ng-dblclick="itemClicked(item.element)">
                 <rect ng-if="::item.picType == 'drift' || item.picType == 'aperture'" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
               </g>
             </g>
             <!-- render apertures and zeroLength in middle layer -->
-            <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
-              <g ng-repeat="item in ::group.items" ng-dblclick="itemClicked(item.element)">
+            <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
+              <g ng-repeat="item in ::group.items track by item.trackHash" ng-dblclick="itemClicked(item.element)">
                 <g ng-if="::item.picType == 'aperture'">
                   <rect ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - 2 * item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.element.name }}</title></rect>
                   <rect ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.element.name }}</title></rect>
@@ -21,11 +22,11 @@
               </g>
             </g>
             <!-- render other elements on top -->
-            <g ng-repeat="group in svgGroups" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
-              <g ng-repeat="item in ::group.items" ng-switch="::item.picType" ng-dblclick="itemClicked(item.element)">
+            <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
+              <g ng-repeat="item in ::group.items track by item.trackHash" ng-switch="::item.picType" ng-dblclick="itemClicked(item.element)">
                 <polygon ng-switch-when="bend" ng-attr-points="{{::item.points[0][0] +',' + item.points[0][1] + ' ' + item.points[1][0] + ',' + item.points[1][1] + ' ' + item.points[2][0] + ',' + item.points[2][1] + ' ' + item.points[3][0] + ',' + item.points[3][1] }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></polygon>
                 <g ng-switch-when="watch" ng-attr-transform="translate({{ ::item.x }},{{ ::item.y }})">
-                  <path ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="stroke: black; fill: {{ ::item.color}}; stroke-width: 0.01"><title>{{ ::item.element.name }}</title></path>
+                  <path ng-attr-transform="scale({{ item.subScaling().x }}, {{ item.subScaling().y }})" ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="stroke: black; fill: {{ ::item.color}}; stroke-width: 0.01"><title>{{ ::item.element.name }}</title></path>
                 </g>
                 <g ng-switch-when="undulator">
                   <rect ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
@@ -53,7 +54,7 @@
                 <g ng-switch-when="drift"></g>
                 <g ng-switch-when="aperture"></g>
                 <g ng-switch-when="zeroLength"></g>
-                <rect ng-switch-default="" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.element.name }}</title></rect>
+                <rect ng-switch-default="" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: {{ ::item.width / 50.0 }}"><title>{{ ::item.element.name }}</title></rect>
               </g>
             </g>
           </g>

@@ -5,7 +5,7 @@
                 "absoluteFocusPosition": "70.6915",
                 "attenuationLength": "0.006257",
                 "focalDistance": "17.6668",
-                "focalPlane": 2,
+                "focalPlane": "2",
                 "horizontalApertureSize": 1,
                 "id": 2,
                 "material": "Be",
@@ -14,7 +14,7 @@
                 "position": 36,
                 "radius": 0.0005,
                 "refractiveIndex": "4.716943e-6",
-                "shape": 1,
+                "shape": "1",
                 "title": "CRL",
                 "type": "crl",
                 "verticalApertureSize": 1,
@@ -312,7 +312,6 @@
             "verticalPosition": 0,
             "verticalRange": 0.7
         },
-        "simulationStatus": {},
         "sourceIntensityReport": {
             "characteristic": 0,
             "distanceFromSource": 20,

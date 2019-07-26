@@ -1,0 +1,103 @@
+# *** SPECTRO GSI
+
+from zgoubi import core, utils
+import re
+
+def sext(*args, **kwargs):
+    return core.FAKE_ELEM(re.sub('QUADRUPO', 'SEXTUPOL', core.QUADRUPO(*args, **kwargs).output()))
+
+core.SEXTUPOL = sext
+
+line = core.Line('line')
+
+line.add(core.FAKE_ELEM("""
+'OPTIONS'
+1 1
+WRITE OFF
+"""))
+line.add(core.FAKE_ELEM("""
+'MCOBJET'
+2501.0
+3
+1000
+2 2 2 2 2 2
+0.0 0.0 0.0 0.0 0.0 1.0
+0.0 1.0 1e-06 3.0 0.0 0.0
+0.0 1.0 1e-06 3.0 0.0 0.0
+0.0 1.0 1e-06 3.0 0.0
+123456 234567 345678
+"""))
+line.add(core.FAKE_ELEM("""
+'PARTICUL'
+ELECTRON
+"""))
+
+
+line.add(core.DRIFT("DR", XL=36.0))
+line.add(core.FAKE_ELEM("""
+ 'TOSCA' QPOLE
+0 0
+0.00071 1.0 1.0 1.0
+QPOLE HEADER_8
+44 21 1 0
+TOSCA-magnetFile.gsiq0.map
+0 0.0 0.0 0.0 0 0 0 0 0 0
+2
+3.1
+2 0.0 0.0 0.0
+"""))
+line.add(core.FAKE_ELEM("""
+ 'TOSCA' DIPOLE
+0 0
+0.00097245 1.0 1.0 1.0
+DIPOLE HEADER_8
+47 37 1 0
+TOSCA-magnetFile.gsid0.map
+1 0.0 1.0 117.0 0 0 0 0 0 0
+2
+3.1
+2 0.0 0.0 0.0
+"""))
+line.add(core.CHANGREF("CH", ALE=-45.0, YCE=-135.37, XCE=0.0))
+line.add(core.DRIFT("DR2", XL=54.31))
+line.add(core.DRIFT("DR", XL=36.0))
+line.add(core.FAKE_ELEM("""
+ 'TOSCA' QPOLE2
+0 0
+0.00071 1.0 1.0 1.0
+QPOLE2 HEADER_8
+44 21 5 0
+gsiq0.map
+gsiq4.map
+gsiq8.map
+0 0.0 0.0 0.0 0 0 0 0 0 0
+2
+3.1
+2 0.0 0.0 0.0
+"""))
+line.add(core.FAKE_ELEM("""
+ 'TOSCA' DIPOLE2
+0 0
+0.00097245 1.0 1.0 1.0
+DIPOLE2 HEADER_8
+47 37 5 0
+gsid0.map
+gsid4.map
+gsid8.map
+1 0.0 1.0 117.0 0 0 0 0 0 0
+2
+3.1
+2 0.0 0.0 0.0
+"""))
+line.add(core.CHANGREF("CH", ALE=-45.0, YCE=-135.37, XCE=0.0))
+line.add(core.DRIFT("DR2", XL=54.31))
+line.add(core.FAKE_ELEM("""
+'FAISTORE'
+zgoubi.fai
+1
+"""))
+line.add(core.REBELOTE(K=99, NPASS=9))
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

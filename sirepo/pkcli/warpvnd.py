@@ -19,20 +19,13 @@ def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         exec(_script(), locals(), locals())
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-
         if data['report'] == 'fieldReport':
-            if len(potential.shape) == 2:
-                values = potential[xl:xu, zl:zu]
-            else:
-                # 3d results
-                values = potential[xl:xu, int(NUM_Y / 2), zl:zu]
-            res = _generate_field_report(data, values, {
-                'tof_expected': tof_expected,
-                'steps_expected': steps_expected,
-                'e_cross': e_cross,
-            })
+            res = template.generate_field_report(data, cfg_dir)
+            res['tof_expected'] = field_results.tof_expected
+            res['steps_expected'] = field_results.steps_expected,
+            res['e_cross'] = field_results.e_cross
         elif data['report'] == 'fieldComparisonReport':
-            step(template.COMPARISON_STEP_SIZE)
+            wp.step(template.COMPARISON_STEP_SIZE)
             res = template.generate_field_comparison_report(data, cfg_dir)
         else:
             raise RuntimeError('unknown report: {}'.format(data['report']))
@@ -50,31 +43,6 @@ def run_background(cfg_dir):
         # mpi.run_script(_script())
         exec(_script(), locals(), locals())
         simulation_db.write_result({})
-
-
-def _generate_field_report(data, values, res):
-    grid = data['models']['simulationGrid']
-    plate_spacing = grid['plate_spacing'] * 1e-6
-    beam = data['models']['beam']
-    radius = grid['channel_width'] / 2. * 1e-6
-
-    if np.isnan(values).any():
-        return {
-            'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
-        }
-    return {
-        'aspect_ratio': 6.0 / 14,
-        'x_range': [0, plate_spacing, len(values[0])],
-        'y_range': [- radius, radius, len(values)],
-        'x_label': 'z [m]',
-        'y_label': 'x [m]',
-        'title': 'ϕ Across Whole Domain',
-        'z_matrix': values.tolist(),
-        'frequency_title': 'Volts',
-        'tof_expected': res['tof_expected'],
-        'steps_expected': res['steps_expected'],
-        'e_cross': res['e_cross'],
-    }
 
 
 def _script():

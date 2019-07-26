@@ -1,0 +1,33 @@
+
+{% if SPNTRK_KSO == '1' %}
+line.add(core.FAKE_ELEM("""
+'SPNTRK'
+4.1
+{{ SPNTRK_S_X }} {{ SPNTRK_S_Y }} {{ SPNTRK_S_Z }}
+"""))
+{% endif %}
+
+{% if SRLOSS_KSR == '1' %}
+line.add(core.FAKE_ELEM("""
+'SRLOSS'
+1
+{% if SRLOSS_applyToAll == '1' %}
+all
+{% else %}
+{{ SRLOSS_keyword }}
+{% endif %}
+1   123456
+"""))
+{% endif -%}
+
+{{ beamlineElements -}}
+line.add(core.FAKE_ELEM("""
+'FAISTORE'
+zgoubi.fai
+{{ simulationSettings_ip }}
+"""))
+line.add(core.REBELOTE(K=99, NPASS={{ simulationSettings_npass - 1 }}))
+line.add(core.END())
+
+with open('zgoubi.dat', 'w') as f:
+    f.write(line.output())

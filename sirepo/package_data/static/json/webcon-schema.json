@@ -1,0 +1,269 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "analysis"
+        }
+    },
+    "constants": {
+        "inProgressText": "Working",
+        "allowedEquationOps": [
+          "abs", "cos", "cot", "csc", "exp", "log", "pi", "sec", "sin", "tan"
+        ]
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "webcon.js",
+                "sirepo-lattice.js"
+            ]
+        }
+    },
+    "localRoutes": {
+        "analysis": {
+            "route": "/analysis/:simulationId",
+            "config": {
+                "controller": "AnalysisController as analysis",
+                "templateUrl": "/static/html/webcon-analysis.html"
+            }
+        },
+        "controls": {
+            "route": "/controls/:simulationId",
+            "config": {
+                "controller": "ControlsController as controls",
+                "templateUrl": "/static/html/webcon-controls.html"
+            }
+        }
+    },
+    "enum": {
+        "ClusterMethod": [
+            ["agglomerative", "Agglomerative Clustering"],
+            ["dbscan", "DBSCAN"],
+            ["gmix", "Gaussian Mixture"],
+            ["kmeans", "KMeans"]
+        ],
+        "PlotAction": [
+            ["cluster", "Cluster"],
+            ["fft", "FFT"],
+            ["fit", "Fit"],
+            ["trim", "Trim"]
+        ],
+        "ServerType": [
+            ["local", "Local"],
+            ["remote", "Remote"]
+        ],
+        "SettingsPlotOrder": [
+            ["time", "By Time"],
+            ["position", "By Position"]
+        ],
+        "SteeringMethod": [
+            ["nmead", "Nelder-Mead"],
+            ["polyfit", "Linear Response Matrix"]
+        ]
+    },
+    "model": {
+        "analysisData": {
+            "file": ["Archive Data File", "InputFile"]
+        },
+        "analysisReport": {
+            "x": ["X Value", "AnalysisParameter", "0"],
+            "y1": ["Y1 Value", "AnalysisParameter", "1"],
+            "action": ["", "PlotActionButtons"],
+            "notes": ["Notes", "Text", ""],
+            "clusterMethod": ["Method", "ClusterMethod", "kmeans"],
+            "clusterCount": ["Number of Clusters", "Integer", 3, "", 2, 20],
+            "clusterFields": ["Fields", "ClusterFields"],
+            "clusterScaleMin": ["Scaled Min", "Float", -0.8],
+            "clusterScaleMax": ["Scaled Min", "Float", 0.8],
+            "clusterRandomSeed": ["Random Seed", "Integer", 12341234],
+            "clusterKmeansInit": ["KMeans Number of Runs", "Integer", 2, "Number of time the k-means algorithm will be run with different centroid seeds. The final results will be the best output of n_init consecutive runs in terms of inertia.", 2, 20],
+            "clusterDbscanEps": ["DBSCAN Max Sample Distance", "Float", 0.1, "The maximum distance between two samples for them to be considered as in the same neighborhood."],
+            "fitEquation": ["Equation to Fit", "Equation", "a * x + b", "Functions limited to trig, exp, log, abs. Use 'pi' for π. Variable and parameter names limited to 1 letter"],
+            "fitParameters": ["Fit Parameters", "EquationParameters", "a,b"],
+            "fitVariable": ["Independent Variable", "EquationVariables", "x"],
+            "trimField": ["Trim Field", "AnalysisParameter"],
+            "trimMin": ["Minimum", "Float"],
+            "trimMax": ["Maximum", "Float"],
+            "trimButton": ["", "TrimButton"],
+            "y2": ["Y2 Value", "AnalysisOptionalParameter", "none"],
+            "y3": ["Y3 Value", "AnalysisOptionalParameter", "none"],
+            "notes": ["Notes", "Text", ""]
+        },
+         "beamPositionReport": {
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5]
+        },
+        "beamSteering": {
+            "useSteering": ["Use Steering", "Boolean", "0"],
+            "steeringMethod": ["Steering Method", "SteeringMethod", "nmead"]
+        },
+        "bunch": {
+            "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],
+            "centroid_x": ["Centroid X [m]", "Float", 0.001],
+            "centroid_xp": ["X' [rad]", "Float", 0],
+            "centroid_y": ["Y [m]", "Float", 0.001],
+            "centroid_yp": ["Y' [rad]", "Float", 0]
+        },
+        "correctorSettingReport": {
+            "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
+            "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5],
+            "plotOrder": ["Arrange Plot", "SettingsPlotOrder", "time"]
+        },
+        "epicsServerAnimation": {
+            "serverType": ["EPICS Server Type", "ServerType", "local"],
+            "serverAddress": ["Network Address", "OptionalString", "", "EPICS server network address, $\\text{<host>:<port>}$"],
+            "connectToServer": ["Connect to EPICS", "Boolean", "0"]
+        },
+        "fftReport": {
+        },
+        "hiddenReport": {
+        },
+        "KICKER": {
+            "hkick": ["H. Kick [rad]", "MiniFloat", 0],
+            "vkick": ["V. Kick [rad]", "MiniFloat", 0]
+        },
+        "QUAD": {
+            "k1": ["Strength [1/m²]", "MiniFloat", 0]
+        },
+        "WATCH": {
+        },
+        "watchpointReport": {
+            "plotRangeType": ["Range", "PlotRangeType", "fixed"],
+            "horizontalSize": ["Horizontal Size", "Float", 0.003],
+            "verticalSize": ["Vertical Size", "Float", 0.003],
+            "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
+            "verticalOffset": ["Vertical Offset", "Float", 0.0]
+        }
+    },
+    "view": {
+        "analysisCluster": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "clusterMethod",
+                "clusterCount",
+                "clusterFields"
+            ],
+            "advanced": []
+        },
+        "analysisData": {
+            "title": "Archive Data File",
+            "basic": [
+                "file"
+            ],
+            "advanced": []
+        },
+        "analysisFFT": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisFit": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "fitEquation",
+                "fitVariable",
+                "fitParameters"
+            ],
+            "advanced": []
+        },
+        "analysisNone": {
+            "model": "analysisReport",
+            "basic": [
+                "action"
+            ],
+            "advanced": []
+        },
+        "analysisReport": {
+            "title": "Analysis Plot",
+            "advanced": [
+                ["Main", [
+                    "x",
+                    "y1",
+                    "notes"
+                ]],
+                ["Cluster", [
+                    "clusterScaleMin",
+                    "clusterScaleMax",
+                    "clusterRandomSeed",
+                    "clusterKmeansInit",
+                    "clusterDbscanEps"
+                ]]
+            ]
+        },
+        "analysisTrim": {
+            "model": "analysisReport",
+            "basic": [
+                "action",
+                "trimMin",
+                "trimMax",
+                "trimButton"
+            ],
+            "advanced": []
+        },
+        "beamPositionReport": {
+            "title": "Beam Position",
+            "basic": [],
+            "advanced": [
+                "numHistory",
+                "samplePeriod"
+            ]
+        },
+        "beamSteering": {
+            "title": "Beam Steering",
+            "basic": [
+                "steeringMethod",
+                "useSteering"
+            ],
+            "advanced": []
+        },
+        "bunch": {
+            "title": "Beam Settings",
+            "basic": [
+                "p_central_mev",
+                "centroid_x",
+                "centroid_xp",
+                "centroid_y",
+                "centroid_yp"
+            ],
+            "advanced": []
+        },
+        "correctorSettingReport": {
+            "title": "Corrector Settings",
+            "basic": [],
+            "advanced": [
+                "numHistory",
+                "samplePeriod",
+                "plotOrder"
+            ]
+        },
+        "epicsServerAnimation": {
+            "title": "EPICS Server",
+            "basic": [
+                "serverType",
+                "serverAddress",
+                "connectToServer"
+            ],
+            "advanced": []
+        },
+        "KICKER": {
+            "basic": [
+                "hkick",
+                "vkick"
+            ],
+            "advanced": []
+        },
+        "QUAD": {
+            "basic": [
+                "k1"
+            ],
+            "advanced": []
+        },
+        "WATCH": {
+        },
+        "watchpointReport": {
+        }
+    }
+}

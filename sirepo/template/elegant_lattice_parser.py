@@ -106,7 +106,7 @@ def _parse_line(parser, line, models):
     line = line.lstrip()
     parser.set_line(line)
     name = parser.parse_value(r'[:\s,=)*]')
-    if name == '%':
+    if re.search(r'^\%', name):
         # rpn value
         line = re.sub(r'\s*%\s*', '', line)
         line = re.sub(r'\s+', ' ', line)

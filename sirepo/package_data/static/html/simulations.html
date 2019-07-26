@@ -69,8 +69,8 @@
           </div>
           <div data-ng-if=":: simulations.importText" class="sr-icon-col">
             <div class="sr-thumbnail text-center">
-              <a href data-ng-click="nav.showImportModal()" class="sr-item-icon"><span class="glyphicon glyphicon-cloud-upload sr-user-item"> </span></a>
-              <a data-ng-click="nav.showImportModal()" class="sr-item-text sr-user-item" href>{{:: simulations.importText }}</a>
+              <a href data-ng-click="nav.showImportModal()" class="sr-item-icon"><span class="glyphicon glyphicon-cloud-upload sr-import-item"> </span></a>
+              <a data-ng-click="nav.showImportModal()" class="sr-item-text sr-import-item" href>{{:: simulations.importText }}</a>
             </div>
           </div>
           <div data-ng-show="simulations.isWaitingForSim" class="sr-icon-col">
@@ -99,22 +99,8 @@
   </form>
 </div>
 
-<div data-confirmation-modal="" data-id="sr-copy-confirmation" data-title="Copy {{ simulations.selectedItemType() }}" data-ok-text="Create Copy" data-ok-clicked="simulations.copySelected()">
-  <form class="form-horizontal" autocomplete="off">
-    <div class="form-group">
-    <label class="col-sm-3 control-label">New Name</label>
-    <div class="col-sm-9">
-      <input data-safe-path="" class="form-control" data-ng-model="simulations.copyName" required/>
-      <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
-    </div>
-    </div>
-    <div class="form-group" data-ng-if="simulations.fileManager.getUserFolderPaths().length > 1">
-      <label class="col-sm-3 control-label">Folder</label>
-      <div class="col-sm-9">
-        <div data-user-folder-list="" data-model="simulations" data-field="'copyFolder'"></div>
-      </div>
-  </div>
-  </form>
+
+<div data-copy-confirmation="" data-sim-id="simulations.selectedItem.simulationId" data-copy-cfg="simulations.copyCfg" data-disabled="false">
 </div>
 
 <div data-confirmation-modal="" data-id="sr-move-confirmation" data-title="Move {{ simulations.selectedItemType() }}" data-ok-text="Move" data-ok-clicked="simulations.moveSelected()">

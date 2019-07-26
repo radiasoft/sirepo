@@ -1,0 +1,52 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="epicsServerAnimation"></div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-show="controls.isConnectedToEPICS()">
+      <div data-basic-editor-panel="" data-view-name="beamSteering">
+        <div data-beam-steering-results=""></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div data-webcon-lattice=""></div>
+  </div>
+    <div class="row">
+        <div class="col-sm-6 col-md-3">
+            <button class="btn btn-default" data-ng-disabled="controls.isConnectedToEPICS()" data-ng-click="controls.reset()">Reset</button>
+        </div>
+    </div>
+  <div class="row">
+    <div data-ng-repeat="col in controls.editorColumns track by $index">
+      <div class="col-sm-6 col-md-3">
+        <div class="row">
+          <div class="col-sm-12" data-ng-repeat="item in col track by $index" data-ng-show="controls.showEditor(item)">
+            <div data-basic-editor-panel="" data-view-name="{{ item.viewName }}" data-model-data="item" data-panel-title="{{ item.title }}"></div>
+          </div>
+        </div>
+      </div>
+      <div data-ng-if="$index % 2" class="clearfix visible-sm"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div data-ng-repeat="item in controls.watches track by $index">
+      <div class="col-sm-6 col-md-3">
+        <div data-report-panel="parameter" data-model-name="watchpointReport" data-model-data="item" data-panel-title="{{ item.title }}"><div data-bpm-monitor="item"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="bunch" data-ng-show="! controls.isRemoteServer()"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-report-panel="parameter" data-model-name="beamPositionReport">
+        <div data-refresh-button="beamPositionReport" style="margin-top: -40px"></div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-control-corrector-report="" data-parent-controller="controls"></div>
+    </div>
+  </div>
+</div>

@@ -8,8 +8,9 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo import cookie
+from sirepo import auth
 from sirepo import api_auth
+from sirepo import cookie
 from sirepo import util
 import flask
 import importlib
@@ -27,6 +28,9 @@ _PARAM_RE = re.compile(r'^([\?\*]?)<(.+?)>$')
 
 #: prefix for api functions
 _FUNC_PREFIX = 'api_'
+
+#: modules that must be initialized. server must be first
+_REQUIRED_MODULES = ('server', 'auth')
 
 #: Where to route when no routes match (root)
 _default_route = None
@@ -56,7 +60,34 @@ class NotFound(Exception):
         self.kwargs = kwargs
 
 
-def init(app, uwsgi):
+def call_api(func, kwargs=None, data=None):
+    """Call another API with permission checks.
+
+    Note: also calls `save_to_cookie`.
+
+    Args:
+        func (callable): api function
+        kwargs (dict): to be passed to API [None]
+        data (dict): will be returned `http_request.parse_json`
+    Returns:
+        flask.Response: result
+    """
+    resp = api_auth.check_api_call(func)
+    if resp:
+        return resp
+    try:
+        if data:
+            #POSIT: http_request.parse_json
+            flask.g.sirepo_call_api_data = data
+        resp = flask.make_response(func(**kwargs) if kwargs else func())
+    finally:
+        if data:
+            flask.g.sirepo_call_api_data = None
+    cookie.save_to_cookie(resp)
+    return resp
+
+
+def init(app):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -64,29 +95,38 @@ def init(app, uwsgi):
 
     Args:
         app (Flask): flask app
-        uwsgi (WSGIApp): uwsgi server object (or None)
     """
     from sirepo import feature_config
     from sirepo import simulation_db
 
     if _uri_to_route:
         return
-    cookie.init_module(app, uwsgi)
-    for m in ('server',) + feature_config.cfg.api_modules:
-        importlib.import_module('sirepo.' + m).init_apis(app)
+    global _app
+    _app = app
+    for n in _REQUIRED_MODULES + feature_config.cfg.api_modules:
+        register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
 
 
-def register_api_module():
+def register_api_module(module=None):
     """Add caller_module to the list of modules which implements apis.
 
     The module must have methods: api_XXX which do not collide with
-    other apis.
+    other apis. It must also have init_apis(), which will be called unless
+    it is already registered.
+
+    Args:
+        module (module): defaults to caller module
     """
-    m = pkinspect.caller_module()
-    assert not m in _api_modules, \
-        'module is a duplicate: module={}'.format(m.__name__)
+    assert not _default_route, \
+        '_init_uris already called. All APIs must registered at init'
+    m = module or pkinspect.caller_module()
+    if m in _api_modules:
+        return
+    # prevent recursion
     _api_modules.append(m)
+    m.init_apis(_app)
+    # It's ok if there are no APIs
     for n, o in inspect.getmembers(m):
         if n.startswith(_FUNC_PREFIX) and inspect.isfunction(o):
             assert not n in _api_funcs, \
@@ -113,27 +153,13 @@ def uri_for_api(api_name, params=None, external=True):
         if p.name in params:
             v = params[p.name]
             if not v is None and len(v) > 0:
-                if not (p.is_path_info and v.startwith('/')):
+                if not (p.is_path_info and v.startswith('/')):
                     res += '/'
                 res += v
                 continue
         assert p.is_optional, \
             'missing parameter={} for api={}'.format(p.name, api_name)
     return res
-
-
-def format_uri(simulation_type, application_mode, simulation_id, app_schema):
-    local_routes = app_schema['localRoutes']
-    app_modes = app_schema['appModes']
-    local_route = app_modes[application_mode]['localRoute']
-    assert local_route in local_routes
-    return '/{}#/{}/{}'.format(
-        simulation_type,
-        app_modes[application_mode]['localRoute'],
-        simulation_id, application_mode) + \
-           ('?application_mode={}'.format(application_mode) if app_modes[application_mode][
-               'includeMode'] else ''
-            )
 
 
 def _dispatch(path):
@@ -145,11 +171,12 @@ def _dispatch(path):
     Returns:
         Flask.response
     """
-    cookie.init()
+    auth.process_request()
     try:
         if path is None:
-            return _dispatch_call(_empty_route.func, {})
-        parts = path.split('/')
+            return call_api(_empty_route.func, {})
+        # werkzeug doesn't convert '+' to ' '
+        parts = re.sub(r'\+', ' ', path).split('/')
         try:
             route = _uri_to_route[parts[0]]
             parts.pop(0)
@@ -168,19 +195,12 @@ def _dispatch(path):
             kwargs[p.name] = parts.pop(0)
         if parts:
             raise NotFound('{}: unknown parameters in uri ({})', parts, path)
-        return _dispatch_call(route.func, kwargs)
+        return call_api(route.func, kwargs)
     except NotFound as e:
         util.raise_not_found(e.log_fmt, *e.args, **e.kwargs)
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
-
-
-def _dispatch_call(func, kwargs):
-    api_auth.assert_api_call(func)
-    resp = flask.make_response(func(**kwargs))
-    cookie.save_to_cookie(resp)
-    return resp
 
 
 def _dispatch_empty():
@@ -191,6 +211,8 @@ def _dispatch_empty():
 def _init_uris(app, simulation_db):
     global _default_route, _empty_route, srunit_uri, _api_to_route, _uri_to_route
 
+    assert not _default_route, \
+        '_init_uris called twice'
     _uri_to_route = pkcollections.Dict()
     _api_to_route = pkcollections.Dict()
     for k, v in simulation_db.SCHEMA_COMMON.route.items():
@@ -204,7 +226,7 @@ def _init_uris(app, simulation_db):
         r.decl_uri = v
         r.name = k
         assert not r.base_uri in _uri_to_route, \
-            '{}: duplicate end point; other={}'.format(v, routes[r.base_uri])
+            '{}: duplicate end point; other={}'.format(v, _uri_to_route[r.base_uri])
         _uri_to_route[r.base_uri] = r
         _api_to_route[k] = r
         if r.base_uri == '':
@@ -213,8 +235,7 @@ def _init_uris(app, simulation_db):
             srunit_uri = v
     assert _default_route, \
         'missing default route'
-    # 'light' is the homePage, not 'root'
-    _empty_route = _uri_to_route.light
+    _empty_route = _uri_to_route.en
     app.add_url_rule('/<path:path>', '_dispatch', _dispatch, methods=('GET', 'POST'))
     app.add_url_rule('/', '_dispatch_empty', _dispatch_empty, methods=('GET', 'POST'))
 
@@ -241,7 +262,7 @@ def _split_uri(uri):
         m = _PARAM_RE.search(p)
         if not m:
             assert first is None, \
-                '{}: too many non-paramter components of uri'.format(uri)
+                'too many non-parameter components of uri={}'.format(uri)
             first = p
             continue
         rp = pkcollections.Dict()

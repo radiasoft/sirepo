@@ -1020,7 +1020,7 @@
             "y3": "etax",
             "y3File": "twiss_output.filename.sdds",
             "y3FileId": "67-13",
-            "includeLattice": true
+            "includeLattice": "1"
         },
         "elements": [
             {
@@ -2101,9 +2101,6 @@
         ],
         "panelState": {
             "hidden": [
-                "bunchReport2",
-                "bunchReport3",
-                "bunchReport4",
                 "elementAnimation62-18",
                 "elementAnimation62-25",
                 "elementAnimation67-13"

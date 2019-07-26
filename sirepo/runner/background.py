@@ -6,6 +6,7 @@ u"""Run jobs as subprocesses
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from sirepo import mpi
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -22,7 +23,7 @@ import time
 # See https://github.com/radiasoft/sirepo/issues/1323
 # We also remove SIREPO_ and PYKERN vars, because we shouldn't
 # need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
+_EXEC_ENV_REMOVE = re.compile('^(PMI_|OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 class BackgroundJob(runner.JobBase):
@@ -110,6 +111,8 @@ class BackgroundJob(runner.JobBase):
         We don't use pksubprocess. This method is not called from the MainThread
         so can't set signals.
         """
+        env = _safe_env()
+        env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
         try:
             pid = os.fork()
         except OSError as e:
@@ -140,9 +143,15 @@ class BackgroundJob(runner.JobBase):
             sys.stderr.flush()
             try:
                 simulation_db.write_status('running', self.run_dir)
-                os.execvpe(self.cmd[0], self.cmd, env=_safe_env())
+                os.execvpe(self.cmd[0], self.cmd, env=env)
+            except BaseException as e:
+                pkdlog(
+                    '{}: execvp error: {} errno={}',
+                    self.jid,
+                    e.strerror if hasattr(e, 'strerror') else '',
+                    e.errno if hasattr(e, 'errno') else '',
+                )
             finally:
-                pkdlog('{}: execvp error: {} errno={}', self.jid, e.strerror, e.errno)
                 sys.exit(1)
         except BaseException as e:
             # NOTE: there's no lock here so just append to the log. This
@@ -158,8 +167,8 @@ def _safe_env():
     )
 
 
-def init_class(app, uwsgi):
-    assert not uwsgi, \
+def init_class(app, *args, **kwargs):
+    assert not app.sirepo_uwsgi, \
         'uwsgi does not work if sirepo.runner.cfg.job_class=background'
     signal.signal(signal.SIGCHLD, BackgroundJob._sigchld_handler)
     return BackgroundJob

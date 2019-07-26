@@ -87,14 +87,6 @@
             "zMin": -316.86022154887166,
             "zParticlesPerCell": 2,
             "zScale": 3
-        },
-        "simulationStatus": {
-            "animation": {
-                "startTime": 1459995878,
-                "state": "completed"
-            },
-            "startTime": 0,
-            "state": "initial"
         }
     },
     "report": "beamPreviewReport",

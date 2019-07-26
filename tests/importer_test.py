@@ -11,16 +11,8 @@ pytest.importorskip('srwl_bl')
 
 
 def test_import_json():
-    try:
-        import StringIO
-    except:
-        from io import StringIO
-
-    def _parse(fn):
-        json = fn.read(mode='rb')
-        return json, StringIO.StringIO(json)
-
-    _do('json', _parse)
+    from sirepo import srunit
+    _do('json', srunit.file_as_stream)
 
 
 def test_import_zip():
@@ -48,12 +40,13 @@ def _do(file_ext, parse):
     from sirepo import srunit
     import re
 
-    fc = srunit.flask_client()
-    for suffix in '', ' (2)', ' (3)':
+    fc = srunit.flask_client(sim_types='srw:myapp')
+    fc.sr_login_as_guest()
+    for suffix in '', ' 2', ' 3':
         for f in pkio.sorted_glob(pkunit.data_dir().join('*.' + file_ext)):
             json, stream = parse(f)
             sim_type = re.search(r'^([a-z]+)_', f.basename).group(1)
-            fc.get('/{}'.format(sim_type))
+            fc.sr_get_root(sim_type)
             is_dev = 'deviance' in f.basename
             if not is_dev:
                 sim_name = pkcollections.json_load_any(json).models.simulation.name

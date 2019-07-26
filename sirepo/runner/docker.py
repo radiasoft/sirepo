@@ -153,6 +153,8 @@ class DockerJob(runner.JobBase):
         cmd = _RUN_PREFIX + (
             '--cpus={}'.format(slot.cores),
             '--detach',
+            #TODO(robnagler) other environ vars required?
+            '--env=SIREPO_MPI_CORES={}'.format(slot.cores),
             '--init',
             '--memory={}g'.format(slot.gigabytes),
             '--name={}'.format(self.__cname),
@@ -215,7 +217,7 @@ class DockerJob(runner.JobBase):
         return tuple(res)
 
 
-def init_class(app, uwsgi):
+def init_class(app, *args, **kwargs):
     global cfg, _hosts, _parallel_cores
 
     if _hosts:

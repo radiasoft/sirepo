@@ -6,43 +6,56 @@
 
 <div data-ng-show="! is3dPreview || ! warpvndService.is3D()">
   <p class="lead text-center" style="margin-bottom: 0"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
+  <span data-ng-show="warpvndService.is3D()"><a href="" data-ng-click="toggleTiledDomain()"><span class="glyphicon" data-ng-class="{'glyphicon-check': isDomainTiled, 'glyphicon-unchecked': ! isDomainTiled}"></span></a> <span>Show periodic domain</span></span>
   <div>
+    <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
     <div style="-webkit-user-select: none"><svg class="sr-plot">
-      <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
-        <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
-        <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
-        <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
-        <g class="y axis"></g>
-        <g class="y axis grid"></g>
-        <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
-        <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
-        <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-        <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
-            <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
-        </svg>
-      </g>
-    </svg></div>
-    <div data-ng-show="warpvndService.is3D()" style="-webkit-user-select: none"><svg class="sr-plot z-plot">
-      <defs>
-        <clippath id="zx-grid-clip">
-          <rect ng-attr-width="{{ width + 1 }}" ng-attr-height="{{ zHeight }}"></rect>
-        </clippath>
-      </defs>
-      <g ng-attr-transform="translate({{ margin.left }},20)">
-        <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
-        <g class="z axis"></g>
-        <g class="z axis grid"></g>
-        <g clip-path="url(#zx-grid-clip)">
-            <g class="zx axis grid" ng-attr-transform="translate(0, {{ zHeight }})"></g>
+        <g data-ng-attr-transform="translate({{ margin.left }}, {{ margin.top }})">
+            <g data-ng-attr-transform="translate(0, {{ tileOffset() }})">
+              <text class="focus-text" text-anchor="end" data-ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+              <g class="x axis" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="x axis grid" data-ng-attr-transform="translate(0, {{ height }})"></g>
+              <g class="y axis"></g>
+              <g class="y axis grid"></g>
+              <text class="y-axis-label" transform="rotate(-90)" data-ng-attr-x="{{ -height / 2 }}" data-ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+              <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
+              <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
+              <svg class="plot-viewport" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+                  <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
+              </svg>
+            </g>
+            <g data-ng-show="warpvndService.is3D()" data-ng-attr-transform="translate(0, {{ margin.top + height + zMargin() + tileOffset() }})">
+              <defs>
+                <clippath id="zx-grid-clip">
+                  <rect ng-attr-width="{{ width + 1 }}" ng-attr-height="{{ zHeight }}"></rect>
+                </clippath>
+              </defs>
+              <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+              <g class="z axis"></g>
+              <g class="z axis grid"></g>
+              <g clip-path="url(#zx-grid-clip)">
+                  <g class="zx axis grid" ng-attr-transform="translate(0, {{ zHeight }})"></g>
+              </g>
+              <text class="z-axis-label" transform="rotate(-90)" ng-attr-x="{{ - zHeight / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
+              <svg class="z-plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}">
+                  <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}"></rect>
+              </svg>
+            </g>
+            <g data-ng-show="isDomainTiled">
+              <svg data-ng-attr-width="{{ 3 * tileInsetSize().width }}" data-ng-attr-height="{{ 3 * tileInsetSize().height }}">
+                  <g id="tile-master" data-ng-attr-transform="translate({{ tileInsetOffset().x }}, {{ tileInsetSize().height }})">
+                  <rect id="tile-center" class="warpvnd-inset-tile"  data-ng-class="{'warpvnd-inset-tile-warning': conductorNearBoundary}" ng-attr-width="{{ tileInsetSize().width }}" ng-attr-height="{{ tileInsetSize().height }}"></rect>
+                  </g>
+                  <use id="tile-top" href="#tile-master" data-ng-attr-transform="translate(0, {{ -tileInsetSize().height }})" style="opacity: {{ tileOpacity }};"></use>
+                  <use id="tile-bottom" href="#tile-master" data-ng-attr-transform="translate(0, {{ tileInsetSize().height }})" style="opacity: {{ tileOpacity }};"></use>
+                  <use data-ng-show="warpvndService.is3D()" id="tile-left" href="#tile-master"   data-ng-attr-transform="translate({{ -tileInsetSize().width }}, 0)" style="opacity: {{ tileOpacity }};"></use>
+                  <use data-ng-show="warpvndService.is3D()" id="tile-right" href="#tile-master"  data-ng-attr-transform="translate({{ tileInsetSize().width }}, 0)" style="opacity: {{ tileOpacity }};"></use>
+              </svg>
+            </g>
         </g>
-        <text class="z-axis-label" transform="rotate(-90)" ng-attr-x="{{ - zHeight / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
-        <svg class="z-plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}">
-            <rect class="overlay mouse-zoom" ng-attr-width="{{ width }}" ng-attr-height="{{ zHeight }}"></rect>
-        </svg>
-      </g>
-    </svg></div>
+      </svg></div>
   </div>
 </div>
 <div data-ng-if="warpvndService.is3D() && is3dPreview">
- <div data-conductors-3d=""></div>
+ <div class="vtk-canvas-holder" data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
 </div>

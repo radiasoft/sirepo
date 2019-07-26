@@ -1,0 +1,28 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-info">
+            <div class="panel-heading clearfix" data-panel-heading="Simulation Status" data-model-key="'simulationStatus'"></div>
+            <div class="panel-body" data-ng-hide="visualization.panelState.isHidden('simulationStatus')">
+              <div data-sim-status-panel="visualization.simState"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <div data-basic-editor-panel="" data-view-name="Driver"></div>
+        </div>
+        <div class="col-md-12" data-ng-if="visualization.flashService.isFlashType('CapLaser') && visualization.simState.hasFrames()">
+          <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
+       </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-xl-4" data-ng-if="visualization.flashService.isFlashType('RTFlame') && visualization.simState.hasFrames()">
+      <div data-report-panel="parameter" data-model-name="gridEvolutionAnimation"></div>
+    </div>
+    <div ng-attr-class="{{ visualization.plotClass }}" data-ng-if="visualization.simState.hasFrames()">
+      <div data-report-panel="heatmap" data-model-name="varAnimation"></div>
+    </div>
+  </div>
+</div>

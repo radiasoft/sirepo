@@ -57,7 +57,7 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
         if (itemId && savedModelValues.beamline) {
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
                 if (savedModelValues.beamline[i].id == itemId) {
-                    return 'Intensity ' + savedModelValues.beamline[i].title + ' Report, '
+                    return 'Intensity ' + savedModelValues.beamline[i].title + ', '
                         + savedModelValues.beamline[i].position + 'm';
                 }
             }
@@ -281,7 +281,7 @@ SIREPO.app.directive('beamlineBuilder', function(appState, beamlineService, pane
             '<div class="srw-beamline text-center" data-ng-drop="true" data-ng-drop-success="dropComplete($data, $event)">',
               '<div data-ng-transclude=""></div>',
               '<p class="lead text-center">beamline definition area ',
-                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-picture"></span></button><br>',
+                '<button title="Download beamline as PNG" class="btn btn-default btn-sm" data-ng-if="showPNGDownloadLink()" data-ng-click="createBeamlinePNG()"><span class="glyphicon glyphicon-cloud-download"></span></button><br>',
                 '<small data-ng-if="beamlineService.isEditable()"><em>drag and drop optical elements here to define the beamline</em></small></p>',
               '<div class="srw-beamline-container">',
                 '<div style="display: inline-block" data-ng-repeat="item in getBeamline() track by item.id">',
@@ -631,6 +631,8 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
                 content: function() {
                     return $('#srw-' + scope.item.type + '-editor');
                 },
+                // adds sr-beamline-popover class to standard template
+                template: '<div class="popover sr-beamline-popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>'
             }).on('show.bs.popover', function() {
                 $('.srw-beamline-element-label').not(el).popover('hide');
                 beamlineService.setActiveItem(scope.item);
@@ -766,10 +768,10 @@ SIREPO.app.directive('beamlineReports', function(beamlineService) {
         restrict: 'A',
         scope: {},
         template: [
-            '<div class="col-md-6 col-xl-4">',
+            '<div data-column-for-aspect-ratio="initialIntensityReport">',
               '<div data-report-panel="3d" data-request-priority="1" data-model-name="initialIntensityReport" data-panel-title="{{ beamlineService.getReportTitle(\'initialIntensityReport\') }}"></div>',
             '</div>',
-            '<div class="col-md-6 col-xl-4" data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
+            '<div data-ng-if="! item.isDisabled" data-ng-repeat="item in beamlineService.getWatchItems() track by item.id">',
               '<div data-watchpoint-report="" data-get-request-priority="getPriorityForItem(item, $index)" data-item-id="item.id"></div>',
             '</div>',
         ].join(''),
@@ -875,10 +877,13 @@ SIREPO.app.directive('watchpointReport', function(beamlineService) {
             getRequestPriority: '&',
         },
         template: [
-            '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
+            '<div data-column-for-aspect-ratio="{{ watchpointModelName }}">',
+              '<div data-report-panel="3d" data-model-name="watchpointReport" data-model-data="modelAccess" data-panel-title="{{ reportTitle() }}"></div>',
+            '</div>',
         ].join(''),
         controller: function($scope) {
             beamlineService.setupWatchpointDirective($scope);
+            $scope.watchpointModelName = $scope.modelAccess.modelKey;
         },
     };
 });

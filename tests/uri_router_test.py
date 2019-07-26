@@ -25,15 +25,19 @@ def test_uri_for_api():
 
     def t():
         from pykern.pkdebug import pkdp
-        from pykern.pkunit import pkeq, pkexcept, pkre
+        from pykern.pkunit import pkeq, pkexcept, pkre, pkeq
         from sirepo import uri_router
         import re
 
         fc = srunit.flask_client()
-        uri = uri_router.uri_for_api('homePage')
-        pkre('http://[^/]+/light$', uri)
-        uri = uri_router.uri_for_api('homePage', external=False)
-        pkre('^/light$', uri)
+        uri = uri_router.uri_for_api('homePage', params={'path_info': None})
+        pkre('http://[^/]+/en$', uri)
+        uri = uri_router.uri_for_api(
+            'homePage',
+            params={'path_info': 'terms.html'},
+            external=False,
+        )
+        pkeq('/en/terms.html', uri)
         with pkexcept(KeyError):
             uri_router.uri_for_api('notAnApi')
         with pkexcept('missing parameter'):
