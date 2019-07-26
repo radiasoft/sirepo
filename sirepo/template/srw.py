@@ -1262,9 +1262,11 @@ def _fixup_beamline(data):
                 item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
             if 'cropArea' not in item:
                 for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
-                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns', 'transmissionImage',
+                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
                           'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
                     item[f] = _SCHEMA['model']['sample'][f][2]
+            if 'transmissionImage' not in item:
+                item['transmissionImage'] = _SCHEMA['model']['sample']['transmissionImage'][2]
         if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
             item['horizontalOffset'] = 0
             item['verticalOffset'] = 0
@@ -1819,7 +1821,6 @@ def _process_image(data):
         s = srwl_uti_smp.SRWLUtiSmp(
             file_path=path,
             area=None if not int(m['cropArea']) else (m['areaXStart'], m['areaXEnd'], m['areaYStart'], m['areaYEnd']),
-            extTr=int(m['transmissionImage']),
             rotate_angle=float(m['rotateAngle']),
             rotate_reshape=int(m['rotateReshape']),
             cutoff_background_noise=float(m['cutoffBackgroundNoise']),
