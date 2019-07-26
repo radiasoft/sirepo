@@ -21,6 +21,9 @@ import flask
 import importlib
 
 
+# name shown for users who are logged in as a guest
+GUEST_USER_DISPLAY_NAME = 'Guest User'
+
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
 
@@ -66,15 +69,7 @@ def api_authCompleteRegistration():
     # for just this API.
     if not _is_logged_in():
         return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
-    d = http_request.parse_json()
-    t = d.simulationType
-    n = _parse_display_name(d)
-    u = _get_user()
-    with auth_db.thread_lock:
-        r = _user_registration(u)
-        r.display_name = n
-        r.save()
-    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+    complete_registration(_parse_display_name(http_request.parse_json()))
     return http_reply.gen_json_ok()
 
 
@@ -121,6 +116,16 @@ def api_authLogout(simulation_type):
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_root(t)
+
+
+def complete_registration(name):
+    """Update the database with the user's display_name and sets state to logged-in."""
+    u = _get_user()
+    with auth_db.thread_lock:
+        r = _user_registration(u)
+        r.display_name = name
+        r.save()
+    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
 def init_apis(app, *args, **kwargs):
@@ -419,13 +424,16 @@ def _login_user(module, uid):
     s = _STATE_LOGGED_IN
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
         u = _user_registration(uid)
-        if not u.display_name:
+        if not u.display_name or u.display_name == GUEST_USER_DISPLAY_NAME:
             s = _STATE_COMPLETE_REGISTRATION
     cookie.set_value(_COOKIE_STATE, s)
     _set_log_user()
 
 
 def _method_auth_state(values, uid):
+    if values.method not in _METHOD_MODULES:
+        pkdlog('auth state method: "{}" not present in supported methods: {}', values.method, _METHOD_MODULES.keys())
+        return
     m = _METHOD_MODULES[values.method]
     u = _method_user_model(m, uid)
     if not u:
