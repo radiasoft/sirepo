@@ -60,6 +60,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
 
             xform: transform || geometry.transform(),
 
+            buildActorBundle: function(source) {
+                return actorBundle(source);
+            },
             buildBox: function(labSize, labCenter) {
                 var vsize = labSize ? this.xform.doTransform(labSize) :  [1, 1, 1];
                 var cs = vtk.Filters.Sources.vtkCubeSource.newInstance({
@@ -68,7 +71,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     zLength: vsize[2],
                     center: labCenter ? this.xform.doTransform(labCenter) :  [0, 0, 0]
                 });
-                var ab = svc.buildActorBundle(cs);
+                var ab = actorBundle(cs);
 
                 ab.setCenter = function (arr) {
                     ab.source.setCenter(arr);
@@ -90,7 +93,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     resolution: 2
                 });
 
-                var ab = svc.buildActorBundle(ls);
+                var ab = actorBundle(ls);
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 return ab;
             },
@@ -110,7 +113,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                     phiResolution: 16
                 });
 
-                var ab = svc.buildActorBundle(ps);
+                var ab = actorBundle(ps);
                 ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
                 ab.actor.getProperty().setLighting(false);
                 return ab;
