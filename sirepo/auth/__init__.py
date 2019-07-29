@@ -87,9 +87,13 @@ def api_authState():
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
-        r = auth_db.UserRegistration.search_by(uid=u)
-        if r:
-            v.displayName = r.display_name
+        if v.method == _METHOD_GUEST:
+            v.needCompleteRegistration = False
+            v.displayName = GUEST_USER_DISPLAY_NAME
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
@@ -300,6 +304,9 @@ def require_user():
             r = 'loginWith'
             p = {'method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
+        if m == _METHOD_GUEST:
+            complete_registration(GUEST_USER_DISPLAY_NAME)
+            return None
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())
     else:
