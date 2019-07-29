@@ -21,8 +21,6 @@ import flask
 import flask_mail
 import hashlib
 import pyisemail
-import re
-import sirepo.auth
 import sirepo.template
 try:
     # py2
@@ -200,13 +198,3 @@ This link will expire in {} minutes and can only be used once.
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()
-
-
-def _user_with_email_is_logged_in():
-    uid = auth.user_if_logged_in(method='email')
-    if not uid:
-        return None
-    u = AuthEmailUser.search_by(uid=uid)
-    if u and u.user_name == u.unverified_email:
-        return uid
-    return None

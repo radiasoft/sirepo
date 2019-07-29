@@ -11,11 +11,10 @@ from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
-from sirepo import http_request
 import sirepo.template
 
 
-AUTH_METHOD = 'guest'
+AUTH_METHOD = auth.METHOD_GUEST
 
 #: User can see it
 AUTH_METHOD_VISIBLE = True
