@@ -16,7 +16,6 @@ from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
-import copy
 import datetime
 import errno
 import glob
@@ -30,7 +29,6 @@ import re
 import sirepo.template
 import threading
 import time
-import werkzeug.exceptions
 
 #: Json files
 JSON_SUFFIX = '.json'
@@ -408,7 +406,7 @@ def lib_dir_from_sim_dir(sim_dir):
     return sim_dir.join(_REL_LIB_DIR)
 
 
-def move_user_simulations_is_deprecated(from_uid, to_uid):
+def move_user_simulations(from_uid, to_uid):
     """Moves all non-example simulations `from_uid` into `to_uid`.
 
     Only moves non-example simulations. Doesn't delete the from_uid.

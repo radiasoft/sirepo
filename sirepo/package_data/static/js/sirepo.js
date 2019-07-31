@@ -105,7 +105,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
 
-    function addRoute(routeName, isDefault) {
+    function addRoute(routeName) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
         if (! routeInfo.config) {
             // the route isn't configured for the current app
@@ -115,7 +115,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         var cfg = routeInfo.config;
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         $routeProvider.when(routeInfo.route, cfg);
-        if (isDefault || routeInfo.isDefault) {
+        if (routeInfo.isDefault) {
             if (routeInfo.route.indexOf(':') >= 0) {
                 throw 'default route must not have params: ' + routeInfo.route;
             }
@@ -1356,7 +1356,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
+        if (! SIREPO.authState.displayName || route.controller.indexOf('login') >= 0) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);

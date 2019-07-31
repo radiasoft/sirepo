@@ -201,6 +201,7 @@ v.op_{{ item.name }}_{{ nameMap.get(name, name) }}
                     {{ field(item, 'areaYStart') }},
                     {{ field(item, 'areaYEnd') }},
                 ),
+                extTr={{ field(item, 'transmissionImage') }},
                 rotate_angle={{ field(item, 'rotateAngle') }},
                 rotate_reshape=bool(int({{ field(item, 'rotateReshape') }})),
                 cutoff_background_noise={{ field(item, 'cutoffBackgroundNoise') }},
