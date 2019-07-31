@@ -358,7 +358,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             dims.forEach(function (d) {
                 panelState.showField(rpt, d + 'Cell' + i, dim != d);
             });
-            if (! warpvndService.is3D()) {
+            if (! warpvndService.is3D() || ! ranIn3d) {
                 panelState.showField(rpt, 'yCell' + i, false);
             }
         });
@@ -384,7 +384,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
-        var is3d = appState.models.simulationGrid.simulation_mode == '3d';
+        var is3d = appState.models.simulationGrid.simulation_mode == '3d' && ranIn3d;
         ['channel_height', 'num_y'].forEach(function(f) {
             panelState.showField('simulationGrid', f, is3d);
         });
@@ -541,6 +541,12 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             appState.saveChanges('conductors');
         }
     });
+
+    var ranIn3d = false;
+    $scope.$on('fieldComparisonAnimation.summaryData', function (evt, data) {
+        ranIn3d = data.runMode3d;
+    });
+
 
     appState.whenModelsLoaded($scope, function() {
         self.fieldSlice = appState.models.fieldCalcAnimation.slice;
@@ -2149,9 +2155,12 @@ SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
        ].join(''),
         controller: function($scope) {
             var lastSimMode = '';
+            var ranIn3d = false;
 
             $scope.svc = warpvndService;
             appState.whenModelsLoaded($scope, function () {
+                lastSimMode = appState.models.simulationGrid.simulation_mode;
+                appState.models[$scope.modelName].displayMode = lastSimMode;
                 $scope.$on($scope.modelName + '.editor.show', function () {
                     $scope.parentController.updateFieldComparison();
                 });
@@ -2160,6 +2169,7 @@ SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
             $scope.$on('simulationGrid.changed', function () {
                 var grid = appState.models.simulationGrid;
                 if (lastSimMode !== grid.simulation_mode) {
+                    appState.models[$scope.modelName].displayMode = grid.simulation_mode;
                     if (! warpvndService.is3D()) {
                         var m = appState.models[$scope.modelName];
                         if (m.dimension === 'y') {
@@ -2171,6 +2181,9 @@ SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
                 }
             });
 
+            $scope.$on('fieldCalcAnimation.summaryData', function (evt, data) {
+                ranIn3d = data.runMode3d;
+            });
        },
     };
 });
@@ -2198,8 +2211,9 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-            
+
             var lastSimMode = '';
+            var ranIn3d = false;
             var slider;
 
             $scope.axisInfo = {
@@ -2219,7 +2233,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
             };
 
             $scope.showSliceRange = function() {
-                return warpvndService.is3D() && ! panelState.getError('fieldCalcAnimation');
+                return warpvndService.is3D() && ranIn3d && ! panelState.getError('fieldCalcAnimation');
             };
 
             $scope.toggleConductors = function () {
@@ -2284,6 +2298,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                 $scope.model = appState.models[$scope.modelName];
                 $scope.model.units = 'µm';
                 lastSimMode = appState.models.simulationGrid.simulation_mode;
+                $scope.model.displayMode = lastSimMode;
                 slider = $('#fieldCalcAnimation-slice-range');
                 updateSlider($scope.model.axes);
                 updateSliceRange();
@@ -2303,18 +2318,23 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
             // the DOM for editors does not exist until they appear, so we must show/hide fields this way
             $scope.$on('fieldCalcAnimation.editor.show', function () {
-                panelState.showField('fieldCalcAnimation', 'axes', warpvndService.is3D());
+                panelState.showField('fieldCalcAnimation', 'axes', warpvndService.is3D() && ranIn3d);
             });
 
             $scope.$on('simulationGrid.changed', function () {
                 var grid = appState.models.simulationGrid;
                 if (lastSimMode !== grid.simulation_mode) {
+                    $scope.model.displayMode = grid.simulation_mode;
                     if (! warpvndService.is3D()) {
                         $scope.model.axes = 'xz';
                     }
                     loadSlice();
                     lastSimMode = grid.simulation_mode;
                 }
+            });
+
+            $scope.$on('fieldCalcAnimation.summaryData', function (evt, data) {
+                ranIn3d = data.runMode3d;
             });
         },
     };
