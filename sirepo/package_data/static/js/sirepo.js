@@ -1003,10 +1003,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var windowResize = utilities.debounce(function() {
         $rootScope.$broadcast('sr-window-resize');
     }, 250);
+    self.ngViewScope = null;
 
 
     $rootScope.$on('clearCache', function() {
         self.clear();
+    });
+
+    $rootScope.$on('$viewContentLoaded', function (event) {
+        // this is the parent scope used for modal editors created from showModalEditor()
+        self.ngViewScope = event.targetScope;
     });
 
     function clearPanel(name) {
@@ -1289,8 +1295,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 var name = modelKey.toLowerCase().replace('_', '');
                 template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + name + '-editor=""' + '></div>';
             }
-            $('body').append($compile(template)(scope || $rootScope));
-            //TODO(pjm): timeout hack, other jquery can't find the element
+            // add the modal to the ng-view element so it will get removed from the page when the location changes
+            $('.sr-view-content').append($compile(template)(scope || self.ngViewScope));
+
+            //TODO(pjm): timeout hack, otherwise jquery can't find the element
             self.waitForUI(function() {
                 $(editorId).modal('show');
                 $rootScope.$broadcast(showEvent);
@@ -2920,10 +2928,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             return 'Folder';
         }
         return 'Simulation';
-    };
-
-    self.showSimulationModal = function() {
-        panelState.showModalEditor('simulation');
     };
 
     self.toggleIconView = function() {
