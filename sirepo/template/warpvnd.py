@@ -70,7 +70,6 @@ def fixup_old_data(data):
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
             'fieldComparisonReport',
-            'fieldReport',
     ]:
         if m not in data.models:
             data.models[m] = {}
@@ -105,7 +104,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'z': [0, _meters(grid['plate_spacing'])]
     }
     plot_range = ranges[dimension]
-    plots, plot_y_range = _create_plots(dimension, params, values, ranges)
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges, grid.simulation_mode)
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -154,7 +153,7 @@ def generate_field_report(data, run_dir, args=None):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    other_axis = re.sub('[' + axes + ']', '', 'xyz')
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _is_3D(data) else 'xz')
 
     x_max = len(values[0])
     y_max = len(values)
@@ -188,7 +187,7 @@ def generate_field_report(data, run_dir, args=None):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, phi_slice),
+        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _is_3D(data) else ''),
         'z_matrix': values.tolist(),
         'global_min': np.min(potential) if vals_equal else None,
         'global_max': np.max(potential) if vals_equal else None,
@@ -451,8 +450,8 @@ def _compute_delta_for_field(data, bounds, field):
     bounds += [res if res else bounds[1], True]
 
 
-def _create_plots(dimension, params, values, ranges):
-    all_axes = 'xyz'
+def _create_plots(dimension, params, values, ranges, sim_mode):
+    all_axes = 'xyz' if sim_mode == '3d' else 'xz'
     other_axes = re.sub('[' + dimension + ']', '', all_axes)
     y_range = None
     plots = []
@@ -483,12 +482,13 @@ def _create_plots(dimension, params, values, ranges):
             if index >= max_index:
                 index = max_index - 1
             other_indices[axis] = index
+        y_index = other_indices['y'] if 'y' in other_indices else 0
         if dimension == 'x':
-            points = values[:, other_indices['y'], other_indices['z']].tolist()
+            points = values[:, y_index, other_indices['z']].tolist()
         elif dimension == 'y':
             points = values[other_indices['x'], :, other_indices['z']].tolist()
         else:
-            points = values[other_indices['x'], other_indices['y'], :].tolist()
+            points = values[other_indices['x'], y_index, :].tolist()
 
         label = ''
         for axis in other_indices:
