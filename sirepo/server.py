@@ -459,7 +459,11 @@ def api_runCancel():
             # Write first, since results are write once, and we want to
             # indicate the cancel instead of the termination error that
             # will happen as a result of the kill.
-            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            try:
+                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            except IOError:
+                # run_dir may have been deleted
+                pass
             runner.job_kill(jid)
             # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
             # the last frame file may not be finished, remove it
