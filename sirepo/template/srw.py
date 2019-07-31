@@ -1265,6 +1265,8 @@ def _fixup_beamline(data):
                           'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
                           'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
                     item[f] = _SCHEMA['model']['sample'][f][2]
+            if 'transmissionImage' not in item:
+                item['transmissionImage'] = _SCHEMA['model']['sample']['transmissionImage'][2]
         if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
             item['horizontalOffset'] = 0
             item['verticalOffset'] = 0
@@ -1443,6 +1445,7 @@ def _generate_beamline_optics(report, models, last_id):
             'thickness': 'thick',
             'tipRadius': 'r_min',
             'tipWallThickness': 'wall_thick',
+            'transmissionImage': 'extTransm',
             'verticalApertureSize': 'apert_v',
             'verticalCenterPosition': 'yc',
             'verticalFocalLength': 'Fy',
@@ -1509,6 +1512,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
 
+    v['rs_type'] = source_type
+    if _is_idealized_undulator(source_type, undulator_type):
+        v['rs_type'] = 'u'
+
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
@@ -1517,7 +1524,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
     if report == 'backgroundImport':
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
-
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 
     # und_g and und_ph API units are mm rather than m

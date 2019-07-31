@@ -584,7 +584,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('logoutMenu', function(authState, authService) {
+SIREPO.app.directive('logoutMenu', function(authState, authService, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -598,13 +598,25 @@ SIREPO.app.directive('logoutMenu', function(authState, authService) {
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
+                '<li data-ng-if="::!guestToUserUrl"><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
+                '<li data-ng-if="::guestToUserUrl"><a data-ng-href="{{ ::guestToUserUrl }}">Save your work!</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
+
+            if (authState.method == 'guest') {
+                authState.visibleMethods.some(function(method) {
+                    if (method != 'guest') {
+                        $scope.guestToUserUrl = requestSender.formatUrlLocal(
+                            'loginWith',
+                            {':method': method});
+                        return true;
+                    }
+                });
+            }
         },
     };
 });
@@ -2241,7 +2253,7 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
             '<div class="row text-center">',
             '<p>Please enter your full name to complete your Sirepo registration.</p>',
             '</div>',
-            '<form class="form-horizontal" autocomplete="off">',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
@@ -2291,7 +2303,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             '<div class="row text-center">',
               '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
             '</div>',
-            '<form class="form-horizontal" autocomplete="off">',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your Email</label>',
                 '<div class="col-sm-9">',
@@ -2300,7 +2312,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="login()" class="btn btn-primary">Login</button>',
+                 '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
               '</div>',
             '</form>',
             '<div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">',
