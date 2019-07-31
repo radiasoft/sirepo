@@ -2169,14 +2169,14 @@ SIREPO.app.directive('fieldComparison', function(appState, warpvndService) {
             $scope.$on('simulationGrid.changed', function () {
                 var grid = appState.models.simulationGrid;
                 if (lastSimMode !== grid.simulation_mode) {
-                    appState.models[$scope.modelName].displayMode = grid.simulation_mode;
+                    var m = appState.models[$scope.modelName];
+                    m.displayMode = grid.simulation_mode;
                     if (! warpvndService.is3D()) {
-                        var m = appState.models[$scope.modelName];
                         if (m.dimension === 'y') {
                             m.dimension = 'z';
-                            appState.saveChanges($scope.modelName);
                         }
                     }
+                    appState.saveChanges($scope.modelName);
                     lastSimMode = grid.simulation_mode;
                 }
             });
