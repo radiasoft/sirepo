@@ -3994,6 +3994,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
+                var doWarn = false;
                 (impactData.density || []).forEach(function (c) {
                     if (! $scope.enableImpactDensity) {
                         return;
@@ -4035,6 +4036,17 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             o[1] + (nl - 1) * sl[1],
                             o[2] + (nl - 1) * sl[2]
                         ];
+
+                        // Omit degenerate planes
+                        if (
+                            (p1[0] === p2[0] && p1[1] === p2[1] ) ||
+                            (p1[0] === p2[0] && p1[2] === p2[2] ) ||
+                            (p1[1] === p2[1] && p1[2] === p2[2] )
+                        ) {
+                            doWarn = true;
+                            return;
+                        }
+
                         var p = coordMapper.buildPlane(o, p1, p2);
                         p.source.setXResolution(nl - 1);
                         p.source.setYResolution(nk - 1);
@@ -4058,6 +4070,10 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                         densityPlaneBundles.push(p);
                     });
+
+                    if (doWarn) {
+                        errorService.alertText('Some impact density data cannot be plotted');
+                    }
                 });
 
                 function toNano(v) {
