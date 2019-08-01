@@ -442,6 +442,9 @@ def fixup_old_data(data):
             for row in data['models']['propagation'][item_id]:
                 row += [0, 0, 0, 0, 0, 0, 0, 0]
 
+    if 'electronBeams' in data['models']:
+        del data['models']['electronBeams']
+
 
 def get_animation_name(data):
     if data['modelName'] in ('coherenceXAnimation', 'coherenceYAnimation'):
@@ -667,15 +670,16 @@ def new_simulation(data, new_simulation_data):
 
 def prepare_for_client(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+            # don't add a named undulator if tabulated is not the current source type
+            continue
         model = data['models'][model_name]
-        pluralKey = '{}s'.format(model_name)
         if _is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             search_model = None
-            if pluralKey not in data['models']:
-                models_by_id = _user_model_map(user_model_list, 'id')
-                if model['id'] in models_by_id:
-                    search_model = models_by_id[model['id']]
+            models_by_id = _user_model_map(user_model_list, 'id')
+            if model['id'] in models_by_id:
+                search_model = models_by_id[model['id']]
             if search_model:
                 data['models'][model_name] = search_model
                 if model_name == 'tabulatedUndulator':
@@ -690,10 +694,6 @@ def prepare_for_client(data):
                 user_model_list.append(_create_user_model(data, model_name))
                 _save_user_model_list(model_name, user_model_list)
                 simulation_db.save_simulation_json(data)
-
-        if pluralKey in data['models']:
-            del data['models'][pluralKey]
-            simulation_db.save_simulation_json(data)
     return data
 
 
@@ -1539,8 +1539,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if _is_undulator_source(data['models']['simulation']) else 2
 
-    if _is_user_defined_model(data['models']['electronBeam']):
-        v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1

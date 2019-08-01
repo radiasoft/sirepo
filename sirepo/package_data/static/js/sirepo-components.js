@@ -2373,6 +2373,7 @@ SIREPO.app.directive('commonFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
+            '<div data-modal-editor="" view-name="simulation"></div>',
         ].join(''),
     };
 });

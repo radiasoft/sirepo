@@ -27,7 +27,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
 
 {% if simulation_sourceType != 'g' %}
 #---Electron Beam
-    ['ebm_nm', 's', '{{electronBeam_name}}', 'standard electron beam name'],
+    ['ebm_nm', 's', '', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', {{electronBeam_current}}, 'electron beam current [A]'],
     ['ebm_e', 'f', {{electronBeam_energy}}, 'electron beam avarage energy [GeV]'],
