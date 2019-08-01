@@ -2454,6 +2454,8 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 // loop over conductors
                 // arr[0] + k * sk for 2d
                 // arr[0][0] + k * sk + l * sl for 3d (later)
+                var smin = json.v_min;
+                var smax = json.v_max;
                 (json.density || []).forEach(function (c, ci) {
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
@@ -2492,8 +2494,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             return o[1] + sk[1] * i;
                         });
                         var coords = geometry.transpose([zc, xc]);
-                        var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
-                        var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
                         coords.forEach(function (c, i) {
