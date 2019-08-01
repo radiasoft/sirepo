@@ -434,7 +434,9 @@ def fixup_old_data(data):
     if 'name' not in data['models']['tabulatedUndulator']:
         und = data['models']['tabulatedUndulator']
         und['name'] = und['undulatorSelector'] = 'Undulator'
-        und['id'] = '1'
+
+    if data['models']['tabulatedUndulator'].get('id', '1') == '1':
+        data['models']['tabulatedUndulator']['id'] = '{} 1'.format(data['models']['simulation']['simulationId'])
 
     if len(data['models']['postPropagation']) == 9:
         data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
@@ -699,6 +701,9 @@ def prepare_for_client(data):
 
 def prepare_for_save(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+            # don't add a named undulator if tabulated is not the current source type
+            continue
         model = data['models'][model_name]
         if _is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)

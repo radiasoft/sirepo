@@ -1030,13 +1030,11 @@ SIREPO.app.directive('srElectronbeamEditor', function(appState, panelState, srwS
             $scope.$on('sr-tabSelected', processBeamFields);
 
             appState.whenModelsLoaded($scope, function() {
-                appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamFields);
-
-                appState.watchModelFields($scope, ['electronBeamPosition.driftCalculationMethod'], function() {
+                appState.watchModelFields($scope, ['electronBeam.beamDefinition'], processBeamFields);
+                appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeamPosition.driftCalculationMethod'], function() {
                     srwService.processBeamParameters();
                     processBeamFields();
                 });
-
                 ['horizontal', 'vertical'].forEach(function(dir) {
                     appState.watchModelFields(
                         $scope,
