@@ -21,6 +21,11 @@
               <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
               <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
               <svg class="plot-viewport" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true" data-ng-drag-move="dragMove($data, $event)" data-ng-drop-success="dropSuccess($data, $event)">
+                  <defs>
+                      <pattern id="specHash" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                          <path d="M0,0 l20,20" stroke="{{  source.conductorColors.nonZero }}"></path>
+                      </pattern>
+                  </defs>
                   <rect class="overlay mouse-zoom" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
               </svg>
             </g>

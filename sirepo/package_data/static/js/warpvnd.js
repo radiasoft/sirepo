@@ -294,6 +294,10 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         }
     }
 
+    function balanceProbs() {
+        srdbg('bal');
+    }
+
     // stl files can have arbitrary scale - we are using our knowledge of the problem space
     // to set the scale to something reasonable.  For example, an object with linear dimension
     // in the hundreds is assumed to be in nanometers, etc.  The user can adjust if it is wrong
@@ -338,6 +342,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         updateBeamRadius();
         updateParticleZMin();
         updateParticlesPerStep();
+        updateRefelction();
     }
 
     function updateBeamCurrent() {
@@ -381,6 +386,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         $scope.defaultColor = appState.models[type].isConductor == '0' ? '#f3d4c8' : '#6992ff';
     }
 
+    function updateRefelction() {
+        panelState.showField('simulationGrid', 'spec_prob', appState.models.simulationGrid.reflect_ground == '1');
+        panelState.showField('simulationGrid', 'diff_prob', appState.models.simulationGrid.reflect_ground == '1');
+    }
+
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
@@ -395,6 +405,11 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     self.isWaitingForSTL = false;
+
+    self.conductorColors = {
+        zero: SIREPO.APP_SCHEMA.constants.zeroVoltsColor,
+        nonZero: SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor
+    };
 
     self.createConductorType = function(type, silent) {
         var model = {
@@ -549,6 +564,9 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
+        appState.watchModelFields($scope, ['simulationGrid.reflect_ground'], updateRefelction);
+        appState.watchModelFields($scope, ['simulationGrid.spec_prob'], balanceProbs);
+        appState.watchModelFields($scope, ['simulationGrid.diff_prob'], balanceProbs);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, [warpvndService.activeComparisonReport() + '.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
@@ -1122,22 +1140,30 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var channel = toMicron(grid[info.heightField] / 2.0);
                 var h = info.axis.scale(-channel) - info.axis.scale(channel);
                 var w = axes.x.scale(0) - axes.x.scale(-plateSize);
+                var reflects = grid.reflect_ground === '1';
                 viewport.append('rect')
-                    .attr('class', 'warpvnd-plate')
+                    .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
                     .attr('x', axes.x.scale(-plateSize))
                     .attr('y', info.axis.scale(channel))
                     .attr('width', w)
                     .attr('height', h)
                     .on('dblclick', function() { editPlate('cathode'); })
                     .append('title').text('Cathode');
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
-                    .attr('x', axes.x.scale(toMicron(plateSpacing)))
+                var ar = viewport.append('rect')
+                    .attr('class', 'warpvnd-plate');
+                if (reflects) {
+                    ar.classed('warpvnd-plate-voltage', false)
+                        .attr('fill', 'url(#specHash)');
+                }
+                else {
+                    ar.classed('warpvnd-plate-voltage', true);
+                }
+                ar.attr('x', axes.x.scale(toMicron(plateSpacing)))
                     .attr('y', info.axis.scale(channel))
                     .attr('width', w)
                     .attr('height', h)
                     .on('dblclick', function() { editPlate('anode'); })
-                    .append('title').text('Anode');
+                    .append('title').text('Anode' + (reflects ? ' (reflector)' : ''));
             }
 
             function drawCathodeAndAnodes() {

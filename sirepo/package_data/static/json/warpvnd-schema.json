@@ -133,6 +133,7 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
+            "isReflector": ["Reflector", "Boolean", "0"],
             "color": ["Color", "Color"],
             "type": ["Type", "ConductorType", "box"]
         },
@@ -229,7 +230,10 @@
             "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
-            "num_steps": ["Simulation Steps", "Integer"]
+            "num_steps": ["Simulation Steps", "Integer"],
+            "reflect_ground": ["Reflect Particles from Ground Plate", "Boolean", "0"],
+            "spec_prob": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diff_prob": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
         },
         "simulationStatus": {},
         "stl": {
@@ -288,6 +292,7 @@
                 "type",
                 "voltage",
                 "isConductor",
+                "isReflector",
                 "permittivity",
                 "color"
             ]
@@ -450,7 +455,10 @@
                 "num_x",
                 "num_y",
                 "num_z",
-                "z_particle_min"
+                "z_particle_min",
+                "reflect_ground",
+                "spec_prob",
+                "diff_prob"
             ]
         },
         "simulation": {

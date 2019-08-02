@@ -11,6 +11,7 @@ import rswarp
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
 from rswarp.cathode import injectors
+from rswarp.particlecollector import particlereflector
 from rswarp.stlconductor import stlconductor
 from rswarp.stlconductor.stlconductor import *
 
@@ -353,7 +354,12 @@ wp.installconductor(source, dfill=wp.largepos)
 plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= len(conductors) + 2)
 wp.installconductor(plate, dfill=wp.largepos)
 
-scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True)
+scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept=True)
+
+{% if reflectGround.isReflector %}
+reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ reflectGround.specProb }}, drefprob={{ reflectGround.diffProb }})
+particlereflector.installparticlereflector(reflector)
+{% endif %}
 
 #------
 

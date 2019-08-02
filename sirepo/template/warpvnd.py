@@ -789,6 +789,7 @@ def _generate_parameters_file(data):
     v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
+    v['reflectGround'] = _prepare_reflection(data)
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -798,7 +799,6 @@ def _generate_parameters_file(data):
     if v['isOptimize']:
         _replace_optimize_variables(data, v)
     res = _render_jinja('base', v)
-    #res = _render_jinja('base-test', v)
     if data['report'] == 'animation':
         if data['models']['simulation']['egun_mode'] == '1':
             v['egunStatusFile'] = _EGUN_STATUS_FILE
@@ -810,7 +810,6 @@ def _generate_parameters_file(data):
         res += _render_jinja('parameters-optimize', v)
     else:
         res += _render_jinja('source-field', v)
-        #res += _render_jinja('source-field-test', v)
     return res, v
 
 
@@ -953,6 +952,14 @@ def _prepare_conductors(data):
         if not _is_3D(data):
             c.yCenter = 0
     return data.models.conductors
+
+
+def _prepare_reflection(data):
+    return {
+        'isReflector': data.models.simulationGrid['reflect_ground'] == '1',
+        'specProb': data.models.simulationGrid['spec_prob'],
+        'diffProb': data.models.simulationGrid['diff_prob'],
+    }
 
 
 def _read_optimizer_output(run_dir):
