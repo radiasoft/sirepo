@@ -20,9 +20,6 @@ import datetime
 import importlib
 
 
-# name shown for users who are logged in as a guest
-GUEST_USER_DISPLAY_NAME = 'Guest User'
-
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
 
@@ -37,6 +34,8 @@ _COOKIE_STATE = 'sras'
 
 #: Identifies the user in the cookie
 _COOKIE_USER = 'srau'
+
+_GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _STATE_LOGGED_IN = 'li'
 _STATE_LOGGED_OUT = 'lo'
@@ -88,7 +87,7 @@ def api_authState():
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
             v.needCompleteRegistration = False
-            v.displayName = GUEST_USER_DISPLAY_NAME
+            v.displayName = _GUEST_USER_DISPLAY_NAME
         else:
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
@@ -121,8 +120,10 @@ def api_authLogout(simulation_type):
     return http_reply.gen_redirect_for_root(t)
 
 
-def complete_registration(name):
-    """Update the database with the user's display_name and sets state to logged-in."""
+def complete_registration(name=None):
+    """Update the database with the user's display_name and sets state to logged-in.
+    Guests will have no name.
+    """
     u = _get_user()
     with auth_db.thread_lock:
         r = _user_registration(u)
@@ -311,7 +312,7 @@ def require_user():
             p = {'method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
-            complete_registration(GUEST_USER_DISPLAY_NAME)
+            complete_registration()
             return None
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())
@@ -437,7 +438,7 @@ def _login_user(module, uid):
     s = _STATE_LOGGED_IN
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
         u = _user_registration(uid)
-        if not u.display_name or u.display_name == GUEST_USER_DISPLAY_NAME:
+        if not u.display_name:
             s = _STATE_COMPLETE_REGISTRATION
     cookie.set_value(_COOKIE_STATE, s)
     _set_log_user()
