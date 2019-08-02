@@ -44,6 +44,8 @@ _MAX_FILTER_PLOT_PARTICLES = 10
 
 _TUNES_FILE = 'tunesFromFai_spctra.Out'
 
+_ZGOUBI_COMMAND_FILE = 'zgoubi.dat'
+
 _ZGOUBI_FAI_DATA_FILE = 'zgoubi.fai'
 
 _ZGOUBI_FIT_VALUES_FILE = 'zgoubi.FITVALS.out'
@@ -454,8 +456,12 @@ def get_application_data(data):
 
 def get_data_file(run_dir, model, frame, options=None):
     filename = _ZGOUBI_FAI_DATA_FILE
-    if model == 'elementStepAnimation':
+    if options and options['suffix'] == _ZGOUBI_COMMAND_FILE:
+        filename = _ZGOUBI_COMMAND_FILE
+    elif model == 'elementStepAnimation':
         filename = _ZGOUBI_PLT_DATA_FILE
+    elif model == 'opticsReport' or 'twissReport' in model:
+        filename = _ZGOUBI_TWISS_FILE
     path = run_dir.join(filename)
     with open(str(path)) as f:
         return path.basename, f.read(), 'application/octet-stream'
@@ -893,6 +899,7 @@ def _generate_parameters_file(data):
     report = data.report if 'report' in data else ''
     if report == 'tunesReport':
         return template_common.render_jinja(SIM_TYPE, v, TUNES_INPUT_FILE)
+    v['zgoubiCommandFile'] = _ZGOUBI_COMMAND_FILE
     v['particleDef'] = _generate_particle(data.models.particle)
     v['beamlineElements'] = _generate_beamline_elements(report, data)
     v['bunchCoordinates'] = data.models.bunch.coordinates

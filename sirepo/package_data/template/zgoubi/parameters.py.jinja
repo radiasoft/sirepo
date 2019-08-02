@@ -29,5 +29,5 @@ zgoubi.fai
 line.add(core.REBELOTE(K=99, NPASS={{ simulationSettings_npass - 1 }}))
 line.add(core.END())
 
-with open('zgoubi.dat', 'w') as f:
+with open('{{ zgoubiCommandFile }}', 'w') as f:
     f.write(line.output())
