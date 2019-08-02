@@ -384,14 +384,14 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
-        var is3d = appState.models.simulationGrid.simulation_mode == '3d' && ranIn3d;
+        var is3d = appState.models.simulationGrid.simulation_mode == '3d';
         ['channel_height', 'num_y'].forEach(function(f) {
             panelState.showField('simulationGrid', f, is3d);
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
-        panelState.showField('fieldCalcAnimation', 'axes', is3d);
-        panelState.showEnum(warpvndService.activeComparisonReport(), 'dimension', 'y', is3d);
+        panelState.showField('fieldCalcAnimation', 'axes', is3d && ranIn3d);
+        panelState.showEnum(warpvndService.activeComparisonReport(), 'dimension', 'y', is3d && ranIn3d);
     }
 
     self.isWaitingForSTL = false;
