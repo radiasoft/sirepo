@@ -251,7 +251,10 @@
             "title": "Anode",
             "advanced": [
                 "beam.anode_voltage",
-                "beam.anode_work_function"
+                "beam.anode_work_function",
+                "simulationGrid.reflect_ground",
+                "simulationGrid.spec_prob",
+                "simulationGrid.diff_prob"
             ]
         },
         "beam": {
@@ -455,10 +458,7 @@
                 "num_x",
                 "num_y",
                 "num_z",
-                "z_particle_min",
-                "reflect_ground",
-                "spec_prob",
-                "diff_prob"
+                "z_particle_min"
             ]
         },
         "simulation": {

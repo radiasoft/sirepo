@@ -234,7 +234,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
 });
 
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, vtkPlotting, warpvndService, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, utilities, validationService, vtkPlotting, warpvndService, $scope, $compile) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
@@ -295,7 +295,13 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     function balanceProbs() {
-        srdbg('bal');
+        return probModels
+            .map(function (m) {
+                return parseFloat(m.$viewValue);
+            })
+            .reduce(function (sum, p) {
+                return sum + p;
+            }, 0) <= 1.0;
     }
 
     // stl files can have arbitrary scale - we are using our knowledge of the problem space
@@ -330,10 +336,49 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return true;
     }
 
+    var probFields = ['spec_prob', 'diff_prob'];
+    var probModels = [];
+    function reloadAnodeValidator() {
+        probFields.forEach(function (f) {
+            probModels.push(utilities.ngModelForInput('simulationGrid', f));
+            validationService.setModelFieldValidator('simulationGrid', f,
+                balanceProbs,
+                function () {
+                    return 'Sum of reflection probabilities cannot exceed 1';
+                }
+            );
+        });
+    }
+
+    function removeAnodeValidator() {
+        probFields.forEach(function (f) {
+            validationService.removeModelFieldValidator('simulationGrid', f);
+        });
+        probModels.length = 0;
+    }
+
+    var anodeModal = null;
+    function initAnodeModal(modal) {
+        srdbg('init anode');
+        if (! anodeModal) {
+            anodeModal = modal;
+            var dpDiv = $(modal).find('.' + utilities.modelFieldID('simulationGrid', 'diff_prob'));
+            $scope.msg = function () {
+                return validationService.getModelFieldMessage('simulationGrid', 'diff_prob');
+            };
+            //var mds = '<div class="sr-input-warning">{{ validationService.getModelFieldMessage(\'simulationGrid\', \'diff_prob\') }}</div>';
+            var mds = '<div class="sr-input-warning">{{ msg() }}</div>';
+            var msgDiv = $compile(mds)($scope);
+            $(dpDiv).after(msgDiv);
+            $(modal).on('shown.bs.modal', reloadAnodeValidator);
+            //$(modal).on('hidden.bs.modal', removeAnodeValidator);
+        }
+    }
+
     function setFieldState() {
-        panelState.enableField('stl', 'zLength', false);
-        panelState.enableField('stl', 'xLength', false);
-        panelState.enableField('stl', 'yLength', false);
+        ['xLength', 'yLength', 'zLength'].forEach(function (f) {
+            panelState.enableField('stl', f, false);
+        });
     }
 
     function updateAllFields() {
@@ -387,8 +432,9 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     function updateRefelction() {
-        panelState.showField('simulationGrid', 'spec_prob', appState.models.simulationGrid.reflect_ground == '1');
-        panelState.showField('simulationGrid', 'diff_prob', appState.models.simulationGrid.reflect_ground == '1');
+        ['spec_prob', 'diff_prob'].forEach(function (f) {
+            panelState.showField('simulationGrid', f, appState.models.simulationGrid.reflect_ground == '1');
+        });
     }
 
     function updateSimulationMode() {
@@ -565,8 +611,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
         appState.watchModelFields($scope, ['simulationGrid.reflect_ground'], updateRefelction);
-        appState.watchModelFields($scope, ['simulationGrid.spec_prob'], balanceProbs);
-        appState.watchModelFields($scope, ['simulationGrid.diff_prob'], balanceProbs);
+        //appState.watchModelFields($scope, ['simulationGrid.spec_prob'], balanceProbs);
+        //appState.watchModelFields($scope, ['simulationGrid.diff_prob'], balanceProbs);
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, [warpvndService.activeComparisonReport() + '.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
@@ -576,6 +622,12 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             });
         });
         appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
+
+
+        $scope.$on('anode.editor.show', function () {
+            initAnodeModal($('#' + panelState.modalId('anode')));
+        });
+
     });
 });
 
@@ -1261,7 +1313,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
             }
 
-            function editPlate(name) {
+            function editPlate(name, template) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
                     panelState.showModalEditor(name);

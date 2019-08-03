@@ -736,32 +736,66 @@ SIREPO.app.service('validationService', function(utilities) {
     this.fieldValidators = {};
     this.enumValidators = {};
 
-    this.setFieldValidator = function(name, validatorFn, messageFn) {
-        if(! this.fieldValidators[name]) {
+    this.setFieldValidator = function(name, validatorFn, messageFn, ngModel, ngModelValidatorName) {
+        if (! this.fieldValidators[name]) {
             this.fieldValidators[name] = {};
         }
         this.fieldValidators[name].vFunc = validatorFn;
         this.fieldValidators[name].vMsg = messageFn;
+        if (ngModel && ngModelValidatorName) {
+            this.reloadValidatorForNGModel(name, ngModelValidatorName, ngModel);
+        }
         return this.fieldValidators[name];
     };
+
+    this.setModelFieldValidator = function(modelName, fieldName, validatorFn, messageFn) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
+    };
+
     this.getFieldValidator = function(name) {
         return this.fieldValidators[name];
     };
+
+    this.getModelFieldMessage = function (modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.getMessageForNGModel(fullName, fullName, ngModel);
+    };
+
     this.removeFieldValidator = function(name) {
-        if(this.fieldValidators[name]) {
+        if (this.fieldValidators[name]) {
             delete this.fieldValidators[name];
         }
     };
-    this.reloadValidatorForModel = function(name, modelValidatorName, ngModel) {
+
+    this.reloadValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
         var fv = this.getFieldValidator(name);
-        if(! ngModel.$validators[modelValidatorName]) {
-            if(fv) {
-                ngModel.$validators[modelValidatorName] = fv.vFunc;
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            if (fv) {
+                srdbg('add v', ngModelValidatorName);
+                ngModel.$validators[ngModelValidatorName] = fv.vFunc;
             }
         }
     };
-    this.getMessageForModel = function(name, modelValidatorName, ngModel) {
-        if(! ngModel.$validators[modelValidatorName]) {
+
+    this.removeModelFieldValidator = function(modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        this.removeValidatorForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.removeValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (ngModel.$validators[ngModelValidatorName]) {
+            delete ngModel.$validators[ngModelValidatorName];
+        }
+        this.removeFieldValidator(name);
+    };
+
+    this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            srdbg('getMessageForNGModel no validator for', ngModelValidatorName, ngModel.$validators);
             return '';
         }
         var fv = this.getFieldValidator(name);
@@ -772,11 +806,11 @@ SIREPO.app.service('validationService', function(utilities) {
     this.getEnumValidator = function(enumName) {
 
         var validator = this.getFieldValidator(enumName);
-        if(validator) {
+        if (validator) {
             return validator;
         }
         var enums = SIREPO.APP_SCHEMA.enum[enumName];
-        if(! enums) {
+        if (! enums) {
             throw enumName + ':' + ' no such enum';
         }
         var isValid = function(name) {
@@ -789,7 +823,7 @@ SIREPO.app.service('validationService', function(utilities) {
         };
         validator = this.setFieldValidator(enumName, isValid, err);
         validator.find = function (name) {
-            if(! validator.vFunc(name)) {
+            if (! validator.vFunc(name)) {
                 throw validator.vMsg(name);
             }
             return name;
@@ -818,7 +852,7 @@ SIREPO.app.service('validationService', function(utilities) {
         if (type === 'String') {
             return true;
         }
-        if(SIREPO.APP_SCHEMA.enum[type]) {
+        if (SIREPO.APP_SCHEMA.enum[type]) {
             return this.getEnumValidator(type).vFunc(value);
         }
         // TODO(mvk): other types here, for now just accept everything

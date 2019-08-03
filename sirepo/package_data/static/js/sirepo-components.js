@@ -1289,11 +1289,11 @@ SIREPO.app.directive('validatedString', function(panelState, validationService) 
 
             var modelValidatorName = 'vstring';
             scope.getWarningText = function() {
-                return validationService.getMessageForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+                return validationService.getMessageForNGModel(scope.fieldValidatorName, modelValidatorName, ngModel);
             };
 
             function reloadValidator() {
-                validationService.reloadValidatorForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+                validationService.reloadValidatorForNGModel(scope.fieldValidatorName, modelValidatorName, ngModel);
             }
 
             // add and remove validators as needed
@@ -3214,13 +3214,17 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
+    this.ngModelForInput = function (modelName, fieldName) {
+        return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
+    };
+
     this.isWide = function() {
         return $window.innerWidth > 767;
     };
 
     // font utilities
     this.fontSizeFromString = function(fsString) {
-        if(! fsString) {
+        if (! fsString) {
             return 0;
         }
         return parseFloat(fsString.substring(0, fsString.indexOf('px')));
@@ -3262,13 +3266,13 @@ SIREPO.app.service('utilities', function($window, $interval) {
             };
     };
     this.fullscreenListenerEvent = function() {
-        if(this.exitFullscreenFn() == document.mozCancelFullScreen) {
+        if (this.exitFullscreenFn() == document.mozCancelFullScreen) {
             return 'mozfullscreenchange';
         }
-        if(this.exitFullscreenFn() == document.webkitExitFullscreen) {
+        if (this.exitFullscreenFn() == document.webkitExitFullscreen) {
             return 'webkitfullscreenchange';
         }
-        if(this.exitFullscreenFn() == document.msExitFullscreen) {
+        if (this.exitFullscreenFn() == document.msExitFullscreen) {
             return 'MSFullscreenChange';
         }
         return 'fullscreenchange';
@@ -3305,11 +3309,11 @@ SIREPO.app.service('utilities', function($window, $interval) {
             for(var j = 0; j < uniqueArr.length; ++j) {
                 var b = uniqueArr[j];
                 found = equals ? equals(a, b) : a === b;
-                if(found) {
+                if (found) {
                     break;
                 }
             }
-            if(! found) {
+            if (! found) {
                 uniqueArr.push(a);
             }
         });
