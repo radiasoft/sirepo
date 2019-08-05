@@ -4051,9 +4051,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     // loop over faces
                     c.forEach(function (f) {
-                        var err = f.err;
-                        if (err) {
-                            errorService.alertText(err);
+                        if (f.err) {
+                            errorService.alertText(f.err);
                             return;
                         }
                         if (! f.y) {
@@ -4137,7 +4136,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var x = faceData.x.map(toNano);
                 var y = faceData.y.map(toNano);
                 var z = faceData.z.map(toNano);
-                //srdbg('data', d, x, y, z);
                 var dx = Math.max.apply(null, x) - Math.min.apply(null, x);
                 var dy = Math.max.apply(null, y) - Math.min.apply(null, y);
                 var dz = Math.max.apply(null, z) - Math.min.apply(null, z);
@@ -4157,7 +4155,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var dataTris = [];
                 for (var k = 0; k < nk; ++k) {
                     var j = 3 * k;
-                    //srdbg('adding unstr val', k);
                     var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k]))
                         .map(function (cc) {
                             return Math.floor(255*cc);
@@ -4173,12 +4170,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     for (var cx = 0; cx < vtkPts.length; ++cx) {
                         dataPoints.push(vtkPts[cx]);
                     }
-                    //srdbg('data pts', dataPoints);
-                    //srdbg('data tris', dataTris);
                 }
-                //srdbg('data pts', dataPoints);
-                //srdbg('data tris', dataTris);
-                //srdbg('num data pts', dataPoints.length);
                 var p32 = window.Float32Array.from(dataPoints);
                 var t32 = window.Uint32Array.from(dataTris);
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
@@ -4191,7 +4183,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
                 pd.getPolys().setData(t32);
-                //srdbg('numn polys', pd.getPolys().getNumberOfTuples());
                 b.mapper.setScalarVisibility(true);
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);
@@ -4284,7 +4275,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
-                //srdbg('index', index, 'xix', fieldxIndex, 'zix', fieldzIndex, 'num hm', heatmap.length);
                 if (! index) {
                     return plotting.colorsFromHexString('#000000', 255.0);
                 }

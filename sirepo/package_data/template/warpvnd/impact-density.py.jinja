@@ -51,27 +51,22 @@ try:
             c = plot_density.conductors[i]
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
-            min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            try:
+                min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            except ValueError:
+                err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
+                print(err)
+                f_data = {
+                    'err': err
+                }
+                c_data.append(f_data)
+                i_data.append(c_data)
+                continue
             global_max = max(global_max, max_s)
             for (x, y, z, s) in d:
-                #n_bins = 20
-                #s_aves_k = []
-                #s_aves_l = []
-                #bin_size_k = int(math.floor(len(x) / n_bins))
-                #bin_size_l = int(math.floor(len(x[0]) / n_bins))
-                #for b in range(n_bins):
-                #    k1 = b * bin_size
-                #    k2 = (b + 1) * bin_size
-                #    s_aves_k.append(np.mean(s[k1:k2][l1:l2], axis=(0, 1)))
-                #    for bb in range(n_bins):
-                #        l1 = bb * bin_size
-                #        l2 = (bb + 1) * bin_size
-                #        #print('bin {} from {} to {}'.format(b, i1, i2))
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
-                #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
-                #print('!GOT X {} Y {} Z {} S {}'.format(x, y, z, s))
                 f_data = {
                     'dArr': s.tolist(),
                     'n': len(x)
@@ -96,8 +91,9 @@ try:
                     try:
                         dlny = scipy.spatial.Delaunay(pts)
                     except scipy.spatial.qhull.QhullError:
-                        print('Cannot triangulate conductor {}'.format(c))
-                        f_data['err'] = 'Cannot triangulate conductor'
+                        err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
+                        print(err)
+                        f_data['err'] = err
                         c_data.append(f_data)
                         continue
 
@@ -157,7 +153,6 @@ try:
                     f_data['n'] = len(ss)
 
                     for cx, coord in enumerate((xx, yy, zz)):
-                        #print('{}: {} ({})'.format(coord_keys[cx], coord, len(coord)))
                         f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
@@ -194,9 +189,6 @@ try:
                     'hist': h.tolist(),
                     'n': len(x)
                 }
-                #print('cond {}: S aves {}'.format(i, s_aves))
-                #print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
-                #print('cond {}: S hist {} edges {}'.format(i, h, e))
                 for cx, coord in enumerate((x, z)):
                     sk = _linear_fit_1d(coord)
                     f_data[coord_keys[cx]] = {
