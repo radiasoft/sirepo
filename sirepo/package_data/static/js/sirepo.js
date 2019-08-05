@@ -774,7 +774,6 @@ SIREPO.app.service('validationService', function(utilities) {
         var fv = this.getFieldValidator(name);
         if (! ngModel.$validators[ngModelValidatorName]) {
             if (fv) {
-                srdbg('add v', ngModelValidatorName);
                 ngModel.$validators[ngModelValidatorName] = fv.vFunc;
             }
         }
@@ -795,7 +794,6 @@ SIREPO.app.service('validationService', function(utilities) {
 
     this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
         if (! ngModel.$validators[ngModelValidatorName]) {
-            srdbg('getMessageForNGModel no validator for', ngModelValidatorName, ngModel.$validators);
             return '';
         }
         var fv = this.getFieldValidator(name);

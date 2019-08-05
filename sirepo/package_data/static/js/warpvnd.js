@@ -295,13 +295,14 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     function balanceProbs() {
-        return probModels
-            .map(function (m) {
-                return parseFloat(m.$viewValue);
-            })
-            .reduce(function (sum, p) {
-                return sum + p;
-            }, 0) <= 1.0;
+        if (appState.models.simulationGrid.reflect_ground === '0') {
+            return true;
+        }
+        var sum = 0;
+        for (var f in probModels) {
+            sum +=  parseFloat(probModels[f].$viewValue);
+        }
+        return sum <= 1;
     }
 
     // stl files can have arbitrary scale - we are using our knowledge of the problem space
@@ -337,10 +338,13 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     var probFields = ['spec_prob', 'diff_prob'];
-    var probModels = [];
+    var probModels = {};
+    var anodeForm = null;
     function reloadAnodeValidator() {
         probFields.forEach(function (f) {
-            probModels.push(utilities.ngModelForInput('simulationGrid', f));
+            probModels[f]  = utilities.ngModelForInput('simulationGrid', f);
+            anodeForm = probModels[f].$$parentForm;
+            //srdbg('pm', probModels[f].$$element[0].attributes);
             validationService.setModelFieldValidator('simulationGrid', f,
                 balanceProbs,
                 function () {
@@ -353,25 +357,24 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     function removeAnodeValidator() {
         probFields.forEach(function (f) {
             validationService.removeModelFieldValidator('simulationGrid', f);
+            delete probModels[f];
         });
-        probModels.length = 0;
     }
 
     var anodeModal = null;
     function initAnodeModal(modal) {
-        srdbg('init anode');
         if (! anodeModal) {
             anodeModal = modal;
             var dpDiv = $(modal).find('.' + utilities.modelFieldID('simulationGrid', 'diff_prob'));
             $scope.msg = function () {
-                return validationService.getModelFieldMessage('simulationGrid', 'diff_prob');
+                return validationService.getModelFieldMessage('simulationGrid', 'spec_prob') ||
+                    validationService.getModelFieldMessage('simulationGrid', 'diff_prob');
             };
-            //var mds = '<div class="sr-input-warning">{{ validationService.getModelFieldMessage(\'simulationGrid\', \'diff_prob\') }}</div>';
             var mds = '<div class="sr-input-warning">{{ msg() }}</div>';
             var msgDiv = $compile(mds)($scope);
             $(dpDiv).after(msgDiv);
             $(modal).on('shown.bs.modal', reloadAnodeValidator);
-            //$(modal).on('hidden.bs.modal', removeAnodeValidator);
+            $(modal).on('hidden.bs.modal', removeAnodeValidator);
         }
     }
 
@@ -427,20 +430,24 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     function updatePermittivity(conductorType) {
         var type = conductorType || 'box';
-        panelState.showField(type, 'permittivity', appState.models[type].isConductor == '0');
-        $scope.defaultColor = appState.models[type].isConductor == '0' ? '#f3d4c8' : '#6992ff';
+        panelState.showField(type, 'permittivity', appState.models[type].isConductor === '0');
+        $scope.defaultColor = appState.models[type].isConductor === '0' ? '#f3d4c8' : '#6992ff';
     }
 
     function updateRefelction() {
-        ['spec_prob', 'diff_prob'].forEach(function (f) {
-            panelState.showField('simulationGrid', f, appState.models.simulationGrid.reflect_ground == '1');
+        var r = appState.models.simulationGrid.reflect_ground === '1';
+        if (! r) {
+            removeAnodeValidator();
+        }
+        probFields.forEach(function (f) {
+            panelState.showField('simulationGrid', f, r);
         });
     }
 
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
-        var is3d = appState.models.simulationGrid.simulation_mode == '3d';
+        var is3d = appState.models.simulationGrid.simulation_mode === '3d';
         ['channel_height', 'num_y'].forEach(function(f) {
             panelState.showField('simulationGrid', f, is3d);
         });
@@ -632,6 +639,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
 
         $scope.$on('anode.editor.show', function () {
+            reloadAnodeValidator();
             initAnodeModal($('#' + panelState.modalId('anode')));
         });
 

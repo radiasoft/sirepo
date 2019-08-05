@@ -232,7 +232,7 @@
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
             "num_steps": ["Simulation Steps", "Integer"],
-            "reflect_ground": ["Reflect Particles from Ground Plate", "Boolean", "0"],
+            "reflect_ground": ["Add Reflector", "Boolean", "0"],
             "spec_prob": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diff_prob": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
         },
