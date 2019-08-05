@@ -48,7 +48,8 @@ SIREPO.appPanelHeadingButtons = [
 
 SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 
-SIREPO.app.factory('srwService', function(appState, appDataService, beamlineService, panelState, activeSection, $rootScope, $location, $route) {
+SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
+    var FORMAT_DECIMALS = 8;
     var self = {};
     self.applicationMode = 'default';
     appDataService.applicationMode = null;
@@ -92,6 +93,10 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         return false;
     }
 
+    self.formatFloat = function(v) {
+        return +parseFloat(v).toFixed(FORMAT_DECIMALS);
+    };
+
     self.isApplicationMode = function(name) {
         return name == self.applicationMode;
     };
@@ -116,19 +121,36 @@ SIREPO.app.factory('srwService', function(appState, appDataService, beamlineServ
         return isSelected('m');
     };
 
-    self.isPredefinedBeam = function() {
-        if (appState.isLoaded()) {
-            return appState.models.electronBeam.isReadOnly ? true : false;
-        }
-        return false;
-    };
-
     self.isTabulatedUndulator = function() {
         return isSelected('t');
     };
 
     self.isTabulatedUndulatorWithMagenticFile = function() {
         return self.isTabulatedUndulator() && appState.models.tabulatedUndulator.undulatorType == 'u_t';
+    };
+
+    self.processBeamParameters = function() {
+        requestSender.getApplicationData(
+            {
+                method: 'process_beam_parameters',
+                source_type: appState.models.simulation.sourceType,
+                undulator_type: appState.models.tabulatedUndulator.undulatorType,
+                undulator_period: appState.models.undulator.period / 1000,
+                undulator_length: appState.models.undulator.length,
+                ebeam: appState.clone(appState.models.electronBeam),
+                ebeam_position: appState.clone(appState.models.electronBeamPosition),
+            },
+            function(data) {
+                if (! appState.isLoaded()) {
+                    return;
+                }
+                var ebeam = appState.models.electronBeam;
+                ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'].forEach(function(f) {
+                    ebeam[f] = self.formatFloat(data[f]);
+                });
+                appState.models.electronBeamPosition.drift = data.drift;
+            }
+        );
     };
 
     self.setShowCalcCoherence = function(isShown) {
@@ -314,7 +336,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         return [0, 0, 1, 1, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
 
-    function formatFloat(v) {
+    function formatDriftFloat(v) {
         var str = v.toFixed(4);
         str = str.replace(/0+$/, '');
         str = str.replace(/\.$/, '');
@@ -490,7 +512,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
             var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
-                    title: 'Drift ' + formatFloat(d) + 'm',
+                    title: 'Drift ' + formatDriftFloat(d) + 'm',
                     params: p[1],
                 });
             }
@@ -536,7 +558,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
     };
 
     self.showSimulationGrid = function() {
-        panelState.showModalEditor('simulationGrid');
+        panelState.showModalEditor('simulationGrid', null, $scope);
     };
 
     self.showTabs = function() {
@@ -659,7 +681,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     // required for $watch below
     $scope.appState = appState;
     self.srwService = srwService;
-    var FORMAT_DECIMALS = 8;
 
     function isActiveField(model, field) {
         var fieldClass = '.model-' + model + '-' + field;
@@ -679,58 +700,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         return res.toFixed(6);
     }
 
-    function disableBasicEditorBeamName() {
+    function disableBasicEditorNames() {
         $('#sr-electronBeam-basicEditor .model-electronBeam-name input').prop('readonly', true);
-    }
-
-    function formatFloat(v) {
-        return +parseFloat(v).toFixed(FORMAT_DECIMALS);
-    }
-
-    function isAutoDrift() {
-        return appState.models.electronBeamPosition.driftCalculationMethod === 'auto';
-    }
-
-    function isTwissDefinition() {
-        return appState.models.electronBeam.beamDefinition === 't';
-    }
-
-    function processBeamFields() {
-        var isPredefinedBeam = srwService.isPredefinedBeam();
-        var ebeam = appState.models.electronBeam;
-        // enable/disable beam fields
-        for (var f in ebeam) {
-            panelState.enableField('electronBeam', f, ! isPredefinedBeam);
-        }
-        disableBasicEditorBeamName();
-        // show/hide column headings and input fields for the twiss/moments sections
-        panelState.showRow('electronBeam', 'horizontalEmittance', isTwissDefinition());
-        panelState.showRow('electronBeam', 'rmsSizeX', ! isTwissDefinition());
-        panelState.enableField('electronBeamPosition', 'drift', ! isAutoDrift());
-    }
-
-    function processBeamParameters() {
-        requestSender.getApplicationData(
-            {
-                method: 'process_beam_parameters',
-                source_type: appState.models.simulation.sourceType,
-                undulator_type: appState.models.tabulatedUndulator.undulatorType,
-                undulator_period: appState.models.undulator.period / 1000,
-                undulator_length: appState.models.undulator.length,
-                ebeam: appState.clone(appState.models.electronBeam),
-                ebeam_position: appState.clone(appState.models.electronBeamPosition),
-            },
-            function(data) {
-                if (! appState.isLoaded()) {
-                    return;
-                }
-                var ebeam = appState.models.electronBeam;
-                ['rmsSizeX', 'rmsDivergX', 'xxprX', 'rmsSizeY', 'rmsDivergY', 'xxprY'].forEach(function(f) {
-                    ebeam[f] = formatFloat(data[f]);
-                });
-                appState.models.electronBeamPosition.drift = data.drift;
-            }
-        );
+        $('#sr-tabulatedUndulator-basicEditor .model-tabulatedUndulator-name input').prop('readonly', true);
     }
 
     function processBrillianceReport() {
@@ -858,26 +830,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         }
     }
 
-    function processUndulator() {
-        panelState.showRow('undulator', 'horizontalAmplitude', ! srwService.isTabulatedUndulatorWithMagenticFile());
-        ['effectiveDeflectingParameter', 'horizontalDeflectingParameter', 'verticalDeflectingParameter', 'period', 'length'].forEach(function(f) {
-            panelState.showField('undulator', f, ! srwService.isTabulatedUndulatorWithMagenticFile());
-        });
-        ['gap', 'phase', 'magneticFile'].forEach(function(f) {
-            panelState.showField('tabulatedUndulator', f, srwService.isTabulatedUndulatorWithMagenticFile());
-        });
-
-        // Make the effective deflecting parameter read-only:
-        panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
-
-        // Always hide some fields in the calculator mode:
-        if (srwService.isApplicationMode('calculator')) {
-            ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'].forEach(function(f) {
-                panelState.showField('undulator', f, false);
-            });
-        }
-    }
-
     function processUndulatorDefinition(undulatorDefinition, deflectingParameter, amplitude) {
         if (! (srwService.isIdealizedUndulator() || srwService.isTabulatedUndulator())) {
             return;
@@ -895,25 +847,26 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 if (! appState.isLoaded()) {
                     return;
                 }
+                var undulator = appState.models.undulator;
                 if (undulatorDefinition === 'K') {
                     if (deflectingParameter === 'horizontalDeflectingParameter') {
-                        appState.models.undulator.horizontalAmplitude = formatFloat(data.amplitude);
+                        undulator.horizontalAmplitude = srwService.formatFloat(data.amplitude);
                     }
                     else {
-                        appState.models.undulator.verticalAmplitude = formatFloat(data.amplitude);
+                        undulator.verticalAmplitude = srwService.formatFloat(data.amplitude);
                     }
                 }
                 else if (undulatorDefinition === 'B') {
                     if (amplitude === 'horizontalAmplitude') {
-                        appState.models.undulator.horizontalDeflectingParameter = formatFloat(data.undulator_parameter);
+                        undulator.horizontalDeflectingParameter = srwService.formatFloat(data.undulator_parameter);
                     }
                     else {
-                        appState.models.undulator.verticalDeflectingParameter = formatFloat(data.undulator_parameter);
+                        undulator.verticalDeflectingParameter = srwService.formatFloat(data.undulator_parameter);
                     }
                 }
-                appState.models.undulator.effectiveDeflectingParameter = formatFloat(Math.sqrt(
-                    Math.pow(appState.models.undulator.horizontalDeflectingParameter, 2) +
-                    Math.pow(appState.models.undulator.verticalDeflectingParameter, 2)
+                undulator.effectiveDeflectingParameter = srwService.formatFloat(Math.sqrt(
+                    Math.pow(undulator.horizontalDeflectingParameter, 2) +
+                    Math.pow(undulator.verticalDeflectingParameter, 2)
                 ));
             }
         );
@@ -948,16 +901,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
             processTrajectoryReport();
             processTrajectoryAxis();
         }
-        else if (name === 'electronBeam') {
-            processBeamFields();
-        }
     };
 
     $scope.$on('modelChanged', function(e, name) {
-        if (name == 'simulation') {
-            processUndulator();
-        }
-        else if (name == 'undulator' || name == 'tabulatedUndulator') {
+        if (name == 'undulator' || name == 'tabulatedUndulator') {
             // make sure the electronBeam.drift is also updated
             appState.saveQuietly('electronBeamPosition');
         }
@@ -975,6 +922,9 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
                 sim.distanceFromSource = sourceReport.distanceFromSource;
                 appState.saveChanges('simulation');
             }
+        }
+        else if (name == 'simulation') {
+            panelState.waitForUI(disableBasicEditorNames);
         }
     });
 
@@ -1000,30 +950,10 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
     appState.whenModelsLoaded($scope, function() {
         changeFluxReportName('fluxReport');
         changeFluxReportName('fluxAnimation');
-        disableBasicEditorBeamName();
-        processUndulator();
+        disableBasicEditorNames();
         processGaussianBeamSize();
         processIntensityReport('sourceIntensityReport');
         processIntensityReport('intensityReport');
-
-        appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeam.beamDefinition'], processBeamFields);
-
-        appState.watchModelFields($scope, ['electronBeam.name'], function() {
-            // keep beamSelector in sync with name
-            appState.models.electronBeam.beamSelector = appState.models.electronBeam.name;
-        });
-        appState.watchModelFields($scope, ['tabulatedUndulator.name'], function() {
-            // keep undulatorSelector in sync with name
-            appState.models.tabulatedUndulator.undulatorSelector = appState.models.tabulatedUndulator.name;
-        });
-
-        appState.watchModelFields($scope, ['electronBeamPosition.driftCalculationMethod'], function() {
-            processBeamParameters();
-            processBeamFields();
-        });
-
-        appState.watchModelFields($scope, ['electronBeam.horizontalEmittance', 'electronBeam.horizontalBeta', 'electronBeam.horizontalAlpha', 'electronBeam.horizontalDispersion', 'electronBeam.horizontalDispersionDerivative', 'electronBeam.verticalEmittance', 'electronBeam.verticalBeta', 'electronBeam.verticalAlpha', 'electronBeam.verticalDispersion', 'electronBeam.verticalDispersionDerivative'], processBeamParameters);
-
 
         ['fluxReport', 'fluxAnimation'].forEach(function(f) {
             appState.watchModelFields($scope, [f + '.fluxType', f + '.distanceFromSource'], function() {
@@ -1040,24 +970,6 @@ SIREPO.app.controller('SRWSourceController', function (appState, panelState, req
         });
 
         appState.watchModelFields($scope, ['intensityReport.method'], updatePrecisionLabel);
-
-        appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType', 'undulator.length', 'undulator.period', 'simulation.sourceType'], processBeamParameters);
-
-        appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType'], processUndulator);
-
-        appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap', 'tabulatedUndulator.undulatorType'], function() {
-            requestSender.getApplicationData(
-                {
-                    method: 'compute_undulator_length',
-                    tabulated_undulator: appState.models.tabulatedUndulator,
-                },
-                function(data) {
-                    if (appState.isLoaded() && data.length) {
-                        appState.models.undulator.length = data.length;
-                    }
-                }
-            );
-        });
 
         appState.watchModelFields($scope, ['trajectoryReport.timeMomentEstimation'], processTrajectoryReport);
         appState.watchModelFields($scope, ['trajectoryReport.plotAxisY'], processTrajectoryAxis);
@@ -1098,6 +1010,91 @@ SIREPO.app.directive('appFooter', function(appState, srwService) {
             '<div data-common-footer="nav"></div>',
             '<div data-import-python=""></div>',
         ].join(''),
+    };
+});
+
+SIREPO.app.directive('srElectronbeamEditor', function(appState, panelState, srwService) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processBeamFields() {
+                var isTwissDefinition = appState.models.electronBeam.beamDefinition === 't';
+                var isAutoDrift = appState.models.electronBeamPosition.driftCalculationMethod === 'auto';
+                // show/hide column headings and input fields for the twiss/moments sections
+                panelState.showRow('electronBeam', 'horizontalEmittance', isTwissDefinition);
+                panelState.showRow('electronBeam', 'rmsSizeX', ! isTwissDefinition);
+                panelState.enableField('electronBeamPosition', 'drift', ! isAutoDrift);
+            }
+
+            $scope.$on('sr-tabSelected', processBeamFields);
+
+            appState.whenModelsLoaded($scope, function() {
+                appState.watchModelFields($scope, ['electronBeam.beamDefinition'], processBeamFields);
+                appState.watchModelFields($scope, ['electronBeam.beamSelector', 'electronBeamPosition.driftCalculationMethod'], function() {
+                    srwService.processBeamParameters();
+                    processBeamFields();
+                });
+                ['horizontal', 'vertical'].forEach(function(dir) {
+                    appState.watchModelFields(
+                        $scope,
+                        ['Emittance', 'Beta', 'Alpha', 'Dispersion', 'DispersionDerivative'].map(function(f) {
+                            return 'electronBeam.' + dir + f;
+                        }), srwService.processBeamParameters);
+                });
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('srTabulatedundulatorEditor', function(appState, panelState, requestSender, srwService) {
+    return {
+        restrict: 'A',
+        controller: function($scope) {
+
+            function processUndulator() {
+                panelState.showRow('undulator', 'horizontalAmplitude', ! srwService.isTabulatedUndulatorWithMagenticFile());
+                ['effectiveDeflectingParameter', 'horizontalDeflectingParameter', 'verticalDeflectingParameter', 'period', 'length'].forEach(function(f) {
+                    panelState.showField('undulator', f, ! srwService.isTabulatedUndulatorWithMagenticFile());
+                });
+                ['gap', 'phase', 'magneticFile'].forEach(function(f) {
+                    panelState.showField('tabulatedUndulator', f, srwService.isTabulatedUndulatorWithMagenticFile());
+                });
+
+                // Make the effective deflecting parameter read-only:
+                panelState.enableField('undulator', 'effectiveDeflectingParameter', false);
+
+                // Always hide some fields in the calculator mode:
+                if (srwService.isApplicationMode('calculator')) {
+                    ['longitudinalPosition', 'horizontalSymmetry', 'verticalSymmetry'].forEach(function(f) {
+                        panelState.showField('undulator', f, false);
+                    });
+                }
+            }
+
+            function processUndulatorLength() {
+                requestSender.getApplicationData(
+                    {
+                        method: 'compute_undulator_length',
+                        tabulated_undulator: appState.models.tabulatedUndulator,
+                    },
+                    function(data) {
+                        if (appState.isLoaded() && data.length) {
+                            appState.models.undulator.length = data.length;
+                        }
+                    }
+                );
+            }
+
+            appState.whenModelsLoaded($scope, function() {
+                processUndulator();
+                appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType'], processUndulator);
+
+                appState.watchModelFields($scope, ['tabulatedUndulator.undulatorType', 'undulator.length', 'undulator.period', 'simulation.sourceType'], srwService.processBeamParameters);
+
+                appState.watchModelFields($scope, ['tabulatedUndulator.magneticFile', 'tabulatedUndulator.gap', 'tabulatedUndulator.undulatorType'], processUndulatorLength);
+            });
+        },
     };
 });
 
@@ -1502,45 +1499,47 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 '<li data-ng-repeat="item in userModelList | orderBy:\'name\' track by item.id" class="sr-model-list-item">',
                   '<a href data-ng-click="selectItem(item)">{{ item.name }}<span data-ng-show="! isSelectedItem(item)" data-ng-click="deleteItem(item, $event)" class="glyphicon glyphicon-remove"></span></a>',
                 '</li>',
-                '<li data-ng-if="! isElectronBeam() && userModelList.length" class="divider"></li>',
-                '<li><a href data-ng-if="! isElectronBeam()" data-ng-click="addNewUndulator()"><span class="glyphicon glyphicon-plus"></span> Add New</a></li>',
               '</ul>',
-            '</div>',
-            '<div class="col-sm-2" data-ng-if="model.isReadOnly">',
-              '<div class="form-control-static"><a href data-ng-click="editItem()">Edit Beam</a></div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            $scope.appState = appState;
+
+            function addNewModel(model) {
+                model.id = appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
+                // ensure the name is unique across all existing models
+                var allModels = [];
+                $.merge(allModels, $scope.modelList);
+                $.merge(allModels, $scope.userModelList);
+                allModels.some(function(m) {
+                    if (model.name == m.name) {
+                        model.name = appState.uniqueName(allModels, 'name', model.name + ' {}');
+                        return true;
+                    }
+                });
+                delete model.isReadOnly;
+                var cloned = appState.clone(model);
+                if ($scope.isTabulatedUndulator()) {
+                    cloned.undulator = appState.clone(appState.models.undulator);
+                }
+                $scope.userModelList.push(cloned);
+            }
 
             function newModelId() {
                 return appState.uniqueName($scope.userModelList, 'id', appState.models.simulation.simulationId + ' {}');
             }
 
-            $scope.addNewUndulator = function() {
-                ['tabulatedUndulator', 'undulator'].forEach(function(name) {
-                    appState.models[name] = appState.clone(appState.models[name]);
+            function updateListFromModel(model) {
+                $scope.userModelList.some(function(m) {
+                    if (m.id == model.id) {
+                        $.extend(m, appState.clone(model));
+                        if ($scope.isTabulatedUndulator()) {
+                            $.extend(m.undulator, appState.clone(appState.models.undulator));
+                        }
+                        return true;
+                    }
                 });
-                appState.models.tabulatedUndulator.id = newModelId();
-                appState.models.tabulatedUndulator.name = '';
-                appState.models.undulatorSelector = '';
-                //TODO(pjm): add panelState.setFocus(model, field)
-                $('.model-tabulatedUndulator-name .form-control').first().select();
-            };
-            $scope.editItem = function() {
-                // copy the current model, rename and show editor
-                var newModel = appState.clone(appState.models[$scope.modelName]);
-                delete newModel.isReadOnly;
-                newModel.name = appState.uniqueName($scope.userModelList, 'name', newModel.name + ' (copy {})');
-                if ($scope.isElectronBeam()) {
-                    newModel.beamSelector = newModel.name;
-                }
-                else {
-                    newModel.undulatorSelector = newModel.name;
-                }
-                newModel.id = newModelId();
-                appState.models[$scope.modelName] = newModel;
-            };
+            }
+
             $scope.deleteItem = function(item, $event) {
                 $event.stopPropagation();
                 $event.preventDefault();
@@ -1548,12 +1547,15 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                     {
                         method: 'delete_user_models',
                         electron_beam: $scope.isElectronBeam() ? item : null,
-                        tabulated_undulator: $scope.isElectronBeam() ? null : item,
+                        tabulated_undulator: $scope.isTabulatedUndulator() ? item : null,
                     },
                     $scope.loadModelList);
             };
             $scope.isElectronBeam = function() {
                 return $scope.modelName == 'electronBeam';
+            };
+            $scope.isTabulatedUndulator = function() {
+                return $scope.modelName == 'tabulatedUndulator';
             };
             $scope.isSelectedItem = function(item) {
                 return item.id == appState.models[$scope.modelName].id;
@@ -1583,37 +1585,28 @@ SIREPO.app.directive('modelSelectionList', function(appState, requestSender) {
                 item = appState.clone(item);
                 appState.models[$scope.modelName] = item;
                 item[$scope.field] = item.name;
-                if (! $scope.isElectronBeam()) {
+                if ($scope.isTabulatedUndulator()) {
                     appState.models.undulator = item.undulator;
                 }
             };
-        },
-        link: function link(scope) {
-            scope.loadModelList();
-            scope.$on('modelChanged', function(e, name) {
-                if (name != scope.modelName) {
-                    return;
+            $scope.$on($scope.modelName + '.changed', function(e, name) {
+                var model = appState.models[$scope.modelName];
+                var selectorName = ($scope.isElectronBeam() ? 'beam' : 'undulator') + 'Selector';
+
+                if (model.name != model[selectorName]) {
+                    // use has edited the name, add the info as a new model
+                    addNewModel(model);
+                    model[selectorName] = model.name;
+                    appState.saveQuietly($scope.modelName);
                 }
-                var model = appState.models[scope.modelName];
-                if (model.isReadOnly) {
-                    return;
-                }
-                var foundIt = false;
-                model = appState.clone(model);
-                if (! scope.isElectronBeam()) {
-                    model.undulator = appState.clone(appState.models.undulator);
-                }
-                for (var i = 0; i < scope.userModelList.length; i++) {
-                    if (scope.userModelList[i].id == model.id) {
-                        scope.userModelList[i] = model;
-                        foundIt = true;
-                        break;
-                    }
-                }
-                if (! foundIt) {
-                    scope.userModelList.push(model);
+                else if (! model.isReadOnly) {
+                    // save custom model values into list
+                    updateListFromModel(model);
                 }
             });
+        },
+        link: function(scope) {
+            scope.loadModelList();
         },
     };
 });

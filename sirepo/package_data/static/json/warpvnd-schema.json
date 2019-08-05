@@ -1,8 +1,9 @@
 {
     "animationArgs": {
-        "fieldCalcAnimation": ["axes", "slice"],
+        "fieldCalcAnimation": ["axes", "displayMode", "slice"],
         "fieldComparisonAnimation": [
             "dimension",
+            "displayMode",
             "xCell1",
             "xCell2",
             "xCell3",

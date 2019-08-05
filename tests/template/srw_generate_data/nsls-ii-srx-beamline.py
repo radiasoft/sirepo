@@ -235,7 +235,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['fdir', 's', '', 'folder (directory) name for reading-in input and saving output data files'],
 
 #---Electron Beam
-    ['ebm_nm', 's', 'NSLS-II Low Beta Day 1', 'standard electron beam name'],
+    ['ebm_nm', 's', '', 'standard electron beam name'],
     ['ebm_nms', 's', '', 'standard electron beam name suffix: e.g. can be Day1, Final'],
     ['ebm_i', 'f', 0.5, 'electron beam current [A]'],
     ['ebm_e', 'f', 3.0, 'electron beam avarage energy [GeV]'],
@@ -258,13 +258,6 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_etay', 'f', 0.0, 'vertical dispersion function [m]'],
     ['ebm_etaxp', 'f', 0.0, 'horizontal dispersion function derivative [rad]'],
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
-    # Definition of the beam through Moments:
-    ['ebm_sigx', 'f', 4.06939799e-05, 'horizontal RMS size of electron beam [m]'],
-    ['ebm_sigy', 'f', 3.05941171e-06, 'vertical RMS size of electron beam [m]'],
-    ['ebm_sigxp', 'f', 2.211629342e-05, 'horizontal RMS angular divergence of electron beam [rad]'],
-    ['ebm_sigyp', 'f', 2.6148818e-06, 'vertical RMS angular divergence of electron beam [rad]'],
-    ['ebm_mxxp', 'f', 0.0, 'horizontal position-angle mixed 2nd order moment of electron beam [m]'],
-    ['ebm_myyp', 'f', 0.0, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
 
 #---Undulator
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],

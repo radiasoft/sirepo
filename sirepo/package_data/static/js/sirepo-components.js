@@ -487,9 +487,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
-              '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
-                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-units="model.units"></div>',
-              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -587,7 +584,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
     };
 });
 
-SIREPO.app.directive('logoutMenu', function(authState, authService) {
+SIREPO.app.directive('logoutMenu', function(authState, authService, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -601,13 +598,25 @@ SIREPO.app.directive('logoutMenu', function(authState, authService) {
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
+                '<li data-ng-if="::!guestToUserUrl"><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
+                '<li data-ng-if="::guestToUserUrl"><a data-ng-href="{{ ::guestToUserUrl }}">Save your work!</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
+
+            if (authState.method == 'guest') {
+                authState.visibleMethods.some(function(method) {
+                    if (method != 'guest') {
+                        $scope.guestToUserUrl = requestSender.formatUrlLocal(
+                            'loginWith',
+                            {':method': method});
+                        return true;
+                    }
+                });
+            }
         },
     };
 });
@@ -2244,7 +2253,7 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
             '<div class="row text-center">',
             '<p>Please enter your full name to complete your Sirepo registration.</p>',
             '</div>',
-            '<form class="form-horizontal" autocomplete="off">',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your full name</label>',
                 '<div class="col-sm-7">',
@@ -2294,7 +2303,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             '<div class="row text-center">',
               '<p>Enter your email address and we\'ll send an authorization link to your inbox.</p>',
             '</div>',
-            '<form class="form-horizontal" autocomplete="off">',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
               '<div class="row text-center">',
                 '<label class="col-sm-3 control-label">Your Email</label>',
                 '<div class="col-sm-9">',
@@ -2303,7 +2312,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 '</div>',
               '</div>',
               '<div class="row text-center" style="margin-top: 10px">',
-                 '<button data-ng-click="login()" class="btn btn-primary">Login</button>',
+                 '<button data-ng-click="login()" class="btn btn-primary">Continue</button>',
               '</div>',
             '</form>',
             '<div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">',
@@ -2361,6 +2370,7 @@ SIREPO.app.directive('commonFooter', function() {
         template: [
             '<div data-delete-simulation-modal="nav"></div>',
             '<div data-reset-simulation-modal="nav"></div>',
+            '<div data-modal-editor="" view-name="simulation"></div>',
         ].join(''),
     };
 });
@@ -2651,9 +2661,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
-            //if (! $scope.model) {
-            //    $scope.model = appState.models[$scope.modelName];
-            //}
         },
     };
 });

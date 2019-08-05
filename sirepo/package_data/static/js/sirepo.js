@@ -105,7 +105,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     $compileProvider.commentDirectivesEnabled(false);
     $compileProvider.cssClassDirectivesEnabled(false);
 
-    function addRoute(routeName, isDefault) {
+    function addRoute(routeName) {
         var routeInfo = SIREPO.APP_SCHEMA.localRoutes[routeName];
         if (! routeInfo.config) {
             // the route isn't configured for the current app
@@ -115,7 +115,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         var cfg = routeInfo.config;
         cfg.templateUrl += SIREPO.SOURCE_CACHE_KEY;
         $routeProvider.when(routeInfo.route, cfg);
-        if (isDefault || routeInfo.isDefault) {
+        if (routeInfo.isDefault) {
             if (routeInfo.route.indexOf(':') >= 0) {
                 throw 'default route must not have params: ' + routeInfo.route;
             }
@@ -1003,10 +1003,16 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     var windowResize = utilities.debounce(function() {
         $rootScope.$broadcast('sr-window-resize');
     }, 250);
+    self.ngViewScope = null;
 
 
     $rootScope.$on('clearCache', function() {
         self.clear();
+    });
+
+    $rootScope.$on('$viewContentLoaded', function (event) {
+        // this is the parent scope used for modal editors created from showModalEditor()
+        self.ngViewScope = event.targetScope;
     });
 
     function clearPanel(name) {
@@ -1289,8 +1295,10 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
                 var name = modelKey.toLowerCase().replace('_', '');
                 template = '<div data-modal-editor="" data-view-name="' + modelKey + '" data-sr-' + name + '-editor=""' + '></div>';
             }
-            $('body').append($compile(template)(scope || $rootScope));
-            //TODO(pjm): timeout hack, other jquery can't find the element
+            // add the modal to the ng-view element so it will get removed from the page when the location changes
+            $('.sr-view-content').append($compile(template)(scope || self.ngViewScope));
+
+            //TODO(pjm): timeout hack, otherwise jquery can't find the element
             self.waitForUI(function() {
                 $(editorId).modal('show');
                 $rootScope.$broadcast(showEvent);
@@ -1356,7 +1364,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
+        if (! SIREPO.authState.displayName || route.controller.indexOf('login') >= 0) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -2920,10 +2928,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
             return 'Folder';
         }
         return 'Simulation';
-    };
-
-    self.showSimulationModal = function() {
-        panelState.showModalEditor('simulation');
     };
 
     self.toggleIconView = function() {
