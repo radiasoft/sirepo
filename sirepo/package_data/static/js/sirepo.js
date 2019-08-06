@@ -736,70 +736,6 @@ SIREPO.app.service('validationService', function(utilities) {
     this.fieldValidators = {};
     this.enumValidators = {};
 
-    this.setFieldValidator = function(name, validatorFn, messageFn, ngModel, ngModelValidatorName) {
-        if (! this.fieldValidators[name]) {
-            this.fieldValidators[name] = {};
-        }
-        this.fieldValidators[name].vFunc = validatorFn;
-        this.fieldValidators[name].vMsg = messageFn;
-        if (ngModel && ngModelValidatorName) {
-            this.reloadValidatorForNGModel(name, ngModelValidatorName, ngModel);
-        }
-        return this.fieldValidators[name];
-    };
-
-    this.setModelFieldValidator = function(modelName, fieldName, validatorFn, messageFn) {
-        var fullName = utilities.modelFieldID(modelName, fieldName);
-        var ngModel = utilities.ngModelForInput(modelName, fieldName);
-        return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
-    };
-
-    this.getFieldValidator = function(name) {
-        return this.fieldValidators[name];
-    };
-
-    this.getModelFieldMessage = function (modelName, fieldName) {
-        var fullName = utilities.modelFieldID(modelName, fieldName);
-        var ngModel = utilities.ngModelForInput(modelName, fieldName);
-        return this.getMessageForNGModel(fullName, fullName, ngModel);
-    };
-
-    this.removeFieldValidator = function(name) {
-        if (this.fieldValidators[name]) {
-            delete this.fieldValidators[name];
-        }
-    };
-
-    this.reloadValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
-        var fv = this.getFieldValidator(name);
-        if (! ngModel.$validators[ngModelValidatorName]) {
-            if (fv) {
-                ngModel.$validators[ngModelValidatorName] = fv.vFunc;
-            }
-        }
-    };
-
-    this.removeModelFieldValidator = function(modelName, fieldName) {
-        var fullName = utilities.modelFieldID(modelName, fieldName);
-        var ngModel = utilities.ngModelForInput(modelName, fieldName);
-        this.removeValidatorForNGModel(fullName, fullName, ngModel);
-    };
-
-    this.removeValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
-        if (ngModel.$validators[ngModelValidatorName]) {
-            delete ngModel.$validators[ngModelValidatorName];
-        }
-        this.removeFieldValidator(name);
-    };
-
-    this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
-        if (! ngModel.$validators[ngModelValidatorName]) {
-            return '';
-        }
-        var fv = this.getFieldValidator(name);
-        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
-    };
-
     // lazy creation of validator, plus special handling
     this.getEnumValidator = function(enumName) {
 
@@ -827,6 +763,70 @@ SIREPO.app.service('validationService', function(utilities) {
             return name;
         };
         return validator;
+    };
+
+    this.getFieldValidator = function(name) {
+        return this.fieldValidators[name];
+    };
+
+    this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            return '';
+        }
+        var fv = this.getFieldValidator(name);
+        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
+    };
+
+    this.getModelFieldMessage = function (modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.getMessageForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.reloadValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        var fv = this.getFieldValidator(name);
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            if (fv) {
+                ngModel.$validators[ngModelValidatorName] = fv.vFunc;
+            }
+        }
+    };
+
+    this.removeFieldValidator = function(name) {
+        if (this.fieldValidators[name]) {
+            delete this.fieldValidators[name];
+        }
+    };
+
+    this.removeModelFieldValidator = function(modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        this.removeValidatorForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.removeValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (ngModel.$validators[ngModelValidatorName]) {
+            delete ngModel.$validators[ngModelValidatorName];
+        }
+        this.removeFieldValidator(name);
+    };
+
+    this.setFieldValidator = function(name, validatorFn, messageFn, ngModel, ngModelValidatorName) {
+        if (! this.fieldValidators[name]) {
+            this.fieldValidators[name] = {};
+        }
+        this.fieldValidators[name].vFunc = validatorFn;
+        this.fieldValidators[name].vMsg = messageFn;
+        if (ngModel && ngModelValidatorName) {
+            this.reloadValidatorForNGModel(name, ngModelValidatorName, ngModel);
+        }
+        return this.fieldValidators[name];
+    };
+
+    this.setModelFieldValidator = function(modelName, fieldName, validatorFn, messageFn) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
     this.validateFieldOfType = function(value, type) {
