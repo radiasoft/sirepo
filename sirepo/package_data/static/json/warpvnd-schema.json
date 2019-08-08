@@ -107,6 +107,10 @@
             ["50", "50"],
             ["10", "10"]
         ],
+        "RelfectionScheme": [
+            ["rand_angle", "Random Angle"],
+            ["uniform", "Uniform"]
+        ],
         "SimulationMode": [
             ["2d", "2D"],
             ["3d", "3D"]
@@ -116,7 +120,8 @@
         "anode": {
             "isReflector": ["Add Reflector", "Boolean", "0"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "RelfectionScheme", "rand_angle"]
         },
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
@@ -143,7 +148,8 @@
             "color": ["Color", "Color"],
             "type": ["Type", "ConductorType", "box"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "RelfectionScheme", "rand_angle"]
         },
         "conductorGridReport": {
             "tileDomain": ["Show tiled domain", "Boolean", "0"]
@@ -259,7 +265,8 @@
                 "beam.anode_work_function",
                 "isReflector",
                 "specProb",
-                "diffProb"
+                "diffProb",
+                "refScheme"
             ]
         },
         "beam": {
@@ -289,10 +296,11 @@
                 "xLength",
                 "yLength",
                 "isConductor",
+                "permittivity",
                 "isReflector",
                 "specProb",
                 "diffProb",
-                "permittivity",
+                "refScheme",
                 "color"
             ]
         },
