@@ -3396,7 +3396,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
                         .append('circle').attr('class', 'line-reflected').attr('r', 5).attr('cx', 8).attr('cy', 30);
                     $scope.select('svg')
                         .append('text').attr('class', 'focus-text').attr('x', 16).attr('y', 36)
-                        .text('Reflected');
+                        .text('Lost');
                 }
                 $scope.updatePlot(json);
             };

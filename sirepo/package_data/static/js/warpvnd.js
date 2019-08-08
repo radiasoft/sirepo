@@ -360,7 +360,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             validationService.setModelFieldValidator(modelName, f,
                 probValidator(modelName, f),
                 function () {
-                    return 'Sum of reflection probabilities cannot exceed 1';
+                    return 'Enter a value between 0 and 1';
                 }
             );
             var ngm = utilities.ngModelForInput(modelName, f);
@@ -385,8 +385,14 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     function initModal(modelName, modal) {
         if (! $scope.reflectors[modelName]) {
+
+            // for now, force specular probablility to be 0.  We will show the field but it
+            // will not be editable
+            //appState.models[modelName].specProb = 0;
+            panelState.enableField(modelName, 'specProb', false);
+
             $scope.reflectors[modelName] = {};
-            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'diffProb'));
+            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'specProb'));
             $scope.msg = function () {
                 return probFields.reduce(function (m, f) {
                     return m || validationService.getModelFieldMessage(modelName, f);

@@ -75,6 +75,10 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = {}
         template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
+    if 'specProb' in data.models.anode:
+        data.models.anode.specProb = 0.
+    if 'refScheme' in data.models.anode:
+        data.models.anode.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
     types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
@@ -83,6 +87,10 @@ def fixup_old_data(data):
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
+        if 'specProb' in c:
+            c.specProb = 0.
+        if 'refScheme' in c:
+            c.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)

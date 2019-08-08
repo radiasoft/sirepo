@@ -353,8 +353,10 @@ reflectors = [
 {% endfor %}
 ]
 
-for c in conductors:
-    if c.voltage != 0:
+# Install reflecting conductors regardless of voltage
+for c_idx, c in enumerate(conductors):
+    r = reflectors[c_idx]
+    if c.voltage != 0 or r['isReflector']:
         wp.installconductor(c, dfill=wp.largepos)
 
 # Create source conductors
@@ -378,10 +380,11 @@ particlereflector.installparticlereflector(reflector)
 {% endif %}
 {% endfor %}
 
+# Ignore specular probability and reflection scheme for now
 for r_idx, r in enumerate(reflectors):
     c = conductors[r_idx]
-    if c.voltage != 0 and r['isReflector']:
-        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=Species(type=Electron, name='Electron'), srefprob=r['specProb'], drefprob=r['diffProb'], refscheme=r['refScheme'])
+    if r['isReflector']:
+        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=Species(type=Electron, name='Electron'), srefprob=0., drefprob=r['diffProb'], refscheme='uniform')
         particlereflector.installparticlereflector(reflector)
 
 #------
