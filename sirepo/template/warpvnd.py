@@ -57,6 +57,7 @@ def fixup_old_data(data):
             'fields': [],
         }
     for m in [
+            'anode',
             'egunCurrentAnimation',
             'impactDensityAnimation',
             'optimizer',
@@ -959,6 +960,7 @@ def _prepare_conductors(data):
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
         )[0] if 'file' in ct else 'None'
+        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -972,9 +974,9 @@ def _prepare_conductors(data):
 
 def _prepare_reflection(data):
     return {
-        'isReflector': data.models.simulationGrid['reflect_ground'] == '1',
-        'specProb': data.models.simulationGrid['spec_prob'],
-        'diffProb': data.models.simulationGrid['diff_prob'],
+        'isReflector': data.models.anode['isReflector'] == '1',
+        'specProb': data.models.anode['specProb'],
+        'diffProb': data.models.anode['diffProb'],
     }
 
 

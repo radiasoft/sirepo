@@ -342,6 +342,16 @@ conductors = [
 {% endfor %}
 ]
 
+reflectors = [
+{% for c in conductors %}
+    {
+        'isReflector': {{ c.conductor_type.isReflector }},
+        'specProb': {{ c.conductor_type.specProb }},
+        'diffProb': {{ c.conductor_type.diffProb }},
+    }
+{% endfor %}
+]
+
 for c in conductors:
     if c.voltage != 0:
         wp.installconductor(c, dfill=wp.largepos)
@@ -360,6 +370,18 @@ scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, 
 reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ reflectGround.specProb }}, drefprob={{ reflectGround.diffProb }})
 particlereflector.installparticlereflector(reflector)
 {% endif %}
+
+{% for c in conductors %}
+{% if c.conductor_type.isReflector %}
+
+{% endif %}
+{% endfor %}
+
+for r_idx, r in enumerate(reflectors):
+    c = conductors[r_idx]
+    if c.voltage != 0 and r['isReflector']:
+        reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=c, spref=Species(type=Electron, name='Electron'), srefprob=r['specProb'], drefprob=r['diffProb'])
+        particlereflector.installparticlereflector(reflector)
 
 #------
 

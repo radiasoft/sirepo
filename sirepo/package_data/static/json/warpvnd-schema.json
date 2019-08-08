@@ -113,6 +113,11 @@
         ]
     },
     "model": {
+        "anode": {
+            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
+        },
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
@@ -134,9 +139,11 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "isReflector": ["Reflector", "Boolean", "0"],
+            "isReflector": ["Add Reflector", "Boolean", "0"],
             "color": ["Color", "Color"],
-            "type": ["Type", "ConductorType", "box"]
+            "type": ["Type", "ConductorType", "box"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
         },
         "conductorGridReport": {
             "tileDomain": ["Show tiled domain", "Boolean", "0"]
@@ -231,10 +238,7 @@
             "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
-            "num_steps": ["Simulation Steps", "Integer"],
-            "reflect_ground": ["Add Reflector", "Boolean", "0"],
-            "spec_prob": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
-            "diff_prob": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"]
+            "num_steps": ["Simulation Steps", "Integer"]
         },
         "simulationStatus": {},
         "stl": {
@@ -253,9 +257,9 @@
             "advanced": [
                 "beam.anode_voltage",
                 "beam.anode_work_function",
-                "simulationGrid.reflect_ground",
-                "simulationGrid.spec_prob",
-                "simulationGrid.diff_prob"
+                "isReflector",
+                "specProb",
+                "diffProb"
             ]
         },
         "beam": {
@@ -285,6 +289,9 @@
                 "xLength",
                 "yLength",
                 "isConductor",
+                "isReflector",
+                "specProb",
+                "diffProb",
                 "permittivity",
                 "color"
             ]
@@ -296,7 +303,6 @@
                 "type",
                 "voltage",
                 "isConductor",
-                "isReflector",
                 "permittivity",
                 "color"
             ]
