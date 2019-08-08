@@ -927,9 +927,9 @@
         },
         "SPNTRK": {
             "KSO": ["Include Spin Tracking", "Boolean", "0", "SPNTRK.KSO"],
-            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", 0, 1],
-            "S_Y": ["Initial Spin Y", "Float", 0, "", 0, 1],
-            "S_Z": ["Initial Spin Z", "Float", 1, "", 0, 1]
+            "S_X": ["Initial Spin X", "Float", 0, "Initial spin components of all particles", -1, 1],
+            "S_Y": ["Initial Spin Y", "Float", 0, "", -1, 1],
+            "S_Z": ["Initial Spin Z", "Float", 1, "", -1, 1]
         },
         "SRLOSS": {
             "KSR": ["Include synchrotron radiation energy loss", "Boolean", "0", "SRLOSS.KSR"],
