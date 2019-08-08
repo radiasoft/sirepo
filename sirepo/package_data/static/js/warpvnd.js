@@ -4217,6 +4217,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     // lines live in "cells"
                     pd.getCellData().setScalars(carr);
                 }
+                bundle.actor.getProperty().setLighting(false);
 
                 function pushLineData(p1, p2, c) {
                     // we always have two points per line
