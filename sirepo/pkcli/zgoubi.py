@@ -16,6 +16,7 @@ import sirepo.template.zgoubi as template
 import subprocess
 
 _EXE_PATH = 'zgoubi'
+_MAX_OUTPUT_SIZE = 5e7
 _TUNES_PATH = 'tunesFromFai'
 
 _TWISS_TO_BUNCH_FIELD = {
@@ -47,9 +48,8 @@ def run(cfg_dir):
 def run_background(cfg_dir):
     res = {}
     data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if _estimated_output_file_size(data) > 5e7:
-        res['error'] = 'Estimated output data too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
-    else:
+    _validate_estimate_output_file_size(data, res)
+    if 'error' not in res:
         try:
             _bunch_match_twiss(cfg_dir, data)
             _run_zgoubi(cfg_dir)
@@ -57,6 +57,27 @@ def run_background(cfg_dir):
         except Exception as e:
             res['error'] = str(e)
     simulation_db.write_result(res)
+
+
+def _beamline_steps(beamline_map, element_map, beamline_id):
+    res = 0
+    for item_id in beamline_map[beamline_id]['items']:
+        if item_id in beamline_map:
+            res += _beamline_steps(beamline_map, element_map, item_id)
+            continue
+        el = element_map[item_id]
+        if el.get('IL', '0') != '1':
+            continue
+        xpas = str(el.XPAS)
+        if re.search(r'\#', xpas):
+            xpas = re.sub(r'^#', '', xpas)
+            res += int(xpas.split('|')[1])
+        elif 'l' in el:
+            res += int(el.l / float(xpas))
+        else:
+            # no length (tosca?)
+            res += 0
+    return res
 
 
 def _bunch_match_twiss(cfg_dir, data):
@@ -92,13 +113,27 @@ def _bunch_match_twiss(cfg_dir, data):
     return data
 
 
-def _estimated_output_file_size(data):
+def _validate_estimate_output_file_size(data, res):
     bunch = data.models.bunch
     count = bunch.particleCount
     if bunch.method == 'OBJET2.1':
         count = bunch.particleCount2
     settings = data.models.simulationSettings
-    return 1000 * settings.npass / (settings.ip or 1) * float(count)
+    line_size = 800
+    fai_size = line_size * settings.npass / (settings.ip or 1) * float(count)
+    if fai_size > _MAX_OUTPUT_SIZE:
+        res['error'] = 'Estimated FAI output too large.\nReduce particle count or number of runs,\nor increase diagnostic interval.'
+        return
+    beamline_map = {}
+    for bl in data.models.beamlines:
+        beamline_map[bl.id] = bl
+    element_map = {}
+    for el in data.models.elements:
+        element_map[el._id] = el
+    steps = _beamline_steps(beamline_map, element_map, data.models.simulation.visualizationBeamlineId)
+    plt_size = line_size * steps * settings.npass * float(count)
+    if plt_size > _MAX_OUTPUT_SIZE:
+        res['error'] = 'Estimated PLT output too large.\nReduce particle count, number of runs, element integration step size\nor decrease elements with plotting enabled.'
 
 
 def _run_tunes_report(cfg_dir, data):

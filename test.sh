@@ -4,14 +4,19 @@
 #
 set -euo pipefail
 
+test_err() {
+    test_msg "$@"
+    return 1
+}
+
 test_jshint() {
     if [[ ! -x ./node_modules/jshint/bin/jshint ]]; then
         if ! type node >& /dev/null; then
             # Will fail in vag
-            echo Installing nodejs 1>&2
+            test_msg Installing nodejs
             sudo dnf install -y -q nodejs
         fi
-        echo Installing jshint 1>&2
+        test_msg Installing jshint
         # npm gets ECONNRESET due to a node error, which shouldn't happen
         # https://github.com/nodejs/node/issues/3595
         npm install jshint >& /dev/null || true
@@ -24,6 +29,7 @@ test_main() {
     test_no_prints '\s(pkdp|print)\(' "${pyfiles[@]}"
     local jsfiles=( sirepo/package_data/static/js/*.js )
     test_no_prints '\s(srdbg|console.log)\(' "${jsfiles[@]}"
+    test_no_h5py
     test_jshint
     if [[ -x ./node_modules/karma/bin/karma ]]; then
        ./node_modules/karma/bin/karma start etc/karma-conf.js
@@ -34,13 +40,25 @@ test_main() {
     fi
 }
 
+test_msg() {
+    echo "$@" 1>&2
+}
+
+test_no_h5py() {
+    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|flash|rs4pi|synergia|warp|server.py)') )
+    local r=$(grep -l 'import.*h5py' "${f[@]}")
+    if [[ $r ]]; then
+        test_err "import h5py found in: $r"
+    fi
+}
+
 test_no_prints() {
     local pat=$1
     shift
-    local files=( $@ )
-    if egrep "$pat" ${files[@]}; then
-        echo "$pat: remove all debugging calls" 1>&2
-        return 1
+    local f=( $@ )
+    local r=$(egrep -l "$pat" "${f[@]}")
+    if [[ $r ]]; then
+        test_err "$pat found in: $r"
     fi
 }
 

@@ -3,7 +3,6 @@ import math
 from rswarp.diagnostics import ConductorTemplates
 from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
-from sirepo.template import template_common
 
 
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
@@ -48,8 +47,8 @@ try:
             c_data = []
             c = plot_density.conductors[i]
             {% if is3D %}
+            # Skip stl conductors until the plotting works
             if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
-                # STL not supported yet
                 continue
             coord_keys = ['x', 'y', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
@@ -70,20 +69,33 @@ try:
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
+                #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
+                #print('!GOT X {} Y {} Z {} S {}'.format(x, y, z, s))
                 f_data = {
                     'dArr': s.tolist(),
-                    'n': len(x),
-                    'm': len(x[0])
+                    'n': len(x)
                 }
-                #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
-                #print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
-                for cx, coord in enumerate((x, y, z)):
-                    sk, sl = _linear_fit_2d(coord)
-                    f_data[coord_keys[cx]] = {
-                        'startVal': coord[0][0],
-                        'slopek': sk,
-                        'slopel': sl
-                    }
+                # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
+                #TODO(mvk): use triangulation instead
+                if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                    #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
+                    #print('!GOT UNSTRUCT X {} Y {} Z {} S {}'.format(x, y, z, s))
+                    #print('!GOT UNSTRUCT')
+                    f_data['type'] = 'unstructured'
+                    for cx, coord in enumerate((x, y, z)):
+                        f_data[coord_keys[cx]] = coord
+                else:
+                    f_data['type'] = 'plane'
+                    f_data['m'] = len(x[0])
+                    #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
+                    #print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
+                    for cx, coord in enumerate((x, y, z)):
+                        sk, sl = _linear_fit_2d(coord)
+                        f_data[coord_keys[cx]] = {
+                            'startVal': coord[0][0],
+                            'slopek': sk,
+                            'slopel': sl
+                        }
                 c_data.append(f_data)
             {% else %}
             coord_keys = ['x', 'z']
@@ -140,5 +152,5 @@ except AssertionError as e:
         'error': message,
     }
 hf = h5py.File('{{ densityFile }}')
-template_common.dict_to_h5(density_results, hf, path='density')
+dict_to_h5(density_results, hf, path='density')
 hf.close()

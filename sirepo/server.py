@@ -35,7 +35,7 @@ import werkzeug
 import werkzeug.exceptions
 
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
-if any(k in feature_config.cfg.sim_types for k in ('rs4pi', 'warppba', 'warpvnd')):
+if any(k in feature_config.cfg.sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: class that py.path.local() returns
@@ -459,7 +459,11 @@ def api_runCancel():
             # Write first, since results are write once, and we want to
             # indicate the cancel instead of the termination error that
             # will happen as a result of the kill.
-            simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            try:
+                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+            except IOError:
+                # run_dir may have been deleted
+                pass
             runner.job_kill(jid)
             # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
             # the last frame file may not be finished, remove it

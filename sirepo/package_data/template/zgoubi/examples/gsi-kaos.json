@@ -1,9 +1,20 @@
 {
     "models": {
+        "SPNTRK": {
+            "KSO": "0",
+            "S_X": 0,
+            "S_Y": 0,
+            "S_Z": 1
+        },
+        "SRLOSS": {
+            "KSR": "0",
+            "applyToAll": "0",
+            "keyword": "BEND"
+        },
         "beamlines": [
             {
                 "angle": 0.7853981633900001,
-                "count": 3,
+                "count": 2,
                 "distance": 4.6694237186277725,
                 "id": 2,
                 "items": [
@@ -31,9 +42,6 @@
             "KY": "2",
             "KZ": "2",
             "P0": 0,
-            "S_X": 0,
-            "S_Y": 0,
-            "S_Z": 1,
             "T0": -7.83848899e-05,
             "X0": 0,
             "Y0": 0.00016722879,
@@ -65,45 +73,46 @@
             "n_cutoff_X": 3,
             "n_cutoff_Y": 3,
             "n_cutoff_Z": 3,
-            "particleCount": 1000,
+            "particleCount": 500,
             "particleCount2": 1,
             "particleSelector": "1",
-            "rigidity": 2501,
-            "spntrk": "0"
+            "rigidity": 2501
         },
         "bunchAnimation": {
             "aspectRatio": "1",
-            "colorMap": "viridis",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "horizontalOffset": -3.790490553178699e-05,
-            "horizontalSize": 0.007281308035519169,
+            "horizontalOffset": -0.0003817913071350451,
+            "horizontalSize": 0.006158911572437338,
             "isRunning": 0,
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "fit",
+            "plotType": "3d",
             "showAllFrames": "0",
-            "startTime": 1558652577,
-            "verticalOffset": 3.614442333432777e-06,
-            "verticalSize": 0.02354251574077182,
+            "startTime": 1562793010,
+            "verticalOffset": -0.001398276895104189,
+            "verticalSize": 0.02206462198004777,
             "x": "Y",
             "y": "T"
         },
         "bunchAnimation2": {
             "aspectRatio": "1",
-            "colorMap": "viridis",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
+            "horizontalOffset": 0.0006608367222412682,
+            "horizontalSize": 0.038236164584183455,
             "isRunning": 0,
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "fit",
+            "plotType": "3d",
             "showAllFrames": "0",
-            "startTime": 1558652577,
-            "verticalOffset": 0,
-            "verticalSize": 0,
+            "startTime": 1562793010,
+            "verticalOffset": 0.0003262900941354823,
+            "verticalSize": 0.015137758820072351,
             "x": "Z",
             "y": "P"
         },
@@ -134,6 +143,25 @@
             "notes": "",
             "x": "S",
             "y": "D1"
+        },
+        "elementStepAnimation": {
+            "aspectRatio": "0.5625",
+            "colorMap": "coolwarm",
+            "framesPerSecond": "2",
+            "histogramBins": 42,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "isRunning": 0,
+            "notes": "",
+            "particleSelector": "all",
+            "plotRangeType": "none",
+            "plotType": "particle",
+            "showAllFrames": "0",
+            "startTime": 1562793010,
+            "verticalOffset": 0,
+            "verticalSize": 0,
+            "x": "X",
+            "y": "BZ"
         },
         "elements": [
             {
@@ -170,6 +198,7 @@
                 "Cp": 0,
                 "Cpp": 0,
                 "ID": "1",
+                "IL": "0",
                 "IORDRE": "2",
                 "IX": 47,
                 "IY": 37,
@@ -210,7 +239,7 @@
                 "meshType": "cartesian",
                 "name": "DIPOLE",
                 "normalizeHelix": "0",
-                "travelLength": null,
+                "travelLength": 2.3,
                 "type": "TOSCA",
                 "zeroBXY": "0"
             },
@@ -227,6 +256,7 @@
                 "Cp": 0,
                 "Cpp": 0,
                 "ID": "0",
+                "IL": "1",
                 "IORDRE": "2",
                 "IX": 44,
                 "IY": 21,
@@ -267,14 +297,14 @@
                 "meshType": "cartesian",
                 "name": "QPOLE",
                 "normalizeHelix": "0",
-                "travelLength": null,
+                "travelLength": 1.29,
                 "type": "TOSCA",
                 "zeroBXY": "0"
             }
         ],
         "energyAnimation": {
             "aspectRatio": "1",
-            "colorMap": "viridis",
+            "colorMap": "contrast",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "horizontalOffset": 0,
@@ -283,12 +313,13 @@
             "notes": "",
             "particleSelector": "all",
             "plotRangeType": "none",
+            "plotType": "heatmap",
             "showAllFrames": "0",
-            "startTime": 1558652577,
+            "startTime": 1562793010,
             "verticalOffset": 0,
             "verticalSize": 0,
-            "x": "ENERG",
-            "y": "time"
+            "x": "time",
+            "y": "ENEKI"
         },
         "opticsReport": {
             "includeLattice": "1",
@@ -315,10 +346,9 @@
         "simulation": {
             "activeBeamlineId": 2,
             "folder": "/Examples",
-            "isExample": true,
             "name": "GSI KAOS Spectrometer with TOSCA",
-            "simulationId": "xEPrYiQG",
-            "simulationSerial": 1558652579837101,
+            "simulationId": "FzDe55KQ",
+            "simulationSerial": 1562793015084938,
             "visualizationBeamlineId": 2
         },
         "simulationSettings": {
@@ -326,6 +356,17 @@
             "npass": 1
         },
         "simulationStatus": {},
+        "tunesReport": {
+            "aspectRatio": "0.75",
+            "notes": "",
+            "nuMax": 0.5,
+            "nuMin": 0,
+            "particleSelector": "all",
+            "plotAxis": "x",
+            "showTunesReport": false,
+            "turnCount": 10000,
+            "turnStart": 0
+        },
         "twissReport": {
             "includeLattice": "1",
             "notes": "",
@@ -343,5 +384,5 @@
         "twissSummaryReport": {}
     },
     "simulationType": "zgoubi",
-    "version": "20190517.151408"
+    "version": "20190710.201637"
 }

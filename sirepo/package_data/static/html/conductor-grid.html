@@ -1,12 +1,12 @@
 
-  <ul data-ng-if="warpvndService.is3D() && ! source.usesSTL()" class="nav nav-tabs">
+  <ul data-ng-if="warpvndService.is3D()" class="nav nav-tabs">
     <li role="presentation" data-ng-class="{active: ! is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong>Layout</strong></a></li>
     <li role="presentation" data-ng-class="{active: is3dPreview }"><a class="srw-tab" href data-ng-click="toggle3dPreview()"><strong><span class="glyphicon glyphicon-option-vertical"></span> 3D Preview</strong></a></li>
   </ul>
 
 <div data-ng-show="! is3dPreview || ! warpvndService.is3D()">
   <p class="lead text-center" style="margin-bottom: 0"><small><em>drag and drop conductor types here to layout the simulation grid</em></small></p>
-  <a href="" data-ng-click="toggleTiledDomain()"><span class="glyphicon" data-ng-class="{'glyphicon-check': isDomainTiled, 'glyphicon-unchecked': ! isDomainTiled}"></span></a> <span>Show periodic domain</span>
+  <span data-ng-show="warpvndService.is3D()"><a href="" data-ng-click="toggleTiledDomain()"><span class="glyphicon" data-ng-class="{'glyphicon-check': isDomainTiled, 'glyphicon-unchecked': ! isDomainTiled}"></span></a> <span>Show periodic domain</span></span>
   <div>
     <!-- NOTE: the <div> and <svg> must be on the same line for the png code to work! -->
     <div style="-webkit-user-select: none"><svg class="sr-plot">
@@ -57,5 +57,5 @@
   </div>
 </div>
 <div data-ng-if="warpvndService.is3D() && is3dPreview">
- <div data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
+ <div class="vtk-canvas-holder" data-conductors-3d="" data-report-id="reportId" data-parent-controller="source"></div>
 </div>

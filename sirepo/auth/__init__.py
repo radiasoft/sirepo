@@ -17,12 +17,14 @@ from sirepo import auth_db
 from sirepo import util
 import sirepo.template
 import datetime
-import flask
 import importlib
 
 
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
+
+#: Guest is a special method
+METHOD_GUEST = 'guest'
 
 #: key for auth method for login state
 _COOKIE_METHOD = 'sram'
@@ -33,15 +35,14 @@ _COOKIE_STATE = 'sras'
 #: Identifies the user in the cookie
 _COOKIE_USER = 'srau'
 
+_GUEST_USER_DISPLAY_NAME = 'Guest User'
+
 _STATE_LOGGED_IN = 'li'
 _STATE_LOGGED_OUT = 'lo'
 _STATE_COMPLETE_REGISTRATION = 'cr'
 
 #: name to module object
 _METHOD_MODULES = pkcollections.Dict()
-
-#: Guest is a special method
-_METHOD_GUEST = 'guest'
 
 #: Identifies the user in uWSGI logging (read by uwsgi.yml.jinja)
 _UWSGI_LOG_KEY_USER = 'sirepo_user'
@@ -59,6 +60,9 @@ valid_methods = []
 #: Methods that the user is allowed to see
 visible_methods = []
 
+#: visible_methods excluding guest
+non_guest_methods = []
+
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -66,15 +70,7 @@ def api_authCompleteRegistration():
     # for just this API.
     if not _is_logged_in():
         return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
-    d = http_request.parse_json()
-    t = d.simulationType
-    n = _parse_display_name(d)
-    u = _get_user()
-    with auth_db.thread_lock:
-        r = _user_registration(u)
-        r.display_name = n
-        r.save()
-    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+    complete_registration(_parse_display_name(http_request.parse_json()))
     return http_reply.gen_json_ok()
 
 
@@ -84,17 +80,25 @@ def api_authState():
     v = pkcollections.Dict(
         avatarUrl=None,
         displayName=None,
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        guestIsOnlyMethod=False,
+        isGuestOnly=not non_guest_methods,
         isLoggedIn=_is_logged_in(s),
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        nonGuestMethods=non_guest_methods,
         userName=None,
         visibleMethods=visible_methods,
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
-        r = auth_db.UserRegistration.search_by(uid=u)
-        if r:
-            v.displayName = r.display_name
+        if v.method == METHOD_GUEST:
+            v.needCompleteRegistration = False
+            v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
+        else:
+            r = auth_db.UserRegistration.search_by(uid=u)
+            if r:
+                v.displayName = r.display_name
         _method_auth_state(v, u)
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
@@ -107,20 +111,33 @@ def api_authState():
 
 
 @api_perm.allow_visitor
-def api_authLogout(simulation_type):
+def api_authLogout(simulation_type=None):
     """Set the current user as logged out.
 
     Redirects to root simulation page.
     """
     t = None
-    try:
-        t = sirepo.template.assert_sim_type(simulation_type)
-    except AssertionError:
-        pass
+    if simulation_type:
+        try:
+            t = sirepo.template.assert_sim_type(simulation_type)
+        except AssertionError:
+            pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_root(t)
+
+
+def complete_registration(name=None):
+    """Update the database with the user's display_name and sets state to logged-in.
+    Guests will have no name.
+    """
+    u = _get_user()
+    with auth_db.thread_lock:
+        r = _user_registration(u)
+        r.display_name = name
+        r.save()
+    cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
 def init_apis(app, *args, **kwargs):
@@ -128,7 +145,7 @@ def init_apis(app, *args, **kwargs):
     assert not _METHOD_MODULES
 
     cfg = pkconfig.init(
-        methods=((_METHOD_GUEST,), tuple, 'for logging in'),
+        methods=((METHOD_GUEST,), tuple, 'for logging in'),
         deprecated_methods=(tuple(), tuple, 'for migrating to methods'),
     )
     uri_router = importlib.import_module('sirepo.uri_router')
@@ -145,6 +162,7 @@ def init_apis(app, *args, **kwargs):
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
         setattr(this_module, n, m)
+    non_guest_methods.extend([m for m in visible_methods if m != METHOD_GUEST])
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
@@ -184,10 +202,15 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         flask.Response: reply object or None (if no sim_type)
     """
     r = _validate_method(module, sim_type=sim_type)
+    guest_uid = None
     if r:
         return r
     if model:
         uid = model.uid
+        # if previously cookied as a guest, move the non-example simulations into uid below
+        m = cookie.unchecked_get_value(_COOKIE_METHOD)
+        if m == METHOD_GUEST and module.AUTH_METHOD != METHOD_GUEST:
+            guest_uid = _get_user() if _is_logged_in() else None
     if uid:
         _login_user(module, uid)
     if module.AUTH_METHOD in cfg.deprecated_methods:
@@ -206,7 +229,7 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         # Or, this is just a new user, and we'll create one.
         uid = _get_user() if _is_logged_in() else None
         m = cookie.unchecked_get_value(_COOKIE_METHOD)
-        if uid and module.AUTH_METHOD not in (m, _METHOD_GUEST):
+        if uid and module.AUTH_METHOD not in (m, METHOD_GUEST):
             # switch this method to this uid (even for methods)
             # except if the same method, then assuming logging in as different user.
             # This handles the case where logging in as guest, creates a user every time
@@ -217,6 +240,8 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
             model.uid = uid
             model.save()
     if sim_type:
+        if guest_uid and guest_uid != uid:
+            simulation_db.move_user_simulations(guest_uid, uid)
         return login_success_redirect(sim_type)
     # bluesky or basic
     return None
@@ -295,6 +320,9 @@ def require_user():
             r = 'loginWith'
             p = {'method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
+        if m == METHOD_GUEST:
+            complete_registration()
+            return None
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())
     else:
@@ -368,7 +396,7 @@ def _auth_hook_from_header(values):
     o = values.get('sros') or values.get('oauth_login_state')
     s = _STATE_COMPLETE_REGISTRATION
     if o is None or o in ('anonymous', 'a'):
-        m = _METHOD_GUEST
+        m = METHOD_GUEST
     elif o in ('logged_in', 'li', 'logged_out', 'lo'):
         m = 'github'
         if 'i' not in o:
@@ -426,6 +454,9 @@ def _login_user(module, uid):
 
 
 def _method_auth_state(values, uid):
+    if values.method not in _METHOD_MODULES:
+        pkdlog('auth state method: "{}" not present in supported methods: {}', values.method, _METHOD_MODULES.keys())
+        return
     m = _METHOD_MODULES[values.method]
     u = _method_user_model(m, uid)
     if not u:

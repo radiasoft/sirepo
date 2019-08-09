@@ -35,16 +35,8 @@ def test_login():
     r = auth.login(sirepo.auth.guest)
     pkeq(None, r, 'user created')
     r = auth.api_authState()
-    pkre('LoggedIn": true.*Registration": true', r.data)
+    pkre('LoggedIn": true.*Registration": false', r.data)
     u = auth.logged_in_user()
     pkok(u, 'user should exist')
-    r = auth.require_user()
-    pkeq(400, r.status_code, 'status should be BAD REQUEST')
-    pkre('"routeName": "completeRegistration"', r.data)
-    flask.request = 'abcdef'
-    def parse_json(*args, **kwargs):
-        return pkcollections.Dict(simulationType='myapp', displayName='Joe Bob')
-    setattr(sirepo.http_request, 'parse_json', parse_json)
-    auth.api_authCompleteRegistration()
-    r = auth.api_authState()
-    pkre('Name": "Joe Bob".*In": true.*.*Registration": false', r.data)
+    # guests do not require completeRegistration
+    pkeq(auth.require_user(), None)

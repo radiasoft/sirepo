@@ -289,7 +289,7 @@
             ["u", "Electron Beam with Idealized Undulator"],
             ["t", "Electron Beam with Tabulated Undulator"],
             ["m", "Electron Beam with Dipole"],
-            ["a", "Arbitrary Magnetic Field"],
+            ["a", "Electron Beam with Arbitrary Magnetic Field"],
             ["g", "Coherent Gaussian Beam"]
         ],
         "StokesParameter": [
@@ -324,6 +324,10 @@
             ["BetaY", "Vertical Beta"],
             ["BetaZ", "Longitudinal Beta"],
             ["None", "None"]
+        ],
+        "TransmissionImage": [
+            ["0", "Zero"],
+            ["1", "Same as on Image Boundary"]
         ],
         "UndulatorType": [
             ["u_i", "Idealized"],
@@ -415,7 +419,7 @@
             "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
         },
         "electronBeam": {
-            "beamSelector": ["Select Beam", "BeamList"],
+            "beamSelector": ["Existing Beam", "BeamList"],
             "name": ["Beam Name", "String"],
             "energy": ["Energy [GeV]", "Float"],
             "current": ["Current [A]", "Float"],
@@ -434,10 +438,10 @@
             "verticalDispersionDerivative": ["Vertical Dispersion Derivative [rad]", "Float"],
             "rmsSizeX": ["RMS Size [µm]", "Float"],
             "rmsDivergX": ["RMS Divergence [µrad]", "Float"],
-            "xxprX": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"],
+            "xxprX": ["$\\langle(x-\\langle x \\rangle)(x'-\\langle x' \\rangle)\\rangle$ [nm]", "Float"],
             "rmsSizeY": ["RMS Size [µm]", "Float"],
             "rmsDivergY": ["RMS Divergence [µrad]", "Float"],
-            "xxprY": ["<(x-<x>)(x'-<x'>)> [nm]", "Float"]
+            "xxprY": ["$\\langle(x-\\langle x \\rangle)(x'-\\langle x' \\rangle)\\rangle$ [nm]", "Float"]
         },
         "electronBeamPosition": {
             "horizontalPosition": ["Average Horizontal Position [mm]", "Float", 0],
@@ -717,6 +721,7 @@
             "tileImage": ["Tile Sample?", "Boolean", "0", "Tile the cut area of the image with the provided number of rows and columns"],
             "tileRows": ["Number of Rows", "Integer", 1],
             "tileColumns": ["Number of Columns", "Integer", 1],
+            "transmissionImage": ["Transmission Outside Image", "TransmissionImage", "1"],
             "shiftX": ["Horizontal Shift [pixels]", "Integer", 0],
             "shiftY": ["Vertical Shift [pixels]", "Integer", 0],
             "invert": ["Invert Image Colors", "Boolean", "0"],
@@ -782,7 +787,7 @@
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
         },
         "tabulatedUndulator": {
-            "undulatorSelector": ["Select Undulator", "UndulatorList"],
+            "undulatorSelector": ["Existing Undulator", "UndulatorList"],
             "name": ["Undulator Name", "String"],
             "undulatorType": ["Type of Undulator", "UndulatorType", "u_t"],
             "gap": ["Magnetic Gap [mm]", "Float", 6.72],
@@ -873,6 +878,15 @@
         }
     },
     "view": {
+        "arbitraryMagField": {
+            "title": "Arbitrary Magnetic Field",
+	    "basic": [],
+            "advanced": [
+                "longitudinalPosition",
+                "magneticFile",
+                "interpolationOrder"
+            ]
+        },
         "aperture": {
             "title": "Aperture",
             "basic": [],
@@ -1233,7 +1247,8 @@
         },
         "gaussianBeam": {
             "title": "Coherent Gaussian Beam",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "photonEnergy",
                 "energyPerPulse",
                 "polarization",
@@ -1254,8 +1269,7 @@
                         "waistAngleY"
                     ]]
                 ]
-            ],
-            "advanced": []
+            ]
         },
         "grating": {
             "title": "Grating",
@@ -1427,12 +1441,12 @@
         },
         "multipole": {
             "title": "Dipole",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "field",
                 "length",
-                "distribution"
-            ],
-            "advanced": []
+		"distribution"
+            ]
         },
         "multiElectronAnimation": {
             "title": "Partially Coherent Intensity",
@@ -1528,6 +1542,7 @@
                     "tileRows",
                     "tileColumns",
                     "cropArea",
+		    "transmissionImage",
                     [
                         ["Horizontal", [
                             "areaXStart",
@@ -1540,7 +1555,7 @@
                             "shiftY"
                         ]]
                     ],
-                    "outputImageFormat"
+		    "outputImageFormat"
                 ]],
                 ["Physical Properties", [
                     "resolution",
@@ -1680,10 +1695,13 @@
         },
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
-            "basic": [
+	    "basic": [
+	        "name"
+	        ],
+            "advanced": [
                 "undulatorSelector",
                 "name",
-                "undulatorType",
+		"undulatorType",
                 "gap",
                 "phase",
                 "undulator.period",
@@ -1705,8 +1723,7 @@
                         "undulator.verticalSymmetry"
                     ]]
                 ]
-            ],
-            "advanced": []
+            ]
         },
         "toroidalMirror": {
             "title": "Toroid Mirror",
@@ -1779,7 +1796,8 @@
         },
         "undulator": {
             "title": "Idealized Undulator",
-            "basic": [
+	    "basic": [],
+            "advanced": [
                 "period",
                 "length",
                 "longitudinalPosition",
@@ -1798,17 +1816,7 @@
                         "verticalSymmetry"
                     ]]
                 ]
-            ],
-            "advanced": []
-        },
-        "arbitraryMagField": {
-            "title": "Arbitrary Magnetic Field",
-            "basic": [
-                "longitudinalPosition",
-                "magneticFile",
-                "interpolationOrder"
-            ],
-            "advanced": []
+            ]
         },
         "watch": {
             "title": "Watchpoint",

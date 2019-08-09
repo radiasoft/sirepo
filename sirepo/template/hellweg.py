@@ -89,6 +89,9 @@ def extract_beam_report(report, run_dir, frame):
     ]
     model['x'] = x
     model['y'] = y
+    # see issue #872
+    if not np.any(values):
+        values = [[], []]
     return template_common.heatmap(values, model, {
         'x_label': hellweg_dump_reader.get_label(x),
         'y_label': hellweg_dump_reader.get_label(y),

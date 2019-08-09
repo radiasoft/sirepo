@@ -235,6 +235,9 @@ def extensions_for_file_type(file_type):
 
 
 def extract_report_data(filename, model_data):
+    #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
+    if re.search(r'/res_int_pr_me_dc.\.dat', filename):
+        _fix_file_header(filename)
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
@@ -264,8 +267,8 @@ def extract_report_data(filename, model_data):
         'res_int_se.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         #TODO(pjm): improve multi-electron label
         'res_int_pr_me.dat': [['Horizontal Position', 'Vertical Position', before_propagation_name, 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
-        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
+        'res_int_pr_me_dcx.dat': [['Horizontal Position (conj.)', 'Horizontal Position', '', 'Degree of Coherence'], ['m', 'm', '']],
+        'res_int_pr_me_dcy.dat': [['Vertical Position (conj.)', 'Vertical Position', '', 'Degree of Coherence'], ['m', 'm', '']],
         'res_int_pr_se.dat': [['Horizontal Position', 'Vertical Position', 'After Propagation (E={photonEnergy} eV)', 'Intensity'], ['m', 'm', _intensity_units(is_gaussian, model_data)]],
         _MIRROR_OUTPUT_FILE: [['Horizontal Position', 'Vertical Position', 'Optical Path Difference', 'Optical Path Difference'], ['m', 'm', 'm']],
     })
@@ -431,13 +434,18 @@ def fixup_old_data(data):
     if 'name' not in data['models']['tabulatedUndulator']:
         und = data['models']['tabulatedUndulator']
         und['name'] = und['undulatorSelector'] = 'Undulator'
-        und['id'] = '1'
+
+    if data['models']['tabulatedUndulator'].get('id', '1') == '1':
+        data['models']['tabulatedUndulator']['id'] = '{} 1'.format(data['models']['simulation']['simulationId'])
 
     if len(data['models']['postPropagation']) == 9:
         data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
         for item_id in data['models']['propagation']:
             for row in data['models']['propagation'][item_id]:
                 row += [0, 0, 0, 0, 0, 0, 0, 0]
+
+    if 'electronBeams' in data['models']:
+        del data['models']['electronBeams']
 
 
 def get_animation_name(data):
@@ -664,15 +672,16 @@ def new_simulation(data, new_simulation_data):
 
 def prepare_for_client(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+            # don't add a named undulator if tabulated is not the current source type
+            continue
         model = data['models'][model_name]
-        pluralKey = '{}s'.format(model_name)
         if _is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             search_model = None
-            if pluralKey not in data['models']:
-                models_by_id = _user_model_map(user_model_list, 'id')
-                if model['id'] in models_by_id:
-                    search_model = models_by_id[model['id']]
+            models_by_id = _user_model_map(user_model_list, 'id')
+            if model['id'] in models_by_id:
+                search_model = models_by_id[model['id']]
             if search_model:
                 data['models'][model_name] = search_model
                 if model_name == 'tabulatedUndulator':
@@ -687,15 +696,14 @@ def prepare_for_client(data):
                 user_model_list.append(_create_user_model(data, model_name))
                 _save_user_model_list(model_name, user_model_list)
                 simulation_db.save_simulation_json(data)
-
-        if pluralKey in data['models']:
-            del data['models'][pluralKey]
-            simulation_db.save_simulation_json(data)
     return data
 
 
 def prepare_for_save(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
+        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+            # don't add a named undulator if tabulated is not the current source type
+            continue
         model = data['models'][model_name]
         if _is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
@@ -1262,6 +1270,8 @@ def _fixup_beamline(data):
                           'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
                           'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
                     item[f] = _SCHEMA['model']['sample'][f][2]
+            if 'transmissionImage' not in item:
+                item['transmissionImage'] = _SCHEMA['model']['sample']['transmissionImage'][2]
         if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
             item['horizontalOffset'] = 0
             item['verticalOffset'] = 0
@@ -1297,6 +1307,27 @@ def _fixup_electron_beam(data):
             float(data['models']['undulator']['period']) / 1000.0,
         )
     return data
+
+
+def _fix_file_header(filename):
+    # fixes file header for coherenceXAnimation and coherenceYAnimation reports
+    rows = []
+    with pkio.open_text(filename) as f:
+        for line in f:
+            rows.append(line)
+            if len(rows) == 10:
+                if rows[4] == rows[7]:
+                    # already fixed up
+                    return
+                if re.search(r'^\#0 ', rows[4]):
+                    rows[4] = rows[7]
+                    rows[5] = rows[8]
+                    rows[6] = rows[9]
+                else:
+                    rows[7] = rows[4]
+                    rows[8] = rows[5]
+                    rows[9] = rows[6]
+    pkio.write_text(filename, ''.join(rows))
 
 
 def _generate_beamline_optics(report, models, last_id):
@@ -1419,6 +1450,7 @@ def _generate_beamline_optics(report, models, last_id):
             'thickness': 'thick',
             'tipRadius': 'r_min',
             'tipWallThickness': 'wall_thick',
+            'transmissionImage': 'extTransm',
             'verticalApertureSize': 'apert_v',
             'verticalCenterPosition': 'yc',
             'verticalFocalLength': 'Fy',
@@ -1485,6 +1517,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         data['models']['simulation']['sampleFactor'] = 0
     res, v = template_common.generate_parameters_file(data)
 
+    v['rs_type'] = source_type
+    if _is_idealized_undulator(source_type, undulator_type):
+        v['rs_type'] = 'u'
+
     if report == 'mirrorReport':
         v['mirrorOutputFilename'] = _MIRROR_OUTPUT_FILE
         return template_common.render_jinja(SIM_TYPE, v, 'mirror.py')
@@ -1493,7 +1529,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         return template_common.render_jinja(SIM_TYPE, v, 'brilliance.py')
     if report == 'backgroundImport':
         return template_common.render_jinja(SIM_TYPE, v, 'import.py')
-
     v['beamlineOptics'], v['beamlineOpticsParameters'] = _generate_beamline_optics(report, data['models'], last_id)
 
     # und_g and und_ph API units are mm rather than m
@@ -1509,8 +1544,6 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     # 1: auto-undulator 2: auto-wiggler
     v['energyCalculationMethod'] = 1 if _is_undulator_source(data['models']['simulation']) else 2
 
-    if _is_user_defined_model(data['models']['electronBeam']):
-        v['electronBeam_name'] = ''  # MR: custom beam name should be empty to be processed by SRW correctly
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
@@ -1867,13 +1900,15 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
-
+    z_label = z_label
+    if z_units:
+        z_label += ' [' + z_units + ']'
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
-        'z_label': _superscript(z_label + ' [' + z_units + ']'),
+        'z_label': _superscript(z_label),
         'title': info['title'],
         'subtitle': info['subtitle'],
         'z_matrix': ar2d.tolist(),

@@ -12,8 +12,6 @@ solverE.mgmaxiters = 100
 
 #------
 
-from sirepo.template import template_common
-
 from warp.particles.singleparticle import TraceParticle
 def get_MB_velocities(n_part, T):
     '''Return a distribution of particle velocities representing a Maxwell-Boltzmann
@@ -52,7 +50,7 @@ def get_MB_velocities(n_part, T):
 electrons_tracked_t0 = wp.Species(type=wp.Electron)
 v_coords = get_MB_velocities(PTCL_PER_STEP,CATHODE_TEMP)
 x_vals = CHANNEL_WIDTH*(np.random.rand(PTCL_PER_STEP)-0.5)
-y_vals = CHANNEL_WIDTH*(np.random.rand(PTCL_PER_STEP)-0.5)
+y_vals = CHANNEL_HEIGHT*(np.random.rand(PTCL_PER_STEP)-0.5)
 z_vals = np.zeros(PTCL_PER_STEP) + Z_PART_MIN #Add a minimum z coordinate to prevent absorption
 eptclArray = np.asarray([x_vals,v_coords[:,0],y_vals,v_coords[:,1],z_vals,v_coords[:,2]]).T
 electron_tracker_0 = TraceParticle(js=electrons_tracked_t0.jslist[0],
@@ -103,7 +101,7 @@ time_per_step = (time1-time0)/num_steps
 
 kept_electrons, lost_electrons = particle_trace(electron_tracker_0, electron_tracker_0.nn)
 hf = h5py.File('{{ particleFile }}')
-template_common.dict_to_h5(
+dict_to_h5(
     {
         'kept': kept_electrons,
         'lost': lost_electrons
@@ -111,4 +109,3 @@ template_common.dict_to_h5(
     hf, path='particle'
 )
 hf.close()
-

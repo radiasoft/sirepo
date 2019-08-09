@@ -1,11 +1,9 @@
 
-from sirepo.template import template_common
+from sirepo import simulation_db
 
 #prevent GIST from starting upon setup
 wp.top.lprntpara = False
 wp.top.lpsplots = False
-
-field_results = pkcollections.Dict()
 
 wp.top.verbosity = 1 # Reduce solver verbosity
 solverE.mgverbose = 1 #further reduce output upon stepping - prevents websocket timeouts in Jupyter notebook
@@ -24,7 +22,7 @@ wp.generate()
 #Need to compute the potential first
 potential = solverE.getphi()
 hf = h5py.File('{{ potentialFile }}')
-template_common.dict_to_h5(potential, hf, path='potential')
+dict_to_h5(potential, hf, path='potential')
 hf.close()
 
 X_CELLS = NUM_X
@@ -84,6 +82,10 @@ Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
 
 e_cross = sources.compute_crossing_fraction(CATHODE_TEMP, Phi_approx, zmesh)
 
-field_results.tof_expected = tof_expected
-field_results.steps_expected = steps_expected
-field_results.e_cross = e_cross
+simulation_db.write_json('{{ estimateFile }}', {
+    'tof_expected': tof_expected,
+    'steps_expected': steps_expected,
+    'e_cross': e_cross,
+})
+
+wp.step({{ stepSize }})

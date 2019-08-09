@@ -1,4 +1,20 @@
 {
+    "animationArgs": {
+        "fieldCalcAnimation": ["axes", "displayMode", "slice"],
+        "fieldComparisonAnimation": [
+            "dimension",
+            "displayMode",
+            "xCell1",
+            "xCell2",
+            "xCell3",
+            "yCell1",
+            "yCell2",
+            "yCell3",
+            "zCell1",
+            "zCell2",
+            "zCell3"
+        ]
+    },
     "constants": {
         "nonZeroVoltsColor": "#6992ff",
         "particleTrackColor": "#4682b4",
@@ -140,6 +156,13 @@
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
+        },
+        "fieldCalcAnimation": {
+            "_super": ["_", "model", "fieldReport"]
+        },
+        "fieldCalculationAnimation": {},
+        "fieldComparisonAnimation": {
+            "_super": ["_", "model", "fieldComparisonReport"]
         },
         "fieldComparisonReport": {
             "dimension": ["Dimension", "Dimension"],
@@ -309,6 +332,10 @@
                 "colorMap", "notes"
             ]
         },
+        "fieldCalculationAnimation": {
+            "title": "Field Calculation Status",
+            "advanced": []
+        },
         "fieldComparisonReport": {
             "title": "Field Comparison Report",
             "advanced": [
@@ -330,6 +357,30 @@
             "advanced": [
                 "axes",
                 "slice",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "fieldComparisonAnimation": {
+            "title": "Field Comparison Report",
+            "advanced": [
+                "dimension",
+                "xCell1",
+                "xCell2",
+                "xCell3",
+                "yCell1",
+                "yCell2",
+                "yCell3",
+                "zCell1",
+                "zCell2",
+                "zCell3",
+                "notes"
+            ]
+        },
+        "fieldCalcAnimation": {
+            "title": "Field Report",
+            "advanced": [
+                "axes",
                 "colorMap",
                 "notes"
             ]

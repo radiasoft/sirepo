@@ -2,7 +2,7 @@
     "dynamicFiles": {
         "externalLibs": {
             "js": [
-                "vtk.min.js"
+                "vtk.js"
             ]
         },
         "sirepoLibs": {
