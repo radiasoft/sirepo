@@ -60,6 +60,9 @@ valid_methods = []
 #: Methods that the user is allowed to see
 visible_methods = []
 
+#: visible_methods excluding guest
+non_guest_methods = []
+
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -77,9 +80,12 @@ def api_authState():
     v = pkcollections.Dict(
         avatarUrl=None,
         displayName=None,
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        guestIsOnlyMethod=False,
+        isGuestOnly=not non_guest_methods,
         isLoggedIn=_is_logged_in(s),
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        nonGuestMethods=non_guest_methods,
         userName=None,
         visibleMethods=visible_methods,
     )
@@ -88,6 +94,7 @@ def api_authState():
         if v.method == METHOD_GUEST:
             v.needCompleteRegistration = False
             v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
         else:
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
@@ -104,16 +111,17 @@ def api_authState():
 
 
 @api_perm.allow_visitor
-def api_authLogout(simulation_type):
+def api_authLogout(simulation_type=None):
     """Set the current user as logged out.
 
     Redirects to root simulation page.
     """
     t = None
-    try:
-        t = sirepo.template.assert_sim_type(simulation_type)
-    except AssertionError:
-        pass
+    if simulation_type:
+        try:
+            t = sirepo.template.assert_sim_type(simulation_type)
+        except AssertionError:
+            pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
@@ -154,6 +162,7 @@ def init_apis(app, *args, **kwargs):
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
         setattr(this_module, n, m)
+    non_guest_methods.extend([m for m in visible_methods if m != METHOD_GUEST])
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 

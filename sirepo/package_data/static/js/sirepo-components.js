@@ -589,7 +589,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         restrict: 'A',
         scope: {},
         template: [
-            '<li data-ng-if="::authState.isLoggedIn" class="sr-logged-in-menu dropdown">',
+            '<li data-ng-if="::authState.isGuestUser"><a href="::authService.loginUrl"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
+            '<li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
               '<a href class="dropdown-toggle" data-toggle="dropdown">',
                 '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
                 '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
@@ -598,25 +599,13 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="::!guestToUserUrl"><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
-                '<li data-ng-if="::guestToUserUrl"><a data-ng-href="{{ ::guestToUserUrl }}">Save your work!</a></li>',
+                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
-
-            if (authState.method == 'guest') {
-                authState.visibleMethods.some(function(method) {
-                    if (method != 'guest') {
-                        $scope.guestToUserUrl = requestSender.formatUrlLocal(
-                            'loginWith',
-                            {':method': method});
-                        return true;
-                    }
-                });
-            }
         },
     };
 });
@@ -1779,7 +1768,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileManager, panelState, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
 
     function helpLink(url, text, icon) {
         return url
@@ -1825,7 +1814,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                     '</ul>',
                   '</li>',
                 '</ul>',
-                '<ul data-ng-if="::! authState.isLoggedIn" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
+                '<ul data-ng-if="::! authState.guestIsOnlyMethod" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1840,6 +1829,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
            scope.fileManager = fileManager;
         },
         controller: function($scope) {
+            $scope.authState = authState;
 
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
