@@ -51,7 +51,18 @@ try:
             if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
                 continue
             coord_keys = ['x', 'y', 'z']
-            min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            try:
+                min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            except:
+                err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
+                print(err)
+                f_data = {
+                    'err': err
+                }
+                c_data.append(f_data)
+                i_data.append(c_data)
+                continue
+            #min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
             for (x, y, z, s) in d:
                 #n_bins = 20
                 #s_aves_k = []
