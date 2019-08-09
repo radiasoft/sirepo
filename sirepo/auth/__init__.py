@@ -80,21 +80,21 @@ def api_authState():
     v = pkcollections.Dict(
         avatarUrl=None,
         displayName=None,
-        guestIsOnlyMethod=False,
-        isGuestOnly=not non_guest_methods,
+        guestIsOnlyMethod=not non_guest_methods,
+        isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
-        nonGuestMethods=non_guest_methods,
         userName=None,
         visibleMethods=visible_methods,
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
-            v.needCompleteRegistration = False
             v.displayName = _GUEST_USER_DISPLAY_NAME
             v.isGuestUser = True
+            v.needCompleteRegistration = False
+            v.visibleMethods = non_guest_methods
         else:
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
@@ -134,7 +134,7 @@ def complete_registration(name=None):
     """
     u = _get_user()
     with auth_db.thread_lock:
-        r = _user_registration(u)
+        r = user_registration(u)
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
@@ -304,8 +304,7 @@ def require_user():
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
-            # Success
-            return None
+            return _METHOD_MODULES[m].validate_login()
         u = _get_user()
         if m in cfg.deprecated_methods:
             e = 'deprecated'
@@ -318,7 +317,7 @@ def require_user():
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'
-            p = {'method': m}
+            p = {':method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
             complete_registration()
@@ -371,6 +370,24 @@ def user_if_logged_in(method):
     if m != method:
         return None
     return _get_user()
+
+
+def user_registration(uid):
+    """Get UserRegistration record or create one
+
+    Args:
+        uid (str): registrant
+    Returns:
+        auth.UserRegistration: record (potentially blank)
+    """
+    res = auth_db.UserRegistration.search_by(uid=uid)
+    if not res:
+        res = auth_db.UserRegistration(
+            uid=uid,
+            created=datetime.datetime.utcnow(),
+        )
+        res.save()
+    return res
 
 
 def _auth_hook_from_header(values):
@@ -446,7 +463,7 @@ def _login_user(module, uid):
     cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
     s = _STATE_LOGGED_IN
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
-        u = _user_registration(uid)
+        u = user_registration(uid)
         if not u.display_name:
             s = _STATE_COMPLETE_REGISTRATION
     cookie.set_value(_COOKIE_STATE, s)
@@ -498,17 +515,6 @@ def _set_log_user():
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
     cookie.set_value(_COOKIE_METHOD, auth_method)
-
-
-def _user_registration(uid):
-    res = auth_db.UserRegistration.search_by(uid=uid)
-    if not res:
-        res = auth_db.UserRegistration(
-            uid=uid,
-            created=datetime.datetime.utcnow(),
-        )
-        res.save()
-    return res
 
 
 def _validate_method(module, sim_type=None):

@@ -2661,8 +2661,11 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     var self = this;
     var t = $sce.getTrustedHtml(appState.ucfirst($route.current.params.method || ''));
     var r = $route.current.params.reason || '';
-    var l = '<a href="' + requestSender.formatUrlLocal('login')
-        + '">Please try to login again.</a>';
+    var login_text = function(text) {
+        return '<a href="' + requestSender.formatUrlLocal('login')
+             + '">' + text + '</a>';
+    }
+    var l = login_text('Please try to login again.');
     if (r == 'deprecated' || r == 'invalid-method') {
         self.msg = 'You can no longer login with ' + t + '. ' + l;
     }
@@ -2671,6 +2674,10 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     }
     else if (r == 'oauth-state') {
         self.msg = 'Something went wrong with ' + t + '. ' + l;
+    }
+    else if (r == 'guest-expired') {
+        self.msg = 'Your trial period has expired. '
+            + login_text('Please click here to authenticate.');
     }
     else {
         self.msg = 'Unexpected error. ' + l;

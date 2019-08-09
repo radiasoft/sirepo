@@ -125,3 +125,7 @@ def init_apis(*args, **kwargs):
             'Shared secret between Sirepo and BlueSky server',
         ),
     )
+
+
+def validate_login(*args, **kwargs):
+    return None

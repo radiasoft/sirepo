@@ -141,6 +141,10 @@ def init_apis(app, *args, **kwargs):
     _smtp = flask_mail.Mail(app)
 
 
+def validate_login(*args, **kwargs):
+    return None
+
+
 def _init_model(db, base):
     """Creates AuthEmailUser bound to dynamic `db` variable"""
     global AuthEmailUser, UserModel

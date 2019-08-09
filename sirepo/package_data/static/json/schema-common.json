@@ -62,6 +62,7 @@
         "longName": "Sirepo"
     },
     "route": {
+        "adjustTime": "/adjust-time/?<days>",
         "blueskyAuth": "/bluesky-auth",
         "comsol": "/comsol",
         "comsolRegister": "/comsol-register",
@@ -216,6 +217,13 @@
                 "route": "/forbidden",
                 "config": {
                   "templateUrl": "/static/html/forbidden.html"
+                }
+            },
+            "login": {
+                "route": "/login",
+                "config": {
+                  "controller": "LoginController as login",
+                  "templateUrl": "/static/html/login.html"
                 }
             },
             "login": {
