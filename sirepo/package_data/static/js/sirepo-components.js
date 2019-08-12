@@ -589,8 +589,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         restrict: 'A',
         scope: {},
         template: [
-            '<li data-ng-if="::authState.isGuestUser"><a href="::authService.loginUrl"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
-            '<li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
+            '<li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
+            '<li data-ng-if="::authState.isLoggedIn && ! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
               '<a href class="dropdown-toggle" data-toggle="dropdown">',
                 '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
                 '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
