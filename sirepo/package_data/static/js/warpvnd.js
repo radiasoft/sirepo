@@ -3606,7 +3606,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var fieldZFactor = 1.0;
             var fieldYFactor = 1.0;
             var fieldColorScale = null;
-            var indexMaps = [];
+            var pointToColorIndexMaps = [];
 
             var minZSpacing = Number.MAX_VALUE;
 
@@ -4080,8 +4080,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
 
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
-                var nearestIndex = 0;
-                indexMaps = [];
+                var nearestPointIndex = 0;
+                pointToColorIndexMaps = [];
 
                 // linearly interpolate the data
                 for (var i = 0; i < lcoords.length; ++i) {
@@ -4089,45 +4089,80 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                     var newIndexMap = {0:0};
                     var lastNearestIndex = 0;
-                    nearestIndex = 1;
+                    nearestPointIndex = 1;
                     var newZ = ptsArr[0][2];
                     var finalZ = ptsArr[ptsArr.length-1][2];
-                    var j = 1;
+                    var cornerZs = [newZ];
+                    var cornerIdxs = [0];
+                    var prevZ = newZ;
+                    var sgn = 1;
 
-                    // ASSUMES MONOTONICALLY INCREASING Z
-                    while (newZ <= finalZ) {
-                        newZ = ptsArr[0][2] + j * minZSpacing;
-                        nearestIndex = 1;  // start at the beginning
-                        lastNearestIndex = 1;
-                        var checkZ = ptsArr[nearestIndex][2];
-                        while (nearestIndex < ptsArr.length && checkZ < newZ) {
-                            if (! newIndexMap[nearestIndex]) {
-                                // ensures we don't skip any indices, mapping them to the nearest previously mapped value
-                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, 1) || 0;
-                            }
-                            ++nearestIndex;
-                            checkZ = (ptsArr[nearestIndex] || [])[2];
+                    // keep track of particles changing direction
+                    for (var k = 1; k < ptsArr.length-1; ++k) {
+                        var thisZ = ptsArr[k][2];
+                        if (sgn * thisZ < sgn * prevZ) {
+                            cornerZs.push(prevZ);
+                            cornerIdxs.push(k - 1);
+                            sgn *= -1;
                         }
-                        if (nearestIndex != lastNearestIndex) {
-                            lastNearestIndex = nearestIndex;
-                        }
-
-                        var lo = Math.max(0, nearestIndex - 1);
-                        var hi = Math.min(ptsArr.length-1, nearestIndex);
-                        var p = ptsArr[lo];
-                        var nextP = ptsArr[hi];
-                        var dzz = nextP[2] - p[2];
-                        var newP = [0, 0, newZ];
-                        for (var ci = 0; ci < 2; ++ci) {
-                            newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
-                        }
-                        ptsArr.splice(lo + 1, 0, newP);
-
-                        newIndexMap[hi] = j;
-                        ++j;
+                        prevZ = thisZ;
                     }
-                    newIndexMap[ptsArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, 1);
-                    indexMaps.push(newIndexMap);
+                    cornerZs.push(finalZ);
+                    cornerIdxs.push(ptsArr.length-1);
+
+                    var j = 1;
+                    var lastMappedColorIndex = 0;
+
+                    sgn = 1;
+                    for (k = 0; k < cornerZs.length - 1; ++k) {
+                        newZ = cornerZs[k];
+                        finalZ = cornerZs[k + 1];
+                        j = 1;
+                        lastNearestIndex = cornerIdxs[k] + 1;
+                        while (sgn * newZ <= sgn * finalZ) {
+                            newZ = cornerZs[k] + sgn * j * minZSpacing;
+                            nearestPointIndex = lastNearestIndex;
+                            var checkZ = ptsArr[nearestPointIndex][2];
+                            while (nearestPointIndex < ptsArr.length && sgn * checkZ < sgn * newZ && sgn * checkZ < sgn * finalZ) {
+                                if (newIndexMap[nearestPointIndex] !== 0 && ! newIndexMap[nearestPointIndex]) {
+                                    // ensures we don't skip any indices, mapping them to the nearest previously mapped value
+                                    newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1) || 0;
+                                }
+                                ++nearestPointIndex;
+                                checkZ = (ptsArr[nearestPointIndex] || [])[2];
+                            }
+
+                            if (nearestPointIndex != lastNearestIndex) {
+                                lastNearestIndex = nearestPointIndex;
+                            }
+
+                            var lo = Math.max(0, nearestPointIndex - 1);
+                            var hi = Math.min(ptsArr.length - 1, nearestPointIndex);
+                            if (sgn * checkZ < sgn * finalZ) {
+                                var p = ptsArr[lo];
+                                var nextP = ptsArr[hi];
+                                var dzz = nextP[2] - p[2];
+                                var newP = [0, 0, newZ];
+                                for (var ci = 0; ci < 2; ++ci) {
+                                    newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
+                                }
+                                ptsArr.splice(lo + 1, 0, newP);
+                                for (var crx = k + 1; crx < cornerIdxs.length; ++crx) {
+                                    // added a point, so the remaining corner index vals increment
+                                    cornerIdxs[crx] = cornerIdxs[crx] + 1;
+                                }
+                            }
+
+                            newIndexMap[hi] = lastMappedColorIndex + sgn * j;
+                            ++j;
+                        }
+                        ++nearestPointIndex;
+                        newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
+                        sgn *= -1;
+                        lastMappedColorIndex = j - 1;
+                    }
+                    newIndexMap[ptsArr.length-1] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
+                    pointToColorIndexMaps.push(newIndexMap);
                 }
 
                 // distribute the heat map evenly over the interpolated points
@@ -4354,20 +4389,20 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
                     for (var j = 0; j < l; ++j) {
-                        ++numPoints;
+                        //++numPoints;z
                         if (j < l - 1) {
                             k = j + 1;
-                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(indexMaps[i][j]));
+                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
                         }
                     }
                     if (l > j) {
                         k = j - 1;
-                        ++numPoints;
-                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(indexMaps[i][k]));
+                        //++numPoints;
+                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
                     }
                     if (includeImpact) {
                         k = points[i].length - 1;
-                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
+                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);
                     }
                 }
                 var p32 = window.Float32Array.from(dataPoints);
@@ -4411,7 +4446,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
             }
 
-            function indexValPriorTo(map, startIndex, spacing) {
+            function colorIndexValPriorTo(map, startIndex, spacing) {
                 var k = startIndex - spacing;
                 var prevVal = map[k];
                 while(k >= 0 && (prevVal == null || prevVal === 'undefined')) {
@@ -4422,6 +4457,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             }
 
             function colorAtIndex(index) {
+                if (index !== 0 && ! index) {
+                    return plotting.colorsFromHexString('#000000', 255.0);
+                }
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
