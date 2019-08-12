@@ -1190,6 +1190,60 @@ SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interva
     };
 });
 
+SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<div class="row">',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div data-ng-transclude=""></div>',
+            '</div>',
+        ].join(''),
+        scope: {},
+        controller: function($scope, $element) {
+            var columnCount = 0;
+            var panelItems = null;
+
+            function arrangeColumns() {
+                var count = 0;
+                var cols = $($element).find('.sr-panel-layout');
+                if (! panelItems) {
+                    panelItems = $($element).find('.sr-panel-item');
+                }
+                panelItems.each(function(idx, item) {
+                    cols[count].append(item);
+                    count = (count + 1) % columnCount;
+                });
+            }
+
+            function windowResize() {
+                if (utilities.isFullscreen()) {
+                    return;
+                }
+                var count = 1;
+                //TODO(pjm): size from bootstrap css constants
+                if ($window.matchMedia('(min-width: 1600px)').matches) {
+                    count = 3;
+                }
+                else if ($window.matchMedia('(min-width: 992px)').matches) {
+                    count = 2;
+                }
+                if (count != columnCount) {
+                    columnCount = count;
+                    arrangeColumns();
+                }
+            }
+
+            $scope.$on('sr-window-resize', windowResize);
+
+            appState.whenModelsLoaded($scope, windowResize);
+        },
+    };
+});
+
 SIREPO.app.directive('safePath', function() {
 
     var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
