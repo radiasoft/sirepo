@@ -391,12 +391,12 @@ def fixup_old_data(data):
     for component in ['horizontal', 'vertical']:
         if '{}DeflectingParameter'.format(component) not in data['models']['undulator']:
             undulator = data['models']['undulator']
-            undulator['{}DeflectingParameter'.format(component)] = round(_process_undulator_definition(pkcollections.Dict({
+            undulator['{}DeflectingParameter'.format(component)] = _process_undulator_definition(pkcollections.Dict({
                 'undulator_definition': 'B',
                 'undulator_parameter': None,
                 'amplitude': float(undulator['{}Amplitude'.format(component)]),
                 'undulator_period': float(undulator['period']) / 1000.0
-            }))['undulator_parameter'], 8)
+            }))['undulator_parameter']
     if 'effectiveDeflectingParameter' not in  data['models']['undulator']:
         undulator = data['models']['undulator']
         undulator['effectiveDeflectingParameter'] = math.sqrt(undulator['horizontalDeflectingParameter']**2 + \
@@ -665,7 +665,7 @@ def new_simulation(data, new_simulation_data):
         data['models']['intensityReport']['method'] = "2"
     elif _is_arbitrary_source(sim):
         data['models']['sourceIntensityReport']['method'] = "2"
-    elif _is_tabulated_undulator_source(data['models']['simulation']):
+    elif _is_tabulated_undulator_source(sim):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
 
@@ -1088,7 +1088,7 @@ def _compute_undulator_length(model):
     zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
         return {
-            'length': MagnMeasZip(str(zip_file)).find_closest_gap(model['gap']),
+            'length': _format_float(MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])),
         }
     return {}
 
@@ -1328,6 +1328,10 @@ def _fix_file_header(filename):
                     rows[8] = rows[5]
                     rows[9] = rows[6]
     pkio.write_text(filename, ''.join(rows))
+
+
+def _format_float(v):
+    return float('{:.8f}'.format(v))
 
 
 def _generate_beamline_optics(report, models, last_id):
@@ -1655,17 +1659,17 @@ def _init():
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-        beams.append(pkcollections.Dict({
+        beams.append(_process_beam_parameters(pkcollections.Dict({
             'name': beam[0],
             'current': info[0],
             'energy': info[1],
             'rmsSpread': info[2],
-            'horizontalEmittance': round(info[3] * 1e9, 6),
+            'horizontalEmittance': _format_float(info[3] * 1e9),
             'horizontalBeta': info[4],
             'horizontalAlpha': info[5],
             'horizontalDispersion': info[6],
             'horizontalDispersionDerivative': info[7],
-            'verticalEmittance': round(info[8] * 1e9, 6),
+            'verticalEmittance': _format_float(info[8] * 1e9),
             'verticalBeta': info[9],
             'verticalAlpha': info[10],
             'verticalDispersion': 0,
@@ -1675,7 +1679,7 @@ def _init():
             'verticalPosition': 0,
             'drift': 0.0,
             'isReadOnly': True,
-        }))
+        })))
     _PREDEFINED['beams'] = beams
 
 
@@ -1734,8 +1738,8 @@ def _is_undulator_source(sim):
     return sim['sourceType'] in ['u', 't']
 
 
-def _is_user_defined_model(ebeam):
-    if 'isReadOnly' in ebeam and ebeam['isReadOnly']:
+def _is_user_defined_model(model):
+    if 'isReadOnly' in model and model['isReadOnly']:
         return False
     return True
 
@@ -1799,17 +1803,11 @@ def _process_beam_parameters(ebeam):
             _eta_y=model['verticalDispersion'],
             _eta_y_pr=model['verticalDispersionDerivative'],
         )
-
-        for i, k in enumerate(moments_fields):
-            model[k] = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
-
-        # Convert to the units used in the schema:
-        for k in model:
-            model[k] = _convert_ebeam_units(k, model[k], to_si=False)
-
         # copy moments values into the ebeam
-        for k in moments_fields:
-            ebeam[k] = model[k]
+        for i, k in enumerate(moments_fields):
+            v = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
+            ebeam[k] = _format_float(_convert_ebeam_units(k, v, to_si=False))
+    return ebeam
 
 
 def _process_image(data):
@@ -1856,11 +1854,11 @@ def _process_undulator_definition(model):
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
             und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
-            model['undulator_parameter'] = und.get_K()
+            model['undulator_parameter'] = _format_float(und.get_K())
         elif model['undulator_definition'] == 'K':
             # Convert K to B:
-            und = srwlib. SRWLMagFldU([], float(model['undulator_period']))
-            model['amplitude'] = und.K_2_B(float(model['undulator_parameter']))
+            und = srwlib.SRWLMagFldU([], float(model['undulator_period']))
+            model['amplitude'] = _format_float(und.K_2_B(float(model['undulator_parameter'])))
         return model
     except Exception:
         return model
