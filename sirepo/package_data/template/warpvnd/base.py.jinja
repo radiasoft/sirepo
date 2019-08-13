@@ -369,8 +369,8 @@ wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept=True)
 
-{% if reflectGround.isReflector %}
-reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ reflectGround.specProb }}, drefprob={{ reflectGround.diffProb }})
+{% if anode.isReflector %}
+reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
 particlereflector.installparticlereflector(reflector)
 {% endif %}
 

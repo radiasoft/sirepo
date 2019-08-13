@@ -814,7 +814,7 @@ def _generate_parameters_file(data):
     v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
-    v['reflectGround'] = _prepare_reflection(data)
+    v['anode'] = _prepare_anode(data)
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -980,7 +980,7 @@ def _prepare_conductors(data):
     return data.models.conductors
 
 
-def _prepare_reflection(data):
+def _prepare_anode(data):
     return {
         'isReflector': data.models.anode['isReflector'] == '1',
         'specProb': data.models.anode['specProb'],
