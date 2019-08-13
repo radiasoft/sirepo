@@ -264,8 +264,7 @@
                 "beam.anode_voltage",
                 "beam.anode_work_function",
                 "isReflector",
-                "diffProb",
-                "specProb"
+                "diffProb"
             ]
         },
         "beam": {
@@ -298,7 +297,6 @@
                 "permittivity",
                 "isReflector",
                 "diffProb",
-                "specProb",
                 "color"
             ]
         },

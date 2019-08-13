@@ -339,7 +339,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return true;
     }
 
-    var probFields = ['specProb', 'diffProb'];
+    //var probFields = ['specProb', 'diffProb'];
+    var probFields = ['diffProb'];
     function probValidator(modelName, field) {
         return function() {
             var isValid = checkProbSum(modelName);
@@ -386,13 +387,12 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     function initModal(modelName, modal) {
         if (! $scope.reflectors[modelName]) {
 
-            // for now, force specular probablility to be 0.  We will show the field but it
-            // will not be editable
+            // for now, force specular probablility to be 0.  We will keep the field in the model but it
+            // will not be in the view
             //appState.models[modelName].specProb = 0;
-            panelState.enableField(modelName, 'specProb', false);
 
             $scope.reflectors[modelName] = {};
-            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'specProb'));
+            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'diffProb'));
             $scope.msg = function () {
                 return probFields.reduce(function (m, f) {
                     return m || validationService.getModelFieldMessage(modelName, f);
@@ -607,12 +607,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         if (! m ||  m.isReflector !== '1') {
             return 0;
         }
-        var s = m.specProb;
-        var d = m.diffProb;
-        if (s + d === 0) {
-            return 0;
-        }
-        return (probType ==='s' ? s : d) / (s + d);
+        return m.diffProb;
     };
 
     self.handleModalShown = function(name) {
