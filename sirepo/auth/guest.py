@@ -51,19 +51,19 @@ def init_apis(*args, **kwargs):
     )
 
 
-def validate_login():
+def is_login_expired():
     """If expiry is configured, check timestamp
 
     Returns:
-        object: if valid, None, otherwise flask.Response.
+        bool: true if login is expired
     """
     if not cfg.expiry_days:
-        return None
+        return False
     n = int(srtime.utc_now_as_float())
     t = int(cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
     if n <= t:
         # cached timestamp less than expiry
-        return None
+        return False
     # db expiry at most one day from now so we can change expiry_days
     # and (in any event) ensure expiry is checked once a day. This
     # would also allow us to extend the expired period in the db.
@@ -71,21 +71,33 @@ def validate_login():
     r = auth.user_registration(u)
     t = r.created + cfg.expiry_days
     n = srtime.utc_now()
-    if n <= t:
-        t2 = n + _ONE_DAY
-        if t2 < t:
-            t = t2
-        t -= datetime.datetime.utcfromtimestamp(0)
-        cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
-        return None
-    pkdlog('expired uid={}, timestamp={} now={}', u, t, n)
-    return http_reply.gen_sr_exception(
-        'loginFail',
-        {
-            ':method': 'guest',
-            ':reason': 'guest-expired',
-        },
-    )
+    if n > t:
+        return True
+    # set expiry in cookie
+    t2 = n + _ONE_DAY
+    if t2 < t:
+        t = t2
+    t -= datetime.datetime.utcfromtimestamp(0)
+    cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
+    return False
+
+
+def validate_login():
+    """If expiry is configured, check timestamp
+
+    Returns:
+        object: if valid, None, otherwise flask.Response.
+    """
+    if is_login_expired():
+        pkdlog('expired uid={}, timestamp={} now={}', u, t, n)
+        return http_reply.gen_sr_exception(
+            'loginFail',
+            {
+                ':method': 'guest',
+                ':reason': 'guest-expired',
+            },
+        )
+    return None
 
 
 def _cfg_login_days(value):

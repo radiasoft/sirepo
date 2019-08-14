@@ -83,6 +83,7 @@ def api_authState():
         guestIsOnlyMethod=not non_guest_methods,
         isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
+        isLoginExpired=False,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
         needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         userName=None,
@@ -91,8 +92,10 @@ def api_authState():
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
+            # currently only method to expire login
             v.displayName = _GUEST_USER_DISPLAY_NAME
             v.isGuestUser = True
+            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
             v.needCompleteRegistration = False
             v.visibleMethods = non_guest_methods
         else:
