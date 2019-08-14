@@ -329,7 +329,7 @@ wp.registersolver(solverE)
 # --- Emitter settings
 extractor_voltage = vacuum_level
 # --- Anode Location
-zplate = Z_MAX # --- plate location
+zplate = Z_MAX - 1e-9 # --- plate location
 
 conductors = [
 {% for c in conductors %}
@@ -373,12 +373,6 @@ scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, 
 reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
 particlereflector.installparticlereflector(reflector)
 {% endif %}
-
-{% for c in conductors %}
-{% if c.conductor_type.isReflector %}
-
-{% endif %}
-{% endfor %}
 
 # Ignore specular probability and reflection scheme for now
 for r_idx, r in enumerate(reflectors):
