@@ -4,7 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.PLOT_3D_CONFIG = {
-    'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+    'coordMatrix': [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
 };
 SIREPO.SINGLE_FRAME_ANIMATION = ['optimizerAnimation', 'fieldCalcAnimation', 'fieldComparisonAnimation'];
 SIREPO.appReportTypes = [
@@ -888,7 +888,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             $scope.zMargin = function () {
                 var xl = select('.x-axis-label');
                 var xaxis = select('.x.axis');
-                if(xl.empty() || xaxis.empty()) {
+                if (xl.empty() || xaxis.empty()) {
                     return 0;
                 }
                 try {
@@ -916,10 +916,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
 
             function alignShapeOnGrid(shape) {
                 var grid = appState.models.simulationGrid;
-                var numX = grid.num_x;
-                var n = toMicron(grid.channel_width / (numX * 2));
+                var isFront = shape.elev === ELEVATIONS.front;
+                var numV = isFront ? grid.num_x : grid.num_y;
+                var gWidth = isFront ? grid.channel_width : grid.channel_height;
+                var n = toMicron(gWidth / (numV * 2));
                 var yCenter = shape.y - shape.height / 2;
                 shape.y = alignValue(yCenter, n) + shape.height / 2;
+
                 // iterate shapes (and anode)
                 //   if drag-shape right edge overlaps, but is less than the drag-shape midpoint:
                 //      set drag-shape right edge to shape left edge
@@ -1033,7 +1036,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 $scope.$applyAsync(function() {
                     if (isShapeInBounds(shape)) {
                         conductorPosition.zCenter = formatMicron(shape.x + shape.width / 2);
-                        conductorPosition.xCenter = formatMicron(shape.y - shape.height / 2);
+                        var ctr = formatMicron(shape.y - shape.height / 2);
+                        if (shape.elev == ELEVATIONS.front) {
+                            conductorPosition.xCenter = ctr;
+                        }
+                        else {
+                            conductorPosition.yCenter = ctr;
+                        }
                         appState.saveChanges('conductors');
                     }
                     else {
@@ -1073,7 +1082,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var xdomain = axes.x.scale.domain();
                 var xPixelSize = (xdomain[1] - xdomain[0]) / $scope.width;
                 shape.x = dragStart.x + xPixelSize * d3.event.x;
-                var ydomain = axes.y.scale.domain();
+                var ydomain = shape.elev === ELEVATIONS.front ? axes.y.scale.domain() : axes.z.scale.domain();
                 var yPixelSize = (ydomain[1] - ydomain[0]) / $scope.height;
                 shape.y = dragStart.y - yPixelSize * d3.event.y;
                 alignShapeOnGrid(shape);
@@ -1088,37 +1097,45 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function doesShapeCrossGridLine(shape) {
-                if (shape.elev == ELEVATIONS.top) {
-                    return true;
-                }
+                var isFront = shape.elev == ELEVATIONS.front
                 var grid = appState.models.simulationGrid;
-                var numX = grid.num_x;  // number of vertical cells
-                var halfChannel = toMicron(grid.channel_width/2.0);
-                var cellHeight = toMicron(grid.channel_width / numX);  // height of one cell
-                var numZ = grid.num_z;  // number of horizontal cells
-                var cellWidth = toMicron(plateSpacing / numZ);  // width of one cell
-                if( cellHeight === 0 || cellWidth === 0 ) {  // pathological?
+                var numV = isFront ? grid.num_x : grid.num_y;
+                var gWidth = isFront ? grid.channel_width : grid.channel_height;
+                var halfgWidth = toMicron(gWidth / 2.0);
+                var cellHeight = toMicron(gWidth / numV);
+
+                var numZ = grid.num_z;
+                var cellWidth = toMicron(plateSpacing / numZ);
+
+                // pathological?
+                if ( cellHeight === 0 || cellWidth === 0 ) {
                     return true;
                 }
-                if( shape.height >= cellHeight || shape.width >= cellWidth ) {  // shape always crosses grid line if big enough
+
+                // shape always crosses grid line if big enough
+                if ( shape.height >= cellHeight || shape.width >= cellWidth ) {
                     return true;
                 }
-                var vOffset = numX % 2 === 0 ? 0.0 : cellHeight/2.0;  // translate coordinate system
-                var topInCellUnits = (shape.y + vOffset)/cellHeight;
-                var bottomInCellUnits = (shape.y - shape.height + vOffset)/cellHeight;
-                var top = Math.floor(topInCellUnits);  // closest grid line below top
-                var bottom =  Math.floor(bottomInCellUnits); // closest grid line below bottom
+
+                // translate coordinate system
+                var vOffset = numV % 2 === 0 ? 0.0 : cellHeight / 2.0;
+
+                // closest grid lines below top and below bottom
+                var top = Math.floor((shape.y + vOffset) / cellHeight);
+                var bottom =  Math.floor((shape.y - shape.height + vOffset) / cellHeight);
 
                 // note that we do not need to translate coordinates here, since the 1st grid line is
                 // always at 0 in the horizontal direction
-                var leftInCellUnits = shape.x/cellWidth;
-                var rightInCellUnits = (shape.x + shape.width)/cellWidth;
-                var left = Math.floor(leftInCellUnits);  // closest grid line left of shape
-                var right =  Math.floor(rightInCellUnits); // closest grid line right of shape
+                var leftInCellUnits = shape.x / cellWidth;
+                var rightInCellUnits = (shape.x + shape.width) / cellWidth;
+
+                 // closest grid lines left nad right of shape
+                var left = Math.floor(leftInCellUnits);
+                var right =  Math.floor(rightInCellUnits);
 
                 // if the top of the shape extends above the top of the channel, it
                 // is ignored.  If the bottom goes below, it is not
-                return (shape.y < halfChannel && top != bottom) || left != right;
+                return (shape.y < halfgWidth && top != bottom) || left != right;
             }
 
             function drawCathodeAndAnode(elev) {
@@ -1214,10 +1231,8 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 ds.enter().append('rect')
                     .on('dblclick', editPosition);
                 ds.call(updateShapeAttributes);
-                if (elev === ELEVATIONS.front) {
-                    ds.call(dragShape);
-                }
-                if(! $scope.isDomainTiled || elev !== ELEVATIONS.front) {
+                ds.call(dragShape);
+                if (! $scope.isDomainTiled || elev !== ELEVATIONS.front) {
                     return;
                 }
                 // just once per set of conductors
@@ -1282,6 +1297,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function isShapeInBounds(shape) {
+                var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
                 var bounds = {
                     top: shape.y,
                     bottom: shape.y - shape.height,
@@ -1289,7 +1305,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     right: shape.x + shape.width,
                 };
                 if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
-                    || bounds.top < axes.y.domain[0] || bounds.bottom > axes.y.domain[1]) {
+                    || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
                     return false;
                 }
                 return true;
@@ -1485,9 +1501,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function showShapeLocation(shape) {
+                var axis = shape.elev === ELEVATIONS.front ? 'X' : 'Y';
                 select('.focus-text').text(
                     'Center: Z=' + formatMicron(shape.x + shape.width / 2, 4)
-                        + 'µm, X=' + formatMicron(shape.y - shape.height / 2, 4) + 'µm');
+                        + 'µm, ' + axis + '=' + formatMicron(shape.y - shape.height / 2, 4) + 'µm');
             }
 
             function toMicron(v) {
@@ -1548,7 +1565,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
-                        if(d.conductorType.color && doesShapeCrossGridLine(d)) {
+                        if (d.conductorType.color && doesShapeCrossGridLine(d)) {
                             return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
                                 'stroke: ' + shapeColor(d.conductorType.color);
                         }
@@ -1688,7 +1705,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var w = 0;
                 var h = 0;
                 var grid = appState.models.simulationGrid;
-                if($scope.isDomainTiled) {
+                if ($scope.isDomainTiled) {
                     w = insetWidthPct * $scope.width;
                     h = warpvndService.is3D() ? w *  (grid.channel_width / grid.channel_height) : insetWidthPct * $scope.height;
                 }
@@ -1710,9 +1727,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             };
 
             $scope.toggle3dPreview = function() {
-                //if(! $scope.source.usesSTL()) {
-                    $scope.is3dPreview = !$scope.is3dPreview;
-                //}
+                $scope.is3dPreview = !$scope.is3dPreview;
             };
 
             $scope.toggleTiledDomain = function() {
@@ -2945,7 +2960,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     var cModel = typeMap[c.conductorTypeId];
                     var vColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#6992ff');
                     var zColor = vtk.Common.Core.vtkMath.hex2float(cModel.color || '#f3d4c8');
-                    // model (z, x, y) --> (x, y, z)
+                    // model (z, x, y) --> (x, y, -z)
                     addSource(
                         vtk.Filters.Sources.vtkCubeSource.newInstance({
                             xLength: toMicronFactor * xfactor * cModel.zLength,
@@ -2954,7 +2969,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                             center: [
                                 toMicronFactor * xfactor * c.zCenter,
                                 toMicronFactor * c.xCenter,
-                                toMicronFactor * c.yCenter,
+                                -toMicronFactor * c.yCenter,
                             ],
                         }),
                         {
@@ -3295,7 +3310,7 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
 // NOTE: the vtk and warp coordinate systems are related the following way:
 //    vtk X (left to right) = warp Z
 //    vtk Y (bottom to top) = warp X
-//    vtk Z (out to in) = warp Y
+//    vtk Z (out to in) = -warp Y
 SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, geometry, layoutService, panelState, plotting, plotToPNG, requestSender, utilities, vtkPlotting, warpvndService, $timeout) {
 
     return {
