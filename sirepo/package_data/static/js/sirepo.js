@@ -129,9 +129,21 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appState) {
+SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
     var self = appState.clone(SIREPO.authState);
 
+    if (SIREPO.authState.isGuestUser && ! SIREPO.authState.isLoginExpired) {
+        appState.whenModelsLoaded(
+            $rootScope,
+            function() {
+                errorService.alertText(
+                    'You are accessing Sirepo as a guest. ' +
+                    'Guest sessions are regularly deleted. ' +
+                    'To ensure that your work is saved, please click on Save Your Work!.'
+                );
+            }
+        );
+    }
     return self;
 });
 
@@ -2676,7 +2688,9 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
         self.msg = 'Something went wrong with ' + t + '. ' + l;
     }
     else if (r == 'guest-expired') {
-        self.msg = 'Your trial period has expired. '
+        self.msg = 'Guest Access Expired: To continue using Sirepo '
+            + 'we require you to authenticate using email.'
+            + 'You will use this email to access your work going forward. '
             + login_text('Please click here to authenticate.');
     }
     else {
