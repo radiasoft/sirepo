@@ -1018,6 +1018,7 @@ SIREPO.app.factory('authService', function(appState, authState, requestSender) {
             };
         }
     );
+    self.loginUrl = requestSender.formatUrlLocal('login');
     self.logoutUrl = requestSender.formatUrl(
         'authLogout',
         {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
@@ -1396,7 +1397,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.displayName || route.controller.indexOf('login') >= 0) {
+        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -2654,9 +2655,16 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
     };
 });
 
-SIREPO.app.controller('LoginController', function (authService) {
+SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
     var self = this;
     self.authService = authService;
+    if (authState.visibleMethods.length === 1) {
+        requestSender.localRedirect(
+            'loginWith',
+            {':method': authState.visibleMethods[0]}
+        );
+        return;
+    }
 });
 
 SIREPO.app.controller('LoginWithController', function ($route, $window, errorService, appState, requestSender) {

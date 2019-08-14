@@ -1046,7 +1046,7 @@
         "electronBeam": {
             "title": "Electron Beam",
             "basic": [
-                "name"
+                "beamSelector"
             ],
             "advanced": [
                 ["Main", [
@@ -1696,7 +1696,7 @@
         "tabulatedUndulator": {
             "title": "Undulator (Idealized or Tabulated)",
 	    "basic": [
-	        "name"
+	        "undulatorSelector"
 	        ],
             "advanced": [
                 "undulatorSelector",

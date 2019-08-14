@@ -1,9 +1,10 @@
 
 import math
+import scipy
 from rswarp.diagnostics import ConductorTemplates
 from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
-
+from scipy import spatial
 
 # To reduce the data, line (plane) coordinates are parametrized.  We respond with
 # the initial values in each coord array and a "slope" in each array dimension
@@ -12,18 +13,19 @@ from rswarp.diagnostics import ImpactDensity
 # use the function arr[0][0] + k * sk + l * sl (loop over k then l) to
 # get the original array value
 def _linear_fit_2d(arr):
-    sk = (arr[len(arr) - 1][0] - arr[0][0]) / (len(arr) - 1)
-    sl = (arr[0][len(arr[0]) - 1] - arr[0][0]) / (len(arr[0]) - 1)
+    sk = (arr[len(arr) - 1][0] - arr[0][0]) / (len(arr) - 1) if len(arr) > 1 else 0
+    sl = (arr[0][len(arr[0]) - 1] - arr[0][0]) / (len(arr[0]) - 1) if len(arr[0]) > 1 else 0
     return sk, sl
 
 # use the function arr[0] + k * sk (loop over k) to
 # get the original array value
 def _linear_fit_1d(arr):
-    sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1)
+    sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
 
 try:
     i_data = []
+    # add use_aura=True when available in rswarp
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
 
     # Old style data, keeping for the moment
@@ -43,13 +45,11 @@ try:
         }
     else:
         i_data = []
+        global_max = 0.
         for i in plot_density.conductors:
             c_data = []
             c = plot_density.conductors[i]
             {% if is3D %}
-            # Skip stl conductors until the plotting works
-            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
-                continue
             coord_keys = ['x', 'y', 'z']
             try:
                 min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
@@ -62,44 +62,101 @@ try:
                 c_data.append(f_data)
                 i_data.append(c_data)
                 continue
-            #min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
+            global_max = max(global_max, max_s)
             for (x, y, z, s) in d:
-                #n_bins = 20
-                #s_aves_k = []
-                #s_aves_l = []
-                #bin_size_k = int(math.floor(len(x) / n_bins))
-                #bin_size_l = int(math.floor(len(x[0]) / n_bins))
-                #for b in range(n_bins):
-                #    k1 = b * bin_size
-                #    k2 = (b + 1) * bin_size
-                #    s_aves_k.append(np.mean(s[k1:k2][l1:l2], axis=(0, 1)))
-                #    for bb in range(n_bins):
-                #        l1 = bb * bin_size
-                #        l2 = (bb + 1) * bin_size
-                #        #print('bin {} from {} to {}'.format(b, i1, i2))
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
-                #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
-                #print('!GOT X {} Y {} Z {} S {}'.format(x, y, z, s))
                 f_data = {
                     'dArr': s.tolist(),
                     'n': len(x)
                 }
+
                 # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
-                #TODO(mvk): use triangulation instead
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
-                    #print('!GOT NX {} NY {} NZ {} NS {}'.format(len(x), len(y), len(z), len(s)))
-                    #print('!GOT UNSTRUCT X {} Y {} Z {} S {}'.format(x, y, z, s))
-                    #print('!GOT UNSTRUCT')
+
                     f_data['type'] = 'unstructured'
-                    for cx, coord in enumerate((x, y, z)):
+
+                    xx = np.array([])
+                    yy = np.array([])
+                    zz = np.array([])
+                    ss = np.array([])
+
+                    #####
+
+                    # 3d triangulation
+                    # This gives us tetrahedrons but we'll split them into triangles for vtk, which has not yet ported
+                    # tetras from c++ to js
+                    pts = np.dstack((x, y, z))[0]
+                    try:
+                        dlny = scipy.spatial.Delaunay(pts)
+                    except scipy.spatial.qhull.QhullError:
+                        err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
+                        print(err)
+                        f_data['err'] = err
+                        c_data.append(f_data)
+                        continue
+
+                    f_data['dims'] = 3
+                    tets = dlny.simplices
+
+                    # the triangles that make up the tetrahedron
+                    tris = [
+                        [0, 1, 2],
+                        [0, 1, 3],
+                        [0, 2, 3],
+                        [1, 2, 3]
+                    ]
+                    for tet in tets:
+                        for tri in tris:
+                            tetra_tri = tet[tri]
+                            xx = np.append(xx, x[tetra_tri])
+                            yy = np.append(yy, y[tetra_tri])
+                            zz = np.append(zz, z[tetra_tri])
+                            ss = np.append(ss, np.mean(s[tetra_tri]))
+                            # useful for viewing the triangulation independent of the generated color map
+                            # ss = np.append(ss, np.mean(x[tetra_tri]))
+
+                    #####
+
+                    # 2d triangulation for each individual plane in z
+                    # Use as fallback if 3d fails (?)
+                    #uniq_z = np.unique(z)
+                    #pts = np.dstack((x, y))[0]
+
+                    #for uz in uniq_z:
+                    #for uz_idx, uz in enumerate(uniq_z):
+                    #    if uz_idx > 0:
+                    #        break
+                    #    pts_at_z = pts[np.where(z == uz)]
+                    #    s_at_z = s[np.where(z == uz)]
+                    #    try:
+                    #       dlny = scipy.spatial.Delaunay(pts_at_z)
+                    #    except scipy.spatial.qhull.QhullError:
+                    #        print('Cannot triangulate conductor {}'.format(c))
+                    #        f_data['err'] = 'Cannot triangulate conductor'
+                    #        c_data.append(f_data)
+                    #        continue
+                    #    f_data['dims'] = 2
+                    #    tris = dlny.simplices
+                    #    xx = np.append(xx, pts_at_z[tris][:, :, 0])
+                    #    yy = np.append(yy, pts_at_z[tris][:, :, 1])
+                    #    # send single z value?
+                    #    zz = np.append(zz, uz * np.ones(len(tris[0]) * len(tris)))
+                    #    for tri in tris:
+                    #        ss = np.append(ss, np.mean(s_at_z[tri]))
+                    #        #ss = np.append(ss, np.mean(pts_at_z[tris][:, :, 0]))
+
+                    #####
+
+                    f_data['dArr'] = ss.tolist()
+                    f_data['n'] = len(ss)
+
+                    for cx, coord in enumerate((xx, yy, zz)):
                         f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
                     f_data['m'] = len(x[0])
-                    #print('cond {}: S at x {} ({}/{}), y {} ({}/{}), z {} ({}/{}): {} ({}/{})'.format(i, x, len(x), len(x[0]), y, len(y), len(y[0]), z, len(z), len(z[0]), s, len(s), len(s[0])))
-                    #print('cond {}: nx {}x{} ny {}x{} nz {}x{} ns {}x{}'.format(i, len(x), len(x[0]), len(y), len(y[0]), len(z), len(z[0]), len(s), len(s[0])))
                     for cx, coord in enumerate((x, y, z)):
                         sk, sl = _linear_fit_2d(coord)
                         f_data[coord_keys[cx]] = {
@@ -111,6 +168,7 @@ try:
             {% else %}
             coord_keys = ['x', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
+            global_max = max(global_max, max_s)
             n_bins = 20
             for (x, z, s) in d:
                 h = np.histogram(s, bins=n_bins)[0]
@@ -131,9 +189,6 @@ try:
                     'hist': h.tolist(),
                     'n': len(x)
                 }
-                #print('cond {}: S aves {}'.format(i, s_aves))
-                #print('cond {}: S at x {} ({}), z {} ({}): {} hist {}'.format(i, x, len(x), z, len(z), s, h))
-                #print('cond {}: S hist {} edges {}'.format(i, h, e))
                 for cx, coord in enumerate((x, z)):
                     sk = _linear_fit_1d(coord)
                     f_data[coord_keys[cx]] = {
@@ -151,8 +206,8 @@ try:
             {% endif %}
             'dz': plot_density.dz,
             'density': i_data,
-            'min': min_s,
-            'max': max_s,
+            'min': 0,
+            'max': global_max,
         }
 
 except AssertionError as e:
