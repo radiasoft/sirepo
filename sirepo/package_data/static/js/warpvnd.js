@@ -1385,7 +1385,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
             }
 
-            function editPlate(name, template) {
+            function editPlate(name) {
                 d3.event.stopPropagation();
                 $scope.$applyAsync(function() {
                     panelState.showModalEditor(name);
@@ -1693,26 +1693,6 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             : axes.z;
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
-                    //.attr('fill', function (d) {
-                    //    if (d.isReflector === '1') {
-                    //        return 'url(#reflectionPattern-' + d.id + ')';
-                    //    }
-                    //    return shapeColor(d.conductorType.color, 0.3);
-                    //})
-                    //.attr('stroke', function (d) {
-                    //    if (d.isReflector === '1') {
-                    //        return d.conductorType.color;
-                    //    }
-                    //    if(d.conductorType.color && doesShapeCrossGridLine(d)) {
-                    //        return shapeColor(d.conductorType.color);
-                    //    }
-                    //});
-                    //.attr('style', function(d) {
-                    //    if(d.isReflector !== '1' && d.conductorType.color && doesShapeCrossGridLine(d)) {
-                    //        return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
-                    //          'stroke: ' + shapeColor(d.conductorType.color);
-                    //    }
-                    //});
                     .attr('style', function(d) {
                         if (d.isReflector === '1') {
                             return 'fill:url(#reflectionPattern-' + d.id + '); ' +
@@ -1720,7 +1700,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         }
                         if(d.conductorType.color && doesShapeCrossGridLine(d)) {
                             return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
-                              'stroke: ' + shapeColor(d.conductorType.color);
+                                'stroke: ' + shapeColor(d.conductorType.color);
                         }
                     });
                 var tooltip = selection.select('title');
@@ -4410,7 +4390,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
                     for (var j = 0; j < l; ++j) {
-                        //++numPoints;z
                         if (j < l - 1) {
                             k = j + 1;
                             pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
@@ -4418,7 +4397,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     if (l > j) {
                         k = j - 1;
-                        //++numPoints;
                         pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
                     }
                     if (includeImpact) {
