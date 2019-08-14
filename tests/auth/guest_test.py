@@ -21,24 +21,21 @@ def test_happy_path():
     pkeq(302, r.status_code)
     pkre(sim_type, r.headers['location'])
     fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkok(
-        fc.sr_auth_state(
-            avatarUrl=None,
-            displayName='Guest User',
-            guestIsOnlyMethod=False,
-            isGuestUser=True,
-            isLoggedIn=True,
-            isLoginExpired=False,
-            method='guest',
-            needCompleteRegistration=False,
-            userName=None,
-            visibleMethods=['email'],
-        ).uid,
-        'expecting uid',
+    fc.sr_auth_state(
+        avatarUrl=None,
+        displayName='Guest User',
+        guestIsOnlyMethod=False,
+        isGuestUser=True,
+        isLoggedIn=True,
+        isLoginExpired=False,
+        method='guest',
+        needCompleteRegistration=False,
+        userName=None,
+        visibleMethods=['email'],
     )
 
 
-def xtest_timeout():
+def test_timeout():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
@@ -50,11 +47,20 @@ def xtest_timeout():
     pkeq(302, r.status_code)
     pkre(sim_type, r.headers['location'])
     fc.sr_post('listSimulations', {'simulationType': sim_type})
-    s = fc.sr_auth_state(
-        displayName='Guest User',
+    fc.sr_auth_state(
+        isGuestUser=True,
         isLoggedIn=True,
-        userName=None,
+        isLoginExpired=False,
     )
+    fc.sr_get_json('adjustTime', params={'days': '2'})
+    fc.sr_auth_state(
+        isGuestUser=True,
+        isLoggedIn=True,
+        isLoginExpired=True,
+    )
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
+    pkeq('loginFail', r.srException.routeName)
+    pkeq('guest-expired', r.srException.params[':reason'])
 
 
 def _fc(guest_only=False):

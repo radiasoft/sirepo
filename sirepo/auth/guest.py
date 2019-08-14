@@ -51,8 +51,11 @@ def init_apis(*args, **kwargs):
     )
 
 
-def is_login_expired():
+def is_login_expired(res=None):
     """If expiry is configured, check timestamp
+
+    Args:
+        res (hash): If a hash and return is True, will contain (uid, expiry, and now).
 
     Returns:
         bool: true if login is expired
@@ -72,6 +75,8 @@ def is_login_expired():
     t = r.created + cfg.expiry_days
     n = srtime.utc_now()
     if n > t:
+        if res is not None:
+            res.update(uid=u, expiry=t, now=n)
         return True
     # set expiry in cookie
     t2 = n + _ONE_DAY
@@ -88,8 +93,9 @@ def validate_login():
     Returns:
         object: if valid, None, otherwise flask.Response.
     """
-    if is_login_expired():
-        pkdlog('expired uid={}, timestamp={} now={}', u, t, n)
+    r = pkcollections.Dict()
+    if is_login_expired(r):
+        pkdlog('expired uid={uid}, expiry={expiry} now={now}', **r)
         return http_reply.gen_sr_exception(
             'loginFail',
             {
