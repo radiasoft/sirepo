@@ -1766,7 +1766,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
                     $scope.appUrl = '/en/xray-beamlines.html';
                 }
                 else {
-                    $scope.appUrl = '/old#/' + SIREPO.APP_NAME;
+                    $scope.appUrl = '/';
                 }
             }
         },
