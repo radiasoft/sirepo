@@ -1741,8 +1741,8 @@ SIREPO.app.directive('appHeaderBrand', function() {
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                '<span data-ng-if="! hasAppUrl()">', appInfo.longName, '</span>',
-                '<a data-ng-if="hasAppUrl()" data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
+                '<span data-ng-if="! hasAppLink()">', appInfo.longName, '</span>',
+                '<a data-ng-if="hasAppLink()" data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
                   '<span class="hidden-md hidden-sm">',
                     appInfo.longName,
                   '</span>',
@@ -1767,7 +1767,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
                     $scope.appUrl = '/en/xray-beamlines.html';
                 }
             }
-            $scope.hasAppUrl = function () {
+            $scope.hasAppLink = function () {
                 return SIREPO.APP_NAME === 'elegant' || SIREPO.APP_NAME === 'srw';
             };
         },
