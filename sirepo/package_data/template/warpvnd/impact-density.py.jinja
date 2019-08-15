@@ -26,7 +26,7 @@ def _linear_fit_1d(arr):
 try:
     i_data = []
     # add use_aura=True when available in rswarp
-    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
 
     # Old style data, keeping for the moment
     if not hasattr(plot_density, 'conductors'):
