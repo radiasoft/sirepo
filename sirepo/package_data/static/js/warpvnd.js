@@ -2519,6 +2519,8 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                 // loop over conductors
                 // arr[0] + k * sk for 2d
                 // arr[0][0] + k * sk + l * sl for 3d (later)
+                var smin = json.v_min;
+                var smax = json.v_max;
                 (json.density || []).forEach(function (c, ci) {
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
@@ -2557,8 +2559,6 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                             return o[1] + sk[1] * i;
                         });
                         var coords = geometry.transpose([zc, xc]);
-                        var smin = 0;  //Math.min.apply(null, den);  // always 0?  otherwise plotting a false floor
-                        var smax = Math.max.apply(null, den);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
                         coords.forEach(function (c, i) {
@@ -4059,12 +4059,17 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
+                var doWarn = false;
                 (impactData.density || []).forEach(function (c) {
                     if (! $scope.enableImpactDensity) {
                         return;
                     }
                     // loop over faces
                     c.forEach(function (f) {
+                        if (f.err) {
+                            errorService.alertText(f.err);
+                            return;
+                        }
                         if (! f.y) {
                             $scope.enableImpactDensity = false;
                             return;
@@ -4081,8 +4086,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         var d = f.dArr;
                         var nk = d.length;
                         var nl = d[0].length;
-                        var smin = plotting.min2d(d);
-                        var smax = plotting.max2d(d);
+                        var smin = impactData.v_min || plotting.min2d(d);
+                        var smax = impactData.v_max || plotting.max2d(d);
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
 
                         var p1 = [
@@ -4095,6 +4100,17 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             o[1] + (nl - 1) * sl[1],
                             o[2] + (nl - 1) * sl[2]
                         ];
+
+                        // Omit degenerate planes
+                        if (
+                            (p1[0] === p2[0] && p1[1] === p2[1] ) ||
+                            (p1[0] === p2[0] && p1[2] === p2[2] ) ||
+                            (p1[1] === p2[1] && p1[2] === p2[2] )
+                        ) {
+                            doWarn = true;
+                            return;
+                        }
+
                         var p = coordMapper.buildPlane(o, p1, p2);
                         p.source.setXResolution(nl - 1);
                         p.source.setYResolution(nk - 1);
@@ -4118,6 +4134,10 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                         densityPlaneBundles.push(p);
                     });
+
+                    if (doWarn) {
+                        errorService.alertText('Some impact density data cannot be plotted');
+                    }
                 });
 
                 function toNano(v) {
@@ -4141,37 +4161,43 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     Math.min.apply(null, z) + dz / 2.0
                 ];
 
-                var smin = Math.min.apply(null, d);
-                var smax = Math.max.apply(null, d);
+                var smin = impactData.v_min || Math.min.apply(null, d);
+                var smax = impactData.v_max || Math.max.apply(null, d);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
                 var dataPoints = [];
-                var dataVertices = [];
-                for (var k = 0; k < nk - 1; ++k) {
+                var dataTris = [];
+                for (var k = 0; k < nk; ++k) {
+                    var j = 3 * k;
                     var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k]))
                         .map(function (cc) {
                             return Math.floor(255*cc);
                         });
                     dataColors.push(color[0], color[1], color[2]);
-                    dataVertices.push(1);
-                    dataVertices.push(dataPoints.length / 3);
-                    var vtkPts = coordMapper.xform.doTransform([x[k], y[k], z[k]]);
+                    dataTris.push(3);
+                    dataTris.push(
+                        dataPoints.length / 3, 1 + dataPoints.length / 3, 2 + dataPoints.length / 3
+                    );
+                    var vtkPts = coordMapper.xform.doTransform([x[j], y[j], z[j]]);
+                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 1], y[j + 1], z[j + 1]]));
+                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 2], y[j + 2], z[j + 2]]));
                     for (var cx = 0; cx < vtkPts.length; ++cx) {
                         dataPoints.push(vtkPts[cx]);
                     }
                 }
                 var p32 = window.Float32Array.from(dataPoints);
-                var v32 = window.Uint32Array.from(dataVertices);
+                var t32 = window.Uint32Array.from(dataTris);
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
                     numberOfComponents: 3,
                     values: dataColors,
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                 });
                 var b = coordMapper.buildActorBundle();
+                b.actor.getProperty().setLighting(false);
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
-                pd.getVerts().setData(v32);
+                pd.getPolys().setData(t32);
                 b.mapper.setScalarVisibility(true);
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);
@@ -4265,6 +4291,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
+                if (! index) {
+                    return plotting.colorsFromHexString('#000000', 255.0);
+                }
                 return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
             }
 

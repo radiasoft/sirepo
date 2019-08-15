@@ -129,9 +129,21 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appState) {
+SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
     var self = appState.clone(SIREPO.authState);
 
+    if (SIREPO.authState.isGuestUser && ! SIREPO.authState.isLoginExpired) {
+        appState.whenModelsLoaded(
+            $rootScope,
+            function() {
+                errorService.alertText(
+                    'You are accessing Sirepo as a guest. ' +
+                    'Guest sessions are regularly deleted. ' +
+                    'To ensure that your work is saved, please click on Save Your Work!.'
+                );
+            }
+        );
+    }
     return self;
 });
 
@@ -2661,8 +2673,11 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     var self = this;
     var t = $sce.getTrustedHtml(appState.ucfirst($route.current.params.method || ''));
     var r = $route.current.params.reason || '';
-    var l = '<a href="' + requestSender.formatUrlLocal('login')
-        + '">Please try to login again.</a>';
+    var login_text = function(text) {
+        return '<a href="' + requestSender.formatUrlLocal('login')
+             + '">' + text + '</a>';
+    }
+    var l = login_text('Please try to login again.');
     if (r == 'deprecated' || r == 'invalid-method') {
         self.msg = 'You can no longer login with ' + t + '. ' + l;
     }
@@ -2671,6 +2686,12 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     }
     else if (r == 'oauth-state') {
         self.msg = 'Something went wrong with ' + t + '. ' + l;
+    }
+    else if (r == 'guest-expired') {
+        self.msg = 'Guest Access Expired: To continue using Sirepo '
+            + 'we require you to authenticate using email.'
+            + 'You will use this email to access your work going forward. '
+            + login_text('Please click here to authenticate.');
     }
     else {
         self.msg = 'Unexpected error. ' + l;
