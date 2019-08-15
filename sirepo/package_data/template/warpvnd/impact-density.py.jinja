@@ -25,8 +25,7 @@ def _linear_fit_1d(arr):
 
 try:
     i_data = []
-    # add use_aura=True when available in rswarp
-    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
 
     # Old style data, keeping for the moment
     if not hasattr(plot_density, 'conductors'):
@@ -53,7 +52,7 @@ try:
             coord_keys = ['x', 'y', 'z']
             try:
                 min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
-            except ValueError:
+            except:
                 err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
                 print(err)
                 f_data = {
