@@ -2697,7 +2697,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
                         coords.forEach(function (c, i) {
-                            if(i === coords.length - 1) {
+                            if (i === coords.length - 1) {
                                 return;
                             }
                             var p0 = c;
@@ -4452,7 +4452,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     k -= spacing;
                     prevVal = map[k];
                 }
-                return prevVal;
+                return Math.max(0, prevVal);
             }
 
             function colorAtIndex(index) {
@@ -4462,9 +4462,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
-                if (! index) {
-                    return plotting.colorsFromHexString('#000000', 255.0);
-                }
                 return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
             }
 
