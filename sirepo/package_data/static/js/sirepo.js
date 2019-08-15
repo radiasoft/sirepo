@@ -2676,7 +2676,7 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     var login_text = function(text) {
         return '<a href="' + requestSender.formatUrlLocal('login')
              + '">' + text + '</a>';
-    }
+    };
     var l = login_text('Please try to login again.');
     if (r == 'deprecated' || r == 'invalid-method') {
         self.msg = 'You can no longer login with ' + t + '. ' + l;
