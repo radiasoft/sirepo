@@ -331,6 +331,13 @@ extractor_voltage = vacuum_level
 # --- Anode Location
 zplate = Z_MAX # --- plate location
 
+no_stl = True
+{% for c in conductors %}
+{% if c.conductor_type.type == 'stl' %}
+no_stl = False
+{% endif %}
+{% endfor %}
+
 conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
@@ -367,7 +374,7 @@ wp.installconductor(source, dfill=wp.largepos)
 plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= len(conductors) + 2)
 wp.installconductor(plate, dfill=wp.largepos)
 
-scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept=True)
+scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept=no_stl)
 
 {% if anode.isReflector %}
 reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
