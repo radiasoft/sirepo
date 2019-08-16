@@ -131,7 +131,7 @@ def test_oauth_conversion(monkeypatch):
     uid = fc.sr_auth_state(isLoggedIn=False, method='github').uid
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('loginWith', r.srException.routeName)
-    pkeq('github', r.srException.params.method)
+    pkeq('github', r.srException.params[':method'])
     r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
     pkeq(302, r.status_code)

@@ -3,6 +3,18 @@
 var SIREPO = {
     APP_VERSION: '1',
     APP_NAME: 'srw',
+    authState: {
+        avatarUrl: null,
+        displayName: 'Guest User',
+        guestIsOnlyMethod: true,
+        isGuestUser: true,
+        isLoggedIn: true,
+        isLoginExpired: false,
+        method: 'guest',
+        needCompleteRegistration: false,
+        userName: null,
+        visibleMethods: []
+    }
 };
 
 // disable initial schema request
