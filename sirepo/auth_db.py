@@ -27,10 +27,10 @@ UserRegistration = None
 thread_lock = threading.RLock()
 
 
-def guest_uids():
+def all_uids():
     with thread_lock:
         res = set()
-        for u in UserRegistration.query.filter_by(display_name=None):
+        for u in UserRegistration.query.all():
             if u.uid:
                 res.add(u.uid)
         return res
