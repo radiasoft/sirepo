@@ -39,7 +39,7 @@ def create_examples():
                     _create_example(example)
 
 
-def purge_users(days=180, confirm=False):
+def purge_guest_users(days=180, confirm=False):
     """Remove old users from db which have not registered.
 
     Args:
@@ -51,16 +51,16 @@ def purge_users(days=180, confirm=False):
     """
     days = int(days)
     assert days >= 1, \
-        '{}: days must be a positive integer'
+        '{}: days must be a positive integer'.format(days)
     server.init()
 
-    uids = auth_db.all_uids()
+    guest_uids = auth_db.guest_uids()
     now = datetime.datetime.utcnow()
     to_remove = []
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
         if _is_src_dir(d):
-            continue;
-        if simulation_db.uid_from_dir_name(d) in uids:
+            continue
+        if simulation_db.uid_from_dir_name(d) not in guest_uids:
             continue
         for f in pkio.walk_tree(d):
             if (now - now.fromtimestamp(f.mtime())).days <= days:
