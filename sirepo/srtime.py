@@ -22,7 +22,7 @@ def adjust_time(days):
     """Shift the system time by days
 
     Args:
-        days (str): must be integer.
+        days (str): must be integer. If None or 0, no adjustment.
     """
     from sirepo import http_reply
 
@@ -41,7 +41,7 @@ def api_adjustTime(days=None):
     """Shift the system time by days and get the adjusted time
 
     Args:
-        days (str): must be integer. if None, no adjustment.
+        days (str): must be integer. If None or 0, no adjustment.
     """
     adjust_time(days)
     return http_reply.gen_json_ok({

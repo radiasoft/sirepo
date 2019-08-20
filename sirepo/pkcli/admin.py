@@ -9,7 +9,6 @@ from __future__ import absolute_import, division, print_function
 import re
 from pykern import pkio
 from sirepo import auth
-from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
 from sirepo import simulation_db
@@ -56,7 +55,7 @@ def purge_guest_users(days=180, confirm=False):
     server.init()
     from sirepo import srtime
 
-    guest_uids = auth_db.guest_uids()
+    guest_uids = auth.guest_uids()
     now = srtime.utc_now()
     to_remove = []
 

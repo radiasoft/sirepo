@@ -143,6 +143,14 @@ def complete_registration(name=None):
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
 
 
+def guest_uids():
+    """All of the uids corresponding to guest users."""
+    res = set()
+    for u in auth_db.UserRegistration.search_all(display_name=None):
+        res.add(u.uid)
+    return res
+
+
 def init_apis(app, *args, **kwargs):
     global uri_router, simulation_db, _app, cfg
     assert not _METHOD_MODULES
