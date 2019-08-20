@@ -18,8 +18,8 @@ def test_purge_users(monkeypatch):
     srunit.init_auth_db(sim_types='myapp')
 
     from sirepo.pkcli import admin
+    from sirepo import auth
     from sirepo import simulation_db
-    from sirepo import auth_db
     from sirepo import srtime
     import datetime
 
@@ -36,11 +36,11 @@ def test_purge_users(monkeypatch):
     uid = dirs[0].basename
     srtime.adjust_time(adjusted_time) 
 
-    monkeypatch.setattr(auth_db, 'guest_uids', lambda: [])
+    monkeypatch.setattr(auth, 'guest_uids', lambda: [])
     res = admin.purge_guest_users(days=days, confirm=False)
     pkeq([], res, '{}: no guest users so no deletes')
 
-    monkeypatch.setattr(auth_db, 'guest_uids', lambda: [uid])
+    monkeypatch.setattr(auth, 'guest_uids', lambda: [uid])
     res = admin.purge_guest_users(days=days, confirm=False)
     pkeq(dirs, res, '{}: one guest user so one delete', res)
 
