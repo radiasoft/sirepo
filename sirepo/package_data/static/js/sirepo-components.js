@@ -487,9 +487,6 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
-              '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
-                '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-units="model.units"></div>',
-              '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -592,7 +589,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
         restrict: 'A',
         scope: {},
         template: [
-            '<li data-ng-if="::authState.isLoggedIn" class="sr-logged-in-menu dropdown">',
+            '<li data-ng-if="::authState.isGuestUser"><a data-ng-href="{{ ::authService.loginUrl }}"><span class="glyphicon glyphicon-alert sr-small-icon"></span> Save Your Work!</a></li>',
+            '<li data-ng-if="::! authState.isGuestUser" class="sr-logged-in-menu dropdown">',
               '<a href class="dropdown-toggle" data-toggle="dropdown">',
                 '<img data-ng-if="::authState.avatarUrl" data-ng-src="{{:: authState.avatarUrl }}">',
                 '<span data-ng-if="::! authState.avatarUrl" class="glyphicon glyphicon-user"></span>',
@@ -601,25 +599,13 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
               '<ul class="dropdown-menu">',
                 '<li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>',
                 '<li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }} via {{ ::authState.method }}</li>',
-                '<li data-ng-if="::!guestToUserUrl"><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
-                '<li data-ng-if="::guestToUserUrl"><a data-ng-href="{{ ::guestToUserUrl }}">Save your work!</a></li>',
+                '<li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>',
               '</ul>',
             '</li>',
         ].join(''),
         controller: function($scope) {
             $scope.authState = authState;
             $scope.authService = authService;
-
-            if (authState.method == 'guest') {
-                authState.visibleMethods.some(function(method) {
-                    if (method != 'guest') {
-                        $scope.guestToUserUrl = requestSender.formatUrlLocal(
-                            'loginWith',
-                            {':method': method});
-                        return true;
-                    }
-                });
-            }
         },
     };
 });
@@ -1204,6 +1190,60 @@ SIREPO.app.directive('msieFontDisabledDetector', function(errorService, $interva
     };
 });
 
+SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
+    return {
+        restrict: 'A',
+        transclude: true,
+        template: [
+            '<div class="row">',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div class="sr-panel-layout col-md-6 col-xl-4"></div>',
+              '<div data-ng-transclude=""></div>',
+            '</div>',
+        ].join(''),
+        scope: {},
+        controller: function($scope, $element) {
+            var columnCount = 0;
+            var panelItems = null;
+
+            function arrangeColumns() {
+                var count = 0;
+                var cols = $($element).find('.sr-panel-layout');
+                if (! panelItems) {
+                    panelItems = $($element).find('.sr-panel-item');
+                }
+                panelItems.each(function(idx, item) {
+                    cols[count].append(item);
+                    count = (count + 1) % columnCount;
+                });
+            }
+
+            function windowResize() {
+                if (utilities.isFullscreen()) {
+                    return;
+                }
+                var count = 1;
+                //TODO(pjm): size from bootstrap css constants
+                if ($window.matchMedia('(min-width: 1600px)').matches) {
+                    count = 3;
+                }
+                else if ($window.matchMedia('(min-width: 992px)').matches) {
+                    count = 2;
+                }
+                if (count != columnCount) {
+                    columnCount = count;
+                    arrangeColumns();
+                }
+            }
+
+            $scope.$on('sr-window-resize', windowResize);
+
+            appState.whenModelsLoaded($scope, windowResize);
+        },
+    };
+});
+
 SIREPO.app.directive('safePath', function() {
 
     var unsafe_path_chars = '\\/|&:+?\'"<>'.split('');
@@ -1782,7 +1822,7 @@ SIREPO.app.directive('appHeaderLeft', function(appState, authState, panelState) 
     };
 });
 
-SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileManager, panelState, $window) {
+SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appState, fileManager, panelState, $window) {
 
     function helpLink(url, text, icon) {
         return url
@@ -1828,7 +1868,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
                     '</ul>',
                   '</li>',
                 '</ul>',
-                '<ul data-ng-if="::! authState.isLoggedIn" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
+                '<ul data-ng-if="::authState.isLoggedIn && ! authState.guestIsOnlyMethod" class="nav navbar-nav navbar-right" data-logout-menu=""></ul>',
             '</div>',
         ].join(''),
         link: function(scope) {
@@ -1843,6 +1883,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, appState, fileMa
            scope.fileManager = fileManager;
         },
         controller: function($scope) {
+            $scope.authState = authState;
 
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
@@ -2664,9 +2705,6 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
-            //if (! $scope.model) {
-            //    $scope.model = appState.models[$scope.modelName];
-            //}
         },
     };
 });

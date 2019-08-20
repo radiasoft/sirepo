@@ -20,9 +20,6 @@ import datetime
 import importlib
 
 
-# name shown for users who are logged in as a guest
-GUEST_USER_DISPLAY_NAME = 'Guest User'
-
 #: what routeName to return in the event user is logged out in require_user
 LOGIN_ROUTE_NAME = 'login'
 
@@ -37,6 +34,8 @@ _COOKIE_STATE = 'sras'
 
 #: Identifies the user in the cookie
 _COOKIE_USER = 'srau'
+
+_GUEST_USER_DISPLAY_NAME = 'Guest User'
 
 _STATE_LOGGED_IN = 'li'
 _STATE_LOGGED_OUT = 'lo'
@@ -61,6 +60,9 @@ valid_methods = []
 #: Methods that the user is allowed to see
 visible_methods = []
 
+#: visible_methods excluding guest
+non_guest_methods = []
+
 
 @api_perm.require_cookie_sentinel
 def api_authCompleteRegistration():
@@ -78,17 +80,24 @@ def api_authState():
     v = pkcollections.Dict(
         avatarUrl=None,
         displayName=None,
-        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+        guestIsOnlyMethod=not non_guest_methods,
+        isGuestUser=False,
         isLoggedIn=_is_logged_in(s),
+        isLoginExpired=False,
         method=cookie.unchecked_get_value(_COOKIE_METHOD),
+        needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
         userName=None,
         visibleMethods=visible_methods,
     )
     u = cookie.unchecked_get_value(_COOKIE_USER)
     if v.isLoggedIn:
         if v.method == METHOD_GUEST:
+            # currently only method to expire login
+            v.displayName = _GUEST_USER_DISPLAY_NAME
+            v.isGuestUser = True
+            v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired()
             v.needCompleteRegistration = False
-            v.displayName = GUEST_USER_DISPLAY_NAME
+            v.visibleMethods = non_guest_methods
         else:
             r = auth_db.UserRegistration.search_by(uid=u)
             if r:
@@ -105,27 +114,30 @@ def api_authState():
 
 
 @api_perm.allow_visitor
-def api_authLogout(simulation_type):
+def api_authLogout(simulation_type=None):
     """Set the current user as logged out.
 
     Redirects to root simulation page.
     """
     t = None
-    try:
-        t = sirepo.template.assert_sim_type(simulation_type)
-    except AssertionError:
-        pass
+    if simulation_type:
+        try:
+            t = sirepo.template.assert_sim_type(simulation_type)
+        except AssertionError:
+            pass
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
     return http_reply.gen_redirect_for_root(t)
 
 
-def complete_registration(name):
-    """Update the database with the user's display_name and sets state to logged-in."""
+def complete_registration(name=None):
+    """Update the database with the user's display_name and sets state to logged-in.
+    Guests will have no name.
+    """
     u = _get_user()
     with auth_db.thread_lock:
-        r = _user_registration(u)
+        r = user_registration(u)
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
@@ -153,6 +165,7 @@ def init_apis(app, *args, **kwargs):
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
         setattr(this_module, n, m)
+    non_guest_methods.extend([m for m in visible_methods if m != METHOD_GUEST])
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 
@@ -294,8 +307,7 @@ def require_user():
         e = 'no user in cookie'
     elif s == _STATE_LOGGED_IN:
         if m in cfg.methods:
-            # Success
-            return None
+            return _METHOD_MODULES[m].validate_login()
         u = _get_user()
         if m in cfg.deprecated_methods:
             e = 'deprecated'
@@ -308,10 +320,10 @@ def require_user():
         if m in cfg.deprecated_methods:
             # Force login to this specific method so we can migrate to valid method
             r = 'loginWith'
-            p = {'method': m}
+            p = {':method': m}
     elif s == _STATE_COMPLETE_REGISTRATION:
         if m == METHOD_GUEST:
-            complete_registration(GUEST_USER_DISPLAY_NAME)
+            complete_registration()
             return None
         r = 'completeRegistration'
         e = 'uid={} needs to complete registration'.format(_get_user())
@@ -361,6 +373,24 @@ def user_if_logged_in(method):
     if m != method:
         return None
     return _get_user()
+
+
+def user_registration(uid):
+    """Get UserRegistration record or create one
+
+    Args:
+        uid (str): registrant
+    Returns:
+        auth.UserRegistration: record (potentially blank)
+    """
+    res = auth_db.UserRegistration.search_by(uid=uid)
+    if not res:
+        res = auth_db.UserRegistration(
+            uid=uid,
+            created=datetime.datetime.utcnow(),
+        )
+        res.save()
+    return res
 
 
 def _auth_hook_from_header(values):
@@ -436,8 +466,8 @@ def _login_user(module, uid):
     cookie.set_value(_COOKIE_METHOD, module.AUTH_METHOD)
     s = _STATE_LOGGED_IN
     if module.AUTH_METHOD_VISIBLE and module.AUTH_METHOD in cfg.methods:
-        u = _user_registration(uid)
-        if not u.display_name or u.display_name == GUEST_USER_DISPLAY_NAME:
+        u = user_registration(uid)
+        if not u.display_name:
             s = _STATE_COMPLETE_REGISTRATION
     cookie.set_value(_COOKIE_STATE, s)
     _set_log_user()
@@ -488,17 +518,6 @@ def _set_log_user():
 def _update_session(login_state, auth_method):
     cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
     cookie.set_value(_COOKIE_METHOD, auth_method)
-
-
-def _user_registration(uid):
-    res = auth_db.UserRegistration.search_by(uid=uid)
-    if not res:
-        res = auth_db.UserRegistration(
-            uid=uid,
-            created=datetime.datetime.utcnow(),
-        )
-        res.save()
-    return res
 
 
 def _validate_method(module, sim_type=None):

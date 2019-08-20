@@ -11,6 +11,10 @@ from pykern import pkinspect
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import api_perm
 from sirepo import auth
+from sirepo import cookie
+from sirepo import http_reply
+from sirepo import srtime
+import datetime
 import sirepo.template
 
 
@@ -22,6 +26,11 @@ AUTH_METHOD_VISIBLE = True
 #: module handle
 this_module = pkinspect.this_module()
 
+#: time to recheck login against db (prefix is "sraz", because github is "srag")
+_COOKIE_EXPIRY_TIMESTAMP = 'srazt'
+
+_ONE_DAY = datetime.timedelta(days=1)
+
 
 @api_perm.require_cookie_sentinel
 def api_authGuestLogin(simulation_type):
@@ -31,9 +40,75 @@ def api_authGuestLogin(simulation_type):
     if auth.user_if_logged_in(AUTH_METHOD):
         return auth.login_success_redirect(t)
     auth.login(this_module, sim_type=t)
-    auth.complete_registration(auth.GUEST_USER_DISPLAY_NAME)
+    auth.complete_registration()
     return auth.login_success_redirect(t)
 
 
 def init_apis(*args, **kwargs):
-    pass
+    global cfg
+    cfg = pkconfig.init(
+        expiry_days=(None, _cfg_login_days, 'when auth login expires'),
+    )
+
+
+def is_login_expired(res=None):
+    """If expiry is configured, check timestamp
+
+    Args:
+        res (hash): If a hash and return is True, will contain (uid, expiry, and now).
+
+    Returns:
+        bool: true if login is expired
+    """
+    if not cfg.expiry_days:
+        return False
+    n = int(srtime.utc_now_as_float())
+    t = int(cookie.unchecked_get_value(_COOKIE_EXPIRY_TIMESTAMP, 0))
+    if n <= t:
+        # cached timestamp less than expiry
+        return False
+    # db expiry at most one day from now so we can change expiry_days
+    # and (in any event) ensure expiry is checked once a day. This
+    # would also allow us to extend the expired period in the db.
+    u = auth.logged_in_user()
+    r = auth.user_registration(u)
+    t = r.created + cfg.expiry_days
+    n = srtime.utc_now()
+    if n > t:
+        if res is not None:
+            res.update(uid=u, expiry=t, now=n)
+        return True
+    # set expiry in cookie
+    t2 = n + _ONE_DAY
+    if t2 < t:
+        t = t2
+    t -= datetime.datetime.utcfromtimestamp(0)
+    cookie.set_value(_COOKIE_EXPIRY_TIMESTAMP, int(t.total_seconds()))
+    return False
+
+
+def validate_login():
+    """If expiry is configured, check timestamp
+
+    Returns:
+        object: if valid, None, otherwise flask.Response.
+    """
+    r = pkcollections.Dict()
+    if is_login_expired(r):
+        pkdlog('expired uid={uid}, expiry={expiry} now={now}', **r)
+        return http_reply.gen_sr_exception(
+            'loginFail',
+            {
+                ':method': 'guest',
+                ':reason': 'guest-expired',
+            },
+        )
+    return None
+
+
+def _cfg_login_days(value):
+    value = int(value)
+    if value == 0:
+        return None
+    assert value >= 1
+    return datetime.timedelta(days=value)

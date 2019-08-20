@@ -151,11 +151,16 @@ def get_application_data(data):
             if not m:
                 continue
             id = m.group(1)
-            name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
-            res.append({
-                'simulationId': id,
-                'name': name,
-            })
+
+            try:
+                name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
+                res.append({
+                    'simulationId': id,
+                    'name': name,
+                })
+            except IOError:
+                # ignore errors reading corrupted elegant sim files
+                pass
         return {
             'simList': res,
         }

@@ -41,6 +41,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_ens', 'f', {{electronBeam_rmsSpread}}, 'electron beam relative energy spread'],
     ['ebm_emx', 'f', {{electronBeam_horizontalEmittance}}, 'electron beam horizontal emittance [m]'],
     ['ebm_emy', 'f', {{electronBeam_verticalEmittance}}, 'electron beam vertical emittance [m]'],
+    {% if electronBeam_beamDefinition == 't' %}
     # Definition of the beam through Twiss:
     ['ebm_betax', 'f', {{electronBeam_horizontalBeta}}, 'horizontal beta-function [m]'],
     ['ebm_betay', 'f', {{electronBeam_verticalBeta}}, 'vertical beta-function [m]'],
@@ -50,6 +51,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_etay', 'f', {{electronBeam_verticalDispersion}}, 'vertical dispersion function [m]'],
     ['ebm_etaxp', 'f', {{electronBeam_horizontalDispersionDerivative}}, 'horizontal dispersion function derivative [rad]'],
     ['ebm_etayp', 'f', {{electronBeam_verticalDispersionDerivative}}, 'vertical dispersion function derivative [rad]'],
+    {% else %}
     # Definition of the beam through Moments:
     ['ebm_sigx', 'f', {{electronBeam_rmsSizeX}}, 'horizontal RMS size of electron beam [m]'],
     ['ebm_sigy', 'f', {{electronBeam_rmsSizeY}}, 'vertical RMS size of electron beam [m]'],
@@ -57,6 +59,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_sigyp', 'f', {{electronBeam_rmsDivergY}}, 'vertical RMS angular divergence of electron beam [rad]'],
     ['ebm_mxxp', 'f', {{electronBeam_xxprX}}, 'horizontal position-angle mixed 2nd order moment of electron beam [m]'],
     ['ebm_myyp', 'f', {{electronBeam_xxprY}}, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
+    {% endif %}
 
 {% endif %}
 {% if simulation_sourceType in ['u', 't'] %}

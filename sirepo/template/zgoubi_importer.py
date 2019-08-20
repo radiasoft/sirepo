@@ -42,6 +42,7 @@ def import_file(text, unit_test_mode=False):
     if 'missingFiles' in info and len(info['missingFiles']):
         data['error'] = 'Missing data files'
         data['missingFiles'] = info['missingFiles']
+    _update_report_parameters(data)
     return data
 
 
@@ -314,6 +315,14 @@ def _tosca_length(tosca, lines):
         return None, 'missing column 2 data in file: {}'.format(tosca['magnetFile'])
     # scaled by unit conversion XN
     return (max(col2) - min(col2)) / 100.0 * tosca['XN'], None
+
+
+def _update_report_parameters(data):
+    if data['models']['bunch']['method'] == 'OBJET2.1':
+        for name in ('bunchAnimation', 'bunchAnimation2', 'energyAnimation'):
+            m = data['models'][name]
+            m['showAllFrames'] = '1'
+            m['particleSelector'] = '1'
 
 
 def _validate_and_dedup_elements(data, elements):

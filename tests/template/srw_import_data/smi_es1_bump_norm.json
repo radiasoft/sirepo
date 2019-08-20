@@ -94,6 +94,7 @@
             }
         ],
         "electronBeam": {
+            "beamDefinition": "t",
             "beamSelector": "NSLS-II High Beta Day 1",
             "current": 0.5,
             "drift": 0.0,
@@ -107,13 +108,19 @@
             "horizontalPosition": 0,
             "isReadOnly": true,
             "name": "NSLS-II High Beta Day 1",
+            "rmsDivergX": 6.69149605,
+            "rmsDivergY": 1.53392998,
+            "rmsSizeX": 134.49907063,
+            "rmsSizeY": 5.21536192,
             "rmsSpread": 0.00089,
             "verticalAlpha": 0,
             "verticalBeta": 3.4,
             "verticalDispersion": 0,
             "verticalDispersionDerivative": 0,
             "verticalEmittance": 0.008,
-            "verticalPosition": 0
+            "verticalPosition": 0,
+            "xxprX": 0.0,
+            "xxprY": 0.0
         },
         "electronBeams": [],
         "fluxReport": {

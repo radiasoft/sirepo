@@ -264,13 +264,6 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['ebm_etay', 'f', 0.0, 'vertical dispersion function [m]'],
     ['ebm_etaxp', 'f', 0.0, 'horizontal dispersion function derivative [rad]'],
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
-    # Definition of the beam through Moments:
-    ['ebm_sigx', 'f', 0.000136985400682, 'horizontal RMS size of electron beam [m]'],
-    ['ebm_sigy', 'f', 5.21536192416e-06, 'vertical RMS size of electron beam [m]'],
-    ['ebm_sigxp', 'f', 6.57004319818e-06, 'horizontal RMS angular divergence of electron beam [rad]'],
-    ['ebm_sigyp', 'f', 1.53392997769e-06, 'vertical RMS angular divergence of electron beam [rad]'],
-    ['ebm_mxxp', 'f', 0.0, 'horizontal position-angle mixed 2nd order moment of electron beam [m]'],
-    ['ebm_myyp', 'f', 0.0, 'vertical position-angle mixed 2nd order moment of electron beam [m]'],
 
 #---Undulator
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],

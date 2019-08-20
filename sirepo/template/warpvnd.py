@@ -70,7 +70,6 @@ def fixup_old_data(data):
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
             'fieldComparisonReport',
-            'fieldReport',
     ]:
         if m not in data.models:
             data.models[m] = {}
@@ -105,7 +104,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'z': [0, _meters(grid['plate_spacing'])]
     }
     plot_range = ranges[dimension]
-    plots, plot_y_range = _create_plots(dimension, params, values, ranges)
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _is_3D(data))
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -113,6 +112,9 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'y_range': plot_y_range,
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
+        'summaryData': {
+            'runMode3d': _is_3D(data)
+        },
     }
 
 
@@ -133,14 +135,18 @@ def generate_field_report(data, run_dir, args=None):
     hf.close()
 
     axes = args.axes if args is not None else data.models.fieldReport.axes
-    axes = axes if _is_3D(data) else 'xz'
+    show3d = args.displayMode == '3d' if args is not None else False
+    axes = axes if show3d else 'xz'
     axes = axes if axes is not None else 'xz'
-    phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
 
+    phi_slice = 0.
+    # if 2d potential, asking for 2d vs 3d doesn't matter
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
         # 3d results
+        if show3d:
+            phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
         if axes == 'xz':
             values = potential[
                      :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
@@ -154,7 +160,7 @@ def generate_field_report(data, run_dir, args=None):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    other_axis = re.sub('[' + axes + ']', '', 'xyz')
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _is_3D(data) else 'xz')
 
     x_max = len(values[0])
     y_max = len(values)
@@ -188,11 +194,14 @@ def generate_field_report(data, run_dir, args=None):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain ({} = {}µm)'.format(other_axis, phi_slice),
+        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _is_3D(data) else ''),
         'z_matrix': values.tolist(),
         'global_min': np.min(potential) if vals_equal else None,
         'global_max': np.max(potential) if vals_equal else None,
-        'frequency_title': 'Volts'
+        'frequency_title': 'Volts',
+        'summaryData': {
+            'runMode3d': _is_3D(data)
+        },
     }
 
 
@@ -451,8 +460,9 @@ def _compute_delta_for_field(data, bounds, field):
     bounds += [res if res else bounds[1], True]
 
 
-def _create_plots(dimension, params, values, ranges):
-    all_axes = 'xyz'
+def _create_plots(dimension, params, values, ranges, is3d):
+    show3d = params.displayMode == '3d'
+    all_axes = 'xyz' if is3d and show3d else 'xz'
     other_axes = re.sub('[' + dimension + ']', '', all_axes)
     y_range = None
     plots = []
@@ -467,28 +477,34 @@ def _create_plots(dimension, params, values, ranges):
         'y': 1e9,
         'z': 1e6
     }
+    shapes = {
+        'x': values.shape[0],
+        'y': values.shape[1],
+        'z': values.shape[2]
+    }
     x_points = {}
-    for axis_idx, axis in enumerate(all_axes):
+    for axis in all_axes:
         if axis not in other_axes:
             continue
-        x_points[axis] = np.linspace(ranges[axis][0], ranges[axis][1], values.shape[axis_idx])
+        x_points[axis] = np.linspace(ranges[axis][0], ranges[axis][1], shapes[axis])
     for i in (1, 2, 3):
         other_indices = {}
-        for axis_idx, axis in enumerate(all_axes):
+        for axis in all_axes:
             if axis not in other_axes:
                 continue
             f = '{}Cell{}'.format(axis, i)
             index = int(params[f])
-            max_index = values.shape[axis_idx]
+            max_index = shapes[axis]
             if index >= max_index:
                 index = max_index - 1
             other_indices[axis] = index
+        y_index = other_indices['y'] if 'y' in other_indices else 0
         if dimension == 'x':
-            points = values[:, other_indices['y'], other_indices['z']].tolist()
+            points = values[:, y_index, other_indices['z']].tolist()
         elif dimension == 'y':
             points = values[other_indices['x'], :, other_indices['z']].tolist()
         else:
-            points = values[other_indices['x'], other_indices['y'], :].tolist()
+            points = values[other_indices['x'], y_index, :].tolist()
 
         label = ''
         for axis in other_indices:
@@ -798,7 +814,6 @@ def _generate_parameters_file(data):
     if v['isOptimize']:
         _replace_optimize_variables(data, v)
     res = _render_jinja('base', v)
-    #res = _render_jinja('base-test', v)
     if data['report'] == 'animation':
         if data['models']['simulation']['egun_mode'] == '1':
             v['egunStatusFile'] = _EGUN_STATUS_FILE
@@ -810,7 +825,6 @@ def _generate_parameters_file(data):
         res += _render_jinja('parameters-optimize', v)
     else:
         res += _render_jinja('source-field', v)
-        #res += _render_jinja('source-field-test', v)
     return res, v
 
 

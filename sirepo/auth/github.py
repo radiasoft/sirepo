@@ -37,7 +37,7 @@ UserModel = None
 #: module handle
 this_module = pkinspect.this_module()
 
-# cookie keys for github
+# cookie keys for github (prefix is "srag")
 _COOKIE_NONCE = 'sragn'
 _COOKIE_SIM_TYPE = 'srags'
 
@@ -116,6 +116,10 @@ def init_apis(app, *args, **kwargs):
     )
     app.session_interface = _FlaskSessionInterface()
     auth_db.init_model(app, _init_model)
+
+
+def validate_login(*args, **kwargs):
+    return None
 
 
 class _FlaskSession(dict, flask.sessions.SessionMixin):

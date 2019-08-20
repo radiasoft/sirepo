@@ -19,6 +19,9 @@ SIREPO.appFieldEditors = [
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="twissSummary" data-twiss-summary-panel="" class="sr-plot"></div>',
 ].join('');
+SIREPO.appDownloadLinks = [
+    '<li data-export-zgoubi-link="" data-report-title="{{ reportTitle() }}"></li>',
+].join('');
 SIREPO.appImportText = 'Import a zgoubi.dat datafile';
 SIREPO.lattice = {
     invalidElementName: /[#*'",]/g,
@@ -895,6 +898,31 @@ SIREPO.app.directive('changref2Fields', function(appState) {
                     range = d3.range(values.length);
                 }
                 return range;
+            };
+        },
+    };
+});
+
+SIREPO.app.directive('exportZgoubiLink', function(appState, panelState, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<a data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.zgoubiDataUrl = function() {
+                if (! appState.isLoaded()) {
+                    return null;
+                }
+                var modelKey = panelState.findParentAttribute($scope, 'modelKey');
+                return requestSender.formatUrl('downloadDataFile', {
+                    '<simulation_id>': appState.models.simulation.simulationId,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<model>': modelKey,
+                    '<frame>': appState.isAnimationModelName(modelKey) ? 1 : -1,
+                    '<suffix>': 'zgoubi.dat',
+                });
             };
         },
     };
