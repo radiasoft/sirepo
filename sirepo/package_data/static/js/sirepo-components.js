@@ -1731,6 +1731,10 @@ SIREPO.app.directive('reportPanel', function(appState) {
 
 SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
+    var appUrl = {
+        elegant: '/en/particle-accelerators.html',
+        srw: '/en/xray-beamlines.html'
+    }[SIREPO.APP_NAME];
     return {
         restrict: 'A',
         scope: {
@@ -1741,11 +1745,8 @@ SIREPO.app.directive('appHeaderBrand', function() {
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                '<span data-ng-if="! hasAppLink()">', appInfo.longName, '</span>',
-                '<a data-ng-if="hasAppLink()" data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
-                  '<span class="hidden-md hidden-sm">',
-                    appInfo.longName,
-                  '</span>',
+                appUrl ? '<a data-ng-href="' +  appUrl + '">' : '',
+                  '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
                   '<span class="hidden-xs hidden-lg hidden-xl"',
                     appInfo.longName == appInfo.shortName
                       ? ''
@@ -1753,23 +1754,12 @@ SIREPO.app.directive('appHeaderBrand', function() {
                   '>',
                     appInfo.shortName,
                   '</span>',
-                '</a>',
+                appUrl ? '</a>' : '',
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            if (! $scope.appUrl ) {
-                //TODO(rjn) need to centeralize this
-                if (SIREPO.APP_NAME == 'elegant') {
-                    $scope.appUrl = '/en/particle-accelerators.html';
-                }
-                else if (SIREPO.APP_NAME == 'srw') {
-                    $scope.appUrl = '/en/xray-beamlines.html';
-                }
-            }
-            $scope.hasAppLink = function () {
-                return SIREPO.APP_NAME === 'elegant' || SIREPO.APP_NAME === 'srw';
-            };
+            //TODO(rjn) need to centeralize this
         },
     };
 });
