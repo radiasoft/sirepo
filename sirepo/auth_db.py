@@ -59,9 +59,9 @@ def init(app):
                 return cls.query.filter_by(**kwargs).first()
 
         @classmethod
-        def search_all(cls, **kwargs):
+        def search_all_for_column(cls, column, **filter_by):
             with thread_lock:
-                return cls.query.filter_by(**kwargs)
+                return [getattr(r, column) for r in cls.query.filter_by(**filter_by)]
 
     class UserRegistration(UserDbBase, _db.Model):
         __tablename__ = 'user_registration_t'

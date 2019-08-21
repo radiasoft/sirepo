@@ -145,10 +145,7 @@ def complete_registration(name=None):
 
 def guest_uids():
     """All of the uids corresponding to guest users."""
-    res = set()
-    for u in auth_db.UserRegistration.search_all(display_name=None):
-        res.add(u.uid)
-    return res
+    return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
 
 
 def init_apis(app, *args, **kwargs):
