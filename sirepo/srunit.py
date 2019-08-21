@@ -213,13 +213,6 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get('authState')
         self.sr_get('authGuestLogin', {'simulation_type': sim_type})
-        self.sr_post(
-            'authCompleteRegistration',
-            {
-                'displayName': sim_type + ' Guest',
-                'simulationType': sim_type,
-            },
-        )
         return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 

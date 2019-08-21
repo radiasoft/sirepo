@@ -138,6 +138,9 @@ def complete_registration(name=None):
     u = _get_user()
     with auth_db.thread_lock:
         r = user_registration(u)
+        if cookie.unchecked_get_value(_COOKIE_METHOD) is METHOD_GUEST:
+            assert name is None, \
+                'Cookie method is {} and name is {}. Expected name to be None'.format(METHOD_GUEST, name)
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)

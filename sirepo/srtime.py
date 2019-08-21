@@ -24,7 +24,6 @@ def adjust_time(days):
     Args:
         days (str): must be integer. If None or 0, no adjustment.
     """
-    from sirepo import http_reply
 
     global _timedelta
     _timedelta = None
@@ -43,6 +42,8 @@ def api_adjustTime(days=None):
     Args:
         days (str): must be integer. If None or 0, no adjustment.
     """
+    from sirepo import http_reply
+
     adjust_time(days)
     return http_reply.gen_json_ok({
         'adjustedNow': utc_now().isoformat(),
