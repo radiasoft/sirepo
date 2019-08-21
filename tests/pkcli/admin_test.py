@@ -9,13 +9,14 @@ import pytest
 
 pytest.importorskip('srwl_bl')
 
-def get_dirs():
+def _get_dirs():
     from pykern import pkio
     from sirepo import simulation_db
     g = simulation_db.user_dir_name('*')
     return list(pkio.sorted_glob(g))
 
 def test_purge_users_no_guests(monkeypatch):
+    from sirepo import auth_db
     from pykern.pkunit import pkeq, pkok
     from sirepo import srunit
     srunit.init_auth_db(sim_types='myapp')
@@ -28,20 +29,29 @@ def test_purge_users_no_guests(monkeypatch):
     adjusted_time = days + 10
 
     res = admin.purge_guest_users(days=days, confirm=False)
-    pkeq([], res, '{}: no old users so empty')
+    pkeq({}, res, '{}: no old users so no deletes', res)
 
-    dirs = get_dirs()
-    pkeq(1, len(dirs), '{}: expecting exactly one user dir', dirs)
+    dirs_in_fs = _get_dirs()
+    uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
+    pkeq(1, len(dirs_in_fs), '{}: expecting exactly one user dir', dirs_in_fs)
+    pkeq(1, len(uids_in_db), '{}: expecting exactly one uid in db', uids_in_db)
 
     srtime.adjust_time(adjusted_time) 
 
     monkeypatch.setattr(auth, 'guest_uids', lambda: [])
     res = admin.purge_guest_users(days=days, confirm=False)
-    pkeq([], res, '{}: no guest users so no deletes')
-    pkok(dirs[0].check(dir=True), '{}: directory not deleted', dirs)
+    pkeq({}, res, '{}: no guest users so no deletes', res)
+    pkok(dirs_in_fs[0].check(dir=True), '{}: directory not deleted', dirs_in_fs)
+    pkeq(
+        auth_db.UserRegistration.search_by(uid=uids_in_db[0]).uid,
+        uids_in_db[0],
+        '{}: expecting uid to still be in db', uids_in_db
+        )
+
 
 
 def test_purge_users_guests_present():
+    from sirepo import auth_db
     from pykern.pkunit import pkeq, pkok
     from sirepo import srunit
     srunit.init_auth_db(sim_types='myapp')
@@ -52,12 +62,20 @@ def test_purge_users_guests_present():
     days = 1
     adjusted_time = days + 10
 
-    dirs = get_dirs() 
+    dirs_in_fs = _get_dirs() 
+    uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
+    dirs_and_uids = {dirs_in_fs[0]: uids_in_db[0]}
     srtime.adjust_time(adjusted_time) 
 
     res = admin.purge_guest_users(days=days, confirm=False)
-    pkeq(dirs, res, '{}: one guest user so one delete', res)
+    pkeq(dirs_and_uids, res, '{}: one guest user so one dir to delete', res)
 
-    res = admin.purge_guest_users(days=days, confirm=True)
-    pkeq(dirs, res, '{}: one guest user so one delete', res)
-    pkok(not dirs[0].check(dir=True), '{}: directory deleted', res)
+#     res = admin.purge_guest_users(days=days, confirm=True)
+#     pkeq(dirs_in_fs, dirs, '{}: one guest user so one dir to delete', dirs)
+#     pkeq(uids_in_db, uids, '{}: one guest user so one uid to delete', uids)
+#     pkok(not dirs_in_fs[0].check(dir=True), '{}: directory deleted', dirs)
+#     pkeq(
+#         auth_db.UserRegistration.search_by(uid=uids_in_db[0]),
+#         None,
+#         '{}: expecting uid to deleted from db', uids_in_db
+#         )
