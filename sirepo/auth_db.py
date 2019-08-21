@@ -27,15 +27,6 @@ UserRegistration = None
 thread_lock = threading.RLock()
 
 
-def all_uids():
-    with thread_lock:
-        res = set()
-        for u in UserRegistration.query.all():
-            if u.uid:
-                res.add(u.uid)
-        return res
-
-
 def init(app):
     global _db, UserDbBase, UserRegistration
     assert not _db
@@ -66,6 +57,11 @@ def init(app):
         def search_by(cls, **kwargs):
             with thread_lock:
                 return cls.query.filter_by(**kwargs).first()
+
+        @classmethod
+        def search_all_for_column(cls, column, **filter_by):
+            with thread_lock:
+                return [getattr(r, column) for r in cls.query.filter_by(**filter_by)]
 
     class UserRegistration(UserDbBase, _db.Model):
         __tablename__ = 'user_registration_t'

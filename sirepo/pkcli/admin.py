@@ -9,7 +9,6 @@ from __future__ import absolute_import, division, print_function
 import re
 from pykern import pkio
 from sirepo import auth
-from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
 from sirepo import simulation_db
@@ -39,7 +38,7 @@ def create_examples():
                     _create_example(example)
 
 
-def purge_users(days=180, confirm=False):
+def purge_guest_users(days=180, confirm=False):
     """Remove old users from db which have not registered.
 
     Args:
@@ -49,18 +48,21 @@ def purge_users(days=180, confirm=False):
     Returns:
         list: directories removed (or to remove if confirm)
     """
+
     days = int(days)
     assert days >= 1, \
         '{}: days must be a positive integer'
     server.init()
+    from sirepo import srtime
 
-    uids = auth_db.all_uids()
-    now = datetime.datetime.utcnow()
+    guest_uids = auth.guest_uids()
+    now = srtime.utc_now()
     to_remove = []
+
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
         if _is_src_dir(d):
-            continue;
-        if simulation_db.uid_from_dir_name(d) in uids:
+            continue
+        if simulation_db.uid_from_dir_name(d) not in guest_uids:
             continue
         for f in pkio.walk_tree(d):
             if (now - now.fromtimestamp(f.mtime())).days <= days:
@@ -69,6 +71,7 @@ def purge_users(days=180, confirm=False):
             to_remove.append(d)
     if confirm:
         pkio.unchecked_remove(*to_remove)
+
     return to_remove
 
 

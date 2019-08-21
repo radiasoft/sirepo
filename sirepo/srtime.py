@@ -18,15 +18,12 @@ _timedelta = None
 #: POSIX epoch as object
 _epoch = datetime.datetime.utcfromtimestamp(0)
 
-
-@api_perm.allow_visitor
-def api_adjustTime(days=None):
+def adjust_time(days):
     """Shift the system time by days
 
     Args:
-        days (str): must be integer. if None, no adjustment.
+        days (str): must be integer. If None or 0, no adjustment.
     """
-    from sirepo import http_reply
 
     global _timedelta
     _timedelta = None
@@ -36,6 +33,18 @@ def api_adjustTime(days=None):
             _timedelta = datetime.timedelta(days=d)
     except Exception:
         pass
+    
+
+@api_perm.allow_visitor
+def api_adjustTime(days=None):
+    """Shift the system time by days and get the adjusted time
+
+    Args:
+        days (str): must be integer. If None or 0, no adjustment.
+    """
+    from sirepo import http_reply
+
+    adjust_time(days)
     return http_reply.gen_json_ok({
         'adjustedNow': utc_now().isoformat(),
         'systemNow': datetime.datetime.utcnow().isoformat(),
