@@ -68,14 +68,13 @@ def test_purge_users_guests_present():
     srtime.adjust_time(adjusted_time) 
 
     res = admin.purge_guest_users(days=days, confirm=False)
-    pkeq(dirs_and_uids, res, '{}: one guest user so one dir to delete', res)
+    pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)
 
-#     res = admin.purge_guest_users(days=days, confirm=True)
-#     pkeq(dirs_in_fs, dirs, '{}: one guest user so one dir to delete', dirs)
-#     pkeq(uids_in_db, uids, '{}: one guest user so one uid to delete', uids)
-#     pkok(not dirs_in_fs[0].check(dir=True), '{}: directory deleted', dirs)
-#     pkeq(
-#         auth_db.UserRegistration.search_by(uid=uids_in_db[0]),
-#         None,
-#         '{}: expecting uid to deleted from db', uids_in_db
-#         )
+    res = admin.purge_guest_users(days=days, confirm=True)
+    pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)
+    pkok(not res.keys()[0].check(dir=True), '{}: directory deleted', res)
+    pkeq(
+        auth_db.UserRegistration.search_by(uid=res.values()[0]),
+        None,
+        '{}: expecting uid to deleted from db', res
+        )
