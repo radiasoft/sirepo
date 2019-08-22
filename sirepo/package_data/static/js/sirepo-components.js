@@ -1731,6 +1731,30 @@ SIREPO.app.directive('reportPanel', function(appState) {
 
 SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
+
+    function brand() {
+        var res = [
+              '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
+              '<span class="hidden-xs hidden-lg hidden-xl"',
+                appInfo.longName == appInfo.shortName
+                  ? ''
+                  : ' title="'+ appInfo.longName + '"',
+              '>',
+                appInfo.shortName,
+              '</span>',
+        ].join('');
+
+        var u = {
+            elegant: '/en/particle-accelerators.html',
+            srw: '/en/xray-beamlines.html'
+        }[SIREPO.APP_NAME];
+
+        if (! u) {
+            return res;
+        }
+        return  '<a data-ng-href="' + u + '">' + res + '</a>';
+    }
+
     return {
         restrict: 'A',
         scope: {
@@ -1741,34 +1765,12 @@ SIREPO.app.directive('appHeaderBrand', function() {
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
-                  '<span class="hidden-md hidden-sm">',
-                    appInfo.longName,
-                  '</span>',
-                  '<span class="hidden-xs hidden-lg hidden-xl"',
-                    appInfo.longName == appInfo.shortName
-                      ? ''
-                      : ' title="'+ appInfo.longName + '"',
-                  '>',
-                    appInfo.shortName,
-                  '</span>',
-                '</a>',
+                brand(),
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            if (! $scope.appUrl ) {
-                //TODO(rjn) need to centeralize this
-                if (SIREPO.APP_NAME == 'elegant') {
-                    $scope.appUrl = '/en/particle-accelerators.html';
-                }
-                else if (SIREPO.APP_NAME == 'srw') {
-                    $scope.appUrl = '/en/xray-beamlines.html';
-                }
-                else {
-                    $scope.appUrl = '/old#/' + SIREPO.APP_NAME;
-                }
-            }
+            //TODO(rjn) need to centeralize this
         },
     };
 });
