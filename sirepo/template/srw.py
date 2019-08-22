@@ -319,7 +319,10 @@ def extract_report_data(filename, model_data):
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
         width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
         scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
+        rotate_angle = model_data['models'][orig_rep_name]['rotateAngle']
+        rotate_reshape = model_data['models'][orig_rep_name]['rotateReshape']
+#        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape, scale)
     return info
 
 
@@ -1863,12 +1866,11 @@ def _process_undulator_definition(model):
     except Exception:
         return model
 
-
-def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
+#def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape, scale='linear'):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
-
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
@@ -1898,17 +1900,33 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
-    z_label = z_label
-    if z_units:
-        z_label += ' [' + z_units + ']'
+    # rotate 3D image    
+    if rotate_angle:
+        rotate_reshape = (rotate_reshape == "1")
+        try:
+            from scipy import ndimage
+            ar2d = ndimage.rotate(ar2d, rotate_angle, reshape = rotate_reshape, mode='constant', order = 3)
+            pkdlog('x_range and y_range before rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+            if rotate_reshape:
+                x_range[:2] = x_range[:2]/np.cos(np.radians(rotate_angle))
+                y_range[:2] = y_range[:2]/np.cos(np.radians(rotate_angle))
+            pkdlog('x_range and y_range after rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+            pkdlog('Size after rotate: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            x_range[2] = ar2d.shape[1]
+            y_range[2] = ar2d.shape[0]
+            info['subtitle'] = 'Single-Electron Intensity rotate {} deg'.format(rotate_angle)
+        except Exception:
+            pkdlog('Cannot rotate the image - scipy.ndimage.rotate() cannot be imported.')
+            pass
+
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
-        'z_label': _superscript(z_label),
+        'z_label': _superscript(z_label + ' [' + z_units + ']'),
         'title': info['title'],
-        'subtitle': info['subtitle'],
+        'subtitle': _superscript(info['subtitle']),
         'z_matrix': ar2d.tolist(),
     })
 
