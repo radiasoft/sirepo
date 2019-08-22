@@ -302,7 +302,6 @@ def extract_report_data(filename, model_data):
         schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
         if len(schema_values) > 0:
             subtitle = subtitle_format.format(schema_values[0][1])
-
     info = pkcollections.Dict({
         'title': title,
         'subtitle': subtitle,
@@ -1868,6 +1867,7 @@ def _process_undulator_definition(model):
 
 #def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
 def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape, scale='linear'):
+    pkdlog('anhe info keys {}',info.keys())
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
@@ -1914,7 +1914,8 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
             pkdlog('Size after rotate: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
-            info['subtitle'] = 'Single-Electron Intensity rotate {} deg'.format(rotate_angle)
+            if info['title'] != 'Power Density': info['subtitle'] = info['subtitle'] + ' Image Rotate {}^0'.format(rotate_angle)
+            pkdlog('hean subtitle={}', info['subtitle'])
         except Exception:
             pkdlog('Cannot rotate the image - scipy.ndimage.rotate() cannot be imported.')
             pass
@@ -1926,7 +1927,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
         'y_label': info['y_label'],
         'z_label': _superscript(z_label + ' [' + z_units + ']'),
         'title': info['title'],
-        'subtitle': _superscript(info['subtitle']),
+        'subtitle': _superscript_2(info['subtitle']),
         'z_matrix': ar2d.tolist(),
     })
 
@@ -1958,6 +1959,8 @@ def _save_user_model_list(model_name, beam_list):
 def _superscript(val):
     return re.sub(r'\^2', u'\u00B2', val)
 
+def _superscript_2(val):
+    return re.sub(r'\^0', u'\u00B0', val)
 
 def _test_file_type(file_type, file_path):
     # special handling for mirror and arbitraryField - scan for first data row and count columns
