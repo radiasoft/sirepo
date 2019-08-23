@@ -1867,14 +1867,12 @@ def _process_undulator_definition(model):
 
 #def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
 def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape, scale='linear'):
-    pkdlog('anhe info keys {}',info.keys())
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
-
     if scale != 'linear':
         ar2d[np.where(ar2d <= 0.)] = 1.e-23
         ar2d = getattr(np, scale)(ar2d)
@@ -1905,17 +1903,22 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
         rotate_reshape = (rotate_reshape == "1")
         try:
             from scipy import ndimage
+            pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            shape_before = list(ar2d.shape)
             ar2d = ndimage.rotate(ar2d, rotate_angle, reshape = rotate_reshape, mode='constant', order = 3)
-            pkdlog('x_range and y_range before rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
-            if rotate_reshape:
-                x_range[:2] = x_range[:2]/np.cos(np.radians(rotate_angle))
-                y_range[:2] = y_range[:2]/np.cos(np.radians(rotate_angle))
-            pkdlog('x_range and y_range after rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
             pkdlog('Size after rotate: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            shape_rotate = list(ar2d.shape)
+
+            pkdlog('x_range and y_range before rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+            x_range[0] = shape_rotate[0]/shape_before[0]*x_range[0]
+            x_range[1] = shape_rotate[0]/shape_before[0]*x_range[1]
+            y_range[0] = shape_rotate[1]/shape_before[1]*y_range[0]
+            y_range[1] = shape_rotate[1]/shape_before[1]*y_range[1]
+            pkdlog('x_range and y_range after rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
             if info['title'] != 'Power Density': info['subtitle'] = info['subtitle'] + ' Image Rotate {}^0'.format(rotate_angle)
-            pkdlog('hean subtitle={}', info['subtitle'])
         except Exception:
             pkdlog('Cannot rotate the image - scipy.ndimage.rotate() cannot be imported.')
             pass
@@ -1962,6 +1965,10 @@ def _superscript(val):
 def _superscript_2(val):
     return re.sub(r'\^0', u'\u00B0', val)
 
+def _rotated_axis_range(x, y, theta):
+    x_new = x*np.cos(theta) + y*np.sin(theta)
+    return x_new
+    
 def _test_file_type(file_type, file_path):
     # special handling for mirror and arbitraryField - scan for first data row and count columns
     if file_type not in ('mirror', 'arbitraryField'):
