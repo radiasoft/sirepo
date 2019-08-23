@@ -23,6 +23,14 @@ def _linear_fit_1d(arr):
     sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
 
+def _vertices_from_stl(cond):
+    #verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(stl['f']) if line.startswith('vertex')]
+    #ctr = np.array([stl['cx'], stl['cy'], stl['cz']])
+    print('cond {}'.format(cond))
+    #np_verts = stl['s'] * np.array(verts).astype(np.float) - ctr
+    #return np_verts
+    return []
+
 try:
     i_data = []
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
@@ -46,8 +54,10 @@ try:
         i_data = []
         global_max = 0.
         for i in plot_density.conductors:
-            c_data = []
+            c_data = {}
             c = plot_density.conductors[i]
+            c_data['id'] = c.conductor.condid
+            c_data['faces'] = []
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
             try:
@@ -58,7 +68,7 @@ try:
                 f_data = {
                     'err': err
                 }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
                 i_data.append(c_data)
                 continue
             global_max = max(global_max, max_s)
@@ -93,7 +103,7 @@ try:
                         err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
                         print(err)
                         f_data['err'] = err
-                        c_data.append(f_data)
+                        c_data['faces'].append(f_data)
                         continue
 
                     f_data['dims'] = 3
@@ -134,7 +144,7 @@ try:
                     #    except scipy.spatial.qhull.QhullError:
                     #        print('Cannot triangulate conductor {}'.format(c))
                     #        f_data['err'] = 'Cannot triangulate conductor'
-                    #        c_data.append(f_data)
+                    #        c_data['faces'].append(f_data)
                     #        continue
                     #    f_data['dims'] = 2
                     #    tris = dlny.simplices
@@ -163,7 +173,7 @@ try:
                             'slopek': sk,
                             'slopel': sl
                         }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% else %}
             coord_keys = ['x', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
@@ -194,7 +204,7 @@ try:
                         'startVal': coord[0],
                         'slopek': sk
                     }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% endif %}
             i_data.append(c_data)
 

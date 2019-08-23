@@ -3104,6 +3104,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                     return;
                 }
                 var bounds = reader.getOutputData().getBounds();
+                //srdbg('stl bnds', bounds);
                 var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
                 var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
                 var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
@@ -3402,6 +3403,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var conductorActors = [];
 
             var stlActors = {};
+            var stlBundles = {};
             var stlReaders = {};
 
             var toMetersFactor = Math.min.apply(null, warpvndService.stlNanoUnits);
@@ -3418,6 +3420,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
             // other
             var densityBundles = [];
+            var isDensityMapped = false;
 
             // outline
             var outlineSource = null;
@@ -3533,10 +3536,22 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     toMicronFactor * conductor.zCenter - zOffset
                 ];
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                //var dataColors = [];
+                //for (var i = 0; i < bundle.mapper.getInputData().getNumberOfPolys(); ++i) {
+                //    dataColors.push(Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(256 * Math.random()));
+                //}
+                //var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                //    numberOfComponents: 3,
+                //    values: dataColors,
+                //    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                //});
+                //bundle.mapper.setScalarVisibility(true);
+                //bundle.mapper.getInputData().getCellData().setScalars(carr);
                 actor.addPosition(offsetPos);
                 actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 actor.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(actor);
+                stlBundles[conductor.id] = bundle;
                 stlActors[conductor.id] = actor;
             }
 
@@ -3990,7 +4005,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
                 }
 
-                mapImpactDensity();
+                //mapImpactDensity();
 
                 function coordAtIndex(startVal, sk, sl, k, l) {
                     return startVal + k * sk + l * sl;
@@ -4064,8 +4079,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     if (! $scope.enableImpactDensity) {
                         return;
                     }
+                    var condId = c.id;
                     // loop over faces
-                    c.forEach(function (f) {
+                    c.faces.forEach(function (f) {
                         if (f.err) {
                             errorService.alertText(f.err);
                             return;
@@ -4076,7 +4092,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         }
 
                         if (f.type === 'unstructured') {
-                            mapUnstructuredDensity(f);
+                            mapUnstructuredDensity(f, condId);
                             return;
                         }
 
@@ -4145,7 +4161,28 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
             }
 
-            function mapUnstructuredDensity(faceData) {
+            function mapUnstructuredDensity(faceData, condId) {
+                if (condId !== 0 && ! condId) {
+                    // no matching conductor, error
+                    errorService.alertText('No conductor matches impact data');
+                    return;
+                }
+
+                var stl_a = stlActors[condId];
+                var stl_b = stlBundles[condId];
+                var stl_m = stl_a.getMapper();
+                var stl_pd = stl_m.getInputData();
+                var stl_pts = stl_pd.getPoints();
+                //srdbg(condId, 'stl pts', stl_pts.getData());
+                var stl_polys = stl_pd.getPolys();
+                //srdbg(condId, 'stl polys', stl_polys.getData());
+                //srdbg(condId, 'stl bounds', stl_a.getBounds());
+
+                for(var i = 0; i < stl_polys.getData().length; i += 4) {
+                    // transform each point in each polygon or get the center point
+                    // or get normals and try to intersect with impact polys?
+                }
+
                 var d = faceData.dArr;
                 var nk = d.length;
                 var x = faceData.x.map(toNano);
@@ -4202,6 +4239,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);
                 densityBundles.push(b);
+                //srdbg(condId, 'imp', b.actor.getBounds());
 
                 function toNano(v) {
                     return v * 1e-9;
@@ -4362,7 +4400,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }), $scope.showImpactDensity, 1.0);
                 vtkPlotting.showActors(renderWindow, densityBundles.map(function (b) {
                     return b.actor;
-                }), $scope.showImpactDensity, 1.0);
+                }), false, 1.0);
 
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
@@ -4769,8 +4807,15 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
             };
             $scope.toggleImpactDensity = function() {
+                if (! isDensityMapped) {
+                    mapImpactDensity();
+                    isDensityMapped = true;
+                }
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
-                $scope.showConductors = ! $scope.showImpactDensity;
+                $scope.showConductors = true;  //! $scope.showImpactDensity;
+                for (var condId in stlBundles) {
+                    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
+                }
                 vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
                 refresh();
             };
