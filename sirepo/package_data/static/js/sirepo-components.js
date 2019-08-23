@@ -1735,13 +1735,7 @@ SIREPO.app.directive('appHeaderBrand', function() {
     function brand() {
         var res = [
               '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
-              '<span class="hidden-xs hidden-lg hidden-xl"',
-                appInfo.longName == appInfo.shortName
-                  ? ''
-                  : ' title="'+ appInfo.longName + '"',
-              '>',
-                appInfo.shortName,
-              '</span>',
+              '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
         ].join('');
 
         var u = {
