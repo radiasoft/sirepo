@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 import re
 from pykern import pkio
 from sirepo import auth
+from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
 from sirepo import simulation_db
@@ -46,7 +47,7 @@ def purge_guest_users(days=180, confirm=False):
         confirm (bool): delete the directories if True (else don't delete) [False]
 
     Returns:
-        list: directories removed (or to remove if confirm)
+        (list, list): dirs and uids of removed guest users (or to remove if confirm)
     """
 
     days = int(days)
@@ -57,22 +58,25 @@ def purge_guest_users(days=180, confirm=False):
 
     guest_uids = auth.guest_uids()
     now = srtime.utc_now()
-    to_remove = []
+    dirs_and_uids = {}
 
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+        uid = simulation_db.uid_from_dir_name(d)
         if _is_src_dir(d):
             continue
-        if simulation_db.uid_from_dir_name(d) not in guest_uids:
+        if uid not in guest_uids:
             continue
         for f in pkio.walk_tree(d):
             if (now - now.fromtimestamp(f.mtime())).days <= days:
                 break
         else:
-            to_remove.append(d)
-    if confirm:
-        pkio.unchecked_remove(*to_remove)
 
-    return to_remove
+            dirs_and_uids[d] = uid
+    if confirm:
+        pkio.unchecked_remove(*dirs_and_uids.keys())
+        auth_db.UserRegistration.delete_all_for_column_by_values('uid', dirs_and_uids.values())
+
+    return dirs_and_uids
 
 
 def _create_example(example):

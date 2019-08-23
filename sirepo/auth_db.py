@@ -63,6 +63,12 @@ def init(app):
             with thread_lock:
                 return [getattr(r, column) for r in cls.query.filter_by(**filter_by)]
 
+        @classmethod
+        def delete_all_for_column_by_values(cls, column, values):
+            with thread_lock:
+                cls.query.filter(getattr(cls, column).in_(values)).delete(synchronize_session='fetch')
+                _db.session.commit()
+
     class UserRegistration(UserDbBase, _db.Model):
         __tablename__ = 'user_registration_t'
         uid = _db.Column(_db.String(8), primary_key=True)
