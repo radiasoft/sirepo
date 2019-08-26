@@ -57,6 +57,7 @@ def fixup_old_data(data):
             'fields': [],
         }
     for m in [
+            'anode',
             'egunCurrentAnimation',
             'impactDensityAnimation',
             'optimizer',
@@ -74,6 +75,10 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = {}
         template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
+    if 'specProb' in data.models.anode:
+        data.models.anode.specProb = 0.
+    if 'refScheme' in data.models.anode:
+        data.models.anode.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
     types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
@@ -82,6 +87,10 @@ def fixup_old_data(data):
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
+        if 'specProb' in c:
+            c.specProb = 0.
+        if 'refScheme' in c:
+            c.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
@@ -805,6 +814,7 @@ def _generate_parameters_file(data):
     v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
+    v['anode'] = _prepare_anode(data)
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -958,6 +968,7 @@ def _prepare_conductors(data):
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
         )[0] if 'file' in ct else 'None'
+        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -967,6 +978,14 @@ def _prepare_conductors(data):
         if not _is_3D(data):
             c.yCenter = 0
     return data.models.conductors
+
+
+def _prepare_anode(data):
+    return {
+        'isReflector': data.models.anode['isReflector'] == '1',
+        'specProb': data.models.anode['specProb'],
+        'diffProb': data.models.anode['diffProb'],
+    }
 
 
 def _read_optimizer_output(run_dir):
