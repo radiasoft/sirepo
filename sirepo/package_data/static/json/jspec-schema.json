@@ -273,7 +273,7 @@
             ]
         },
         "coolingRatesAnimation": {
-            "title": "Cooling Rates",
+            "title": "IBS & Cooling Rates",
             "advanced": [
                 "y1",
                 "y2",
