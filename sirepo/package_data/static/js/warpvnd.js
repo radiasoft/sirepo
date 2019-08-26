@@ -526,7 +526,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     };
 
     self.copyConductor = function(model) {
-        var modelCopy = {
+        var modelCopy = appState.setModelDefaults({
+            //TODO(pjm): give unique name
             name: model.name + " Copy",
             id: appState.maxId(appState.models.conductorTypes) + 1,
             voltage: model.voltage,
@@ -537,8 +538,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             isConductor: model.isConductor,
             color: model.color,
             type: model.type || 'box',
-        };
-
+        }, 'conductor');
         self.editConductorType(model.type || 'box', modelCopy);
     };
 
