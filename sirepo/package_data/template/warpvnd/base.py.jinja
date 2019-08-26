@@ -11,7 +11,7 @@ import rswarp
 from rswarp.diagnostics import FieldDiagnostic
 from rswarp.cathode import sources
 from rswarp.cathode import injectors
-from rswarp.particlecollector import particlereflector
+from rswarp.run_files.tec.reflection import particlereflector
 from rswarp.stlconductor import stlconductor
 from rswarp.stlconductor.stlconductor import *
 
@@ -331,12 +331,6 @@ extractor_voltage = vacuum_level
 # --- Anode Location
 zplate = Z_MAX # --- plate location
 
-no_stl = True
-{% for c in conductors %}
-{% if c.conductor_type.type == 'stl' %}
-no_stl = False
-{% endif %}
-{% endfor %}
 
 conductors = [
 {% for c in conductors %}
@@ -356,7 +350,7 @@ reflectors = [
         'specProb': {{ c.conductor_type.specProb }},
         'diffProb': {{ c.conductor_type.diffProb }},
         'refScheme': '{{ c.conductor_type.refScheme }}'
-    }
+    },
 {% endfor %}
 ]
 
@@ -374,7 +368,7 @@ wp.installconductor(source, dfill=wp.largepos)
 plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= len(conductors) + 2)
 wp.installconductor(plate, dfill=wp.largepos)
 
-scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept=no_stl)
+scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})
 
 {% if anode.isReflector %}
 reflector = particlereflector.ParticleReflector(scraper=scraper, conductor=plate, spref=Species(type=Electron, name='Electron'), srefprob={{ anode.specProb }}, drefprob={{ anode.diffProb }})
@@ -389,6 +383,8 @@ for r_idx, r in enumerate(reflectors):
         particlereflector.installparticlereflector(reflector)
 
 #------
+
+can_write_files = wp.comm_world.rank == 0
 
 def dict_to_h5(d, hf, path=None):
     if path is None:

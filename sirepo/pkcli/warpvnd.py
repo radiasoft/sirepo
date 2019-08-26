@@ -39,9 +39,14 @@ def run_background(cfg_dir):
         cfg_dir (str): directory to run warpvnd in
     """
     with pkio.save_chdir(cfg_dir):
-        #TODO(pjm): disable running with MPI for now
-        # mpi.run_script(_script())
-        exec(_script(), locals(), locals())
+        data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        #TODO(pjm): only run with mpi for 3d case for now
+        if data.models.simulationGrid.simulation_mode == '3d' and not data.report == 'optimizerAnimation':
+            pkdc('RUNNING MPI')
+            mpi.run_script(_script())
+        else:
+            pkdc('RUNNING SINGLE PROCESS')
+            exec(_script(), locals(), locals())
         simulation_db.write_result({})
 
 

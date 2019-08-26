@@ -23,11 +23,17 @@ def _linear_fit_1d(arr):
     sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
 
+density_results = None
 try:
     i_data = []
     # add use_aura=True when available in rswarp
     plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
+except AssertionError as e:
+    density_results = {
+        'error': e.message,
+    }
 
+if can_write_files and not density_results:
     # Old style data, keeping for the moment
     if not hasattr(plot_density, 'conductors'):
         plot_density.gate_scraped_particles()
@@ -210,13 +216,6 @@ try:
             'max': global_max,
         }
 
-except AssertionError as e:
-    message = e.message
-    if wp.top.npslost[0] <= 0:
-        message = 'No particles made impact. Nothing to plot.'
-    density_results = {
-        'error': message,
-    }
-hf = h5py.File('{{ densityFile }}')
-dict_to_h5(density_results, hf, path='density')
-hf.close()
+if can_write_files:        
+    with h5py.File('{{ densityFile }}') as hf:
+        dict_to_h5(density_results, hf, path='density')

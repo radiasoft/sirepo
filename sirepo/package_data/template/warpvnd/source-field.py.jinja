@@ -1,6 +1,4 @@
 
-from sirepo import simulation_db
-
 #prevent GIST from starting upon setup
 wp.top.lprntpara = False
 wp.top.lpsplots = False
@@ -17,75 +15,56 @@ solverE.mgmaxiters = 12000 #rough approximation needed for initial solve to conv
 wp.package("w3d")
 wp.generate()
 
-#------
-
-#Need to compute the potential first
-potential = solverE.getphi()
-hf = h5py.File('{{ potentialFile }}')
-dict_to_h5(potential, hf, path='potential')
-hf.close()
-
-X_CELLS = NUM_X
-Y_CELLS = NUM_Y
-Z_CELLS = NUM_Z
-
-xl = 0
-xu = NUM_X + 1
-yl = 0
-yu = NUM_Y + 1
-zl = 0
-zu = NUM_Z + 1
-
-midpoint = 1 - np.max(potential[xl:xu,zl:zu])/(np.max(potential[xl:xu,zl:zu]) +
-                                               abs(np.min(potential[xl:xu,zl:zu])))
-
-pxmin = ((X_MAX - X_MIN) / X_CELLS * xl + X_MIN) * 1e6
-pxmax = ((X_MAX - X_MIN) / X_CELLS * xu + X_MIN) * 1e6
-
-pymin = ((Y_MAX - Y_MIN) / Y_CELLS * yl + Y_MIN) * 1e6
-pymax = ((Y_MAX - Y_MIN) / Y_CELLS * yu + Y_MIN) * 1e6
-
-pzmin = (Z_MIN + zl / Z_CELLS * Z_MAX) * 1e6
-pzmax = (Z_MAX * zu / Z_CELLS) * 1e6
+# need to reset it or the step() below will take forever
+solverE.mgmaxiters = 100
 
 #------
 
+potential = wp.getphi(bcast=0)
+if can_write_files:
+    hf = h5py.File('potential.h5')
+    dict_to_h5(potential, hf, path='potential')
+    hf.close()
+
+#------
+
+import json
 from scipy.interpolate import interp1d as scipy_interp1d
 
 #Grab Ez from the solver and average over the transverse (x) plane
-Ez = solverE.getez()
-flat_Ez = np.mean(Ez,0)
-if wp.w3d.solvergeom == wp.w3d.XYZgeom:
-    flat_Ez = np.mean(flat_Ez,0)
+Ez = wp.getselfe(comp='z', bcast=0)
 
-#Generate an interpolating function for smooth particle integration
-Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
+if can_write_files:
+    flat_Ez = np.mean(Ez,0)
+    if wp.w3d.solvergeom == wp.w3d.XYZgeom:
+        flat_Ez = np.mean(flat_Ez,0)
 
-#Integrate the particle motion subject to initial conditions specified by the simulation
-tof_expected = steps_expected = None
-try:
-    tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, wp.top.dt)
-    steps_expected = tof_expected/wp.top.dt
-except ValueError as e:
-    pass
-except AssertionError as e:
-    pass
+    #Generate an interpolating function for smooth particle integration
+    Ez_approx = scipy_interp1d(zmesh,flat_Ez, kind='cubic')
 
-#------
+    #Integrate the particle motion subject to initial conditions specified by the simulation
+    tof_expected = steps_expected = None
+    try:
+        tof_expected = sources.compute_expected_time(beam, CATHODE_TEMP, Ez_approx, Z_MIN, Z_MAX, wp.top.dt)
+        steps_expected = tof_expected/wp.top.dt
+    except ValueError as e:
+        pass
+    except AssertionError as e:
+        pass
 
-#Grab Phi from the solver and average over the transverse (x) plane
-Phi = solverE.getphi()
-flat_Phi = -1.*np.mean(Phi,0) #Needs to be made negative
+    # average over the transverse (x) plane
+    flat_Phi = -1.*np.mean(potential,0) #Needs to be made negative
 
-#Generate an interpolating function for smooth particle integration
-Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
+    #Generate an interpolating function for smooth particle integration
+    Phi_approx = scipy_interp1d(zmesh,flat_Phi, kind='cubic')
 
-e_cross = sources.compute_crossing_fraction(CATHODE_TEMP, Phi_approx, zmesh)
+    e_cross = sources.compute_crossing_fraction(CATHODE_TEMP, Phi_approx, zmesh)
 
-simulation_db.write_json('{{ estimateFile }}', {
-    'tof_expected': tof_expected,
-    'steps_expected': steps_expected,
-    'e_cross': e_cross,
-})
+    with open('{{ estimateFile }}', 'w') as f:
+        f.write(json.dumps({
+            'tof_expected': tof_expected,
+            'steps_expected': steps_expected,
+            'e_cross': e_cross,
+        }, allow_nan=False))
 
 wp.step({{ stepSize }})

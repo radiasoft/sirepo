@@ -75,22 +75,14 @@ def fixup_old_data(data):
         if m not in data.models:
             data.models[m] = {}
         template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
-    if 'specProb' in data.models.anode:
-        data.models.anode.specProb = 0.
-    if 'refScheme' in data.models.anode:
-        data.models.anode.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
-    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
+    types = data.models.conductorTypes if 'conductorTypes' in data.models else []
     for c in types:
         if c is None:
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
-        if 'specProb' in c:
-            c.specProb = 0.
-        if 'refScheme' in c:
-            c.refScheme = _SCHEMA.enum.ReflectionScheme[0][0]
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
@@ -647,11 +639,18 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_impact_density(run_dir, data):
-    hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
-    plot_info = template_common.h5_to_dict(hf, path='density')
-    hf.close()
+    with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
+        plot_info = template_common.h5_to_dict(hf, path='density')
     if 'error' in plot_info:
-        return plot_info
+        if not _is_3D(data):
+            return plot_info
+        # for 3D, continue on so particle trace is still rendered
+        plot_info = {
+            'dx': 0,
+            'dz': 0,
+            'min': 0,
+            'max': 0,
+        }
     #TODO(pjm): consolidate these parameters into one routine used by all reports
     grid = data.models.simulationGrid
     plate_spacing = _meters(grid.plate_spacing)
@@ -811,10 +810,17 @@ def _generate_parameters_file(data):
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
-    v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
     v['anode'] = _prepare_anode(data)
+    v['saveIntercept'] = v['anode']['isReflector']
+    for c in data.models.conductors:
+        if c.conductor_type.type == 'stl':
+            # if any conductor is STL then don't save the intercept
+            v['saveIntercept'] = False
+            break
+        if c.conductor_type.isReflector:
+            v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
