@@ -107,12 +107,22 @@
             ["50", "50"],
             ["10", "10"]
         ],
+        "ReflectionScheme": [
+            ["uniform", "Uniform"],
+            ["rand_angle", "Random Angle"]
+        ],
         "SimulationMode": [
             ["2d", "2D"],
             ["3d", "3D"]
         ]
     },
     "model": {
+        "anode": {
+            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
+        },
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
@@ -134,8 +144,12 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
+            "isReflector": ["Add Reflector", "Boolean", "0"],
             "color": ["Color", "Color"],
-            "type": ["Type", "ConductorType", "box"]
+            "type": ["Type", "ConductorType", "box"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "ReflectionScheme", "uniform"]
         },
         "conductorGridReport": {
             "tileDomain": ["Show tiled domain", "Boolean", "0"]
@@ -248,7 +262,9 @@
             "title": "Anode",
             "advanced": [
                 "beam.anode_voltage",
-                "beam.anode_work_function"
+                "beam.anode_work_function",
+                "isReflector",
+                "diffProb"
             ]
         },
         "beam": {
@@ -279,6 +295,8 @@
                 "yLength",
                 "isConductor",
                 "permittivity",
+                "isReflector",
+                "diffProb",
                 "color"
             ]
         },

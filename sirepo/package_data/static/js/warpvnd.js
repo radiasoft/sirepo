@@ -234,7 +234,7 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
 });
 
 
-SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, vtkPlotting, warpvndService, $scope) {
+SIREPO.app.controller('SourceController', function (appState, frameCache, panelState, persistentSimulation, utilities, validationService, vtkPlotting, warpvndService, $scope, $compile) {
     var self = this;
     var MAX_PARTICLES_PER_STEP = 1000;
     var condctorTypes = SIREPO.APP_SCHEMA.enum.ConductorType.map(function (t) {
@@ -294,6 +294,19 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         }
     }
 
+    function checkProbSum(modelName) {
+        if (! appState.models[modelName] || appState.models[modelName].isReflector !== '1') {
+            return true;
+        }
+        return probFields
+            .map(function (f) {
+                return parseFloat(utilities.ngModelForInput(modelName, f).$viewValue);
+            })
+            .reduce(function (sum, v) {
+                return sum + v;
+            }, 0) <= 1;
+    }
+
     // stl files can have arbitrary scale - we are using our knowledge of the problem space
     // to set the scale to something reasonable.  For example, an object with linear dimension
     // in the hundreds is assumed to be in nanometers, etc.  The user can adjust if it is wrong
@@ -326,10 +339,76 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return true;
     }
 
+    //var probFields = ['specProb', 'diffProb'];
+    var probFields = ['diffProb'];
+    function probValidator(modelName, field) {
+        return function() {
+            var isValid = checkProbSum(modelName);
+            probFields.forEach(function (f) {
+                if (f === field) {
+                    return;
+                }
+                var m = utilities.ngModelForInput(modelName, f);
+                var n = utilities.modelFieldID(modelName, f);
+                m.$setValidity(n, isValid);
+            });
+            return isValid;
+        };
+    }
+
+    function reloadReflectorValidator(modelName) {
+        probFields.forEach(function (f) {
+            validationService.setModelFieldValidator(modelName, f,
+                probValidator(modelName, f),
+                function () {
+                    return 'Enter a value between 0 and 1';
+                }
+            );
+            var ngm = utilities.ngModelForInput(modelName, f);
+            if (ngm) {
+                ngm.$validate();
+            }
+        });
+    }
+
+    function removeReflectorValidator(modelName) {
+        probFields.forEach(function (f) {
+            var ngm = utilities.ngModelForInput(modelName, f);
+            if (! ngm) {
+                return;
+            }
+            ngm.$validate();
+            validationService.removeModelFieldValidator(modelName, f);
+        });
+    }
+
+    $scope.reflectors = {};
+
+    function initModal(modelName, modal) {
+        if (! $scope.reflectors[modelName]) {
+
+            // for now, force specular probablility to be 0.  We will keep the field in the model but it
+            // will not be in the view
+            //appState.models[modelName].specProb = 0;
+
+            $scope.reflectors[modelName] = {};
+            var dpDiv = $(modal).find('.' + utilities.modelFieldID(modelName, 'diffProb'));
+            $scope.msg = function () {
+                return probFields.reduce(function (m, f) {
+                    return m || validationService.getModelFieldMessage(modelName, f);
+                }, '');
+            };
+            var mds = '<div class="sr-input-warning col-sm-8 col-sm-offset-4">{{ msg() }}</div>';
+            var msgDiv = $compile(mds)($scope);
+            $(dpDiv).after(msgDiv);
+            $(modal).on('shown.bs.modal', reflectionUpdator(modelName));
+            $(modal).on('hidden.bs.modal', reflectionUpdator(modelName));
+        }
+    }
     function setFieldState() {
-        panelState.enableField('stl', 'zLength', false);
-        panelState.enableField('stl', 'xLength', false);
-        panelState.enableField('stl', 'yLength', false);
+        ['xLength', 'yLength', 'zLength'].forEach(function (f) {
+            panelState.enableField('stl', f, false);
+        });
     }
 
     function updateAllFields() {
@@ -338,6 +417,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         updateBeamRadius();
         updateParticleZMin();
         updateParticlesPerStep();
+        updateReflection('anode');
+        updateReflection('box');
     }
 
     function updateBeamCurrent() {
@@ -377,14 +458,33 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
     function updatePermittivity(conductorType) {
         var type = conductorType || 'box';
-        panelState.showField(type, 'permittivity', appState.models[type].isConductor == '0');
-        $scope.defaultColor = appState.models[type].isConductor == '0' ? '#f3d4c8' : '#6992ff';
+        panelState.showField(type, 'permittivity', appState.models[type].isConductor === '0');
+        $scope.defaultColor = appState.models[type].isConductor === '0' ? '#f3d4c8' : '#6992ff';
+    }
+
+    function reflectionUpdator(modelName) {
+        return function () {
+            updateReflection(modelName);
+        };
+    }
+
+    function updateReflection(modelName) {
+        var showProbs = (appState.models[modelName] || {}).isReflector === '1';
+        if (showProbs) {
+            reloadReflectorValidator(modelName);
+        }
+        else {
+            removeReflectorValidator(modelName);
+        }
+        probFields.forEach(function (f) {
+            panelState.showField(modelName, f, showProbs);
+        });
     }
 
     function updateSimulationMode() {
         var isNotStl = ! appState.models.simulation.conductorFile;
         panelState.showField('simulationGrid', 'simulation_mode', warpvndService.allow3D() && isNotStl);
-        var is3d = appState.models.simulationGrid.simulation_mode == '3d';
+        var is3d = appState.models.simulationGrid.simulation_mode === '3d';
         ['channel_height', 'num_y'].forEach(function(f) {
             panelState.showField('simulationGrid', f, is3d);
         });
@@ -395,6 +495,24 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     }
 
     self.isWaitingForSTL = false;
+
+    self.conductorColors = {
+        zero: SIREPO.APP_SCHEMA.constants.zeroVoltsColor,
+        nonZero: SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor
+    };
+
+    self.conductorTypes = function() {
+        return appState.models.conductorTypes;
+    };
+
+    self.conductorTypeForId = function(id) {
+        var t = self.conductorTypes();
+        for (var i in t) {
+            if (t[i].id == id) {
+                return t[i];
+            }
+        }
+    };
 
     self.createConductorType = function(type, silent) {
         var model = {
@@ -484,6 +602,14 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return appState.models[warpvndService.activeFieldReport()];
     };
 
+    self.getReflectOpacity = function(modelNameOrId, probType) {
+        var m = appState.models[modelNameOrId] || self.conductorTypeForId(modelNameOrId);
+        if (! m ||  m.isReflector !== '1') {
+            return 0;
+        }
+        return m.diffProb;
+    };
+
     self.handleModalShown = function(name) {
         updateAllFields();
         if (name == warpvndService.activeComparisonReport()) {
@@ -556,6 +682,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         appState.watchModelFields($scope, ['simulationGrid.num_x'], updateParticlesPerStep);
         appState.watchModelFields($scope, ['simulationGrid.plate_spacing', 'simulationGrid.num_z'], updateParticleZMin);
         appState.watchModelFields($scope, ['simulationGrid.channel_width'], updateBeamRadius);
+        appState.watchModelFields($scope, ['anode.isReflector'], reflectionUpdator('anode'));
+        appState.watchModelFields($scope, ['box.isReflector'], reflectionUpdator('box'));
         appState.watchModelFields($scope, ['beam.currentMode'], updateBeamCurrent);
         appState.watchModelFields($scope, [warpvndService.activeComparisonReport() + '.dimension'], updateFieldComparison);
         SIREPO.APP_SCHEMA.enum.ConductorType.forEach(function (i) {
@@ -565,6 +693,14 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             });
         });
         appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSimulationMode);
+
+
+        ['anode', 'box'].forEach(function (m) {
+            $scope.$on(m + '.editor.show', function () {
+                initModal(m, $('#' + panelState.modalId(m)));
+            });
+        });
+
     });
 });
 
@@ -1129,22 +1265,28 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 var channel = toMicron(grid[info.heightField] / 2.0);
                 var h = info.axis.scale(-channel) - info.axis.scale(channel);
                 var w = axes.x.scale(0) - axes.x.scale(-plateSize);
+                var reflects = appState.models.anode.isReflector === '1';
                 viewport.append('rect')
-                    .attr('class', 'warpvnd-plate')
+                    .attr('class', 'warpvnd-plate warpvnd-plate-no-voltage')
                     .attr('x', axes.x.scale(-plateSize))
                     .attr('y', info.axis.scale(channel))
                     .attr('width', w)
                     .attr('height', h)
                     .on('dblclick', function() { editPlate('cathode'); })
                     .append('title').text('Cathode');
-                viewport.append('rect')
-                    .attr('class', 'warpvnd-plate warpvnd-plate-voltage')
-                    .attr('x', axes.x.scale(toMicron(plateSpacing)))
+                var ar = viewport.append('rect')
+                    .attr('class', 'warpvnd-plate')
+                    .classed('warpvnd-plate-voltage', ! reflects);
+                if (reflects) {
+                    ar.attr('fill', 'url(#reflectionPattern-anode)')
+                        .attr('stroke', SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
+                }
+                ar.attr('x', axes.x.scale(toMicron(plateSpacing)))
                     .attr('y', info.axis.scale(channel))
                     .attr('width', w)
                     .attr('height', h)
                     .on('dblclick', function() { editPlate('anode'); })
-                    .append('title').text('Anode');
+                    .append('title').text('Anode' + (reflects ? ' (reflector)' : ''));
             }
 
             function drawCathodeAndAnodes() {
@@ -1199,6 +1341,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                             id: conductorPosition.id,
                             conductorType: conductorType,
                             elev: elev,
+                            isReflector: conductorType.isReflector,
                         });
                         var dy = toMicron(grid[info.heightField]);
                         var y0 = -dy / 2;
@@ -1519,7 +1662,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return !  doesShapeCrossGridLine(d);
                     })
                     .classed('warpvnd-shape-voltage', function(d) {
-                        return d.conductorType.voltage > 0;
+                        return d.isReflector !== '1' && d.conductorType.voltage > 0;
+                    })
+                    .classed('warpvnd-shape-no-voltage', function(d) {
+                        return d.isReflector !== '1' && d.conductorType.voltage == 0;
                     })
                     .classed('warpvnd-shape-inactive', function(d) {
                         if (! warpvndService.is3D()) {
@@ -1548,6 +1694,10 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                         return axis.scale(d.y) - axis.scale(d.y + d.height);
                     })
                     .attr('style', function(d) {
+                        if (d.isReflector === '1') {
+                            return 'fill:url(#reflectionPattern-' + d.id + '); ' +
+                                'stroke: ' + shapeColor(d.conductorType.color);
+                        }
                         if(d.conductorType.color && doesShapeCrossGridLine(d)) {
                             return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
                                 'stroke: ' + shapeColor(d.conductorType.color);
@@ -1559,7 +1709,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                 }
                 tooltip.text(function(d) {
                     return doesShapeCrossGridLine(d)
-                        ? d.conductorType.name
+                        ? d.conductorType.name + (d.conductorType.isReflector === '1' ? ' (reflector)' : '')
                         : '⚠️ Conductor does not cross a warp grid line and will be ignored';
                 });
             }
@@ -2547,7 +2697,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName);
 
                         coords.forEach(function (c, i) {
-                            if(i === coords.length - 1) {
+                            if (i === coords.length - 1) {
                                 return;
                             }
                             var p0 = c;
@@ -3431,7 +3581,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var fieldZFactor = 1.0;
             var fieldYFactor = 1.0;
             var fieldColorScale = null;
-            var indexMaps = [];
+            var pointToColorIndexMaps = [];
 
             var minZSpacing = Number.MAX_VALUE;
 
@@ -3905,8 +4055,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
 
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
-                var nearestIndex = 0;
-                indexMaps = [];
+                var nearestPointIndex = 0;
+                pointToColorIndexMaps = [];
 
                 // linearly interpolate the data
                 for (var i = 0; i < lcoords.length; ++i) {
@@ -3914,45 +4064,80 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                     var newIndexMap = {0:0};
                     var lastNearestIndex = 0;
-                    nearestIndex = 1;
+                    nearestPointIndex = 1;
                     var newZ = ptsArr[0][2];
                     var finalZ = ptsArr[ptsArr.length-1][2];
-                    var j = 1;
+                    var cornerZs = [newZ];
+                    var cornerIdxs = [0];
+                    var prevZ = newZ;
+                    var sgn = 1;
 
-                    // ASSUMES MONOTONICALLY INCREASING Z
-                    while (newZ <= finalZ) {
-                        newZ = ptsArr[0][2] + j * minZSpacing;
-                        nearestIndex = 1;  // start at the beginning
-                        lastNearestIndex = 1;
-                        var checkZ = ptsArr[nearestIndex][2];
-                        while (nearestIndex < ptsArr.length && checkZ < newZ) {
-                            if (! newIndexMap[nearestIndex]) {
-                                // ensures we don't skip any indices, mapping them to the nearest previously mapped value
-                                newIndexMap[nearestIndex] = indexValPriorTo(newIndexMap, nearestIndex, 1) || 0;
-                            }
-                            ++nearestIndex;
-                            checkZ = (ptsArr[nearestIndex] || [])[2];
+                    // keep track of particles changing direction
+                    for (var k = 1; k < ptsArr.length-1; ++k) {
+                        var thisZ = ptsArr[k][2];
+                        if (sgn * thisZ < sgn * prevZ) {
+                            cornerZs.push(prevZ);
+                            cornerIdxs.push(k - 1);
+                            sgn *= -1;
                         }
-                        if (nearestIndex != lastNearestIndex) {
-                            lastNearestIndex = nearestIndex;
-                        }
-
-                        var lo = Math.max(0, nearestIndex - 1);
-                        var hi = Math.min(ptsArr.length-1, nearestIndex);
-                        var p = ptsArr[lo];
-                        var nextP = ptsArr[hi];
-                        var dzz = nextP[2] - p[2];
-                        var newP = [0, 0, newZ];
-                        for (var ci = 0; ci < 2; ++ci) {
-                            newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
-                        }
-                        ptsArr.splice(lo + 1, 0, newP);
-
-                        newIndexMap[hi] = j;
-                        ++j;
+                        prevZ = thisZ;
                     }
-                    newIndexMap[ptsArr.length-1] = indexValPriorTo(newIndexMap, nearestIndex, 1);
-                    indexMaps.push(newIndexMap);
+                    cornerZs.push(finalZ);
+                    cornerIdxs.push(ptsArr.length-1);
+
+                    var j = 1;
+                    var lastMappedColorIndex = 0;
+
+                    sgn = 1;
+                    for (k = 0; k < cornerZs.length - 1; ++k) {
+                        newZ = cornerZs[k];
+                        finalZ = cornerZs[k + 1];
+                        j = 1;
+                        lastNearestIndex = cornerIdxs[k] + 1;
+                        while (sgn * newZ <= sgn * finalZ) {
+                            newZ = cornerZs[k] + sgn * j * minZSpacing;
+                            nearestPointIndex = lastNearestIndex;
+                            var checkZ = ptsArr[nearestPointIndex][2];
+                            while (nearestPointIndex < ptsArr.length && sgn * checkZ < sgn * newZ && sgn * checkZ < sgn * finalZ) {
+                                if (newIndexMap[nearestPointIndex] !== 0 && ! newIndexMap[nearestPointIndex]) {
+                                    // ensures we don't skip any indices, mapping them to the nearest previously mapped value
+                                    newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1) || 0;
+                                }
+                                ++nearestPointIndex;
+                                checkZ = (ptsArr[nearestPointIndex] || [])[2];
+                            }
+
+                            if (nearestPointIndex != lastNearestIndex) {
+                                lastNearestIndex = nearestPointIndex;
+                            }
+
+                            var lo = Math.max(0, nearestPointIndex - 1);
+                            var hi = Math.min(ptsArr.length - 1, nearestPointIndex);
+                            if (sgn * checkZ < sgn * finalZ) {
+                                var p = ptsArr[lo];
+                                var nextP = ptsArr[hi];
+                                var dzz = nextP[2] - p[2];
+                                var newP = [0, 0, newZ];
+                                for (var ci = 0; ci < 2; ++ci) {
+                                    newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
+                                }
+                                ptsArr.splice(lo + 1, 0, newP);
+                                for (var crx = k + 1; crx < cornerIdxs.length; ++crx) {
+                                    // added a point, so the remaining corner index vals increment
+                                    cornerIdxs[crx] = cornerIdxs[crx] + 1;
+                                }
+                            }
+
+                            newIndexMap[hi] = lastMappedColorIndex + sgn * j;
+                            ++j;
+                        }
+                        ++nearestPointIndex;
+                        newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
+                        sgn *= -1;
+                        lastMappedColorIndex = j - 1;
+                    }
+                    newIndexMap[ptsArr.length-1] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
+                    pointToColorIndexMaps.push(newIndexMap);
                 }
 
                 // distribute the heat map evenly over the interpolated points
@@ -4205,20 +4390,18 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
                     for (var j = 0; j < l; ++j) {
-                        ++numPoints;
                         if (j < l - 1) {
                             k = j + 1;
-                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(indexMaps[i][j]));
+                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
                         }
                     }
                     if (l > j) {
                         k = j - 1;
-                        ++numPoints;
-                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(indexMaps[i][k]));
+                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
                     }
                     if (includeImpact) {
                         k = points[i].length - 1;
-                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(indexMaps[i][k])).actor);
+                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);
                     }
                 }
                 var p32 = window.Float32Array.from(dataPoints);
@@ -4243,6 +4426,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     // lines live in "cells"
                     pd.getCellData().setScalars(carr);
                 }
+                bundle.actor.getProperty().setLighting(false);
 
                 function pushLineData(p1, p2, c) {
                     // we always have two points per line
@@ -4261,23 +4445,23 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
             }
 
-            function indexValPriorTo(map, startIndex, spacing) {
+            function colorIndexValPriorTo(map, startIndex, spacing) {
                 var k = startIndex - spacing;
                 var prevVal = map[k];
                 while(k >= 0 && (prevVal == null || prevVal === 'undefined')) {
                     k -= spacing;
                     prevVal = map[k];
                 }
-                return prevVal;
+                return Math.max(0, prevVal);
             }
 
             function colorAtIndex(index) {
+                if (index !== 0 && ! index) {
+                    return plotting.colorsFromHexString('#000000', 255.0);
+                }
                 var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
                 var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
                 var fieldyIndex = Math.floor(fieldYFactor * index);
-                if (! index) {
-                    return plotting.colorsFromHexString('#000000', 255.0);
-                }
                 return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
             }
 
