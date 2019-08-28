@@ -147,7 +147,7 @@ SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
     return self;
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, authState) {
+SIREPO.app.factory('activeSection', function(authState, requestSender, $location, $route, $rootScope, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -160,7 +160,11 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 
     $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
-            appState.loadModels($route.current.params.simulationId, null, self.getActiveSection());
+            appState.loadModels(
+                $route.current.params.simulationId,
+                // clear aux data (ex. list items) each time a simulation is loaded
+                requestSender.clearAuxillaryData,
+                self.getActiveSection());
         }
     });
 
@@ -1407,6 +1411,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
@@ -1502,6 +1507,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
+    self.clearAuxillaryData = function() {
+        auxillaryData = {};
+    };
+
     self.defaultRouteName = function() {
         return SIREPO.APP_SCHEMA.appModes.default.localRoute;
     };
@@ -1530,7 +1539,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.getAuxiliaryData = function(name) {
-        return self[name];
+        return auxillaryData[name];
     };
 
     self.isRouteParameter = function(routeName, paramName) {
@@ -1538,28 +1547,28 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.loadAuxiliaryData = function(name, path, callback) {
-        if (self[name] || self[name + ".loading"]) {
+        if (auxillaryData[name] || auxillaryData[name + ".loading"]) {
             if (callback) {
-                callback(self[name]);
+                callback(auxillaryData[name]);
             }
             return;
         }
-        self[name + ".loading"] = true;
+        auxillaryData[name + ".loading"] = true;
         $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
             function(response) {
                 var data = response.data;
-                self[name] = data;
-                delete self[name + ".loading"];
+                auxillaryData[name] = data;
+                delete auxillaryData[name + ".loading"];
                 if (callback) {
                     callback(data);
                 }
             },
             function() {
                 srlog(path, ' load failed!');
-                delete self[name + ".loading"];
-                if (! self[name]) {
+                delete auxillaryData[name + ".loading"];
+                if (! auxillaryData[name]) {
                     // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
-                    self[name] = [];
+                    auxillaryData[name] = [];
                 }
             });
     };
