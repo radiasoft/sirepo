@@ -4161,6 +4161,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
             }
 
+            function largeMin(array) {
+                return utilities.seqApply(Math.min, array, Number.MAX_VALUE);
+            }
+             function largeMax(array) {
+                return utilities.seqApply(Math.max, array, -Number.MAX_VALUE);
+            }
+
             function mapUnstructuredDensity(faceData, condId) {
                 if (condId !== 0 && ! condId) {
                     // no matching conductor, error
@@ -4168,50 +4175,165 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     return;
                 }
 
+                var cond = warpvndService.findConductor(condId);
                 var stl_a = stlActors[condId];
+                //srdbg('stl vounds', stl_a.getBounds());
+                var stl_mat = stl_a.getUserMatrix();
+                //srdbg('stl mat', stl_mat);
                 var stl_b = stlBundles[condId];
                 var stl_m = stl_a.getMapper();
+                srdbg('m', stl_m);
                 var stl_pd = stl_m.getInputData();
-                var stl_pts = stl_pd.getPoints();
-                //srdbg(condId, 'stl pts', stl_pts.getData());
-                var stl_polys = stl_pd.getPolys();
-                //srdbg(condId, 'stl polys', stl_polys.getData());
-                //srdbg(condId, 'stl bounds', stl_a.getBounds());
 
-                for(var i = 0; i < stl_polys.getData().length; i += 4) {
-                    // transform each point in each polygon or get the center point
-                    // or get normals and try to intersect with impact polys?
-                }
+                // this must be invoked to fetch individual cells
+                stl_pd.buildCells();
+
+                var stl_pts = stl_pd.getPoints();
+                var stl_pts_data = stl_pts.getData();
+
+                var stl_polys = stl_pd.getPolys();
+                var stl_cells = stl_pd.getCellData();
+                //srdbg(condId, 'stl pd', stl_pd);
+                //srdbg(condId, 'num stl pts', stl_pts.getData());
+                //srdbg(condId, 'num stl cells', stl_cells.getNumberOfComponents());
+
+                var stl_polys_inds = stl_polys.getData();
+                //srdbg('checking num polys', stl_pd.getNumberOfPolys(), 'data len', stl_polys_inds.length, 'data', stl_polys_inds);
+                //var polyIndex = 0;
+
+                // to function
+                var bounds = stl_b.source.getOutputData().getBounds();
+                var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
+                var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
+                var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
+                // the conductor centers are in microns
+                var offsetPos = [
+                    toMicronFactor * cond.yCenter - yOffset,
+                    toMicronFactor * cond.xCenter - xOffset,
+                    toMicronFactor * cond.zCenter - zOffset
+                ];
+                //srdbg('offsets', offsetPos);
 
                 var d = faceData.dArr;
+                //srdbg('data', d);
                 var nk = d.length;
+                srdbg('data len', nk);
                 var x = faceData.x.map(toNano);
                 var y = faceData.y.map(toNano);
                 var z = faceData.z.map(toNano);
-                var dx = Math.max.apply(null, x) - Math.min.apply(null, x);
-                var dy = Math.max.apply(null, y) - Math.min.apply(null, y);
-                var dz = Math.max.apply(null, z) - Math.min.apply(null, z);
-                var size = [Math.abs(dx), Math.abs(dy), Math.abs(dz)];
-                var ctr = [
-                    Math.min.apply(null, x) + dx / 2.0,
-                    Math.min.apply(null, y) + dy / 2.0,
-                    Math.min.apply(null, z) + dz / 2.0
-                ];
+                //var dx = Math.max.apply(null, x) - Math.min.apply(null, x);
+                //var dy = Math.max.apply(null, y) - Math.min.apply(null, y);
+                //var dz = Math.max.apply(null, z) - Math.min.apply(null, z);
+                //var size = [Math.abs(dx), Math.abs(dy), Math.abs(dz)];
+                //var ctr = [
+                //    Math.min.apply(null, x) + dx / 2.0,
+                //    Math.min.apply(null, y) + dy / 2.0,
+                //    Math.min.apply(null, z) + dz / 2.0
+                //];
 
-                var smin = impactData.v_min || Math.min.apply(null, d);
-                var smax = impactData.v_max || Math.max.apply(null, d);
+                // data can be too large for the stack, so loop
+                var smin = impactData.v_min || largeMin(d);
+                var smax = impactData.v_max || largeMax(d);
+                //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
                 var dataPoints = [];
                 var dataTris = [];
-                for (var k = 0; k < nk; ++k) {
+                var dataVertices = [];
+
+                // way too slow for js, move to python
+                var numIncomplete = 0;
+                var numEmpty= 0;
+                for (var polyIndex = 0; polyIndex < stl_pd.getNumberOfPolys(); ++polyIndex) {
+                    var pts = stl_pd.getCellPoints(polyIndex);
+                    var ptIds = pts.cellPointIds;
+                    var polyVerts = [];
+                    var numVerts = ptIds.length;
+                    //srdbg('poly', polyIndex, 'n', numVerts, 'ids', ptIds);
+                    var polyVert;
+                    for (var ii = 0; ii < numVerts; ++ii) {
+                        var pdx = toMetersFactor * (stl_pts_data[3 * ptIds[ii]] + offsetPos[0]);
+                        var pdy = toMetersFactor * (stl_pts_data[3 * ptIds[ii] + 1] + offsetPos[1]);
+                        var pdz = toMetersFactor * (stl_pts_data[3 * ptIds[ii] + 2] + offsetPos[2]);
+                        //srdbg(polyIndex, pdx, pdy, pdz);
+                        polyVert = geometry.point(pdx, pdy, pdz);
+                        polyVerts.push(polyVert);
+                    }
+                    var foundm = [];
+                    var founds = [];
+                    for (var k = 0; k < nk - 1; ++k) {
+                        // point from impact data, somewhere on the stl
+                        var p = geometry.point(x[k], y[k], z[k]);
+                        for (var m = 0; m < polyVerts.length; ++m) {
+                            if (foundm.indexOf(m) >= 0) {
+                                continue;
+                            }
+                            if( polyIndex === 0 && k === 0) {
+                                //srdbg(polyIndex, k, m, 'cf impact pt', p.coords(), 'polt pt', polyVerts[m].coords(), 'dist', p.dist(polyVerts[m]));
+                            }
+                            if (p.equals(polyVerts[m])) {
+                                //srdbg(polyIndex, k, 'cf poly pt', m, polyVerts[m], '== cs imp', p, p.dist(polyVerts[m]), appState.models.simulationGrid.plate_spacing);
+                                foundm.push(m);
+                                founds.push(d[k]);
+                                break;
+                            }
+                        }
+                        if (foundm.length === polyVerts.length) {
+                            break;
+                        }
+                    }
+                    if (foundm.length !== polyVerts.length) {
+                        //srdbg('incoimplete poly', polyIndex, 'point', k, 's', d[k], 'verts', foundm);
+                        numIncomplete++;
+                        if (foundm.length === 0) {
+                            numEmpty++;
+                        }
+                    }
+
+                    var s_ave = founds.reduce(function (sum, s) {
+                        return sum + s;
+                    }, 0) / (founds.length || 1);
+
+                    var s_max = founds.reduce(function (max, s) {
+                        return Math.max(max, s);
+                    }, 0);
+
+                    //srdbg('poly', polyIndex, 'all s', founds, 'ave s', s_ave, 'max s', s_max);  //, 'verts', foundm);
+                    // average?
+                    //srdbg('poly', polyIndex, 'point', k, 's', d[k]);
+                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(s_max))
+                        .map(function (cc) {
+                            return Math.floor(255*cc);
+                        });
+                    //color[0] = Math.floor(256 * Math.random());
+                    //color[1] = Math.floor(256 * Math.random());
+                    //color[2] = Math.floor(256 * Math.random());
+                    dataColors.push(color[0], color[1], color[2], foundm.length === polyVerts.length ? 255 : 24);
+                }
+                srdbg('found incomplete', numIncomplete, 'empty', numEmpty, 'of', stl_pd.getNumberOfPolys());
+
+                var carr = vtk.Common.Core.vtkDataArray.newInstance({
+                    numberOfComponents: 4,
+                    values: dataColors,
+                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
+                });
+                stl_pd.getCellData().setScalars(carr);
+
+/*
+                // impact triangles
+                for (var k = 0; k < nk - 1; ++k) {
                     var j = 3 * k;
                     var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k]))
                         .map(function (cc) {
                             return Math.floor(255*cc);
                         });
                     dataColors.push(color[0], color[1], color[2]);
+
+                    //dataVertices.push(1);
+                    //dataVertices.push(dataPoints.length / 3);
+                    //var vtkPts = coordMapper.xform.doTransform([x[k], y[k], z[k]]);
+
                     dataTris.push(3);
                     dataTris.push(
                         dataPoints.length / 3, 1 + dataPoints.length / 3, 2 + dataPoints.length / 3
@@ -4219,11 +4341,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     var vtkPts = coordMapper.xform.doTransform([x[j], y[j], z[j]]);
                     vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 1], y[j + 1], z[j + 1]]));
                     vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 2], y[j + 2], z[j + 2]]));
+
                     for (var cx = 0; cx < vtkPts.length; ++cx) {
                         dataPoints.push(vtkPts[cx]);
                     }
                 }
+
                 var p32 = window.Float32Array.from(dataPoints);
+                var v32 = window.Uint32Array.from(dataVertices);
                 var t32 = window.Uint32Array.from(dataTris);
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
                     numberOfComponents: 3,
@@ -4234,13 +4359,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 b.actor.getProperty().setLighting(false);
                 var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
                 pd.getPoints().setData(p32, 3);
+                //pd.getVerts().setData(v32);
                 pd.getPolys().setData(t32);
                 b.mapper.setScalarVisibility(true);
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);
                 densityBundles.push(b);
-                //srdbg(condId, 'imp', b.actor.getBounds());
-
+*/
                 function toNano(v) {
                     return v * 1e-9;
                 }
@@ -4400,7 +4525,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }), $scope.showImpactDensity, 1.0);
                 vtkPlotting.showActors(renderWindow, densityBundles.map(function (b) {
                     return b.actor;
-                }), false, 1.0);
+                }), $scope.showImpactDensity, 1.0);
 
                 // reset camera will negate zoom and pan but *not* rotation
                 if (zoomUnits == 0 && ! didPan) {
@@ -4812,10 +4937,10 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     isDensityMapped = true;
                 }
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
-                $scope.showConductors = true;  //! $scope.showImpactDensity;
-                for (var condId in stlBundles) {
-                    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
-                }
+                $scope.showConductors = ! $scope.showImpactDensity;
+                //for (var condId in stlBundles) {
+                //    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
+                //}
                 vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
                 refresh();
             };

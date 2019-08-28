@@ -341,10 +341,10 @@ conductors = [
 {% endfor %}
 ]
 
-stl_conductors = [
+stl_conductors = {
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
-    {
+    {{ c.id }}: {
         'f': '{{ c.conductor_type.file }}',
         'cx': {{ c.xCenter }},
         'cy': {{ c.yCenter }},
@@ -353,7 +353,7 @@ stl_conductors = [
     },
 {% endif %}
 {% endfor %}
-]
+}
 
 for c in conductors:
     if c.voltage != 0:

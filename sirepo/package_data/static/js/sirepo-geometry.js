@@ -293,7 +293,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return [this.x, this.y, this.z];
             },
             dimension: function() {
-                return 2 + (angular.isDefined(z) ? 1 : 0);
+                return 2 + (z === undefined ? 0 : 1);
             },
             dist: function (p2) {
                 if (this.dimension() != p2.dimension()) {
@@ -307,14 +307,20 @@ SIREPO.app.service('geometry', function(utilities) {
             },
             equals: function (p2) {
                 var t = 0.0001;
-                return this.dimension() == p2.dimension() &&
-                    Math.abs(this.x - p2.x) <= t && Math.abs(this.y - p2.y) <= t && Math.abs(this.z - p2.z) <= t;
+                var d = 0.5 * (this.dist(this.zero()) + p2.dist(this.zero())) || 1.0;
+                return this.dimension() == p2.dimension() && this.dist(p2) / d < t;
             },
             isInRect: function (r) {
                 return r.containsPoint(this);
             },
             str: function () {
                 return '(' + this.coords() + ')';  // + ' dimension ' + this.dimension();
+            },
+            zero: function () {
+                if (this.dimension() == 2) {
+                    return svc.point(0, 0);
+                }
+                return svc.point(0, 0, 0);
             }
         };
     };

@@ -24,12 +24,27 @@ def _linear_fit_1d(arr):
     return sk
 
 def _vertices_from_stl(cond):
-    #verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(stl['f']) if line.startswith('vertex')]
-    #ctr = np.array([stl['cx'], stl['cy'], stl['cz']])
-    print('cond {}'.format(cond))
-    #np_verts = stl['s'] * np.array(verts).astype(np.float) - ctr
-    #return np_verts
-    return []
+    verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(cond['f']) if line.startswith('vertex')]
+    ctr = np.array([cond['cx'], cond['cy'], cond['cz']])
+
+    #print('cond {} ctr {}'.format(cond, ctr))
+    np_verts = cond['s'] * np.array(verts).astype(np.float)
+    np_verts_t = np_verts.T
+    bounds = np.array([
+        np.min(np_verts_t[0]),
+        np.max(np_verts_t[0]),
+        np.min(np_verts_t[1]),
+        np.max(np_verts_t[1]),
+        np.min(np_verts_t[2]),
+        np.max(np_verts_t[2])
+    ])
+    b_ctr = np.array([
+        bounds[0] + (bounds[1] - bounds[0]) / 2.,
+        bounds[2] + (bounds[3] - bounds[2]) / 2.,
+        bounds[4] + (bounds[5] - bounds[4]) / 2.,
+    ])
+    offsets = ctr - b_ctr
+    return np_verts + offsets
 
 try:
     i_data = []
@@ -71,8 +86,14 @@ try:
                 c_data['faces'].append(f_data)
                 i_data.append(c_data)
                 continue
+            verts = np.array([])
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                c_data['type'] = 'unstructured'
+                verts = _vertices_from_stl(stl_conductors[c.conductor.condid])
+
             global_max = max(global_max, max_s)
             for (x, y, z, s) in d:
+                print('s {}'.format(s))
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
@@ -83,6 +104,26 @@ try:
 
                 # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+
+                    wxx = np.array([])
+                    wyy = np.array([])
+                    wzz = np.array([])
+                    wss = np.array([])
+
+                    # find points on the stl close to the generated impact density points, where
+                    # "close" means inside a grid spacing in each dimension
+                    for v in verts:
+                        wx = np.where(np.abs(1e-09 * x - v[0]) < abs(dx / 2.))
+                        wy = np.where(np.abs(1e-09 * y - v[1]) < abs(dy / 2.))
+                        wxy = np.intersect1d(wx, wy)
+                        wz = np.where(np.abs(1e-09 * z - v[2]) < abs(dz / 2.))
+                        wxyz = np.intersect1d(wz, wxy)
+                        if len(wxyz) > 0:
+                            wxx = np.append(wxx, 1e09 * v[0])
+                            wyy = np.append(wyy, 1e09 * v[1])
+                            wzz = np.append(wzz, 1e09 * v[2])
+                            wss = np.append(wss, np.mean(s[wxyz]))
+                            #wss = np.append(wss, np.mean(wx))
 
                     f_data['type'] = 'unstructured'
 
@@ -158,10 +199,16 @@ try:
 
                     #####
 
-                    f_data['dArr'] = ss.tolist()
-                    f_data['n'] = len(ss)
+                    # triangles
+                    #f_data['dArr'] = ss.tolist()
+                    #f_data['n'] = len(ss)
 
-                    for cx, coord in enumerate((xx, yy, zz)):
+                    # stl points
+                    f_data['dArr'] = wss.tolist()
+                    f_data['n'] = len(wss)
+
+                    #for cx, coord in enumerate((xx, yy, zz)):
+                    for cx, coord in enumerate((wxx, wyy, wzz)):
                         f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
