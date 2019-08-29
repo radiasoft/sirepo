@@ -145,7 +145,7 @@
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
             "isReflector": ["Add Reflector", "Boolean", "0"],
-            "color": ["Color", "Color"],
+            "color": ["Color", "Color", "#6992ff"],
             "type": ["Type", "ConductorType", "box"],
             "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
             "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],

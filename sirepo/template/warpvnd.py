@@ -85,6 +85,8 @@ def fixup_old_data(data):
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
+        if 'color' not in c:
+            c.color = _SCHEMA.constants.zeroVoltsColor if c.isConductor == '0' else _SCHEMA.constants.nonZeroVoltsColor
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
