@@ -359,7 +359,7 @@ for c in conductors:
     if c.voltage != 0:
         wp.installconductor(c, dfill=wp.largepos)
 
-max_c_id = max([c.condid for c in conductors])
+max_c_id = max([c.condid for c in conductors]) if len(conductors) > 0 else 0
 
 # Create source conductors
 source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= max_c_id + 1)

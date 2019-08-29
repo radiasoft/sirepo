@@ -2525,7 +2525,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
                     // loop over "faces"
-                    c.forEach(function (f, fi) {
+                    c.faces.forEach(function (f, fi) {
                         var o = [f.x.startVal, f.z.startVal].map(toNano);
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
@@ -3113,6 +3113,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 var smapper = vtk.Rendering.Core.vtkMapper.newInstance();
                 a.setMapper(smapper);
                 smapper.setInputConnection(reader.getOutputPort());
+                smapper.setScalarVisibility(false);
                 a.setUserMatrix(labMatrix);  // rotates from lab to "vtk world" coords
                 var offsetPos = [
                     toMicronFactor * conductor.xCenter - xOffset,
@@ -3526,6 +3527,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var actor = bundle.actor;
                 // this must be invoked to fetch individual cells later
                 actor.getMapper().getInputData().buildCells();
+                actor.getMapper().setScalarVisibility(false);
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
                 actor.addPosition(stlOffset(bundle, conductor));
                 actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
@@ -4299,7 +4301,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 pd.getCellData().setScalars(carr);
                 b.mapper.setInputData(pd);
                 densityBundles.push(b);
-*/
+                */
+
                 function toNano(v) {
                     return v * 1e-9;
                 }
@@ -4455,9 +4458,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 vtkPlotting.showActor(renderWindow, reflectedLineBundle.actor, $scope.showReflected);
                 vtkPlotting.showActors(renderWindow, conductorActors, $scope.showConductors, 0.80);
                 vtkPlotting.showActors(renderWindow, densityPlaneBundles.map(function (b) {
-                    return b.actor;
-                }), $scope.showImpactDensity, 1.0);
-                vtkPlotting.showActors(renderWindow, densityBundles.map(function (b) {
                     return b.actor;
                 }), $scope.showImpactDensity, 1.0);
 
@@ -4871,11 +4871,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     isDensityMapped = true;
                 }
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
-                $scope.showConductors = ! $scope.showImpactDensity;
-                //for (var condId in stlBundles) {
-                //    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
-                //}
-                vtkPlotting.showActors(renderWindow, getSTLActors(), $scope.showConductors, 0.80);
+                for (var condId in stlBundles) {
+                    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
+                }
                 refresh();
             };
 
