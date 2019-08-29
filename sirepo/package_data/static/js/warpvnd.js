@@ -1695,8 +1695,13 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     })
                     .attr('style', function(d) {
                         if (d.isReflector === '1') {
+                            var c = d.conductorType.color ||
+                                (d.conductorType.voltage ?
+                                    SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor :
+                                    SIREPO.APP_SCHEMA.constants.zeroVoltsColor
+                                );
                             return 'fill:url(#reflectionPattern-' + d.id + '); ' +
-                                'stroke: ' + shapeColor(d.conductorType.color);
+                                'stroke: ' + shapeColor(c);
                         }
                         if(d.conductorType.color && doesShapeCrossGridLine(d)) {
                             return 'fill:' + shapeColor(d.conductorType.color, 0.3) + '; ' +
