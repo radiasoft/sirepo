@@ -245,7 +245,8 @@
             "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
-            "num_steps": ["Simulation Steps", "Integer"]
+            "num_steps": ["Simulation Steps", "Integer"],
+            "trace_period": ["Trace Period", "Integer", 1, "", 1]
         },
         "simulationStatus": {},
         "stl": {
@@ -484,6 +485,7 @@
             "advanced": [
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
+                "simulationGrid.trace_period",
                 "simulation.mpiCores",
                 "simulationGrid.particles_per_step"
             ]
