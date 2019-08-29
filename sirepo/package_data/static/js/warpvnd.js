@@ -1721,7 +1721,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     })
                     .attr('style', function(d) {
                         if (d.isReflector === '1') {
-                            return 'fill:url(#reflectionPattern-' + d.id + '); ' +
+                            return 'fill:url(#reflectionPattern-' + d.conductorType.id + '); ' +
                                 'stroke: ' + shapeColor(d.conductorType.color);
                         }
                         if(d.conductorType.color && doesShapeCrossGridLine(d)) {
