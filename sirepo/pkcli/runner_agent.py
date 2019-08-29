@@ -16,12 +16,16 @@ def main():
 async def _call_daemon():
     while True:
         try:
-            response = await asks.get('http://localhost:8080')
+            body = {
+                'action': 'foo',
+                'data': 'bar',
+            }
+            response = await asks.post('http://localhost:8080', json=body)
             _process_response(response)
         except Exception as e:
             pkdp('Exception with _call_daemon(). Caused by: {}'.format(e))
         finally:
-            await trio.sleep(1)
+            await trio.sleep(10)
 
 def _process_response(response):
     pkdp('Received response: {}'.format(response.content))
