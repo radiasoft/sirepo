@@ -151,11 +151,16 @@ def get_application_data(data):
             if not m:
                 continue
             id = m.group(1)
-            name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
-            res.append({
-                'simulationId': id,
-                'name': name,
-            })
+
+            try:
+                name = simulation_db.read_json(_elegant_dir().join(id, '/', simulation_db.SIMULATION_DATA_FILE)).models.simulation.name
+                res.append({
+                    'simulationId': id,
+                    'name': name,
+                })
+            except IOError:
+                # ignore errors reading corrupted elegant sim files
+                pass
         return {
             'simList': res,
         }
@@ -265,7 +270,7 @@ def validate_file(file_type, path):
     assert file_type == 'ring-lattice'
     for line in pkio.read_text(str(path)).split("\n"):
         # mad-x twiss column header starts with '*'
-        match = re.search('^\*\s+(.*)\s+$', line)
+        match = re.search('^\*\s+(.*?)\s*$', line)
         if match:
             columns = re.split(r'\s+', match.group(1))
             is_ok = True

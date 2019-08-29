@@ -41,7 +41,7 @@
     <div data-ng-if="source.srwService.isElectronBeam()" class="sr-panel-item">
       <div data-report-panel="parameter" data-request-priority="5" data-model-name="trajectoryReport"></div>
     </div>
-    <div data-ng-if="source.srwService.showBrillianceReport()" class="sr-panel-item">
+    <div data-ng-if="source.srwService.isIdealizedUndulator()" class="sr-panel-item">
       <div data-report-panel="particle" data-request-priority="6" data-model-name="brillianceReport"></div>
     </div>
   </div>

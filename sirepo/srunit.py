@@ -52,10 +52,9 @@ def flask_client(cfg=None, sim_types=None):
         cfg = {}
     if sim_types:
         cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types
-    wd = pkunit.work_dir()
-    cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
     if not (server and hasattr(app, a)):
-        with pkio.save_chdir(wd):
+        with pkunit.save_chdir_work() as wd:
+            cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
             pkconfig.reset_state_for_testing(cfg)
             from sirepo import server as s
 
@@ -213,13 +212,6 @@ class _TestClient(flask.testing.FlaskClient):
         # Get a cookie
         self.sr_get('authState')
         self.sr_get('authGuestLogin', {'simulation_type': sim_type})
-        self.sr_post(
-            'authCompleteRegistration',
-            {
-                'displayName': sim_type + ' Guest',
-                'simulationType': sim_type,
-            },
-        )
         return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 

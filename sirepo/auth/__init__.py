@@ -138,9 +138,17 @@ def complete_registration(name=None):
     u = _get_user()
     with auth_db.thread_lock:
         r = user_registration(u)
+        if cookie.unchecked_get_value(_COOKIE_METHOD) is METHOD_GUEST:
+            assert name is None, \
+                'Cookie method is {} and name is {}. Expected name to be None'.format(METHOD_GUEST, name)
         r.display_name = name
         r.save()
     cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_IN)
+
+
+def guest_uids():
+    """All of the uids corresponding to guest users."""
+    return auth_db.UserRegistration.search_all_for_column('uid', display_name=None)
 
 
 def init_apis(app, *args, **kwargs):

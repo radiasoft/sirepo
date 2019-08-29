@@ -18,7 +18,7 @@ def test_different_email():
 
     r = fc.sr_post(
         'authEmailLogin',
-        {'email': 'a@b.c', 'simulationType': sim_type},
+        {'email': 'diff@b.c', 'simulationType': sim_type},
     )
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
@@ -30,7 +30,7 @@ def test_different_email():
             'simulationType': sim_type,
         },
     )
-    t = fc.sr_auth_state(userName='a@b.c', displayName='abc')
+    t = fc.sr_auth_state(userName='diff@b.c', displayName='abc')
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
@@ -58,7 +58,7 @@ def test_force_login():
     import re
 
     # login as a new user, not in db
-    r = fc.sr_post('authEmailLogin', {'email': 'a@b.c', 'simulationType': sim_type})
+    r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
     fc.get(r.url)
     fc.sr_get('authLogout', {'simulation_type': sim_type})
     r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
@@ -66,10 +66,81 @@ def test_force_login():
     d = pkcollections.json_load_any(r.data)
     pkeq(http_reply.SR_EXCEPTION_STATE, d.state)
     pkeq('login', d.srException.routeName)
-    r = fc.sr_post('authEmailLogin', {'email': 'a@b.c', 'simulationType': sim_type})
+    r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
     fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'xyz',
+            'simulationType': sim_type,
+        },
+    )
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(1, len(d))
+
+
+def test_guest_merge():
+    fc, sim_type = _fc()
+
+    from pykern.pkunit import pkeq
+    from pykern.pkdebug import pkdp
+
+    # Start as a guest user
+    fc.sr_login_as_guest(sim_type)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type},
+    )
+    pkeq(1, len(d), 'expecting only one simulation: data={}', d)
+    d = d[0].simulation
+    # Copy a sim as a guest user
+    d = fc.sr_post(
+        'copySimulation',
+        dict(
+            simulationId=d.simulationId,
+            simulationType=sim_type,
+            name='guest-sim',
+        ),
+    )
+    guest_uid = fc.sr_auth_state().uid
+
+    # Convert to email user
+    r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
+    s = fc.sr_auth_state(isLoggedIn=True, method='guest')
+    fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+    )
+    r = fc.sr_auth_state(method='email', uid=guest_uid)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type, 'search': {'simulationName': 'Scooby Doo'}},
+    )
+    d = d[0].simulation
+    # Copy sim as an email user
+    d = fc.sr_post(
+        'copySimulation',
+        dict(
+            simulationId=d.simulationId,
+            simulationType=sim_type,
+            name='email-sim',
+        ),
+    )
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+
+    # Login as email user
+    r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
+    fc.get(r.url)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type},
+    )
+    # Sims from guest and email present
+    pkeq([u'Scooby Doo', u'email-sim', u'guest-sim'], sorted([x.name for x in d]))
 
 
 def test_happy_path():
@@ -81,7 +152,7 @@ def test_happy_path():
     import re
 
     # login as a new user, not in db
-    r = fc.sr_post('authEmailLogin', {'email': 'a@b.c', 'simulationType': sim_type})
+    r = fc.sr_post('authEmailLogin', {'email': 'happy@b.c', 'simulationType': sim_type})
     fc.get(r.url)
     fc.sr_post(
         'authCompleteRegistration',
@@ -92,10 +163,10 @@ def test_happy_path():
     )
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     uid = fc.sr_auth_state(
-        avatarUrl='https://www.gravatar.com/avatar/5d60d4e28066df254d5452f92c910092?d=mp&s=40',
+        avatarUrl='https://www.gravatar.com/avatar/6932801af90f249078f2a3677178ca51?d=mp&s=40',
         displayName='abc',
         isLoggedIn=True,
-        userName='a@b.c',
+        userName='happy@b.c',
     ).uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     pkre('/{}$'.format(sim_type), r.headers['Location'])
@@ -131,7 +202,7 @@ def test_oauth_conversion(monkeypatch):
     uid = fc.sr_auth_state(isLoggedIn=False, method='github').uid
     r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('loginWith', r.srException.routeName)
-    pkeq('github', r.srException.params.method)
+    pkeq('github', r.srException.params[':method'])
     r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     state = oc.values.state
     pkeq(302, r.status_code)
@@ -150,6 +221,20 @@ def test_oauth_conversion(monkeypatch):
         userName='emailer@test.com',
     )
 
+def test_token_expired(monkeypatch):
+    fc, sim_type = _fc()
+
+    from sirepo import srtime
+
+    r = fc.sr_post(
+        'authEmailLogin',
+        {'email': 'expired@b.c', 'simulationType': sim_type},
+    )
+    login_url = r.url
+    srtime.adjust_time(1)
+    r = fc.get(login_url)
+    s = fc.sr_auth_state(isLoggedIn=False)
+
 
 def test_token_reuse():
     fc, sim_type = _fc()
@@ -161,17 +246,17 @@ def test_token_reuse():
 
     r = fc.sr_post(
         'authEmailLogin',
-        {'email': 'a@b.c', 'simulationType': sim_type},
+        {'email': 'reuse@b.c', 'simulationType': sim_type},
     )
     login_url = r.url
-    r = fc.get(r.url)
-    s = fc.sr_auth_state(userName='a@b.c')
+    r = fc.get(login_url)
+    s = fc.sr_auth_state(userName='reuse@b.c')
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     r = fc.get(login_url)
     s = fc.sr_auth_state(isLoggedIn=False)
 
 
-def x_test_oauth_conversion_setup(monkeypatch):
+def test_oauth_conversion_setup(monkeypatch):
     """Prepares data for auth conversion
 
     You need to run this as a test (no other cases), and then:
@@ -190,22 +275,10 @@ def x_test_oauth_conversion_setup(monkeypatch):
     import re
 
     oc = github_srunit.MockOAuthClient(monkeypatch, 'emailer')
-    fc.sr_get(
-        'oauthLogin',
-        {
-            'simulation_type': sim_type,
-            'oauth_type': github.DEFAULT_OAUTH_TYPE,
-        },
-    )
+    fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
     t = fc.sr_auth_state(userName=None, isLoggedIn=False, method=None)
     state = oc.values.state
-    r = fc.sr_get(
-        'oauthAuthorized',
-        {
-            'oauth_type': github.DEFAULT_OAUTH_TYPE,
-        },
-        query={'state': state},
-    )
+    r = fc.sr_get('authGithubAuthorized', query={'state': state})
     uid = fc.sr_auth_state(
         displayName=None,
         method='github',

@@ -7,7 +7,7 @@ SIREPO.USER_MANUAL_URL = 'https://github.com/zhanghe9704/electroncooling/blob/ma
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 SIREPO.SINGLE_FRAME_ANIMATION = ['beamEvolutionAnimation', 'coolingRatesAnimation'];
 SIREPO.FILE_UPLOAD_TYPE = {
-    'ring-lattice': '.tfs',
+    'ring-lattice': '.tfs,.txt',
 };
 SIREPO.appReportTypes = [
     '<div data-ng-switch-when="rateCalculation" data-rate-calculation-panel="" class="sr-plot"></div>',
