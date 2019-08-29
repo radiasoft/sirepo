@@ -24,6 +24,7 @@ import re
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
+MPI_SUMMARY_FILE = 'mpi-info.json'
 
 _FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _FIELD_ESTIMATE_FILE = 'estimates.json'
@@ -218,21 +219,17 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'compute_simulation_steps':
-        import sirepo.mpi
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
             res = simulation_db.read_json(field_file)
             if res and 'tof_expected' in res:
                 return {
-                    'mpiCores': sirepo.mpi.cfg.cores,
                     'timeOfFlight': res['tof_expected'],
                     'steps': res['steps_expected'],
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
-        return {
-            'mpiCores': sirepo.mpi.cfg.cores,
-        }
+        return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -878,6 +875,15 @@ def _meters(v):
     return float(v) * 1e-6
 
 
+def _mpi_core_count(run_dir):
+    mpi_file = py.path.local(run_dir).join(MPI_SUMMARY_FILE)
+    if mpi_file.exists():
+        info = simulation_db.read_json(mpi_file)
+        if 'mpiCores' in info:
+            return info['mpiCores']
+    return 0
+
+
 def _non_opt_fields_to_array(model):
     res = []
     for f in model:
@@ -1067,6 +1073,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
+            'mpiCores': _mpi_core_count(run_dir),
             'percentComplete': 0,
             'frameCount': 0,
         }
@@ -1079,6 +1086,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
         }
     file_index = len(files) - 1
     res = {
+        'mpiCores': _mpi_core_count(run_dir),
         'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
     }
     # look at 2nd to last file if running, last one may be incomplete

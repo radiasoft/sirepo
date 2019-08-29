@@ -10,8 +10,7 @@ from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
-import h5py
-import numpy as np
+import py.path
 import sirepo.template.warpvnd as template
 
 
@@ -43,6 +42,9 @@ def run_background(cfg_dir):
         #TODO(pjm): only run with mpi for 3d case for now
         if data.models.simulationGrid.simulation_mode == '3d' and not data.report == 'optimizerAnimation':
             pkdc('RUNNING MPI')
+            simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
+                'mpiCores': mpi.cfg.cores,
+            })
             mpi.run_script(_script())
         else:
             pkdc('RUNNING SINGLE PROCESS')

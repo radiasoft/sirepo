@@ -743,17 +743,21 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
-    var mpiCores = 0;
 
     function computeSimulationSteps() {
-        showMPICores();
+        panelState.showField('simulation', 'egun_mode', ! warpvndService.is3D());
+        if (warpvndService.is3D()) {
+            if (appState.isLoaded() && appState.models.simulation.egun_mode == '1') {
+                appState.models.simulation.egun_mode = '0';
+                appState.saveQuietly('simulation');
+            }
+        }
         requestSender.getApplicationData(
             {
                 method: 'compute_simulation_steps',
                 simulationId: appState.models.simulation.simulationId,
             },
             function(data) {
-                mpiCores = data.mpiCores || 0;
                 if (data.timeOfFlight || data.electronFraction) {
                     self.estimates = {
                         timeOfFlight: data.timeOfFlight ? (+data.timeOfFlight).toExponential(4) : null,
@@ -764,22 +768,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 else {
                     self.estimates = null;
                 }
-                showMPICores();
             });
-    }
-
-    function showMPICores() {
-        if (appState.isLoaded()) {
-            appState.models.simulation.mpiCores = mpiCores;
-            appState.saveQuietly('simulation');
-        }
-        panelState.enableField('simulation', 'mpiCores', false);
-        panelState.showField('simulation', 'mpiCores', warpvndService.is3D() && mpiCores > 1);
     }
 
     self.handleModalShown = function() {
         panelState.enableField('simulationGrid', 'particles_per_step', false);
-        showMPICores();
     };
 
     self.hasFrames = function(modelName) {
@@ -2531,14 +2524,16 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                   '</div>',
                   '<div data-ng-show="simState.isStateRunning()">',
                     '<div class="col-sm-12">',
-                      '<div data-ng-show="simState.isInitializing()">',
-                        'Running Simulation {{ simState.dots }}',
+                      '<div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">',
+            'Running Simulation ',
+            '<span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>',
+            '{{ simState.dots }}',
                       '</div>',
                       '<div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() < 100">',
                         'Completed frame: {{ simState.getFrameCount() }}',
                       '</div>',
                       '<div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() >= 100">',
-                        'Tracing Particles {{ simState.dots }}',
+                        'Tracing Particles',
                       '</div>',
                       '<div class="progress">',
                         '<div class="progress-bar" data-ng-class="{ \'progress-bar-striped active\': simState.isInitializing() }" role="progressbar" aria-valuenow="{{ simState.getPercentComplete() }}" aria-valuemin="0" aria-valuemax="100" data-ng-attr-style="width: {{ simState.getPercentComplete() }}%"></div>',
@@ -2556,9 +2551,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
         ].join(''),
         controller: function($scope) {
             var SINGLE_PLOTS = ['particleAnimation', 'impactDensityAnimation', 'particle3d'];
+            $scope.mpiCores = 0;
             $scope.panelState = panelState;
 
             function handleStatus(data) {
+                if (data.mpiCores) {
+                    $scope.mpiCores = data.mpiCores;
+                }
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
