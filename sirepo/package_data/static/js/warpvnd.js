@@ -1097,7 +1097,7 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
             }
 
             function doesShapeCrossGridLine(shape) {
-                var isFront = shape.elev == ELEVATIONS.front
+                var isFront = shape.elev == ELEVATIONS.front;
                 var grid = appState.models.simulationGrid;
                 var numV = isFront ? grid.num_x : grid.num_y;
                 var gWidth = isFront ? grid.channel_width : grid.channel_height;
@@ -3523,36 +3523,29 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             }
 
             function setupConductor(bundle, conductor, type) {
-                var reader = bundle.source;
                 var actor = bundle.actor;
-                var bounds = reader.getOutputData().getBounds();
-                var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
-                var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
-                var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
-                // the conductor centers are in microns
-                var offsetPos = [
-                    toMicronFactor * conductor.yCenter - yOffset,
-                    toMicronFactor * conductor.xCenter - xOffset,
-                    toMicronFactor * conductor.zCenter - zOffset
-                ];
+                // this must be invoked to fetch individual cells later
+                actor.getMapper().getInputData().buildCells();
                 var cColor = vtk.Common.Core.vtkMath.hex2float(type.color || SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-                //var dataColors = [];
-                //for (var i = 0; i < bundle.mapper.getInputData().getNumberOfPolys(); ++i) {
-                //    dataColors.push(Math.floor(256 * Math.random()), Math.floor(256 * Math.random()), Math.floor(256 * Math.random()));
-                //}
-                //var carr = vtk.Common.Core.vtkDataArray.newInstance({
-                //    numberOfComponents: 3,
-                //    values: dataColors,
-                //    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                //});
-                //bundle.mapper.setScalarVisibility(true);
-                //bundle.mapper.getInputData().getCellData().setScalars(carr);
-                actor.addPosition(offsetPos);
+                actor.addPosition(stlOffset(bundle, conductor));
                 actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 actor.getProperty().setLighting(false);
                 fsRenderer.getRenderer().addActor(actor);
                 stlBundles[conductor.id] = bundle;
                 stlActors[conductor.id] = actor;
+            }
+
+            function stlOffset(bundle, conductor) {
+                var bounds = bundle.source.getOutputData().getBounds();
+                var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
+                var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
+                var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
+                // the conductor centers are in microns
+                return [
+                    toMicronFactor * conductor.yCenter - yOffset,
+                    toMicronFactor * conductor.xCenter - xOffset,
+                    toMicronFactor * conductor.zCenter - zOffset
+                ];
             }
 
             function getSTLActors() {
@@ -4175,63 +4168,19 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     return;
                 }
 
-                var cond = warpvndService.findConductor(condId);
-                var stl_a = stlActors[condId];
-                //srdbg('stl vounds', stl_a.getBounds());
-                var stl_mat = stl_a.getUserMatrix();
-                //srdbg('stl mat', stl_mat);
-                var stl_b = stlBundles[condId];
-                var stl_m = stl_a.getMapper();
-                srdbg('m', stl_m);
-                var stl_pd = stl_m.getInputData();
-
-                // this must be invoked to fetch individual cells
-                stl_pd.buildCells();
-
-                var stl_pts = stl_pd.getPoints();
-                var stl_pts_data = stl_pts.getData();
-
-                var stl_polys = stl_pd.getPolys();
-                var stl_cells = stl_pd.getCellData();
-                //srdbg(condId, 'stl pd', stl_pd);
-                //srdbg(condId, 'num stl pts', stl_pts.getData());
-                //srdbg(condId, 'num stl cells', stl_cells.getNumberOfComponents());
-
-                var stl_polys_inds = stl_polys.getData();
-                //srdbg('checking num polys', stl_pd.getNumberOfPolys(), 'data len', stl_polys_inds.length, 'data', stl_polys_inds);
-                //var polyIndex = 0;
-
-                // to function
-                var bounds = stl_b.source.getOutputData().getBounds();
-                var xOffset = bounds[0] + (bounds[1] - bounds[0]) / 2;
-                var yOffset = bounds[2] + (bounds[3] - bounds[2]) / 2;
-                var zOffset = bounds[4] + (bounds[5] - bounds[4]) / 2;
-                // the conductor centers are in microns
-                var offsetPos = [
-                    toMicronFactor * cond.yCenter - yOffset,
-                    toMicronFactor * cond.xCenter - xOffset,
-                    toMicronFactor * cond.zCenter - zOffset
-                ];
-                //srdbg('offsets', offsetPos);
+                var conductor = warpvndService.findConductor(condId);
+                var bundle = stlBundles[condId];
+                var mapper = bundle.actor.getMapper();
+                var polyData = mapper.getInputData();
+                var ptData = polyData.getPoints().getData();
 
                 var d = faceData.dArr;
-                //srdbg('data', d);
                 var nk = d.length;
-                srdbg('data len', nk);
                 var x = faceData.x.map(toNano);
                 var y = faceData.y.map(toNano);
                 var z = faceData.z.map(toNano);
-                //var dx = Math.max.apply(null, x) - Math.min.apply(null, x);
-                //var dy = Math.max.apply(null, y) - Math.min.apply(null, y);
-                //var dz = Math.max.apply(null, z) - Math.min.apply(null, z);
-                //var size = [Math.abs(dx), Math.abs(dy), Math.abs(dz)];
-                //var ctr = [
-                //    Math.min.apply(null, x) + dx / 2.0,
-                //    Math.min.apply(null, y) + dy / 2.0,
-                //    Math.min.apply(null, z) + dz / 2.0
-                //];
 
-                // data can be too large for the stack, so loop
+                // data can be too large for the stack
                 var smin = impactData.v_min || largeMin(d);
                 var smax = impactData.v_max || largeMax(d);
                 //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
@@ -4245,82 +4194,67 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 // way too slow for js, move to python
                 var numIncomplete = 0;
                 var numEmpty= 0;
-                for (var polyIndex = 0; polyIndex < stl_pd.getNumberOfPolys(); ++polyIndex) {
-                    var pts = stl_pd.getCellPoints(polyIndex);
+                for (var polyIndex = 0; polyIndex < polyData.getNumberOfPolys(); ++polyIndex) {
+                    var pts = polyData.getCellPoints(polyIndex);
                     var ptIds = pts.cellPointIds;
                     var polyVerts = [];
-                    var numVerts = ptIds.length;
-                    //srdbg('poly', polyIndex, 'n', numVerts, 'ids', ptIds);
-                    var polyVert;
-                    for (var ii = 0; ii < numVerts; ++ii) {
-                        var pdx = toMetersFactor * (stl_pts_data[3 * ptIds[ii]] + offsetPos[0]);
-                        var pdy = toMetersFactor * (stl_pts_data[3 * ptIds[ii] + 1] + offsetPos[1]);
-                        var pdz = toMetersFactor * (stl_pts_data[3 * ptIds[ii] + 2] + offsetPos[2]);
-                        //srdbg(polyIndex, pdx, pdy, pdz);
-                        polyVert = geometry.point(pdx, pdy, pdz);
-                        polyVerts.push(polyVert);
+                    var offsetPos = stlOffset(bundle, conductor);
+                    for (var i = 0; i < ptIds.length; ++i) {
+                        var coords = [];
+                        for (var j = 0; j < 3; ++j) {
+                            coords.push(toMetersFactor * (ptData[3 * ptIds[i] + j] + offsetPos[j]));
+                        }
+                        polyVerts.push(geometry.pointFromArr(coords));
                     }
-                    var foundm = [];
-                    var founds = [];
+                    var foundVerts = [];
+                    var foundVals = [];
                     for (var k = 0; k < nk - 1; ++k) {
                         // point from impact data, somewhere on the stl
                         var p = geometry.point(x[k], y[k], z[k]);
                         for (var m = 0; m < polyVerts.length; ++m) {
-                            if (foundm.indexOf(m) >= 0) {
+                            if (foundVerts.indexOf(m) >= 0) {
                                 continue;
                             }
-                            if( polyIndex === 0 && k === 0) {
-                                //srdbg(polyIndex, k, m, 'cf impact pt', p.coords(), 'polt pt', polyVerts[m].coords(), 'dist', p.dist(polyVerts[m]));
-                            }
                             if (p.equals(polyVerts[m])) {
-                                //srdbg(polyIndex, k, 'cf poly pt', m, polyVerts[m], '== cs imp', p, p.dist(polyVerts[m]), appState.models.simulationGrid.plate_spacing);
-                                foundm.push(m);
-                                founds.push(d[k]);
+                                foundVerts.push(m);
+                                foundVals.push(d[k]);
                                 break;
                             }
                         }
-                        if (foundm.length === polyVerts.length) {
+                        if (foundVerts.length === polyVerts.length) {
                             break;
                         }
                     }
-                    if (foundm.length !== polyVerts.length) {
-                        //srdbg('incoimplete poly', polyIndex, 'point', k, 's', d[k], 'verts', foundm);
+                    if (foundVerts.length !== polyVerts.length) {
                         numIncomplete++;
-                        if (foundm.length === 0) {
+                        if (foundVerts.length === 0) {
                             numEmpty++;
                         }
                     }
 
-                    var s_ave = founds.reduce(function (sum, s) {
+                    var meanVal = foundVals.reduce(function (sum, s) {
                         return sum + s;
-                    }, 0) / (founds.length || 1);
+                    }, 0) / (foundVals.length || 1);
 
-                    var s_max = founds.reduce(function (max, s) {
+                    var maxVal = foundVals.reduce(function (max, s) {
                         return Math.max(max, s);
                     }, 0);
 
-                    //srdbg('poly', polyIndex, 'all s', founds, 'ave s', s_ave, 'max s', s_max);  //, 'verts', foundm);
-                    // average?
-                    //srdbg('poly', polyIndex, 'point', k, 's', d[k]);
-                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(s_max))
+                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(maxVal))
                         .map(function (cc) {
                             return Math.floor(255*cc);
                         });
-                    //color[0] = Math.floor(256 * Math.random());
-                    //color[1] = Math.floor(256 * Math.random());
-                    //color[2] = Math.floor(256 * Math.random());
-                    dataColors.push(color[0], color[1], color[2], foundm.length === polyVerts.length ? 255 : 24);
+                    dataColors.push(color[0], color[1], color[2], foundVerts.length === polyVerts.length ? 255 : 24);
                 }
-                srdbg('found incomplete', numIncomplete, 'empty', numEmpty, 'of', stl_pd.getNumberOfPolys());
 
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
                     numberOfComponents: 4,
                     values: dataColors,
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                 });
-                stl_pd.getCellData().setScalars(carr);
+                polyData.getCellData().setScalars(carr);
 
-/*
+                /*
                 // impact triangles
                 for (var k = 0; k < nk - 1; ++k) {
                     var j = 3 * k;

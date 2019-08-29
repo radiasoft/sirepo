@@ -317,7 +317,7 @@ SIREPO.app.service('geometry', function(utilities) {
                 return '(' + this.coords() + ')';  // + ' dimension ' + this.dimension();
             },
             zero: function () {
-                if (this.dimension() == 2) {
+                if (this.dimension() === 2) {
                     return svc.point(0, 0);
                 }
                 return svc.point(0, 0, 0);
