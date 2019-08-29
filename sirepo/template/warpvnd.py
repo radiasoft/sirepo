@@ -71,6 +71,7 @@ def fixup_old_data(data):
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
             'fieldComparisonReport',
+            'simulation',
     ]:
         if m not in data.models:
             data.models[m] = {}
@@ -217,17 +218,21 @@ def get_animation_name(data):
 
 def get_application_data(data):
     if data['method'] == 'compute_simulation_steps':
+        import sirepo.mpi
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
             res = simulation_db.read_json(field_file)
             if res and 'tof_expected' in res:
                 return {
+                    'mpiCores': sirepo.mpi.cfg.cores,
                     'timeOfFlight': res['tof_expected'],
                     'steps': res['steps_expected'],
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
-        return {}
+        return {
+            'mpiCores': sirepo.mpi.cfg.cores,
+        }
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 

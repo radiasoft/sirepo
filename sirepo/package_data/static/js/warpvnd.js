@@ -743,14 +743,17 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
 SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
+    var mpiCores = 0;
 
     function computeSimulationSteps() {
+        showMPICores();
         requestSender.getApplicationData(
             {
                 method: 'compute_simulation_steps',
                 simulationId: appState.models.simulation.simulationId,
             },
             function(data) {
+                mpiCores = data.mpiCores || 0;
                 if (data.timeOfFlight || data.electronFraction) {
                     self.estimates = {
                         timeOfFlight: data.timeOfFlight ? (+data.timeOfFlight).toExponential(4) : null,
@@ -761,11 +764,22 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
                 else {
                     self.estimates = null;
                 }
+                showMPICores();
             });
+    }
+
+    function showMPICores() {
+        if (appState.isLoaded()) {
+            appState.models.simulation.mpiCores = mpiCores;
+            appState.saveQuietly('simulation');
+        }
+        panelState.enableField('simulation', 'mpiCores', false);
+        panelState.showField('simulation', 'mpiCores', warpvndService.is3D() && mpiCores > 1);
     }
 
     self.handleModalShown = function() {
         panelState.enableField('simulationGrid', 'particles_per_step', false);
+        showMPICores();
     };
 
     self.hasFrames = function(modelName) {

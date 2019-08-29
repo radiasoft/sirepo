@@ -232,7 +232,8 @@
         "simulation": {
             "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
-            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
+            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"],
+            "mpiCores": ["CPU Cores", "Integer", "0"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
@@ -483,6 +484,7 @@
             "advanced": [
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
+                "simulation.mpiCores",
                 "simulationGrid.particles_per_step"
             ]
         },
