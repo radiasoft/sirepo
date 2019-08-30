@@ -1,7 +1,9 @@
 import aenum
 import contextlib
+from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+import requests
 from sirepo import srdb
 import socket
 
@@ -17,50 +19,31 @@ class JobStatus(aenum.Enum):
     COMPLETED = 'completed' # data on disk exists, and is fully usable
 
 
-def _rpc(request):
-    """Send an RPC message to the runner daemon, and get the response.
-
-    Args:
-        request: the request, as a json-encodeable object
-
-    Returns:
-        response: the server response
-    """
-    request_bytes = pkjson.dump_bytes(request)
-    with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
-        sock.connect(str(srdb.runner_socket_path()))
-        # send the request
-        sock.sendall(request_bytes)
-        # send EOF, so the other side knows we've sent the whole thing
-        sock.shutdown(socket.SHUT_WR)
-        # read the response
-        response_bytes = bytearray()
-        while True:
-            chunk = sock.recv(_CHUNK_SIZE)
-            if not chunk:
-                break
-            response_bytes += chunk
-    if response_bytes == b'':
-        raise AssertionError('runner daemon had an unknown error')
-    return pkjson.load_any(bytes(response_bytes))
-
+def _request(body):
+    r = requests.post('http://localhost:8080', json=body)
+    return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
-    return _rpc({
+    body = {
         'action': 'start_report_job',
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
         'cmd': cmd,
         'tmp_dir': str(tmp_dir),
-    })
+    }
+    return _request(body)
 
 
 def report_job_status(run_dir, jhash):
-    result = _rpc({
-        'action': 'report_job_status', 'run_dir': str(run_dir), 'jhash': jhash,
-    })
-    return JobStatus(result.status)
+    # body = {
+    #     'action': 'report_job_status', 
+    #     'run_dir': str(run_dir), 
+    #     'jhash': jhash,
+    # }
+    # result = _request(body)
+    # return JobStatus(result.status)
+    return JobStatus('missing')
 
 
 def cancel_report_job(run_dir, jhash):
