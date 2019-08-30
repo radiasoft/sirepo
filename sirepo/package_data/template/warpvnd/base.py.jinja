@@ -330,17 +330,30 @@ extractor_voltage = vacuum_level
 # --- Anode Location
 zplate = Z_MAX # --- plate location
 
-
 conductors = [
 {% for c in conductors %}
 {% if c.conductor_type.type == 'stl' %}
     # add scale when available in rswarp
-    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ loop.index }})
+    stlconductor.STLconductor("{{ c.conductor_type.file }}", voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, raytri_scheme="watertight", verbose="on", normalization_factor=dz, condid={{ c.id }})
 {% else %}
-    wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}),
+    wp.Box({{ c.conductor_type.xLength }}, {{ c.conductor_type.yLength }}, {{ c.conductor_type.zLength }}, voltage={{ c.conductor_type.voltage }}, xcent={{ c.xCenter }}, ycent={{ c.yCenter }}, zcent={{ c.zCenter }}, permittivity={{ c.conductor_type.permittivity }}, condid={{ c.id }}),
 {% endif %}
 {% endfor %}
 ]
+
+stl_conductors = {
+{% for c in conductors %}
+{% if c.conductor_type.type == 'stl' %}
+    {{ c.id }}: {
+        'f': '{{ c.conductor_type.file }}',
+        'cx': {{ c.xCenter }},
+        'cy': {{ c.yCenter }},
+        'cz': {{ c.zCenter }},
+        's': {{ c.conductor_type.scale }}
+    },
+{% endif %}
+{% endfor %}
+}
 
 reflectors = [
 {% for c in conductors %}
@@ -359,12 +372,14 @@ for c_idx, c in enumerate(conductors):
     if c.voltage != 0 or r['isReflector']:
         wp.installconductor(c, dfill=wp.largepos)
 
+max_c_id = max([c.condid for c in conductors]) if len(conductors) > 0 else 0
+
 # Create source conductors
-source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= len(conductors) + 1)
+source = wp.ZPlane(zcent=wp.w3d.zmmin, zsign=-1., voltage=0., condid= max_c_id + 1)
 wp.installconductor(source, dfill=wp.largepos)
 
 # Create ground plate
-plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= len(conductors) + 2)
+plate = wp.ZPlane(voltage=extractor_voltage, zcent=zplate, condid= max_c_id + 2)
 wp.installconductor(plate, dfill=wp.largepos)
 
 scraper = wp.ParticleScraper([source, plate] + conductors, lcollectlpdata=True, lsaveintercept={{ saveIntercept }})

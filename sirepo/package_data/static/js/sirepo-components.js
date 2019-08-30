@@ -3334,6 +3334,21 @@ SIREPO.app.service('utilities', function($window, $interval) {
         };
     };
 
+    // Sequentially applies a function to an array - useful for large arrays which
+    // can exceed the stack limit
+    this.seqApply = function(fn, array, initVal) {
+        var start = 0;
+        var inc = 1000;
+        var res = initVal;
+
+        do {
+            var sub = fn.apply(null, array.slice(start, Math.min(array.length, start + inc)));
+            res = fn.apply(null, [res, sub]);
+            start += inc;
+        } while (start < array.length);
+        return res;
+    };
+
     // returns an array containing the unique elements of the input,
     // according to a two-input equality function (null means use ===)
     this.unique = function(arr, equals) {

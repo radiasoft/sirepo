@@ -169,6 +169,8 @@
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "axes": ["Axes", "Axes", "xz"],
+            "slice": ["Slice", "Range", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "fieldCalcAnimation": {
@@ -348,7 +350,9 @@
             "advanced": [
                 "field",
                 "framesPerSecond",
-                "colorMap", "notes"
+                "axes",
+                "colorMap",
+                "notes"
             ]
         },
         "fieldCalculationAnimation": {
