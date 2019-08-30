@@ -1329,11 +1329,11 @@ SIREPO.app.directive('validatedString', function(panelState, validationService) 
 
             var modelValidatorName = 'vstring';
             scope.getWarningText = function() {
-                return validationService.getMessageForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+                return validationService.getMessageForNGModel(scope.fieldValidatorName, modelValidatorName, ngModel);
             };
 
             function reloadValidator() {
-                validationService.reloadValidatorForModel(scope.fieldValidatorName, modelValidatorName, ngModel);
+                validationService.reloadValidatorForNGModel(scope.fieldValidatorName, modelValidatorName, ngModel);
             }
 
             // add and remove validators as needed
@@ -1731,6 +1731,24 @@ SIREPO.app.directive('reportPanel', function(appState) {
 
 SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
+
+    function brand() {
+        var res = [
+              '<span class="hidden-md hidden-sm">', appInfo.longName, '</span>',
+              '<span class="hidden-xs hidden-lg hidden-xl">', appInfo.shortName, '</span>',
+        ].join('');
+
+        var u = {
+            elegant: '/en/particle-accelerators.html',
+            srw: '/en/xray-beamlines.html'
+        }[SIREPO.APP_NAME];
+
+        if (! u) {
+            return res;
+        }
+        return  '<a data-ng-href="' + u + '">' + res + '</a>';
+    }
+
     return {
         restrict: 'A',
         scope: {
@@ -1741,34 +1759,12 @@ SIREPO.app.directive('appHeaderBrand', function() {
             '<div class="navbar-header">',
               '<a class="navbar-brand" href="/en/landing.html"><img style="width: 40px; margin-top: -10px;" src="/static/img/sirepo.gif" alt="RadiaSoft"></a>',
               '<div class="navbar-brand">',
-                '<a data-ng-href="{{ appUrl || nav.sectionURL(\'simulations\') }}">',
-                  '<span class="hidden-md hidden-sm">',
-                    appInfo.longName,
-                  '</span>',
-                  '<span class="hidden-xs hidden-lg hidden-xl"',
-                    appInfo.longName == appInfo.shortName
-                      ? ''
-                      : ' title="'+ appInfo.longName + '"',
-                  '>',
-                    appInfo.shortName,
-                  '</span>',
-                '</a>',
+                brand(),
               '</div>',
             '</div>',
         ].join(''),
         controller: function($scope) {
-            if (! $scope.appUrl ) {
-                //TODO(rjn) need to centeralize this
-                if (SIREPO.APP_NAME == 'elegant') {
-                    $scope.appUrl = '/en/particle-accelerators.html';
-                }
-                else if (SIREPO.APP_NAME == 'srw') {
-                    $scope.appUrl = '/en/xray-beamlines.html';
-                }
-                else {
-                    $scope.appUrl = '/old#/' + SIREPO.APP_NAME;
-                }
-            }
+            //TODO(rjn) need to centeralize this
         },
     };
 });
@@ -3252,13 +3248,17 @@ SIREPO.app.service('utilities', function($window, $interval) {
         return 'model-' + modelName + '-' + fieldName;
     };
 
+    this.ngModelForInput = function (modelName, fieldName) {
+        return angular.element($('.' + this.modelFieldID(modelName, fieldName) + ' input')).controller('ngModel');
+    };
+
     this.isWide = function() {
         return $window.innerWidth > 767;
     };
 
     // font utilities
     this.fontSizeFromString = function(fsString) {
-        if(! fsString) {
+        if (! fsString) {
             return 0;
         }
         return parseFloat(fsString.substring(0, fsString.indexOf('px')));
@@ -3300,13 +3300,13 @@ SIREPO.app.service('utilities', function($window, $interval) {
             };
     };
     this.fullscreenListenerEvent = function() {
-        if(this.exitFullscreenFn() == document.mozCancelFullScreen) {
+        if (this.exitFullscreenFn() == document.mozCancelFullScreen) {
             return 'mozfullscreenchange';
         }
-        if(this.exitFullscreenFn() == document.webkitExitFullscreen) {
+        if (this.exitFullscreenFn() == document.webkitExitFullscreen) {
             return 'webkitfullscreenchange';
         }
-        if(this.exitFullscreenFn() == document.msExitFullscreen) {
+        if (this.exitFullscreenFn() == document.msExitFullscreen) {
             return 'MSFullscreenChange';
         }
         return 'fullscreenchange';
@@ -3334,6 +3334,21 @@ SIREPO.app.service('utilities', function($window, $interval) {
         };
     };
 
+    // Sequentially applies a function to an array - useful for large arrays which
+    // can exceed the stack limit
+    this.seqApply = function(fn, array, initVal) {
+        var start = 0;
+        var inc = 1000;
+        var res = initVal;
+
+        do {
+            var sub = fn.apply(null, array.slice(start, Math.min(array.length, start + inc)));
+            res = fn.apply(null, [res, sub]);
+            start += inc;
+        } while (start < array.length);
+        return res;
+    };
+
     // returns an array containing the unique elements of the input,
     // according to a two-input equality function (null means use ===)
     this.unique = function(arr, equals) {
@@ -3343,11 +3358,11 @@ SIREPO.app.service('utilities', function($window, $interval) {
             for(var j = 0; j < uniqueArr.length; ++j) {
                 var b = uniqueArr[j];
                 found = equals ? equals(a, b) : a === b;
-                if(found) {
+                if (found) {
                     break;
                 }
             }
-            if(! found) {
+            if (! found) {
                 uniqueArr.push(a);
             }
         });

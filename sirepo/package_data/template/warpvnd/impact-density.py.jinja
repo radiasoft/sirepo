@@ -23,11 +23,39 @@ def _linear_fit_1d(arr):
     sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
 
+def _vertices_from_stl(cond):
+    verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(cond['f']) if line.startswith('vertex')]
+    ctr = np.array([cond['cx'], cond['cy'], cond['cz']])
+
+    #print('cond {} ctr {}'.format(cond, ctr))
+    np_verts = cond['s'] * np.array(verts).astype(np.float)
+    np_verts_t = np_verts.T
+    bounds = np.array([
+        np.min(np_verts_t[0]),
+        np.max(np_verts_t[0]),
+        np.min(np_verts_t[1]),
+        np.max(np_verts_t[1]),
+        np.min(np_verts_t[2]),
+        np.max(np_verts_t[2])
+    ])
+    b_ctr = np.array([
+        bounds[0] + (bounds[1] - bounds[0]) / 2.,
+        bounds[2] + (bounds[3] - bounds[2]) / 2.,
+        bounds[4] + (bounds[5] - bounds[4]) / 2.,
+    ])
+    offsets = ctr - b_ctr
+    return np_verts + offsets
+
+density_results = None
 try:
     i_data = []
-    # add use_aura=True when available in rswarp
-    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
+except AssertionError as e:
+    density_results = {
+        'error': e.message,
+    }
 
+if can_write_files and not density_results:
     # Old style data, keeping for the moment
     if not hasattr(plot_density, 'conductors'):
         plot_density.gate_scraped_particles()
@@ -47,23 +75,31 @@ try:
         i_data = []
         global_max = 0.
         for i in plot_density.conductors:
-            c_data = []
+            c_data = {}
             c = plot_density.conductors[i]
+            c_data['id'] = c.conductor.condid
+            c_data['faces'] = []
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
             try:
                 min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
-            except ValueError:
+            except:
                 err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
                 print(err)
                 f_data = {
                     'err': err
                 }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
                 i_data.append(c_data)
                 continue
+            verts = np.array([])
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                c_data['type'] = 'unstructured'
+                verts = _vertices_from_stl(stl_conductors[c.conductor.condid])
+
             global_max = max(global_max, max_s)
             for (x, y, z, s) in d:
+                print('s {}'.format(s))
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
@@ -74,6 +110,26 @@ try:
 
                 # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+
+                    wxx = np.array([])
+                    wyy = np.array([])
+                    wzz = np.array([])
+                    wss = np.array([])
+
+                    # find points on the stl close to the generated impact density points, where
+                    # "close" means inside a grid spacing in each dimension
+                    for v in verts:
+                        wx = np.where(np.abs(1e-09 * x - v[0]) < abs(dx / 2.))
+                        wy = np.where(np.abs(1e-09 * y - v[1]) < abs(dy / 2.))
+                        wxy = np.intersect1d(wx, wy)
+                        wz = np.where(np.abs(1e-09 * z - v[2]) < abs(dz / 2.))
+                        wxyz = np.intersect1d(wz, wxy)
+                        if len(wxyz) > 0:
+                            wxx = np.append(wxx, 1e09 * v[0])
+                            wyy = np.append(wyy, 1e09 * v[1])
+                            wzz = np.append(wzz, 1e09 * v[2])
+                            wss = np.append(wss, np.mean(s[wxyz]))
+                            #wss = np.append(wss, np.mean(wx))
 
                     f_data['type'] = 'unstructured'
 
@@ -94,7 +150,7 @@ try:
                         err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
                         print(err)
                         f_data['err'] = err
-                        c_data.append(f_data)
+                        c_data['faces'].append(f_data)
                         continue
 
                     f_data['dims'] = 3
@@ -135,7 +191,7 @@ try:
                     #    except scipy.spatial.qhull.QhullError:
                     #        print('Cannot triangulate conductor {}'.format(c))
                     #        f_data['err'] = 'Cannot triangulate conductor'
-                    #        c_data.append(f_data)
+                    #        c_data['faces'].append(f_data)
                     #        continue
                     #    f_data['dims'] = 2
                     #    tris = dlny.simplices
@@ -149,10 +205,16 @@ try:
 
                     #####
 
-                    f_data['dArr'] = ss.tolist()
-                    f_data['n'] = len(ss)
+                    # triangles
+                    #f_data['dArr'] = ss.tolist()
+                    #f_data['n'] = len(ss)
 
-                    for cx, coord in enumerate((xx, yy, zz)):
+                    # stl points
+                    f_data['dArr'] = wss.tolist()
+                    f_data['n'] = len(wss)
+
+                    #for cx, coord in enumerate((xx, yy, zz)):
+                    for cx, coord in enumerate((wxx, wyy, wzz)):
                         f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
@@ -164,7 +226,7 @@ try:
                             'slopek': sk,
                             'slopel': sl
                         }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% else %}
             coord_keys = ['x', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
@@ -195,7 +257,7 @@ try:
                         'startVal': coord[0],
                         'slopek': sk
                     }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% endif %}
             i_data.append(c_data)
 
@@ -210,13 +272,6 @@ try:
             'max': global_max,
         }
 
-except AssertionError as e:
-    message = e.message
-    if wp.top.npslost[0] <= 0:
-        message = 'No particles made impact. Nothing to plot.'
-    density_results = {
-        'error': message,
-    }
-hf = h5py.File('{{ densityFile }}')
-dict_to_h5(density_results, hf, path='density')
-hf.close()
+if can_write_files:        
+    with h5py.File('{{ densityFile }}') as hf:
+        dict_to_h5(density_results, hf, path='density')

@@ -13,6 +13,7 @@ from sirepo import api_perm
 from sirepo import auth
 from sirepo import http_reply
 from sirepo import http_request
+from sirepo import srtime
 from sirepo import uri_router
 from sirepo import auth_db
 from sirepo import util
@@ -65,7 +66,7 @@ def api_authEmailAuthorized(simulation_type, token):
     t = sirepo.template.assert_sim_type(simulation_type)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
-        if u and u.expires >= datetime.datetime.utcnow():
+        if u and u.expires >= srtime.utc_now():
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
                 AuthEmailUser.unverified_email != u.unverified_email,

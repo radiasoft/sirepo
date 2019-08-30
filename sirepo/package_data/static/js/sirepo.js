@@ -147,7 +147,7 @@ SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
     return self;
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, authState) {
+SIREPO.app.factory('activeSection', function(authState, requestSender, $location, $route, $rootScope, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -160,7 +160,11 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 
     $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
-            appState.loadModels($route.current.params.simulationId, null, self.getActiveSection());
+            appState.loadModels(
+                $route.current.params.simulationId,
+                // clear aux data (ex. list items) each time a simulation is loaded
+                requestSender.clearAuxillaryData,
+                self.getActiveSection());
         }
     });
 
@@ -748,47 +752,15 @@ SIREPO.app.service('validationService', function(utilities) {
     this.fieldValidators = {};
     this.enumValidators = {};
 
-    this.setFieldValidator = function(name, validatorFn, messageFn) {
-        if(! this.fieldValidators[name]) {
-            this.fieldValidators[name] = {};
-        }
-        this.fieldValidators[name].vFunc = validatorFn;
-        this.fieldValidators[name].vMsg = messageFn;
-        return this.fieldValidators[name];
-    };
-    this.getFieldValidator = function(name) {
-        return this.fieldValidators[name];
-    };
-    this.removeFieldValidator = function(name) {
-        if(this.fieldValidators[name]) {
-            delete this.fieldValidators[name];
-        }
-    };
-    this.reloadValidatorForModel = function(name, modelValidatorName, ngModel) {
-        var fv = this.getFieldValidator(name);
-        if(! ngModel.$validators[modelValidatorName]) {
-            if(fv) {
-                ngModel.$validators[modelValidatorName] = fv.vFunc;
-            }
-        }
-    };
-    this.getMessageForModel = function(name, modelValidatorName, ngModel) {
-        if(! ngModel.$validators[modelValidatorName]) {
-            return '';
-        }
-        var fv = this.getFieldValidator(name);
-        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
-    };
-
     // lazy creation of validator, plus special handling
     this.getEnumValidator = function(enumName) {
 
         var validator = this.getFieldValidator(enumName);
-        if(validator) {
+        if (validator) {
             return validator;
         }
         var enums = SIREPO.APP_SCHEMA.enum[enumName];
-        if(! enums) {
+        if (! enums) {
             throw enumName + ':' + ' no such enum';
         }
         var isValid = function(name) {
@@ -801,12 +773,76 @@ SIREPO.app.service('validationService', function(utilities) {
         };
         validator = this.setFieldValidator(enumName, isValid, err);
         validator.find = function (name) {
-            if(! validator.vFunc(name)) {
+            if (! validator.vFunc(name)) {
                 throw validator.vMsg(name);
             }
             return name;
         };
         return validator;
+    };
+
+    this.getFieldValidator = function(name) {
+        return this.fieldValidators[name];
+    };
+
+    this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            return '';
+        }
+        var fv = this.getFieldValidator(name);
+        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
+    };
+
+    this.getModelFieldMessage = function (modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.getMessageForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.reloadValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        var fv = this.getFieldValidator(name);
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            if (fv) {
+                ngModel.$validators[ngModelValidatorName] = fv.vFunc;
+            }
+        }
+    };
+
+    this.removeFieldValidator = function(name) {
+        if (this.fieldValidators[name]) {
+            delete this.fieldValidators[name];
+        }
+    };
+
+    this.removeModelFieldValidator = function(modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        this.removeValidatorForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.removeValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (ngModel.$validators[ngModelValidatorName]) {
+            delete ngModel.$validators[ngModelValidatorName];
+        }
+        this.removeFieldValidator(name);
+    };
+
+    this.setFieldValidator = function(name, validatorFn, messageFn, ngModel, ngModelValidatorName) {
+        if (! this.fieldValidators[name]) {
+            this.fieldValidators[name] = {};
+        }
+        this.fieldValidators[name].vFunc = validatorFn;
+        this.fieldValidators[name].vMsg = messageFn;
+        if (ngModel && ngModelValidatorName) {
+            this.reloadValidatorForNGModel(name, ngModelValidatorName, ngModel);
+        }
+        return this.fieldValidators[name];
+    };
+
+    this.setModelFieldValidator = function(modelName, fieldName, validatorFn, messageFn) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
     this.validateFieldOfType = function(value, type) {
@@ -830,7 +866,7 @@ SIREPO.app.service('validationService', function(utilities) {
         if (type === 'String') {
             return true;
         }
-        if(SIREPO.APP_SCHEMA.enum[type]) {
+        if (SIREPO.APP_SCHEMA.enum[type]) {
             return this.getEnumValidator(type).vFunc(value);
         }
         // TODO(mvk): other types here, for now just accept everything
@@ -1375,6 +1411,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
@@ -1470,6 +1507,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
+    self.clearAuxillaryData = function() {
+        auxillaryData = {};
+    };
+
     self.defaultRouteName = function() {
         return SIREPO.APP_SCHEMA.appModes.default.localRoute;
     };
@@ -1498,7 +1539,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.getAuxiliaryData = function(name) {
-        return self[name];
+        return auxillaryData[name];
     };
 
     self.isRouteParameter = function(routeName, paramName) {
@@ -1506,28 +1547,28 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.loadAuxiliaryData = function(name, path, callback) {
-        if (self[name] || self[name + ".loading"]) {
+        if (auxillaryData[name] || auxillaryData[name + ".loading"]) {
             if (callback) {
-                callback(self[name]);
+                callback(auxillaryData[name]);
             }
             return;
         }
-        self[name + ".loading"] = true;
+        auxillaryData[name + ".loading"] = true;
         $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
             function(response) {
                 var data = response.data;
-                self[name] = data;
-                delete self[name + ".loading"];
+                auxillaryData[name] = data;
+                delete auxillaryData[name + ".loading"];
                 if (callback) {
                     callback(data);
                 }
             },
             function() {
                 srlog(path, ' load failed!');
-                delete self[name + ".loading"];
-                if (! self[name]) {
+                delete auxillaryData[name + ".loading"];
+                if (! auxillaryData[name]) {
                     // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
-                    self[name] = [];
+                    auxillaryData[name] = [];
                 }
             });
     };

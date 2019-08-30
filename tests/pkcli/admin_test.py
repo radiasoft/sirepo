@@ -9,36 +9,72 @@ import pytest
 
 pytest.importorskip('srwl_bl')
 
-def test_purge_users(monkeypatch):
-    from pykern.pkunit import pkeq, pkok
-    from pykern.pkdebug import pkdp
+def _get_dirs():
     from pykern import pkio
-    from pykern import pkconfig
+    from sirepo import simulation_db
+    g = simulation_db.user_dir_name('*')
+    return list(pkio.sorted_glob(g))
+
+def test_purge_users_no_guests(monkeypatch):
+    from sirepo import auth_db
+    from pykern.pkunit import pkeq, pkok
     from sirepo import srunit
     srunit.init_auth_db(sim_types='myapp')
 
     from sirepo.pkcli import admin
-    from sirepo import simulation_db
-    from sirepo import auth_db
-    import datetime
+    from sirepo import auth
+    from sirepo import srtime
 
-    res = admin.purge_users(days=1, confirm=False)
-    pkeq([], res, '{}: no old users so empty')
-    g = simulation_db.user_dir_name('*')
-    dirs = list(pkio.sorted_glob(g))
-    pkeq(1, len(dirs), '{}: expecting exactly one user dir', g)
-    uid = dirs[0].basename
-    #TODO(robnagler) really want the db to be created, but need
-    #  a test oauth class.
-    monkeypatch.setattr(auth_db, 'all_uids', lambda: [uid])
-    for f in pkio.walk_tree(dirs[0]):
-        f.setmtime(f.mtime() - 86400 * 2)
-    res = admin.purge_users(days=1, confirm=False)
-    pkeq([], res, '{}: all users registered so no deletes')
-    monkeypatch.setattr(auth_db, 'all_uids', lambda: [])
-    res = admin.purge_users(days=1, confirm=False)
-    pkeq(dirs, res, '{}: no users registered so one delete', res)
-    pkok(dirs[0].check(dir=True), '{}: nothing deleted', res)
-    res = admin.purge_users(days=1, confirm=True)
-    pkeq(dirs, res, '{}: no users registered so one delete', res)
-    pkok(not dirs[0].check(dir=True), '{}: directory deleted', res)
+    days = 1
+    adjusted_time = days + 10
+
+    res = admin.purge_guest_users(days=days, confirm=False)
+    pkeq({}, res, '{}: no old users so no deletes', res)
+
+    dirs_in_fs = _get_dirs()
+    uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
+    pkeq(1, len(dirs_in_fs), '{}: expecting exactly one user dir', dirs_in_fs)
+    pkeq(1, len(uids_in_db), '{}: expecting exactly one uid in db', uids_in_db)
+
+    srtime.adjust_time(adjusted_time) 
+
+    monkeypatch.setattr(auth, 'guest_uids', lambda: [])
+    res = admin.purge_guest_users(days=days, confirm=False)
+    pkeq({}, res, '{}: no guest users so no deletes', res)
+    pkok(dirs_in_fs[0].check(dir=True), '{}: directory not deleted', dirs_in_fs)
+    pkeq(
+        auth_db.UserRegistration.search_by(uid=uids_in_db[0]).uid,
+        uids_in_db[0],
+        '{}: expecting uid to still be in db', uids_in_db
+        )
+
+
+
+def test_purge_users_guests_present():
+    from sirepo import auth_db
+    from pykern.pkunit import pkeq, pkok
+    from sirepo import srunit
+    srunit.init_auth_db(sim_types='myapp')
+
+    from sirepo.pkcli import admin
+    from sirepo import srtime
+
+    days = 1
+    adjusted_time = days + 10
+
+    dirs_in_fs = _get_dirs() 
+    uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
+    dirs_and_uids = {dirs_in_fs[0]: uids_in_db[0]}
+    srtime.adjust_time(adjusted_time) 
+
+    res = admin.purge_guest_users(days=days, confirm=False)
+    pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)
+
+    res = admin.purge_guest_users(days=days, confirm=True)
+    pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)
+    pkok(not res.keys()[0].check(dir=True), '{}: directory deleted', res)
+    pkeq(
+        auth_db.UserRegistration.search_by(uid=res.values()[0]),
+        None,
+        '{}: expecting uid to deleted from db', res
+        )

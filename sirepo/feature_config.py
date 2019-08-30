@@ -65,7 +65,7 @@ cfg = pkconfig.init(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
     ),
     warpvnd=dict(
-        allow_3d_mode=(pkconfig.channel_in_internal_test() or pkconfig.channel_in('beta'), bool, 'Include 3D features in the Warp VND UI'),
+        allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),
         display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
     ),
 )

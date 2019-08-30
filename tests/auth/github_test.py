@@ -34,6 +34,13 @@ def test_guest_merge(monkeypatch):
     s = fc.sr_auth_state(isLoggedIn=True, method='guest')
     fc.sr_get('authGithubAuthorized', query={'state': state})
     fc.sr_auth_state(method='github', uid=guest_uid)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'github user',
+            'simulationType': sim_type,
+        },
+    )
     d = fc.sr_post(
         'listSimulations',
         {'simulationType': sim_type, 'search': {'simulationName': 'Scooby Doo'}},

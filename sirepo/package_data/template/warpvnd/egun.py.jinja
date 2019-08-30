@@ -1,5 +1,6 @@
 
 from warp.run_modes.egun_like import gun, gunppzx #needed for egun script
+import os
 
 #prevent GIST from starting upon setup
 wp.top.lprntpara = False
@@ -30,6 +31,8 @@ solverE.mgmaxiters = regular_iters
 ITERATIONS = 5 #number of iterations to run for steady state solver - Default to 5
 
 def update_status_file(num, save_current=False):
+    if not can_write_files:
+        return
     status_file = '{{ egunStatusFile }}'
     tmp_file = status_file + '.tmp'
     with open(tmp_file, 'w') as f:
@@ -57,26 +60,26 @@ for num in range(ITERATIONS):
 #---
 # particle trajectories
 
-#Grab the list of valid IDs
-pids = np.unique(wp.top.pgroup.pid)
-MAX_TRAJECTORIES = 100 #number of particle trajectories to plot
-#get the positions for a select number of particles to be plotted
-particles = [[[], [], []], [[], [], []]]
-for ID in pids[:MAX_TRAJECTORIES]:
-    xvals = wp.getx()[wp.selectparticles(ssn=int(ID))]
-    yvals = wp.gety()[wp.selectparticles(ssn=int(ID))]
-    zvals = wp.getz()[wp.selectparticles(ssn=int(ID))]
-    particles[0][0].append(xvals)
-    particles[0][1].append(zvals)
-    particles[0][2].append(yvals)
+if can_write_files:
+    #Grab the list of valid IDs
+    pids = np.unique(wp.top.pgroup.pid)
+    MAX_TRAJECTORIES = 100 #number of particle trajectories to plot
+    #get the positions for a select number of particles to be plotted
+    particles = [[[], [], []], [[], [], []]]
+    for ID in pids[:MAX_TRAJECTORIES]:
+        xvals = wp.getx()[wp.selectparticles(ssn=int(ID))]
+        yvals = wp.gety()[wp.selectparticles(ssn=int(ID))]
+        zvals = wp.getz()[wp.selectparticles(ssn=int(ID))]
+        particles[0][0].append(xvals)
+        particles[0][1].append(zvals)
+        particles[0][2].append(yvals)
 
-update_status_file(ITERATIONS + 1)
-hf = h5py.File('{{ particleFile }}')
-dict_to_h5(
-    {
-        'kept': particles[0],
-        'lost': particles[1]
-    },
-    hf, path='particle'
-)
-hf.close()
+    update_status_file(ITERATIONS + 1)
+    with h5py.File('{{ particleFile }}') as hf:
+        dict_to_h5(
+            {
+                'kept': particles[0],
+                'lost': particles[1]
+            },
+            hf, path='particle'
+        )

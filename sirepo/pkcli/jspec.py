@@ -100,8 +100,14 @@ def _extract_twiss_report(data):
     }
 
 
+def _float_from_str(v):
+    # handle misformatted floats, ex. -9.29135e-00E-25
+    v = re.sub(r'(e[+\-]\d+)(e[+\-]\d+)', r'\1', v, flags=re.IGNORECASE)
+    return float(v)
+
+
 def _float_list(ar):
-    return map(lambda x: float(x), ar)
+    return map(lambda x: _float_from_str(x), ar)
 
 
 def _run_jspec(data):

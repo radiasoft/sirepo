@@ -24,6 +24,7 @@ import re
 COMPARISON_STEP_SIZE = 100
 SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
+MPI_SUMMARY_FILE = 'mpi-info.json'
 
 _FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _FIELD_ESTIMATE_FILE = 'estimates.json'
@@ -57,6 +58,7 @@ def fixup_old_data(data):
             'fields': [],
         }
     for m in [
+            'anode',
             'egunCurrentAnimation',
             'impactDensityAnimation',
             'optimizer',
@@ -70,18 +72,21 @@ def fixup_old_data(data):
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
             'fieldComparisonReport',
+            'simulation',
     ]:
         if m not in data.models:
             data.models[m] = {}
         template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
-    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
+    types = data.models.conductorTypes if 'conductorTypes' in data.models else []
     for c in types:
         if c is None:
             continue
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
+        if 'color' not in c:
+            c.color = _SCHEMA.constants.zeroVoltsColor if c.isConductor == '0' else _SCHEMA.constants.nonZeroVoltsColor
         template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
@@ -638,11 +643,18 @@ def _extract_field(field, data, data_file):
 
 
 def _extract_impact_density(run_dir, data):
-    hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
-    plot_info = template_common.h5_to_dict(hf, path='density')
-    hf.close()
+    with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
+        plot_info = template_common.h5_to_dict(hf, path='density')
     if 'error' in plot_info:
-        return plot_info
+        if not _is_3D(data):
+            return plot_info
+        # for 3D, continue on so particle trace is still rendered
+        plot_info = {
+            'dx': 0,
+            'dz': 0,
+            'min': 0,
+            'max': 0,
+        }
     #TODO(pjm): consolidate these parameters into one routine used by all reports
     grid = data.models.simulationGrid
     plate_spacing = _meters(grid.plate_spacing)
@@ -802,9 +814,17 @@ def _generate_parameters_file(data):
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
-    v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
     v['is3D'] = _is_3D(data)
+    v['anode'] = _prepare_anode(data)
+    v['saveIntercept'] = v['anode']['isReflector']
+    for c in data.models.conductors:
+        if c.conductor_type.type == 'stl':
+            # if any conductor is STL then don't save the intercept
+            v['saveIntercept'] = False
+            break
+        if c.conductor_type.isReflector:
+            v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -855,6 +875,15 @@ def _max_conductor_voltage(data):
 def _meters(v):
     # convert microns to meters
     return float(v) * 1e-6
+
+
+def _mpi_core_count(run_dir):
+    mpi_file = py.path.local(run_dir).join(MPI_SUMMARY_FILE)
+    if mpi_file.exists():
+        info = simulation_db.read_json(mpi_file)
+        if 'mpiCores' in info:
+            return info['mpiCores']
+    return 0
 
 
 def _non_opt_fields_to_array(model):
@@ -958,6 +987,7 @@ def _prepare_conductors(data):
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
         )[0] if 'file' in ct else 'None'
+        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
@@ -967,6 +997,14 @@ def _prepare_conductors(data):
         if not _is_3D(data):
             c.yCenter = 0
     return data.models.conductors
+
+
+def _prepare_anode(data):
+    return {
+        'isReflector': data.models.anode['isReflector'] == '1',
+        'specProb': data.models.anode['specProb'],
+        'diffProb': data.models.anode['diffProb'],
+    }
 
 
 def _read_optimizer_output(run_dir):
@@ -1037,6 +1075,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
+            'mpiCores': _mpi_core_count(run_dir),
             'percentComplete': 0,
             'frameCount': 0,
         }
@@ -1049,6 +1088,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
         }
     file_index = len(files) - 1
     res = {
+        'mpiCores': _mpi_core_count(run_dir),
         'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
     }
     # look at 2nd to last file if running, last one may be incomplete
