@@ -88,6 +88,10 @@ async def _http_send(response_body, send):
 
 
 async def _process_request_body(body):
+    # TODO(e-carlin): We should differentiate between agent requests and server requests
+    # also it would be nice to not have to change this when a new type of request
+    # is added. If we just differentiate on server vs agent then we know all
+    # server requests go on the queue and all agent requests go back to the server 
     action_types = {
         'ready_for_work': _action_ready_for_work,
         'start_report_job': _action_start_report_job,
