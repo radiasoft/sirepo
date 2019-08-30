@@ -59,6 +59,7 @@ async def _main():
             action_types = {
                 'no_op': _perform_no_op,
                 'start_report_job': _start_report_job,
+                'report_job_status': _report_job_status,
             }
 
             await action_types[action](job_tracker, request)
@@ -66,6 +67,15 @@ async def _main():
 async def _perform_no_op(job_tracker, request):
     pkdp('Daemon requested no_op. Going to sleep for a bit.')
     await trio.sleep(2) # TODO(e-carlin): Exponential backoff?
+
+async def _report_job_status(job_tracker, request):
+    pkdp(f'Daemon requested repot_job_status: {request}')
+    # TODO(e-carlin): this "async with" is the same as in _start_report_job. Need to abstract
+    async with job_tracker.locks[request.run_dir]:
+        # TODO(e-carlin): report_job_status() isn't async. That means it has a
+        # different interface than the other operations. Need abstraction that
+        # can handle this
+        await job_tracker.report_job_status()
 
 async def _start_report_job(job_tracker, request):
     pkdp(f'Daemon requested start_report_job: {request}')
@@ -138,6 +148,16 @@ class _JobTracker:
         )
         job_info.cancel_requested = True
         await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
+        
+    def report_job_status(self, run_dir, jhash):
+        """Get the current status of a specific job in the given run_dir.
+
+        """
+        run_dir_jhash, run_dir_status = self.run_dir_status(run_dir)
+        if run_dir_jhash == jhash:
+            return run_dir_status
+        else:
+            return runner_client.JobStatus.MISSING
 
     def run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.

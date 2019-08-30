@@ -36,14 +36,14 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
 
 
 def report_job_status(run_dir, jhash):
-    # body = {
-    #     'action': 'report_job_status', 
-    #     'run_dir': str(run_dir), 
-    #     'jhash': jhash,
-    # }
-    # result = _request(body)
-    # return JobStatus(result.status)
-    return JobStatus('missing')
+    body = {
+        'action': 'report_job_status',
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+    }
+    result = _request(body)
+    return JobStatus(result.status)
+    # return JobStatus('missing')
 
 
 def cancel_report_job(run_dir, jhash):
