@@ -11,7 +11,8 @@ import async_generator
 from pykern import pkio
 from pykern import pkjson
 from pykern import pkcollections
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdlog
+from sirepo.runner_daemon import local_process
 from sirepo import runner_client
 from sirepo import runner_daemon
 import trio
@@ -19,6 +20,8 @@ import trio
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_PROCESS_RESULT = 'process_result'
 
+
+_KILL_TIMEOUT_SECS = 3
 
 def start():
     trio.run(_main)
@@ -69,12 +72,11 @@ async def _start_report_job(job_tracker, request):
 
     async with job_tracker.locks[request.run_dir]:
         await job_tracker.start_report_job(
-            request.run_dir, request.jhash,
+            pkio.py_path(request.run_dir), request.jhash,
             request.backend,
             request.cmd, pkio.py_path(request.tmp_dir),
         )
         return {}
-
 
 
 class _JobInfo:
@@ -118,49 +120,56 @@ class _JobTracker:
         self.locks = _LockDict()
         self._nursery = nursery
 
-    async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
-        pkdp(f'&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& {backend}')
-        import os
-        import re
-        _EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
-        env = dict(os.environ)
-        for k in list(env):
-            if _EXEC_ENV_REMOVE.search(k):
-                del env[k]
-        # env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
+    async def kill_all(self, run_dir):
+        """Forcibly stop any jobs currently running in run_dir.
 
+        Assumes that you've already checked what those jobs are (perhaps by
+        calling run_dir_status), and decided they need to die.
 
-        env['PYENV_VERSION'] = 'py2'
-        cmd = ['pyenv', 'exec'] + cmd
-        # TODO(e-carlin): Actually handle the tmp vs run dir. See start_report_job()
-        # in pkcli/runner.py
-        ###
-        pkio.unchecked_remove(run_dir)
-        tmp_dir = pkio.py_path(tmp_dir)
-        tmp_dir.rename(run_dir)
-        ####
-        cmd = ['python', 'long_run.py']
-        p = await trio.open_process(
-            cmd,
-            cwd='/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli'
-            # cwd=run_dir,
-            # env=env
-        )
-        pkdp(f'Report job started')
-        report_job = _LocalReportJob(p, {'pid': p.pid})
-        job_info = _JobInfo(
-            run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
-        )
-        self.report_jobs[run_dir] = job_info
-        async def _supervise_job(run_dir, jhash, job_info):
-            pkdp(f'Starting to wait on jhash {jhash}')
-            returncode = await job_info.report_job.wait()
-            pkdp(f'jhash {jhash} finished with exit code {returncode}')
-
-        self._nursery.start_soon(
-            _supervise_job, run_dir, jhash, job_info
-        )
         """
+        job_info = self.report_jobs.get(run_dir)
+        if job_info is None:
+            return
+        if job_info.status is not runner_client.JobStatus.RUNNING:
+            return
+        pkdlog(
+            'kill_all: killing job with jhash {} in {}',
+            job_info.jhash, run_dir,
+        )
+        job_info.cancel_requested = True
+        await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
+
+    def run_dir_status(self, run_dir):
+        """Get the current status of whatever's happening in run_dir.
+
+        Returns:
+          Tuple of (jhash or None, status of that job)
+
+        """
+        disk_in_path = run_dir.join('in.json')
+        disk_status_path = run_dir.join('status')
+        if disk_in_path.exists() and disk_status_path.exists():
+            # status should be recorded on disk XOR in memory
+            assert run_dir not in self.report_jobs
+            disk_in_text = pkio.read_text(disk_in_path)
+            disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
+            disk_status = pkio.read_text(disk_status_path)
+            if disk_status == 'pending':
+                # We never write this, so it must be stale, in which case
+                # the job is no longer pending...
+                pkdlog(
+                    'found "pending" status, treating as "error" ({})',
+                    disk_status_path,
+                )
+                disk_status = runner_client.JobStatus.ERROR
+            return disk_jhash, runner_client.JobStatus(disk_status)
+        elif run_dir in self.report_jobs:
+            job_info = self.report_jobs[run_dir]
+            return job_info.jhash, job_info.status
+        else:
+            return None, runner_client.JobStatus.MISSING
+
+    async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
         current_jhash, current_status = self.run_dir_status(run_dir)
         if current_status is runner_client.JobStatus.RUNNING:
@@ -190,42 +199,18 @@ class _JobTracker:
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
         # Start the job:
-        # report_job = await _BACKENDS[backend].start_report_job(run_dir, cmd)
-        # And update our records so we know it's running:
+        report_job = await local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
         job_info = _JobInfo(
-            run_dir, jhash, runner_client.JobStatus.RUNNING, report_job,
+            run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
         )
         self.report_jobs[run_dir] = job_info
-        pkjson.dump_pretty(
-            {
-                'version': 1,
-                'backend': backend,
-                'backend_info': report_job.backend_info,
-            },
-            filename=run_dir.join(_RUNNER_INFO_BASENAME),
-        )
 
-        # And finally, start a background task to watch over it.
+        # TODO(e-carlin): Real supervision is needed
+        async def _supervise_job(run_dir, jhash, job_info):
+            pkdp(f'Starting to wait on jhash {jhash}')
+            returncode = await job_info.report_job.wait()
+            pkdp(f'jhash {jhash} finished with exit code {returncode}')
+
         self._nursery.start_soon(
-            self._supervise_report_job, run_dir, jhash, job_info,
+            _supervise_job, run_dir, jhash, job_info
         )
-        """
-
-
-
-class _LocalReportJob:
-    def __init__(self, trio_process, backend_info):
-        self._trio_process = trio_process
-        self.backend_info = backend_info
-
-    async def kill(self, grace_period):
-        # Everything here is a no-op if the process is already dead
-        self._trio_process.terminate()
-        with trio.move_on_after(grace_period):
-            await self._trio_process.wait()
-        self._trio_process.kill()
-        await self._trio_process.wait()
-
-    async def wait(self):
-        await self._trio_process.wait()
-        return self._trio_process.returncode
