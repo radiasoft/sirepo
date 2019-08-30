@@ -36,8 +36,16 @@ async def start_report_job(run_dir, cmd):
     # environment, so we have to manually switch back to py2 mode.
     env['PYENV_VERSION'] = 'py2'
     cmd = ['pyenv', 'exec'] + cmd
+
+    # TODO(e-carlin): Remove, this is used for testing a long running job
+    # cmd = ['python', 'long_run.py']
+    # run_dir = '/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli'
+
+    # TODO(e-carlin): If I do C-c on the runner_agent this process doesn't get 
+    # killed. Why is that? I thought since it was in a nursery the kill of the 
+    # nursery would propagate
     with open(run_log_path, 'a+b') as run_log:
-        trio_process = trio.Process(
+        trio_process = await trio.open_process(
             cmd,
             cwd=run_dir,
             start_new_session=True,
