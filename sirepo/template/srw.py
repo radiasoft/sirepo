@@ -318,9 +318,8 @@ def extract_report_data(filename, model_data):
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
         width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
         scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
-        rotate_angle = model_data['models'][orig_rep_name]['rotateAngle']
-        rotate_reshape = model_data['models'][orig_rep_name]['rotateReshape']
-#        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, scale)
+        rotate_angle = model_data['models'][orig_rep_name].get('rotateAngle', 0)
+        rotate_reshape = model_data['models'][orig_rep_name].get('rotateReshape', '0')
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape, scale)
     return info
 
@@ -1865,7 +1864,7 @@ def _process_undulator_definition(model):
     except Exception:
         return model
 
-#def _remap_3d(info, allrange, z_label, z_units, width_pixels, scale='linear'):
+
 def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape, scale='linear'):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
@@ -1885,36 +1884,36 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
             x_resize = float(width_pixels) / float(x_range[2])
         if width_pixels < y_range[2]:
             y_resize = float(width_pixels) / float(y_range[2])
-        pkdlog('Size before: {}  Dimensions: {}, Resize: [{}, {}]', ar2d.size, ar2d.shape, y_resize, x_resize)
+        pkdc('Size before: {}  Dimensions: {}, Resize: [{}, {}]', ar2d.size, ar2d.shape, y_resize, x_resize)
         try:
             from scipy import ndimage
             ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
             # Remove for #670, this may be required for certain reports?
             # if scale == 'linear':
             #     ar2d[np.where(ar2d < 0.)] = 0.0
-            pkdlog('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            pkdc('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
             pass
-    # rotate 3D image    
+    # rotate 3D image
     if rotate_angle:
         rotate_reshape = (rotate_reshape == "1")
         try:
             from scipy import ndimage
-            pkdlog('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            pkdc('Size before: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             shape_before = list(ar2d.shape)
             ar2d = ndimage.rotate(ar2d, rotate_angle, reshape = rotate_reshape, mode='constant', order = 3)
-            pkdlog('Size after rotate: {}  Dimensions: {}', ar2d.size, ar2d.shape)
+            pkdc('Size after rotate: {}  Dimensions: {}', ar2d.size, ar2d.shape)
             shape_rotate = list(ar2d.shape)
 
-            pkdlog('x_range and y_range before rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+            pkdc('x_range and y_range before rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
             x_range[0] = shape_rotate[0]/shape_before[0]*x_range[0]
             x_range[1] = shape_rotate[0]/shape_before[0]*x_range[1]
             y_range[0] = shape_rotate[1]/shape_before[1]*y_range[0]
             y_range[1] = shape_rotate[1]/shape_before[1]*y_range[1]
-            pkdlog('x_range and y_range after rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
+            pkdc('x_range and y_range after rotate is [{},{}] and [{},{}]', x_range[0], x_range[1], y_range[0], y_range[1])
 
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
@@ -1968,7 +1967,7 @@ def _superscript_2(val):
 def _rotated_axis_range(x, y, theta):
     x_new = x*np.cos(theta) + y*np.sin(theta)
     return x_new
-    
+
 def _test_file_type(file_type, file_path):
     # special handling for mirror and arbitraryField - scan for first data row and count columns
     if file_type not in ('mirror', 'arbitraryField'):
