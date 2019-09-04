@@ -4447,90 +4447,19 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     return;
                 }
 
-                var conductor = warpvndService.findConductor(condId);
-                var bundle = stlBundles[condId];
-                var mapper = bundle.actor.getMapper();
-                var polyData = mapper.getInputData();
-                var ptData = polyData.getPoints().getData();
+                var polyData = stlBundles[condId].mapper.getInputData();
 
                 var d = faceData.dArr;
                 //srdbg('d', d);
-                var nk = d.length;
-                var x = faceData.x.map(toNano);
-                var y = faceData.y.map(toNano);
-                var z = faceData.z.map(toNano);
 
                 // data can be too large for the stack
-                var smin = 0;  //impactData.v_min || largeMin(d);
-                var smax = largeMax(d);  //impactData.v_max || largeMax(d);
+                var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : largeMin(d)) : impactData.v_min ;
+                var smax = impactData.v_max || largeMax(d);
                 //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
                 var dataColors = [];
-                var dataPoints = [];
-                var dataTris = [];
-                var dataVertices = [];
-
-                // way too slow for js, move to python
-                var numIncomplete = 0;
-                var numEmpty= 0;
                 for (var polyIndex = 0; polyIndex < polyData.getNumberOfPolys(); ++polyIndex) {
-
-                    // local calc
-                    /*
-                    var pts = polyData.getCellPoints(polyIndex);
-                    var ptIds = pts.cellPointIds;
-                    var polyVerts = [];
-                    var offsetPos = stlOffset(bundle, conductor);
-                    for (var i = 0; i < ptIds.length; ++i) {
-                        var coords = [];
-                        for (var j = 0; j < 3; ++j) {
-                            coords.push(toMetersFactor * (ptData[3 * ptIds[i] + j] + offsetPos[j]));
-                        }
-                        polyVerts.push(geometry.pointFromArr(coords));
-                    }
-                    var foundVerts = [];
-                    var foundVals = [];
-                    for (var k = 0; k < nk - 1; ++k) {
-                        // point from impact data, somewhere on the stl
-                        var p = geometry.point(x[k], y[k], z[k]);
-                        for (var m = 0; m < polyVerts.length; ++m) {
-                            if (foundVerts.indexOf(m) >= 0) {
-                                continue;
-                            }
-                            if (p.equals(polyVerts[m])) {
-                                foundVerts.push(m);
-                                foundVals.push(d[k]);
-                                break;
-                            }
-                        }
-                        if (foundVerts.length === polyVerts.length) {
-                            break;
-                        }
-                    }
-                    if (foundVerts.length !== polyVerts.length) {
-                        numIncomplete++;
-                        if (foundVerts.length === 0) {
-                            numEmpty++;
-                        }
-                    }
-
-                    var meanVal = foundVals.reduce(function (sum, s) {
-                        return sum + s;
-                    }, 0) / (foundVals.length || 1);
-
-                    var maxVal = foundVals.reduce(function (max, s) {
-                        return Math.max(max, s);
-                    }, 0);
-
-                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(maxVal))
-                        .map(function (cc) {
-                            return Math.floor(255*cc);
-                        });
-                    dataColors.push(color[0], color[1], color[2], foundVerts.length === polyVerts.length ? 255 : 24);
-                    */
-
-                    // remote calc
                     var s = d[polyIndex] == -1 ? 0 : d[polyIndex];
                     var color = vtk.Common.Core.vtkMath.hex2float(fcs(s))
                         .map(function (cc) {
@@ -4546,53 +4475,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
                 });
                 polyData.getCellData().setScalars(carr);
-
-                /*
-                // impact triangles
-                for (var k = 0; k < nk - 1; ++k) {
-                    var j = 3 * k;
-                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(d[k]))
-                        .map(function (cc) {
-                            return Math.floor(255*cc);
-                        });
-                    dataColors.push(color[0], color[1], color[2]);
-
-                    //dataVertices.push(1);
-                    //dataVertices.push(dataPoints.length / 3);
-                    //var vtkPts = coordMapper.xform.doTransform([x[k], y[k], z[k]]);
-
-                    dataTris.push(3);
-                    dataTris.push(
-                        dataPoints.length / 3, 1 + dataPoints.length / 3, 2 + dataPoints.length / 3
-                    );
-                    var vtkPts = coordMapper.xform.doTransform([x[j], y[j], z[j]]);
-                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 1], y[j + 1], z[j + 1]]));
-                    vtkPts = vtkPts.concat(coordMapper.xform.doTransform([x[j + 2], y[j + 2], z[j + 2]]));
-
-                    for (var cx = 0; cx < vtkPts.length; ++cx) {
-                        dataPoints.push(vtkPts[cx]);
-                    }
-                }
-
-                var p32 = window.Float32Array.from(dataPoints);
-                var v32 = window.Uint32Array.from(dataVertices);
-                var t32 = window.Uint32Array.from(dataTris);
-                var carr = vtk.Common.Core.vtkDataArray.newInstance({
-                    numberOfComponents: 3,
-                    values: dataColors,
-                    dataType: vtk.Common.Core.vtkDataArray.VtkDataTypes.UNSIGNED_CHAR
-                });
-                var b = coordMapper.buildActorBundle();
-                b.actor.getProperty().setLighting(false);
-                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
-                pd.getPoints().setData(p32, 3);
-                //pd.getVerts().setData(v32);
-                pd.getPolys().setData(t32);
-                b.mapper.setScalarVisibility(true);
-                pd.getCellData().setScalars(carr);
-                b.mapper.setInputData(pd);
-                densityBundles.push(b);
-                */
 
                 function toNano(v) {
                     return v * 1e-9;
