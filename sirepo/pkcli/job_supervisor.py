@@ -20,23 +20,13 @@ import queue
 import trio
 import uuid
 
-ACTION_NO_OP = 'no_op'
 
-_USER_TO_DRIVER_LOOKUP = {}
 _BROKERS = {}
-
 _NURSERY = None
+
 
 def start():
     trio.run(_initialize)
-
-async def _initialize():
-    config = Config()
-    config.bind = ['0.0.0.0:8080']
-    config.keep_alive_timeout = 60 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
-    global _NURSERY 
-    async with trio.open_nursery() as _NURSERY:
-        await serve(_app, config)
 
 
 async def _app(scope, receive, send):
@@ -47,6 +37,17 @@ async def _app(scope, receive, send):
         'http': _handle_scope_type_http,
     }
     await scope_types[scope['type']](receive, send)
+
+
+def _create_broker_if_not_found(uid, nursery):
+    if uid not in _BROKERS:
+        #TODO(e-carlin): Actually start the driver client
+        broker = _Broker(nursery)
+        broker.start()
+        _BROKERS[uid] = broker
+
+    return _BROKERS[uid]
+
 
 async def _handle_scope_type_http(receive, send):
     request_body = await _http_receive(receive)
@@ -95,6 +96,15 @@ async def _http_send(body, send):
         'body': pkjson.dump_bytes(body),
     })
 
+
+async def _initialize():
+    config = Config()
+    config.bind = ['0.0.0.0:8080']
+    config.keep_alive_timeout = 60 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
+    global _NURSERY 
+    async with trio.open_nursery() as _NURSERY:
+        await serve(_app, config)
+
 async def _process_request_body(body, send):
     source_types = ['server', 'driver']
     assert body.source in source_types
@@ -104,16 +114,6 @@ async def _process_request_body(body, send):
     await process_fn(body, send)
 
 
-def _create_broker_if_not_found(uid, nursery):
-    if uid not in _BROKERS:
-        #TODO(e-carlin): Actually start the driver client
-        broker = _Broker(nursery)
-        broker.start()
-        _BROKERS[uid] = broker
-
-    return _BROKERS[uid]
-
-#TODO(e-carlin): Better name for this class maybe proxy?
 class _Broker():
     def __init__(self, nursery):
         self._driver_queue = deque([])
