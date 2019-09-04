@@ -8,14 +8,13 @@ from __future__ import absolute_import, division, print_function
 
 from collections import deque
 from functools import partial
-from hypercorn.config import Config
-from hypercorn.trio import serve
-from pykern import pkjson
 from pykern import pkcollections
+from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
 from sirepo.template import template_common
 import aenum
+import hypercorn.trio
 import queue
 import trio
 import uuid
@@ -98,12 +97,12 @@ async def _http_send(body, send):
 
 
 async def _initialize():
-    config = Config()
+    config = hypercorn.trio.Config()
     config.bind = ['0.0.0.0:8080']
     config.keep_alive_timeout = 60 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
     global _NURSERY 
     async with trio.open_nursery() as _NURSERY:
-        await serve(_app, config)
+        await hypercorn.trio.serve(_app, config)
 
 async def _process_request_body(body, send):
     source_types = ['server', 'driver']
@@ -141,6 +140,9 @@ class _Broker():
                     pkdlog(f'Work found in driver queue. Sending to driver. Work: {work_to_do}')
                     await _http_send(work_to_do, driver_send)
                 else:
+                    #TODO(e-carlin): This is lame. I've created my own "dumb" event loop
+                    # it would be better to wait on something being put in the queue. Or
+                    # use messaging channels and wait on a message
                     pkdp('No work to do. Going to sleep..')
                     await trio.sleep(1) # Wait for some work to do before replying
         
