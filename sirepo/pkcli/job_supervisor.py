@@ -23,7 +23,7 @@ import uuid
 ACTION_NO_OP = 'no_op'
 
 _USER_TO_DRIVER_LOOKUP = {}
-_DRIVER_CLIENTS = {}
+_BROKERS = {}
 
 _NURSERY = None
 
@@ -33,7 +33,7 @@ def start():
 async def _initialize():
     config = Config()
     config.bind = ['0.0.0.0:8080']
-    config.keep_alive_timeout = 20 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
+    config.keep_alive_timeout = 60 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
     global _NURSERY 
     async with trio.open_nursery() as _NURSERY:
         await serve(_app, config)
@@ -96,86 +96,73 @@ async def _http_send(body, send):
     })
 
 async def _process_request_body(body, send):
-    source_types = {
-        'server': _process_server_request,
-        'driver': _process_driver_request,
-    }
+    source_types = ['server', 'driver']
+    assert body.source in source_types
 
-    await source_types[body['source']](body, send)
-
-async def _process_driver_request(body, send):
-    pkdlog(f'Processing request from driver. Body: {body}')
-    driver_id = body.driver_id
-    #TODO(e-carlin): Hmmm 
-    if driver_id not in _DRIVER_CLIENTS:
-        _create_driver_client(driver_id, _NURSERY)
-
-    driver = _DRIVER_CLIENTS[driver_id]
-    driver.send = send
+    broker = _create_broker_if_not_found(body.uid, _NURSERY)
+    process_fn = getattr(broker, f'process_{body.source}_request')
+    await process_fn(body, send)
 
 
-async def _process_server_request(body, send):
-    if body.uid not in _DRIVER_CLIENTS:
-        #TODO(e-carlin): Actually start the driver 
-        _create_driver_client(body.uid, _NURSERY)
-    
-    driver = _DRIVER_CLIENTS[body.uid]
-    driver.driver_queue.append(body)
-    await driver.wait_for_server_send.park()
-    pkdp('Done with park')
+def _create_broker_if_not_found(uid, nursery):
+    if uid not in _BROKERS:
+        #TODO(e-carlin): Actually start the driver client
+        broker = _Broker(nursery)
+        broker.start()
+        _BROKERS[uid] = broker
 
-def _action_ready_for_work(request):
-    # pkdp(f'Agent is ready for work')
-    # if _JOB_TRACKER['driver_request']
-    # if _WORK_QUEUE:
-    #     action = _WORK_QUEUE.popleft()
-    #     return action
-    # else:
-    #     pkdp('Action is no_op')
-    #     return {
-    #         'action': ACTION_NO_OP,
-    #     }
-    pass
+    return _BROKERS[uid]
 
-def _create_driver_client(uid, nursery):
-    driver = _DriverClient(nursery)
-    driver.start()
-    _DRIVER_CLIENTS[uid] = driver
-
-#TODO(e-carlin): Better name for this class
-class _DriverClient():
+#TODO(e-carlin): Better name for this class maybe proxy?
+class _Broker():
     def __init__(self, nursery):
-        self.driver_queue = deque([])
-        self.server_queue = deque([])
-        self.driver_send = None
-        self.server_send = None
-        self.wait_for_server_send = trio.hazmat.ParkingLot()
-
+        self._driver_queue = deque([])
+        self._server_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
         self._nursery = nursery
 
     def start(self):
-        self._nursery.start_soon(self._process_driver_queue)
+        self._nursery.start_soon(self._statisctics)
 
-    async def _process_driver_queue(self):
+    async def _statisctics(self):
         while True:
-            if self.driver_send and  self.driver_queue:
-                work_to_do = self.driver_queue.popleft()
-                try:
-                    await self._send_to_driver(work_to_do)
-                except Exception as e:
-                    pkdlog(f'Exception while proccessing driver queue. Caused by: {e}')
-                    pkdexc()
-                    self.driver_queue.appendleft(work_to_do)
-            await trio.sleep(1) #TODO(e-carlin): What should we really do in the case where there is nothing to do?
+            pkdp('##### BROKER STATS #####')
+            pkdp(f'Driver queue len = {len(self._driver_queue)}')
+            pkdp(f'Server responses dict len = {len(self._server_responses)}')
+            pkdp('########################')
+            await trio.sleep(5)
 
-    async def _send_to_driver(self, body):
-        #TODO(e-carlin): Same code as send_to_server. Abstract.
-        pkdp(f'Sending to driver: {body}')
-        await _http_send(body, self.driver_send)
-        #TODO(e-carlin): Race condition. The self.driver_send could have been 
-        # changed between _http_send() and this clear? Maybe not because we
-        # are only holding one driver connection at a time
-        self.driver_send = None # After send clear out the current send object so we wait for the next one
-    
+    async def process_driver_request(self, request, driver_send):
+        pkdlog(f'Processing driver request. Request: {request}')
+        if request.action == 'ready_for_work':
+            while True:
+                #TODO(e-carlin): This should start on its own. Not have to wait for driver request
+                if self._driver_queue:
+                    work_to_do = self._driver_queue.popleft()
+                    pkdlog(f'Work found in driver queue. Sending to driver. Work: {work_to_do}')
+                    await _http_send(work_to_do, driver_send)
+                else:
+                    pkdp('No work to do. Going to sleep..')
+                    await trio.sleep(1) # Wait for some work to do before replying
+        
+        else: # We have some results
+            reply = self._server_responses[request.request_id]
+            pkdlog(f'Replying to server: {request}')
+            await _http_send(request, reply.send)
+            reply.reply_sent.set()
 
-    
+    async def process_server_request(self, request, server_send):
+        pkdlog(f'Processing server request. Request: {request}')
+        reply_sent = trio.Event()
+        # request_id = str(uuid.uuid4())
+        request_id = 'abc123' #TODO(e-carlin): Hardcoded for now for testing
+        work_to_do = pkcollections.Dict({
+            'request_id': request_id,
+            'request': request,
+        })
+        self._driver_queue.append(work_to_do)
+        self._server_responses[request_id] = pkcollections.Dict({
+            'send': server_send,
+            'reply_sent': reply_sent,
+        })
+        await reply_sent.wait()
+        del self._server_responses[request_id]
