@@ -43,6 +43,7 @@ _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = 'potential.h5'
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_STL_POLY_FILE = 'polygons.h5'
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
@@ -220,7 +221,7 @@ def get_animation_name(data):
 
 
 def get_application_data(data):
-    if data['method'] == 'compute_simulation_steps':
+    if 'method' in data and data['method'] == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
@@ -231,6 +232,9 @@ def get_application_data(data):
                     'steps': res['steps_expected'],
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
+        return {}
+    if 'polys' in data:
+        _save_stl_polys(data)
         return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
@@ -822,6 +826,7 @@ def _generate_parameters_file(data):
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
             v['saveIntercept'] = False
+            v['polyFile'] = _stl_polygon_file(c.conductor_type.type.name)
             break
         if c.conductor_type.isReflector:
             v['saveIntercept'] = True
@@ -1128,3 +1133,20 @@ def _slope(x1, y1, x2, y2):
 
 def _stl_file(conductor_type):
     return template_common.lib_file_name('stl', 'file', conductor_type.file)
+
+
+def _stl_polygon_file(filename):
+    return template_common.filename_to_path(
+        [template_common.lib_file_name('stl', filename, _STL_POLY_FILE)],
+        simulation_db.simulation_lib_dir(SIM_TYPE)
+    )[0]
+
+
+def _save_stl_polys(data):
+    try:
+        with h5py.File(_stl_polygon_file(data.file)) as hf:
+            template_common.dict_to_h5(data, hf, path='/')
+    except Exception as e:
+        pkdp('!save_stl_polys FAIL: {}', e)
+        pass
+

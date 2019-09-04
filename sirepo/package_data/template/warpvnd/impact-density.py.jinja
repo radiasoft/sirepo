@@ -1,6 +1,7 @@
 
 import math
 import scipy
+from numpy import linalg
 from rswarp.diagnostics import ConductorTemplates
 from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
@@ -22,6 +23,26 @@ def _linear_fit_2d(arr):
 def _linear_fit_1d(arr):
     sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
+
+def _polys_for_stl(cond):
+    with h5py.File('{{ polyFile }}', 'r') as hf:
+        p = cond['s'] * np.array(hf['polys'])
+    p_t = p.T
+    bounds = np.array([
+        np.min(p_t[0]),
+        np.max(p_t[0]),
+        np.min(p_t[1]),
+        np.max(p_t[1]),
+        np.min(p_t[2]),
+        np.max(p_t[2])
+    ])
+    b_ctr = np.array([
+        bounds[0] + (bounds[1] - bounds[0]) / 2.,
+        bounds[2] + (bounds[3] - bounds[2]) / 2.,
+        bounds[4] + (bounds[5] - bounds[4]) / 2.,
+    ])
+    offsets = np.array([cond['cx'], cond['cy'], cond['cz']]) - b_ctr
+    return p + offsets
 
 def _vertices_from_stl(cond):
     verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(cond['f']) if line.startswith('vertex')]
@@ -98,18 +119,44 @@ if can_write_files and not density_results:
                 verts = _vertices_from_stl(stl_conductors[c.conductor.condid])
 
             global_max = max(global_max, max_s)
+            neighborhood = np.array([abs(dx / 2.), abs(dy / 2.), abs(dz / 2.)])
             for (x, y, z, s) in d:
-                print('s {}'.format(s))
+                #print('s {}'.format(s))
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
+                # trim very small numbers?
+                #s_mean = np.mean(s)
+                #s_zero = np.where(s / s_mean < 1e-6)
+                #print('s mean {} eff 0 {} -> {}'.format( s_mean, s_zero, s[s_zero]))
+                #s[np.where(s / np.mean(s) < 1e-4)] = 0
+                pts = 1e-09 * np.array([x, y, z]).T
+                #print('pts {}'.format(pts))
                 f_data = {
                     'dArr': s.tolist(),
                     'n': len(x)
                 }
 
-                # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+
+                    pss = np.array([])
+                    polys = _polys_for_stl(stl_conductors[c.conductor.condid])
+                    #print('polys {}'.format(polys))
+                    # loop through polygons
+                    for poly in polys:
+                        #print('poly {}'.format(poly))
+                        inds = np.array([])
+                        ctr = np.mean(poly, axis=0)
+                        for vert in poly:
+                            v_inds = np.where(np.all(np.abs(pts - vert) < neighborhood, axis=1))
+                            inds = np.append(inds, v_inds).astype(int)
+                        dc = np.linalg.norm(ctr - pts[inds], axis=1)
+                        if len(inds) > 0:
+                            # weight points by dist to centroid?
+                            pss = np.append(pss, np.mean(s[inds]))
+                        else:
+                            pss = np.append(pss, -1.)
+                    #print('poly vals {}'.format(pss))
 
                     wxx = np.array([])
                     wyy = np.array([])
@@ -118,60 +165,60 @@ if can_write_files and not density_results:
 
                     # find points on the stl close to the generated impact density points, where
                     # "close" means inside a grid spacing in each dimension
-                    for v in verts:
-                        wx = np.where(np.abs(1e-09 * x - v[0]) < abs(dx / 2.))
-                        wy = np.where(np.abs(1e-09 * y - v[1]) < abs(dy / 2.))
-                        wxy = np.intersect1d(wx, wy)
-                        wz = np.where(np.abs(1e-09 * z - v[2]) < abs(dz / 2.))
-                        wxyz = np.intersect1d(wz, wxy)
-                        if len(wxyz) > 0:
-                            wxx = np.append(wxx, 1e09 * v[0])
-                            wyy = np.append(wyy, 1e09 * v[1])
-                            wzz = np.append(wzz, 1e09 * v[2])
-                            wss = np.append(wss, np.mean(s[wxyz]))
-                            #wss = np.append(wss, np.mean(wx))
+                    #for v in verts:
+                    #    wx = np.where(np.abs(1e-09 * x - v[0]) < abs(dx / 2.))
+                    #    wy = np.where(np.abs(1e-09 * y - v[1]) < abs(dy / 2.))
+                    #    wxy = np.intersect1d(wx, wy)
+                    #    wz = np.where(np.abs(1e-09 * z - v[2]) < abs(dz / 2.))
+                    #    wxyz = np.intersect1d(wz, wxy)
+                    #    if len(wxyz) > 0:
+                    #        wxx = np.append(wxx, 1e09 * v[0])
+                    #        wyy = np.append(wyy, 1e09 * v[1])
+                    #        wzz = np.append(wzz, 1e09 * v[2])
+                    #        wss = np.append(wss, np.mean(s[wxyz]))
+                    #        #wss = np.append(wss, np.mean(wx))
 
-                    f_data['type'] = 'unstructured'
+                    #f_data['type'] = 'unstructured'
 
-                    xx = np.array([])
-                    yy = np.array([])
-                    zz = np.array([])
-                    ss = np.array([])
+                    #xx = np.array([])
+                    #yy = np.array([])
+                    #zz = np.array([])
+                    #ss = np.array([])
 
                     #####
 
                     # 3d triangulation
                     # This gives us tetrahedrons but we'll split them into triangles for vtk, which has not yet ported
                     # tetras from c++ to js
-                    pts = np.dstack((x, y, z))[0]
-                    try:
-                        dlny = scipy.spatial.Delaunay(pts)
-                    except scipy.spatial.qhull.QhullError:
-                        err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
-                        print(err)
-                        f_data['err'] = err
-                        c_data['faces'].append(f_data)
-                        continue
+                    #pts = np.dstack((x, y, z))[0]
+                    #try:
+                    #    dlny = scipy.spatial.Delaunay(pts)
+                    #except scipy.spatial.qhull.QhullError:
+                    #    err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
+                    #    print(err)
+                    #    f_data['err'] = err
+                    #    c_data['faces'].append(f_data)
+                    #    continue
 
-                    f_data['dims'] = 3
-                    tets = dlny.simplices
+                    #f_data['dims'] = 3
+                    #tets = dlny.simplices
 
                     # the triangles that make up the tetrahedron
-                    tris = [
-                        [0, 1, 2],
-                        [0, 1, 3],
-                        [0, 2, 3],
-                        [1, 2, 3]
-                    ]
-                    for tet in tets:
-                        for tri in tris:
-                            tetra_tri = tet[tri]
-                            xx = np.append(xx, x[tetra_tri])
-                            yy = np.append(yy, y[tetra_tri])
-                            zz = np.append(zz, z[tetra_tri])
-                            ss = np.append(ss, np.mean(s[tetra_tri]))
-                            # useful for viewing the triangulation independent of the generated color map
-                            # ss = np.append(ss, np.mean(x[tetra_tri]))
+                    #tris = [
+                    #    [0, 1, 2],
+                    #    [0, 1, 3],
+                    #    [0, 2, 3],
+                    #    [1, 2, 3]
+                    #]
+                    #for tet in tets:
+                    #    for tri in tris:
+                    #        tetra_tri = tet[tri]
+                    #        xx = np.append(xx, x[tetra_tri])
+                    #        yy = np.append(yy, y[tetra_tri])
+                    #        zz = np.append(zz, z[tetra_tri])
+                    #        ss = np.append(ss, np.mean(s[tetra_tri]))
+                    #        # useful for viewing the triangulation independent of the generated color map
+                    #        # ss = np.append(ss, np.mean(x[tetra_tri]))
 
                     #####
 
@@ -210,8 +257,12 @@ if can_write_files and not density_results:
                     #f_data['n'] = len(ss)
 
                     # stl points
-                    f_data['dArr'] = wss.tolist()
-                    f_data['n'] = len(wss)
+                    #f_data['dArr'] = wss.tolist()
+                    #f_data['n'] = len(wss)
+
+                    # stl polys
+                    f_data['dArr'] = pss.tolist()
+                    f_data['n'] = len(pss)
 
                     #for cx, coord in enumerate((xx, yy, zz)):
                     for cx, coord in enumerate((wxx, wyy, wzz)):

@@ -30,7 +30,7 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 SIREPO.appImportText = 'Import an stl file';
-SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vtkPlotting, $rootScope) {
+SIREPO.app.factory('warpvndService', function(appState, errorService, panelState, plotting, requestSender, vtkPlotting, $rootScope) {
     var self = {};
     var plateSpacing = 0;
     var rootScopeListener = null;
@@ -214,12 +214,74 @@ SIREPO.app.factory('warpvndService', function(appState, panelState, plotting, vt
         return false;
     };
 
+    self.loadSTLConductor = function(conductor) {
+        var type = self.findConductorType(conductor.conductorTypeId);
+        vtkPlotting.loadSTLFile(type.file).then(function (r) {
+            vtkPlotting.addSTLReader(type.file, r);
+            self.loadSTLConductorData(r, conductor, type);
+        });
+    };
+
+    self.loadSTLConductorData = function(reader, conductor, type) {
+        if (! reader) {
+            return;
+        }
+        reader.loadData()
+            .then(function (res) {
+                self.saveSTLPolys(reader, type.name);
+            }, function (reason) {
+                throw type.file + ': Error loading data from .stl file: ' + reason;
+            })
+            .catch(function (e) {
+                errorService.alertText(e);
+        });
+    };
+
+    self.loadSTLConductors = function() {
+        self.stlConductors().forEach(function (c) {
+            self.loadSTLConductor(c);
+        });
+    };
+
+    self.saveSTLPolys = function(reader, filename) {
+        // check if exists first?
+        var data = {
+            file: filename
+        };
+        var polyData = reader.getOutputData();
+        polyData.buildCells();
+        var polys = [];
+        for (var polyIndex = 0; polyIndex < polyData.getNumberOfPolys(); ++polyIndex) {
+            var pts = polyData.getCellPoints(polyIndex);
+            var ptData = polyData.getPoints().getData();
+            var ptIds = pts.cellPointIds;
+            var polyVerts = [];
+            for (var i = 0; i < ptIds.length; ++i) {
+                var coords = [];
+                for (var j = 0; j < 3; ++j) {
+                    coords.push(ptData[3 * ptIds[i] + j]);
+                }
+                polyVerts.push(coords);
+            }
+            polys.push(polyVerts);
+        }
+        data.polys = polys;
+        requestSender.getApplicationData(data, function(d) {
+        });
+    };
+
     self.setOptimizingRow = function(row) {
         var v = row ? row.slice(4) : null;
         if (! appState.deepEquals(v, self.optimizingRow)) {
             // this triggers a watch in optimizerPathPlot
             self.optimizingRow = v;
         }
+    };
+
+    self.stlConductors = function() {
+        return appState.models.conductors.filter(function (c) {
+            return self.getConductorType(c) === 'stl';
+        });
     };
 
     appState.whenModelsLoaded($rootScope, function() {
@@ -740,7 +802,7 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
 
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, requestSender, warpvndService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, errorService, frameCache, panelState, requestSender, vtkPlotting, warpvndService, $scope) {
     var self = this;
     self.warpvndService = warpvndService;
 
@@ -782,7 +844,10 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         return frameCache.getFrameCount() > 0;
     };
 
-    appState.whenModelsLoaded($scope, computeSimulationSteps);
+    appState.whenModelsLoaded($scope, function () {
+        computeSimulationSteps();
+        warpvndService.loadSTLConductors();
+    });
 });
 
 SIREPO.app.directive('appFooter', function() {
@@ -3116,9 +3181,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 var typeMap = warpvndService.conductorTypeMap();
 
                 // do stl conductors first so we have a proper scale
-                appState.models.conductors.filter(function (c) {
-                    return warpvndService.getConductorType(c) === 'stl';
-                }).forEach(function (c) {
+                warpvndService.stlConductors().forEach(function (c) {
                     var cModel = typeMap[c.conductorTypeId];
                     toMetersFactor = Math.max(toMetersFactor, cModel.scale);
                     toMicronFactor = 1e-6 / toMetersFactor;
@@ -3243,7 +3306,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
             //var labMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];  //unit
 
             function loadConductor(conductor, type) {
-                $scope.parentController.isWaitoingForSTL = true;
+                $scope.parentController.isWaitingForSTL = true;
                 vtkPlotting.loadSTLFile(type.file).then(function (r) {
                     vtkPlotting.addSTLReader(type.file, r);
                     loadConductorData(r, conductor, type);
@@ -3662,9 +3725,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             function addSTLConductors() {
                 var typeMap = warpvndService.conductorTypeMap();
 
-                appState.models.conductors.filter(function (c) {
-                    return warpvndService.getConductorType(c) === 'stl';
-                }).forEach(function (c) {
+                warpvndService.stlConductors().forEach(function (c) {
                     var cModel = typeMap[c.conductorTypeId];
                     toMetersFactor = Math.max(toMetersFactor, cModel.scale);
                     toMicronFactor = 1e-6 / toMetersFactor;
@@ -3712,6 +3773,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 actor.addPosition(stlOffset(bundle, conductor));
                 actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 actor.getProperty().setLighting(false);
+                //actor.getProperty().setEdgeVisibility(true);
                 fsRenderer.getRenderer().addActor(actor);
                 stlBundles[conductor.id] = bundle;
                 stlActors[conductor.id] = actor;
@@ -4301,7 +4363,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             return;
                         }
 
-                        if (f.type === 'unstructured') {
+                        if (c.type === 'unstructured') {
                             mapUnstructuredDensity(f, condId);
                             return;
                         }
@@ -4392,14 +4454,15 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var ptData = polyData.getPoints().getData();
 
                 var d = faceData.dArr;
+                //srdbg('d', d);
                 var nk = d.length;
                 var x = faceData.x.map(toNano);
                 var y = faceData.y.map(toNano);
                 var z = faceData.z.map(toNano);
 
                 // data can be too large for the stack
-                var smin = impactData.v_min || largeMin(d);
-                var smax = impactData.v_max || largeMax(d);
+                var smin = 0;  //impactData.v_min || largeMin(d);
+                var smax = largeMax(d);  //impactData.v_max || largeMax(d);
                 //srdbg('impact min/max', smin, smax, impactData.v_min, impactData.v_max);
 
                 var fcs = plotting.colorScaleForPlot({ min: smin, max: smax }, $scope.modelName,  'impactColorMap');
@@ -4412,6 +4475,9 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var numIncomplete = 0;
                 var numEmpty= 0;
                 for (var polyIndex = 0; polyIndex < polyData.getNumberOfPolys(); ++polyIndex) {
+
+                    // local calc
+                    /*
                     var pts = polyData.getCellPoints(polyIndex);
                     var ptIds = pts.cellPointIds;
                     var polyVerts = [];
@@ -4462,6 +4528,16 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             return Math.floor(255*cc);
                         });
                     dataColors.push(color[0], color[1], color[2], foundVerts.length === polyVerts.length ? 255 : 24);
+                    */
+
+                    // remote calc
+                    var s = d[polyIndex] == -1 ? 0 : d[polyIndex];
+                    var color = vtk.Common.Core.vtkMath.hex2float(fcs(s))
+                        .map(function (cc) {
+                            return Math.floor(255*cc);
+                        });
+
+                    dataColors.push(color[0], color[1], color[2], d[polyIndex] == -1 ? 24 : 255);
                 }
 
                 var carr = vtk.Common.Core.vtkDataArray.newInstance({
@@ -5085,7 +5161,8 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
                 $scope.showImpactDensity = ! $scope.showImpactDensity;
                 for (var condId in stlBundles) {
-                    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity );
+                    stlBundles[condId].mapper.setScalarVisibility($scope.showImpactDensity);
+                    //stlBundles[condId].actor.getProperty().setEdgeVisibility($scope.showImpactDensity);
                 }
                 refresh();
             };
