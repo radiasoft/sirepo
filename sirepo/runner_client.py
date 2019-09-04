@@ -1,10 +1,10 @@
-import aenum
-import contextlib
 from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-import requests
 from sirepo import srdb
+import aenum
+import contextlib
+import requests
 import socket
 
 
@@ -20,12 +20,14 @@ class JobStatus(aenum.Enum):
 
 
 def _request(body):
-    r = requests.post('http://localhost:8080', json=body)
+    r = requests.post('http://0.0.0.0:8080', json=body)
     return pkjson.load_any(r.content)
 
-def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
+def start_report_job(uid, run_dir, jhash, backend, cmd, tmp_dir):
     body = {
+        'source': 'server',
         'action': 'start_report_job',
+        'uid': uid,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
@@ -36,14 +38,14 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
 
 
 def report_job_status(run_dir, jhash):
-    body = {
-        'action': 'report_job_status',
-        'run_dir': str(run_dir),
-        'jhash': jhash,
-    }
-    result = _request(body)
-    return JobStatus(result.status)
-    # return JobStatus('missing')
+    # body = {
+    #     'action': 'report_job_status',
+    #     'run_dir': str(run_dir),
+    #     'jhash': jhash,
+    # }
+    # result = _request(body)
+    # return JobStatus(result.status)
+    return JobStatus('missing')
 
 
 def cancel_report_job(run_dir, jhash):

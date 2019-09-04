@@ -482,6 +482,8 @@ def api_runCancel():
         # Always true from the client's perspective
         return http_reply.gen_json({'state': 'canceled'})
 
+
+entered = False
 @api_perm.require_user
 def api_runSimulation():
     from pykern import pkjson
@@ -495,16 +497,21 @@ def api_runSimulation():
         run_dir = simulation_db.simulation_run_dir(data)
         status = runner_client.report_job_status(run_dir, jhash)
 
+        global entered
+        status = runner_client.JobStatus.MISSING if not entered else runner_client.JobStatus.RUNNING
+
         already_good_status = [runner_client.JobStatus.RUNNING,
                                runner_client.JobStatus.COMPLETED]
         if status not in already_good_status:
+            entered = True
             data['simulationStatus'] = {
                 'startTime': int(time.time()),
                 'state': 'pending',
             }
             tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            runner_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
+            uid = simulation_db.uid_from_dir_name(run_dir)
+            runner_client.start_report_job(uid, run_dir, jhash, cfg.backend, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:
