@@ -1,58 +1,14 @@
 # -*- coding: utf-8 -*-
 """The runner daemon.
 
-#TODO(robnagler): Naming thoughts...
-
-    I think we should use "job_supervisor" for the runner_daemon.
-
-    "job_driver" for runner_agent (others: controller, director, overseer, proxy)
-    The use of driver is is a bit of a stretch so proxy or controller might work, too, but
-    I tend to think of a supervisor as an operating system level thing, and device driver as
-    the low level thing that controls a particular device.
-
-    An driver has a class (Subprocess, Docker, NERSC). An driver has a user and
-    it is reusable, but it should only be responsible for one job at a time. For NERSC,
-    we'll have multiple drivers reporting in if the user starts multiple jobs. It will
-    be simpler that way, and the supervisor handles all resource management that way.
-    There will be significant logic around this, and rather that the driver's
-    responsibility is just the running of a job.
-
-    I also think server.py is too generic. It's a broker. That will help us keep things
-    in the right mindset. It shouldn't do any work, just exchange messages with the
-    other services (supervisor, GUI, etc.).
-
-    I think we should remove "runner", because it is verb on an unknown object.
-
-    A "job" has a user, type, number of cores, node, etc. The
-    supervisor will decide if/when/where it should run based on the job
-    characteristics. We speak about a job as the instance running, which
-    has more characteristics, than the job before it is running. We ask
-    for watchPointReport1 for simulation X, and it is a single job that
-    could be running. If it is running, it has to have the same parameters (jhash)
-    or it should be killed, and started with the correct parameters. I think
-    the use of "job" is fine.
-
-    There is also job output. run_dir doesn't really describe it clearly. A job
-    runs in a directory which has inputs and outputs. The output may be used by
-    another job, and therefore it is a prerequisite for the other job.
-
-    I've sprinkled the terms in my comments below
-
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-#TODO(robnagler): sorting lines simply alphabetically makes for easier maintenance.
-#   In emacs, there's a sort-lines. In vim, you can select region and pipe to "sort".
-#   I suspect in VSCode there's something similar. This puts all the from's before
-#   import's but that shouldn't matter; a more complex algorithm (looking for module
-#   names) requires too much work, and doesn't give us anything.
-from pykern import pkcollections
-from pykern import pkio
-from pykern import pkjson
-from pykern.pkdebug import pkdp, pkdlog
-from sirepo import runner_client
-from sirepo import runner_daemon
+
+from pykern import pkcollections, pkio, pkjson
+from pykern.pkdebug import pkdlog, pkdp, pkdexc
+from sirepo import runner_client, runner_daemon
 from sirepo.runner_daemon import local_process
 import asks
 import async_generator
@@ -68,10 +24,17 @@ def start():
     trio.run(_main)
 
 
-async def _call_daemon(body):
+async def _notify_supervisor(action, data={}):
     try:
+        body = {
+            'source': 'driver',
+            'driver_id': 'sVKP0jmq', #TODO(e-carlin): Make real id
+            'action': action,
+            'data': data
+        }
+        pkdp(f'calling notify with body {body}')
         response = await asks.post('http://localhost:8080', json=body)
-        pkdp(f'Dameon responded with: {response.content}')
+        pkdp(f'Dameon responded with: {response}')
         return pkcollections.Dict(pkjson.load_any(response.content))
         # return pkjson.load_any(response.content)
     except Exception as e:
@@ -79,53 +42,28 @@ async def _call_daemon(body):
         return {}
 
 
-#TODO(robnagler): these two wrappers seem unecessary. I also think it could be active:
-#    rather _notify(READY_FOR_WORK)
-#    and _notify(PROCESS_RESULT, result)
-# Note that PROCESS_RESULT is a demand on the supervisor, rather, you want to
-#    _notify(JOB_FINISHED, status)
-# "Result" implies a calculation, but we should keep the "status" parlance. The job
-# may have crashed (error) or succeed (completed).
-async def _call_daemon_ready_for_work():
-    body = {
-#TODO(robnagler): use ACTION_READY_FOR_WORK
-        'action': 'ready_for_work',
-        'data': {},
-    }
-    return await _call_daemon(body)
-
-
-async def _call_daemon_with_result(result):
-    body = {
-#TODO(robnagler): use ACTION_PROCESS_RESULT
-        'action': 'process_result',
-        'data': result,
-    }
-    await _call_daemon(body) # TODO(e-carlin): Do nothing with response from this call?
-
 async def _main():
     async with trio.open_nursery() as nursery:
         job_tracker = _JobTracker(nursery)
         while True: # TODO(e-carlin): there has to be something more clever than this
-            request = await _call_daemon_ready_for_work()
-#TODO(robnagler): no_op is not correct. The driver's job is to either be doing something
-#   or asking the supervisor for more work. There is no "no_op" on the driver's side of things
-#   The supervisor will be waiting for work from the broker (server.py) or notifications from the
-#   driver. If there is no response or the request fails for a timeout or connection failure,
-#   it simply resends the last notification that was queued up. It might have been lost.
-#   Notications should be idempotent.
-            action = request.get('action', 'no_op') # TODO(e-carlin): Defaulting to no-op isn't right
-            action_types = {
-                'no_op': _perform_no_op,
-                'start_report_job': _start_report_job,
-                'report_job_status': _report_job_status,
-            }
+            try:
+                request = await _notify_supervisor(ACTION_READY_FOR_WORK)
+                action = request['action']
+                action_types = {
+                    'keep_alive': _perform_keep_alive,
+                    'start_report_job': _start_report_job,
+                    'report_job_status': _report_job_status,
+                }
 
-            await action_types[action](job_tracker, request)
+                await action_types[action](job_tracker, request)
+            except Exception as e:
+                pkdlog(f'Exception with request response with supervisor. Caused by: {e}')
+                pkdexc()
+                await trio.sleep(2) #TODO(e-carlin): Delete in favor of long polling
 
-async def _perform_no_op(job_tracker, request):
-    pkdp('Daemon requested no_op. Going to sleep for a bit.')
-    await trio.sleep(2) # TODO(e-carlin): Exponential backoff?
+async def _perform_keep_alive(job_tracker, request):
+    pkdp('Daemon requested keep_alive. Requesting again')
+    await trio.sleep(2) #TODO(e-carlin): Delete in favor of long polling
 
 async def _report_job_status(job_tracker, request):
     pkdp(f'Daemon requested repot_job_status: {request}')
@@ -257,9 +195,8 @@ class _JobTracker:
         run_dir_jhash, run_dir_status = self.run_dir_status(run_dir)
         if run_dir_jhash == jhash:
             return run_dir_status
-#TODO(robnagler): else: is unnecessary so remove it for less code and clearer flow
-        else:
-            return runner_client.JobStatus.MISSING
+
+        return runner_client.JobStatus.MISSING
 
     def run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.
@@ -288,9 +225,8 @@ class _JobTracker:
         elif run_dir in self.report_jobs:
             job_info = self.report_jobs[run_dir]
             return job_info.jhash, job_info.status
-#TODO(robnagler): else: is unnecessary so remove it for less code and clearer flow
-        else:
-            return None, runner_client.JobStatus.MISSING
+
+        return None, runner_client.JobStatus.MISSING
 
     async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
@@ -306,30 +242,26 @@ class _JobTracker:
                 )
                 pkio.unchecked_remove(tmp_dir)
                 return
-#TODO(robnagler): else: is unnecessary so remove it for less code and clearer flow
-            else:
-                # It's some other job. Better kill it before doing
-                # anything else.
-                # XX TODO: should we check some kind of sequence number
-                # here? I don't know how those work.
-#TODO(robnagler) it's not "stale", but it is running. There's no need for
-#    sequence numbers. This should never happen, and the supervisor should
-#    should be informed of this situation, because it holds the queue,
-#    and it wouldn't start a job that is already running.
-                pkdlog(
-                    'stale job is still running; killing it (run_dir={}, jhash={})',
-                    run_dir,
-                    jhash,
-                )
-                await self.kill_all(run_dir)
+            # It's some other job. Better kill it before doing
+            # anything else.
+            # XX TODO: should we check some kind of sequence number
+            # here? I don't know how those work.
+    #TODO(robnagler) it's not "stale", but it is running. There's no need for
+    #    sequence numbers. This should never happen, and the supervisor should
+    #    should be informed of this situation, because it holds the queue,
+    #    and it wouldn't start a job that is already running.
+            pkdlog(
+                'stale job is still running; killing it (run_dir={}, jhash={})',
+                run_dir,
+                jhash,
+            )
+            await self.kill_all(run_dir)
 
         # Okay, now we have the dir to ourselves. Set up the new run_dir:
         assert run_dir not in self.report_jobs
 #TODO(robnagler): this has to be atomic.
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-#TODO(robnagler) not a useful comment
-        # Start the job:
         report_job = await local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
         job_info = _JobInfo(
             run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
