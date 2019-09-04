@@ -36,7 +36,6 @@ async def _notify_supervisor(action, data={}):
         response = await asks.post('http://localhost:8080', json=body)
         pkdp(f'Dameon responded with: {response}')
         return pkcollections.Dict(pkjson.load_any(response.content))
-        # return pkjson.load_any(response.content)
     except Exception as e:
         pkdp(f'Exception with _call_daemon(). Caused by: {e}')
         return {}
