@@ -4358,13 +4358,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             errorService.alertText(f.err);
                             return;
                         }
-                        if (! f.y) {
-                            $scope.enableImpactDensity = false;
-                            return;
-                        }
 
                         if (c.type === 'unstructured') {
                             mapUnstructuredDensity(f, condId);
+                            return;
+                        }
+
+                        if (! f.y) {
                             return;
                         }
 
