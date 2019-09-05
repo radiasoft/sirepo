@@ -8,87 +8,117 @@ from __future__ import absolute_import, division, print_function
 
 
 import asyncio
+import os.path
 import tornado.escape
 import tornado.ioloop
+import tornado.httpserver
 import tornado.locks
+import tornado.options
 import tornado.web
-import os.path
+import tornado.queues
 import uuid
+from pykern import pkcollections
+from pykern import pkjson
+from pykern.pkdebug import pkdp, pkdlog, pkdexc
 
-from tornado.options import define, options, parse_command_line
-
-define("port", default=8888, help="run on the given port", type=int)
-define("debug", default=True, help="run in debug mode")
+tornado.options.define("port", default=8888, help="run on the given port", type=int)
+tornado.options.define("debug", default=True, help="run in debug mode")
 
 
-class MessageBuffer(object):
+_BROKERS = {}
+
+
+class _Broker():
     def __init__(self):
-        # cond is notified whenever the message cache is updated
-        self.cond = tornado.locks.Condition()
-        self.cache = []
-        self.cache_size = 200
+        self._server_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
+        self._driver_work_q = tornado.queues.Queue()
 
-    def get_messages(self):
-        return self.cache
+    async def process_driver_request(self, request, send_to_driver):
+        pkdlog(f'Processing driver request. Request: {request}')
 
-    def add_message(self, message):
-        self.cache.append(message)
-        if len(self.cache) > self.cache_size:
-            self.cache = self.cache[-self.cache_size :]
-        self.cond.notify_all()
+        # Driver is ready for work. Give it work when we have some.
+        if request.action == 'ready_for_work':
+            work_to_do = await self._driver_work_q.get()
+            pkdlog('Received work item for driver. Sending to driver. Work: {!r}'.format(work_to_do))
+            #TODO(e-carlin): Handle errors the message should be put on some other q to be handled
+            _http_send(work_to_do, send_to_driver)
+            self._driver_work_q.task_done()
+            return
+
+        # Driver has the results of work. Send them to the server.
+        pkdlog(f'Sending driver results to server: {request}')
+        server_reply = self._server_responses[request.request_id]
+        _http_send(request, server_reply.send)
+        assert not server_reply.reply_sent.is_set()
+        server_reply.reply_sent.set()
+        return
+
+    async def process_server_request(self, request, send_to_server):
+        pkdlog(f'Processing server request. Request: {request}')
+        reply_sent = tornado.locks.Event()
+        # request_id = str(uuid.uuid4())
+        request_id = 'abc123' #TODO(e-carlin): Hardcoded for now for testing
+        work_to_do = pkcollections.Dict({
+            'request_id': request_id,
+            'request': request,
+        })
+        self._server_responses[request_id] = pkcollections.Dict({
+            'send': send_to_server,
+            'reply_sent': reply_sent,
+        })
+        await self._driver_work_q.put(work_to_do)
+        await reply_sent.wait()
+        del self._server_responses[request_id]
 
 
-# Making this a non-singleton is left as an exercise for the reader.
-global_message_buffer = MessageBuffer()
+def _http_send(body, write):
+    try:
+        write(pkjson.dump_bytes(body))
+    except Exception as e:
+        pkdp(f'***** Exception rasised while sending http. Caused by: {e}')
 
 
-class MessageNewHandler(tornado.web.RequestHandler):
-    """Post a new message to the chat room."""
+def _create_broker_if_not_found(uid):
+    if uid not in _BROKERS:
+        #TODO(e-carlin): Actually start the driver client
+        #TODO(e-carlin): What if two simultaneous requests come in to start the broker? Who wins?
+        broker = _Broker()
+        _BROKERS[uid] = broker
 
-    def post(self):
-        message = {"id": str(uuid.uuid4()), "body": self.get_argument("body")}
-        global_message_buffer.add_message(message)
-        self.write(message)
+    return _BROKERS[uid]
 
+class RequestHandler(tornado.web.RequestHandler):
+    SUPPORTED_METHODS = ["POST"]
 
-class MessageUpdatesHandler(tornado.web.RequestHandler):
-    """Long-polling request for new messages.
-
-    Waits until new messages are available before returning anything.
-    """
+    def set_default_headers(self):
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
     async def post(self):
-        messages = global_message_buffer.get_messages()
-        while not messages:
-            # Save the Future returned here so we can cancel it in
-            # on_connection_close.
-            self.wait_future = global_message_buffer.cond.wait()
-            try:
-                await self.wait_future
-            except asyncio.CancelledError:
-                print('Canceled error caught')
-                return
-            messages = global_message_buffer.get_messages()
-        if self.request.connection.stream.closed():
-            print('Connection stream was closed')
-            return
-        self.write(dict(messages=messages))
+        body = pkcollections.Dict(pkjson.load_any(self.request.body))
+        pkdlog(f'Received request: {body}')
 
-    def on_connection_close(self):
-        """Handle client closing connection."""
-        self.wait_future.cancel()
+
+        source_types = ['server', 'driver']
+        assert body.source in source_types
+
+        broker = _create_broker_if_not_found(body.uid)
+        process_fn = getattr(broker, f'process_{body.source}_request')
+        await process_fn(body, self.write)
+        return
 
 
 def main():
-    parse_command_line()
+    tornado.options.parse_command_line()
     app = tornado.web.Application(
         [
-            (r"/a/message/new", MessageNewHandler),
-            (r"/a/message/updates", MessageUpdatesHandler),
+            (r"/", RequestHandler),
         ],
-        debug=options.debug,
+        debug=tornado.options.options.debug,
     )
-    app.listen(options.port)
+    server = tornado.httpserver.HTTPServer(app)
+    port = tornado.options.options.port
+    server.listen(port)
+    pkdlog(f'Server listening on port {port}')
     tornado.ioloop.IOLoop.current().start()
 
 
