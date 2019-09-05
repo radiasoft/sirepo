@@ -826,7 +826,7 @@ def _generate_parameters_file(data):
         if c.conductor_type.type == 'stl':
             # if any conductor is STL then don't save the intercept
             v['saveIntercept'] = False
-            v['polyFile'] = _stl_polygon_file(c.conductor_type.type.name)
+            v['polyFile'] = _stl_polygon_file(c.conductor_type.name)
             break
         if c.conductor_type.isReflector:
             v['saveIntercept'] = True
@@ -983,6 +983,7 @@ def _prepare_conductors(data):
         if ct is None:
             continue
         type_by_id[ct.id] = ct
+        pkdp('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
         if not _is_3D(data):
