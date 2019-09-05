@@ -47,6 +47,27 @@ def test_different_email():
     pkok(uid != uid2, 'did not get a new uid={}', uid)
 
 
+def test_follow_email_auth_link_twice():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre
+    from pykern.pkdebug import pkdp
+    import re
+
+    r = fc.sr_post(
+        'authEmailLogin',
+        {'email': 'follow@b.c', 'simulationType': sim_type},
+    )
+    s = fc.sr_auth_state(isLoggedIn=False)
+    fc.get(r.url)
+    # get the url twice - should still be logged in
+    assert not re.search(r'login-fail', fc.get(r.url).data)
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+    # now logged out, should see login fail for bad link
+    pkre('login-fail', fc.get(r.url).data)
+
+
 def test_force_login():
     fc, sim_type = _fc()
 
