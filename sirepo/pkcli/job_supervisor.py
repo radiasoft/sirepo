@@ -23,7 +23,6 @@ import uuid
 _BROKERS = {}
 _NURSERY = None
 
-
 def start():
     trio.run(_initialize)
 
@@ -80,31 +79,41 @@ async def _http_receive(receive):
 
 
 async def _http_send(body, send):
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            (b'content-type', b'application/json'),
-            # (b'content-length', b'500'), # TODO(e-carlin): Calculate this
-        ],
-    })
-    #TODO(e-carlin): What if the first send succeeds but this one fails?
-    # How do we "rollback"?
-    await send({
-        'type': 'http.response.body',
-        'body': pkjson.dump_bytes(body),
-    })
+    try:
+        pkdp('*** Starting send')
+        await send({
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [
+                (b'content-type', b'application/json'),
+                # (b'content-length', b'500'), # TODO(e-carlin): Calculate this
+            ],
+        })
+        #TODO(e-carlin): What if the first send succeeds but this one fails?
+        # How do we "rollback"?
+        await send({
+            'type': 'http.response.body',
+            'body': pkjson.dump_bytes(body),
+        })
+        pkdp('** Send complete')
+    except Exception as e:
+        pkdp(f'Exception rasised while sending http. Caused by: {e}')
 
 
 async def _initialize():
     config = hypercorn.trio.Config()
     config.bind = ['0.0.0.0:8080']
     config.keep_alive_timeout = 60 #TODO(e-carlin): This delays closing the connection in long-polling. Find the right number.
-    global _NURSERY 
+    config.accesslog = '-'
+    config.errorlog = '-'
+    config.loglevel = 'debug'
+    global _NURSERY
     async with trio.open_nursery() as _NURSERY:
         await hypercorn.trio.serve(_app, config)
 
+
 async def _process_request_body(body, send):
+    pkdp(f'processing req body: {body}')
     source_types = ['server', 'driver']
     assert body.source in source_types
 
@@ -115,9 +124,9 @@ async def _process_request_body(body, send):
 
 class _Broker():
     def __init__(self, nursery):
-        self._driver_queue = deque([])
         self._server_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
         self._nursery = nursery
+        self._driver_send_channel, self._driver_receive_channel = trio.open_memory_channel(0)
 
     def start(self):
         self._nursery.start_soon(self._statisctics)
@@ -125,32 +134,25 @@ class _Broker():
     async def _statisctics(self):
         while True:
             pkdp('##### BROKER STATS #####')
-            pkdp(f'Driver queue len = {len(self._driver_queue)}')
-            pkdp(f'Server responses dict len = {len(self._server_responses)}')
+            pkdp(f'Server responses dict len: {len(self._server_responses)}')
+            pkdp(f'_driver_send_channel.statistics: {self._driver_send_channel.statistics()}')
+            pkdp(f'_driver_receive_channel.statistics: {self._driver_receive_channel.statistics()}')
             pkdp('########################')
             await trio.sleep(5)
 
     async def process_driver_request(self, request, driver_send):
         pkdlog(f'Processing driver request. Request: {request}')
         if request.action == 'ready_for_work':
-            while True:
-                #TODO(e-carlin): This should start on its own. Not have to wait for driver request
-                if self._driver_queue:
-                    work_to_do = self._driver_queue.popleft()
-                    pkdlog(f'Work found in driver queue. Sending to driver. Work: {work_to_do}')
-                    await _http_send(work_to_do, driver_send)
-                else:
-                    #TODO(e-carlin): This is lame. I've created my own "dumb" event loop
-                    # it would be better to wait on something being put in the queue. Or
-                    # use messaging channels and wait on a message
-                    pkdp('No work to do. Going to sleep..')
-                    await trio.sleep(1) # Wait for some work to do before replying
-        
-        else: # We have some results
+            message = await self._driver_receive_channel.receive()
+            pkdlog('Received message on driver channel. Sending to driver. Message: {!r}'.format(message))
+            await _http_send(message, driver_send)
+            return
+        else:
             reply = self._server_responses[request.request_id]
             pkdlog(f'Replying to server: {request}')
             await _http_send(request, reply.send)
             reply.reply_sent.set()
+            return
 
     async def process_server_request(self, request, server_send):
         pkdlog(f'Processing server request. Request: {request}')
@@ -161,10 +163,10 @@ class _Broker():
             'request_id': request_id,
             'request': request,
         })
-        self._driver_queue.append(work_to_do)
         self._server_responses[request_id] = pkcollections.Dict({
             'send': server_send,
             'reply_sent': reply_sent,
         })
+        await self._driver_send_channel.send(work_to_do)
         await reply_sent.wait()
         del self._server_responses[request_id]
