@@ -40,7 +40,9 @@ def run_background(cfg_dir):
     with pkio.save_chdir(cfg_dir):
         data = simulation_db.read_json(template_common.INPUT_BASE_NAME)
         #TODO(pjm): only run with mpi for 3d case for now
-        if data.models.simulationGrid.simulation_mode == '3d' and not data.report == 'optimizerAnimation':
+        if data.models.simulationGrid.simulation_mode == '3d' \
+           and not data.report == 'optimizerAnimation' \
+           and data.models.simulation.executionMode == 'parallel':
             pkdc('RUNNING MPI')
             simulation_db.write_json(py.path.local(cfg_dir).join(template.MPI_SUMMARY_FILE), {
                 'mpiCores': mpi.cfg.cores,

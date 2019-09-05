@@ -85,6 +85,10 @@
             ["y", "Y"],
             ["z", "Z"]
         ],
+        "ExecutionMode": [
+            ["serial", "Serial"],
+            ["parallel", "Parallel"]
+        ],
         "Field": [
             ["x", "E x"],
             ["z", "E z"],
@@ -234,7 +238,8 @@
         "simulation": {
             "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
-            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
+            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"],
+            "executionMode": ["Execution", "ExecutionMode", "serial"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],

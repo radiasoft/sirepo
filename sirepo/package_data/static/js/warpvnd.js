@@ -2607,9 +2607,9 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                   '<div data-ng-show="simState.isStateRunning()">',
                     '<div class="col-sm-12">',
                       '<div data-ng-show="simState.isInitializing() || simState.getFrameCount() > 0">',
-            'Running Simulation ',
-            '<span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>',
-            '{{ simState.dots }}',
+                        'Running Simulation ',
+                        '<span data-ng-if="mpiCores">with {{ mpiCores }} CPU Cores </span>',
+                        '{{ simState.dots }}',
                       '</div>',
                       '<div data-ng-show="simState.getFrameCount() > 0 && simState.getPercentComplete() < 100">',
                         'Completed frame: {{ simState.getFrameCount() }}',
@@ -2638,7 +2638,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
 
             function handleStatus(data) {
                 if (data.mpiCores) {
-                    $scope.mpiCores = data.mpiCores;
+                    $scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
                 }
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
@@ -2770,7 +2770,7 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                     var pg = viewport.append('g')
                         .attr('class', 'density-plot');
                     // loop over "faces"
-                    c.faces.forEach(function (f, fi) {
+                    (c.faces || []).forEach(function (f, fi) {
                         var o = [f.x.startVal, f.z.startVal].map(toNano);
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
@@ -4353,7 +4353,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                     var condId = c.id;
                     // loop over faces
-                    c.faces.forEach(function (f) {
+                    (c.faces || []).forEach(function (f) {
                         if (f.err) {
                             errorService.alertText(f.err);
                             return;
