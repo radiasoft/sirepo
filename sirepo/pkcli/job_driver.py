@@ -53,7 +53,7 @@ async def _notify_supervisor_results(io_loop, job_tracker, results):
 
 async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
     data = pkcollections.Dict({
-        'action': ACTION_READY_FOR_WORK
+        'action': ACTION_READY_FOR_WORK,
     })
     return await _notify_supervisor(io_loop, job_tracker, data)
 
@@ -62,7 +62,7 @@ async def _notify_supervisor(io_loop, job_tracker, data):
     #TODO(e-carlin): **kwargs
     try:
         data.source = 'driver'
-        data.uid = 'sVKP0jmq'
+        data.uid = 'sVKP0jmq' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
         # body = {
         #     'source': 'driver',
         #     'uid': 'sVKP0jmq', #TODO(e-carlin): Make real id
@@ -98,7 +98,8 @@ def _process_supervisor_request(io_loop, job_tracker, request):
         io_loop.spawn_callback(_start_report_job, io_loop, job_tracker, request)
         return pkcollections.Dict({
             'action': 'report_job_started',
-            'request_id': 'abc123'
+            'request_id': request.request_id,
+            'uid': request.uid,
         })
     assert 0
 
@@ -195,12 +196,6 @@ class _JobTracker:
             run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
         )
         self.report_jobs[run_dir] = job_info
-
-        # TODO(e-carlin): Real supervision is needed
-        # async def _supervise_job(run_dir, jhash, job_info):
-        #     pkdp(f'Starting to wait on jhash {jhash}')
-        #     returncode = await job_info.report_job.wait_for_exit()
-        #     pkdp(f'jhash {jhash} finished with exit code {returncode}')
 
         self._io_loop.spawn_callback(
             self._supervise_report_job, run_dir, jhash, job_info
