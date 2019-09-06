@@ -43,7 +43,6 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
 
 
 def report_job_status(run_dir, jhash):
-
     body = {
         'action': 'report_job_status',
         'run_dir': str(run_dir),
@@ -55,16 +54,18 @@ def report_job_status(run_dir, jhash):
 
 
 def cancel_report_job(run_dir, jhash):
-    return _rpc({
-        'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
-    })
+    raise NotImplementedError()
+    # return _rpc({
+    #     'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
+    # })
 
 
 def run_extract_job(run_dir, jhash, subcmd, *args):
-    return _rpc({
-        'action': 'run_extract_job',
-        'run_dir': str(run_dir),
-        'jhash': jhash,
-        'subcmd': subcmd,
-        'arg': pkjson.dump_pretty(args),
-    })
+    raise NotImplementedError()
+    # return _rpc({
+    #     'action': 'run_extract_job',
+    #     'run_dir': str(run_dir),
+    #     'jhash': jhash,
+    #     'subcmd': subcmd,
+    #     'arg': pkjson.dump_pretty(args),
+    # })
