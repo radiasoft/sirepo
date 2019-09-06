@@ -63,12 +63,6 @@ async def _notify_supervisor(io_loop, job_tracker, data):
     try:
         data.source = 'driver'
         data.uid = 'sVKP0jmq' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
-        # body = {
-        #     'source': 'driver',
-        #     'uid': 'sVKP0jmq', #TODO(e-carlin): Make real id
-        #     'action': action,
-        #     'data': data
-        # }
         pkdlog(f'Notifying supervisor: {data}')
 
         http_client = tornado.httpclient.AsyncHTTPClient()
@@ -94,6 +88,7 @@ async def _notify_supervisor(io_loop, job_tracker, data):
 
 
 def _process_supervisor_request(io_loop, job_tracker, request):
+    #TODO(e-carlin): Better organization of this code
     if request.action == 'start_report_job':
         io_loop.spawn_callback(_start_report_job, io_loop, job_tracker, request)
         return pkcollections.Dict({
@@ -101,10 +96,21 @@ def _process_supervisor_request(io_loop, job_tracker, request):
             'request_id': request.request_id,
             'uid': request.uid,
         })
+    elif request.action == 'report_job_status':
+        status =  job_tracker.report_job_status(
+            #TODO(e-carlin): Find a common pace to do pkio.py_path() these are littered around
+           pkio.py_path(request.run_dir), request.jhash
+        ).value
+        return pkcollections.Dict({
+            'action': 'status_of_report_job',
+            'request_id': request.request_id,
+            'uid': request.uid,
+            'status': status,
+        })
+
     assert 0
 
 async def _start_report_job(io_loop, job_tracker, request):
-    assert request.action == 'start_report_job'
     pkdc('start_report_job: {}', request)
     await job_tracker.start_report_job(
         pkio.py_path(request.run_dir), request.jhash,
@@ -125,6 +131,15 @@ class _JobTracker:
         self.report_jobs = {}
         self._io_loop = io_loop
 
+    def report_job_status(self, run_dir, jhash):
+        """Get the current status of a specific job in the given run_dir.
+
+        """
+        run_dir_jhash, run_dir_status = self.run_dir_status(run_dir)
+        if run_dir_jhash == jhash:
+            return run_dir_status
+        else:
+            return runner_client.JobStatus.MISSING
 
     def run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.
