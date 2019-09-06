@@ -1,6 +1,7 @@
 from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import simulation_db
 from sirepo import srdb
 import aenum
 import contextlib
@@ -20,14 +21,18 @@ class JobStatus(aenum.Enum):
 
 
 def _request(body):
+    #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
+    # We likely need a better key and we shouldn't expose this implementation
+    # detail to the client.
+    uid = simulation_db.uid_from_dir_name(body['run_dir'])
+    body['uid'] = uid
+    body['source'] = 'server'
     r = requests.post('http://0.0.0.0:8888', json=body)
     return pkjson.load_any(r.content)
 
-def start_report_job(uid, run_dir, jhash, backend, cmd, tmp_dir):
+def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
     body = {
-        'source': 'server',
         'action': 'start_report_job',
-        'uid': uid,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
@@ -38,14 +43,15 @@ def start_report_job(uid, run_dir, jhash, backend, cmd, tmp_dir):
 
 
 def report_job_status(run_dir, jhash):
-    # body = {
-    #     'action': 'report_job_status',
-    #     'run_dir': str(run_dir),
-    #     'jhash': jhash,
-    # }
-    # result = _request(body)
-    # return JobStatus(result.status)
-    return JobStatus('missing')
+
+    body = {
+        'action': 'report_job_status',
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+    }
+    result = _request(body)
+    return JobStatus(result.status)
+    # return JobStatus('missing')
 
 
 def cancel_report_job(run_dir, jhash):
