@@ -56,8 +56,7 @@ class _Broker():
     async def process_server_request(self, request, send_to_server):
         pkdlog(f'Processing server request. Request: {request}')
         reply_sent = tornado.locks.Event()
-        # request_id = str(uuid.uuid4())
-        request.request_id = 'abc123'#TODO(e-carlin): Hardcoded for now for testing
+        request.request_id = str(uuid.uuid4())
         work_to_do = pkcollections.Dict(request)
         self._server_responses[request.request_id] = pkcollections.Dict({
             'send': send_to_server,
