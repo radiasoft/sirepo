@@ -1214,7 +1214,7 @@ SIREPO.app.directive('panelLayout', function(appState, utilities, $window) {
                     panelItems = $($element).find('.sr-panel-item');
                 }
                 panelItems.each(function(idx, item) {
-                    cols[count].append(item);
+                    $(cols[count]).append(item);
                     count = (count + 1) % columnCount;
                 });
             }
