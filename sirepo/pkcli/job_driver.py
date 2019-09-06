@@ -19,104 +19,124 @@ import tornado.httpclient
 import tornado.locks
 import math
 import contextlib
+import tornado.queues
 
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_REPORT_JOB_STARTED = 'report_job_started'
 ACTION_PROCESS_RESULT = 'process_result'
+ACTION_KEEP_ALIVE = 'keep_alive'
 
 
 _KILL_TIMEOUT_SECS = 3
 
 
+_SERVER_REQUESTS_Q = tornado.queues.Queue()
+_DRIVER_RESPONSES_Q = tornado.queues.Queue()
+
+
 def start():
     io_loop = tornado.ioloop.IOLoop.current()
     job_tracker = _JobTracker(io_loop)
-    io_loop.spawn_callback(_main, io_loop, job_tracker)
+    io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
     io_loop.start()
 
-async def _main(io_loop, job_tracker):
-    #TODO(e-carlin): This logic is annoying
-    results = None
-    while True:
-        if results == None:
-            with _catch_and_log_errors(Exception, 'error in _main with _notify_supervisor_ready_for_work'):
-                results = await _notify_supervisor_ready_for_work(io_loop, job_tracker)
-            if results == None:
-                continue
-        with _catch_and_log_errors(Exception, 'error in _main with _notify_results'):
-            results = await _notify_supervisor_results(io_loop, job_tracker, results)
-
-
-async def _notify_supervisor_results(io_loop, job_tracker, results):
-    return await _notify_supervisor(io_loop, job_tracker, results)
-
-
 async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
-    data = pkcollections.Dict({
-        'action': ACTION_READY_FOR_WORK,
-    })
-    return await _notify_supervisor(io_loop, job_tracker, data)
+    while True:
+        data = pkcollections.Dict({
+            'action': ACTION_READY_FOR_WORK,
+        })
+        request = await _notify_supervisor(data)
+        if request.action == ACTION_KEEP_ALIVE:
+            continue
+        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
 
 
-async def _notify_supervisor(io_loop, job_tracker, data):
-    #TODO(e-carlin): **kwargs
-    try:
-        data.source = 'driver'
-        data.uid = 'sVKP0jmq' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
-        pkdlog(f'Notifying supervisor: {data}')
-
-        http_client = tornado.httpclient.AsyncHTTPClient()
-        response = await http_client.fetch(
-            'http://localhost:8888',
-            method='POST',
-            body=pkjson.dump_bytes(data),
-            request_timeout=math.inf,
-            )
-
-        #TODO(e-carlin): Hack. When we send results to server it responds with nothing
-        if response.body is b'':
-            return None
-
-        supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
-        pkdp(f'Supervisor responded with: {supervisor_request}')
-
-        #TODO(e-carlin): Better name? Here we move from response to request since the supervisor responds with a request
-        return _process_supervisor_request(io_loop, job_tracker, supervisor_request)
-    except Exception as e:
-        pkdp(f'Exception notifying supervisor. Caused by: {e}')
-        await tornado.gen.sleep(1) #TODO(e-carlin): Exponential backoff? We need to handle cases individually
-
-
-def _process_supervisor_request(io_loop, job_tracker, request):
-    #TODO(e-carlin): Better organization of this code
+async def _process_supervisor_request(io_loop, job_tracker, request):
+    #TODO(e-carlin): This code is repetitive. We can find the function name from the reuqest action
     if request.action == 'start_report_job':
-        io_loop.spawn_callback(_start_report_job, io_loop, job_tracker, request)
-        return pkcollections.Dict({
-            'action': 'report_job_started',
-            'request_id': request.request_id,
-            'uid': request.uid,
-        })
+        pkdc('start_report_job: {}', request)
+        results = await _start_report_job(job_tracker, request)
+        await _notify_supervisor(results)
+        return
     elif request.action == 'report_job_status':
-        status =  job_tracker.report_job_status(
-            #TODO(e-carlin): Find a common pace to do pkio.py_path() these are littered around
-           pkio.py_path(request.run_dir), request.jhash
-        ).value
-        return pkcollections.Dict({
-            'action': 'status_of_report_job',
-            'request_id': request.request_id,
-            'uid': request.uid,
-            'status': status,
-        })
+        pkdc('report_job_status: {}', request)
+        status = _report_job_status(job_tracker, request)
+        await _notify_supervisor(status)
+        return
+    elif request.action == 'run_extract_job':
+        pkdc('report_job_status: {}', request)
+        results = await _run_extract_job(job_tracker, request)
+        await _notify_supervisor(results)
+        return
+    else:
+        raise Exception(f'Request.action {request.action} unknown')
+    
 
-    assert 0
 
-async def _start_report_job(io_loop, job_tracker, request):
+
+async def _run_extract_job(job_tracker, request):
+    pkdc('run_extrac_job: {}', request)
+    result = await job_tracker.run_extract_job(
+        request.run_dir,
+        request.jhash,
+        request.subcmd,
+        request.arg,
+    )
+    return pkcollections.Dict({
+        'action' : 'result_of_run_extract_job',
+        'request_id': request.request_id,
+        'uid': request.uid,
+        'result': result,
+    })
+
+
+def _report_job_status(job_tracker, request):
+    pkdc('report_job_status: {}', request)
+    status =  job_tracker.report_job_status(
+        #TODO(e-carlin): Find a common place to do pkio.py_path() these are littered around
+        pkio.py_path(request.run_dir), request.jhash
+    ).value
+    return pkcollections.Dict({
+        'action': 'status_of_report_job',
+        'request_id': request.request_id,
+        'uid': request.uid,
+        'status': status,
+    })
+            
+async def _start_report_job(job_tracker, request):
     pkdc('start_report_job: {}', request)
     await job_tracker.start_report_job(
         pkio.py_path(request.run_dir), request.jhash,
         request.backend,
         request.cmd, pkio.py_path(request.tmp_dir),
     )
+    return pkcollections.Dict({
+        'action': 'report_job_started',
+        'request_id': request.request_id,
+        'uid': request.uid,
+    })
+
+
+async def _notify_supervisor(data):
+    data.source = 'driver'
+    data.uid = 'NwfZClof' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
+    pkdlog(f'Notifying supervisor: {data}')
+
+    http_client = tornado.httpclient.AsyncHTTPClient()
+    response = await http_client.fetch(
+        'http://localhost:8888',
+        method='POST',
+        body=pkjson.dump_bytes(data),
+        request_timeout=math.inf,
+        )
+
+    #TODO(e-carlin): Hack. When we send results to server it responds with nothing
+    if response.body is b'':
+        return None
+
+    supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
+    pkdp(f'Supervisor responded with: {supervisor_request}')
+    return supervisor_request
 
 class _JobInfo:
     def __init__(self, run_dir, jhash, status, report_job):
@@ -173,35 +193,6 @@ class _JobTracker:
 
 
     async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
-        # First make sure there's no-one else using the run_dir
-        current_jhash, current_status = self.run_dir_status(run_dir)
-        if current_status is runner_client.JobStatus.RUNNING:
-            # Something's running.
-            if current_jhash == jhash:
-                # It's already the requested job, so we have nothing to
-                # do. Throw away the tmp_dir and move on.
-                pkdlog(
-                    'job is already running; skipping (run_dir={}, jhash={}, tmp_dir={})',
-                    run_dir, jhash, tmp_dir,
-                )
-                pkio.unchecked_remove(tmp_dir)
-                return
-            # It's some other job. Better kill it before doing
-            # anything else.
-            # XX TODO: should we check some kind of sequence number
-            # here? I don't know how those work.
-            #TODO(robnagler) it's not "stale", but it is running. There's no need for
-            #    sequence numbers. This should never happen, and the supervisor should
-            #    should be informed of this situation, because it holds the queue,
-            #    and it wouldn't start a job that is already running.
-            pkdlog(
-                'stale job is still running; killing it (run_dir={}, jhash={})',
-                run_dir,
-                jhash,
-            )
-            await self.kill_all(run_dir)
-
-        # Okay, now we have the dir to ourselves. Set up the new run_dir:
         assert run_dir not in self.report_jobs
         #TODO(robnagler): this has to be atomic.
         pkio.unchecked_remove(run_dir)
@@ -212,9 +203,7 @@ class _JobTracker:
         )
         self.report_jobs[run_dir] = job_info
 
-        self._io_loop.spawn_callback(
-            self._supervise_report_job, run_dir, jhash, job_info
-        )
+        await self._supervise_report_job(run_dir, jhash, job_info)
         
     async def _supervise_report_job(self, run_dir, jhash, job_info):
         with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
