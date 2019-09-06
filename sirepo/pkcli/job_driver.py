@@ -29,7 +29,7 @@ ACTION_REPORT_JOB_STARTED = 'report_job_started'
 
 
 _KILL_TIMEOUT_SECS = 3
-
+_RUNNER_INFO_BASENAME = 'runner-info.json'
 
 _SERVER_REQUESTS_Q = tornado.queues.Queue()
 _DRIVER_RESPONSES_Q = tornado.queues.Queue()
@@ -108,9 +108,52 @@ class _JobTracker:
             return job_info.jhash, job_info.status
             
         return None, runner_client.JobStatus.MISSING
+    
+    async def run_extract_job(self, io_loop, run_dir, jhash, subcmd, arg):
+        pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
+        status = self.report_job_status(run_dir, jhash)
+        if status is runner_client.JobStatus.MISSING:
+            pkdlog('{} {}: report is missing; skipping extract job',
+                   run_dir, jhash)
+            return {}
+        # figure out which backend and any backend-specific info
+        runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
+        if runner_info_file.exists():
+            runner_info = pkjson.load_any(runner_info_file)
+        else:
+            # Legacy run_dir
+            runner_info = pkcollections.Dict(
+                version=1, backend='local', backend_info={},
+            )
+        assert runner_info.version == 1
+
+        # run the job
+        cmd = ['sirepo', 'extract', subcmd, arg]
+        result = await local_process.run_extract_job(
+           io_loop, run_dir, cmd, runner_info.backend_info,
+        )
+
+        if result.stderr:
+            pkdlog(
+                'got output on stderr ({} {}):\n{}',
+                run_dir, jhash,
+                result.stderr.decode('utf-8', errors='ignore'),
+            )
+
+        if result.returncode != 0:
+            pkdlog(
+                'failed with return code {} ({} {}), stdout:\n{}',
+                result.returncode,
+                run_dir,
+                subcmd,
+                result.stdout.decode('utf-8', errors='ignore'),
+            )
+            raise AssertionError
+
+        return pkjson.load_any(result.stdout)
 
 
-    async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
+    async def start_report_job(self, io_loop, run_dir, jhash, backend, cmd, tmp_dir):
         assert run_dir not in self.report_jobs
         #TODO(robnagler): this has to be atomic.
         pkio.unchecked_remove(run_dir)
@@ -121,9 +164,9 @@ class _JobTracker:
         )
         self.report_jobs[run_dir] = job_info
 
-        await self._supervise_report_job(run_dir, jhash, job_info)
+        await self._supervise_report_job(io_loop, run_dir, jhash, job_info)
         
-    async def _supervise_report_job(self, run_dir, jhash, job_info):
+    async def _supervise_report_job(self, io_loop, run_dir, jhash, job_info):
         with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
             # Make sure returncode is defined in the finally block, even if
             # wait() somehow crashes
@@ -138,7 +181,7 @@ class _JobTracker:
                 if job_info.cancel_requested:
                     _write_status(runner_client.JobStatus.CANCELED, run_dir)
                     await self.run_extract_job(
-                        run_dir, jhash, 'remove_last_frame', '[]',
+                        io_loop, run_dir, jhash, 'remove_last_frame', '[]',
                     )
                 elif returncode == 0:
                     _write_status(runner_client.JobStatus.COMPLETED, run_dir)
@@ -193,7 +236,7 @@ async def _process_supervisor_request(io_loop, job_tracker, request):
     #TODO(e-carlin): This code is repetitive. We can find the function name from the reuqest action
     if request.action == 'start_report_job':
         pkdc('start_report_job: {}', request)
-        results = await _start_report_job(job_tracker, request)
+        results = await _start_report_job(job_tracker, request, io_loop)
         await _notify_supervisor(results)
         return
     elif request.action == 'report_job_status':
@@ -202,8 +245,8 @@ async def _process_supervisor_request(io_loop, job_tracker, request):
         await _notify_supervisor(status)
         return
     elif request.action == 'run_extract_job':
-        pkdc('report_job_status: {}', request)
-        results = await _run_extract_job(job_tracker, request)
+        pkdc('run_extract_job: {}', request)
+        results = await _run_extract_job(job_tracker, request, io_loop)
         await _notify_supervisor(results)
         return
     else:
@@ -225,10 +268,11 @@ def _report_job_status(job_tracker, request):
     })
             
 
-async def _run_extract_job(job_tracker, request):
+async def _run_extract_job(job_tracker, request, io_loop):
     pkdc('run_extrac_job: {}', request)
     result = await job_tracker.run_extract_job(
-        request.run_dir,
+        io_loop,
+        pkio.py_path(request.run_dir),
         request.jhash,
         request.subcmd,
         request.arg,
@@ -241,9 +285,10 @@ async def _run_extract_job(job_tracker, request):
     })
 
 
-async def _start_report_job(job_tracker, request):
+async def _start_report_job(job_tracker, request, io_loop):
     pkdc('start_report_job: {}', request)
     await job_tracker.start_report_job(
+        io_loop,
         pkio.py_path(request.run_dir), request.jhash,
         request.backend,
         request.cmd, pkio.py_path(request.tmp_dir),
