@@ -21,6 +21,7 @@ import math
 import contextlib
 
 ACTION_READY_FOR_WORK = 'ready_for_work'
+ACTION_REPORT_JOB_STARTED = 'report_job_started'
 ACTION_PROCESS_RESULT = 'process_result'
 
 
@@ -29,49 +30,79 @@ _KILL_TIMEOUT_SECS = 3
 
 def start():
     io_loop = tornado.ioloop.IOLoop.current()
-    io_loop.spawn_callback(_main, io_loop)
+    job_tracker = _JobTracker(io_loop)
+    io_loop.spawn_callback(_main, io_loop, job_tracker)
     io_loop.start()
 
-async def _main(io_loop):
-    job_tracker = _JobTracker(io_loop)
-    io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
+async def _main(io_loop, job_tracker):
+    #TODO(e-carlin): This logic is annoying
+    results = None
+    while True:
+        if results == None:
+            with _catch_and_log_errors(Exception, 'error in _main with _notify_supervisor_ready_for_work'):
+                results = await _notify_supervisor_ready_for_work(io_loop, job_tracker)
+            if results == None:
+                continue
+        with _catch_and_log_errors(Exception, 'error in _main with _notify_results'):
+            results = await _notify_supervisor_results(io_loop, job_tracker, results)
+
+
+async def _notify_supervisor_results(io_loop, job_tracker, results):
+    return await _notify_supervisor(io_loop, job_tracker, results)
+
 
 async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
-    while True:
-        await _notify_supervisor(io_loop, job_tracker, ACTION_READY_FOR_WORK)
+    data = pkcollections.Dict({
+        'action': ACTION_READY_FOR_WORK
+    })
+    return await _notify_supervisor(io_loop, job_tracker, data)
 
 
-async def _notify_supervisor(io_loop, job_tracker, action, data={}):
+async def _notify_supervisor(io_loop, job_tracker, data):
+    #TODO(e-carlin): **kwargs
     try:
-        body = {
-            'source': 'driver',
-            'uid': 'sVKP0jmq', #TODO(e-carlin): Make real id
-            'action': action,
-            'data': data
-        }
-        pkdlog(f'Notifying supervisor: {body}')
+        data.source = 'driver'
+        data.uid = 'sVKP0jmq'
+        # body = {
+        #     'source': 'driver',
+        #     'uid': 'sVKP0jmq', #TODO(e-carlin): Make real id
+        #     'action': action,
+        #     'data': data
+        # }
+        pkdlog(f'Notifying supervisor: {data}')
 
         http_client = tornado.httpclient.AsyncHTTPClient()
         response = await http_client.fetch(
             'http://localhost:8888',
             method='POST',
-            body=pkjson.dump_bytes(body),
+            body=pkjson.dump_bytes(data),
             request_timeout=math.inf,
             )
 
-        pkdp(f'Supervisor responded with: {pkcollections.Dict(pkjson.load_any(response.body))}')
-
+        #TODO(e-carlin): Hack. When we send results to server it responds with nothing
+        if response.body is b'':
+            return None
 
         supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
-        assert supervisor_request.action == 'start_report_job'
+        pkdp(f'Supervisor responded with: {supervisor_request}')
+
         #TODO(e-carlin): Better name? Here we move from response to request since the supervisor responds with a request
-        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, supervisor_request)
+        return _process_supervisor_request(io_loop, job_tracker, supervisor_request)
     except Exception as e:
         pkdp(f'Exception notifying supervisor. Caused by: {e}')
         await tornado.gen.sleep(1) #TODO(e-carlin): Exponential backoff? We need to handle cases individually
 
 
-async def _process_supervisor_request(io_loop, job_tracker, request):
+def _process_supervisor_request(io_loop, job_tracker, request):
+    if request.action == 'start_report_job':
+        io_loop.spawn_callback(_start_report_job, io_loop, job_tracker, request)
+        return pkcollections.Dict({
+            'action': 'report_job_started',
+            'request_id': 'abc123'
+        })
+    assert 0
+
+async def _start_report_job(io_loop, job_tracker, request):
     assert request.action == 'start_report_job'
     pkdc('start_report_job: {}', request)
     await job_tracker.start_report_job(
@@ -88,40 +119,9 @@ class _JobInfo:
         self.report_job = report_job
         self.cancel_requested = False
 
-class _LockDict:
-    from contextlib import contextmanager
-    def __init__(self):
-        # {key: ParkingLot}
-        # lock is held iff the key exists
-        self._waiters = {}
-
-    #TODO(robnagler): i wonder if this needs to be an async_generator but
-    #   i don't understand this well enough.
-    @contextmanager
-    async def __getitem__(self, key):
-        if key not in self._waiters:
-            self._waiters[key] = asyncio.Lock() # tornado locks don't have locked() so using asyncio
-        a = False
-        try:
-            r = self._waiters[key].locked()
-            pkdp(f'*** Result of locked {r}')
-            await self._waiters[key].acquire()
-            a = True
-            yield
-        finally:
-            if a:
-                ### release_if_owner would make this simpler or
-                ### at least current_task_is_owner?
-                self._waiters[key].release()
-                #TODO(e-carlin): Does this really work? These calls are atomic so
-                # I would guess that no one else has the time to call acquire?
-                if not self._waiters[key].locked():
-                    del self._waiters[key]
-
 class _JobTracker:
     def __init__(self, io_loop):
         self.report_jobs = {}
-        self.locks = _LockDict()
         self._io_loop = io_loop
 
 
@@ -129,7 +129,7 @@ class _JobTracker:
         """Get the current status of whatever's happening in run_dir.
 
         Returns:
-          Tuple of (jhash or None, status of that job)
+        Tuple of (jhash or None, status of that job)
 
         """
         disk_in_path = run_dir.join('in.json')
@@ -214,26 +214,23 @@ class _JobTracker:
             try:
                 returncode = await job_info.report_job.wait_for_exit()
             finally:
-                pkdp('***** In finally')
-                async with self.locks[run_dir]:
-                    # Clear up our in-memory status
-                    assert self.report_jobs[run_dir] is job_info
-                    del self.report_jobs[run_dir]
-                    # Write status to disk
-                    if job_info.cancel_requested:
-                        _write_status(runner_client.JobStatus.CANCELED, run_dir)
-                        await self.run_extract_job(
-                            run_dir, jhash, 'remove_last_frame', '[]',
-                        )
-                    elif returncode == 0:
-                        _write_status(runner_client.JobStatus.COMPLETED, run_dir)
-                    else:
-                        pkdlog(
-                            '{} {}: job failed, returncode = {}',
-                            run_dir, jhash, returncode,
-                        )
-                        _write_status(runner_client.JobStatus.ERROR, run_dir)
-                    pkdp('*** Done with finally')
+                # Clear up our in-memory status
+                assert self.report_jobs[run_dir] is job_info
+                del self.report_jobs[run_dir]
+                # Write status to disk
+                if job_info.cancel_requested:
+                    _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                    await self.run_extract_job(
+                        run_dir, jhash, 'remove_last_frame', '[]',
+                    )
+                elif returncode == 0:
+                    _write_status(runner_client.JobStatus.COMPLETED, run_dir)
+                else:
+                    pkdlog(
+                        '{} {}: job failed, returncode = {}',
+                        run_dir, jhash, returncode,
+                    )
+                    _write_status(runner_client.JobStatus.ERROR, run_dir)
 
 # Cut down version of simulation_db.write_result
 def _write_status(status, run_dir):
