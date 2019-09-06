@@ -7,6 +7,7 @@ u"""sirepo package
 from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections
+from pykern.pkdebug import pkdp
 from sirepo import mpi
 from sirepo.template import template_common
 import os
@@ -76,46 +77,45 @@ class _LocalReportJob:
     async def wait_for_exit(self):
         return await self._sub_process.wait_for_exit()
 
-# async def run_extract_job(run_dir, cmd, backend_info):
-#     env = _subprocess_env()
-#     # we're in py3 mode, and regular subprocesses will inherit our
-#     # environment, so we have to manually switch back to py2 mode.
-#     env['PYENV_VERSION'] = 'py2'
-#     cmd = ['pyenv', 'exec'] + cmd
+async def run_extract_job(io_loop, run_dir, cmd, backend_info):
+    env = _subprocess_env()
+    # we're in py3 mode, and regular subprocesses will inherit our
+    # environment, so we have to manually switch back to py2 mode.
+    env['PYENV_VERSION'] = 'py2'
+    cmd = ['pyenv', 'exec'] + cmd
+    
+    sub_process = tornado.process.Subprocess(
+        cmd,
+        cwd=run_dir,
+        start_new_session=True,
+        stdin=subprocess.DEVNULL,
+        stdout=tornado.process.Subprocess.STREAM,
+        stderr=tornado.process.Subprocess.STREAM,
+        env=env,
+    )
+    try:
+        async def collect(stream, out_array):
+            out_array += await stream.read_until_close()
+            # while True:
+            #     data = await stream.read_bytes(4096)
+            #     if not data:
+            #         break
+                # out_array += data
 
-#     # When the next version of Trio is released, we'll be able to replace all
-#     # this with a call to trio.run_process(...)
-#     sub_process = trio.Process(
-#         cmd,
-#         cwd=run_dir,
-#         start_new_session=True,
-#         stdin=subprocess.DEVNULL,
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE,
-#         env=env,
-#     )
-#     try:
-#         async def collect(stream, out_array):
-#             while True:
-#                 data = await stream.receive_some(4096)
-#                 if not data:
-#                     break
-#                 out_array += data
-
-#         stdout = bytearray()
-#         stderr = bytearray()
-#         async with trio.open_nursery() as nursery:
-#             nursery.start_soon(collect, sub_process.stdout, stdout)
-#             nursery.start_soon(collect, sub_process.stderr, stderr)
-#             await sub_process.wait()
-#     finally:
-#         sub_process.kill()
-#         await sub_process.aclose()
-
-#     return pkcollections.Dict(
-#         returncode=sub_process.returncode,
-#         stdout=stdout,
-#         stderr=stderr,
-#     )
-
-#     return stdout.decode('utf-8')
+        stdout = bytearray()
+        stderr = bytearray()
+         
+        io_loop.spawn_callback(collect, sub_process.stdout, stdout)
+        io_loop.spawn_callback(collect, sub_process.stderr, stderr)
+        return_code = await sub_process.wait_for_exit()
+    finally:
+        #TODO(e-carlin): Do kill and close
+        # sub_process.kill()
+        # await sub_process.aclose()
+        pass
+    
+    return pkcollections.Dict(
+        returncode=return_code,
+        stdout=stdout,
+        stderr=stderr,
+    )
