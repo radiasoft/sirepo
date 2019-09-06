@@ -37,6 +37,7 @@ pykern.pksetup.setup(
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',
         'docker; python_version >= "3"',
+        'tornado; python_version >= "3"',
    ],
     license='http://www.apache.org/licenses/LICENSE-2.0.html',
     name='sirepo',
