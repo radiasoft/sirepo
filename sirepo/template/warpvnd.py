@@ -983,7 +983,7 @@ def _prepare_conductors(data):
         if ct is None:
             continue
         type_by_id[ct.id] = ct
-        pkdp('!PREP CONDS {}', ct)
+        #pkdp('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
         if not _is_3D(data):
@@ -1148,6 +1148,5 @@ def _save_stl_polys(data):
         with h5py.File(_stl_polygon_file(data.file)) as hf:
             template_common.dict_to_h5(data, hf, path='/')
     except Exception as e:
-        pkdp('!save_stl_polys FAIL: {}', e)
+        pkdlog('!save_stl_polys FAIL: {}', e)
         pass
-
