@@ -1889,17 +1889,17 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             '</form>',
         ].join(''),
         controller: function($scope) {
-
-            //TODO(pjm): share with template/srw.py _REPORT_STYLE_FIELDS
-            var plotFields = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'aspectRatio'];
-            var multiElectronAnimation = null;
+            var clientFields = ['colorMap', 'aspectRatio', 'plotScale'];
+            var serverFields = ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'];
+            var oldModel = null;
             $scope.frameCount = 1;
 
-            function copyMultiElectronModel() {
-                multiElectronAnimation = appState.cloneModel('multiElectronAnimation');
-                plotFields.forEach(function(f) {
-                    delete multiElectronAnimation[f];
+            function copyModel() {
+                oldModel = appState.cloneModel($scope.model);
+                serverFields.concat(clientFields).forEach(function(f) {
+                    delete oldModel[f];
                 });
+                return oldModel;
             }
 
             function handleStatus(data) {
@@ -1929,14 +1929,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
             }
 
             function hasReportParameterChanged() {
-                if ($scope.model == 'multiElectronAnimation') {
-                    // for the multiElectronAnimation, changes to the intensityPlots* fields don't require
-                    // the simulation to be restarted
-                    var oldModel = multiElectronAnimation;
-                    copyMultiElectronModel();
-                    if (appState.deepEquals(oldModel, multiElectronAnimation)) {
-                        return false;
-                    }
+                // for the multiElectronAnimation, changes to the intensityPlots* fields don't require
+                // the simulation to be restarted
+                var model = oldModel;
+                if (appState.deepEquals(model, copyModel())) {
+                    return false;
                 }
                 return true;
             }
@@ -1970,10 +1967,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                         $scope.particleNumber = 0;
                     }
                 });
-                copyMultiElectronModel();
+                copyModel();
             });
 
-            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '1'], plotFields);
+            var coherentArgs = $.merge([SIREPO.ANIMATION_ARGS_VERSION + '3'], serverFields);
             $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus, {
                 multiElectronAnimation: coherentArgs,
                 fluxAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1'],
