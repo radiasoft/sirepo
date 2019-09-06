@@ -120,5 +120,5 @@ def start():
     server = tornado.httpserver.HTTPServer(app)
     port = tornado.options.options.port
     server.listen(port)
-    pkdlog(f'Server listening on port {port}')
+    pkdlog('Server listening on port {}', port)
     tornado.ioloop.IOLoop.current().start()
