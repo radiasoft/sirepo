@@ -380,12 +380,7 @@ def extract_tunes_report(run_dir, data):
             })
     for plot in plots:
         plot['label'] += ', {}'.format(_peak_x(x, plot['points']))
-    if report.plotScale == 'log10':
-        for plot in plots:
-            v = np.array(plot['points'])
-            v[np.where(v <= 0.)] = 1.e-23
-            plot['points'] = np.log10(v).tolist()
-    else:
+    if report.plotScale == 'linear':
         # normalize each plot to 1.0 and show amplitude in label
         for plot in plots:
             maxp = max(plot['points'])

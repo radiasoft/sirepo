@@ -19,6 +19,20 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         contrast: colorsFromString('000000' + Array(255).join('ffffff')),
     };
 
+    // polyfill for MSIE without Math.log2 and Math.log10
+    Math.log2 = Math.log2 || function(x) {
+        return Math.log(x) * Math.LOG2E;
+    };
+    Math.log10 = Math.log10 || function(x) {
+        return Math.log(x) * Math.LOG10E;
+    };
+
+    var LOG_SCALE = {
+        log: safeLog(Math.log, 'e'),
+        log2: safeLog(Math.log2, '2'),
+        log10: safeLog(Math.log10, '10'),
+    };
+
     function colorsFromString(s) {
         return s.match(/.{6}/g).map(function(x) {
             return "#" + x;
@@ -54,6 +68,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 }
             });
         };
+
         scope.advanceFrame = function(increment, stopPlaying) {
             if (stopPlaying) {
                 scope.isPlaying = false;
@@ -226,6 +241,18 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         return yValues;
     }
 
+    function safeLog(logFunction, powerName) {
+        var res = function(v) {
+            if (v > 0) {
+                return logFunction(v);
+            }
+            // small log value
+            return -100;
+        };
+        res.powerName = powerName;
+        return res;
+    }
+
     function setupSelector(scope, element) {
         scope.element = element[0];
         scope.select = function(selector) {
@@ -369,7 +396,10 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 (yDomain[1] - yDomain[0]) / zoomHeight * height + yPixelSize);
         },
 
-        ensureDomain: function(domain) {
+        ensureDomain: function(domain, scaleFunction) {
+            if (domain && scaleFunction) {
+                domain = domain.map(scaleFunction);
+            }
             if (domain && (domain[0] == domain[1])) {
                 domain[0] -= (domain[0] || 1);
                 domain[1] += (domain[1] || 1);
@@ -435,6 +465,13 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         },
 
         initImage: function(plotRange, heatmap, cacheCanvas, imageData, modelName) {
+            var scaleFunction = this.scaleFunction(modelName);
+            if (scaleFunction) {
+                plotRange = {
+                    min: scaleFunction(plotRange.min),
+                    max: scaleFunction(plotRange.max),
+                };
+            }
             var colorScale = this.colorScaleForPlot(plotRange, modelName);
             var xSize = heatmap[0].length;
             var ySize = heatmap.length;
@@ -442,7 +479,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
             for (var yi = 0, p = -1; yi < ySize; ++yi) {
                 for (var xi = 0; xi < xSize; ++xi) {
-                    var c = d3.rgb(colorScale(heatmap[yi][xi]));
+                    var v = heatmap[yi][xi];
+                    if (scaleFunction) {
+                        v = scaleFunction(v);
+                    }
+                    var c = d3.rgb(colorScale(v));
                     img.data[++p] = c.r;
                     img.data[++p] = c.g;
                     img.data[++p] = c.b;
@@ -537,8 +578,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
-        recalculateDomainFromPoints: function(yScale, points, xDomain, invertAxis) {
+        recalculateDomainFromPoints: function(modelName, yScale, points, xDomain, invertAxis) {
             var ydom;
+            var scaleFunction = this.scaleFunction(modelName);
 
             for (var i = 0; i < points.length; i++) {
                 var d = points[i];
@@ -557,16 +599,14 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                     ydom = [d[1], d[1]];
                 }
             }
-            if (ydom && ydom[0] != ydom[1]) {
-                if (ydom[0] > 0) {
-                    ydom[0] = 0;
-                }
+            if (ydom) {
+                ydom = this.scaleYDomain(yScale, ydom, scaleFunction, ydom[0] > 0);
                 if (invertAxis) {
                     var x = ydom[0];
                     ydom[0] = ydom[1];
                     ydom[1] = x;
+                    yScale.domain(ydom).nice();
                 }
-                yScale.domain(ydom).nice();
             }
         },
 
@@ -574,6 +614,28 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             for (var i = 0; i < MAX_PLOTS; i++) {
                 select(parentClass + ' .line-' + i).attr('d', graphLine);
             }
+        },
+
+        scaleFunction: function(modelName) {
+            // returns the scaling function (ex. Math.log) or null
+            var scale = null;
+            if (appState.isLoaded() && appState.models[modelName]) {
+                scale = appState.models[modelName].plotScale;
+            }
+            return scale ? LOG_SCALE[scale] : null;
+        },
+
+        scaleYDomain: function(yScale, yDomain, scaleFunction, isZeroMin) {
+            if (yDomain && yDomain[0] != yDomain[1]) {
+                if (scaleFunction) {
+                    yDomain = yDomain.map(scaleFunction);
+                }
+                else if (isZeroMin) {
+                    yDomain[0] = 0;
+                }
+                yScale.domain(yDomain).nice();
+            }
+            return yDomain;
         },
 
         setupSelector: setupSelector,
@@ -732,7 +794,7 @@ SIREPO.app.directive('colorPicker', function() {
 SIREPO.app.service('plot2dService', function(appState, layoutService, panelState, plotting, utilities) {
 
     this.init2dPlot = function($scope, attrs) {
-        var colorbar, zoom;
+        var colorbar, scaleFunction, zoom;
         // default scope values
         $.extend($scope, {
             aspectRatio: 4.0 / 7,
@@ -758,7 +820,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                     return $scope.axes.x.scale(d[0]);
                 })
                 .y(function(d) {
-                    return $scope.axes.y.scale(d[1]);
+                    return $scope.axes.y.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
                 });
             resetZoom();
         }
@@ -794,15 +856,11 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .classed('mouse-move-ew', ! isFullSize);
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
-            var scale = 'linear';
-            if (appState.isLoaded() && appState.models[$scope.modelName] && appState.models[$scope.modelName].plotScale) {
-                scale = appState.models[$scope.modelName].plotScale;
-            }
             $.each($scope.axes, function(dim, axis) {
                 axis.updateLabelAndTicks({
                     width: $scope.width,
                     height: $scope.height,
-                    plotScale: dim == 'y' ? scale : null,
+                    scaleFunction: dim == 'y' ? scaleFunction : null,
                 }, $scope.select);
                 axis.grid.ticks(axis.tickCount);
                 $scope.select('.' + dim + '.axis.grid').call(axis.grid);
@@ -867,6 +925,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                     .margin({top: 10, right: 60, bottom: 20, left: 10})
                     .orient("vertical");
             }
+            scaleFunction = plotting.scaleFunction($scope.modelName);
             panelState.waitForUI($scope.resize);
         };
 
@@ -877,15 +936,18 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
 SIREPO.app.service('focusPointService', function(plotting) {
     var svc = this;
 
-    svc.dataCoordsToMouseCoords = function(focusPoint) {
+    svc.dataCoordsToMouseCoords = function(modelName, focusPoint) {
+        var x = focusPoint.data.x;
+        var scaleFunction = plotting.scaleFunction(modelName);
+        var y = scaleFunction ? scaleFunction(focusPoint.data.y) : focusPoint.data.y;
         var mouseX, mouseY;
         if (focusPoint.config.invertAxis) {
-            mouseX = focusPoint.config.yAxis.scale(focusPoint.data.y);
-            mouseY = focusPoint.config.xAxis.scale(focusPoint.data.x);
+            mouseX = focusPoint.config.yAxis.scale(y);
+            mouseY = focusPoint.config.xAxis.scale(x);
         }
         else {
-            mouseX = focusPoint.config.xAxis.scale(focusPoint.data.x);
-            mouseY = focusPoint.config.yAxis.scale(focusPoint.data.y);
+            mouseX = focusPoint.config.xAxis.scale(x);
+            mouseY = focusPoint.config.yAxis.scale(y);
         }
         return {
             x: mouseX,
@@ -1166,7 +1228,6 @@ SIREPO.app.service('focusPointService', function(plotting) {
 });
 
 SIREPO.app.service('layoutService', function(plotting, utilities) {
-
     var svc = this;
 
     svc.parseLabelAndUnits = function(label) {
@@ -1185,6 +1246,10 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
     svc.plotAxis = function(margin, dimension, orientation, refresh) {
         var MAX_TICKS = 10;
         var ZERO_REGEX = /^\-?0(\.0+)?(e\+0)?$/;
+
+        // Using https://bl.ocks.org/mbostock/7621155 as a reference for log scales
+        var superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+
         // global value, don't allow margin updates during zoom/pad handling
         svc.plotAxis.allowUpdates = true;
 
@@ -1256,7 +1321,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             var d = self.scale.domain();
             var tickCount = calcTickCount(formatInfo.format, canvasSize, unit, null, fontSize);
             formatInfo = calcFormat(tickCount, unit);
-            if (formatInfo.decimals > 3) {
+            if (formatInfo.decimals > 3 && ! canvasSize.scaleFunction) {
                 var baseFormat = calcFormat(tickCount, unit, null, true).format;
                 var base = midPoint(formatInfo, d);
                 if (unit) {
@@ -1275,27 +1340,23 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             }
             if ((orientation === 'left' || orientation === 'right') && ! canvasSize.isPlaying) {
                 var w = Math.max(formatInfo.format(applyUnit(d[0] - (formatInfo.base || 0), unit)).length, formatInfo.format(applyUnit(d[1] - (formatInfo.base || 0), unit)).length);
+                if (canvasSize.scaleFunction) {
+                    w += 2;
+                }
                 margin[orientation] = (w + 6) * (fontSize / 2);
             }
             self.svgAxis.ticks(tickCount);
             self.tickCount = tickCount;
             self.svgAxis.tickFormat(function(v) {
+                if (canvasSize.scaleFunction) {
+                    return formatScale(v, canvasSize.scaleFunction);
+                }
                 var res = formatInfo.format(applyUnit(v - (formatInfo.base || 0), unit));
                 // format zero values as '0'
-                if (ZERO_REGEX.test(res) && ! canvasSize.plotScale) {
+                if (ZERO_REGEX.test(res)) {
                     return '0';
                 }
-                res = res.replace(/e\+0$/, '');
-                if (canvasSize.plotScale && canvasSize.plotScale != 'linear') {
-                    //TODO(pjm): assuming log10 scale
-                    if (res[0] == '-') {
-                        res = '1e' + res;
-                    }
-                    else {
-                        res = '1e+' + res;
-                    }
-                }
-                return res;
+                return res.replace(/e\+0$/, '');
             });
             self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
             return formatInfo;
@@ -1310,6 +1371,17 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
             return self.preserveUnits ?
                 d3.formatPrefix(1, 0) :
                 d3.formatPrefix(Math.max(Math.abs(dom[0] - base), Math.abs(dom[1] - base)), 0);
+        }
+
+        function formatScale(v, scaleFunction) {
+            if (v == parseInt(v)) {
+                return scaleFunction.powerName
+                    + (v < 0 ? '⁻' : '')
+                    + (v + "").split("").map(function(c) {
+                        return superscript[c];
+                    }).join("");
+            }
+            return '';
         }
 
         function midPoint(formatInfo, domain) {
@@ -1367,7 +1439,7 @@ SIREPO.app.service('layoutService', function(plotting, utilities) {
 
         function baseLabel() {
             // remove any parenthesis first, ex. "p (mec)" --> "p"
-            var label = self.label.replace(/\s\(.*/, '');
+            var label = (self.label || '').replace(/\s\(.*/, '');
             var res = label.length > 4 ? dimension : label;
             // padding is unicode thin-space
             return res ? ('< ' + res + ' >') : '';
@@ -1669,7 +1741,9 @@ SIREPO.app.directive('focusCircle', function(focusPointService, plotting) {
                     circle.attr('r', defaultCircleSize - 2);
                 }
                 circle.style('stroke', $scope.focusPoint.config.color);
-                var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoint);
+                var mouseCoords = focusPointService.dataCoordsToMouseCoords(
+                    $scope.$parent.$parent.modelKey || $scope.$parent.$parent.modelName,
+                    $scope.focusPoint);
                 $scope.select().attr('transform', 'translate(' + mouseCoords.x + ',' + mouseCoords.y + ')');
             }
 
@@ -1815,7 +1889,8 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 }
                 else {
                     // just use the first focus point
-                    var mouseCoords = focusPointService.dataCoordsToMouseCoords($scope.focusPoints[0]);
+                    var mouseCoords = focusPointService.dataCoordsToMouseCoords(
+                        $scope.$parent.modelName, $scope.focusPoints[0]);
                     var xf = currentXform();
                     if (! isNaN(xf.tx) && ! isNaN(xf.ty)) {
                         showPopup({mouseX: mouseCoords.x, mouseY: xf.ty}, true);
@@ -2020,10 +2095,11 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
                     points = [];
                 }
                 var ymin = d3.min(json.points);
-                if (ymin > 0) {
+                var scaleFunction = plotting.scaleFunction($scope.modelName);
+                if (ymin > 0 && ! scaleFunction) {
                     ymin = 0;
                 }
-                $scope.axes.y.domain = [ymin, d3.max(json.points)];
+                $scope.axes.y.domain = plotting.ensureDomain([ymin, d3.max(json.points)], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
                 var p = d3.zip(xPoints, json.points);
                 plotting.addConvergencePoints($scope.select, '.plot-viewport', points, p);
@@ -2038,7 +2114,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
             };
 
             $scope.recalculateYDomain = function() {
-                plotting.recalculateDomainFromPoints($scope.axes.y.scale, points[0], $scope.axes.x.scale.domain());
+                plotting.recalculateDomainFromPoints($scope.modelName, $scope.axes.y.scale, points[0], $scope.axes.x.scale.domain());
             };
 
             $scope.refresh = function() {
@@ -2085,7 +2161,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.focusTextCloseSpace = 18;
             $scope.focusPoints = [];
 
-            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, xyZoom;
+            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
             var cacheCanvas, imageData;
             var aspectRatio = 1.0;
             var axes = {
@@ -2194,7 +2270,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     row = heatmap[axes.y.values.length - 1 - yv];
                 }
                 var points = d3.zip(axes.x.values, row);
-                plotting.recalculateDomainFromPoints(axes.bottomY.scale, points, axes.x.scale.domain());
+                plotting.recalculateDomainFromPoints($scope.modelName, axes.bottomY.scale, points, axes.x.scale.domain());
                 drawLineout('x', yv, points, axes.x.cutLine);
                 focusPointService.loadFocusPoint($scope.focusPointX, points, true, $scope);
             }
@@ -2235,7 +2311,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         return [axes.y.values[axes.y.values.length - 1 - i], v[xv]];
                     });
                 }
-                plotting.recalculateDomainFromPoints(axes.rightX.scale, points, axes.y.scale.domain(), true);
+                plotting.recalculateDomainFromPoints($scope.modelName, axes.rightX.scale, points, axes.y.scale.domain(), true);
                 drawLineout('y', xv, points, axes.y.cutLine);
                 focusPointService.loadFocusPoint($scope.focusPointY, points, true, $scope);
             }
@@ -2294,10 +2370,12 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     height: $scope.bottomPanelHeight,
                     width: $scope.canvasSize.width,
                     isPlaying: $scope.isPlaying,
+                    scaleFunction: scaleFunction,
                 }, select, '.bottom-panel ');
                 axes.rightX.updateLabelAndTicks({
                     width: $scope.rightPanelWidth - $scope.margin.right,
                     height: $scope.canvasSize.height,
+                    scaleFunction: scaleFunction,
                 }, select, '.right-panel ');
 
                 if (layoutService.plotAxis.allowUpdates) {
@@ -2423,10 +2501,14 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 cacheCanvas = document.createElement('canvas');
                 axes.x.cutLine = d3.svg.line()
                     .x(function(d) {return axes.x.scale(d[0]);})
-                    .y(function(d) {return axes.bottomY.scale(d[1]);});
+                    .y(function(d) {
+                        return axes.bottomY.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
+                    });
                 axes.y.cutLine = d3.svg.line()
                     .y(function(d) { return axes.y.scale(d[0]);})
-                    .x(function(d) { return axes.rightX.scale(d[1]);});
+                    .x(function(d) {
+                        return axes.rightX.scale(scaleFunction ? scaleFunction(d[1]) : d[1]);
+                    });
 
                 $scope.focusPointX = focusPointService.setupFocusPoint(axes.x, axes.bottomY, false, $scope.modelName + '-fp-X');
                 $scope.focusPointY = focusPointService.setupFocusPoint(axes.y, axes.rightX, true, $scope.modelName + '-fp-Y');
@@ -2472,13 +2554,13 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 select('.z-axis-label').text(json.z_label);
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
-
-                //TODO(pjm): for now, we always want the lower range to be 0
-                if (zmin > 0) {
+                scaleFunction = plotting.scaleFunction($scope.modelName);
+                if (zmin > 0 && ! scaleFunction) {
                     zmin = 0;
                 }
-                axes.bottomY.scale.domain([zmin, zmax]).nice();
-                axes.rightX.scale.domain([zmax, zmin]).nice();
+                var domain = plotting.ensureDomain([zmin, zmax], scaleFunction);
+                axes.bottomY.scale.domain(domain).nice();
+                axes.rightX.scale.domain([domain[1], domain[0]]).nice();
                 plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName);
                 $scope.resize();
                 $scope.resize();
@@ -2772,6 +2854,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             var includeForDomain = [];
             var plotLabels = [];
             var childPlots = {};
+            var scaleFunction;
 
             // for built-in d3 symbols - the units are *pixels squared*
             var symbolSize = 144.0;
@@ -3013,7 +3096,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         return Math.max.apply(null, $scope.axes.y.plots[index].points);
                     })
                 );
-                return plotting.ensureDomain([ydomMin, ydomMax]);
+                return plotting.ensureDomain([ydomMin, ydomMax], scaleFunction);
             }
 
             $scope.formatFocusPointData = function(fp) {
@@ -3044,7 +3127,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             return $scope.axes.x.scale(xPoints[i]);
                         })
                         .y(function(d) {
-                            return $scope.axes.y.scale(d);
+                            return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
                         });
                 };
                 $scope.graphLine = d3.svg.line()
@@ -3052,7 +3135,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         return $scope.axes.x.scale($scope.axes.x.points[i]);
                     })
                     .y(function(d) {
-                        return $scope.axes.y.scale(d);
+                        return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
                     });
             };
 
@@ -3092,8 +3175,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 $scope.axes.x.domain = xdom;
                 $scope.axes.x.scale.domain(xdom);
                 $scope.axes.x.preserveUnits = json.preserve_units;
-                plotting.ensureDomain(json.y_range);
-                $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
+                scaleFunction = plotting.scaleFunction($scope.modelName);
+                $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
 
                 var viewport = $scope.select('.plot-viewport');
@@ -3260,11 +3343,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                     }
                 }
-                if (ydom && ydom[0] != ydom[1]) {
-                    if (ydom[0] > 0 && $scope.axes.y.domain[0] == 0) {
-                        ydom[0] = 0;
-                    }
-                    $scope.axes.y.scale.domain([ydom[0] - $scope.domPadding.y, ydom[1] + $scope.domPadding.y]).nice();
+                if (ydom) {
+                    plotting.scaleYDomain($scope.axes.y.scale, ydom, scaleFunction, ydom[0] > 0 && $scope.axes.y.domain[0] == 0);
                 }
             };
 
@@ -3351,7 +3431,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var allPoints;
+            var allPoints, scaleFunction;
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
@@ -3365,7 +3445,8 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
                 var xdom = [json.x_range[0], json.x_range[1]];
                 $scope.axes.x.domain = xdom;
                 $scope.axes.x.scale.domain(xdom);
-                $scope.axes.y.domain = [json.y_range[0], json.y_range[1]];
+                scaleFunction = plotting.scaleFunction($scope.modelName);
+                $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
                 $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
                 var viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
@@ -3423,11 +3504,8 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
                         }
                     });
                 });
-                if (ydom && ydom[0] != ydom[1]) {
-                    if (ydom[0] > 0 && $scope.axes.y.domain[0] == 0) {
-                        ydom[0] = 0;
-                    }
-                    $scope.axes.y.scale.domain(ydom).nice();
+                if (ydom) {
+                    plotting.scaleYDomain($scope.axes.y.scale, ydom, scaleFunction, ydom[0] > 0 && $scope.axes.y.domain[0] == 0);
                 }
             };
 

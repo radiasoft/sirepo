@@ -92,7 +92,7 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'intensityPlotsScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio']
+_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'plotScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio', 'rotateAngle', 'rotateReshape']
 
 _RUN_ALL_MODEL = 'simulation'
 
@@ -285,23 +285,22 @@ def extract_report_data(filename, model_data):
         y_units = '({})'.format(y_units)
 
     subtitle = ''
-    if 'report' in model_data:
-        schema_enum = []
-        model_report = model_data['report']
-        this_report = model_data['models'][model_report]
-        subtitle_datum = ''
-        subtitle_format = '{}'
-        if model_report in ['intensityReport']:
-            schema_enum = _SCHEMA['enum']['Polarization']
-            subtitle_datum = this_report['polarization']
-            subtitle_format = '{} Polarization'
-        elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or model_report.startswith('watchpointReport'):
-            schema_enum = _SCHEMA['enum']['Characteristic']
-            subtitle_datum = this_report['characteristic']
-        # Schema enums are indexed by strings, but model data may be numeric
-        schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
-        if len(schema_values) > 0:
-            subtitle = subtitle_format.format(schema_values[0][1])
+    schema_enum = []
+    model_report = model_data['report']
+    this_report = model_data['models'][model_report]
+    subtitle_datum = ''
+    subtitle_format = '{}'
+    if model_report in ['intensityReport']:
+        schema_enum = _SCHEMA['enum']['Polarization']
+        subtitle_datum = this_report['polarization']
+        subtitle_format = '{} Polarization'
+    elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or model_report.startswith('watchpointReport'):
+        schema_enum = _SCHEMA['enum']['Characteristic']
+        subtitle_datum = this_report['characteristic']
+    # Schema enums are indexed by strings, but model data may be numeric
+    schema_values = [e for e in schema_enum if e[0] == str(subtitle_datum)]
+    if len(schema_values) > 0:
+        subtitle = subtitle_format.format(schema_values[0][1])
     info = pkcollections.Dict({
         'title': title,
         'subtitle': subtitle,
@@ -312,15 +311,12 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
-
-    orig_rep_name = model_data['report']
-    rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(orig_rep_name) else orig_rep_name
+    rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(model_report) else model_report
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
-        width_pixels = int(model_data['models'][orig_rep_name]['intensityPlotsWidth'])
-        scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
-        rotate_angle = model_data['models'][orig_rep_name].get('rotateAngle', 0)
-        rotate_reshape = model_data['models'][orig_rep_name].get('rotateReshape', '0')
-        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape, scale)
+        width_pixels = int(this_report['intensityPlotsWidth'])
+        rotate_angle = this_report.get('rotateAngle', 0)
+        rotate_reshape = this_report.get('rotateReshape', '0')
+        info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape)
     return info
 
 
@@ -330,6 +326,9 @@ def fixup_old_data(data):
         if m not in data['models']:
             data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
+        if 'intensityPlotsScale' in data['models'][m]:
+            data['models'][m]['plotScale'] = data['models'][m]['intensityPlotsScale']
+            del data['models'][m]['intensityPlotsScale']
     for m in data['models']:
         if template_common.is_watchpoint(m):
             template_common.update_model_defaults(data['models'][m], 'watchpointReport', _SCHEMA)
@@ -541,10 +540,19 @@ def get_predefined_beams():
 
 def get_simulation_frame(run_dir, data, model_data):
     if data['report'] == 'multiElectronAnimation':
-        args = template_common.parse_animation_args(data, {'': ['intensityPlotsWidth', 'intensityPlotsScale']})
+        args = template_common.parse_animation_args(
+            data,
+            {
+                '2': ['intensityPlotsWidth'],
+                '': ['intensityPlotsWidth', 'rotateAngle', 'rotateReshape'],
+            })
         m = model_data.models[data['report']]
         m.intensityPlotsWidth = args.intensityPlotsWidth
-        m.intensityPlotsScale = args.intensityPlotsScale
+        if args.get('rotateAngle', 0):
+            m.rotateAngle = float(args.rotateAngle)
+            m.rotateReshape = args.rotateReshape
+        else:
+            m.rotateAngle = 0
     return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
 
 
@@ -1865,16 +1873,13 @@ def _process_undulator_definition(model):
         return model
 
 
-def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape, scale='linear'):
+def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape):
     x_range = [allrange[3], allrange[4], allrange[5]]
     y_range = [allrange[6], allrange[7], allrange[8]]
     ar2d = info['points']
     totLen = int(x_range[2] * y_range[2])
     n = len(ar2d) if totLen > len(ar2d) else totLen
     ar2d = np.reshape(ar2d[0:n], (y_range[2], x_range[2]))
-    if scale != 'linear':
-        ar2d[np.where(ar2d <= 0.)] = 1.e-23
-        ar2d = getattr(np, scale)(ar2d)
 
     # rescale width and height to maximum of width_pixels
     if width_pixels and (width_pixels < x_range[2] or width_pixels < y_range[2]):
@@ -1888,15 +1893,11 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
         try:
             from scipy import ndimage
             ar2d = ndimage.zoom(ar2d, [y_resize, x_resize], order=1)
-            # Remove for #670, this may be required for certain reports?
-            # if scale == 'linear':
-            #     ar2d[np.where(ar2d < 0.)] = 0.0
             pkdc('Size after : {}  Dimensions: {}', ar2d.size, ar2d.shape)
             x_range[2] = ar2d.shape[1]
             y_range[2] = ar2d.shape[0]
         except Exception:
             pkdlog('Cannot resize the image - scipy.ndimage.zoom() cannot be imported.')
-            pass
     # rotate 3D image
     if rotate_angle:
         rotate_reshape = (rotate_reshape == "1")
@@ -1920,14 +1921,15 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
             if info['title'] != 'Power Density': info['subtitle'] = info['subtitle'] + ' Image Rotate {}^0'.format(rotate_angle)
         except Exception:
             pkdlog('Cannot rotate the image - scipy.ndimage.rotate() cannot be imported.')
-            pass
 
+    if z_units:
+        z_label = '{} [{}]'.format(z_label, z_units)
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,
         'x_label': info['x_label'],
         'y_label': info['y_label'],
-        'z_label': _superscript(z_label + ' [' + z_units + ']'),
+        'z_label': _superscript(z_label),
         'title': info['title'],
         'subtitle': _superscript_2(info['subtitle']),
         'z_matrix': ar2d.tolist(),
