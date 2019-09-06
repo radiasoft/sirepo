@@ -34,8 +34,12 @@ _KILL_TIMEOUT_SECS = 3
 _SERVER_REQUESTS_Q = tornado.queues.Queue()
 _DRIVER_RESPONSES_Q = tornado.queues.Queue()
 
+_UID = None
 
-def start():
+
+def start(uid):
+    global _UID
+    _UID = uid
     io_loop = tornado.ioloop.IOLoop.current()
     job_tracker = _JobTracker(io_loop)
     io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
@@ -148,7 +152,7 @@ class _JobTracker:
 
 async def _notify_supervisor(data):
     data.source = 'driver'
-    data.uid = 'NwfZClof' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
+    data.uid = _UID 
     pkdlog(f'Notifying supervisor: {data}')
 
     http_client = tornado.httpclient.AsyncHTTPClient()

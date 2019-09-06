@@ -17,6 +17,7 @@ import tornado.httpserver
 import tornado.ioloop
 import tornado.locks
 import tornado.options
+import tornado.process
 import tornado.queues
 import tornado.web
 import uuid
@@ -68,6 +69,7 @@ def start():
     pkdlog('Server listening on port {}', port)
     tornado.ioloop.IOLoop.current().start()
 
+#TODO(e-carlin): Rename. Maybe driverClient?
 class _Broker():
     def __init__(self):
         self._driver_work_q = tornado.queues.Queue()
@@ -108,10 +110,8 @@ class _Broker():
 
 
 def _create_broker_if_not_found(uid):
-    assert uid == 'NwfZClof' #TODO(e-carlin): Remove. This is just to catch myself while testing
     if uid not in _BROKERS:
-        #TODO(e-carlin): Actually start the driver client
-        #TODO(e-carlin): What if two simultaneous requests come in to start the broker? Who wins?
+        _create_driver(uid) #TODO(e-carlin): Creating driver should maybe be part of creating broker
         broker = _Broker()
         _BROKERS[uid] = broker
 
@@ -124,3 +124,8 @@ def _http_send(body, write):
     except Exception as e:
         pkdlog('Error while writing to server. Casued by: {}'.format(e))
         pkdlog(pkdexc())
+
+def _create_driver(uid):
+    #TODO(e-carlin): Make this way more robust
+    cmd = ['sirepo', 'job_driver', 'start', uid]
+    tornado.process.Subprocess(cmd)
