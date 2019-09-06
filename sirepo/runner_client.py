@@ -20,7 +20,7 @@ class JobStatus(aenum.Enum):
 
 
 def _request(body):
-    r = requests.post('http://0.0.0.0:8080', json=body)
+    r = requests.post('http://0.0.0.0:8888', json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(uid, run_dir, jhash, backend, cmd, tmp_dir):
