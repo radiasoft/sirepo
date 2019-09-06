@@ -57,18 +57,15 @@ class _Broker():
         pkdlog(f'Processing server request. Request: {request}')
         reply_sent = tornado.locks.Event()
         # request_id = str(uuid.uuid4())
-        request_id = 'abc123' #TODO(e-carlin): Hardcoded for now for testing
-        work_to_do = pkcollections.Dict({
-            'request_id': request_id,
-            'request': request,
-        })
-        self._server_responses[request_id] = pkcollections.Dict({
+        request.request_id = 'abc123'#TODO(e-carlin): Hardcoded for now for testing
+        work_to_do = pkcollections.Dict(request)
+        self._server_responses[request.request_id] = pkcollections.Dict({
             'send': send_to_server,
             'reply_sent': reply_sent,
         })
         await self._driver_work_q.put(work_to_do)
         await reply_sent.wait()
-        del self._server_responses[request_id]
+        del self._server_responses[request.request_id]
 
 
 def _http_send(body, write):
@@ -97,7 +94,6 @@ class RequestHandler(tornado.web.RequestHandler):
         body = pkcollections.Dict(pkjson.load_any(self.request.body))
         pkdlog(f'Received request: {body}')
 
-
         source_types = ['server', 'driver']
         assert body.source in source_types
 
@@ -106,8 +102,14 @@ class RequestHandler(tornado.web.RequestHandler):
         await process_fn(body, self.write)
         return
 
+    def on_connection_close(self):
+        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
+        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
+        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
+        pass
 
-def main():
+
+def start():
     tornado.options.parse_command_line()
     app = tornado.web.Application(
         [
@@ -120,7 +122,3 @@ def main():
     server.listen(port)
     pkdlog(f'Server listening on port {port}')
     tornado.ioloop.IOLoop.current().start()
-
-
-if __name__ == "__main__":
-    main()

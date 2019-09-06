@@ -6,13 +6,19 @@
 """
 from __future__ import absolute_import, division, print_function
 
+import asyncio
+import contextlib
 from pykern import pkcollections, pkio, pkjson
-from pykern.pkdebug import pkdlog, pkdp, pkdexc
+from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import runner_client, runner_daemon
 from sirepo.runner_daemon import local_process
-import asks
 import async_generator
-import trio
+import tornado.ioloop
+import tornado.gen
+import tornado.httpclient
+import tornado.locks
+import math
+import contextlib
 
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_PROCESS_RESULT = 'process_result'
@@ -20,76 +26,59 @@ ACTION_PROCESS_RESULT = 'process_result'
 
 _KILL_TIMEOUT_SECS = 3
 
+
 def start():
-    trio.run(_main)
+    io_loop = tornado.ioloop.IOLoop.current()
+    io_loop.spawn_callback(_main, io_loop)
+    io_loop.start()
+
+async def _main(io_loop):
+    job_tracker = _JobTracker(io_loop)
+    io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
+
+async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
+    while True:
+        await _notify_supervisor(io_loop, job_tracker, ACTION_READY_FOR_WORK)
 
 
-async def _notify_supervisor(action, data={}):
+async def _notify_supervisor(io_loop, job_tracker, action, data={}):
     try:
         body = {
             'source': 'driver',
-            'driver_id': 'sVKP0jmq', #TODO(e-carlin): Make real id
+            'uid': 'sVKP0jmq', #TODO(e-carlin): Make real id
             'action': action,
             'data': data
         }
-        pkdp(f'calling notify with body {body}')
-        response = await asks.post('http://localhost:8080', json=body)
-        pkdp(f'Dameon responded with: {response}')
-        return pkcollections.Dict(pkjson.load_any(response.content))
+        pkdlog(f'Notifying supervisor: {body}')
+
+        http_client = tornado.httpclient.AsyncHTTPClient()
+        response = await http_client.fetch(
+            'http://localhost:8888',
+            method='POST',
+            body=pkjson.dump_bytes(body),
+            request_timeout=math.inf,
+            )
+
+        pkdp(f'Supervisor responded with: {pkcollections.Dict(pkjson.load_any(response.body))}')
+
+
+        supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
+        assert supervisor_request.action == 'start_report_job'
+        #TODO(e-carlin): Better name? Here we move from response to request since the supervisor responds with a request
+        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, supervisor_request)
     except Exception as e:
-        pkdp(f'Exception with _call_daemon(). Caused by: {e}')
-        return {}
+        pkdp(f'Exception notifying supervisor. Caused by: {e}')
+        await tornado.gen.sleep(1) #TODO(e-carlin): Exponential backoff? We need to handle cases individually
 
 
-async def _main():
-    async with trio.open_nursery() as nursery:
-        job_tracker = _JobTracker(nursery)
-        while True: # TODO(e-carlin): there has to be something more clever than this
-            try:
-                request = await _notify_supervisor(ACTION_READY_FOR_WORK)
-                action = request['action']
-                action_types = {
-                    'keep_alive': _perform_keep_alive,
-                    'start_report_job': _start_report_job,
-                    'report_job_status': _report_job_status,
-                }
-
-                await action_types[action](job_tracker, request)
-            except Exception as e:
-                pkdlog(f'Exception with request response with supervisor. Caused by: {e}')
-                pkdexc()
-                await trio.sleep(2) #TODO(e-carlin): Delete in favor of long polling
-
-async def _perform_keep_alive(job_tracker, request):
-    pkdp('Daemon requested keep_alive. Requesting again')
-    await trio.sleep(2) #TODO(e-carlin): Delete in favor of long polling
-
-async def _report_job_status(job_tracker, request):
-    pkdp(f'Daemon requested repot_job_status: {request}')
-    # TODO(e-carlin): this "async with" is the same as in _start_report_job. Need to abstract
-#TODO(robnagler) this lock should be encapsulated inside JobTracker. I don't think
-#   job_status needs a lock anyway.
-    async with job_tracker.locks[request.run_dir]:
-        # TODO(e-carlin): report_job_status() isn't async. That means it has a
-        # different interface than the other operations. Need abstraction that
-        # can handle this
-        #TODO(robnagler): none of the work the main driver Task does should await.
-        #     Rather it should do something atomically, and report it back, or start
-        #     another Task to do a potentially blocking task such as starting a job.
-        await job_tracker.report_job_status()
-
-async def _start_report_job(job_tracker, request):
-    pkdp(f'Daemon requested start_report_job: {request}')
-
-#TODO(robnagler) this lock should be encapsulated inside JobTracker
-    async with job_tracker.locks[request.run_dir]:
-        await job_tracker.start_report_job(
-            pkio.py_path(request.run_dir), request.jhash,
-            request.backend,
-            request.cmd, pkio.py_path(request.tmp_dir),
-        )
-        return {}
-
+async def _process_supervisor_request(io_loop, job_tracker, request):
+    assert request.action == 'start_report_job'
+    pkdc('start_report_job: {}', request)
+    await job_tracker.start_report_job(
+        pkio.py_path(request.run_dir), request.jhash,
+        request.backend,
+        request.cmd, pkio.py_path(request.tmp_dir),
+    )
 
 class _JobInfo:
     def __init__(self, run_dir, jhash, status, report_job):
@@ -99,22 +88,8 @@ class _JobInfo:
         self.report_job = report_job
         self.cancel_requested = False
 
-# TODO(e-carlin): Understand what this actually does and why it is useful
-# TODO(robnagler): This is a mutex for an object which might not exist ("run_dir").
-#    Only one Task can access run_dir at a time, but we don't know run_dir exists
-#    until the first request.
-#
-#    I would probably use trio.Lock instead of hazmat.ParkingLot (see below). It might
-#    be faster to do it this way, but we really don't have a speed problem with this
-#    particular code so better to use published abstractions.
-#
-#    We need the logic managing the run_dir existence or not, which trio doesn't handle
-#    although you would think it would be a common case. You want to serialize on an
-#    object (as opposed to a global lock as we do in simulation_db) to reduce contention.
-#
-#    This should be in srtrio or somesuch that allows us to share this with
-#    runner_daemon, which will surely need this.
 class _LockDict:
+    from contextlib import contextmanager
     def __init__(self):
         # {key: ParkingLot}
         # lock is held iff the key exists
@@ -122,80 +97,33 @@ class _LockDict:
 
     #TODO(robnagler): i wonder if this needs to be an async_generator but
     #   i don't understand this well enough.
-    @async_generator.asynccontextmanager
+    @contextmanager
     async def __getitem__(self, key):
-        #TODO(robnagler): I think it would be cleaner if it looked like:
-        #    if key not in self._waiters:
-        #        self._waiters[key] = trio.Lock()
-        #    a = False
-        #    try:
-        #        await self._waiters[key].acquire()
-        #        a = True
-        #        yield
-        #    finally:
-        #        if a:
-        #            ### release_if_owner would make this simpler or
-        #            ### at least current_task_is_owner?
-        #            self._waiters[key].release()
-        #            if not self._waiters[key].locked()
-        #                del self._waiters[key]
-
-        #TODO(robnagler) this works because self._waiters read/write is
-        #    atomic in a task (no awaits between read ("in") and write ("=")
-        #    and read ("park").
         if key not in self._waiters:
-            # lock is unheld; adding a key makes it held
-            self._waiters[key] = trio.hazmat.ParkingLot()
-        else:
-            # lock is held; wait for someone to pass it to us
-            await self._waiters[key].park()
+            self._waiters[key] = asyncio.Lock() # tornado locks don't have locked() so using asyncio
+        a = False
         try:
+            r = self._waiters[key].locked()
+            pkdp(f'*** Result of locked {r}')
+            await self._waiters[key].acquire()
+            a = True
             yield
         finally:
-            # release
-            if self._waiters[key]:
-                # someone is waiting, so pass them the lock
-                self._waiters[key].unpark()
-            else:
-                # no-one is waiting, so mark the lock unheld
-                del self._waiters[key]
+            if a:
+                ### release_if_owner would make this simpler or
+                ### at least current_task_is_owner?
+                self._waiters[key].release()
+                #TODO(e-carlin): Does this really work? These calls are atomic so
+                # I would guess that no one else has the time to call acquire?
+                if not self._waiters[key].locked():
+                    del self._waiters[key]
 
 class _JobTracker:
-    def __init__(self, nursery):
+    def __init__(self, io_loop):
         self.report_jobs = {}
         self.locks = _LockDict()
-        self._nursery = nursery
+        self._io_loop = io_loop
 
-    async def kill_all(self, run_dir):
-#TODO(robnagler): We should definitely avoid the situation of more than one job
-#    running in a single run_dir. I don't think this should be "jobs" (next line)
-        """Forcibly stop any jobs currently running in run_dir.
-
-        Assumes that you've already checked what those jobs are (perhaps by
-        calling run_dir_status), and decided they need to die.
-        """
-        #TODO(robnagler): report_jobs is similar to lock
-        job_info = self.report_jobs.get(run_dir)
-        if job_info is None:
-            return
-        if job_info.status is not runner_client.JobStatus.RUNNING:
-            return
-        pkdlog(
-            'kill_all: killing job with jhash {} in {}',
-            job_info.jhash, run_dir,
-        )
-        job_info.cancel_requested = True
-        await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
-
-    def report_job_status(self, run_dir, jhash):
-        """Get the current status of a specific job in the given run_dir.
-
-        """
-        run_dir_jhash, run_dir_status = self.run_dir_status(run_dir)
-        if run_dir_jhash == jhash:
-            return run_dir_status
-
-        return runner_client.JobStatus.MISSING
 
     def run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.
@@ -224,8 +152,9 @@ class _JobTracker:
         elif run_dir in self.report_jobs:
             job_info = self.report_jobs[run_dir]
             return job_info.jhash, job_info.status
-
+            
         return None, runner_client.JobStatus.MISSING
+
 
     async def start_report_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         # First make sure there's no-one else using the run_dir
@@ -245,10 +174,10 @@ class _JobTracker:
             # anything else.
             # XX TODO: should we check some kind of sequence number
             # here? I don't know how those work.
-    #TODO(robnagler) it's not "stale", but it is running. There's no need for
-    #    sequence numbers. This should never happen, and the supervisor should
-    #    should be informed of this situation, because it holds the queue,
-    #    and it wouldn't start a job that is already running.
+            #TODO(robnagler) it's not "stale", but it is running. There's no need for
+            #    sequence numbers. This should never happen, and the supervisor should
+            #    should be informed of this situation, because it holds the queue,
+            #    and it wouldn't start a job that is already running.
             pkdlog(
                 'stale job is still running; killing it (run_dir={}, jhash={})',
                 run_dir,
@@ -258,21 +187,65 @@ class _JobTracker:
 
         # Okay, now we have the dir to ourselves. Set up the new run_dir:
         assert run_dir not in self.report_jobs
-#TODO(robnagler): this has to be atomic.
+        #TODO(robnagler): this has to be atomic.
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        report_job = await local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
+        report_job = local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
         job_info = _JobInfo(
             run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
         )
         self.report_jobs[run_dir] = job_info
 
         # TODO(e-carlin): Real supervision is needed
-        async def _supervise_job(run_dir, jhash, job_info):
-            pkdp(f'Starting to wait on jhash {jhash}')
-            returncode = await job_info.report_job.wait()
-            pkdp(f'jhash {jhash} finished with exit code {returncode}')
+        # async def _supervise_job(run_dir, jhash, job_info):
+        #     pkdp(f'Starting to wait on jhash {jhash}')
+        #     returncode = await job_info.report_job.wait_for_exit()
+        #     pkdp(f'jhash {jhash} finished with exit code {returncode}')
 
-        self._nursery.start_soon(
-            _supervise_job, run_dir, jhash, job_info
+        self._io_loop.spawn_callback(
+            self._supervise_report_job, run_dir, jhash, job_info
         )
+        
+    async def _supervise_report_job(self, run_dir, jhash, job_info):
+        with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
+            # Make sure returncode is defined in the finally block, even if
+            # wait() somehow crashes
+            returncode = None
+            try:
+                returncode = await job_info.report_job.wait_for_exit()
+            finally:
+                pkdp('***** In finally')
+                async with self.locks[run_dir]:
+                    # Clear up our in-memory status
+                    assert self.report_jobs[run_dir] is job_info
+                    del self.report_jobs[run_dir]
+                    # Write status to disk
+                    if job_info.cancel_requested:
+                        _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                        await self.run_extract_job(
+                            run_dir, jhash, 'remove_last_frame', '[]',
+                        )
+                    elif returncode == 0:
+                        _write_status(runner_client.JobStatus.COMPLETED, run_dir)
+                    else:
+                        pkdlog(
+                            '{} {}: job failed, returncode = {}',
+                            run_dir, jhash, returncode,
+                        )
+                        _write_status(runner_client.JobStatus.ERROR, run_dir)
+                    pkdp('*** Done with finally')
+
+# Cut down version of simulation_db.write_result
+def _write_status(status, run_dir):
+    fn = run_dir.join('result.json')
+    if not fn.exists():
+        pkjson.dump_pretty({'state': status.value}, filename=fn)
+        pkio.write_text(run_dir.join('status'), status.value)
+
+@contextlib.contextmanager
+def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
+    try:
+        yield
+    except exc_type:
+        pkdlog(msg, *args, **kwargs)
+        pkdlog(pkdexc())
