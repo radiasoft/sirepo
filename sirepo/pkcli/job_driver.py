@@ -173,7 +173,13 @@ async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
         data = pkcollections.Dict({
             'action': ACTION_READY_FOR_WORK,
         })
-        request = await _notify_supervisor(data)
+        try:
+            request = await _notify_supervisor(data)
+        except ConnectionRefusedError as e:
+            pkdlog('Connection refused while calling supervisor ready_for_work. \
+                Sleeping and trying again. Caused by {}', e)
+            await tornado.gen.sleep(1)    
+            continue
         if request.action == ACTION_KEEP_ALIVE:
             continue
         io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
