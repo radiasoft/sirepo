@@ -26,8 +26,8 @@ def test_calc_bragg_angle():
         assert angle_data['bragg_angle'] == case[1][1]
         assert angle_data['bragg_angle_deg'] == case[1][2]
 
-
-def test_get_crystal_parameters():
+#TODO(pjm): enable this test when http://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe is online again
+def unavailable_test_get_crystal_parameters():
     from sirepo import crystal
     expected = (
         (5.4309, 3.135531576941939, 3.135531576941939, 3.1355, -2.3353e-06, 8.6843e-09, 1.2299e-06, 6.0601e-09, 5.5704),
@@ -57,7 +57,8 @@ def test_get_crystal_parameters():
         assert crystal_parameters['bragg_angle_deg'] == case[1][8]
 
 
-def test_get_crystal_parameters_str():
+#TODO(pjm): enable this test when http://x-server.gmca.aps.anl.gov/cgi/x0h_form.exe is online again
+def unavailable_test_get_crystal_parameters_str():
     from sirepo import crystal
     with pytest.raises(AssertionError):
         _ = crystal.get_crystal_parameters(
