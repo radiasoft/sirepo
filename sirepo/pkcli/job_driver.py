@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
-"""The runner daemon.
+"""TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
 
-import asyncio
-import contextlib
 from pykern import pkcollections, pkio, pkjson
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import runner_client, runner_daemon
 from sirepo.runner_daemon import local_process
 import async_generator
-import tornado.ioloop
+import asyncio
+import contextlib
+import contextlib
+import math
 import tornado.gen
 import tornado.httpclient
+import tornado.ioloop
 import tornado.locks
-import math
-import contextlib
 import tornado.queues
 
+
+ACTION_KEEP_ALIVE = 'keep_alive'
+ACTION_PROCESS_RESULT = 'process_result'
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_REPORT_JOB_STARTED = 'report_job_started'
-ACTION_PROCESS_RESULT = 'process_result'
-ACTION_KEEP_ALIVE = 'keep_alive'
 
 
 _KILL_TIMEOUT_SECS = 3
@@ -40,103 +41,15 @@ def start():
     io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
     io_loop.start()
 
-async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
-    while True:
-        data = pkcollections.Dict({
-            'action': ACTION_READY_FOR_WORK,
-        })
-        request = await _notify_supervisor(data)
-        if request.action == ACTION_KEEP_ALIVE:
-            continue
-        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
 
+@contextlib.contextmanager
+def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
+    try:
+        yield
+    except exc_type:
+        pkdlog(msg, *args, **kwargs)
+        pkdlog(pkdexc())
 
-async def _process_supervisor_request(io_loop, job_tracker, request):
-    #TODO(e-carlin): This code is repetitive. We can find the function name from the reuqest action
-    if request.action == 'start_report_job':
-        pkdc('start_report_job: {}', request)
-        results = await _start_report_job(job_tracker, request)
-        await _notify_supervisor(results)
-        return
-    elif request.action == 'report_job_status':
-        pkdc('report_job_status: {}', request)
-        status = _report_job_status(job_tracker, request)
-        await _notify_supervisor(status)
-        return
-    elif request.action == 'run_extract_job':
-        pkdc('report_job_status: {}', request)
-        results = await _run_extract_job(job_tracker, request)
-        await _notify_supervisor(results)
-        return
-    else:
-        raise Exception(f'Request.action {request.action} unknown')
-    
-
-
-
-async def _run_extract_job(job_tracker, request):
-    pkdc('run_extrac_job: {}', request)
-    result = await job_tracker.run_extract_job(
-        request.run_dir,
-        request.jhash,
-        request.subcmd,
-        request.arg,
-    )
-    return pkcollections.Dict({
-        'action' : 'result_of_run_extract_job',
-        'request_id': request.request_id,
-        'uid': request.uid,
-        'result': result,
-    })
-
-
-def _report_job_status(job_tracker, request):
-    pkdc('report_job_status: {}', request)
-    status =  job_tracker.report_job_status(
-        #TODO(e-carlin): Find a common place to do pkio.py_path() these are littered around
-        pkio.py_path(request.run_dir), request.jhash
-    ).value
-    return pkcollections.Dict({
-        'action': 'status_of_report_job',
-        'request_id': request.request_id,
-        'uid': request.uid,
-        'status': status,
-    })
-            
-async def _start_report_job(job_tracker, request):
-    pkdc('start_report_job: {}', request)
-    await job_tracker.start_report_job(
-        pkio.py_path(request.run_dir), request.jhash,
-        request.backend,
-        request.cmd, pkio.py_path(request.tmp_dir),
-    )
-    return pkcollections.Dict({
-        'action': 'report_job_started',
-        'request_id': request.request_id,
-        'uid': request.uid,
-    })
-
-
-async def _notify_supervisor(data):
-    data.source = 'driver'
-    data.uid = 'NwfZClof' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
-    pkdlog(f'Notifying supervisor: {data}')
-
-    http_client = tornado.httpclient.AsyncHTTPClient()
-    response = await http_client.fetch(
-        'http://localhost:8888',
-        method='POST',
-        body=pkjson.dump_bytes(data),
-        request_timeout=math.inf,
-        )
-
-    #TODO(e-carlin): Hack. When we send results to server it responds with nothing
-    if response.body is b'':
-        return None
-
-    supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
-    pkdp(f'Supervisor responded with: {supervisor_request}')
-    return supervisor_request
 
 class _JobInfo:
     def __init__(self, run_dir, jhash, status, report_job):
@@ -145,6 +58,7 @@ class _JobInfo:
         self.status = status
         self.report_job = report_job
         self.cancel_requested = False
+
 
 class _JobTracker:
     def __init__(self, io_loop):
@@ -231,6 +145,106 @@ class _JobTracker:
                     )
                     _write_status(runner_client.JobStatus.ERROR, run_dir)
 
+
+async def _notify_supervisor(data):
+    data.source = 'driver'
+    data.uid = 'NwfZClof' #TODO(e-carlin): This should not be here. The supervisor should tell us this on creation
+    pkdlog(f'Notifying supervisor: {data}')
+
+    http_client = tornado.httpclient.AsyncHTTPClient()
+    response = await http_client.fetch(
+        'http://localhost:8888',
+        method='POST',
+        body=pkjson.dump_bytes(data),
+        request_timeout=math.inf,
+        )
+
+    #TODO(e-carlin): Hack. When we send results to server it responds with nothing
+    if response.body is b'':
+        return None
+
+    supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
+    pkdp(f'Supervisor responded with: {supervisor_request}')
+    return supervisor_request
+
+
+async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
+    while True:
+        data = pkcollections.Dict({
+            'action': ACTION_READY_FOR_WORK,
+        })
+        request = await _notify_supervisor(data)
+        if request.action == ACTION_KEEP_ALIVE:
+            continue
+        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
+
+
+async def _process_supervisor_request(io_loop, job_tracker, request):
+    #TODO(e-carlin): This code is repetitive. We can find the function name from the reuqest action
+    if request.action == 'start_report_job':
+        pkdc('start_report_job: {}', request)
+        results = await _start_report_job(job_tracker, request)
+        await _notify_supervisor(results)
+        return
+    elif request.action == 'report_job_status':
+        pkdc('report_job_status: {}', request)
+        status = _report_job_status(job_tracker, request)
+        await _notify_supervisor(status)
+        return
+    elif request.action == 'run_extract_job':
+        pkdc('report_job_status: {}', request)
+        results = await _run_extract_job(job_tracker, request)
+        await _notify_supervisor(results)
+        return
+    else:
+        raise Exception(f'Request.action {request.action} unknown')
+    
+
+
+def _report_job_status(job_tracker, request):
+    pkdc('report_job_status: {}', request)
+    status =  job_tracker.report_job_status(
+        #TODO(e-carlin): Find a common place to do pkio.py_path() these are littered around
+        pkio.py_path(request.run_dir), request.jhash
+    ).value
+    return pkcollections.Dict({
+        'action': 'status_of_report_job',
+        'request_id': request.request_id,
+        'uid': request.uid,
+        'status': status,
+    })
+            
+
+async def _run_extract_job(job_tracker, request):
+    pkdc('run_extrac_job: {}', request)
+    result = await job_tracker.run_extract_job(
+        request.run_dir,
+        request.jhash,
+        request.subcmd,
+        request.arg,
+    )
+    return pkcollections.Dict({
+        'action' : 'result_of_run_extract_job',
+        'request_id': request.request_id,
+        'uid': request.uid,
+        'result': result,
+    })
+
+
+async def _start_report_job(job_tracker, request):
+    pkdc('start_report_job: {}', request)
+    await job_tracker.start_report_job(
+        pkio.py_path(request.run_dir), request.jhash,
+        request.backend,
+        request.cmd, pkio.py_path(request.tmp_dir),
+    )
+    return pkcollections.Dict({
+        'action': 'report_job_started',
+        'request_id': request.request_id,
+        'uid': request.uid,
+    })
+
+
 # Cut down version of simulation_db.write_result
 def _write_status(status, run_dir):
     fn = run_dir.join('result.json')
@@ -238,10 +252,3 @@ def _write_status(status, run_dir):
         pkjson.dump_pretty({'state': status.value}, filename=fn)
         pkio.write_text(run_dir.join('status'), status.value)
 
-@contextlib.contextmanager
-def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
-    try:
-        yield
-    except exc_type:
-        pkdlog(msg, *args, **kwargs)
-        pkdlog(pkdexc())
