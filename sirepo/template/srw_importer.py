@@ -161,6 +161,7 @@ def _beamline_element(obj, idx, title, elem_type, position):
         data['asymmetryAngle'] = obj.angAs
         data['rotationAngle'] = 0.0
         data['crystalThickness'] = obj.tc
+        data['geometryType'] = obj.uc
         data['dSpacing'] = obj.dSp
         data['psi0r'] = obj.psi0r
         data['psi0i'] = obj.psi0i

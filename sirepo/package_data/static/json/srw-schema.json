@@ -171,6 +171,10 @@
             ["1", "RMS Waist"],
             ["2", "RMS Divergence"]
         ],
+	"GeometryType": [
+	    ["1", "Bragg Refraction"],
+	    ["2", "Bragg Transmission"]
+	],
         "GridShape" : [
             ["0", "Circular Grids"],
             ["1", "Rectangular Grids"],
@@ -397,6 +401,7 @@
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
             "energy": ["Average photon energy the crystal should be oriented for [eV]", "Float", 9000],
+	    "geometryType": ["Geometry type", "GeometryType", "1"],
             "diffractionAngle": ["Diffraction plane angle [rad]", "DiffractionPlaneAngle", "0"],
             "grazingAngle": ["Grazing Angle [mrad]", "Float", 0.0],
             "asymmetryAngle": ["Asymmetry angle [rad]", "Float", 0.0],
@@ -1015,6 +1020,7 @@
                 ]],
                 ["Geometry", [
                     "energy",
+		    "geometryType",
                     "diffractionAngle",
                     "asymmetryAngle",
                     "rotationAngle",

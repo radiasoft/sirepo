@@ -1009,7 +1009,7 @@ def _compute_crystal_init(model):
         model['psiHBr'] = xrh
         model['psiHBi'] = xih
     except Exception:
-        pkdlog('{}: error: {}', material_raw, pkdexc())
+        pkdlog('{https://github.com/ochubar/SRW/blob/master/env/work/srw_python/srwlib.py}: error: {}', material_raw, pkdexc())
         for key in parms_list:
             model[key] = None
 
@@ -1034,6 +1034,7 @@ def _compute_crystal_orientation(model):
             _psi_hbr=model['psiHBr'],
             _psi_hbi=model['psiHBi'],
             _tc=model['crystalThickness'],
+            _uc=model['geometryType'],
             _ang_as=model['asymmetryAngle'],
         )
         orientDataCr = opCr.find_orient(_en=model['energy'], _ang_dif_pl=float(model['diffractionAngle']))[0]
@@ -1411,6 +1412,7 @@ def _generate_beamline_optics(report, models, last_id):
             'firstFocusLength': 'p',
             'focalLength': 'q',
             'focalPlane': 'foc_plane',
+            'geometryType': 'uc',
             'grazingAngle': 'ang',
             'gridShape': 'grid_sh',
             'grooveDensity0': 'grDen',
