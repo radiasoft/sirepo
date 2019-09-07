@@ -172,7 +172,7 @@
             ["2", "RMS Divergence"]
         ],
 	"GeometryType": [
-	    ["1", "Bragg Refraction"],
+	    ["1", "Bragg Reflection"],
 	    ["2", "Bragg Transmission"]
 	],
         "GridShape" : [
