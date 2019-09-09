@@ -11,6 +11,9 @@ import socket
 
 _CHUNK_SIZE = 4096
 
+#TODO(e-carlin): This need to be in a config file
+_SUPERVISOR_PORT = 8888
+_SUPERVISOR_HOST_NAME = 'localhost'
 
 class JobStatus(aenum.Enum):
     MISSING = 'missing'     # no data on disk, not currently running
@@ -27,7 +30,7 @@ def _request(body):
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
-    r = requests.post('http://0.0.0.0:8888', json=body)
+    r = requests.post('http://{}:{}'.format(_SUPERVISOR_HOST_NAME, _SUPERVISOR_PORT), json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):

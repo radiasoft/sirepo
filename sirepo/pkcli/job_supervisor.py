@@ -25,7 +25,8 @@ import uuid
 
 #TODO(e-carlin): These should live in a config file
 _DEBUG = True
-_PORT = 8888
+PORT = 8888
+HOST_NAME = 'localhost'
 
 _DRIVER_CLIENTS = {}
 
@@ -38,6 +39,7 @@ class RequestHandler(tornado.web.RequestHandler):
 
     async def post(self):
         body = pkcollections.Dict(pkjson.load_any(self.request.body))
+        #TODO(e-carlin): This is ugly
         pkdlog('Received request: {}',  {x: body[x] for x in body if x not in ['result', 'arg']})
         pkdc('Full request body: {}', body)
 
@@ -64,8 +66,8 @@ def start():
         debug=_DEBUG,
     )
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(_PORT)
-    pkdlog('Server listening on port {}', _PORT)
+    server.listen(PORT)
+    pkdlog('Server listening on port {}', PORT)
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -107,6 +109,7 @@ class _DriverClient():
         _http_send(request, server_reply.send)
         assert not server_reply.reply_sent.is_set()
         server_reply.reply_sent.set()
+        _http_send({}, send_to_driver)
         return
 
     async def process_server_request(self, request, send_to_server):
