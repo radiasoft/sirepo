@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): Doc
+"""TODO(e-carlin): End to end test of running a job.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,6 +17,7 @@ def test_run_myapp():
     from sirepo import srdb
     from sirepo import srunit
     from pykern import pkunit
+    from sirepo import job_common
     os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
     os.environ['PYTHONUNBUFFERED'] = '1'
     py3_env = _assert_py3()
@@ -34,11 +35,11 @@ def test_run_myapp():
 
     try:
         for _ in range(30):
-            if _server_up('http://localhost:8888'): #TODO(e-carlin): get url from config
+            if _server_up(job_common.server_cfg.supervisor_uri): #TODO(e-carlin): get url from config
                 break
             time.sleep(0.1)
         else:
-            pkunit.pkfail('runner daemon did not start up')
+            pkunit.pkfail('job supervisor did not start up')
         
         fc.get('/myapp')
         data = fc.sr_post(

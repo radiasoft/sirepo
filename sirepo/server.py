@@ -452,7 +452,7 @@ def api_root(simulation_type):
 def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
-    if feature_config.cfg.runner_daemon:
+    if feature_config.cfg.job_supervisor:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         job_supervisor_client.cancel_report_job(run_dir, jhash)
@@ -491,7 +491,7 @@ def api_runSimulation():
     # - check status
     # - if status is bad, rewrite the run dir (XX race condition, to fix later)
     # - then request it be started
-    if feature_config.cfg.runner_daemon:
+    if feature_config.cfg.job_supervisor:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         status = job_supervisor_client.report_job_status(run_dir, jhash)
@@ -507,7 +507,7 @@ def api_runSimulation():
             tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
             job_supervisor_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
-        res = _simulation_run_status_runner_daemon(data, quiet=True)
+        res = _simulation_run_status_job_supervisor(data, quiet=True)
         return http_reply.gen_json(res)
     else:
         res = _simulation_run_status(data, quiet=True)
@@ -528,8 +528,8 @@ def api_runSimulation():
 @api_perm.require_user
 def api_runStatus():
     data = _parse_data_input()
-    if feature_config.cfg.runner_daemon:
-        status = _simulation_run_status_runner_daemon(data)
+    if feature_config.cfg.job_supervisor:
+        status = _simulation_run_status_job_supervisor(data)
     else:
         status = _simulation_run_status(data)
     return http_reply.gen_json(status)
@@ -596,7 +596,7 @@ def api_simulationFrame(frame_id):
     data['report'] = template.get_animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    if feature_config.cfg.runner_daemon:
+    if feature_config.cfg.job_supervisor:
         # XX TODO: it would be better if the frontend passed the jhash to this
         # call. Since it doesn't, we have to read it out of the run_dir, which
         # creates a race condition -- we might return a frame from a different
@@ -884,7 +884,7 @@ def _simulation_name(res, path, data):
     res.append(data['models']['simulation']['name'])
 
 
-def _simulation_run_status_runner_daemon(data, quiet=False):
+def _simulation_run_status_job_supervisor(data, quiet=False):
     """Look for simulation status and output
 
     Args:
@@ -1125,5 +1125,5 @@ cfg = pkconfig.init(
     db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
-    backend=('local', str, 'Select runner daemon backend (e.g. "local", "docker")'),
+    backend=('local', str, 'Select job driver backend (e.g. "local", "docker")'),
 )
