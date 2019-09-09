@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): Client for communicating with job_supervisor
+"""Client for communicating with job_supervisor
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,10 +21,6 @@ import socket
 
 _CHUNK_SIZE = 4096
 
-#TODO(e-carlin): This need to be in a config file
-_SUPERVISOR_PORT = 8888
-_SUPERVISOR_HOST_NAME = 'localhost'
-
 class JobStatus(aenum.Enum):
     MISSING = 'missing'     # no data on disk, not currently running
     RUNNING = 'running'     # data on disk is incomplete but it's running
@@ -35,7 +31,7 @@ class JobStatus(aenum.Enum):
 
 def _request(body):
     #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
-    # We likely need a better key and we shouldn't expose this implementation
+    # We likely need a better key and maybe we shouldn't expose this implementation
     # detail to the client.
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid

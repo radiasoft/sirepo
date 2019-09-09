@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): Doc
+"""Supervisor to manage drivers and the execution of jobs on the drivers.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job_common
@@ -23,11 +24,7 @@ import tornado.queues
 import tornado.web
 import uuid
 
-
-#TODO(e-carlin): These should live in a config file
-_DEBUG = True
-
-_DRIVER_CLIENTS = {}
+_DRIVER_CLIENTS = {} #TODO(e-carlin): What data structure should we really use?
 
 
 class RequestHandler(tornado.web.RequestHandler):
@@ -62,7 +59,7 @@ def start():
         [
             (r"/", RequestHandler),
         ],
-        debug=_DEBUG,
+        debug=,
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(job_common.job_supervisor_cfg.port, job_common.job_supervisor_cfg.ip_address)
@@ -128,3 +125,6 @@ class _DriverClient():
 def _http_send(body, write):
         write(pkjson.dump_bytes(body))
 
+cfg = pkconfig.init(
+    debug=(True, bool, 'whether or not to run the server in debug mode')
+)

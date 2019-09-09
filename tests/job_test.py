@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""TODO(e-carlin): End to end test of running a job.
+"""End to end test of running a job.
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -27,7 +27,7 @@ def test_run_myapp():
     fc.sr_login_as_guest()
 
     supervisor_env = dict(py3_env)
-    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root()) #TODO(e-carlin): Why do we need this
+    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
     supervisor = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
         env=supervisor_env,
@@ -35,7 +35,7 @@ def test_run_myapp():
 
     try:
         for _ in range(30):
-            if _server_up(job_common.server_cfg.supervisor_uri): #TODO(e-carlin): get url from config
+            if _server_up(job_common.server_cfg.supervisor_uri):
                 break
             time.sleep(0.1)
         else:
