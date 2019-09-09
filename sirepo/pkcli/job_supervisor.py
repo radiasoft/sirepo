@@ -59,7 +59,7 @@ def start():
         [
             (r"/", RequestHandler),
         ],
-        debug=,
+        debug=cfg.debug,
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(job_common.job_supervisor_cfg.port, job_common.job_supervisor_cfg.ip_address)
