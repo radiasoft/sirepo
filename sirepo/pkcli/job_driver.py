@@ -8,7 +8,8 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections, pkio, pkjson
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
-from sirepo import runner_client, runner_daemon
+from sirepo import job_supervisor_client
+from sirepo.pkcli import job_supervisor
 from sirepo.runner_daemon import local_process
 import async_generator
 import asyncio
@@ -27,15 +28,14 @@ ACTION_PROCESS_RESULT = 'process_result'
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_REPORT_JOB_STARTED = 'report_job_started'
 
-
-_KILL_TIMEOUT_SECS = 3
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 
-_SERVER_REQUESTS_Q = tornado.queues.Queue()
 _DRIVER_RESPONSES_Q = tornado.queues.Queue()
+_SERVER_REQUESTS_Q = tornado.queues.Queue()
 
 _UID = None
 
+_SUPERVISOR_HOST_NAME = 'http://localhost'
 
 def start(uid):
     global _UID
@@ -77,7 +77,7 @@ class _JobTracker:
         if run_dir_jhash == jhash:
             return run_dir_status
         else:
-            return runner_client.JobStatus.MISSING
+            return job_supervisor_client.JobStatus.MISSING
 
     def run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.
@@ -101,18 +101,18 @@ class _JobTracker:
                     'found "pending" status, treating as "error" ({})',
                     disk_status_path,
                 )
-                disk_status = runner_client.JobStatus.ERROR
-            return disk_jhash, runner_client.JobStatus(disk_status)
+                disk_status = job_supervisor_client.JobStatus.ERROR
+            return disk_jhash, job_supervisor_client.JobStatus(disk_status)
         elif run_dir in self.report_jobs:
             job_info = self.report_jobs[run_dir]
             return job_info.jhash, job_info.status
             
-        return None, runner_client.JobStatus.MISSING
+        return None, job_supervisor_client.JobStatus.MISSING
     
     async def run_extract_job(self, io_loop, run_dir, jhash, subcmd, arg):
         pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
         status = self.report_job_status(run_dir, jhash)
-        if status is runner_client.JobStatus.MISSING:
+        if status is job_supervisor_client.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
                    run_dir, jhash)
             return {}
@@ -129,7 +129,7 @@ class _JobTracker:
 
         # run the job
         cmd = ['sirepo', 'extract', subcmd, arg]
-        result = await local_process.run_extract_job(
+        result = await local_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
            io_loop, run_dir, cmd, runner_info.backend_info,
         )
 
@@ -160,7 +160,7 @@ class _JobTracker:
         tmp_dir.rename(run_dir)
         report_job = local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
         job_info = _JobInfo(
-            run_dir, jhash, runner_client.JobStatus.RUNNING, report_job
+            run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, report_job
         )
         self.report_jobs[run_dir] = job_info
 
@@ -179,39 +179,37 @@ class _JobTracker:
                 del self.report_jobs[run_dir]
                 # Write status to disk
                 if job_info.cancel_requested:
-                    _write_status(runner_client.JobStatus.CANCELED, run_dir)
+                    _write_status(job_supervisor_client.JobStatus.CANCELED, run_dir)
                     await self.run_extract_job(
                         io_loop, run_dir, jhash, 'remove_last_frame', '[]',
                     )
                 elif returncode == 0:
-                    _write_status(runner_client.JobStatus.COMPLETED, run_dir)
+                    _write_status(job_supervisor_client.JobStatus.COMPLETED, run_dir)
                 else:
                     pkdlog(
                         '{} {}: job failed, returncode = {}',
                         run_dir, jhash, returncode,
                     )
-                    _write_status(runner_client.JobStatus.ERROR, run_dir)
+                    _write_status(job_supervisor_client.JobStatus.ERROR, run_dir)
 
 
 async def _notify_supervisor(data):
     data.source = 'driver'
     data.uid = _UID 
-    pkdlog(f'Notifying supervisor: {data}')
+    #TODO(e-carlin): This is ugly
+    pkdlog('Notifying supervisor: {}',  {x: data[x] for x in data if x not in ['result', 'arg']})
+    pkdc('Full body: {}', data)
 
     http_client = tornado.httpclient.AsyncHTTPClient()
     response = await http_client.fetch(
-        'http://localhost:8888',
+        f'http://{job_supervisor.HOST_NAME}:{job_supervisor.PORT}',
         method='POST',
         body=pkjson.dump_bytes(data),
         request_timeout=math.inf,
         )
 
-    #TODO(e-carlin): Hack. When we send results to server it responds with nothing
-    if response.body is b'':
-        return None
-
     supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
-    pkdp(f'Supervisor responded with: {supervisor_request}')
+    pkdc('Supervisor responded with: {}', supervisor_request)
     return supervisor_request
 
 
@@ -224,7 +222,7 @@ async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
             request = await _notify_supervisor(data)
         except ConnectionRefusedError as e:
             pkdlog('Connection refused while calling supervisor ready_for_work. \
-                Sleeping and trying again. Caused by {}', e)
+                Sleeping and trying again. Caused by: {}', e)
             await tornado.gen.sleep(1)    
             continue
         if request.action == ACTION_KEEP_ALIVE:
@@ -252,7 +250,6 @@ async def _process_supervisor_request(io_loop, job_tracker, request):
     else:
         raise Exception(f'Request.action {request.action} unknown')
     
-
 
 def _report_job_status(job_tracker, request):
     pkdc('report_job_status: {}', request)
@@ -300,7 +297,6 @@ async def _start_report_job(job_tracker, request, io_loop):
     })
 
 
-# Cut down version of simulation_db.write_result
 def _write_status(status, run_dir):
     fn = run_dir.join('result.json')
     if not fn.exists():

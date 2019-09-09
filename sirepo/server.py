@@ -15,7 +15,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
-from sirepo import runner_client
+from sirepo import job_supervisor_client
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import uri_router
@@ -455,7 +455,7 @@ def api_runCancel():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        runner_client.cancel_report_job(run_dir, jhash)
+        job_supervisor_client.cancel_report_job(run_dir, jhash)
         # Always true from the client's perspective
         return http_reply.gen_json({'state': 'canceled'})
     else:
@@ -494,10 +494,10 @@ def api_runSimulation():
     if feature_config.cfg.runner_daemon:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        status = runner_client.report_job_status(run_dir, jhash)
+        status = job_supervisor_client.report_job_status(run_dir, jhash)
 
-        already_good_status = [runner_client.JobStatus.RUNNING,
-                               runner_client.JobStatus.COMPLETED]
+        already_good_status = [job_supervisor_client.JobStatus.RUNNING,
+                               job_supervisor_client.JobStatus.COMPLETED]
         if status not in already_good_status:
             entered = True
             data['simulationStatus'] = {
@@ -506,7 +506,7 @@ def api_runSimulation():
             }
             tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            runner_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
+            job_supervisor_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
         res = _simulation_run_status_runner_daemon(data, quiet=True)
         return http_reply.gen_json(res)
     else:
@@ -602,7 +602,7 @@ def api_simulationFrame(frame_id):
         # creates a race condition -- we might return a frame from a different
         # version of the report than the one the frontend expects.
         jhash = template_common.report_parameters_hash(model_data)
-        frame = runner_client.run_extract_job(
+        frame = job_supervisor_client.run_extract_job(
             run_dir, jhash, 'get_simulation_frame', data,
         )
     else:
@@ -897,20 +897,20 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = runner_client.report_job_status(run_dir, jhash)
-        is_running = status is runner_client.JobStatus.RUNNING
+        status = job_supervisor_client.report_job_status(run_dir, jhash)
+        is_running = status is job_supervisor_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
 
         if not is_running:
-            if status is not runner_client.JobStatus.MISSING:
-                res, err = runner_client.run_extract_job(
+            if status is not job_supervisor_client.JobStatus.MISSING:
+                res, err = job_supervisor_client.run_extract_job(
                     run_dir, jhash, 'result', data,
                 )
                 if err:
                     return _simulation_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
-            new = runner_client.run_extract_job(
+            new = job_supervisor_client.run_extract_job(
                 run_dir,
                 jhash,
                 'background_percent_complete',
