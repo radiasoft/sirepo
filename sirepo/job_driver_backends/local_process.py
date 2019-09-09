@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""sirepo package
+u"""Run jobs using a local process
 
 :copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -38,13 +38,6 @@ def start_report_job(run_dir, cmd):
     env['PYENV_VERSION'] = 'py2'
     cmd = ['pyenv', 'exec'] + cmd
 
-    # TODO(e-carlin): Remove, this is used for testing a long running job
-    # cmd = ['python', 'long_run.py']
-    # run_dir = '/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli'
-
-    # TODO(e-carlin): If I do C-c on the runner_agent this process doesn't get 
-    # killed. Why is that? I thought since it was in a nursery the kill of the 
-    # nursery would propagate
     with open(run_log_path, 'a+b') as run_log:
         sub_process = tornado.process.Subprocess(
             cmd,
@@ -65,14 +58,6 @@ class _LocalReportJob:
     def __init__(self, sub_process, backend_info):
         self._sub_process = sub_process
         self.backend_info = backend_info
-
-    # async def kill(self, grace_period):
-    #     # Everything here is a no-op if the process is already dead
-    #     self._sub_process.terminate()
-    #     with trio.move_on_after(grace_period):
-    #         await self._sub_process.wait()
-    #     self._sub_process.kill()
-    #     await self._sub_process.wait()
 
     async def wait_for_exit(self):
         return await self._sub_process.wait_for_exit()
@@ -96,11 +81,6 @@ async def run_extract_job(io_loop, run_dir, cmd, backend_info):
     try:
         async def collect(stream, out_array):
             out_array += await stream.read_until_close()
-            # while True:
-            #     data = await stream.read_bytes(4096)
-            #     if not data:
-            #         break
-                # out_array += data
 
         stdout = bytearray()
         stderr = bytearray()
