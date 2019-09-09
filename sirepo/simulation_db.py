@@ -548,7 +548,7 @@ def prepare_simulation(data, tmp_dir=None):
         #   probably can only do with celery.
         pkio.mkdir_parent(run_dir)
         out_dir = run_dir
-        # Only done on the legacy path, because the runner daemon owns the
+        # Only done on the legacy path, because the job supervisor owns the
         # status file.
         write_status('pending', out_dir)
     else:

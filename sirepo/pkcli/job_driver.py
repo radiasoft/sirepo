@@ -8,9 +8,10 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections, pkio, pkjson
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
+from sirepo import job_common
 from sirepo import job_supervisor_client
 from sirepo.pkcli import job_supervisor
-from sirepo.runner_daemon import local_process
+from sirepo.job_driver_backends import local_process
 import async_generator
 import asyncio
 import contextlib
@@ -35,7 +36,6 @@ _SERVER_REQUESTS_Q = tornado.queues.Queue()
 
 _UID = None
 
-_SUPERVISOR_HOST_NAME = 'http://localhost'
 
 def start(uid):
     global _UID
@@ -202,7 +202,7 @@ async def _notify_supervisor(data):
 
     http_client = tornado.httpclient.AsyncHTTPClient()
     response = await http_client.fetch(
-        f'http://{job_supervisor.HOST_NAME}:{job_supervisor.PORT}',
+        job_common.job_driver_cfg.supervisor_uri,
         method='POST',
         body=pkjson.dump_bytes(data),
         request_timeout=math.inf,

@@ -1,6 +1,16 @@
+# -*- coding: utf-8 -*-
+"""TODO(e-carlin): Client for communicating with job_supervisor
+
+:copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+from __future__ import absolute_import, division, print_function
+
+
 from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import job_common
 from sirepo import simulation_db
 from sirepo import srdb
 import aenum
@@ -30,7 +40,7 @@ def _request(body):
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
-    r = requests.post('http://{}:{}'.format(_SUPERVISOR_HOST_NAME, _SUPERVISOR_PORT), json=body)
+    r = requests.post(job_common.server_cfg.supervisor_uri, json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):

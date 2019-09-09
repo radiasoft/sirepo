@@ -10,6 +10,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+from sirepo import job_common
 import asyncio
 import os.path
 import tornado.escape
@@ -25,8 +26,6 @@ import uuid
 
 #TODO(e-carlin): These should live in a config file
 _DEBUG = True
-PORT = 8888
-HOST_NAME = 'localhost'
 
 _DRIVER_CLIENTS = {}
 
@@ -66,8 +65,8 @@ def start():
         debug=_DEBUG,
     )
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(PORT)
-    pkdlog('Server listening on port {}', PORT)
+    server.listen(job_common.job_supervisor_cfg.port, job_common.job_supervisor_cfg.ip_address)
+    pkdlog('Server listening on {}:{}', job_common.job_supervisor_cfg.ip_address, job_common.job_supervisor_cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -128,3 +127,4 @@ class _DriverClient():
 
 def _http_send(body, write):
         write(pkjson.dump_bytes(body))
+
