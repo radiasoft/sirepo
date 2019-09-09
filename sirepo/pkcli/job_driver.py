@@ -231,20 +231,17 @@ async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
 
 
 async def _process_supervisor_request(io_loop, job_tracker, request):
-    #TODO(e-carlin): This code is repetitive. We can find the function name from the reuqest action
+    #TODO(e-carlin): This code is repetitive.
     if request.action == 'start_report_job':
-        pkdc('start_report_job: {}', request)
-        results = await _start_report_job(job_tracker, request, io_loop)
+        results = await _start_report_job(io_loop, job_tracker, request)
         await _notify_supervisor(results)
         return
     elif request.action == 'report_job_status':
-        pkdc('report_job_status: {}', request)
         status = _report_job_status(job_tracker, request)
         await _notify_supervisor(status)
         return
     elif request.action == 'run_extract_job':
-        pkdc('run_extract_job: {}', request)
-        results = await _run_extract_job(job_tracker, request, io_loop)
+        results = await _run_extract_job(io_loop, job_tracker, request)
         await _notify_supervisor(results)
         return
     else:
@@ -265,7 +262,7 @@ def _report_job_status(job_tracker, request):
     })
             
 
-async def _run_extract_job(job_tracker, request, io_loop):
+async def _run_extract_job(io_loop, job_tracker, request):
     pkdc('run_extrac_job: {}', request)
     result = await job_tracker.run_extract_job(
         io_loop,
@@ -282,7 +279,7 @@ async def _run_extract_job(job_tracker, request, io_loop):
     })
 
 
-async def _start_report_job(job_tracker, request, io_loop):
+async def _start_report_job(io_loop, job_tracker, request):
     pkdc('start_report_job: {}', request)
     await job_tracker.start_report_job(
         io_loop,

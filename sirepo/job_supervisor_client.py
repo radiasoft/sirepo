@@ -58,7 +58,7 @@ def report_job_status(run_dir, jhash):
         'run_dir': str(run_dir),
         'jhash': jhash,
     }
-    response= _request(body)
+    response = _request(body)
     return JobStatus(response.status)
 
 
