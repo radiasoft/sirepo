@@ -39,7 +39,7 @@ class _ReqHandler(tornado.web.RequestHandler):
         pkdlog('Received request: {}',  {x: req[x] for x in req if x not in ['result', 'arg']})
         pkdc('Full request body: {}', req)
 
-        driver_client = _create_driver_client_if_not_found(req.uid)
+        driver_client = _get_driver_client(req.uid)
         await driver_client.process_request(req, self.write)
 
     def on_connection_close(self):
@@ -62,64 +62,58 @@ def start():
     tornado.ioloop.IOLoop.current().start()
 
 
-def _create_driver(uid):
-    #TODO(e-carlin): Make this way more robust
-    cmd = ['sirepo', 'job_driver', 'start', uid]
-    tornado.process.Subprocess(cmd)
-
-
-def _create_driver_client_if_not_found(uid):
-    if uid not in _DRIVER_CLIENTS:
-        _create_driver(uid) #TODO(e-carlin): Creating driver should maybe be part of creating driver_client
-        driver_client = _DriverClient()
-        _DRIVER_CLIENTS[uid] = driver_client
-
-    return _DRIVER_CLIENTS[uid]
+def _get_driver_client(uid):
+    return _DRIVER_CLIENTS.get(uid) or _DriverClient(uid)
 
 
 class _DriverClient():
-    def __init__(self):
-        self._driver_work_q = tornado.queues.Queue()
-        self._server_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
+    def __init__(self, uid):
+        self._srserver_reqs= tornado.queues.Queue()
+        self._srserver_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
+        self._uid = uid
+        
+        #TODO(e-carlin): Make this way more robust
+        tornado.process.Subprocess(['sirepo', 'job_driver', 'start', self._uid])
+        _DRIVER_CLIENTS[self._uid] = self
 
     async def process_request(self, req, reply_writer):
         source = req.action.split('_')[0]
-        await getattr(self, f'process_{source}_request')(req, reply_writer)
-        
+        await getattr(self, f'_process_{source}_request')(req, reply_writer)
 
-    async def process_driver_request(self, req, send_to_driver):
+    async def _process_driver_ready_for_work(self, req, write_to_driver):
+            r = await self._srserver_reqs.get()
+            pkdc('Received work item for driver. Sending to driver. Request: {}', r)
+            #TODO(e-carlin): Handle errors.
+            _http_send(r, write_to_driver)
+            self._srserver_reqs.task_done()
+
+    async def _process_driver_request(self, req, write_to_driver):
         pkdc('Processing driver request. Request: {}', req)
 
-        # Driver is ready for work. Give it work when we have some.
-        if req.action == job.ACTION_DRIVER_READY_FOR_WORK:
-            work_to_do = await self._driver_work_q.get()
-            pkdc('Received work item for driver. Sending to driver. Work: {}', work_to_do)
-            #TODO(e-carlin): Handle errors.
-            _http_send(work_to_do, send_to_driver)
-            self._driver_work_q.task_done()
-            return
-
-        # Driver has the results of work. Send them to the server.
+        action_dispatch = {
+            job.ACTION_DRIVER_READY_FOR_WORK: self._process_driver_ready_for_work,
+        }
+        process_fn = action_dispatch.get(req.action) or self._process_driver_results
+        await process_fn(req, write_to_driver)
+        
+    async def _process_driver_results(self, req, write_to_driver):
         pkdc('Sending driver results to server: {}', req)
-        server_reply = self._server_responses[req.request_id]
-        _http_send(req, server_reply.send)
-        assert not server_reply.reply_sent.is_set()
-        server_reply.reply_sent.set()
-        _http_send({}, send_to_driver)
-        return
-
-    async def process_srserver_request(self, req, send_to_server):
+        server_response = self._srserver_responses[req.id]
+        _http_send(req, server_response.write_to_server)
+        assert not server_response.reply_was_sent.is_set()
+        server_response.reply_was_sent.set()
+        _http_send({}, write_to_driver)
+        
+    async def _process_srserver_request(self, req, write_to_server):
         pkdc('Processing server request. Request: {}', req)
-        reply_sent = tornado.locks.Event()
-        req.request_id = str(uuid.uuid4())
-        work_to_do = pkcollections.Dict(req)
-        self._server_responses[req.request_id] = pkcollections.Dict({
-            'send': send_to_server,
-            'reply_sent': reply_sent,
+        req.id = str(uuid.uuid4())
+        self._srserver_responses[req.id] = pkcollections.Dict({
+            'write_to_server': write_to_server,
+            'reply_was_sent': tornado.locks.Event(),
         })
-        await self._driver_work_q.put(work_to_do)
-        await reply_sent.wait()
-        del self._server_responses[req.request_id]
+        await self._srserver_reqs.put(req)
+        await self._srserver_responses[req.id].reply_was_sent.wait()
+        del self._srserver_responses[req.id]
 
 
 def _http_send(body, write):
