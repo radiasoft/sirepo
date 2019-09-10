@@ -11,7 +11,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-from sirepo import job_common
+from sirepo import job
 import asyncio
 import os.path
 import tornado.escape
@@ -27,25 +27,20 @@ import uuid
 _DRIVER_CLIENTS = {} #TODO(e-carlin): What data structure should we really use?
 
 
-class RequestHandler(tornado.web.RequestHandler):
+class _ReqHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
     async def post(self):
-        body = pkcollections.Dict(pkjson.load_any(self.request.body))
+        req = pkjson.load_any(self.request.body)
         #TODO(e-carlin): This is ugly
-        pkdlog('Received request: {}',  {x: body[x] for x in body if x not in ['result', 'arg']})
-        pkdc('Full request body: {}', body)
+        pkdlog('Received request: {}',  {x: req[x] for x in req if x not in ['result', 'arg']})
+        pkdc('Full request body: {}', req)
 
-        source_types = ['server', 'driver']
-        assert body.source in source_types
-
-        driver_client = _create_driver_client_if_not_found(body.uid)
-        process_fn = getattr(driver_client, f'process_{body.source}_request')
-        await process_fn(body, self.write)
-        return
+        driver_client = _create_driver_client_if_not_found(req.uid)
+        await driver_client.process_request(req, self.write)
 
     def on_connection_close(self):
         #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
@@ -57,13 +52,13 @@ class RequestHandler(tornado.web.RequestHandler):
 def start():
     app = tornado.web.Application(
         [
-            (r"/", RequestHandler),
+            (r"/", _ReqHandler),
         ],
         debug=cfg.debug,
     )
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(job_common.job_supervisor_cfg.port, job_common.job_supervisor_cfg.ip_address)
-    pkdlog('Server listening on {}:{}', job_common.job_supervisor_cfg.ip_address, job_common.job_supervisor_cfg.port)
+    server.listen(job.job_supervisor_cfg.port, job.job_supervisor_cfg.ip_address)
+    pkdlog('Server listening on {}:{}', job.job_supervisor_cfg.ip_address, job.job_supervisor_cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -87,11 +82,16 @@ class _DriverClient():
         self._driver_work_q = tornado.queues.Queue()
         self._server_responses = {} #TODO(e-carlin): I'd like to use pkcollections.Dict() but it prevents delete. Why is that?
 
+    async def process_request(self, req, reply_writer):
+        source = req.action.split('_')[0]
+        await getattr(self, f'process_{source}_request')(req, reply_writer)
+        
+
     async def process_driver_request(self, request, send_to_driver):
         pkdc('Processing driver request. Request: {}', request)
 
         # Driver is ready for work. Give it work when we have some.
-        if request.action == 'ready_for_work':
+        if request.action == job.ACTION_DRIVER_READY_FOR_WORK:
             work_to_do = await self._driver_work_q.get()
             pkdc('Received work item for driver. Sending to driver. Work: {}', work_to_do)
             #TODO(e-carlin): Handle errors.
@@ -108,7 +108,7 @@ class _DriverClient():
         _http_send({}, send_to_driver)
         return
 
-    async def process_server_request(self, request, send_to_server):
+    async def process_srserver_request(self, request, send_to_server):
         pkdc('Processing server request. Request: {}', request)
         reply_sent = tornado.locks.Event()
         request.request_id = str(uuid.uuid4())

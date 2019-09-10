@@ -17,7 +17,7 @@ def test_run_myapp():
     from sirepo import srdb
     from sirepo import srunit
     from pykern import pkunit
-    from sirepo import job_common
+    from sirepo import job
     os.environ['SIREPO_FEATURE_CONFIG_RUNNER_DAEMON'] = '1'
     os.environ['PYTHONUNBUFFERED'] = '1'
     py3_env = _assert_py3()
@@ -35,7 +35,7 @@ def test_run_myapp():
 
     try:
         for _ in range(30):
-            if _server_up(job_common.server_cfg.supervisor_uri):
+            if _server_up(job.server_cfg.supervisor_uri):
                 break
             time.sleep(0.1)
         else:

@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections, pkio, pkjson
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
-from sirepo import job_common
+from sirepo import job
 from sirepo import job_supervisor_client
 from sirepo.pkcli import job_supervisor
 from sirepo.job_driver_backends import local_process
@@ -23,11 +23,6 @@ import tornado.ioloop
 import tornado.locks
 import tornado.queues
 
-
-ACTION_KEEP_ALIVE = 'keep_alive'
-ACTION_PROCESS_RESULT = 'process_result'
-ACTION_READY_FOR_WORK = 'ready_for_work'
-ACTION_REPORT_JOB_STARTED = 'report_job_started'
 
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 
@@ -202,7 +197,7 @@ async def _notify_supervisor(data):
 
     http_client = tornado.httpclient.AsyncHTTPClient()
     response = await http_client.fetch(
-        job_common.job_driver_cfg.supervisor_uri,
+        job.job_driver_cfg.supervisor_uri,
         method='POST',
         body=pkjson.dump_bytes(data),
         request_timeout=math.inf,
@@ -216,7 +211,7 @@ async def _notify_supervisor(data):
 async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
     while True:
         data = pkcollections.Dict({
-            'action': ACTION_READY_FOR_WORK,
+            'action': job.ACTION_DRIVER_READY_FOR_WORK,
         })
         try:
             request = await _notify_supervisor(data)
@@ -225,22 +220,22 @@ async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
                 Sleeping and trying again. Caused by: {}', e)
             await tornado.gen.sleep(1)    
             continue
-        if request.action == ACTION_KEEP_ALIVE:
+        if request.action == job.ACTION_SUPERVISOR_KEEP_ALIVE:
             continue
         io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
 
 
 async def _process_supervisor_request(io_loop, job_tracker, request):
     #TODO(e-carlin): This code is repetitive.
-    if request.action == 'start_report_job':
+    if request.action == job.ACTION_SRSERVER_START_REPORT_JOB:
         results = await _start_report_job(io_loop, job_tracker, request)
         await _notify_supervisor(results)
         return
-    elif request.action == 'report_job_status':
+    elif request.action == job.ACTION_SRSERVER_REPORT_JOB_STATUS:
         status = _report_job_status(job_tracker, request)
         await _notify_supervisor(status)
         return
-    elif request.action == 'run_extract_job':
+    elif request.action == job.ACTION_SRSERVER_RUN_EXTRACT_JOB:
         results = await _run_extract_job(io_loop, job_tracker, request)
         await _notify_supervisor(results)
         return
@@ -255,7 +250,7 @@ def _report_job_status(job_tracker, request):
         pkio.py_path(request.run_dir), request.jhash
     ).value
     return pkcollections.Dict({
-        'action': 'status_of_report_job',
+        'action': job.ACTION_DRIVER_REPORT_JOB_STATUS,
         'request_id': request.request_id,
         'uid': request.uid,
         'status': status,
@@ -272,7 +267,7 @@ async def _run_extract_job(io_loop, job_tracker, request):
         request.arg,
     )
     return pkcollections.Dict({
-        'action' : 'result_of_run_extract_job',
+        'action' : job.ACTION_DRIVER_EXTRACT_JOB_RESULTS,
         'request_id': request.request_id,
         'uid': request.uid,
         'result': result,
@@ -288,7 +283,7 @@ async def _start_report_job(io_loop, job_tracker, request):
         request.cmd, pkio.py_path(request.tmp_dir),
     )
     return pkcollections.Dict({
-        'action': 'report_job_started',
+        'action': job.ACTION_DRIVER_REPORT_JOB_STARTED,
         'request_id': request.request_id,
         'uid': request.uid,
     })
