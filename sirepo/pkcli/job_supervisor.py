@@ -57,8 +57,8 @@ def start():
         debug=cfg.debug,
     )
     server = tornado.httpserver.HTTPServer(app)
-    server.listen(job.job_supervisor_cfg.port, job.job_supervisor_cfg.ip_address)
-    pkdlog('Server listening on {}:{}', job.job_supervisor_cfg.ip_address, job.job_supervisor_cfg.port)
+    server.listen(cfg.port, cfg.ip)
+    pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -126,5 +126,7 @@ def _http_send(body, write):
         write(pkjson.dump_bytes(body))
 
 cfg = pkconfig.init(
-    debug=(True, bool, 'whether or not to run the server in debug mode')
+    debug=(True, bool, 'whether or not to run the supervisor tornado server in debug mode'),
+    ip=(job.DEFAULT_IP, str, 'ip address for the supervisor tornado server to listen to'),
+    port=(job.DEFAULT_PORT, int, 'port for the supervisor tornado server to listen to')
 )

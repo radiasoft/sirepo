@@ -7,8 +7,7 @@
 from __future__ import absolute_import, division, print_function
 
 
-from pykern import pkcollections
-from pykern import pkjson
+from pykern import pkcollections, pkjson, pkconfig
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
 from sirepo import simulation_db
@@ -34,7 +33,7 @@ def _request(body):
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
-    r = requests.post(job.server_cfg.supervisor_uri, json=body)
+    r = requests.post(cfg.supervisor_uri, json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
@@ -77,3 +76,7 @@ def run_extract_job(run_dir, jhash, subcmd, *args):
     })
     response = _request(body)
     return response.result
+
+cfg = pkconfig.init(
+    supervisor_uri=(job.cfg.supervisor_uri, str, 'the uri to reach the supervisor on')
+)
