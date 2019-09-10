@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 
-from pykern import pkcollections, pkio, pkjson
+from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import job_supervisor_client
@@ -197,7 +197,7 @@ async def _notify_supervisor(data):
 
     http_client = tornado.httpclient.AsyncHTTPClient()
     response = await http_client.fetch(
-        job.job_driver_cfg.supervisor_uri,
+        cfg.supervisor_uri,
         method='POST',
         body=pkjson.dump_bytes(data),
         request_timeout=math.inf,
@@ -295,3 +295,6 @@ def _write_status(status, run_dir):
         pkjson.dump_pretty({'state': status.value}, filename=fn)
         pkio.write_text(run_dir.join('status'), status.value)
 
+cfg = pkconfig.init(
+    supervisor_uri=(job.cfg.supervisor_uri, str, 'the uri to reach the supervisor on')
+)

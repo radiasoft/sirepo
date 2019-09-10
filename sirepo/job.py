@@ -32,25 +32,13 @@ ACTION_SRSERVER_START_REPORT_JOB = 'srserver_start_report_job'
 
 ACTION_SUPERVISOR_KEEP_ALIVE = 'supervisor_keep_alive'
 
-job_supervisor_cfg = pkconfig.init(
-    ip_address=('127.0.0.1', str, 'ip address the supervisor is listening to'),
-    port=(8001, int, 'port the supervisor is listening to'),
-)
+DEFAULT_IP = '127.0.0.1'
+DEFAULT_PORT = 8001
 
-server_cfg = pkconfig.init(
+cfg = pkconfig.init(
     supervisor_uri=(
-        'http://{}:{}'.format(job_supervisor_cfg.ip_address, job_supervisor_cfg.port),
+        'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
         str, 
-        'uri to reach the supervisor'
-        )
+        'uri to reach the supervisor',
+    ),
 )
-
-job_driver_cfg = pkconfig.init(
-    supervisor_uri=(
-        'http://{}:{}'.format(job_supervisor_cfg.ip_address, job_supervisor_cfg.port),
-        str, 
-        'uri to reach the supervisor'
-        )
-)
-       
-
