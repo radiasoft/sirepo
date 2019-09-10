@@ -251,7 +251,7 @@ def _report_job_status(job_tracker, req):
     ).value
     return pkcollections.Dict({
         'action': job.ACTION_DRIVER_REPORT_JOB_STATUS,
-        'request_id': req.request_id,
+        'id': req.id,
         'uid': req.uid,
         'status': status,
     })
@@ -268,7 +268,7 @@ async def _run_extract_job(io_loop, job_tracker, req):
     )
     return pkcollections.Dict({
         'action' : job.ACTION_DRIVER_EXTRACT_JOB_RESULTS,
-        'request_id': req.request_id,
+        'id': req.id,
         'uid': req.uid,
         'result': result,
     })
@@ -284,7 +284,7 @@ async def _start_report_job(io_loop, job_tracker, req):
     )
     return pkcollections.Dict({
         'action': job.ACTION_DRIVER_REPORT_JOB_STARTED,
-        'request_id': req.request_id,
+        'id': req.id,
         'uid': req.uid,
     })
 
