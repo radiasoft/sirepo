@@ -203,9 +203,9 @@ async def _notify_supervisor(data):
         request_timeout=math.inf,
         )
 
-    supervisor_request = pkcollections.Dict(pkjson.load_any(response.body))
-    pkdc('Supervisor responded with: {}', supervisor_request)
-    return supervisor_request
+    supervisor_req = pkcollections.Dict(pkjson.load_any(response.body))
+    pkdc('Supervisor responded with: {}', supervisor_req)
+    return supervisor_req
 
 
 async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
@@ -214,78 +214,78 @@ async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
             'action': job.ACTION_DRIVER_READY_FOR_WORK,
         })
         try:
-            request = await _notify_supervisor(data)
+            req = await _notify_supervisor(data)
         except ConnectionRefusedError as e:
             pkdlog('Connection refused while calling supervisor ready_for_work. \
                 Sleeping and trying again. Caused by: {}', e)
             await tornado.gen.sleep(1)    
             continue
-        if request.action == job.ACTION_SUPERVISOR_KEEP_ALIVE:
+        if req.action == job.ACTION_SUPERVISOR_KEEP_ALIVE:
             continue
-        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, request)
+        io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, req)
 
 
-async def _process_supervisor_request(io_loop, job_tracker, request):
+async def _process_supervisor_request(io_loop, job_tracker, req):
     #TODO(e-carlin): This code is repetitive.
-    if request.action == job.ACTION_SRSERVER_START_REPORT_JOB:
-        results = await _start_report_job(io_loop, job_tracker, request)
+    if req.action == job.ACTION_SRSERVER_START_REPORT_JOB:
+        results = await _start_report_job(io_loop, job_tracker, req)
         await _notify_supervisor(results)
         return
-    elif request.action == job.ACTION_SRSERVER_REPORT_JOB_STATUS:
-        status = _report_job_status(job_tracker, request)
+    elif req.action == job.ACTION_SRSERVER_REPORT_JOB_STATUS:
+        status = _report_job_status(job_tracker, req)
         await _notify_supervisor(status)
         return
-    elif request.action == job.ACTION_SRSERVER_RUN_EXTRACT_JOB:
-        results = await _run_extract_job(io_loop, job_tracker, request)
+    elif req.action == job.ACTION_SRSERVER_RUN_EXTRACT_JOB:
+        results = await _run_extract_job(io_loop, job_tracker, req)
         await _notify_supervisor(results)
         return
     else:
-        raise Exception(f'Request.action {request.action} unknown')
+        raise Exception(f'Request.action {req.action} unknown')
     
 
-def _report_job_status(job_tracker, request):
-    pkdc('report_job_status: {}', request)
+def _report_job_status(job_tracker, req):
+    pkdc('report_job_status: {}', req)
     status =  job_tracker.report_job_status(
         #TODO(e-carlin): Find a common place to do pkio.py_path() these are littered around
-        pkio.py_path(request.run_dir), request.jhash
+        pkio.py_path(req.run_dir), req.jhash
     ).value
     return pkcollections.Dict({
         'action': job.ACTION_DRIVER_REPORT_JOB_STATUS,
-        'request_id': request.request_id,
-        'uid': request.uid,
+        'request_id': req.request_id,
+        'uid': req.uid,
         'status': status,
     })
             
 
-async def _run_extract_job(io_loop, job_tracker, request):
-    pkdc('run_extrac_job: {}', request)
+async def _run_extract_job(io_loop, job_tracker, req):
+    pkdc('run_extrac_job: {}', req)
     result = await job_tracker.run_extract_job(
         io_loop,
-        pkio.py_path(request.run_dir),
-        request.jhash,
-        request.subcmd,
-        request.arg,
+        pkio.py_path(req.run_dir),
+        req.jhash,
+        req.subcmd,
+        req.arg,
     )
     return pkcollections.Dict({
         'action' : job.ACTION_DRIVER_EXTRACT_JOB_RESULTS,
-        'request_id': request.request_id,
-        'uid': request.uid,
+        'request_id': req.request_id,
+        'uid': req.uid,
         'result': result,
     })
 
 
-async def _start_report_job(io_loop, job_tracker, request):
-    pkdc('start_report_job: {}', request)
+async def _start_report_job(io_loop, job_tracker, req):
+    pkdc('start_report_job: {}', req)
     await job_tracker.start_report_job(
         io_loop,
-        pkio.py_path(request.run_dir), request.jhash,
-        request.backend,
-        request.cmd, pkio.py_path(request.tmp_dir),
+        pkio.py_path(req.run_dir), req.jhash,
+        req.backend,
+        req.cmd, pkio.py_path(req.tmp_dir),
     )
     return pkcollections.Dict({
         'action': job.ACTION_DRIVER_REPORT_JOB_STARTED,
-        'request_id': request.request_id,
-        'uid': request.uid,
+        'request_id': req.request_id,
+        'uid': req.uid,
     })
 
 
