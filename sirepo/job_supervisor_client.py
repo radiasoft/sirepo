@@ -10,7 +10,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-from sirepo import job_common
+from sirepo import job
 from sirepo import simulation_db
 from sirepo import srdb
 import aenum
@@ -18,8 +18,6 @@ import contextlib
 import requests
 import socket
 
-
-_CHUNK_SIZE = 4096
 
 class JobStatus(aenum.Enum):
     MISSING = 'missing'     # no data on disk, not currently running
@@ -36,12 +34,12 @@ def _request(body):
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
-    r = requests.post(job_common.server_cfg.supervisor_uri, json=body)
+    r = requests.post(job.server_cfg.supervisor_uri, json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
     body = {
-        'action': 'start_report_job',
+        'action': job.ACTION_SRSERVER_START_REPORT_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
@@ -54,7 +52,7 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
 
 def report_job_status(run_dir, jhash):
     body = {
-        'action': 'report_job_status',
+        'action': job.ACTION_SRSERVER_REPORT_JOB_STATUS,
         'run_dir': str(run_dir),
         'jhash': jhash,
     }
@@ -71,7 +69,7 @@ def cancel_report_job(run_dir, jhash):
 
 def run_extract_job(run_dir, jhash, subcmd, *args):
     body = ({
-        'action': 'run_extract_job',
+        'action': job.ACTION_SRSERVER_RUN_EXTRACT_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'subcmd': subcmd,
