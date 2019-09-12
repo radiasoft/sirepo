@@ -13,7 +13,67 @@ import subprocess
 import time
 from pykern.pkdebug import pkdc, pkdp
 
-def test_run_myapp():
+def test_v2():
+    from sirepo import srdb
+    from sirepo import srunit
+    from pykern import pkunit
+    from sirepo import job
+    from sirepo import job_supervisor_client
+    os.environ['SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR'] = '1'
+    os.environ['PYTHONUNBUFFERED'] = '1'
+    py3_env = _assert_py3()
+
+
+    fc = srunit.flask_client(sim_types='myapp')
+    fc.sr_login_as_guest()
+
+    supervisor_env = dict(py3_env)
+    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
+    supervisor = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
+        env=supervisor_env,
+    )
+
+    try:
+        for _ in range(30):
+            if _server_up(job_supervisor_client.cfg.supervisor_uri):
+                break
+            time.sleep(0.1)
+        else:
+            pkunit.pkfail('job supervisor did not start up')
+        
+        fc.get('/myapp')
+        data = fc.sr_post(
+            'listSimulations',
+            {'simulationType': 'myapp',
+             'search': {'simulationName': 'heightWeightReport'}},
+        )
+        data = data[0].simulation
+        data = fc.sr_get_json(
+            'simulationData',
+            params=dict(
+                pretty='1',
+                simulation_id=data.simulationId,
+                simulation_type='myapp',
+            ),
+        )
+        run = fc.sr_post(
+            'runSimulation',
+            dict(
+                forceRun=False,
+                models=data.models,
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ),
+        )
+        pkdp(run)
+    finally:
+        supervisor.terminate()
+        supervisor.wait()
+
+
+def xtest_run_myapp():
     from sirepo import srdb
     from sirepo import srunit
     from pykern import pkunit

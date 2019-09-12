@@ -29,16 +29,54 @@ _RUNNER_INFO_BASENAME = 'runner-info.json'
 _DRIVER_RESPONSES_Q = tornado.queues.Queue()
 _SERVER_REQUESTS_Q = tornado.queues.Queue()
 
+_JOB_TRACKER = None
+_SUPERVISOR_URI = None
 _UID = None
+_WS = None
 
 
-def start(uid):
+def start(uid, supervisor_uri):
+    global _JOB_TRACKER
+    global _SUPERVISOR_URI
     global _UID
+    _JOB_TRACKER = _JobTracker() # TODO(e-carlin): should we just call IoLopp.current() in jobTracker()?
+    _SUPERVISOR_URI = supervisor_uri
     _UID = uid
     io_loop = tornado.ioloop.IOLoop.current()
-    job_tracker = _JobTracker(io_loop)
-    io_loop.spawn_callback(_notify_supervisor_ready_for_work, io_loop, job_tracker)
+    io_loop.spawn_callback(_connect_to_supervisor)
     io_loop.start()
+
+
+async def _connect_to_supervisor():
+    global _WS
+    if _WS is None:
+        try:
+            pkdp('Using uri {}'.format(_SUPERVISOR_URI))
+            _WS = await tornado.websocket.websocket_connect(
+                _SUPERVISOR_URI,
+                on_message_callback=_receive_from_supervisor,
+            )
+            await _send_to_supervisor({'action': job.ACTION_DRIVER_READY_FOR_WORK})
+        except ConnectionRefusedError:
+            pkdp('ws connection refused')
+            _WS = None
+            await tornado.gen.sleep(1)
+            pkdp('close')
+
+    
+
+def _receive_from_supervisor(message):
+    pkdp('Supervisor sent {}', message)
+    pkdp('responding with baaa')
+
+async def _send_to_supervisor(message):
+    global _WS
+    try:
+        pkdp('Sening {}', message)
+        await _WS.write_message(pkjson.dump_bytes(message))
+    except tornado.websocket.WebSocketClosedError:
+        pkdp('close')
+        _WS = None
 
 
 @contextlib.contextmanager
@@ -60,9 +98,8 @@ class _JobInfo:
 
 
 class _JobTracker:
-    def __init__(self, io_loop):
+    def __init__(self):
         self.report_jobs = {}
-        self._io_loop = io_loop
 
     def report_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir.
@@ -296,5 +333,5 @@ def _write_status(status, run_dir):
         pkio.write_text(run_dir.join('status'), status.value)
 
 cfg = pkconfig.init(
-    supervisor_uri=(job.cfg.supervisor_uri, str, 'the uri to reach the supervisor on')
+    supervisor_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to reach the supervisor on')
 )

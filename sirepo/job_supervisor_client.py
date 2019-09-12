@@ -16,6 +16,7 @@ import aenum
 import contextlib
 import requests
 import socket
+import uuid
 
 
 class JobStatus(aenum.Enum):
@@ -33,7 +34,8 @@ def _request(body):
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
-    r = requests.post(cfg.supervisor_uri, json=body)
+    body['rid'] = str(uuid.uuid4())
+    r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)
 
 def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
@@ -78,5 +80,5 @@ def run_extract_job(run_dir, jhash, subcmd, *args):
     return response.result
 
 cfg = pkconfig.init(
-    supervisor_uri=(job.cfg.supervisor_uri, str, 'the uri to reach the supervisor on')
+    supervisor_http_uri=(job.cfg.supervisor_http_uri, str, 'the uri to reach the supervisor on')
 )

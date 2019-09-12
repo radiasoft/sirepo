@@ -491,7 +491,9 @@ def api_runSimulation():
     # - check status
     # - if status is bad, rewrite the run dir (XX race condition, to fix later)
     # - then request it be started
-    if feature_config.cfg.job_supervisor:
+    # if feature_config.cfg.job_supervisor:
+    if True: # TODO(e-carlin): For some reason env vars config was not working. Fix
+        pkdp('**** supervisor being used')
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         status = job_supervisor_client.report_job_status(run_dir, jhash)

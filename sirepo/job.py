@@ -34,11 +34,17 @@ ACTION_SUPERVISOR_KEEP_ALIVE = 'supervisor_keep_alive'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
+DEFAULT_WS_PATH = 'ws'
 
 cfg = pkconfig.init(
-    supervisor_uri=(
+    supervisor_http_uri=(
         'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
         str, 
-        'uri to reach the supervisor',
+        'uri to reach the supervisor for http connections',
+    ),
+    supervisor_ws_uri=(
+        'ws://{}:{}/{}'.format(DEFAULT_IP, DEFAULT_PORT, DEFAULT_WS_PATH),
+        str, 
+        'uri to reach the supervisor for websocket connections',
     ),
 )
