@@ -1,5 +1,6 @@
 {
     "animationArgs": {
+        "fieldAnimation": ["field", "axes", "displayMode", "startTime"],
         "fieldCalcAnimation": ["axes", "displayMode", "slice"],
         "fieldComparisonAnimation": [
             "dimension",
@@ -13,7 +14,9 @@
             "zCell1",
             "zCell2",
             "zCell3"
-        ]
+        ],
+        "particleAnimation": ["renderCount", "startTime"],
+        "particle3d": ["renderCount", "displayMode", "startTime"]
     },
     "constants": {
         "nonZeroVoltsColor": "#6992ff",

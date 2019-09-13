@@ -277,30 +277,29 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 def get_simulation_frame(run_dir, data, model_data):
     md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'currentAnimation':
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
+    model_name = data['modelName']
+    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
+    args = template_common.parse_animation_args(data, {'': anim_args})
+    if model_name == 'currentAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
         return _extract_current(model_data, data_file)
-    if data['modelName'] == 'fieldAnimation':
-        args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return _extract_field(args.field, model_data, data_file)
-    if data['modelName'] == 'particleAnimation' or data['modelName'] == 'particle3d':
-        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
-        return _extract_particle(run_dir, model_data, int(args.renderCount))
-    if data['modelName'] == 'egunCurrentAnimation':
+    if model_name == 'fieldAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
+        return _extract_field(args.field, model_data, data_file, args)
+    if model_name == 'particleAnimation' or model_name == 'particle3d':
+        return _extract_particle(run_dir, model_name, model_data, args)
+    if model_name == 'egunCurrentAnimation':
         return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
-    if data['modelName'] == 'impactDensityAnimation':
+    if model_name == 'impactDensityAnimation':
         return _extract_impact_density(run_dir, model_data)
-    if data['modelName'] == 'optimizerAnimation':
+    if model_name == 'optimizerAnimation':
         args = template_common.parse_animation_args(data, {'': ['x', 'y']})
         return _extract_optimization_results(run_dir, model_data, args)
-    if data['modelName'] == 'fieldCalcAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
+    if model_name == 'fieldCalcAnimation':
         return generate_field_report(md, run_dir, args=args)
-    if data['modelName'] == 'fieldComparisonAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
+    if model_name == 'fieldComparisonAnimation':
         return generate_field_comparison_report(md, run_dir, args=args)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
+    raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
 
 
 def lib_files(data, source_lib):
@@ -617,11 +616,23 @@ def _extract_egun_current(data, data_file, frame_index):
     return _extract_current_results(data, v[frame_index][1:], v[frame_index][0])
 
 
-def _extract_field(field, data, data_file):
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
+def _extract_field(field, data, data_file, args=None):
+    grid = data.models.simulationGrid
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    height = _meters(grid.channel_height / 2.)
+
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+
+    axes = args.axes if args is not None else 'xz'
+    show3d = args.displayMode == '3d' if args is not None else False
+
+    axes = axes if show3d else 'xz'
+    axes = axes if axes is not None and axes != '' else 'xz'
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _is_3D(data) else 'xz')
+
     selector = field
     if not field == 'phi':
         selector = 'E/{}'.format(field)
@@ -629,21 +640,60 @@ def _extract_field(field, data, data_file):
         values = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, selector)])
         data_time = f['data/{}'.format(data_file.iteration)].attrs['time']
         dt = f['data/{}'.format(data_file.iteration)].attrs['dt']
+
+    ar = 6.0 / 14
+    x_label = 'z [m]'
+    y_label = 'x [m]'
+    slice_text = ''
     if field == 'phi':
-        values = values[0,:,:]
+        phi_slice = 0.
         title = 'ϕ'
+        # Values are arranged as y x z
+        if axes == 'xz':
+            values = values[_get_slice_index(phi_slice, -grid.channel_height / 2., dy, grid.num_y - 1), :, :]
+        elif axes == 'xy':
+            phi_slice = grid.plate_spacing / 5.
+            values = values[:, :, _get_slice_index(phi_slice, 0., dz, grid.num_z - 1)]
+        else:
+            values = values[:, _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :]
+
+        x_max = len(values[0])
+        y_max = len(values)
+        if axes == 'xz':
+            xr = [0, plate_spacing, x_max]
+            yr = [- radius, radius, y_max]
+        elif axes == 'xy':
+            xr = [- height, height, x_max]
+            yr = [- radius, radius, y_max]
+            x_label = 'y [m]'
+            y_label = 'x [m]'
+            ar = radius / height,
+        else:
+            xr = [0, plate_spacing, x_max]
+            yr = [- height, height, y_max]
+            x_label = 'z [m]'
+            y_label = 'y [m]'
+        slice_text = ' (' + slice_axis + ' = ' + str(phi_slice) + 'µm) '
     else:
-        values = values[:,0,:]
+        values = values[:, 0, :]
+        x_max = len(values[0])
+        y_max = len(values)
+        xr = [0, plate_spacing, x_max]
+        yr = [- radius, radius, y_max]
         title = 'E {}'.format(field)
     return {
-        'x_range': [0, plate_spacing, len(values[0])],
-        'y_range': [- radius, radius, len(values)],
-        'x_label': 'z [m]',
-        'y_label': 'x [m]',
-        'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'aspectRatio': 6.0 / 14,
+        'x_range': xr,
+        'y_range': yr,
+        'x_label': x_label,
+        'y_label': y_label,
+        'title': '{}{}for Time: {:.4e}s, Step {}'.format(title, slice_text, data_time, data_file.iteration),
+        'aspectRatio': ar,
         'z_matrix': values.tolist(),
+        'summaryData': {
+            'runMode3d': _is_3D(data)
+        },
     }
+
 
 
 def _extract_impact_density(run_dir, data):
@@ -740,7 +790,8 @@ def _extract_optimization_results(run_dir, data, args):
     }
 
 
-def _extract_particle(run_dir, data, limit):
+def _extract_particle(run_dir, model_name, data, args):
+    limit = int(args.renderCount)
     hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
     d = template_common.h5_to_dict(hf, 'particle')
     kept_electrons = d['kept']
@@ -759,6 +810,10 @@ def _extract_particle(run_dir, data, limit):
     lost_y = []
     lost_z = []
     _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, half_height, limit)
+    data_file = open_data_file(run_dir, model_name, None)
+    with h5py.File(data_file.filename, 'r') as f:
+        field = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, 'phi')])
+
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -772,7 +827,8 @@ def _extract_particle(run_dir, data, limit):
         'z_range': [-half_height, half_height],
         'lost_x': lost_x,
         'lost_y': lost_y,
-        'lost_z': lost_z
+        'lost_z': lost_z,
+        'field': field.tolist()
     }
 
 

@@ -891,6 +891,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         return args.join('_');
     }
 
+    self.buildArgs = function(modelName, version) {
+        var args = [SIREPO.ANIMATION_ARGS_VERSION + version];
+        if (! SIREPO.APP_SCHEMA.animationArgs[modelName]) {
+            return  args;
+        }
+        return args.concat(SIREPO.APP_SCHEMA.animationArgs[modelName]);
+    };
+
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
         if (v) {

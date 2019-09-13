@@ -572,9 +572,25 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             });
         },
 
+        min3d: function(data) {
+            return d3.min(data, function(row) {
+                return d3.min(row, function(col) {
+                    return d3.min(col);
+                });
+            });
+        },
+
         max2d: function(data) {
             return d3.max(data, function(row) {
                 return d3.max(row);
+            });
+        },
+
+        max3d: function(data) {
+            return d3.max(data, function(row) {
+                return d3.max(row, function(col) {
+                    return d3.max(col);
+                });
             });
         },
 
