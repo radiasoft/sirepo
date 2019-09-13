@@ -17,6 +17,7 @@ import contextlib
 import requests
 import socket
 import uuid
+import sirepo.mpi
 
 
 class JobStatus(aenum.Enum):
@@ -35,10 +36,11 @@ def _request(body):
     body['uid'] = uid
     body['source'] = 'server'
     body['rid'] = str(uuid.uuid4())
+    body.setdefault('parallel', False)
     r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)
 
-def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
+def start_report_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
     body = {
         'action': job.ACTION_SRSERVER_START_REPORT_JOB,
         'run_dir': str(run_dir),
@@ -46,6 +48,7 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir):
         'backend': backend,
         'cmd': cmd,
         'tmp_dir': str(tmp_dir),
+        'parallel': parallel,
     }
     _request(body)
     return {}
@@ -58,6 +61,7 @@ def report_job_status(run_dir, jhash):
         'jhash': jhash,
     }
     response = _request(body)
+    pkdp('got status {}', response)
     return JobStatus(response.status)
 
 

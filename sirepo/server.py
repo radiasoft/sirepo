@@ -508,7 +508,14 @@ def api_runSimulation():
             }
             tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            job_supervisor_client.start_report_job(run_dir, jhash, cfg.backend, cmd, tmp_dir)
+            job_supervisor_client.start_report_job(
+                run_dir,
+                jhash,
+                cfg.backend,
+                cmd,
+                tmp_dir,
+                simulation_db.is_parallel(data),
+            )
         res = _simulation_run_status_job_supervisor(data, quiet=True)
         return http_reply.gen_json(res)
     else:

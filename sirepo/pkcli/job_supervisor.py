@@ -6,12 +6,13 @@
 """
 from __future__ import absolute_import, division, print_function
 
-
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+from sirepo import driver
 from sirepo import job
+from sirepo import job_scheduler
 import asyncio
 import os.path
 import tornado.escape
@@ -22,53 +23,9 @@ import tornado.options
 import tornado.process
 import tornado.queues
 import tornado.web
+import tornado.websocket
 import uuid
 
-from sirepo import driver
-import tornado.websocket
-
-
-class _ReqHandler(tornado.web.RequestHandler):
-    SUPPORTED_METHODS = ["POST"]
-
-    def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
-
-    async def post(self):
-        c = pkjson.load_any(self.request.body)
-        #TODO(e-carlin): This is ugly
-        pkdlog('Received request: {}',  {x: c[x] for x in c if x not in ['result', 'arg']})
-        pkdc('Full request body: {}', c)
-
-        r = pkcollections.Dict({
-            'request_handler': self,
-            'content': c,
-        })
-
-        await driver.DriverBase.process_request(r)
-
-    def on_connection_close(self):
-        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
-        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
-        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
-        pass
-
-class _WSHandler(tornado.websocket.WebSocketHandler):
-    def check_origin(self, origin):
-        return True
-
-    def open(self):
-        pkdp('open: {}', self.request.uri)
-        driver.DriverBase.process_ws_open(self)
-
-    def on_close(self):
-        # TODO(e-carlin): Handle this 
-        pkdp('on_close: {}', self.request.uri)
-
-    def on_message(self, msg):
-        pkdp('received {}', msg)
-        self.write_message('received your message')
-        pkdp('Done with write')
 
 def start():
     app = tornado.web.Application(
@@ -83,6 +40,54 @@ def start():
     server.listen(cfg.port, cfg.ip)
     pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
     tornado.ioloop.IOLoop.current().start()
+
+
+async def _process_incoming(req_type, content, handler):
+    c = pkjson.load_any(content)
+    # #TODO(e-carlin): This is ugly
+    pkdlog('Received {}: {}', req_type,  {x: c[x] for x in c if x not in ['result', 'arg']})
+    pkdc('Full body: {}', c)
+    r = pkcollections.Dict({
+        f'{req_type}_handler': handler,
+        'state': job_scheduler.STATE_EXECUTION_PENDING,
+        'content': c,
+    })
+    process = getattr(driver.DriverBase, f'process_{req_type}')
+    await process(r)
+    
+
+class _ReqHandler(tornado.web.RequestHandler):
+    SUPPORTED_METHODS = ["POST"]
+
+    def set_default_headers(self):
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+
+    async def post(self):
+        await _process_incoming('request', self.request.body, self)
+
+    def on_connection_close(self):
+        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
+        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
+        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
+        pass
+
+
+class _WSHandler(tornado.websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
+
+    def open(self):
+        pkdp('open: {}', self.request.uri)
+
+    def on_close(self):
+        # TODO(e-carlin): Handle this 
+        # in on_message we should set some state about who we are (ex uid).
+        # then when this is called we find the driver instance with that uid
+        # and notify it that on_close was called.
+        pkdp('on_close: {}', self.request.uri)
+
+    async def on_message(self, msg):
+        await _process_incoming('message', msg, self)
 
 
 cfg = pkconfig.init(
