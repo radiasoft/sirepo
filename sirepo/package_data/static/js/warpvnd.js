@@ -3684,11 +3684,17 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var coordMapper = vtkPlotting.coordMapper();
             var scaleTransform = coordMapper.xform;
             var scaleTransformNorm = coordMapper.xform;
+            var grid;
+            var gXMin = 0;
+            var gXMax = 1;
+            var gYMin = 0;
+            var gYMax = 1;
+            var gZMin = 0;
+            var gZMax = 1;
 
             // data
             var numPoints = 0;
             var pointData = {};
-            var fieldData = {};
             var impactData = [];
             var xmin = 0.0;  var xmax = 1.0;
             var ymin = 0.0;  var ymax = 1.0;
@@ -3716,7 +3722,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             // colors - vtk uses a range of 0-1 for RGB components
             var zeroVoltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.zeroVoltsColor);
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
-            var particleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.particleTrackColor);
             var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
 
             // this canvas is the one created by vtk
@@ -3779,7 +3784,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 actor.addPosition(stlOffset(bundle, conductor));
                 actor.getProperty().setColor(cColor[0], cColor[1], cColor[2]);
                 actor.getProperty().setLighting(false);
-                //actor.getProperty().setEdgeVisibility(true);
                 fsRenderer.getRenderer().addActor(actor);
                 stlBundles[conductor.id] = bundle;
                 stlActors[conductor.id] = actor;
@@ -3828,26 +3832,16 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         }
                         panelState.setError($scope.modelName, null);
                         pointData = data;
-                        frameCache.getFrame('fieldAnimation', 0, false, function(index, data) {
+                        frameCache.getFrame('impactDensityAnimation', 0, false, function(index, data) {
                             if ($scope.element) {
                                 if (data.error) {
                                     panelState.setError($scope.modelName, data.error);
                                     return;
                                 }
                                 panelState.setError($scope.modelName, null);
-                                fieldData = data;
-                                frameCache.getFrame('impactDensityAnimation', 0, false, function(index, data) {
-                                    if ($scope.element) {
-                                        if (data.error) {
-                                            panelState.setError($scope.modelName, data.error);
-                                            return;
-                                        }
-                                        panelState.setError($scope.modelName, null);
-                                        impactData = data;
-                                        $scope.load();
-                                    }
-                                });
-                             }
+                                impactData = data;
+                                $scope.load();
+                            }
                         });
                     }
                 });
@@ -4001,7 +3995,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     return;
                 }
 
-                var grid = appState.models.simulationGrid;
+                grid = appState.models.simulationGrid;
 
                 // particle min/max
                 var xpoints = pointData.points;
@@ -4017,12 +4011,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 ymax = pointData.z_range[1];
 
                 // grid min/max
-                var gXMin = 1e-6 * (-grid.channel_width / 2.0);
-                var gXMax = 1e-6 * (grid.channel_width / 2.0);
-                var gYMin = 1e-6 * (-grid.channel_height / 2.0);
-                var gYMax = 1e-6 * (grid.channel_height / 2.0);
-                var gZMin = 0;
-                var gZMax = 1e-6 * grid.plate_spacing;
+                gXMin = 1e-6 * (-grid.channel_width / 2.0);
+                gXMax = 1e-6 * (grid.channel_width / 2.0);
+                gYMin = 1e-6 * (-grid.channel_height / 2.0);
+                gYMax = 1e-6 * (grid.channel_height / 2.0);
+                gZMin = 0;
+                gZMax = 1e-6 * grid.plate_spacing;
 
                 var lcoords = [];
                 var lostCoords = [];
@@ -4179,10 +4173,14 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
                 minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
                 var nearestPointIndex = 0;
+
+                // each line gets a map from the points that comprise it to the closest interpolated point
                 pointToColorIndexMaps = [];
 
                 // linearly interpolate the data
+                /*
                 for (var i = 0; i < lcoords.length; ++i) {
+
                     var ptsArr = lcoords[i];
 
                     var newIndexMap = {0:0};
@@ -4195,6 +4193,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     var prevZ = newZ;
                     var sgn = 1;
 
+                    var initialLen = ptsArr.length;
                     // keep track of particles changing direction
                     for (var k = 1; k < ptsArr.length-1; ++k) {
                         var thisZ = ptsArr[k][2];
@@ -4259,16 +4258,21 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         sgn *= -1;
                         lastMappedColorIndex = j - 1;
                     }
+                    var finalLen = ptsArr.length;
+                    //srdbg('line', i, 'added', finalLen - initialLen);
                     newIndexMap[ptsArr.length-1] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
                     pointToColorIndexMaps.push(newIndexMap);
                 }
 
+                 */
+                //srdbg('pointToColorIndexMaps', pointToColorIndexMaps);
+
                 // distribute the heat map evenly over the interpolated points
                 //heatmap = appState.clone(fieldData.z_matrix).reverse();
-                heatmap = appState.clone(pointData.field).reverse();
+                heatmap = appState.clone(pointData.field);
                 var hm_xlen = heatmap.length;
-                var hm_zlen = heatmap[0].length;
-                var hm_ylen = heatmap[0][0].length;  //numInterPoints;
+                var hm_ylen = heatmap[0].length;
+                var hm_zlen = heatmap[0][0].length;
                 //srdbg('hm lens z', hm_zlen, 'x', hm_xlen, 'y', hm_ylen);
                 fieldXFactor = hm_xlen / numInterPoints;
                 fieldZFactor = hm_zlen / numInterPoints;
@@ -4278,6 +4282,21 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var hm_zmax = plotting.max3d(heatmap);
                 //var hm_zmin = Math.max(0, plotting.min2d(heatmap));
                 //var hm_zmax = plotting.max2d(heatmap);
+                /*
+                for (var m = 0; m < hm_xlen; ++m) {
+                    var px = gXMin + m * (gXMax - gXMin) / grid.num_x;
+                    for (var n = 0; n < hm_ylen; ++n) {
+                        var py = gYMin + n * (gYMax - gYMin) / grid.num_y;
+                        for (var o = 0; o < hm_zlen; ++o) {
+                            var pz = gZMin + o * (gZMax - gZMin) / grid.num_z;
+                            var v = heatmap[m][n][o];
+                            if (v == hm_zmax) {
+                                srdbg('max', v, 'at', m, n, o, 'x/y/z', px, py, pz);
+                            }
+                        }
+                    }
+                }
+                */
                 //srdbg('hm min/max', hm_zmin, hm_zmax);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
@@ -4287,8 +4306,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     $scope.hasReflected = pointData.lost_x.length > 0;
                     setLinesFromPoints(reflectedLineBundle, lostCoords, reflectedParticleTrackColor, false);
                 }
-
-                //mapImpactDensity();
 
                 function coordAtIndex(startVal, sk, sl, k, l) {
                     return startVal + k * sk + l * sl;
@@ -4353,6 +4370,21 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 // allow the sizing to take hold and initialize the camera position
                 $timeout(resetCam, 0);
             };
+
+            function cellOfPt(p) {
+                var i = Math.floor((p[0] - gXMin) / (gXMax - gXMin) * grid.num_x);
+                var j = Math.floor((p[1] - gYMin) / (gYMax - gYMin) * grid.num_y);
+                var k = Math.floor((p[2] - gZMin) / (gZMax - gZMin) * grid.num_z);
+                return [i, j, k];
+            }
+
+            // least corner in x y z
+            function ptOfCell(c) {
+                var x = gXMin + c[0] * (gXMax - gXMin) / grid.num_x;
+                var y = gYMin + c[1] * (gYMax - gYMin) / grid.num_y;
+                var z = gZMin + c[2] * (gZMax - gZMin) / grid.num_z;
+                return [x, y, z];
+            }
 
             function mapImpactDensity() {
                 // loop over conductors
@@ -4461,7 +4493,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var polyData = stlBundles[condId].mapper.getInputData();
 
                 var d = faceData.dArr;
-                //srdbg('d', d);
 
                 // data can be too large for the stack
                 var smin = ! impactData.v_min ? (impactData.v_min === 0 ? 0 : largeMin(d)) : impactData.v_min ;
@@ -4501,22 +4532,87 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var dataPoints = [];
                 var dataLines = [];
                 var dataColors = [];
+                var lastP = [];
+                var newP = [];
+                var lastCell = [];
+                var newCell = [];
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
+                    var multiCell = 0;
                     for (var j = 0; j < l; ++j) {
                         if (j < l - 1) {
                             k = j + 1;
-                            pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
+                            var p1 = points[i][j];
+                            var p2 = points[i][k];
+                            if (color) {
+                                pushLineData(p1, p2, color);
+                                continue;
+                            }
+                            var cp1 = cellOfPt(p1);
+                            var cp2 = cellOfPt(p2);
+                            var cpd = cp1.map(function (c, cx) {
+                                return cp2[cx] - c;
+                            });
+                            if (Math.abs(cpd[0] > 0) || Math.abs(cpd[1] > 0) || Math.abs(cpd[2] > 0)) {
+                                //srdbg('line', i, 'point', j, 'point1', cp1, 'point2', k, cp2, cpd);
+                                for (var m = 0; m < 3; ++m) {
+                                    var dir = Math.sign(cpd[m]);
+                                    if (! dir) {
+                                        continue;
+                                    }
+                                    lastP = p1;
+                                    lastCell = cp1;
+                                    for (var c = cp1[m]; c != cp2[m]; c += dir) {
+                                        var cc = [0, 0, 0];
+                                        for (var n = 0; n < 3; n++) {
+                                            if(n === m) {
+                                                cc[n] = c + dir;
+                                            }
+                                        }
+                                        newP = ptOfCell(cc);
+                                        var d = p2[m] - p1[m];
+                                        for (var n = 0; n < 3; n++) {
+                                            if (n === m) {
+                                                continue;
+                                            }
+                                            newP[n] = d ? p1[n] + (newP[m] - p1[m]) * (p2[n] - p1[n]) / d : p1[n];
+                                        }
+                                        //srdbg('line', i, 'should add pt', newP, cellOfPt(newP));
+                                        newCell = cellOfPt(newP);
+                                        pushLineData(lastP, newP, plotting.colorsFromHexString(fieldColorScale(heatmap[lastCell[0]][lastCell[1]][lastCell[2]]), 255.0));
+                                        lastP = newP;
+                                        lastCell = newCell;
+                                    }
+                                    newP = p2;
+                                    //pushLineData(lastP, newP, plotting.colorsFromHexString(fieldColorScale(heatmap[lastCell[0]][lastCell[1]][lastCell[2]]), 255.0));
+                                }
+                                multiCell++;
+                            }
+                            else {
+                                pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
+                            }
+                            //pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
                         }
                     }
                     if (l > j) {
+                        srdbg('leftover');
                         k = j - 1;
-                        pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
+                        p1 = points[i][k];
+                        p2 = points[i][l - 1];
+                        if (color) {
+                            pushLineData(p1, p2, color);
+                            continue;
+                        }
+                        cp1 = cellOfPt(p1);
+                        cp2 = cellOfPt(p2);
+                        pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
+                        //pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
                     }
                     if (includeImpact) {
                         k = points[i].length - 1;
-                        impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);
+                        //impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);
                     }
+                    //if(includeImpact) {srdbg('line', i, 'num in multiple cells', multiCell, l);}
                 }
                 var p32 = window.Float32Array.from(dataPoints);
                 var l32 = window.Uint32Array.from(dataLines);
@@ -4573,11 +4669,16 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 if (index !== 0 && ! index) {
                     return plotting.colorsFromHexString('#000000', 255.0);
                 }
-                var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
-                var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
-                var fieldyIndex = Math.min(heatmap[0][0].length-1, Math.floor(fieldYFactor * index));  //Math.floor(fieldYFactor * index);
+                //var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
+                //var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
+                //var fieldyIndex = Math.min(heatmap[0][0].length-1, Math.floor(fieldYFactor * index));  //Math.floor(fieldYFactor * index);
+                var fieldxIndex = Math.min(heatmap.length-1, Math.floor(fieldXFactor * index));
+                var fieldyIndex = Math.min(heatmap[0].length-1, Math.floor(fieldYFactor * index));
+                var fieldzIndex = Math.min(heatmap[0][0].length-1, Math.floor(fieldZFactor * index));  //Math.floor(fieldYFactor * index);
+                var v = heatmap[fieldxIndex][fieldyIndex][fieldzIndex];
+                //srdbg(index, 'val at', 'x', fieldxIndex, 'y', fieldyIndex, 'z', fieldzIndex, ':', v);
                 //return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
-                return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex][fieldyIndex]), 255.0);
+                return plotting.colorsFromHexString(fieldColorScale(v), 255.0);
             }
 
             $scope.vtkCanvasGeometry = function() {

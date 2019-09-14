@@ -648,14 +648,13 @@ def _extract_field(field, data, data_file, args=None):
     if field == 'phi':
         phi_slice = 0.
         title = 'ϕ'
-        # Values are arranged as y x z
         if axes == 'xz':
-            values = values[_get_slice_index(phi_slice, -grid.channel_height / 2., dy, grid.num_y - 1), :, :]
+            values = values[:, _get_slice_index(phi_slice, -grid.channel_height / 2., dy, grid.num_y - 1), :]
         elif axes == 'xy':
-            phi_slice = grid.plate_spacing / 5.
+            phi_slice = grid.plate_spacing / 5.  # tmp slice
             values = values[:, :, _get_slice_index(phi_slice, 0., dz, grid.num_z - 1)]
         else:
-            values = values[:, _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :]
+            values = values[_get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :]
 
         x_max = len(values[0])
         y_max = len(values)
@@ -813,7 +812,7 @@ def _extract_particle(run_dir, model_name, data, args):
     data_file = open_data_file(run_dir, model_name, None)
     with h5py.File(data_file.filename, 'r') as f:
         field = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, 'phi')])
-
+    pkdp('p field {}', field.shape)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
