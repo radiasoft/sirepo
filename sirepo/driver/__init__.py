@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 
 from pykern import pkcollections
 from pykern import pkjson
-from pykern.pkdebug import pkdp, pkdlog
+from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job
 from sirepo import job_scheduler
 import tornado.ioloop
@@ -19,8 +19,14 @@ import uuid
 
 
 class DriverBase(object):
-    # TODO(e-carlin): This is botched. We also keep track of uid->agent in resource_manager
-    agent_to_driver = pkcollections.Dict()
+    driver_for_agent = pkcollections.Dict()
+
+    # TODO(e-carlin): This will likely change once I have a better understanding of
+    # how we will map flask job requests to a driver
+    resource_class_and_user_to_driver = pkcollections.Dict(
+        sequential=pkcollections.Dict(),
+        parallel=pkcollections.Dict(),
+    )
 
     def __init__(self, uid, agent_id, resource_class):
         self.uid = uid
@@ -34,33 +40,21 @@ class DriverBase(object):
     async def _process_requests_to_send_to_agent(self):
         while True:
             r = await self.requests_to_send_to_agent.get()
+            pkdc('new request to send to agent {}', self.agent_id)
             await self.message_handler_set.wait()
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
 
     @classmethod
     async def process_message(cls, message):
-        d = cls.agent_to_driver[message.content.agent_id]
+        d = cls.driver_for_agent[message.content.agent_id]
         if not d.message_handler_set.is_set():
             d.message_handler = message.message_handler
             d.message_handler_set.set()
         if message.content.action != job.ACTION_DRIVER_READY_FOR_WORK:
             await d.process_message(message)
 
-
-
     @classmethod
     async def process_request(cls, request):
-        """
-        request = {
-            request_handler: tornado.RequestHandler.self,
-            request_reply_was_sent: tornado.locks.Event()
-            content: {
-                uid: user id,
-                rid: request id
-                ...
-            }
-        }
-        """
         request.state = job_scheduler.STATE_EXECUTION_PENDING
         await cls._enqueue_request(request)
 
@@ -72,10 +66,16 @@ class DriverBase(object):
         user_found = False        
         for u in dc.requests[request.content.resource_class]:
             if u.uid == request.content.uid:
+                pkdc('user {} found for request content uid {}', u, request.content.uid)
                 u.requests.append(request)
                 user_found = True
                 break
         if not user_found:
+            pkdc(
+                'no user found for request content uid {} creating one in class {}',
+                request.content.uid,
+                request.content.resource_class
+            )
             dc.requests[request.content.resource_class].append(pkcollections.Dict(
                 uid=request.content.uid,
                 requests = [request],
@@ -88,35 +88,3 @@ class DriverBase(object):
         from sirepo.driver import local
         # TODO(e-carlin): Actually parse the request and get the class
         return local.LocalDriver
-
-
-    # @classmethod
-    # def _get_driver(cls, request):
-    #     """Parse a request or message and gets the driver instance for it. Creates driver instance if none is found.
-
-    #     A request is mapped to a driver based on:
-    #         - request.uid
-    #         - request.num_cores
-    #         - request.driver_type # If no driver_type is specified then we will use local
-    #                               # in development and docker in production
-    #     """
-    #     from sirepo.driver import local # TODO(e-carlin): circular dependency
-    #     # TODO(e-carlin): Should we maintain a separate structure (or use a diff
-    #     # data structure) so we don't have to do this kind of iteration? If we 
-    #     # ever had a lot of users this could be a bottleneck
-    #     # we could use a dict with key user id and value list and the list is the
-    #     # same one as in the self.requests
-
-    #     driver_type = local.LocalDriver # TODO(e-carlin): Figure out class of driver from request
-    #     for d in driver_type.instances:
-    #         if d.uid == request.content.uid:
-    #             return d
-
-    #     d = driver_type(request.content.uid)
-    #     driver_type.instances.append(d)
-    #     return d
-
-
-
-            
-    

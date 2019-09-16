@@ -45,7 +45,7 @@ def start():
 async def _process_incoming(req_type, content, handler):
     c = pkjson.load_any(content)
     # #TODO(e-carlin): This is ugly
-    pkdlog('Received {}: {}', req_type,  {x: c[x] for x in c if x not in ['result', 'arg']})
+    pkdlog('Received incoming {}: {}', req_type,  {x: c[x] for x in c if x not in ['result', 'arg']})
     pkdc('Full body: {}', c)
     r = pkcollections.Dict({
         f'{req_type}_handler': handler,

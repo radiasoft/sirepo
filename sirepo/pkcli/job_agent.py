@@ -32,17 +32,15 @@ _WS = None
 
 
 def start(agent_id, supervisor_uri):
-    global _JOB_TRACKER
-    global _SUPERVISOR_URI
-    global _AGENT_ID
+    global _JOB_TRACKER, _SUPERVISOR_URI, _AGENT_ID
     _JOB_TRACKER = _JobTracker() 
     _SUPERVISOR_URI = supervisor_uri
     _AGENT_ID = agent_id
     io_loop = tornado.ioloop.IOLoop.current()
-    io_loop.spawn_callback(_start)
+    io_loop.spawn_callback(_main)
     io_loop.start()
 
-async def _start():
+async def _main():
     await _connect_to_supervisor()
     await _send_to_supervisor(pkcollections.Dict({'action': job.ACTION_DRIVER_READY_FOR_WORK}))
 
@@ -62,10 +60,10 @@ async def _connect_to_supervisor():
     
 
 def _receive_from_supervisor(message):
-    pkdp('received message')
+    pkdc('received message from supervisor {}', message)
     if message is None:
         # message is None indicates server closed connection
-        tornado.ioloop.IOLoop.current().spawn_callback(_start)
+        tornado.ioloop.IOLoop.current().spawn_callback(_main)
         return
     m = pkjson.load_any(message)
     if 'run_dir' in m:
@@ -79,21 +77,19 @@ async def _send_to_supervisor(message, request=None):
     try:
         message.agent_id = _AGENT_ID
         if request:
-            message.rid = request.rid
-        pkdp('sending {}', message)
+           message.rid = request.rid
         await _WS.write_message(pkjson.dump_bytes(message))
     except tornado.websocket.WebSocketClosedError:
         # TODO(e-carlin): Think about the failure handling more
-        pkdp('close')
+        pkdlog('ws closed')
         _WS = None
         await _connect_to_supervisor()
         await _send_to_supervisor(message)
 
 
-
 class _JobTracker:
     def __init__(self):
-        self.report_jobs = {}
+        self._report_jobs = {}
         self.pending_requests = tornado.queues.Queue()
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_pending_jobs)
 
@@ -130,7 +126,7 @@ class _JobTracker:
         disk_status_path = run_dir.join('status')
         if disk_in_path.exists() and disk_status_path.exists():
             # status should be recorded on disk XOR in memory
-            assert run_dir not in self.report_jobs
+            assert run_dir not in self._report_jobs
             disk_in_text = pkio.read_text(disk_in_path)
             disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
             disk_status = pkio.read_text(disk_status_path)
@@ -143,12 +139,34 @@ class _JobTracker:
                 )
                 disk_status = job_supervisor_client.JobStatus.ERROR
             return disk_jhash, job_supervisor_client.JobStatus(disk_status)
-        elif run_dir in self.report_jobs:
-            job_info = self.report_jobs[run_dir]
+        elif run_dir in self._report_jobs:
+            job_info = self._report_jobs[run_dir]
             return job_info.jhash, job_info.status
             
         return None, job_supervisor_client.JobStatus.MISSING
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # async def run_extract_job(self, io_loop, run_dir, jhash, subcmd, arg):
     #     pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
     #     status = self.report_job_status(run_dir, jhash)

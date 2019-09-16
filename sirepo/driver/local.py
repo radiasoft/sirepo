@@ -17,37 +17,14 @@ from sirepo import job_scheduler
 
 
 class LocalDriver(driver.DriverBase):
-        # """
-        # # agents = {
-        # #     uid : instance of LocalDriver
-        # # }
-        # """
-    """
-    requests.parallel = [
-        {
-            uid: abc123,
-            requests = [
-
-                {
-                    request_handler: tornado.RequestHandler.self,
-                    request_reply_was_sent: tornado.locks.Event()
-                    content: {
-                        uid: user id,
-                        rid: request id
-                        ...
-                }
-            ] 
-        }
-    ]
-    """
     requests = pkcollections.Dict(
         parallel=[],
         sequential=[],
     )
     resource_manager = pkcollections.Dict(
         # TODO(e-carlin): Take slots from cfg
-        parallel=pkcollections.Dict(slots=1, in_use=0, agents={}),
-        sequential=pkcollections.Dict(slots=1, in_use=0, agents={}),
+        parallel=pkcollections.Dict(slots=1, in_use=0),
+        sequential=pkcollections.Dict(slots=1, in_use=0),
     )
     instances = pkcollections.Dict()
     def __init__(self, uid, agent_id, resource_class):
@@ -66,7 +43,6 @@ class LocalDriver(driver.DriverBase):
 
     async def process_message(self, message):
         # TODO(e-carlin): This should probably live in DriverBase
-
         # TODO(e-carlin): Should an instance of a driver know more about its requests?
         # it feels funny to iterate over all requests in an instance of the class
         for u in self.requests[self.resource_class]:
