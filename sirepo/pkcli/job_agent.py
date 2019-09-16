@@ -25,19 +25,19 @@ import tornado.queues
 
 
 # TODO(e-carlin): Do we want this all in global state?
+_AGENT_ID = None
 _JOB_TRACKER = None
 _SUPERVISOR_URI = None
-_UID = None
 _WS = None
 
 
-def start(uid, supervisor_uri):
+def start(agent_id, supervisor_uri):
     global _JOB_TRACKER
     global _SUPERVISOR_URI
-    global _UID
+    global _AGENT_ID
     _JOB_TRACKER = _JobTracker() 
     _SUPERVISOR_URI = supervisor_uri
-    _UID = uid
+    _AGENT_ID = agent_id
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(_start)
     io_loop.start()
@@ -62,7 +62,7 @@ async def _connect_to_supervisor():
     
 
 def _receive_from_supervisor(message):
-    pkdlog('{}', message)
+    pkdp('received message')
     if message is None:
         # message is None indicates server closed connection
         tornado.ioloop.IOLoop.current().spawn_callback(_start)
@@ -77,7 +77,7 @@ def _receive_from_supervisor(message):
 async def _send_to_supervisor(message, request=None):
     global _WS
     try:
-        message.uid = _UID 
+        message.agent_id = _AGENT_ID
         if request:
             message.rid = request.rid
         pkdp('sending {}', message)

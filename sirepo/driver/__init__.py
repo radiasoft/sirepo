@@ -19,8 +19,13 @@ import uuid
 
 
 class DriverBase(object):
-    def __init__(self, uid):
+    # TODO(e-carlin): This is botched. We also keep track of uid->agent in resource_manager
+    agent_to_driver = pkcollections.Dict()
+
+    def __init__(self, uid, agent_id, resource_class):
         self.uid = uid
+        self.agent_id = agent_id
+        self.resource_class = resource_class
         self.message_handler = None
         self.message_handler_set = tornado.locks.Event()
         self.requests_to_send_to_agent = tornado.queues.Queue()
@@ -30,16 +35,16 @@ class DriverBase(object):
         while True:
             r = await self.requests_to_send_to_agent.get()
             await self.message_handler_set.wait()
-            pkdlog('sending message to agent {}', r.content)
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
 
     @classmethod
     async def process_message(cls, message):
-        d = cls._get_driver(message)
-        d.message_handler = message.message_handler
-        d.message_handler_set.set()
+        d = cls.agent_to_driver[message.content.agent_id]
+        if not d.message_handler_set.is_set():
+            d.message_handler = message.message_handler
+            d.message_handler_set.set()
         if message.content.action != job.ACTION_DRIVER_READY_FOR_WORK:
-            d.process_message(message)
+            await d.process_message(message)
 
 
 
@@ -56,7 +61,7 @@ class DriverBase(object):
             }
         }
         """
-        pkdp('Request given to user driver. Begining wait on reply')
+        request.state = job_scheduler.STATE_EXECUTION_PENDING
         await cls._enqueue_request(request)
 
     @classmethod
@@ -65,18 +70,17 @@ class DriverBase(object):
         dc = cls._get_driver_class(request)
 
         user_found = False        
-        for u in dc.requests[request.content.parallel]:
+        for u in dc.requests[request.content.resource_class]:
             if u.uid == request.content.uid:
                 u.requests.append(request)
                 user_found = True
                 break
         if not user_found:
-            # TODO(e-carlin): move parallel sequential logic elsewhere
-            dc.requests['parallel' if request.content.parallel else 'sequential'].append(pkcollections.Dict(
+            dc.requests[request.content.resource_class].append(pkcollections.Dict(
                 uid=request.content.uid,
                 requests = [request],
             ))
-        job_scheduler.run(dc, request.content.parallel)
+        await job_scheduler.run(dc, request.content.resource_class)
         await request.request_reply_was_sent.wait()
     
     @classmethod
@@ -84,6 +88,7 @@ class DriverBase(object):
         from sirepo.driver import local
         # TODO(e-carlin): Actually parse the request and get the class
         return local.LocalDriver
+
 
     # @classmethod
     # def _get_driver(cls, request):

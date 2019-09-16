@@ -49,7 +49,6 @@ async def _process_incoming(req_type, content, handler):
     pkdc('Full body: {}', c)
     r = pkcollections.Dict({
         f'{req_type}_handler': handler,
-        'state': job_scheduler.STATE_EXECUTION_PENDING,
         'content': c,
     })
     process = getattr(driver.DriverBase, f'process_{req_type}')

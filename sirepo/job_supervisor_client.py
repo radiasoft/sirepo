@@ -36,7 +36,7 @@ def _request(body):
     body['uid'] = uid
     body['source'] = 'server'
     body['rid'] = str(uuid.uuid4())
-    body.setdefault('parallel', False)
+    body.setdefault('resource_class', 'sequential')
     r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)
 
@@ -48,7 +48,7 @@ def start_report_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
         'backend': backend,
         'cmd': cmd,
         'tmp_dir': str(tmp_dir),
-        'parallel': parallel,
+        'resource_class': 'parallel' if parallel else 'sequential',
     }
     _request(body)
     return {}

@@ -50,36 +50,41 @@ class LocalDriver(driver.DriverBase):
         sequential=pkcollections.Dict(slots=1, in_use=0, agents={}),
     )
     instances = pkcollections.Dict()
-    def __init__(self, uid):
-        super(LocalDriver, self).__init__(uid)
+    def __init__(self, uid, agent_id, resource_class):
+        super(LocalDriver, self).__init__(uid, agent_id, resource_class)
         
         # TODO(e-carlin): Make this more robust. Ex handle failures, monitor the created process.
-        # tornado.process.Subprocess(
-        #     [
-        #         'sirepo',
-        #         'job_agent',
-        #         'start',
-        #         # self.agent_id, 
-        #         self.uid,
-        #         cfg.supervisor_ws_uri,
-        #     ]
-        # )
+        tornado.process.Subprocess(
+            [
+                'sirepo',
+                'job_agent',
+                'start',
+                self.agent_id,
+                cfg.supervisor_ws_uri,
+            ]
+        )
 
-    def process_message(self, message):
+    async def process_message(self, message):
         # TODO(e-carlin): This should probably live in DriverBase
-        for r in self.requests:
-            if r.content.rid == message.content.rid:
-                r.request_handler.write(message.content)
-                r.request_reply_was_sent.set()
-                self.requests.remove(r)
-                job_scheduler.run(self.instances)
-                return
+
+        # TODO(e-carlin): Should an instance of a driver know more about its requests?
+        # it feels funny to iterate over all requests in an instance of the class
+        for u in self.requests[self.resource_class]:
+            if u.uid != self.uid:
+                continue
+            for r in u.requests:
+                if r.content.rid == message.content.rid:
+                    r.request_handler.write(message.content)
+                    r.request_reply_was_sent.set()
+                    u.requests.remove(r)
+                    # await job_scheduler.run(self.instances)
+                    return
+                    
         raise AssertionError(
             'the message {} did not have a corresponding request in requests {}'.format(
             message,
-            self.requests,
+            self.requests[self.resource_class],
             ))
-
 
 
 cfg = pkconfig.init(
