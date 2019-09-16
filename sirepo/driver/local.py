@@ -23,8 +23,8 @@ class LocalDriver(driver.DriverBase):
     )
     resource_manager = pkcollections.Dict(
         # TODO(e-carlin): Take slots from cfg
-        parallel=pkcollections.Dict(slots=1, in_use=0),
-        sequential=pkcollections.Dict(slots=1, in_use=0),
+        parallel=pkcollections.Dict(total_slots=1, slots_in_use=0),
+        sequential=pkcollections.Dict(total_slots=1, slots_in_use=0),
     )
     instances = pkcollections.Dict()
     def __init__(self, uid, agent_id, resource_class):
