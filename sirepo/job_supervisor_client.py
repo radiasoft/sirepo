@@ -40,9 +40,9 @@ def _request(body):
     r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)
 
-def start_report_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
+def start_compute_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
     body = {
-        'action': job.ACTION_SRSERVER_START_REPORT_JOB,
+        'action': job.ACTION_SRSERVER_START_COMPUTE_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,

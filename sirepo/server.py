@@ -505,7 +505,7 @@ def api_runSimulation():
             }
             tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
             cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            job_supervisor_client.start_report_job(
+            job_supervisor_client.start_compute_job(
                 run_dir,
                 jhash,
                 cfg.backend,

@@ -28,7 +28,7 @@ ACTION_DRIVER_REPORT_JOB_STARTED = 'driver_report_job_started'
 
 ACTION_SRSERVER_REPORT_JOB_STATUS = 'srserver_report_job_status'
 ACTION_SRSERVER_RUN_EXTRACT_JOB = 'srserver_run_extract_job'
-ACTION_SRSERVER_START_REPORT_JOB = 'srserver_start_report_job'
+ACTION_SRSERVER_START_COMPUTE_JOB = 'srserver_start_compute_job'
 
 ACTION_SUPERVISOR_KEEP_ALIVE = 'supervisor_keep_alive'
 

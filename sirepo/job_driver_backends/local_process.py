@@ -30,7 +30,7 @@ def _subprocess_env():
     return env
 
 
-def start_report_job(run_dir, cmd):
+def start_compute_job(run_dir, cmd):
     env = _subprocess_env()
     run_log_path = run_dir.join(template_common.RUN_LOG)
     # we're in py3 mode, and regular subprocesses will inherit our
