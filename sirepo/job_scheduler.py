@@ -15,6 +15,7 @@ STATE_EXECUTING = 'state_executing'
 
 async def run(driver_class, resource_class):
     pkdc('scheduler running for driver class {} and resource class {}', driver_class, resource_class)
+    pkdc('slots available? {}', _slots_available(driver_class, resource_class))
     
     # TODO(e-carlin): think more about this algorithm. Quite simple right now.
     # TODO(e-carlin): Refactor this is confusing

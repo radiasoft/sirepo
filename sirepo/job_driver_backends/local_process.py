@@ -14,6 +14,8 @@ import os
 import re
 import subprocess
 import tornado.process
+import tornado.locks
+import tornado.ioloop
 
 #: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
 # See https://github.com/radiasoft/sirepo/issues/1323
@@ -29,38 +31,6 @@ def _subprocess_env():
     env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
     return env
 
-
-def start_compute_job(run_dir, cmd):
-    env = _subprocess_env()
-    run_log_path = run_dir.join(template_common.RUN_LOG)
-    # we're in py3 mode, and regular subprocesses will inherit our
-    # environment, so we have to manually switch back to py2 mode.
-    env['PYENV_VERSION'] = 'py2'
-    cmd = ['pyenv', 'exec'] + cmd
-
-    with open(run_log_path, 'a+b') as run_log:
-        sub_process = tornado.process.Subprocess(
-            cmd,
-            cwd=run_dir,
-            start_new_session=True,
-            stdin=subprocess.DEVNULL,
-            stdout=run_log,
-            stderr=run_log,
-            env=env,
-        )
-    # We don't use the pid for anything, but by putting it in the backend_info
-    # we make sure it's available on disk in case someone is trying to debug
-    # stuff by hand later.
-    return _LocalReportJob(sub_process, {'pid': sub_process.pid})
-
-
-class _LocalReportJob:
-    def __init__(self, sub_process, backend_info):
-        self._sub_process = sub_process
-        self.backend_info = backend_info
-
-    async def wait_for_exit(self):
-        return await self._sub_process.wait_for_exit()
 
 async def run_extract_job(run_dir, cmd, backend_info):
     env = _subprocess_env()
@@ -100,3 +70,55 @@ async def run_extract_job(run_dir, cmd, backend_info):
         stdout=stdout,
         stderr=stderr,
     )
+
+
+class ComputeJob():
+    def __init__(self, run_dir, jhash, status, cmd):
+        self.run_dir = run_dir
+        self.jhash = jhash
+        self.status = status
+        self.cancel_requested = False
+        self.returncode = None
+        self._wait_for_terminate_timeout = None
+        self._process_exited = tornado.locks.Event() 
+
+        # Start the compute job subprocess
+        env = _subprocess_env()
+        run_log_path = run_dir.join(template_common.RUN_LOG)
+        # we're in py3 mode, and regular subprocesses will inherit our
+        # environment, so we have to manually switch back to py2 mode.
+        env['PYENV_VERSION'] = 'py2'
+        cmd = ['pyenv', 'exec'] + cmd
+
+        with open(run_log_path, 'a+b') as run_log:
+            self._sub_process = tornado.process.Subprocess(
+                cmd,
+                cwd=run_dir,
+                start_new_session=True,
+                stdin=subprocess.DEVNULL,
+                stdout=run_log,
+                stderr=run_log,
+                env=env,
+            )
+            self._sub_process.set_exit_callback(self.on_exit_callback)
+
+    def on_exit_callback(self, returncode):
+        if self._wait_for_terminate_timeout:
+            io_loop = tornado.ioloop.IOLoop.current()
+            io_loop.remove_timeout(self._wait_for_terminate_timeout)
+
+        self.returncode = returncode
+        self._process_exited.set()
+
+    async def wait_for_exit(self):
+        await self._process_exited.wait()
+        return self.returncode
+
+    async def kill(self, grace_period):
+        io_loop = tornado.ioloop.IOLoop.current()
+        t = io_loop.add_timeout(
+            grace_period,
+            self._sub_process.proc.kill()
+        )
+        self._wait_for_terminate_timeout = t
+        return self.wait_for_exit()

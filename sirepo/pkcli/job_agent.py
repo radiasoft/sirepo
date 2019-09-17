@@ -10,13 +10,14 @@ from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import job_supervisor_client
-from sirepo.job_driver_backends import local_process
 from sirepo import job_supervisor_client
+from sirepo.job_driver_backends import local_process
 from sirepo.pkcli import job_supervisor
 import async_generator
 import asyncio
 import contextlib
 import contextlib
+import functools
 import math
 import tornado.gen
 import tornado.httpclient
@@ -143,16 +144,7 @@ async def _send_to_supervisor(res_message, req_message=None):
         pkdlog('ws closed')
         _WS = None
         await _connect_to_supervisor()
-        await _send_to_supervisor(res_message, req_message)
 
-
-class _JobInfo:
-    def __init__(self, run_dir, jhash, status, report_job):
-        self.run_dir = run_dir
-        self.jhash = jhash
-        self.status = status
-        self.report_job = report_job
-        self.cancel_requested = False
 
 class _JobTracker:
     def __init__(self):
@@ -165,17 +157,15 @@ class _JobTracker:
         calling run_dir_status), and decided they need to die.
 
         """
-        job_info = self._compute_jobs.get(run_dir)
-        if job_info is None:
-            return
-        if job_info.status is not job_supervisor_client.JobStatus.RUNNING:
+        compute_job = self._compute_jobs[run_dir]
+        if compute_job.status is not job_supervisor_client.JobStatus.RUNNING:
             return
         pkdlog(
             'kill: killing job with jhash {} in {}',
-            job_info.jhash, run_dir,
+            compute_job.jhash, run_dir,
         )
-        job_info.cancel_requested = True
-        await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
+        compute_job.cancel_requested = True
+        await compute_job.kill(_KILL_TIMEOUT_SECS)
 
     async def run_extract_job(self, run_dir, jhash, subcmd, arg):
         pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
@@ -240,41 +230,40 @@ class _JobTracker:
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        compute_job = local_process.start_compute_job(run_dir, cmd) # TODO(e-carlin): handle multiple backends
-        job_info = _JobInfo(
-            run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, compute_job,
-        )
-        self._compute_jobs[run_dir] = job_info
+        job = local_process.ComputeJob(run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, cmd)
+        self._compute_jobs[run_dir] = job
         tornado.ioloop.IOLoop.current().spawn_callback(
-            self._supervise_compute_job, run_dir, jhash, job_info,
+           self._on_compute_job_exit,
+           run_dir,
+           job
         )
 
-    async def _supervise_compute_job(self, run_dir, jhash, job_info):
+    async def _on_compute_job_exit(self, run_dir, compute_job):
+        # with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
+        # Make sure returncode is defined in the finally block, even if
+        # wait() somehow crashes
         returncode = None
         try:
-            returncode = await job_info.report_job.wait_for_exit()
+            returncode = await compute_job.wait_for_exit()
         finally:
-            # TODO(e-carlin): Locks?
-            # async with self.locks[run_dir]:
             # Clear up our in-memory status
-            assert self._compute_jobs[run_dir] is job_info
+            assert self._compute_jobs[run_dir] is compute_job 
             del self._compute_jobs[run_dir]
             # Write status to disk
-            if job_info.cancel_requested:
+            if compute_job.cancel_requested:
                 _write_status(job_supervisor_client.JobStatus.CANCELED, run_dir)
                 await self.run_extract_job(
-                    run_dir, jhash, 'remove_last_frame', '[]',
+                    run_dir, compute_job.jhash, 'remove_last_frame', '[]',
                 )
             elif returncode == 0:
                 _write_status(job_supervisor_client.JobStatus.COMPLETED, run_dir)
             else:
                 pkdlog(
                     '{} {}: job failed, returncode = {}',
-                    run_dir, jhash, returncode,
+                    run_dir, compute_job.jhash, returncode,
                 )
                 _write_status(job_supervisor_client.JobStatus.ERROR, run_dir)
 
-    # TODO(e-carlin): See if you get can njsmith's @_rpc_handler annotation working here
     async def compute_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir."""
         status = job_supervisor_client.JobStatus.MISSING
@@ -308,8 +297,8 @@ class _JobTracker:
                 disk_status = job_supervisor_client.JobStatus.ERROR
             return disk_jhash, job_supervisor_client.JobStatus(disk_status)
         elif run_dir in self._compute_jobs:
-            job_info = self._compute_jobs[run_dir]
-            return job_info.jhash, job_info.status
+            compute_job = self._compute_jobs[run_dir]
+            return compute_job.jhash, compute_job.status
             
         return None, job_supervisor_client.JobStatus.MISSING
 
