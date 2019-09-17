@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import job_supervisor_client
 from sirepo.job_driver_backends import local_process
+from sirepo import job_supervisor_client
 from sirepo.pkcli import job_supervisor
 import async_generator
 import asyncio
@@ -30,6 +31,8 @@ _JOB_TRACKER = None
 _SUPERVISOR_URI = None
 _WS = None
 
+_RUNNER_INFO_BASENAME = 'runner-info.json'
+_KILL_TIMEOUT_SECS = 3
 
 def start(agent_id, supervisor_uri):
     global _JOB_TRACKER, _SUPERVISOR_URI, _AGENT_ID
@@ -79,14 +82,48 @@ def _message_handler(fn):
     _MESSAGE_HANDLERS[fn.__name__.lstrip('_')] = fn
     return fn
 
+
+@_message_handler
+async def _cancel_compute_job(job_tracker, request):
+    jhash, status = job_tracker.run_dir_status(request.run_dir)
+    if jhash == request.jhash:
+        await job_tracker.kill(request.run_dir)
+    return {}
+
+@_message_handler
+async def _run_extract_job(job_tracker, message):
+    res = await job_tracker.run_extract_job(
+        message.run_dir,
+        message.jhash,
+        message.subcmd,
+        message.arg,
+    )
+    return pkcollections.Dict({
+        'action' : job.ACTION_EXTRACT_JOB_RESULTS,
+        'result': res,
+    })
+
 @_message_handler
 async def _compute_job_status(job_tracker, message):
-    pkdc('report_job_status: {}', message)
-    s = await job_tracker.compute_job_status(message.run_dir, message.jhash)
+    pkdc('compute_job_status: {}', message)
+    res = await job_tracker.compute_job_status(message.run_dir, message.jhash)
     return pkcollections.Dict({
         'action': job.ACTION_COMPUTE_JOB_STATUS,
-        'status': s.value,
+        'status': res.value,
     }) 
+
+
+@_message_handler
+async def _start_compute_job(job_tracker, message):
+    pkdc('start_compute_job: {}', message)
+    await job_tracker.start_compute_job(
+        message.run_dir, message.jhash,
+        message.backend,
+        message.cmd, message.tmp_dir,
+    )
+    return pkcollections.Dict({
+        'action': job.ACTION_COMPUTE_JOB_STARTED,
+    })
 
 async def _handle_message(message):
         h = _MESSAGE_HANDLERS[message.action]
@@ -109,11 +146,133 @@ async def _send_to_supervisor(res_message, req_message=None):
         await _send_to_supervisor(res_message, req_message)
 
 
-
+class _JobInfo:
+    def __init__(self, run_dir, jhash, status, report_job):
+        self.run_dir = run_dir
+        self.jhash = jhash
+        self.status = status
+        self.report_job = report_job
+        self.cancel_requested = False
 
 class _JobTracker:
     def __init__(self):
-        self._report_jobs = {}
+        self._compute_jobs = {}
+
+    async def kill(self, run_dir):
+        """Kill job currently running in run_dir.
+
+        Assumes that you've already checked what those jobs are (perhaps by
+        calling run_dir_status), and decided they need to die.
+
+        """
+        job_info = self._compute_jobs.get(run_dir)
+        if job_info is None:
+            return
+        if job_info.status is not job_supervisor_client.JobStatus.RUNNING:
+            return
+        pkdlog(
+            'kill: killing job with jhash {} in {}',
+            job_info.jhash, run_dir,
+        )
+        job_info.cancel_requested = True
+        await job_info.report_job.kill(_KILL_TIMEOUT_SECS)
+
+    async def run_extract_job(self, run_dir, jhash, subcmd, arg):
+        pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
+        status = await self.compute_job_status(run_dir, jhash)
+        if status is job_supervisor_client.JobStatus.MISSING:
+            pkdlog('{} {}: report is missing; skipping extract job',
+                   run_dir, jhash)
+            return {}
+        # figure out which backend and any backend-specific info
+        runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
+        if runner_info_file.exists():
+            runner_info = pkjson.load_any(runner_info_file)
+        else:
+            # Legacy run_dir
+            runner_info = pkcollections.Dict(
+                version=1, backend='local', backend_info={},
+            )
+        assert runner_info.version == 1
+
+        # run the job
+        cmd = ['sirepo', 'extract', subcmd, arg]
+        result = await local_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
+           run_dir, cmd, runner_info.backend_info,
+        )
+
+        if result.stderr:
+            pkdlog(
+                'got output on stderr ({} {}):\n{}',
+                run_dir, jhash,
+                result.stderr.decode('utf-8', errors='ignore'),
+            )
+
+        if result.returncode != 0:
+            pkdlog(
+                'failed with return code {} ({} {}), stdout:\n{}',
+                result.returncode,
+                run_dir,
+                subcmd,
+                result.stdout.decode('utf-8', errors='ignore'),
+            )
+            raise AssertionError
+
+        return pkjson.load_any(result.stdout)
+
+    async def start_compute_job(self, run_dir, jhash, backend, cmd, tmp_dir):
+        current_jhash, current_status = self._run_dir_status(run_dir)
+        if current_status is job_supervisor_client.JobStatus.RUNNING:
+            if current_jhash == jhash:
+                pkdlog(
+                    'job is already running; skipping (run_dir={}, jhash={}, tmp_dir={})',
+                    run_dir, jhash, tmp_dir,
+                )
+                pkio.unchecked_remove(tmp_dir)
+                return
+            else:
+                pkdlog(
+                    'job is still running; killing it (run_dir={}, jhash={})',
+                    run_dir, jhash,
+                )
+                await self.kill(run_dir)
+
+        assert run_dir not in self._compute_jobs
+        pkio.unchecked_remove(run_dir)
+        tmp_dir.rename(run_dir)
+        compute_job = local_process.start_compute_job(run_dir, cmd) # TODO(e-carlin): handle multiple backends
+        job_info = _JobInfo(
+            run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, compute_job,
+        )
+        self._compute_jobs[run_dir] = job_info
+        tornado.ioloop.IOLoop.current().spawn_callback(
+            self._supervise_compute_job, run_dir, jhash, job_info,
+        )
+
+    async def _supervise_compute_job(self, run_dir, jhash, job_info):
+        returncode = None
+        try:
+            returncode = await job_info.report_job.wait_for_exit()
+        finally:
+            # TODO(e-carlin): Locks?
+            # async with self.locks[run_dir]:
+            # Clear up our in-memory status
+            assert self._compute_jobs[run_dir] is job_info
+            del self._compute_jobs[run_dir]
+            # Write status to disk
+            if job_info.cancel_requested:
+                _write_status(job_supervisor_client.JobStatus.CANCELED, run_dir)
+                await self.run_extract_job(
+                    run_dir, jhash, 'remove_last_frame', '[]',
+                )
+            elif returncode == 0:
+                _write_status(job_supervisor_client.JobStatus.COMPLETED, run_dir)
+            else:
+                pkdlog(
+                    '{} {}: job failed, returncode = {}',
+                    run_dir, jhash, returncode,
+                )
+                _write_status(job_supervisor_client.JobStatus.ERROR, run_dir)
 
     # TODO(e-carlin): See if you get can njsmith's @_rpc_handler annotation working here
     async def compute_job_status(self, run_dir, jhash):
@@ -135,7 +294,7 @@ class _JobTracker:
         disk_status_path = run_dir.join('status')
         if disk_in_path.exists() and disk_status_path.exists():
             # status should be recorded on disk XOR in memory
-            assert run_dir not in self._report_jobs
+            assert run_dir not in self._compute_jobs
             disk_in_text = pkio.read_text(disk_in_path)
             disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
             disk_status = pkio.read_text(disk_status_path)
@@ -148,245 +307,15 @@ class _JobTracker:
                 )
                 disk_status = job_supervisor_client.JobStatus.ERROR
             return disk_jhash, job_supervisor_client.JobStatus(disk_status)
-        elif run_dir in self._report_jobs:
-            job_info = self._report_jobs[run_dir]
+        elif run_dir in self._compute_jobs:
+            job_info = self._compute_jobs[run_dir]
             return job_info.jhash, job_info.status
             
         return None, job_supervisor_client.JobStatus.MISSING
 
-    async def _run_extract_job(io_loop, job_tracker, req):
-        pkdc('run_extrac_job: {}', req)
-        result = await job_tracker.run_extract_job(
-            io_loop,
-            pkio.py_path(req.run_dir),
-            req.jhash,
-            req.subcmd,
-            req.arg,
-        )
-        return pkcollections.Dict({
-            'action' : job.ACTION_EXTRACT_JOB_RESULTS,
-            'id': req.id,
-            'uid': req.uid,
-            'result': result,
-        })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # async def run_extract_job(self, io_loop, run_dir, jhash, subcmd, arg):
-    #     pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
-    #     status = self.report_job_status(run_dir, jhash)
-    #     if status is job_supervisor_client.JobStatus.MISSING:
-    #         pkdlog('{} {}: report is missing; skipping extract job',
-    #                run_dir, jhash)
-    #         return {}
-    #     # figure out which backend and any backend-specific info
-    #     runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
-    #     if runner_info_file.exists():
-    #         runner_info = pkjson.load_any(runner_info_file)
-    #     else:
-    #         # Legacy run_dir
-    #         runner_info = pkcollections.Dict(
-    #             version=1, backend='local', backend_info={},
-    #         )
-    #     assert runner_info.version == 1
-
-    #     # run the job
-    #     cmd = ['sirepo', 'extract', subcmd, arg]
-    #     result = await local_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
-    #        io_loop, run_dir, cmd, runner_info.backend_info,
-    #     )
-
-    #     if result.stderr:
-    #         pkdlog(
-    #             'got output on stderr ({} {}):\n{}',
-    #             run_dir, jhash,
-    #             result.stderr.decode('utf-8', errors='ignore'),
-    #         )
-
-    #     if result.returncode != 0:
-    #         pkdlog(
-    #             'failed with return code {} ({} {}), stdout:\n{}',
-    #             result.returncode,
-    #             run_dir,
-    #             subcmd,
-    #             result.stdout.decode('utf-8', errors='ignore'),
-    #         )
-    #         raise AssertionError
-
-    #     return pkjson.load_any(result.stdout)
-
-
-    # async def start_report_job(self, io_loop, run_dir, jhash, backend, cmd, tmp_dir):
-    #     assert run_dir not in self.report_jobs
-    #     #TODO(robnagler): this has to be atomic.
-    #     pkio.unchecked_remove(run_dir)
-    #     tmp_dir.rename(run_dir)
-    #     report_job = local_process.start_report_job(run_dir, cmd) # TODO(e-carlin): Handle multiple backends
-    #     job_info = _JobInfo(
-    #         run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, report_job
-    #     )
-    #     self.report_jobs[run_dir] = job_info
-
-    #     await self._supervise_report_job(io_loop, run_dir, jhash, job_info)
-        
-    # async def _supervise_report_job(self, io_loop, run_dir, jhash, job_info):
-    #     with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
-    #         # Make sure returncode is defined in the finally block, even if
-    #         # wait() somehow crashes
-    #         returncode = None
-    #         try:
-    #             returncode = await job_info.report_job.wait_for_exit()
-    #         finally:
-    #             # Clear up our in-memory status
-    #             assert self.report_jobs[run_dir] is job_info
-    #             del self.report_jobs[run_dir]
-    #             # Write status to disk
-    #             if job_info.cancel_requested:
-    #                 _write_status(job_supervisor_client.JobStatus.CANCELED, run_dir)
-    #                 await self.run_extract_job(
-    #                     io_loop, run_dir, jhash, 'remove_last_frame', '[]',
-    #                 )
-    #             elif returncode == 0:
-    #                 _write_status(job_supervisor_client.JobStatus.COMPLETED, run_dir)
-    #             else:
-    #                 pkdlog(
-    #                     '{} {}: job failed, returncode = {}',
-    #                     run_dir, jhash, returncode,
-    #                 )
-    #                 _write_status(job_supervisor_client.JobStatus.ERROR, run_dir)
-
-# class _JobInfo:
-#     def __init__(self, run_dir, jhash, status, report_job):
-#         self.run_dir = run_dir
-#         self.jhash = jhash
-#         self.status = status
-#         self.report_job = report_job
-#         self.cancel_requested = False
-
-
-# async def _notify_supervisor(data):
-#     data.source = 'driver'
-#     data.uid = _AGENT_ID 
-#     #TODO(e-carlin): This is ugly
-#     pkdlog('Notifying supervisor: {}',  {x: data[x] for x in data if x not in ['result', 'arg']})
-#     pkdc('Full body: {}', data)
-
-#     http_client = tornado.httpclient.AsyncHTTPClient()
-#     response = await http_client.fetch(
-#         cfg.supervisor_uri,
-#         method='POST',
-#         body=pkjson.dump_bytes(data),
-#         request_timeout=math.inf,
-#         )
-
-#     supervisor_req = pkcollections.Dict(pkjson.load_any(response.body))
-#     pkdc('Supervisor responded with: {}', supervisor_req)
-#     return supervisor_req
-
-
-# async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
-#     while True:
-#         data = pkcollections.Dict({
-#             'action': job.ACTION_READY_FOR_WORK,
-#         })
-#         try:
-#             req = await _notify_supervisor(data)
-#         except ConnectionRefusedError as e:
-#             pkdlog('Connection refused while calling supervisor ready_for_work. \
-#                 Sleeping and trying again. Caused by: {}', e)
-#             await tornado.gen.sleep(1)    
-#             continue
-#         if req.action == job.ACTION_KEEP_ALIVE:
-#             continue
-#         io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, req)
-
-
-# async def _process_supervisor_request(io_loop, job_tracker, req):
-#     #TODO(e-carlin): This code is repetitive.
-#     if req.action == job.ACTION_SERVER_START_REPORT_JOB:
-#         results = await _start_report_job(io_loop, job_tracker, req)
-#         await _notify_supervisor(results)
-#         return
-#     elif req.action == job.ACTION_SERVER_REPORT_JOB_STATUS:
-#         status = _report_job_status(job_tracker, req)
-#         await _notify_supervisor(status)
-#         return
-#     elif req.action == job.ACTION_RUN_EXTRACT_JOB:
-#         results = await _run_extract_job(io_loop, job_tracker, req)
-#         await _notify_supervisor(results)
-#         return
-#     else:
-#         raise Exception(f'Request.action {req.action} unknown')
-    
-
-# def _report_job_status(job_tracker, req):
-#     pkdc('report_job_status: {}', req)
-#     status =  job_tracker.report_job_status(
-#         #TODO(e-carlin): Find a common place to do pkio.py_path() these are littered around
-#         pkio.py_path(req.run_dir), req.jhash
-#     ).value
-#     return pkcollections.Dict({
-#         'action': job.ACTION_COMPUTE_JOB_STATUS,
-#         'id': req.id,
-#         'uid': req.uid,
-#         'status': status,
-#     })
-            
-
-
-
-# async def _start_report_job(io_loop, job_tracker, req):
-#     pkdc('start_report_job: {}', req)
-#     await job_tracker.start_report_job(
-#         io_loop,
-#         pkio.py_path(req.run_dir), req.jhash,
-#         req.backend,
-#         req.cmd, pkio.py_path(req.tmp_dir),
-#     )
-#     return pkcollections.Dict({
-#         'action': job.ACTION_COMPUTE_JOB_STARTED,
-#         'id': req.id,
-#         'uid': req.uid,
-#     })
-
-
-# def _write_status(status, run_dir):
-#     fn = run_dir.join('result.json')
-#     if not fn.exists():
-#         pkjson.dump_pretty({'state': status.value}, filename=fn)
-#         pkio.write_text(run_dir.join('status'), status.value)
-
-
-# @contextlib.contextmanager
-# def _catch_and_log_errors(exc_type, msg, *args, **kwargs):
-#     try:
-#         yield
-#     except exc_type:
-#         pkdlog(msg, *args, **kwargs)
-#         pkdlog(pkdexc())
-
-
-# _RUNNER_INFO_BASENAME = 'runner-info.json'
-
-cfg = pkconfig.init(
-    supervisor_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to reach the supervisor on')
-)
+def _write_status(status, run_dir):
+    fn = run_dir.join('result.json')
+    if not fn.exists():
+        pkjson.dump_pretty({'state': status.value}, filename=fn)
+        pkio.write_text(run_dir.join('status'), status.value)

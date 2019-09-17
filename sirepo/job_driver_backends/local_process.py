@@ -62,7 +62,7 @@ class _LocalReportJob:
     async def wait_for_exit(self):
         return await self._sub_process.wait_for_exit()
 
-async def run_extract_job(io_loop, run_dir, cmd, backend_info):
+async def run_extract_job(run_dir, cmd, backend_info):
     env = _subprocess_env()
     # we're in py3 mode, and regular subprocesses will inherit our
     # environment, so we have to manually switch back to py2 mode.
@@ -84,7 +84,8 @@ async def run_extract_job(io_loop, run_dir, cmd, backend_info):
 
         stdout = bytearray()
         stderr = bytearray()
-         
+
+        io_loop = tornado.ioloop.IOLoop.current()
         io_loop.spawn_callback(collect, sub_process.stdout, stdout)
         io_loop.spawn_callback(collect, sub_process.stderr, stderr)
         return_code = await sub_process.wait_for_exit()

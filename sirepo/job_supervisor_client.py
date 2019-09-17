@@ -61,7 +61,6 @@ def compute_job_status(run_dir, jhash):
         'jhash': jhash,
     }
     response = _request(body)
-    pkdp('got status {}', response)
     return JobStatus(response.status)
 
 
