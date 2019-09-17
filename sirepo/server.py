@@ -494,7 +494,7 @@ def api_runSimulation():
     if feature_config.cfg.job_supervisor:
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
-        status = job_supervisor_client.report_job_status(run_dir, jhash)
+        status = job_supervisor_client.compute_job_status(run_dir, jhash)
 
         already_good_status = [job_supervisor_client.JobStatus.RUNNING,
                                job_supervisor_client.JobStatus.COMPLETED]
@@ -903,7 +903,7 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = job_supervisor_client.report_job_status(run_dir, jhash)
+        status = job_supervisor_client.compute_job_status(run_dir, jhash)
         is_running = status is job_supervisor_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}

@@ -50,7 +50,7 @@ class DriverBase(object):
         if not d.message_handler_set.is_set():
             d.message_handler = message.message_handler
             d.message_handler_set.set()
-        if message.content.action != job.ACTION_DRIVER_READY_FOR_WORK:
+        if message.content.action != job.ACTION_READY_FOR_WORK:
             await d.process_message(message)
 
     @classmethod

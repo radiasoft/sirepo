@@ -42,7 +42,7 @@ def _request(body):
 
 def start_compute_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
     body = {
-        'action': job.ACTION_SRSERVER_START_COMPUTE_JOB,
+        'action': job.ACTION_START_COMPUTE_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'backend': backend,
@@ -54,9 +54,9 @@ def start_compute_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
     return {}
 
 
-def report_job_status(run_dir, jhash):
+def compute_job_status(run_dir, jhash):
     body = {
-        'action': job.ACTION_SRSERVER_REPORT_JOB_STATUS,
+        'action': job.ACTION_COMPUTE_JOB_STATUS,
         'run_dir': str(run_dir),
         'jhash': jhash,
     }
@@ -74,7 +74,7 @@ def cancel_report_job(run_dir, jhash):
 
 def run_extract_job(run_dir, jhash, subcmd, *args):
     body = ({
-        'action': job.ACTION_SRSERVER_RUN_EXTRACT_JOB,
+        'action': job.ACTION_RUN_EXTRACT_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
         'subcmd': subcmd,

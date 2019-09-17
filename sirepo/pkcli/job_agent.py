@@ -42,7 +42,7 @@ def start(agent_id, supervisor_uri):
 
 async def _main():
     await _connect_to_supervisor()
-    await _send_to_supervisor(pkcollections.Dict({'action': job.ACTION_DRIVER_READY_FOR_WORK}))
+    await _send_to_supervisor(pkcollections.Dict({'action': job.ACTION_READY_FOR_WORK}))
 
 async def _connect_to_supervisor():
     global _WS
@@ -62,6 +62,7 @@ async def _connect_to_supervisor():
 def _receive_from_supervisor(message):
     pkdc('received message from supervisor {}', message)
     if message is None:
+        # TODO(e-carlin): Do we need to remove callback to clean up after ourselves?
         # message is None indicates server closed connection
         tornado.ioloop.IOLoop.current().spawn_callback(_main)
         return
@@ -70,50 +71,58 @@ def _receive_from_supervisor(message):
         m.run_dir = pkio.py_path(m.run_dir)
     if 'tmp_dir' in m:
         m.tmp_dir = pkio.py_path(m.tmp_dir)
-    _JOB_TRACKER.pending_requests.put_nowait(m)
+    # TODO(e-carlin): Do we need to remove callback to clean up after ourselves?
+    tornado.ioloop.IOLoop.current().spawn_callback(_handle_message, m)
 
-async def _send_to_supervisor(message, request=None):
+_MESSAGE_HANDLERS = {}
+def _message_handler(fn):
+    _MESSAGE_HANDLERS[fn.__name__.lstrip('_')] = fn
+    return fn
+
+@_message_handler
+async def _compute_job_status(job_tracker, message):
+    pkdc('report_job_status: {}', message)
+    s = await job_tracker.compute_job_status(message.run_dir, message.jhash)
+    return pkcollections.Dict({
+        'action': job.ACTION_COMPUTE_JOB_STATUS,
+        'status': s.value,
+    }) 
+
+async def _handle_message(message):
+        h = _MESSAGE_HANDLERS[message.action]
+        res = await h(_JOB_TRACKER, message)
+        await _send_to_supervisor(res, message)
+
+
+async def _send_to_supervisor(res_message, req_message=None):
     global _WS
     try:
-        message.agent_id = _AGENT_ID
-        if request:
-           message.rid = request.rid
-        await _WS.write_message(pkjson.dump_bytes(message))
+        res_message.agent_id = _AGENT_ID
+        if req_message:
+           res_message.rid = req_message.rid
+        await _WS.write_message(pkjson.dump_bytes(res_message))
     except tornado.websocket.WebSocketClosedError:
         # TODO(e-carlin): Think about the failure handling more
         pkdlog('ws closed')
         _WS = None
         await _connect_to_supervisor()
-        await _send_to_supervisor(message)
+        await _send_to_supervisor(res_message, req_message)
+
+
 
 
 class _JobTracker:
     def __init__(self):
         self._report_jobs = {}
-        self.pending_requests = tornado.queues.Queue()
-        tornado.ioloop.IOLoop.current().spawn_callback(self._process_pending_jobs)
-
-    async def _process_pending_jobs(self):
-        while True:
-            req = await self.pending_requests.get()
-            actions = {
-                job.ACTION_SRSERVER_REPORT_JOB_STATUS: self._report_job_status,
-            }
-            response = await actions[req.action](req)
-            await _send_to_supervisor(response, req)
 
     # TODO(e-carlin): See if you get can njsmith's @_rpc_handler annotation working here
-    async def _report_job_status(self, req):
+    async def compute_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir."""
         status = job_supervisor_client.JobStatus.MISSING
-        run_dir_jhash, run_dir_status = self._run_dir_status(req.run_dir)
-        if run_dir_jhash == req.jhash:
+        run_dir_jhash, run_dir_status = self._run_dir_status(run_dir)
+        if run_dir_jhash == jhash:
             status = run_dir_status
-
-        return pkcollections.Dict({
-            'action': job.ACTION_DRIVER_REPORT_JOB_STATUS,
-            'status': status.value,
-        }) 
+        return status
 
     def _run_dir_status(self, run_dir):
         """Get the current status of whatever's happening in run_dir.
@@ -145,6 +154,21 @@ class _JobTracker:
             
         return None, job_supervisor_client.JobStatus.MISSING
 
+    async def _run_extract_job(io_loop, job_tracker, req):
+        pkdc('run_extrac_job: {}', req)
+        result = await job_tracker.run_extract_job(
+            io_loop,
+            pkio.py_path(req.run_dir),
+            req.jhash,
+            req.subcmd,
+            req.arg,
+        )
+        return pkcollections.Dict({
+            'action' : job.ACTION_EXTRACT_JOB_RESULTS,
+            'id': req.id,
+            'uid': req.uid,
+            'result': result,
+        })
 
 
 
@@ -282,7 +306,7 @@ class _JobTracker:
 # async def _notify_supervisor_ready_for_work(io_loop, job_tracker):
 #     while True:
 #         data = pkcollections.Dict({
-#             'action': job.ACTION_DRIVER_READY_FOR_WORK,
+#             'action': job.ACTION_READY_FOR_WORK,
 #         })
 #         try:
 #             req = await _notify_supervisor(data)
@@ -291,22 +315,22 @@ class _JobTracker:
 #                 Sleeping and trying again. Caused by: {}', e)
 #             await tornado.gen.sleep(1)    
 #             continue
-#         if req.action == job.ACTION_SUPERVISOR_KEEP_ALIVE:
+#         if req.action == job.ACTION_KEEP_ALIVE:
 #             continue
 #         io_loop.spawn_callback(_process_supervisor_request, io_loop, job_tracker, req)
 
 
 # async def _process_supervisor_request(io_loop, job_tracker, req):
 #     #TODO(e-carlin): This code is repetitive.
-#     if req.action == job.ACTION_SRSERVER_START_REPORT_JOB:
+#     if req.action == job.ACTION_SERVER_START_REPORT_JOB:
 #         results = await _start_report_job(io_loop, job_tracker, req)
 #         await _notify_supervisor(results)
 #         return
-#     elif req.action == job.ACTION_SRSERVER_REPORT_JOB_STATUS:
+#     elif req.action == job.ACTION_SERVER_REPORT_JOB_STATUS:
 #         status = _report_job_status(job_tracker, req)
 #         await _notify_supervisor(status)
 #         return
-#     elif req.action == job.ACTION_SRSERVER_RUN_EXTRACT_JOB:
+#     elif req.action == job.ACTION_RUN_EXTRACT_JOB:
 #         results = await _run_extract_job(io_loop, job_tracker, req)
 #         await _notify_supervisor(results)
 #         return
@@ -321,28 +345,13 @@ class _JobTracker:
 #         pkio.py_path(req.run_dir), req.jhash
 #     ).value
 #     return pkcollections.Dict({
-#         'action': job.ACTION_DRIVER_REPORT_JOB_STATUS,
+#         'action': job.ACTION_COMPUTE_JOB_STATUS,
 #         'id': req.id,
 #         'uid': req.uid,
 #         'status': status,
 #     })
             
 
-# async def _run_extract_job(io_loop, job_tracker, req):
-#     pkdc('run_extrac_job: {}', req)
-#     result = await job_tracker.run_extract_job(
-#         io_loop,
-#         pkio.py_path(req.run_dir),
-#         req.jhash,
-#         req.subcmd,
-#         req.arg,
-#     )
-#     return pkcollections.Dict({
-#         'action' : job.ACTION_DRIVER_EXTRACT_JOB_RESULTS,
-#         'id': req.id,
-#         'uid': req.uid,
-#         'result': result,
-#     })
 
 
 # async def _start_report_job(io_loop, job_tracker, req):
@@ -354,7 +363,7 @@ class _JobTracker:
 #         req.cmd, pkio.py_path(req.tmp_dir),
 #     )
 #     return pkcollections.Dict({
-#         'action': job.ACTION_DRIVER_REPORT_JOB_STARTED,
+#         'action': job.ACTION_COMPUTE_JOB_STARTED,
 #         'id': req.id,
 #         'uid': req.uid,
 #     })
