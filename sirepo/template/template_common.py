@@ -354,16 +354,6 @@ def lib_files(data, source_lib=None):
     )
 
 
-def model_defaults(name, schema):
-    """Returns a set of default model values from the schema."""
-    res = pkcollections.Dict()
-    for f in schema['model'][name]:
-        field_info = schema['model'][name][f]
-        if len(field_info) >= 3 and field_info[2] is not None:
-            res[f] = field_info[2]
-    return res
-
-
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = {
         'x_points': x,
@@ -386,12 +376,6 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     if plot_fields:
         res.update(plot_fields)
     return res
-
-
-def organize_example(data):
-    if 'isExample' in data.models.simulation and data.models.simulation.isExample:
-        if data.models.simulation.folder == '/':
-            data.models.simulation.folder = '/Examples'
 
 
 def parse_animation_args(data, key_map):
@@ -496,15 +480,6 @@ def resource_dir(sim_type):
         py.path.Local: absolute path to folder
     """
     return _RESOURCE_DIR.join(sim_type)
-
-
-def update_model_defaults(model, name, schema, dynamic=None):
-    defaults = model_defaults(name, schema)
-    if dynamic is not None:
-        defaults.update(dynamic)
-    for f in defaults:
-        if f not in model:
-            model[f] = defaults[f]
 
 
 def validate_model(model_data, model_schema, enum_info):
