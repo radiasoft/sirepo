@@ -16,9 +16,8 @@ STATE_EXECUTING = 'state_executing'
 async def run(driver_class, resource_class):
     pkdc('scheduler running for driver class {} and resource class {}', driver_class, resource_class)
     pkdc('slots available? {}', _slots_available(driver_class, resource_class))
-    
-    # TODO(e-carlin): think more about this algorithm. Quite simple right now.
-    # TODO(e-carlin): Refactor this is confusing
+
+    # TODO(e-carlin): this needs a lot of work    
     # TODO(e-carlin): run status jobs are queued up in this q as well. I'm  still
     # not understanding how they will be actioned in a timely manner if this is
     # the case. Also, if a user starts multiple concurrent simulations we could

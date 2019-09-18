@@ -26,6 +26,8 @@ _MAX_AGE_BY_WEIGHT = [
 
 def main():
     """Read the input yaml and write the output csv"""
+    import time
+    time.sleep(1000)
     # hack support for openmpi/mpich so we can run under mpi with only one output file
     if os.environ.get('OMPI_COMM_WORLD_RANK', os.environ.get('PMI_RANK', '0')) != '0':
         sys.stderr.write('bye\n')

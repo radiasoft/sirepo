@@ -65,7 +65,13 @@ def compute_job_status(run_dir, jhash):
 
 
 def cancel_report_job(run_dir, jhash):
-    raise NotImplementedError()
+    body = pkcollections.Dict(
+        action='cancel_compute_job',
+        run_dir=str(run_dir),
+        jhash=jhash,
+    )
+    res = _request(body) 
+    return res
     # return _rpc({
     #     'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
     # })

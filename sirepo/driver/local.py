@@ -53,7 +53,7 @@ class LocalDriver(driver.DriverBase):
                     r.request_handler.write(message.content)
                     r.request_reply_was_sent.set()
                     u.requests.remove(r)
-                    # await job_scheduler.run(self.instances)
+                    await job_scheduler.run(type(self), self.resource_class)
                     return
                     
         raise AssertionError(

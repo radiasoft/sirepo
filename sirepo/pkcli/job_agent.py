@@ -35,18 +35,14 @@ _RUNNER_INFO_BASENAME = 'runner-info.json'
 #rn let's pass these in environment variables, then we can
 # just use pkconfig.
 def start(agent_id, supervisor_uri):
-#rn I don't think these should be globals. Rather
-#   pass them as state perhaps in the
+    #rn I don't think these should be globals. Rather
+    #   pass them as state perhaps in the
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
         _Msg(agent_id=agent_id, supervisor_uri=supervisor_uri).loop,
     )
     io_loop.start()
 
-#rn _main is not clear. This should be called _connect_to_supervisor
-#async def _main():
-#    await _connect_to_supervisor()
-#    await
 
 class _Msg(pkcollections.Dict):
 
@@ -95,7 +91,7 @@ class _Msg(pkcollections.Dict):
         return self._format_reply()
 
     #rn maybe this should just be "_compute"
-    async def _dispatch_compute_job(self, msg):
+    async def _dispatch_start_compute_job(self, msg):
         await self.job_tracker.start_compute_job(
             msg.run_dir, msg.jhash,
             msg.backend,

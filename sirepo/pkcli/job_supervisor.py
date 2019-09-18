@@ -79,7 +79,7 @@ class _DebugRenderer():
 
 
 async def _process_incoming(req_type, content, handler):
-    pkdc('content={}', content)
+    pkdc('req_type={}, content={}', req_type, content)
     c = pkjson.load_any(content)
     pkdlog('{}: {}', req_type,  _DebugRenderer(c))
     await getattr(driver.DriverBase, f'process_{req_type}')(
