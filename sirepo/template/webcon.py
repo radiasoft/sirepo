@@ -225,70 +225,14 @@ def get_beam_pos_report(run_dir, data):
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     assert len(history) > 0, 'no beam position history'
     x_label = 'z [m]'
-
     x, plots, colors = _beam_pos_plots(data, history, start_time)
+    assert len(plots), 'no beam position history'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
         'y_label': '[m]',
         'x_label': x_label,
         'summaryData': {},
     }, colors)
-
-
-def get_centroid_report(run_dir, data):
-    report = data.models[data.report]
-    monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    bpms = None
-    if monitor_file.exists():
-        history, num_records, start_time = _read_monitor_file(monitor_file, True)
-        if len(history):
-            bpms = _bpm_readings_for_plots(data, history, start_time)
-    x = []
-    y = []
-    t = []
-    z = _position_of_element(data, report['_id'])
-    if bpms:
-        cx = bpms['x']
-        cy = bpms['y']
-        cz = bpms['z']
-        ct = bpms['t']
-        c_idx = cz.index(z)
-        for t_idx, time in enumerate(ct):
-            xv = cx[t_idx][c_idx]
-            yv = cy[t_idx][c_idx]
-            t.append(time)
-            x.append(xv)
-            y.append(yv)
-        #TODO(pjm): set reasonable history limit
-        _MAX_BPM_POINTS = 10
-        if len(t) > _MAX_BPM_POINTS:
-            cutoff = len(t) - _MAX_BPM_POINTS
-            t = t[cutoff:]
-            x = x[cutoff:]
-            y = y[cutoff:]
-    else:
-        # put the point outside the plot
-        x = [1]
-        y = [1]
-        c_idx = _watch_index(data, report['_id'])
-    color = _SETTINGS_PLOT_COLORS[c_idx % len(_SETTINGS_PLOT_COLORS)]
-    c_mod = _hex_color_to_rgb(color)
-    c_mod[3] = 0.2
-    plots = [
-            {
-            'points': y,
-            'label': 'y [m]',
-            'style': 'line',
-            'symbol': 'circle',
-            'colorModulation': c_mod,
-        },
-    ]
-    return template_common.parameter_plot(x, plots, data.models[data.report], {
-        'title': 'z = {}m'.format(z),
-        'y_label': '',
-        'x_label': 'x [m]',
-        'aspectRatio': 1.0,
-    },[color])
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -386,21 +330,11 @@ def get_fft(run_dir, data):
         },
         #'latex_label': latex_label
     })
-    #return {
-    #    'title': '',
-    #    'x_points': w.tolist(),
-    #    'points': (y * col_info['scale'][1]).tolist(),
-    #    'y_label': _label(col_info, 1),
-    #    'x_label': 'ω[s-1]',
-    #}
-
 
 
 def get_settings_report(run_dir, data):
-
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    if not monitor_file.exists():
-        assert False, 'no settings history'
+    assert monitor_file.exists(), 'no settings history'
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -410,6 +344,7 @@ def get_settings_report(run_dir, data):
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
+    assert len(plots), 'no settings history'
     return template_common.parameter_plot(x.tolist(), plots, {}, {
         'title': '',
         'y_label': '[rad]',
@@ -1295,17 +1230,3 @@ def _update_epics_kicker(data):
 
 def _validate_eq_var(val):
     return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
-
-
-def _watch_index(data, watch_id):
-    count = 0
-    watch_ids = {}
-    for el in data.models.elements:
-        if el.type == 'WATCH':
-            watch_ids[el._id] = True
-    for id in data.models.beamlines[0]['items']:
-        if id in watch_ids:
-            if watch_id == id:
-                return count
-            count += 1
-    assert False, 'no watch for id: {}'.format(watch_id)

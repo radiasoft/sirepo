@@ -162,7 +162,9 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     for i in range(len(plots)):
         plot = plots[i]
         plot['color'] = colors[i % len(colors)]
-        if fixed_y_range is None:
+        if not len(plot['points']):
+            y_range = [0, 0]
+        elif fixed_y_range is None:
             vmin = min(plot['points'])
             vmax = max(plot['points'])
             if y_range:
@@ -365,7 +367,7 @@ def model_defaults(name, schema):
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = {
         'x_points': x,
-        'x_range': [min(x), max(x)],
+        'x_range': [min(x), max(x)] if len(x) else [0, 0],
         'plots': plots,
         'y_range': compute_plot_color_and_range(plots, plot_colors),
     }
