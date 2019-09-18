@@ -45,27 +45,6 @@ class LocalDriver(driver.DriverBase):
             env=env,
         )
 
-    async def process_message(self, message):
-        # TODO(e-carlin): This should probably live in DriverBase
-        # TODO(e-carlin): Should an instance of a driver know more about its requests?
-        # it feels funny to iterate over all requests in an instance of the class
-        for u in self.requests[self.resource_class]:
-            if u.uid != self.uid:
-                continue
-            for r in u.requests:
-                if r.content.rid == message.content.rid:
-                    r.request_handler.write(message.content)
-                    r.request_reply_was_sent.set()
-                    u.requests.remove(r)
-                    await job_scheduler.run(type(self), self.resource_class)
-                    return
-
-        raise AssertionError(
-            'the message {} did not have a corresponding request in requests {}'.format(
-            message,
-            self.requests[self.resource_class],
-            ))
-
 
 cfg = pkconfig.init(
     supervisor_ws_uri=(

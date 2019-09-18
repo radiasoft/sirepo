@@ -78,7 +78,7 @@ async def _process_incoming(req_type, content, handler):
     pkdc('req_type={}, content={}', req_type, content)
     c = pkjson.load_any(content)
     pkdlog('{}: {}', req_type,  _DebugRenderer(c))
-    await getattr(driver.DriverBase, f'process_{req_type}')(
+    await getattr(driver.DriverBase, f'incoming_{req_type}')(
         pkcollections.Dict({
             f'{req_type}_handler': handler,
             'content': c,
