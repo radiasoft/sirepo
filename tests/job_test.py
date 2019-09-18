@@ -5,8 +5,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-
 import pytest
 import os
 import subprocess
@@ -21,12 +19,11 @@ def test_v2():
         'PYTHONUNBUFFERED': '1',
     })
     py3_env = _assert_py3()
-    
+
     from sirepo import srdb
     from sirepo import srunit
     from pykern import pkunit
     from sirepo import job
-    from sirepo import job_supervisor_client
 
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
@@ -40,12 +37,12 @@ def test_v2():
 
     try:
         for _ in range(30):
-            if _server_up(job_supervisor_client.cfg.supervisor_http_uri):
+            if _server_up(job.cfg.supervisor_http_uri):
                 break
             time.sleep(0.1)
         else:
             pkunit.pkfail('job supervisor did not start up')
-        
+
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',

@@ -5,12 +5,9 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
-from sirepo import job_supervisor_client
-from sirepo import job_supervisor_client
 # TODO(e-carlin): load dynamically
 from sirepo.job_driver_backends import local_process
 from sirepo.pkcli import job_supervisor
@@ -161,7 +158,7 @@ class _JobTracker:
 
         """
         compute_job = self._compute_jobs[run_dir]
-        if compute_job.status is not job_supervisor_client.JobStatus.RUNNING:
+        if compute_job.status is not job.JobStatus.RUNNING:
             return
         pkdlog(
             'kill: killing job with jhash {} in {}',
@@ -173,7 +170,7 @@ class _JobTracker:
     async def run_extract_job(self, run_dir, jhash, subcmd, arg):
         pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
         status = await self.compute_job_status(run_dir, jhash)
-        if status is job_supervisor_client.JobStatus.MISSING:
+        if status is job.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
                    run_dir, jhash)
             return {}
@@ -216,7 +213,7 @@ class _JobTracker:
 
     async def start_compute_job(self, run_dir, jhash, backend, cmd, tmp_dir):
         current_jhash, current_status = self._run_dir_status(run_dir)
-        if current_status is job_supervisor_client.JobStatus.RUNNING:
+        if current_status is job.JobStatus.RUNNING:
             if current_jhash == jhash:
                 pkdlog(
                     'job is already running; skipping (run_dir={}, jhash={}, tmp_dir={})',
@@ -234,7 +231,7 @@ class _JobTracker:
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        job = local_process.ComputeJob(run_dir, jhash, job_supervisor_client.JobStatus.RUNNING, cmd)
+        job = local_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
         self._compute_jobs[run_dir] = job
         tornado.ioloop.IOLoop.current().spawn_callback(
            self._on_compute_job_exit,
@@ -255,22 +252,22 @@ class _JobTracker:
             del self._compute_jobs[run_dir]
             # Write status to disk
             if compute_job.cancel_requested:
-                _write_status(job_supervisor_client.JobStatus.CANCELED, run_dir)
+                _write_status(job.JobStatus.CANCELED, run_dir)
                 await self.run_extract_job(
                     run_dir, compute_job.jhash, 'remove_last_frame', '[]',
                 )
             elif returncode == 0:
-                _write_status(job_supervisor_client.JobStatus.COMPLETED, run_dir)
+                _write_status(job.JobStatus.COMPLETED, run_dir)
             else:
                 pkdlog(
                     '{} {}: job failed, returncode = {}',
                     run_dir, compute_job.jhash, returncode,
                 )
-                _write_status(job_supervisor_client.JobStatus.ERROR, run_dir)
+                _write_status(job.JobStatus.ERROR, run_dir)
 
     async def compute_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir."""
-        status = job_supervisor_client.JobStatus.MISSING
+        status = job.JobStatus.MISSING
         run_dir_jhash, run_dir_status = self._run_dir_status(run_dir)
         if run_dir_jhash == jhash:
             status = run_dir_status
@@ -298,13 +295,13 @@ class _JobTracker:
                     'found "pending" status, treating as "error" ({})',
                     disk_status_path,
                 )
-                disk_status = job_supervisor_client.JobStatus.ERROR
-            return disk_jhash, job_supervisor_client.JobStatus(disk_status)
+                disk_status = job.JobStatus.ERROR
+            return disk_jhash, job.JobStatus(disk_status)
         elif run_dir in self._compute_jobs:
             compute_job = self._compute_jobs[run_dir]
             return compute_job.jhash, compute_job.status
 
-        return None, job_supervisor_client.JobStatus.MISSING
+        return None, job.JobStatus.MISSING
 
 
 def _write_status(status, run_dir):

@@ -10,13 +10,14 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import job_supervisor_client
+from sirepo import job
 from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
 import sirepo.template
 import time
+import uuid
 
 
 @api_perm.require_user
@@ -25,7 +26,7 @@ def api_runCancel():
     jid = simulation_db.job_id(data)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    job_supervisor_client.cancel_report_job(run_dir, jhash)
+    job.cancel_report_job(run_dir, jhash)
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 
@@ -35,10 +36,10 @@ def api_runSimulation():
     data = http_request.parse_data_input(validate=True)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    status = job_supervisor_client.compute_job_status(run_dir, jhash)
+    status = job.compute_job_status(run_dir, jhash)
     already_good_status = [
-        job_supervisor_client.JobStatus.RUNNING,
-        job_supervisor_client.JobStatus.COMPLETED,
+        job.JobStatus.RUNNING,
+        job.JobStatus.COMPLETED,
     ]
     if status not in already_good_status:
         data['simulationStatus'] = {
@@ -47,7 +48,7 @@ def api_runSimulation():
         }
         tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
         cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-        job_supervisor_client.start_compute_job(
+        job.start_compute_job(
             run_dir,
             jhash,
 #rn: backend cfg is irrelevant here
@@ -81,7 +82,7 @@ def api_simulationFrame(frame_id):
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     jhash = template_common.report_parameters_hash(model_data)
-    frame = job_supervisor_client.run_extract_job(
+    frame = job.run_extract_job(
         run_dir, jhash, 'get_simulation_frame', data,
     )
     resp = http_reply.gen_json(frame)
@@ -126,20 +127,20 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = job_supervisor_client.compute_job_status(run_dir, jhash)
-        is_running = status is job_supervisor_client.JobStatus.RUNNING
+        status = job.compute_job_status(run_dir, jhash)
+        is_running = status is job.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
 
         if not is_running:
-            if status is not job_supervisor_client.JobStatus.MISSING:
-                res, err = job_supervisor_client.run_extract_job(
+            if status is not job.JobStatus.MISSING:
+                res, err = job.run_extract_job(
                     run_dir, jhash, 'result', data,
                 )
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
-            new = job_supervisor_client.run_extract_job(
+            new = job.run_extract_job(
                 run_dir,
                 jhash,
                 'background_percent_complete',

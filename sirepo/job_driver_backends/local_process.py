@@ -5,7 +5,6 @@ u"""Run jobs using a local process
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern import pkcollections
 from pykern.pkdebug import pkdp
 from sirepo import mpi

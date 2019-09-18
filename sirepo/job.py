@@ -8,9 +8,15 @@ must be py2 compatible.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-from pykern import pkconfig
-from pykern.pkdebug import pkdp
+from pykern import pkcollections, pkjson, pkconfig
+from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import simulation_db, srdb
+import aenum
+import contextlib
+import requests
+import sirepo.mpi
+import socket
+import uuid
 
 
 # Actions that the sirepo server, supervisor, or driver may send.
@@ -27,6 +33,12 @@ ACTION_START_COMPUTE_JOB = 'start_compute_job'
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
+class JobStatus(aenum.Enum):
+    MISSING = 'missing'     # no data on disk, not currently running
+    RUNNING = 'running'     # data on disk is incomplete but it's running
+    ERROR = 'error'         # data on disk exists, but job failed somehow
+    CANCELED = 'canceled'   # data on disk exists, but is incomplete
+    COMPLETED = 'completed' # data on disk exists, and is fully usable
 
 def init_by_server(app):
     """Initialize module"""
@@ -47,6 +59,65 @@ def init_by_server(app):
     from sirepo import uri_router
 
     uri_router.register_api_module(job_api)
+
+
+def compute_job_status(run_dir, jhash):
+    body = {
+        'action': ACTION_COMPUTE_JOB_STATUS,
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+    }
+    response = _request(body)
+    return JobStatus(response.status)
+
+
+def cancel_report_job(run_dir, jhash):
+    body = pkcollections.Dict(
+        action='cancel_compute_job',
+        run_dir=str(run_dir),
+        jhash=jhash,
+    )
+    return _request(body)
+
+
+def run_extract_job(run_dir, jhash, subcmd, *args):
+    body = ({
+        'action': ACTION_RUN_EXTRACT_JOB,
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+        'subcmd': subcmd,
+        'arg': pkjson.dump_pretty(args),
+    })
+    response = _request(body)
+    return response.result
+
+def start_compute_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
+    body = {
+        'action': ACTION_START_COMPUTE_JOB,
+        'run_dir': str(run_dir),
+        'jhash': jhash,
+        'backend': backend,
+        'cmd': cmd,
+        'tmp_dir': str(tmp_dir),
+        'resource_class': 'parallel' if parallel else 'sequential',
+    }
+    _request(body)
+    return {}
+
+def _request(body):
+    #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
+    # We likely need a better key and maybe we shouldn't expose this implementation
+    # detail to the client.
+    pkdp(cfg.supervisor_http_uri)
+    uid = simulation_db.uid_from_dir_name(body['run_dir'])
+    body['uid'] = uid
+    body['source'] = 'server'
+    body['rid'] = str(uuid.uuid4())
+    body.setdefault('resource_class', 'sequential')
+    r = requests.post(cfg.supervisor_http_uri, json=body)
+    return pkjson.load_any(r.content)
+
+
 
 cfg = pkconfig.init(
     supervisor_http_uri=(
