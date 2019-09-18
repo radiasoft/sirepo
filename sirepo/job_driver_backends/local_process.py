@@ -38,7 +38,7 @@ async def run_extract_job(run_dir, cmd, backend_info):
     env['PYENV_VERSION'] = 'py2'
     cmd = ['pyenv', 'exec'] + cmd
 
-    sub_process = tornado.process.Subprocess(
+    p = tornado.process.Subprocess(
         cmd,
         cwd=run_dir,
         start_new_session=True,
@@ -55,21 +55,17 @@ async def run_extract_job(run_dir, cmd, backend_info):
         stderr = bytearray()
 
         io_loop = tornado.ioloop.IOLoop.current()
-        io_loop.spawn_callback(collect, sub_process.stdout, stdout)
-        io_loop.spawn_callback(collect, sub_process.stderr, stderr)
-        return_code = await sub_process.wait_for_exit()
+        io_loop.spawn_callback(collect, p.stdout, stdout)
+        io_loop.spawn_callback(collect, p.stderr, stderr)
+        return_code = await p.wait_for_exit()
     finally:
-        #TODO(e-carlin): Do kill and close
-        # sub_process.kill()
-        # await sub_process.aclose()
-        pass
+        p.proc.kill()
 
     return pkcollections.Dict(
         returncode=return_code,
         stdout=stdout,
         stderr=stderr,
     )
-
 
 class ComputeJob():
     def __init__(self, run_dir, jhash, status, cmd):

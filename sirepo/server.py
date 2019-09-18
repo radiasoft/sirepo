@@ -770,5 +770,4 @@ cfg = pkconfig.init(
     db_dir=(None, _cfg_db_dir, 'DEPRECATED: set $SIREPO_SRDB_ROOT'),
     job_queue=(None, str, 'DEPRECATED: set $SIREPO_RUNNER_JOB_CLASS'),
     enable_source_cache_key=(True, bool, 'enable source cache key, disable to allow local file edits in Chrome'),
-    backend=('local', str, 'Select job driver backend (e.g. "local", "docker")'),
 )

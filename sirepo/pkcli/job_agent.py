@@ -30,7 +30,6 @@ _RUNNER_INFO_BASENAME = 'runner-info.json'
 
 
 def start():
-    from sirepo import job
     cfg = pkconfig.init(
         agent_id=('abc123', str, 'the id of the agent'),
         supervisor_ws_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to connect to the supervisor on'),
@@ -92,9 +91,10 @@ class _Msg(pkcollections.Dict):
     #rn maybe this should just be "_compute"
     async def _dispatch_start_compute_job(self, msg):
         await self.job_tracker.start_compute_job(
-            msg.run_dir, msg.jhash,
-            msg.backend,
-            msg.cmd, msg.tmp_dir,
+            msg.run_dir,
+            msg.jhash,
+            msg.cmd,
+            msg.tmp_dir,
         )
         return self._format_reply(
             action=job.ACTION_COMPUTE_JOB_STARTED,
@@ -211,7 +211,7 @@ class _JobTracker:
 
         return pkjson.load_any(result.stdout)
 
-    async def start_compute_job(self, run_dir, jhash, backend, cmd, tmp_dir):
+    async def start_compute_job(self, run_dir, jhash, cmd, tmp_dir):
         current_jhash, current_status = self._run_dir_status(run_dir)
         if current_status is job.JobStatus.RUNNING:
             if current_jhash == jhash:
@@ -231,12 +231,12 @@ class _JobTracker:
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        job = local_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
-        self._compute_jobs[run_dir] = job
+        j = local_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
+        self._compute_jobs[run_dir] = j
         tornado.ioloop.IOLoop.current().spawn_callback(
            self._on_compute_job_exit,
            run_dir,
-           job
+           j
         )
 
     async def _on_compute_job_exit(self, run_dir, compute_job):

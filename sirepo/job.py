@@ -91,12 +91,11 @@ def run_extract_job(run_dir, jhash, subcmd, *args):
     response = _request(body)
     return response.result
 
-def start_compute_job(run_dir, jhash, backend, cmd, tmp_dir, parallel):
+def start_compute_job(run_dir, jhash, cmd, tmp_dir, parallel):
     body = {
         'action': ACTION_START_COMPUTE_JOB,
         'run_dir': str(run_dir),
         'jhash': jhash,
-        'backend': backend,
         'cmd': cmd,
         'tmp_dir': str(tmp_dir),
         'resource_class': 'parallel' if parallel else 'sequential',

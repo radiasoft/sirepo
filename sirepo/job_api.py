@@ -13,6 +13,7 @@ from sirepo import http_request
 from sirepo import job
 from sirepo import runner
 from sirepo import simulation_db
+from sirepo import srdb
 from sirepo.template import template_common
 import datetime
 import sirepo.template
@@ -51,8 +52,6 @@ def api_runSimulation():
         job.start_compute_job(
             run_dir,
             jhash,
-#rn: backend cfg is irrelevant here
-            cfg.backend,
             cmd,
             tmp_dir,
             simulation_db.is_parallel(data),
