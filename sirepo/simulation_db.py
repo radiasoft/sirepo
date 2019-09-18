@@ -228,7 +228,8 @@ def fixup_old_data(data, force=False):
             data.simulationType = 'warpvnd'
         if 'simulationSerial' not in data.models.simulation:
             data.models.simulation.simulationSerial = 0
-        sirepo.template.import_module(data.simulationType).fixup_old_data(data)
+        import sirepo.sim_data
+        sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
         pkcollections.unchecked_del(data.models, 'simulationStatus')
         pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
