@@ -28,8 +28,6 @@ import uuid
 
 
 def start():
-    #rn i'd like to see this inside start, because it is not needed until there
-    #  and there is only one invocation.
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the supervisor tornado server in debug mode'),
         ip=(job.DEFAULT_IP, str, 'ip address for the supervisor tornado server to listen to'),
@@ -37,7 +35,6 @@ def start():
     )
     app = tornado.web.Application(
         [
-            # Ordering of handlers is important. Should be most to least specific.
             ('/agent', _AgentMsg),
             ('/server', _ServerReq),
         ],

@@ -32,8 +32,6 @@ _RETRY_DELAY = 1
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 
 
-#rn let's pass these in environment variables, then we can
-# just use pkconfig.
 def start():
     from sirepo import job
     cfg = pkconfig.init(
@@ -41,8 +39,6 @@ def start():
         supervisor_ws_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to connect to the supervisor on'),
     )
     pkdp(cfg.agent_id)
-    #rn I don't think these should be globals. Rather
-    #   pass them as state perhaps in the
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
         _Msg(agent_id=cfg.agent_id, supervisor_ws_uri=cfg.supervisor_ws_uri).loop,
