@@ -15,6 +15,7 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import runner
+#rjn I think job is all you need for this API
 from sirepo import job_supervisor_client
 from sirepo import simulation_db
 from sirepo import srdb
@@ -453,6 +454,7 @@ def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
     if feature_config.cfg.job_supervisor:
+#rn: encapsulate like runSimulation with a dispatch to a method
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         job_supervisor_client.cancel_report_job(run_dir, jhash)
@@ -487,18 +489,37 @@ def api_runCancel():
 def api_runSimulation():
     from pykern import pkjson
     data = _parse_data_input(validate=True)
+#rn this is an example where dispatch would work better. You could
+# completely encapsulate this in variables: _run_simulation, _run_status,
+# _run_cancel, that are initialized once by referencing feature_config.cfg.job_supervisor
     # if flag is set
     # - check status
     # - if status is bad, rewrite the run dir (XX race condition, to fix later)
     # - then request it be started
     if feature_config.cfg.job_supervisor:
+#rn: I think this could be completely encaspulated in "job"
+#       return job.run_compute_job(data)
+#       None of this code needs to be here, including _simulation_run_status_job_supervisor
         jhash = template_common.report_parameters_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
+#rn encapsulate run_dir in this so it looks like: j = ComputeJob(data)
+#   then you can ask things of job, e.g. j.status(), j.run_dir, j.param_hash
+#   These might be attributes or properties, but make them methods for now.
+#   ComputeJob() could be a subclass of JobBase or not. It's going to have
+#   state to manage, and might as well wrap it in an object.
         status = job_supervisor_client.compute_job_status(run_dir, jhash)
-
+#rn this should be encapsulated: j.is_running_or_completed() and
+#   that would be answered by supervisor
+#rn by the way this an "implicit coupling". There's a lot of knowledge
+# here that should be encapsulated in job, because it's the one deciding
+# what "good" is. That's why, in general, you want to ask questions of the
+# interface (object or module) instead of getting data and asking questions ("not in")
+# outside of the abstraction.
         already_good_status = [job_supervisor_client.JobStatus.RUNNING,
                                job_supervisor_client.JobStatus.COMPLETED]
         if status not in already_good_status:
+#rn: this should be encapsulated in j.start(). It can then ask the questions
+# of simulation_db itself.
             data['simulationStatus'] = {
                 'startTime': int(time.time()),
                 'state': 'pending',
@@ -508,14 +529,18 @@ def api_runSimulation():
             job_supervisor_client.start_compute_job(
                 run_dir,
                 jhash,
+#rn: backend cfg is irrelevant here
                 cfg.backend,
                 cmd,
                 tmp_dir,
                 simulation_db.is_parallel(data),
             )
+#rn at this point, you'll
         res = _simulation_run_status_job_supervisor(data, quiet=True)
         return http_reply.gen_json(res)
     else:
+#rn This should be defined in a method called _runner_run_simulation (in this module or maybe runner/__init_.py?),
+# which would be bound to _run_simulation if not configured for job_supervisor.
         res = _simulation_run_status(data, quiet=True)
         if (
             (
@@ -534,6 +559,7 @@ def api_runSimulation():
 @api_perm.require_user
 def api_runStatus():
     data = _parse_data_input()
+#rn _run_status(data) is function that is bound in the init as described above
     if feature_config.cfg.job_supervisor:
         status = _simulation_run_status_job_supervisor(data)
     else:
@@ -595,8 +621,13 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
+#rn this needs work. I need to encapsulate this so it is shared with the
+#   javascript expliclitly (even if the code is not shared) especially
+#   the order of the params. This would then be used by the extract job
+#   not here so this should be a new type of job: simulation_frame
     #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
+#rn pkcollections.Dict
     data = dict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
     data['report'] = template.get_animation_name(data)
@@ -607,6 +638,8 @@ def api_simulationFrame(frame_id):
         # call. Since it doesn't, we have to read it out of the run_dir, which
         # creates a race condition -- we might return a frame from a different
         # version of the report than the one the frontend expects.
+#rn encapsulate jhash in job.ExtractJob(data)
+#   The run_dir
         jhash = template_common.report_parameters_hash(model_data)
         frame = job_supervisor_client.run_extract_job(
             run_dir, jhash, 'get_simulation_frame', data,
@@ -617,6 +650,7 @@ def api_simulationFrame(frame_id):
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(365)
+#rn why is this public? this is not public data.
         resp.headers['Cache-Control'] = 'public, max-age=31536000'
         resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
         resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")

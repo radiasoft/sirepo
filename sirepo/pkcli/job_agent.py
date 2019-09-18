@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import job_supervisor_client
 from sirepo import job_supervisor_client
+#rn load dynamically
 from sirepo.job_driver_backends import local_process
 from sirepo.pkcli import job_supervisor
 import async_generator
@@ -26,129 +27,130 @@ import tornado.locks
 import tornado.queues
 
 
-# TODO(e-carlin): Do we want this all in global state?
-_AGENT_ID = None
-_JOB_TRACKER = None
-_SUPERVISOR_URI = None
-_WS = None
-
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 _KILL_TIMEOUT_SECS = 3
 
+#rn let's pass these in environment variables, then we can
+# just use pkconfig.
 def start(agent_id, supervisor_uri):
-    global _JOB_TRACKER, _SUPERVISOR_URI, _AGENT_ID
-    _JOB_TRACKER = _JobTracker() 
-    _SUPERVISOR_URI = supervisor_uri
-    _AGENT_ID = agent_id
+#rn I don't think these should be globals. Rather
+#   pass them as state perhaps in the
     io_loop = tornado.ioloop.IOLoop.current()
-    io_loop.spawn_callback(_main)
+    io_loop.spawn_callback(
+        _Msg(agent_id=agent_id, supervisor_uri=supervisor_uri).loop,
+    )
     io_loop.start()
 
-async def _main():
-    await _connect_to_supervisor()
-    await _send_to_supervisor(pkcollections.Dict({'action': job.ACTION_READY_FOR_WORK}))
+#rn _main is not clear. This should be called _connect_to_supervisor
+#async def _main():
+#    await _connect_to_supervisor()
+#    await
 
-async def _connect_to_supervisor():
-    global _WS
-    if _WS is None:
+def _Msg(pkcollections.Dict):
+
+    def loop():
+        self.job_tracker = _JobTracker()
+        while True:
+            self.current_msg = None
+            try:
+                #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+                c = await websocket_connect(_SUPERVISOR_URI)
+            except ConnectionRefusedError as e:
+                pkdlog('{} uri=', e, _SUPERVISOR_URI)
+                await tornado.gen.sleep(_RETRY_DELAY)
+                continue
+            m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
+            while True:
+                try:
+                    await c.write_message(m)
+#rn is this possible? We haven't closed it
+                except tornado.websocket.WebSocketClosedError as e:
+                    # TODO(e-carlin): Think about the failure handling more
+                    pkdlog('closed{}', e)
+                    break
+                m = await conn.read_message()
+                if m is None:
+                    break
+                m = await self._dispatch(m)
+
+    async def _dispatch(self, msg):
+#rn not sure I like rid in this context. Rather req_id. Like sim_id
+# should be used instead of simulationId
         try:
-            _WS = await tornado.websocket.websocket_connect(
-                _SUPERVISOR_URI,
-                on_message_callback=_receive_from_supervisor,
-            )
-        except ConnectionRefusedError as e:
-            pkdlog('ws connection refused. Caused by: {}', e)
-            _WS = None
-            await tornado.gen.sleep(1)
-            await _connect_to_supervisor() 
-    
+            m, err = self._parse_req(msg)
+            if not err:
+                self.current_msg = m
+                pkdlog('action={action} request_id={rid}', **m)
+                pkdc(m)
+                return await getattr(self, '_dispatch_' + m.action)(m)
+        except Exception as e:
+            err = 'exception=' + str(e)
+        return self._format_reply(action='protocol_error', error=err, msg=msg)
 
-def _receive_from_supervisor(message):
-    pkdc('received message from supervisor {}', message)
-    if message is None:
-        # TODO(e-carlin): Do we need to remove callback to clean up after ourselves?
-        # message is None indicates server closed connection
-        tornado.ioloop.IOLoop.current().spawn_callback(_main)
-        return
-    m = pkjson.load_any(message)
-    if 'run_dir' in m:
-        m.run_dir = pkio.py_path(m.run_dir)
-    if 'tmp_dir' in m:
-        m.tmp_dir = pkio.py_path(m.tmp_dir)
-    # TODO(e-carlin): Do we need to remove callback to clean up after ourselves?
-    tornado.ioloop.IOLoop.current().spawn_callback(_handle_message, m)
+#rn maybe this should just be "cancel" since everything is a "job"
+    async def _dispatch_cancel_compute_job(self, msg):
+        jhash, status = self.job_tracker.run_dir_status(msg.run_dir)
+        if jhash == request.jhash:
+            await self.job_tracker.kill(request.run_dir)
+        return self._format_reply()
 
-_MESSAGE_HANDLERS = {}
-def _message_handler(fn):
-    _MESSAGE_HANDLERS[fn.__name__.lstrip('_')] = fn
-    return fn
+#rn maybe this should just be "_compute"
+    async def _dispatch_compute_job(job_tracker, message):
+        await job_tracker.start_compute_job(
+            message.run_dir, message.jhash,
+            message.backend,
+            message.cmd, message.tmp_dir,
+        )
+        return self._format_reply(
+            action=job.ACTION_COMPUTE_JOB_STARTED,
+        )
 
+    async def _dispatch_run_extract_job(self, msg):
+        res = await self.job_tracker.run_extract_job(
+            msg.run_dir,
+            msg.jhash,
+            msg.subcmd,
+            msg.arg,
+        )
+        return self._format_reply(
+#rn this seems superfluous, since we are matching req_id in the supervisor,
+#  which is more secure for the supervisor anyway. Agent shouldn't be able
+#  to direct the results to anything else
+# I think a message in response should be "ok" or not. With some data
+# The "ok" can be implicit.
+            action=job.ACTION_EXTRACT_JOB_RESULTS,
+            result=res,
+        )
 
-@_message_handler
-async def _cancel_compute_job(job_tracker, request):
-    jhash, status = job_tracker.run_dir_status(request.run_dir)
-    if jhash == request.jhash:
-        await job_tracker.kill(request.run_dir)
-    return {}
+    async def _dispatch_job_status(self, msg):
+        res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
+        return self._format_reply(
+            action=job.ACTION_COMPUTE_JOB_STATUS,
+            status=res.value,
+        )
 
-@_message_handler
-async def _run_extract_job(job_tracker, message):
-    res = await job_tracker.run_extract_job(
-        message.run_dir,
-        message.jhash,
-        message.subcmd,
-        message.arg,
-    )
-    return pkcollections.Dict({
-        'action' : job.ACTION_EXTRACT_JOB_RESULTS,
-        'result': res,
-    })
+    def _format_reply(self, **kwargs)
+        msg.agent_id = self.agent_id
+        if self.current_msg:
+#rn use get() because there may be an error in the sending message
+# and we really don't want to get any errors
+            msg.rid = self.current_msg.get('rid')
+        return pkjson.dump_bytes(msg)
 
-@_message_handler
-async def _compute_job_status(job_tracker, message):
-    pkdc('compute_job_status: {}', message)
-    res = await job_tracker.compute_job_status(message.run_dir, message.jhash)
-    return pkcollections.Dict({
-        'action': job.ACTION_COMPUTE_JOB_STATUS,
-        'status': res.value,
-    }) 
-
-
-@_message_handler
-async def _start_compute_job(job_tracker, message):
-    pkdc('start_compute_job: {}', message)
-    await job_tracker.start_compute_job(
-        message.run_dir, message.jhash,
-        message.backend,
-        message.cmd, message.tmp_dir,
-    )
-    return pkcollections.Dict({
-        'action': job.ACTION_COMPUTE_JOB_STARTED,
-    })
-
-async def _handle_message(message):
-        h = _MESSAGE_HANDLERS[message.action]
-        res = await h(_JOB_TRACKER, message)
-        await _send_to_supervisor(res, message)
-
-
-async def _send_to_supervisor(res_message, req_message=None):
-    global _WS
-    try:
-        res_message.agent_id = _AGENT_ID
-        if req_message:
-           res_message.rid = req_message.rid
-        await _WS.write_message(pkjson.dump_bytes(res_message))
-    except tornado.websocket.WebSocketClosedError:
-        # TODO(e-carlin): Think about the failure handling more
-        pkdlog('ws closed')
-        _WS = None
-        await _connect_to_supervisor()
+    def _parse_req(self, msg):
+        try:
+            m = pkjson.load_any(msg)
+            for k, v in m.items():
+                if k.endswith('_dir'):
+                    m[k] = pkio.py_path(v)
+        except Exception as e:
+            return None, f'exception={e}'
+        return m, None
 
 
 class _JobTracker:
     def __init__(self):
-        self._compute_jobs = {}
+        self._compute_jobs = pkcollections.Dict()
 
     async def kill(self, run_dir):
         """Kill job currently running in run_dir.
@@ -174,6 +176,7 @@ class _JobTracker:
             pkdlog('{} {}: report is missing; skipping extract job',
                    run_dir, jhash)
             return {}
+#rn do we want this?
         # figure out which backend and any backend-specific info
         runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
         if runner_info_file.exists():
@@ -247,7 +250,7 @@ class _JobTracker:
             returncode = await compute_job.wait_for_exit()
         finally:
             # Clear up our in-memory status
-            assert self._compute_jobs[run_dir] is compute_job 
+            assert self._compute_jobs[run_dir] is compute_job
             del self._compute_jobs[run_dir]
             # Write status to disk
             if compute_job.cancel_requested:
@@ -299,7 +302,7 @@ class _JobTracker:
         elif run_dir in self._compute_jobs:
             compute_job = self._compute_jobs[run_dir]
             return compute_job.jhash, compute_job.status
-            
+
         return None, job_supervisor_client.JobStatus.MISSING
 
 

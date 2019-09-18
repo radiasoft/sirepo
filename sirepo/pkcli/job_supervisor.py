@@ -29,7 +29,7 @@ import uuid
 
 def start():
     app = tornado.web.Application(
-        [   
+        [
             # Ordering of handlers is important. Should be most to least specific.
             ('/{}.*'.format(cfg.ws_path), _WSHandler),
             ('/.*', _ReqHandler),
@@ -43,18 +43,42 @@ def start():
 
 
 async def _process_incoming(req_type, content, handler):
+#rn name the thing as it is named in the code. Output before handling
+# in case there is some type of issue with processing the json so you
+# have more context to debug the error.
+    pkdc('content={}', c)
     c = pkjson.load_any(content)
     # #TODO(e-carlin): This is ugly
-    pkdlog('Received incoming {}: {}', req_type,  {x: c[x] for x in c if x not in ['result', 'arg']})
-    pkdc('Full body: {}', c)
-    r = pkcollections.Dict({
-        f'{req_type}_handler': handler,
-        'content': c,
-    })
-    process = getattr(driver.DriverBase, f'process_{req_type}')
-    await process(r)
-    
+#rn make a renderer object that's lightweight
+#  class _DebugRenderer():
+#      def __init__(self, obj):
+#          self.obj = obj
+#
+#      def __str__(self):
+#rn this defers all the decision making until it needs to be rendered
+#          o = self.obj
+#          if isinstance(obj, dict) and 'result' in o:
+#               return str({x: c[x] for x in o if x not in ['result', 'arg']})
+#          raise AssertionError('unknown object to render: {}', o)
+#rn it's easier to read if you don't put too much text here. You'll get used to it.
+    pkdlog('{}: {}', req_type,  {x: c[x] for x in c if x not in ['result', 'arg']})
+#rn "process" is superfluous, could be "x". "r" is better, but in the end,
+#  it's better not to hold the state. If you need to debug, say, what "r" is, just
+# wrap it in pkdp, e.g. getattr()(pkdp(pkcollections.Dict(...)))
+# pkdp returns its first argument if that's all it gets. It's a special case to
+# allow you to get debug output without having to put values in an intermediate
+# variable, which introduces the possibility of a state issue.
+# I know a lot of python does it with lots of variabls, and I've copied that
+# style, but I've thought more about it, and I prefer avoiding stateful code.
+    await getattr(driver.DriverBase, f'process_{req_type}')(
+        pkcollections.Dict({
+            f'{req_type}_handler': handler,
+            'content': c,
+        },
+    )
 
+
+#rn what about just _Req
 class _ReqHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 
@@ -71,27 +95,41 @@ class _ReqHandler(tornado.web.RequestHandler):
         pass
 
 
+#rn I think we might even call this _Message. Perhaps we shoudl
+#   bind all classes to URIs. This would be clearer in some ways.
+#   This could be _AgentMessage bound to /agent
+#   The above could be _ServerReq bound to /server
+#   As it is, we may have issues with robots hitting the address
+#   and we would process a non-sensical message and get errors in the
+#   the logs. We don't need to worry about proxying anything but
+#   /agent and /server.
 class _WSHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
 
     def open(self):
-        pkdp('open: {}', self.request.uri)
+#rn: it's simpler and will do the right thing
+        pkdp(self.request.uri)
 
     def on_close(self):
-        # TODO(e-carlin): Handle this 
+        # TODO(e-carlin): Handle this
         # in on_message we should set some state about who we are (ex uid).
         # then when this is called we find the driver instance with that uid
         # and notify it that on_close was called.
-        pkdp('on_close: {}', self.request.uri)
+#rn
+        pkdp(self.request.uri)
 
     async def on_message(self, msg):
         await _process_incoming('message', msg, self)
 
 
+#rn i'd like to see this inside start, because it is not needed until there
+#  and there is only one invocation.
 cfg = pkconfig.init(
-    debug=(True, bool, 'whether or not to run the supervisor tornado server in debug mode'),
+    debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the supervisor tornado server in debug mode'),
     ip=(job.DEFAULT_IP, str, 'ip address for the supervisor tornado server to listen to'),
     port=(job.DEFAULT_PORT, int, 'port for the supervisor tornado server to listen to'),
+#rn: this is a uri or "path_info", but uri makes more sense to me
+# this doesn't need to be configurable. it's programmatically controlled
     ws_path=(job.DEFAULT_WS_PATH, str, 'path supervisor tornado sever accepts websockets requests on'),
 )
