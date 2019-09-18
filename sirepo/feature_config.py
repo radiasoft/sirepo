@@ -12,10 +12,10 @@ import copy
 
 
 #: Codes on beta and prod;'shadow' is unsupported on F29 for now
-_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'warpvnd', 'jspec', 'synergia', 'zgoubi')
+_NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'warpvnd', 'jspec', 'synergia', 'zgoubi', 'webcon')
 
 #: Codes on dev and alpha
-_ALPHA_CODES = ('myapp', 'adm', 'flash', 'rs4pi', 'webcon')
+_ALPHA_CODES = ('myapp', 'adm', 'flash', 'rs4pi')
 
 #: All possible codes
 _ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES
