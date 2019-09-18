@@ -58,9 +58,9 @@ MAX_OPEN_FILES = 1024
 _job_class = None
 
 
-def init(app, use_reloader):
+def init_by_server(app):
     """Initialize module"""
-    if use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    if app.sirepo_use_reloader and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         # avoid first call to init() when using reloader
         return
     global _job_class
@@ -81,6 +81,10 @@ def init(app, use_reloader):
         )),
     )
     _job_class = m.init_class(app)
+    from sirepo import runner_api
+    from sirepo import uri_router
+
+    uri_router.register_api_module(runner_api)
 
 
 def job_is_processing(jid):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-u"""Flask routes
+u"""Flask server interface
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
@@ -14,9 +14,6 @@ from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
-from sirepo import runner
-#rjn I think job is all you need for this API
-from sirepo import job_supervisor_client
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import uri_router
@@ -25,6 +22,7 @@ from sirepo.template import template_common
 import datetime
 import flask
 import glob
+import importlib
 import os.path
 import py.path
 import re
@@ -36,18 +34,13 @@ import uuid
 import werkzeug
 import werkzeug.exceptions
 
+
 #TODO(pjm): this import is required to work-around template loading in listSimulations, see #1151
 if any(k in feature_config.cfg.sim_types for k in ('flash', 'rs4pi', 'synergia', 'warppba', 'warpvnd')):
     import h5py
 
 #: class that py.path.local() returns
 _PY_PATH_LOCAL_CLASS = type(pkio.py_path())
-
-#: What is_running?
-_RUN_STATES = ('pending', 'running')
-
-#: Parsing errors from subprocess
-_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
 #: See sirepo.srunit
 SRUNIT_TEST_IN_REQUEST = 'srunit_test_in_request'
@@ -125,7 +118,7 @@ def api_deleteFile():
 
 @api_perm.require_user
 def api_deleteSimulation():
-    data = _parse_data_input()
+    data = http_request.parse_data_input()
     simulation_db.delete_simulation(data['simulationType'], data['simulationId'])
     return http_reply.gen_json_ok()
 
@@ -290,7 +283,7 @@ def api_getApplicationData(filename=''):
     Returns:
         response: may be a file or JSON
     """
-    data = _parse_data_input()
+    data = http_request.parse_data_input()
     res = sirepo.template.import_module(data).get_application_data(data)
     if filename:
         assert isinstance(res, _PY_PATH_LOCAL_CLASS), \
@@ -383,7 +376,7 @@ def api_homePageOld():
 
 @api_perm.require_user
 def api_newSimulation():
-    new_simulation_data = _parse_data_input()
+    new_simulation_data = http_request.parse_data_input()
     sim_type = new_simulation_data['simulationType']
     data = simulation_db.default_data(sim_type)
     #TODO(pjm): update fields from schema values across new_simulation_data values
@@ -450,126 +443,8 @@ def api_root(simulation_type):
 
 
 @api_perm.require_user
-def api_runCancel():
-    data = _parse_data_input()
-    jid = simulation_db.job_id(data)
-    if feature_config.cfg.job_supervisor:
-#rn: encapsulate like runSimulation with a dispatch to a method
-        jhash = template_common.report_parameters_hash(data)
-        run_dir = simulation_db.simulation_run_dir(data)
-        job_supervisor_client.cancel_report_job(run_dir, jhash)
-        # Always true from the client's perspective
-        return http_reply.gen_json({'state': 'canceled'})
-    else:
-        # TODO(robnagler) need to have a way of listing jobs
-        # Don't bother with cache_hit check. We don't have any way of canceling
-        # if the parameters don't match so for now, always kill.
-        #TODO(robnagler) mutex required
-        if runner.job_is_processing(jid):
-            run_dir = simulation_db.simulation_run_dir(data)
-            # Write first, since results are write once, and we want to
-            # indicate the cancel instead of the termination error that
-            # will happen as a result of the kill.
-            try:
-                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
-            except IOError:
-                # run_dir may have been deleted
-                pass
-            runner.job_kill(jid)
-            # TODO(robnagler) should really be inside the template (t.cancel_simulation()?)
-            # the last frame file may not be finished, remove it
-            t = sirepo.template.import_module(data)
-            if hasattr(t, 'remove_last_frame'):
-                t.remove_last_frame(run_dir)
-        # Always true from the client's perspective
-        return http_reply.gen_json({'state': 'canceled'})
-
-
-@api_perm.require_user
-def api_runSimulation():
-    from pykern import pkjson
-    data = _parse_data_input(validate=True)
-#rn this is an example where dispatch would work better. You could
-# completely encapsulate this in variables: _run_simulation, _run_status,
-# _run_cancel, that are initialized once by referencing feature_config.cfg.job_supervisor
-    # if flag is set
-    # - check status
-    # - if status is bad, rewrite the run dir (XX race condition, to fix later)
-    # - then request it be started
-    if feature_config.cfg.job_supervisor:
-#rn: I think this could be completely encaspulated in "job"
-#       return job.run_compute_job(data)
-#       None of this code needs to be here, including _simulation_run_status_job_supervisor
-        jhash = template_common.report_parameters_hash(data)
-        run_dir = simulation_db.simulation_run_dir(data)
-#rn encapsulate run_dir in this so it looks like: j = ComputeJob(data)
-#   then you can ask things of job, e.g. j.status(), j.run_dir, j.param_hash
-#   These might be attributes or properties, but make them methods for now.
-#   ComputeJob() could be a subclass of JobBase or not. It's going to have
-#   state to manage, and might as well wrap it in an object.
-        status = job_supervisor_client.compute_job_status(run_dir, jhash)
-#rn this should be encapsulated: j.is_running_or_completed() and
-#   that would be answered by supervisor
-#rn by the way this an "implicit coupling". There's a lot of knowledge
-# here that should be encapsulated in job, because it's the one deciding
-# what "good" is. That's why, in general, you want to ask questions of the
-# interface (object or module) instead of getting data and asking questions ("not in")
-# outside of the abstraction.
-        already_good_status = [job_supervisor_client.JobStatus.RUNNING,
-                               job_supervisor_client.JobStatus.COMPLETED]
-        if status not in already_good_status:
-#rn: this should be encapsulated in j.start(). It can then ask the questions
-# of simulation_db itself.
-            data['simulationStatus'] = {
-                'startTime': int(time.time()),
-                'state': 'pending',
-            }
-            tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
-            cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
-            job_supervisor_client.start_compute_job(
-                run_dir,
-                jhash,
-#rn: backend cfg is irrelevant here
-                cfg.backend,
-                cmd,
-                tmp_dir,
-                simulation_db.is_parallel(data),
-            )
-#rn at this point, you'll
-        res = _simulation_run_status_job_supervisor(data, quiet=True)
-        return http_reply.gen_json(res)
-    else:
-#rn This should be defined in a method called _runner_run_simulation (in this module or maybe runner/__init_.py?),
-# which would be bound to _run_simulation if not configured for job_supervisor.
-        res = _simulation_run_status(data, quiet=True)
-        if (
-            (
-                not res['state'] in _RUN_STATES
-                and (res['state'] != 'completed' or data.get('forceRun', False))
-            ) or res.get('parametersChanged', True)
-        ):
-            try:
-                _start_simulation(data)
-            except runner.Collision:
-                pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
-            res = _simulation_run_status(data)
-        return http_reply.gen_json(res)
-
-
-@api_perm.require_user
-def api_runStatus():
-    data = _parse_data_input()
-#rn _run_status(data) is function that is bound in the init as described above
-    if feature_config.cfg.job_supervisor:
-        status = _simulation_run_status_job_supervisor(data)
-    else:
-        status = _simulation_run_status(data)
-    return http_reply.gen_json(status)
-
-
-@api_perm.require_user
 def api_saveSimulationData():
-    data = _parse_data_input(validate=True)
+    data = http_request.parse_data_input(validate=True)
     res = _validate_serial(data)
     if res:
         return res
@@ -620,48 +495,8 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 
 
 @api_perm.require_user
-def api_simulationFrame(frame_id):
-#rn this needs work. I need to encapsulate this so it is shared with the
-#   javascript expliclitly (even if the code is not shared) especially
-#   the order of the params. This would then be used by the extract job
-#   not here so this should be a new type of job: simulation_frame
-    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
-    keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-#rn pkcollections.Dict
-    data = dict(zip(keys, frame_id.split('*')))
-    template = sirepo.template.import_module(data)
-    data['report'] = template.get_animation_name(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    if feature_config.cfg.job_supervisor:
-        # XX TODO: it would be better if the frontend passed the jhash to this
-        # call. Since it doesn't, we have to read it out of the run_dir, which
-        # creates a race condition -- we might return a frame from a different
-        # version of the report than the one the frontend expects.
-#rn encapsulate jhash in job.ExtractJob(data)
-#   The run_dir
-        jhash = template_common.report_parameters_hash(model_data)
-        frame = job_supervisor_client.run_extract_job(
-            run_dir, jhash, 'get_simulation_frame', data,
-        )
-    else:
-        frame = template.get_simulation_frame(run_dir, data, model_data)
-    resp = http_reply.gen_json(frame)
-    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
-        now = datetime.datetime.utcnow()
-        expires = now + datetime.timedelta(365)
-#rn why is this public? this is not public data.
-        resp.headers['Cache-Control'] = 'public, max-age=31536000'
-        resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
-    else:
-        http_reply.headers_for_no_cache(resp)
-    return resp
-
-
-@api_perm.require_user
 def api_listSimulations():
-    data = _parse_data_input()
+    data = http_request.parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
     err_redirect = _verify_user_dir(sim_type)
@@ -680,11 +515,11 @@ def api_listSimulations():
 
 @api_perm.require_user
 def api_getServerData():
-    input = _parse_data_input(False)
+    input = http_request.parse_data_input(False)
     id = input.id if 'id' in input else None
     d = adm.get_server_data(id)
     if d == None or len(d) == 0:
-        return _simulation_error('Data error')
+        return http_reply.subprocess_error('Data error')
     return http_reply.gen_json(d)
 
 
@@ -731,7 +566,7 @@ def api_staticFile(path_info=None):
 @api_perm.require_user
 def api_updateFolder():
     #TODO(robnagler) Folder should have a serial, or should it be on data
-    data = _parse_data_input()
+    data = http_request.parse_data_input()
     old_name = data['oldName']
     new_name = data['newName']
     for row in simulation_db.iterate_simulation_datafiles(data['simulationType'], _simulation_data):
@@ -796,17 +631,19 @@ def init(uwsgi=None, use_reloader=False):
     )
     _app.sirepo_db_dir = cfg.db_dir
     _app.sirepo_uwsgi = uwsgi
+    _app.sirepo_use_reloader = use_reloader
     http_reply.init_by_server(_app)
     simulation_db.init_by_server(_app)
-    uri_router.init(_app)
-    for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
-        _app.register_error_handler(int(e), _handle_error)
-    runner.init(_app, use_reloader)
+    uri_router.init(_app, simulation_db)
     return _app
 
 
-def init_apis(*args, **kwargs):
-    pass
+def init_apis(app, *args, **kwargs):
+    for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
+        app.register_error_handler(int(e), _handle_error)
+    importlib.import_module(
+        'sirepo.' + ('job' if feature_config.cfg.job_supervisor else 'runner')
+    ).init_by_server(app)
 
 
 def _as_attachment(resp, content_type, filename):
@@ -843,18 +680,6 @@ def _handle_error(error):
     return f, status_code
 
 
-def _mtime_or_now(path):
-    """mtime for path if exists else time.time()
-
-    Args:
-        path (py.path):
-
-    Returns:
-        int: modification time
-    """
-    return int(path.mtime() if path.exists() else time.time())
-
-
 def _lib_filename(simulation_type, filename, file_type):
     if simulation_type == 'srw':
         return filename
@@ -864,11 +689,6 @@ def _lib_filename(simulation_type, filename, file_type):
 def _lib_filepath(simulation_type, filename, file_type):
     lib = simulation_db.simulation_lib_dir(simulation_type)
     return lib.join(_lib_filename(simulation_type, filename, file_type))
-
-
-def _parse_data_input(validate=False):
-    data = http_request.parse_json(assert_sim_type=False)
-    return simulation_db.fixup_old_data(data)[0] if validate else data
 
 
 def _render_root_page(page, values):
@@ -887,206 +707,6 @@ def _save_new_and_reply(*args):
         data['models']['simulation']['simulationId'],
         pretty=False,
     )
-
-
-def _simulation_error(err, *args, **kwargs):
-    """Something unexpected went wrong.
-
-    Parses ``err`` for error
-
-    Args:
-        err (str): exception or run_log
-        quiet (bool): don't write errors to log
-    Returns:
-        dict: error response
-    """
-    if not kwargs.get('quiet'):
-        pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
-    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
-    if m:
-        err = m.group(1)
-        if re.search(r'error exit\(-15\)', err):
-            err = 'Terminated'
-    elif not pkconfig.channel_in_internal_test():
-        err = 'unexpected error (see logs)'
-    return {'state': 'error', 'error': err}
-
-
-def _simulation_data(res, path, data):
-    """Iterator function to return entire simulation data
-    """
-    res.append(data)
-
-
-def _simulation_name(res, path, data):
-    """Iterator function to return simulation name
-    """
-    res.append(data['models']['simulation']['name'])
-
-
-def _simulation_run_status_job_supervisor(data, quiet=False):
-    """Look for simulation status and output
-
-    Args:
-        data (dict): request
-        quiet (bool): don't write errors to log
-
-    Returns:
-        dict: status response
-    """
-    try:
-        run_dir = simulation_db.simulation_run_dir(data)
-        jhash = template_common.report_parameters_hash(data)
-        status = job_supervisor_client.compute_job_status(run_dir, jhash)
-        is_running = status is job_supervisor_client.JobStatus.RUNNING
-        rep = simulation_db.report_info(data)
-        res = {'state': status.value}
-
-        if not is_running:
-            if status is not job_supervisor_client.JobStatus.MISSING:
-                res, err = job_supervisor_client.run_extract_job(
-                    run_dir, jhash, 'result', data,
-                )
-                if err:
-                    return _simulation_error(err, 'error in read_result', run_dir)
-        if simulation_db.is_parallel(data):
-            new = job_supervisor_client.run_extract_job(
-                run_dir,
-                jhash,
-                'background_percent_complete',
-                is_running,
-            )
-            new.setdefault('percentComplete', 0.0)
-            new.setdefault('frameCount', 0)
-            res.update(new)
-        res['parametersChanged'] = rep.parameters_changed
-        if res['parametersChanged']:
-            pkdlog(
-                '{}: parametersChanged=True req_hash={} cached_hash={}',
-                rep.job_id,
-                rep.req_hash,
-                rep.cached_hash,
-            )
-        #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('startTime', _mtime_or_now(rep.input_file))
-        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-        if is_running:
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
-            res['nextRequest'] = {
-                'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
-                'simulationId': rep.cached_data['simulationId'],
-                'simulationType': rep.cached_data['simulationType'],
-            }
-        pkdc(
-            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
-            rep.job_id,
-            is_running,
-            res['state'],
-            rep.cache_hit,
-            rep.cached_hash,
-            rep.req_hash,
-        )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
-    return res
-
-
-def _simulation_run_status(data, quiet=False):
-    """Look for simulation status and output
-
-    Args:
-        data (dict): request
-        quiet (bool): don't write errors to log
-
-    Returns:
-        dict: status response
-    """
-    try:
-        #TODO(robnagler): Lock
-        rep = simulation_db.report_info(data)
-        is_processing = runner.job_is_processing(rep.job_id)
-        is_running = rep.job_status in _RUN_STATES
-        res = {'state': rep.job_status}
-        pkdc(
-            '{}: is_processing={} is_running={} state={} cached_data={}',
-            rep.job_id,
-            is_processing,
-            is_running,
-            rep.job_status,
-            bool(rep.cached_data),
-        )
-        if is_processing and not is_running:
-            runner.job_race_condition_reap(rep.job_id)
-            pkdc('{}: is_processing and not is_running', rep.job_id)
-            is_processing = False
-        template = sirepo.template.import_module(data)
-        if is_processing:
-            if not rep.cached_data:
-                return _simulation_error(
-                    'input file not found, but job is running',
-                    rep.input_file,
-                )
-        else:
-            is_running = False
-            if rep.run_dir.exists():
-                if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep.run_dir, data)
-                res2, err = simulation_db.read_result(rep.run_dir)
-                if err:
-                    if simulation_db.is_parallel(data):
-                        # allow parallel jobs to use template to parse errors below
-                        res['state'] = 'error'
-                    else:
-                        if hasattr(template, 'parse_error_log'):
-                            res = template.parse_error_log(rep.run_dir)
-                            if res:
-                                return res
-                        return _simulation_error(err, 'error in read_result', rep.run_dir)
-                else:
-                    res = res2
-        if simulation_db.is_parallel(data):
-            new = template.background_percent_complete(
-                rep.model_name,
-                rep.run_dir,
-                is_running,
-            )
-            new.setdefault('percentComplete', 0.0)
-            new.setdefault('frameCount', 0)
-            res.update(new)
-        res['parametersChanged'] = rep.parameters_changed
-        if res['parametersChanged']:
-            pkdlog(
-                '{}: parametersChanged=True req_hash={} cached_hash={}',
-                rep.job_id,
-                rep.req_hash,
-                rep.cached_hash,
-            )
-        #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('startTime', _mtime_or_now(rep.input_file))
-        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-        if is_processing:
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
-            res['nextRequest'] = {
-                'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
-                'simulationId': rep.cached_data['simulationId'],
-                'simulationType': rep.cached_data['simulationType'],
-            }
-        pkdc(
-            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
-            rep.job_id,
-            is_processing,
-            res['state'],
-            rep.cache_hit,
-            rep.cached_hash,
-            rep.req_hash,
-        )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
-    return res
 
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
@@ -1110,21 +730,6 @@ def _source_cache_key():
     if cfg.enable_source_cache_key:
         return '?{}'.format(simulation_db.app_version())
     return ''
-
-
-def _start_simulation(data):
-    """Setup and start the simulation.
-
-    Args:
-        data (dict): app data
-    Returns:
-        object: runner instance
-    """
-    data['simulationStatus'] = {
-        'startTime': int(time.time()),
-        'state': 'pending',
-    }
-    runner.job_start(data)
 
 
 def _validate_serial(data):

@@ -87,7 +87,7 @@ def call_api(func, kwargs=None, data=None):
     return resp
 
 
-def init(app):
+def init(app, simulation_db):
     """Convert route map to dispatchable callables
 
     Initializes `_uri_to_route` and adds a single flask route (`_dispatch`) to
@@ -97,7 +97,6 @@ def init(app):
         app (Flask): flask app
     """
     from sirepo import feature_config
-    from sirepo import simulation_db
 
     if _uri_to_route:
         return

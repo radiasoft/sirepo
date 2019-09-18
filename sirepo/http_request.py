@@ -11,6 +11,13 @@ import flask
 import sirepo.template
 
 
+def parse_data_input(validate=False):
+    from sirepo import simulation_db
+
+    data = parse_json(assert_sim_type=False)
+    return simulation_db.fixup_old_data(data)[0] if validate else data
+
+
 def parse_json(assert_sim_type=True):
     from sirepo import simulation_db
 

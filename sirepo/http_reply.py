@@ -26,6 +26,9 @@ STATE = 'state'
 _RESPONSE_OK = pkcollections.Dict({STATE: 'ok'})
 
 
+#: Parsing errors from subprocess
+_SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
+
 def gen_json(value, pretty=False, response_kwargs=None):
     """Generate JSON flask response
 
@@ -183,3 +186,26 @@ def render_static(base, ext, j2_ctx, cache_ok=False):
     if not cache_ok:
         r = headers_for_no_cache(r)
     return r
+
+
+def subprocess_error(err, *args, **kwargs):
+    """Something unexpected went wrong.
+
+    Parses ``err`` for error
+
+    Args:
+        err (str): exception or run_log
+        quiet (bool): don't write errors to log
+    Returns:
+        dict: error response
+    """
+    if not kwargs.get('quiet'):
+        pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
+    m = re.search(_SUBPROCESS_ERROR_RE, str(err))
+    if m:
+        err = m.group(1)
+        if re.search(r'error exit\(-15\)', err):
+            err = 'Terminated'
+    elif not pkconfig.channel_in_internal_test():
+        err = 'unexpected error (see logs)'
+    return {'state': 'error', 'error': err}
