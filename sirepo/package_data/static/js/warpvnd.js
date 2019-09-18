@@ -4532,31 +4532,50 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var dataPoints = [];
                 var dataLines = [];
                 var dataColors = [];
+                var p1 = [];
+                var p2 = [];
+                var cp1 = [];
+                var cp2 = [];
                 var lastP = [];
                 var newP = [];
                 var lastCell = [];
                 var newCell = [];
+
+                // lines
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
                     var multiCell = 0;
+
+                    // points making up the line
                     for (var j = 0; j < l; ++j) {
                         if (j < l - 1) {
                             k = j + 1;
-                            var p1 = points[i][j];
-                            var p2 = points[i][k];
-                            if (color) {
-                                pushLineData(p1, p2, color);
-                                continue;
+                            p1 = points[i][j];
+                            p2 = points[i][k];
+                            //if (color) {
+                            //    pushLineData(p1, p2, color);
+                            //    continue;
+                            //}
+                            cp1 = cellOfPt(p1);
+                            if (cp1[0] < 0 || cp1[0] > grid.num_x ||
+                                cp1[1] < 0 || cp1[1] > grid.num_y ||
+                                cp1[2] < 0 || cp1[2] > grid.num_z) {
+                                srdbg('line', i,  'BAD CELL', cp1, p1);
                             }
-                            var cp1 = cellOfPt(p1);
-                            var cp2 = cellOfPt(p2);
-                            var cpd = cp1.map(function (c, cx) {
-                                return cp2[cx] - c;
-                            });
-                            if (Math.abs(cpd[0] > 0) || Math.abs(cpd[1] > 0) || Math.abs(cpd[2] > 0)) {
+                            //srdbg('line', i, 'seg', j, ':', p1, '->', p1, 'of', l, 'color from', cp1);
+                            //srdbg('line', i, 'seg', j, 'color from', cp1);
+                            var c = color || plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0);
+                            pushLineData(p1, p2, c);
+                            //cp2 = cellOfPt(p2);
+                            //var cpDiff = cp1.map(function (c, cx) {
+                            //    return cp2[cx] - c;
+                            //});
+                            /*
+                            // endpoints of line segment are in different grid cells
+                            if (Math.abs(cpDiff[0] > 0) || Math.abs(cpDiff[1] > 0) || Math.abs(cpDiff[2] > 0)) {
                                 //srdbg('line', i, 'point', j, 'point1', cp1, 'point2', k, cp2, cpd);
                                 for (var m = 0; m < 3; ++m) {
-                                    var dir = Math.sign(cpd[m]);
+                                    var dir = Math.sign(cpDiff[m]);
                                     if (! dir) {
                                         continue;
                                     }
@@ -4591,11 +4610,13 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             else {
                                 pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
                             }
+
+                             */
                             //pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
                         }
                     }
+                    /*
                     if (l > j) {
-                        srdbg('leftover');
                         k = j - 1;
                         p1 = points[i][k];
                         p2 = points[i][l - 1];
@@ -4608,6 +4629,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
                         //pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
                     }
+                    */
                     if (includeImpact) {
                         k = points[i].length - 1;
                         //impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);

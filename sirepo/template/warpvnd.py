@@ -6,6 +6,7 @@ u"""Warp VND/WARP execution template.
 """
 
 from __future__ import absolute_import, division, print_function
+from numpy import linalg
 from pykern import pkcollections
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
@@ -805,6 +806,10 @@ def _extract_particle(run_dir, model_name, data, args):
     y_points = []
     z_points = []
     _add_particle_paths(kept_electrons, x_points, y_points, z_points, half_height, limit)
+
+    xx, yy, zz = _grid_interpolation(x_points, y_points, z_points, grid)
+    #pkdp('old arr {} modified arr {}', np.array(x_points).shape, xx.shape)
+
     lost_x = []
     lost_y = []
     lost_z = []
@@ -812,16 +817,15 @@ def _extract_particle(run_dir, model_name, data, args):
     data_file = open_data_file(run_dir, model_name, None)
     with h5py.File(data_file.filename, 'r') as f:
         field = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, 'phi')])
-    pkdp('p field {}', field.shape)
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
         'y_label': 'x [m]',
         'x_label': 'z [m]',
         'z_label': 'y [m]',
-        'points': y_points,
-        'x_points': x_points,
-        'z_points': z_points,
+        'points': yy,
+        'x_points': xx,
+        'z_points': zz,
         'y_range': [-radius, radius],
         'z_range': [-half_height, half_height],
         'lost_x': lost_x,
@@ -846,6 +850,135 @@ def _grid_delta(data, length_field, count_field):
     grid = data.models.simulationGrid
     #TODO(pjm): already converted to meters
     return grid[length_field] / grid[count_field]
+
+
+def _cell_of_point(p, grid):
+    return np.array([
+        np.floor(p[0] / _meters(grid.plate_spacing) * grid.num_z),
+        np.floor((p[1] + 0.5 * _meters(grid.channel_width)) / _meters(grid.channel_width) * grid.num_x),
+        np.floor((p[2] + 0.5 * _meters(grid.channel_height)) / _meters(grid.channel_height) * grid.num_y)
+    ])
+
+
+#least corner in x y z
+def point_of_cell(c, grid):
+    return np.array([
+        c[0] * _meters(grid.plate_spacing) / grid.num_z,
+        -0.5 * _meters(grid.channel_width) + c[1] * _meters(grid.channel_width) / grid.num_x,
+        -0.5 * _meters(grid.channel_height) + c[2] * _meters(grid.channel_height) / grid.num_y
+    ])
+
+
+# Adds points at grid planes that intersect line segments
+def _grid_interpolation(x_arr, y_arr, z_arr, grid):
+
+    # lines
+    new_x = []
+    new_y = []
+    new_z = []
+    test_line = 0
+    test_pt = 0
+    for i in range(len(x_arr)):
+        points = np.column_stack((x_arr[i], y_arr[i], z_arr[i])).tolist()
+        new_points = points[:]
+        num_new = 0
+        # points making up the line
+        for j in range(len(points) - 1):
+            added_points = []
+            #if i == test_line:
+            #    pkdp('!line {} pt {}/{} start', i, j, len(points))
+            p1 = points[j]
+            p2 = points[j + 1]
+            p_bounds = {
+                'min': [
+                    min(p1[0], p2[0]),
+                    min(p1[1], p2[1]),
+                    min(p1[2], p2[2])
+                ],
+                'max': [
+                    max(p1[0], p2[0]),
+                    max(p1[1], p2[1]),
+                    max(p1[2], p2[2])
+                ],
+            }
+            #if i == test_line and j == test_pt:
+            #    pkdp('!line {} PT {} BOUNDS {}', i, j, p_bounds)
+            c1 = _cell_of_point(p1, grid)
+            c2 = _cell_of_point(p2, grid)
+            c_diff = c2 - c1
+
+            if not np.any(np.abs(c_diff) > 0):
+                continue
+
+            # endpoints of line segment are in different grid cells
+            s = np.sign(c_diff)
+
+            # get the intersections of the line with each intervening grid plane, in each direction
+            for m, cell_idx in enumerate(c1):
+                if s[m] == 0:
+                    continue
+                d_m = p2[m] - p1[m]
+                done = False
+                c = cell_idx
+                axis = m
+                #if i == test_line:
+                #    pkdp('!line {} PT {} AXIS {} C1 {} C2 {} D {} START AT CIDX {}', i, j, m, c1, c2, c_diff[m], c)
+                while not done:
+                    done = c == c2[m]
+                    cc = np.empty(3)
+                    for n in [0, 1, 2]:
+                        if n == m:
+                            cc[n] = c
+                        else:
+                            cc[n] = c2[n]
+                    if i == test_line and j == test_pt:
+                        pkdp('!line {} PT {} AXIS {} START AT CEL {}', i, j, m, cc)
+                    next_p = point_of_cell(cc, grid)
+                    for n in [0, 1, 2]:
+                        if n != m:
+                            next_p[n] = (p1[n] + (next_p[m] - p1[m]) * (p2[n] - p1[n]) / d_m) if d_m != 0 else p1[n]
+                    next_cell = _cell_of_point(next_p, grid)
+                    if p_bounds['min'][0] <= next_p[0] <= p_bounds['max'][0] and\
+                        p_bounds['min'][1] <= next_p[1] <= p_bounds['max'][1] and\
+                        p_bounds['min'][2] <= next_p[2] <= p_bounds['max'][2]:
+                        #if i == test_line and j == test_pt:
+                            #pkdp('!line {} PT {} AXIS {} NEW POINT {} OK X LO? {} X HI? {}', i, j, axis, next_p, next_p[0] >= p_bounds['min'][0], next_p[0] <= p_bounds['max'][0])
+                            #pkdp('!line {} PT {} AXIS {} NEW POINT {} OK Y LO? {} Y HI? {}', i, j, axis, next_p, next_p[1] >= p_bounds['min'][1], next_p[1] <= p_bounds['max'][1])
+                            #pkdp('!line {} PT {} AXIS {} NEW POINT {} OK Z LO? {} Z HI? {}', i, j, axis, next_p, next_p[2] >= p_bounds['min'][2], next_p[2] <= p_bounds['max'][2])
+                            #pkdp('!line {} PT {} AXIS {} NEW POINT {} IN CELL {}', i, j, axis, next_p, next_cell)
+                        new_points.insert(j + num_new, next_p)
+                        added_points.append(next_p)
+                        num_new += 1
+                    #else:
+                        #if i == test_line:
+                        #    pkdp('!line {} PT {} AXIS {} POINT {} CELL {} OUTSIDE ENDPOINTS', i, j, axis, next_p, next_cell)
+                    #next_cell = _cell_of_point(next_p, grid)
+                    #if next_cell[0] < 0 or next_cell[0] > grid.num_z or\
+                    #    next_cell[1] < 0 or next_cell[1] > grid.num_x or\
+                    #    next_cell[2] < 0 or next_cell[2] > grid.num_y:
+                    #    if i == 3:
+                    #        pkdp('!line {} PT {} AXIS {} BAD CELL {} FROM POINT {}', i, j, axis, next_cell, next_p)
+                    ##        pkdp('!line {} PT {} AXIS {} TRY ADD CELL {} BETWEEN {} and {}', i, j, axis, cc, c1, c2)
+                    #        pkdp('!line {} PT {} AXIS {} TRY ADD POINT BETWEEN {} and {}: INITIAL POINT {}', i, j, axis, p1, p2, init_p)
+                    #new_points.insert(j + num_new, next_p)
+                    #num_new += 1
+                    c += s[m]
+            if i == test_line:
+                ap = np.array(added_points)
+                np1 = np.array(p1)
+                ndf = np1 - ap
+                #nd = np.linalg.norm(ndf)
+                nds = np.square(ndf)
+                ndss = np.sum(nds, axis=1)
+                nd = np.sqrt(ndss)
+                pkdp('!line {} pt {} done pts {} diff from p1 {} dists {}', i, j, added_points, ndf, nd)
+        if i == test_line:
+            pkdp('!line {} num pts {} -> {}', i, len(points), len(new_points))
+        new_line = np.array(new_points).T
+        new_x.append(new_line[0].tolist())
+        new_y.append(new_line[1].tolist())
+        new_z.append(new_line[2].tolist())
+    return new_x, new_y, new_z
 
 
 def _generate_optimizer_file(data, v):
