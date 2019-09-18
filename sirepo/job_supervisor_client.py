@@ -32,6 +32,7 @@ def _request(body):
     #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
     # We likely need a better key and maybe we shouldn't expose this implementation
     # detail to the client.
+    pkdp(cfg.supervisor_http_uri)
     uid = simulation_db.uid_from_dir_name(body['run_dir'])
     body['uid'] = uid
     body['source'] = 'server'
@@ -70,11 +71,7 @@ def cancel_report_job(run_dir, jhash):
         run_dir=str(run_dir),
         jhash=jhash,
     )
-    res = _request(body) 
-    return res
-    # return _rpc({
-    #     'action': 'cancel_report_job', 'run_dir': str(run_dir), 'jhash': jhash,
-    # })
+    return _request(body)
 
 
 def run_extract_job(run_dir, jhash, subcmd, *args):

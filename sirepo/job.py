@@ -8,7 +8,9 @@ must be py2 compatible.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+
 from pykern import pkconfig
+from pykern.pkdebug import pkdp
 
 
 # Actions that the sirepo server, supervisor, or driver may send.
@@ -24,8 +26,6 @@ ACTION_START_COMPUTE_JOB = 'start_compute_job'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
-
-cfg = None
 
 
 def init_by_server(app):
@@ -47,3 +47,16 @@ def init_by_server(app):
     from sirepo import uri_router
 
     uri_router.register_api_module(job_api)
+
+cfg = pkconfig.init(
+    supervisor_http_uri=(
+        'http://{}:{}/server'.format(DEFAULT_IP, DEFAULT_PORT),
+        str,
+        'uri to reach the supervisor for http connections',
+    ),
+    supervisor_ws_uri=(
+        'ws://{}:{}/agent'.format(DEFAULT_IP, DEFAULT_PORT),
+        str,
+        'uri to reach the supervisor for websocket connections',
+    ),
+)
