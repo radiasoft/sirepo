@@ -393,7 +393,7 @@
         "crystal": {
             "title": ["Element Name", "String", "Crystal"],
             "position": ["Nominal Position [m]", "Float"],
-            "material": ["Material", "CrystalMaterial", "Unknown"],
+            "material": ["Material", "CrystalMaterial", "Si (SRW)"],
             "h": ["h", "MillerIndicesRange", "1"],
             "k": ["k", "MillerIndicesRange", "1"],
             "l": ["l", "MillerIndicesRange", "1"],
@@ -656,7 +656,7 @@
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
             "watchpointId": ["Evaluate at Watchpoint", "WatchPoint", 0],
-            "calcCoherence": ["Calculate Degree of Coherence in addition to Intensity", "Boolean", "0"]
+            "calcCoherence": ["Calculate Degree of Coherence in Addition to Intensity", "Boolean", "0"]
         },
         "multipole": {
             "field": ["Magnetic Field [T]", "Float"],
