@@ -6,14 +6,15 @@
 """
 from __future__ import absolute_import, division, print_function
 
-from sirepo import driver
-from pykern.pkdebug import pkdp, pkdlog
 from pykern import pkcollections
-import tornado.process
-from sirepo import job
 from pykern import pkconfig
-import sirepo.mpi
+from pykern.pkdebug import pkdp, pkdlog
+from sirepo import driver
+from sirepo import job
 from sirepo import job_scheduler
+import os
+import sirepo.mpi
+import tornado.process
 
 
 class LocalDriver(driver.DriverBase):
@@ -29,16 +30,20 @@ class LocalDriver(driver.DriverBase):
     instances = pkcollections.Dict()
     def __init__(self, uid, agent_id, resource_class):
         super(LocalDriver, self).__init__(uid, agent_id, resource_class)
-        
-        # TODO(e-carlin): Make this more robust. Ex handle failures, monitor the created process.
+
+        # TODO(e-carlin): Make this more robust. Ex handle failures,
+        # monitor the process, be able to kill it
+        env = dict(os.environ)
+        env['PYENV_VERSION'] = 'py3'
+        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
+        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_WS_URI'] = cfg.supervisor_ws_uri
         tornado.process.Subprocess(
             [
                 'sirepo',
                 'job_agent',
                 'start',
-                self.agent_id,
-                cfg.supervisor_ws_uri,
-            ]
+            ],
+            env=env,
         )
 
     async def process_message(self, message):
@@ -55,7 +60,7 @@ class LocalDriver(driver.DriverBase):
                     u.requests.remove(r)
                     await job_scheduler.run(type(self), self.resource_class)
                     return
-                    
+
         raise AssertionError(
             'the message {} did not have a corresponding request in requests {}'.format(
             message,
@@ -65,8 +70,8 @@ class LocalDriver(driver.DriverBase):
 
 cfg = pkconfig.init(
     supervisor_ws_uri=(
-        job.cfg.supervisor_ws_uri, 
-        str, 
+        job.cfg.supervisor_ws_uri,
+        str,
         'uri to reach the supervisor for websocket connections',
     ),
 )

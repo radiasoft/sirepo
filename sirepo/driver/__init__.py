@@ -63,7 +63,7 @@ class DriverBase(object):
         request.request_reply_was_sent = tornado.locks.Event()
         dc = cls._get_driver_class(request)
 
-        user_found = False        
+        user_found = False
         for u in dc.requests[request.content.resource_class]:
             if u.uid == request.content.uid:
                 pkdc('user {} found for request content uid {}', u, request.content.uid)
@@ -82,7 +82,7 @@ class DriverBase(object):
             ))
         await job_scheduler.run(dc, request.content.resource_class)
         await request.request_reply_was_sent.wait()
-    
+
     @classmethod
     def _get_driver_class(cls, request):
         from sirepo.driver import local

@@ -38,7 +38,7 @@ async def run_extract_job(run_dir, cmd, backend_info):
     # environment, so we have to manually switch back to py2 mode.
     env['PYENV_VERSION'] = 'py2'
     cmd = ['pyenv', 'exec'] + cmd
-    
+
     sub_process = tornado.process.Subprocess(
         cmd,
         cwd=run_dir,
@@ -64,7 +64,7 @@ async def run_extract_job(run_dir, cmd, backend_info):
         # sub_process.kill()
         # await sub_process.aclose()
         pass
-    
+
     return pkcollections.Dict(
         returncode=return_code,
         stdout=stdout,
@@ -80,7 +80,7 @@ class ComputeJob():
         self.cancel_requested = False
         self.returncode = None
         self._wait_for_terminate_timeout = None
-        self._process_exited = tornado.locks.Event() 
+        self._process_exited = tornado.locks.Event()
 
         # Start the compute job subprocess
         env = _subprocess_env()

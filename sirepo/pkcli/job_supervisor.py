@@ -70,7 +70,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 class _DebugRenderer():
     def __init__(self, obj):
         self.obj = obj
-    
+
     def __str__(self):
         o = self.obj
         if isinstance(o, pkcollections.Dict):

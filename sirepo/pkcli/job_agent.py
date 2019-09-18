@@ -34,12 +34,18 @@ _RUNNER_INFO_BASENAME = 'runner-info.json'
 
 #rn let's pass these in environment variables, then we can
 # just use pkconfig.
-def start(agent_id, supervisor_uri):
+def start():
+    from sirepo import job
+    cfg = pkconfig.init(
+        agent_id=('abc123', str, 'the id of the agent'),
+        supervisor_ws_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to connect to the supervisor on'),
+    )
+    pkdp(cfg.agent_id)
     #rn I don't think these should be globals. Rather
     #   pass them as state perhaps in the
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
-        _Msg(agent_id=agent_id, supervisor_uri=supervisor_uri).loop,
+        _Msg(agent_id=cfg.agent_id, supervisor_ws_uri=cfg.supervisor_ws_uri).loop,
     )
     io_loop.start()
 
@@ -52,9 +58,9 @@ class _Msg(pkcollections.Dict):
             self.current_msg = None
             try:
                 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await tornado.websocket.websocket_connect(self.supervisor_uri)
+                c = await tornado.websocket.websocket_connect(self.supervisor_ws_uri)
             except ConnectionRefusedError as e:
-                pkdlog('{} uri=', e, self.supervisor_uri)
+                pkdlog('{} uri=', e, self.supervisor_ws_uri)
                 await tornado.gen.sleep(_RETRY_DELAY)
                 continue
             m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
