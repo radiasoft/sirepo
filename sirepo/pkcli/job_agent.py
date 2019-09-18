@@ -11,7 +11,7 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
 from sirepo import job_supervisor_client
 from sirepo import job_supervisor_client
-#rn load dynamically
+# TODO(e-carlin): load dynamically
 from sirepo.job_driver_backends import local_process
 from sirepo.pkcli import job_supervisor
 import async_generator
@@ -27,8 +27,10 @@ import tornado.locks
 import tornado.queues
 
 
-_RUNNER_INFO_BASENAME = 'runner-info.json'
 _KILL_TIMEOUT_SECS = 3
+_RETRY_DELAY = 1
+_RUNNER_INFO_BASENAME = 'runner-info.json'
+
 
 #rn let's pass these in environment variables, then we can
 # just use pkconfig.
@@ -46,36 +48,34 @@ def start(agent_id, supervisor_uri):
 #    await _connect_to_supervisor()
 #    await
 
-def _Msg(pkcollections.Dict):
+class _Msg(pkcollections.Dict):
 
-    def loop():
+    async def loop(self):
         self.job_tracker = _JobTracker()
         while True:
             self.current_msg = None
             try:
                 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await websocket_connect(_SUPERVISOR_URI)
+                c = await tornado.websocket.websocket_connect(self.supervisor_uri)
             except ConnectionRefusedError as e:
-                pkdlog('{} uri=', e, _SUPERVISOR_URI)
+                pkdlog('{} uri=', e, self.supervisor_uri)
                 await tornado.gen.sleep(_RETRY_DELAY)
                 continue
             m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
             while True:
                 try:
                     await c.write_message(m)
-#rn is this possible? We haven't closed it
+                #rn is this possible? We haven't closed it
                 except tornado.websocket.WebSocketClosedError as e:
                     # TODO(e-carlin): Think about the failure handling more
                     pkdlog('closed{}', e)
                     break
-                m = await conn.read_message()
+                m = await c.read_message()
                 if m is None:
                     break
                 m = await self._dispatch(m)
 
     async def _dispatch(self, msg):
-#rn not sure I like rid in this context. Rather req_id. Like sim_id
-# should be used instead of simulationId
         try:
             m, err = self._parse_req(msg)
             if not err:
@@ -87,19 +87,19 @@ def _Msg(pkcollections.Dict):
             err = 'exception=' + str(e)
         return self._format_reply(action='protocol_error', error=err, msg=msg)
 
-#rn maybe this should just be "cancel" since everything is a "job"
+    #rn maybe this should just be "cancel" since everything is a "job"
     async def _dispatch_cancel_compute_job(self, msg):
-        jhash, status = self.job_tracker.run_dir_status(msg.run_dir)
-        if jhash == request.jhash:
-            await self.job_tracker.kill(request.run_dir)
+        jhash, _ = self.job_tracker._run_dir_status(msg.run_dir)
+        if jhash == msg.jhash:
+            await self.job_tracker.kill(msg.run_dir)
         return self._format_reply()
 
-#rn maybe this should just be "_compute"
-    async def _dispatch_compute_job(job_tracker, message):
-        await job_tracker.start_compute_job(
-            message.run_dir, message.jhash,
-            message.backend,
-            message.cmd, message.tmp_dir,
+    #rn maybe this should just be "_compute"
+    async def _dispatch_compute_job(self, msg):
+        await self.job_tracker.start_compute_job(
+            msg.run_dir, msg.jhash,
+            msg.backend,
+            msg.cmd, msg.tmp_dir,
         )
         return self._format_reply(
             action=job.ACTION_COMPUTE_JOB_STARTED,
@@ -113,27 +113,30 @@ def _Msg(pkcollections.Dict):
             msg.arg,
         )
         return self._format_reply(
-#rn this seems superfluous, since we are matching req_id in the supervisor,
-#  which is more secure for the supervisor anyway. Agent shouldn't be able
-#  to direct the results to anything else
-# I think a message in response should be "ok" or not. With some data
-# The "ok" can be implicit.
+            #rn this seems superfluous, since we are matching req_id in the supervisor,
+            #  which is more secure for the supervisor anyway. Agent shouldn't be able
+            #  to direct the results to anything else
+            # I think a message in response should be "ok" or not. With some data
+            # The "ok" can be implicit.
             action=job.ACTION_EXTRACT_JOB_RESULTS,
             result=res,
         )
 
-    async def _dispatch_job_status(self, msg):
+    async def _dispatch_compute_job_status(self, msg):
         res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
         return self._format_reply(
             action=job.ACTION_COMPUTE_JOB_STATUS,
             status=res.value,
         )
 
-    def _format_reply(self, **kwargs)
-        msg.agent_id = self.agent_id
+    def _format_reply(self, **kwargs):
+        msg = pkcollections.Dict(
+            kwargs,
+            agent_id = self.agent_id
+        )
         if self.current_msg:
-#rn use get() because there may be an error in the sending message
-# and we really don't want to get any errors
+            #rn use get() because there may be an error in the sending message
+            # and we really don't want to get any errors
             msg.rid = self.current_msg.get('rid')
         return pkjson.dump_bytes(msg)
 
@@ -176,7 +179,7 @@ class _JobTracker:
             pkdlog('{} {}: report is missing; skipping extract job',
                    run_dir, jhash)
             return {}
-#rn do we want this?
+        #rn do we want this?
         # figure out which backend and any backend-specific info
         runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
         if runner_info_file.exists():

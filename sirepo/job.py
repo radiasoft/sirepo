@@ -24,7 +24,6 @@ ACTION_START_COMPUTE_JOB = 'start_compute_job'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
-DEFAULT_WS_PATH = 'ws'
 
 cfg = None
 
