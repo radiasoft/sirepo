@@ -2679,6 +2679,12 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
     var self = this;
     self.authService = authService;
+
+    if (authState.isLoggedIn && ! authState.isGuestUser) {
+        requestSender.localRedirect('simulations');
+        return;
+    }
+
     if (authState.visibleMethods.length === 1) {
         requestSender.localRedirect(
             'loginWith',
