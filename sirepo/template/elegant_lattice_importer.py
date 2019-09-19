@@ -10,13 +10,16 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
+import sirepo.sim_data
 import ntpath
 import re
 import subprocess
 
 _IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
 
-_SCHEMA = simulation_db.get_schema('elegant')
+_SIM_DATA = sirepo.sim_data.get_class('elegant')
+
+_SCHEMA = _SIM_DATA.schema()
 
 
 def _init_types():
@@ -40,7 +43,7 @@ def build_variable_dependency(value, variables, depends):
 
 
 def import_file(text, data=None):
-    models = elegant_lattice_parser.parse_file(text, max_id(data) if data else 0)
+    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.max_id(data) if data else 0)
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
@@ -80,18 +83,6 @@ def is_rpn_value(value):
             return False
         return True
     return False
-
-
-def max_id(data):
-    max_id = 1
-    for model_type in ['elements', 'beamlines', 'commands']:
-        if model_type not in data['models']:
-            continue
-        for m in data['models'][model_type]:
-            id = m['_id'] if '_id' in m else m['id']
-            if id > max_id:
-                max_id = id
-    return max_id
 
 
 def parse_rpn_value(value, variable_list):
