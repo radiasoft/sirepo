@@ -5,10 +5,11 @@ u"""myapp simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdp
+from pykern import pkcollections
 from pykern import pkinspect
-import sirepo.sim_data
+from pykern.pkdebug import pkdp
 from sirepo import simulation_db
+import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
