@@ -61,12 +61,13 @@ def init_by_server(app):
     uri_router.register_api_module(job_api)
 
 
+# TODO(e-carlin): These methods have the same structure. Abstract.
 def compute_job_status(run_dir, jhash):
-    body = {
-        'action': ACTION_COMPUTE_JOB_STATUS,
-        'run_dir': str(run_dir),
-        'jhash': jhash,
-    }
+    body = pkcollections.Dict(
+        action=ACTION_COMPUTE_JOB_STATUS,
+        run_dir=str(run_dir),
+        jhash=jhash,
+    )
     response = _request(body)
     return JobStatus(response.status)
 
@@ -81,25 +82,25 @@ def cancel_report_job(run_dir, jhash):
 
 
 def run_extract_job(run_dir, jhash, subcmd, *args):
-    body = ({
-        'action': ACTION_RUN_EXTRACT_JOB,
-        'run_dir': str(run_dir),
-        'jhash': jhash,
-        'subcmd': subcmd,
-        'arg': pkjson.dump_pretty(args),
-    })
+    body = pkcollections.Dict(
+        action=ACTION_RUN_EXTRACT_JOB,
+        run_dir=str(run_dir),
+        jhash=jhash,
+        subcmd=subcmd,
+        arg=pkjson.dump_pretty(args),
+    )
     response = _request(body)
     return response.result
 
 def start_compute_job(run_dir, jhash, cmd, tmp_dir, parallel):
-    body = {
-        'action': ACTION_START_COMPUTE_JOB,
-        'run_dir': str(run_dir),
-        'jhash': jhash,
-        'cmd': cmd,
-        'tmp_dir': str(tmp_dir),
-        'resource_class': 'parallel' if parallel else 'sequential',
-    }
+    body = pkcollections.Dict(
+        action=ACTION_START_COMPUTE_JOB,
+        run_dir=str(run_dir),
+        jhash=jhash,
+        cmd=cmd,
+        tmp_dir=str(tmp_dir),
+        resource_class='parallel' if parallel else 'sequential',
+    )
     _request(body)
     return {}
 
@@ -107,10 +108,9 @@ def _request(body):
     #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
     # We likely need a better key and maybe we shouldn't expose this implementation
     # detail to the client.
-    uid = simulation_db.uid_from_dir_name(body['run_dir'])
-    body['uid'] = uid
-    body['source'] = 'server'
-    body['rid'] = str(uuid.uuid4())
+    uid = simulation_db.uid_from_dir_name(body.run_dir)
+    body.uid = uid
+    body.rid = str(uuid.uuid4())
     body.setdefault('resource_class', 'sequential')
     r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)
