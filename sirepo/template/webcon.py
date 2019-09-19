@@ -23,6 +23,7 @@ import random
 import re
 import scipy.fftpack
 import scipy.optimize
+import scipy.signal
 import sklearn.cluster
 import sklearn.metrics.pairwise
 import sklearn.mixture
@@ -331,39 +332,32 @@ def get_fft(run_dir, data):
     # of the fft of data of a given length.  It includes negative values
     freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
     w = 2. * np.pi * freqs[0:half_num_samples]
-    found_freqs = []
 
     # is signal to noise useful?
     m = y.mean()
     sd = y.std()
     s2n = np.where(sd == 0, 0, m / sd)
 
-    # We'll say we found a frequency peak when the size of the coefficient divided by the average is
-    # greater than this.  A crude indicator - one presumes better methods exist
-    found_sn_thresh = 10
-
-    ci = 0
-    max_bin = -1
-    min_bin = half_num_samples
-    bin_spread = 10
-    #for coef, freq in zip(fft_out[0:half_num_samples], freqs[0:half_num_samples]):
-    for coef, freq in zip(fft_out[0:half_num_samples], w):
-        #pkdp('{c:>6} * exp(2 pi i t * {f}) : vs thresh {t}', c=(2.0 / N) * np.abs(coef), f=freq, t=(2.0 / N) * np.abs(coef) / m)
-        if (2.0 / num_samples) * np.abs(coef) / m > found_sn_thresh:
-            found_freqs.append((ci, np.around(freq, 3)))
-            max_bin = ci
-            if ci < min_bin:
-                min_bin = ci
-        ci += 1
+    coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
+    peaks, props = scipy.signal.find_peaks(coefs)
+    found_freqs = zip(peaks, np.around(w[peaks], 3))
     #pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
-    min_bin = max(0, min_bin - bin_spread)
-    max_bin = min(half_num_samples, max_bin + bin_spread)
+    # maybe better in browser
+    bin_spread = 10
+    min_bin = max(0, peaks[0] - bin_spread)
+    max_bin = min(half_num_samples, peaks[-1] + bin_spread)
     yy = 2.0 / num_samples * np.abs(fft_out[min_bin:max_bin])
     max_yy = np.max(yy)
     yy_norm = yy / (max_yy if max_yy != 0 else 1)
     ww = 2. * np.pi * freqs[min_bin:max_bin]
+    #plots = [
+    #    {
+    #        'points': yy_norm.tolist(),
+    #        'label': 'fft',
+    #    },
+    #]
 
     max_y = np.max(y)
     y_norm = y / (max_y if max_y != 0 else 1)
@@ -375,7 +369,8 @@ def get_fft(run_dir, data):
     ]
 
     #TODO(mvk): figure out appropriate labels from input
-    return template_common.parameter_plot(w.tolist(), plots, {}, {
+    w_list = w.tolist()
+    return template_common.parameter_plot(w_list, plots, {}, {
         'title': '',
         'y_label': _label(col_info, 1),
         'x_label': 'f[Hz]',
@@ -383,6 +378,8 @@ def get_fft(run_dir, data):
         #'x_label': _label(col_info, 0) + '^-1',
         'summaryData': {
             'freqs': found_freqs,
+            'minFreq': w_list[0],
+            'maxFreq': w_list[-1]
         },
         #'latex_label': latex_label
     })
