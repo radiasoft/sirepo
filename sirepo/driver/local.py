@@ -36,8 +36,10 @@ class LocalDriver(driver.DriverBase):
         env['PYENV_VERSION'] = 'py3'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
         env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_WS_URI'] = cfg.supervisor_ws_uri
-        tornado.process.Subprocess(
+        self.agent_process = tornado.process.Subprocess(
             [
+                'pyenv',
+                'exec',
                 'sirepo',
                 'job_agent',
                 'start',

@@ -12,8 +12,11 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import driver
 from sirepo import job
 from sirepo import job_scheduler
+# TODO(e-carlin): load dynamically
+from sirepo.driver import local
 import asyncio
 import os.path
+import signal
 import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
@@ -41,9 +44,20 @@ def start():
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
+    signal.signal(signal.SIGTERM, _terminate)
+    signal.signal(signal.SIGINT, _terminate)
+
     pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
+def _terminate(num, bar):
+    if pkconfig.channel_in('dev'):
+        for d in driver.DriverBase.driver_for_agent.values():
+            if type(d) != local.LocalDriver:
+                continue
+            d.agent_process.proc.terminate()
+            d.agent_process.proc.wait()
+    tornado.ioloop.IOLoop.current().stop()
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
