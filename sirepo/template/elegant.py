@@ -169,11 +169,11 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
     y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
-    return template_common.heatmap([x, y_col['values']], data, {
-        'x_label': _field_label(xfield, x_col['column_def'][1]),
-        'y_label': _field_label(yfield, y_col['column_def'][1]),
-        'title': _plot_title(xfield, yfield, page_index, page_count),
-    })
+    return template_common.heatmap([x, y_col['values']], data, pkcollections.Dict(
+        x_label=_field_label(xfield, x_col['column_def'][1]),
+        y_label=_field_label(yfield, y_col['column_def'][1]),
+        title=_plot_title(xfield, yfield, page_index, page_count),
+    ))
 
 
 def fixup_old_data(data):
@@ -182,12 +182,12 @@ def fixup_old_data(data):
             'twissReport',
     ]:
         if m not in data['models']:
-            data['models'][m] = {}
+            data['models'][m] = pkcollections.Dict()
         template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
     if 'bunchFile' not in data['models']:
-        data['models']['bunchFile'] = {
-            'sourceFile': None,
-        }
+        data['models']['bunchFile'] = pkcollections.Dict(
+            sourceFile=None,
+        )
     if 'folder' not in data['models']['simulation']:
         data['models']['simulation']['folder'] = '/'
     if 'simulationMode' not in data['models']['simulation']:
@@ -229,7 +229,7 @@ def fixup_old_data(data):
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
-    beamlines = {}
+    beamlines = pkcollections.Dict()
 
     selected_beamline_id = 0
     sim = data['models']['simulation']
@@ -247,11 +247,11 @@ def generate_lattice(data, filename_map, beamline_map, v):
 
     for id in beamlines:
         _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
-    state = {
-        'lattice': '',
-        'beamline_map': beamline_map,
-        'filename_map': filename_map,
-    }
+    state = pkcollections.Dict(
+        lattice='',
+        beamline_map=beamline_map,
+        filename_map=filename_map,
+    )
     _iterate_model_fields(data, state, _iterator_lattice_elements)
     res = state['lattice']
     res = res[:-1]
@@ -320,13 +320,13 @@ def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     frame_data = template_common.parse_animation_args(
         data,
-        {
+        pkcollections.Dict({
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
             '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
             '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
             '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
-        },
+        }),
     )
     page_count = 0
     for info in _output_info(run_dir):
@@ -471,13 +471,13 @@ def prepare_for_client(data):
     if 'models' not in data:
         return data
     # evaluate rpn values into model.rpnCache
-    cache = {}
+    cache = pkcollections.Dict()
     data['models']['rpnCache'] = cache
     variables = _variables_to_postfix(data['models']['rpnVariables'])
-    state = {
-        'cache': cache,
-        'rpnVariables': variables,
-    }
+    state = pkcollections.Dict(
+        cache=cache,
+        rpnVariables=variables,
+    )
     _iterate_model_fields(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
@@ -641,17 +641,17 @@ def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  ')
 
 
 def _build_beamline_map(data):
-    res = {}
+    res = pkcollections.Dict()
     for bl in data['models']['beamlines']:
         res[bl['id']] = bl['name']
     return res
 
 
 def _build_filename_map(data):
-    res = {
-        'keys_in_order': [],
-    }
-    model_index = {}
+    res = pkcollections.Dict(
+        keys_in_order=[],
+    )
+    model_index = pkcollections.Dict()
     for model_type in ['commands', 'elements']:
         for model in data['models'][model_type]:
             field_index = 0
@@ -689,14 +689,14 @@ def _command_file_extension(model):
 def _compute_percent_complete(data, last_element):
     if not last_element:
         return 0
-    elements = {}
+    elements = pkcollections.Dict()
     for e in data['models']['elements']:
         elements[e['_id']] = e
-    beamlines = {}
+    beamlines = pkcollections.Dict()
     for b in data['models']['beamlines']:
         beamlines[b['id']] = b
     id = data['models']['simulation']['visualizationBeamlineId']
-    beamline_map = {}
+    beamline_map = pkcollections.Dict()
     count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
     index = beamline_map[last_element] if last_element in beamline_map else 0
     res = index * 100 / count
@@ -730,12 +730,12 @@ def _file_info(filename, run_dir, id, output_index):
     file_path = run_dir.join(filename)
     if not re.search(r'.sdds$', filename, re.IGNORECASE):
         if file_path.exists():
-            return {
-                'isAuxFile': True,
-                'filename': filename,
-                'id': '{}{}{}'.format(id, _FILE_ID_SEP, output_index),
-                'lastUpdateTime': int(os.path.getmtime(str(file_path))),
-            }
+            return pkcollections.Dict(
+                isAuxFile=True,
+                filename=filename,
+                id='{}{}{}'.format(id, _FILE_ID_SEP, output_index),
+                lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            )
         return None
     try:
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
@@ -774,20 +774,20 @@ def _file_info(filename, run_dir, id, output_index):
                     field_range[col][1] = max(_safe_sdds_value(max(values)), field_range[col][1])
                 else:
                     field_range[col] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
-        return {
-            'isAuxFile': False if double_column_count > 1 else True,
-            'filename': filename,
-            'id': '{}-{}'.format(id, output_index),
-            'rowCounts': row_counts,
-            'pageCount': page_count,
-            'columns': column_names,
-            'parameters': parameters,
-            'parameterDefinitions': _parameter_definitions(parameters),
-            'plottableColumns': plottable_columns,
-            'lastUpdateTime': int(os.path.getmtime(str(file_path))),
-            'isHistogram': _is_histogram_file(filename, column_names),
-            'fieldRange': field_range,
-        }
+        return pkcollections.Dict(
+            isAuxFile=False if double_column_count > 1 else True,
+            filename=filename,
+            id='{}-{}'.format(id, output_index),
+            rowCounts=row_counts,
+            pageCount=page_count,
+            columns=column_names,
+            parameters=parameters,
+            parameterDefinitions=_parameter_definitions(parameters),
+            plottableColumns=plottable_columns,
+            lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            isHistogram=_is_histogram_file(filename, column_names),
+            fieldRange=field_range,
+        )
     finally:
         try:
             sdds.sddsdata.Terminate(_SDDS_INDEX)
@@ -849,11 +849,11 @@ def _generate_bunch_simulation(data, v):
 
 
 def _generate_commands(data, filename_map, beamline_map, v):
-    state = {
-        'commands': '',
-        'filename_map': filename_map,
-        'beamline_map': beamline_map,
-    }
+    state = pkcollections.Dict(
+        commands='',
+        filename_map=filename_map,
+        beamline_map=beamline_map,
+    )
     _iterate_model_fields(data, state, _iterator_commands)
     state['commands'] += '&end' + '\n'
     return state['commands']
@@ -872,18 +872,18 @@ def _generate_twiss_simulation(data, v):
     max_id = elegant_lattice_importer.max_id(data)
     sim = data['models']['simulation']
     sim['simulationMode'] = 'serial'
-    run_setup = _find_first_command(data, 'run_setup') or {
-        '_id': max_id + 1,
-        '_type': 'run_setup',
-        'lattice': 'Lattice',
-        'p_central_mev': data['models']['bunch']['p_central_mev'],
-    }
+    run_setup = _find_first_command(data, 'run_setup') or pkcollections.Dict(
+        _id=max_id + 1,
+        _type='run_setup',
+        lattice='Lattice',
+        p_central_mev=data['models']['bunch']['p_central_mev'],
+    )
     run_setup['use_beamline'] = sim['activeBeamlineId']
-    twiss_output = _find_first_command(data, 'twiss_output') or {
-        '_id': max_id + 2,
-        '_type': 'twiss_output',
-        'filename': '1',
-    }
+    twiss_output = _find_first_command(data, 'twiss_output') or pkcollections.Dict(
+        _id=max_id + 2,
+        _type='twiss_output',
+        filename='1',
+    )
     twiss_output['final_values_only'] = '0'
     twiss_output['output_at_each_step'] = '0'
     data['models']['commands'] = [
@@ -907,7 +907,7 @@ def _generate_variable(name, variables, visited):
 
 def _generate_variables(data):
     res = ''
-    visited = {}
+    visited = pkcollections.Dict()
     variables = {x['name']: x['value'] for x in data['models']['rpnVariables']}
 
     for name in sorted(variables):
