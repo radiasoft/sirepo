@@ -92,9 +92,11 @@ def run_extract_job(run_dir, jhash, subcmd, *args):
     response = _request(body)
     return response.result
 
-def start_compute_job(run_dir, jhash, cmd, tmp_dir, parallel):
+def start_compute_job(compute_model_name, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
     body = pkcollections.Dict(
         action=ACTION_START_COMPUTE_JOB,
+        compute_model_name=compute_model_name,
+        sim_id=sim_id,
         run_dir=str(run_dir),
         jhash=jhash,
         cmd=cmd,

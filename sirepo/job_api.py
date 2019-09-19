@@ -50,6 +50,8 @@ def api_runSimulation():
         tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
         cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
         job.start_compute_job(
+            _get_compute_model_name(data),
+            data.simulationId,
             run_dir,
             jhash,
             cmd,
@@ -100,6 +102,9 @@ def api_simulationFrame(frame_id):
 def init_apis(*args, **kwargs):
     pass
 
+def _get_compute_model_name(data):
+    # TODO(e-carlin): create a better compute model name
+    return simulation_db.simulation_run_dir(data).basename
 
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()

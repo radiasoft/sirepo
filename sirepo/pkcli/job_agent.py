@@ -141,21 +141,17 @@ class _JobTracker:
         self._compute_jobs = pkcollections.Dict()
 
     async def kill(self, run_dir):
-        """Kill job currently running in run_dir.
-
-        Assumes that you've already checked what those jobs are (perhaps by
-        calling run_dir_status), and decided they need to die.
-
-        """
-        compute_job = self._compute_jobs[run_dir]
-        if compute_job.status is not job.JobStatus.RUNNING:
+        j = self._compute_jobs.get(run_dir)
+        if j is None:
+            return
+        if j.status is not job.JobStatus.RUNNING:
             return
         pkdlog(
             'job with jhash {} in {}',
-            compute_job.jhash, run_dir,
+            j.jhash, run_dir,
         )
-        compute_job.cancel_requested = True
-        await compute_job.kill(_KILL_TIMEOUT_SECS)
+        j.cancel_requested = True
+        await j.kill(_KILL_TIMEOUT_SECS)
 
     async def run_extract_job(self, run_dir, jhash, subcmd, arg):
         pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
