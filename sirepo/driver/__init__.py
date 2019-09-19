@@ -55,7 +55,7 @@ class DriverBase(object):
         # TODO(e-carlin): Should an instance of a driver know more about its requests?
         # it feels funny to iterate over all requests in an instance of the class
         # TODO(e-carlin): is type(self).requests the right way to access child
-        # class class vars?
+        # class vars (the class vars are on LocalDriver not DriverBase)?
         for u in type(self).requests[self.resource_class]: # pylint: disable=no-member
             if u.uid != self.uid:
                 continue
@@ -79,9 +79,6 @@ class DriverBase(object):
             pkdc('new request to send to agent {}', self.agent_id)
             await self.message_handler_set.wait()
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
-
-
-
 
     @classmethod
     async def _enqueue_request(cls, request):

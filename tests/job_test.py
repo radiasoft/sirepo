@@ -68,7 +68,20 @@ def test_v2():
                 simulationType=data.simulationType,
             ),
         )
-        pkdp(run)
+        pkdc(run)
+        for _ in range(10):
+            if run.state == 'completed':
+                break
+            time.sleep(1)
+            run = fc.sr_post(
+                'runStatus',
+                run.nextRequest
+            )
+            pkdc(run)
+        else:
+            pkunit.pkfail('runStatus: failed to complete: {}', run)
+        # Just double-check it actually worked
+        assert u'plots' in run
     finally:
         supervisor.terminate()
         supervisor.wait()
