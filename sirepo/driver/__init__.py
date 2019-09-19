@@ -37,50 +37,6 @@ class DriverBase(object):
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
     @classmethod
-    async def incoming_message(cls, message):
-        d = cls.driver_for_agent[message.content.agent_id]
-        if not d.message_handler_set.is_set():
-            d.message_handler = message.message_handler
-            d.message_handler_set.set()
-        await d._process_message(message)
-    @classmethod
-    async def incoming_request(cls, request):
-        request.state = job_scheduler.STATE_EXECUTION_PENDING
-        await cls._enqueue_request(request)
-
-    async def _process_message(self, message):
-        if message.content.get('action') == job.ACTION_READY_FOR_WORK:
-            return
-        
-        # TODO(e-carlin): Should an instance of a driver know more about its requests?
-        # it feels funny to iterate over all requests in an instance of the class
-        # TODO(e-carlin): is type(self).requests the right way to access child
-        # class vars (the class vars are on LocalDriver not DriverBase)?
-        for u in type(self).requests[self.resource_class]: # pylint: disable=no-member
-            if u.uid != self.uid:
-                continue
-            for r in u.requests:
-                if r.content.rid == message.content.rid:
-                    r.request_handler.write(message.content)
-                    r.request_reply_was_sent.set()
-                    u.requests.remove(r)
-                    await job_scheduler.run(type(self), self.resource_class)
-                    return
-
-        raise AssertionError(
-            'message={} did not have a corresponding request {}'.format(
-            message,
-            type(self).requests[self.resource_class], # pylint: disable=no-member
-            ))
-
-    async def _process_requests_to_send_to_agent(self):
-        while True:
-            r = await self.requests_to_send_to_agent.get()
-            pkdc('new request to send to agent {}', self.agent_id)
-            await self.message_handler_set.wait()
-            self.message_handler.write_message(pkjson.dump_bytes(r.content))
-
-    @classmethod
     async def _enqueue_request(cls, request):
         request.request_reply_was_sent = tornado.locks.Event()
         dc = cls._get_driver_class(request)
@@ -110,3 +66,73 @@ class DriverBase(object):
         from sirepo.driver import local
         # TODO(e-carlin): Actually parse the request and get the class
         return local.LocalDriver
+
+    def _get_request(self, req_id):
+        u = self._get_user()
+        for r in u.requests:
+            if r.content.rid == req_id:
+                return r
+
+        raise AssertionError(
+            'req_id {} not found in requests {}',
+            req_id,
+            u.requests
+        )
+
+    def _get_user(self):
+        for u in type(self).requests[self.resource_class]: # pylint: disable=no-member
+            if u.uid == self.uid:
+                return u
+        raise AssertionError(
+            'uid {} not found in requests {}',
+            self.uid,
+            type(self).requests[self.resource_class] # pylint: disable=no-member
+        )
+
+    @classmethod
+    async def incoming_message(cls, message):
+        d = cls.driver_for_agent[message.content.agent_id]
+        if not d.message_handler_set.is_set():
+            d.message_handler = message.message_handler
+            d.message_handler_set.set()
+        await d._process_message(message)
+
+    @classmethod
+    async def incoming_request(cls, request):
+        request.state = job_scheduler.STATE_EXECUTION_PENDING
+        await cls._enqueue_request(request)
+
+    async def _process_message(self, message):
+        pkdp('message {}', message)
+        a = message.content.get('action')
+        if a == job.ACTION_READY_FOR_WORK:
+            return
+        elif a == 'protocol_error':
+            # TODO(e-carlin): Handle more. If message has an rid we should
+            # likely resend the request
+            pkdlog('Error: {}', message)
+            return
+
+        pkdp('********************** {}', message)
+        r = self._get_request(message.content.rid)
+        pkdp('*************** {}', r)
+        r.request_handler.write(message.content)
+        r.request_reply_was_sent.set()
+        self._remove_request(message.content.rid) 
+        await job_scheduler.run(type(self), self.resource_class)
+
+    async def _process_requests_to_send_to_agent(self):
+        while True:
+            r = await self.requests_to_send_to_agent.get()
+            pkdc('request={}', self.agent_id)
+            await self.message_handler_set.wait()
+            self.message_handler.write_message(pkjson.dump_bytes(r.content))
+
+    def _remove_request(self, req_id):
+        u = self._get_user()
+        r = self._get_request(req_id)
+        u.requests.remove(r)
+
+
+        from sirepo.driver import local
+        pkdp('&&&&&&&&&&& {}',local.LocalDriver.requests)
