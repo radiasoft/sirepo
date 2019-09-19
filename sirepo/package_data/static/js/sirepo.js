@@ -129,18 +129,20 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser && ! SIREPO.authState.isLoginExpired) {
         appState.whenModelsLoaded(
             $rootScope,
             function() {
-                errorService.alertText(
-                    'You are accessing Sirepo as a guest. ' +
-                    'Guest sessions are regularly deleted. ' +
-                    'To ensure that your work is saved, please click on Save Your Work!.'
-                );
+                if (appDataService.isApplicationMode('default')) {
+                    errorService.alertText(
+                        'You are accessing Sirepo as a guest. ' +
+                            'Guest sessions are regularly deleted. ' +
+                            'To ensure that your work is saved, please click on Save Your Work!.'
+                    );
+                }
             }
         );
     }
@@ -1414,7 +1416,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
+        if (! SIREPO.authState.isLoggedIn || (route.controller && route.controller.indexOf('login') >= 0)) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -2592,7 +2594,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             return;
         }
         var url = requestSender.formatUrl(
-            'findByName',
+            'findByNameWithAuth',
             {
                 '<simulation_name>': name,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -2743,6 +2745,23 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     else {
         self.msg = 'Unexpected error. ' + l;
     }
+});
+
+SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route, $window) {
+    var self = this;
+    self.simulationName = $route.current.params.simulationName;
+    appState.listSimulations(
+        '',
+        function() {
+            // authenticated listSimulations successfully, now go to the URL
+            $window.location.href = requestSender.formatUrl(
+                'findByNameWithAuth',
+                {
+                    '<simulation_name>': self.simulationName,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<application_mode>': $route.current.params.applicationMode,
+                });
+        });
 });
 
 SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {

@@ -46,7 +46,7 @@ def _run_tests():
     """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
     simulation_type = 'srw'
     res = uri_router.call_api(
-        server.api_findByName,
+        server.api_findByNameWithAuth,
         dict(
             simulation_type=simulation_type,
             application_mode='default',

@@ -116,6 +116,6 @@ def test_srw():
     pkre('<!DOCTYPE html', r.data)
     fc.sr_login_as_guest(sim_type)
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq(fc.get('/find-by-name/srw/default/UndulatorRadiation').status_code, 404)
+    pkeq(fc.get('/find-by-name-auth/srw/default/UndulatorRadiation').status_code, 404)
     for sep in (' ', '%20', '+'):
-        pkeq(fc.get('/find-by-name/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)
+        pkeq(fc.get('/find-by-name-auth/srw/default/Undulator{}Radiation'.format(sep)).status_code, 200)

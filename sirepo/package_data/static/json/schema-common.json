@@ -85,6 +85,7 @@
         "exportArchive": "/export-archive/<simulation_type>/<simulation_id>/<filename>",
         "favicon": "/favicon.ico",
         "findByName": "/find-by-name/<simulation_type>/<application_mode>/<simulation_name>",
+        "findByNameWithAuth": "/find-by-name-auth/<simulation_type>/<application_mode>/<simulation_name>",
         "getApplicationData": "/get-application-data/?<filename>",
         "getServerData": "/get-server-data/?<id>",
         "homePage": "/en/*<path_info>",
@@ -217,6 +218,13 @@
                 "route": "/forbidden",
                 "config": {
                   "templateUrl": "/static/html/forbidden.html"
+                }
+            },
+            "findByName": {
+                "route": "/findByName/:applicationMode/:simulationName",
+                "config": {
+                    "controller": "FindByNameController as findByName",
+                    "templateUrl": "/static/html/find-by-name.html"
                 }
             },
             "login": {

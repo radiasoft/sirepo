@@ -30,6 +30,7 @@ import re
 import sirepo.template
 import sys
 import time
+import urllib
 import uuid
 import werkzeug
 import werkzeug.exceptions
@@ -228,9 +229,17 @@ def api_listFiles(simulation_type, simulation_id, file_type):
     return http_reply.gen_json(res)
 
 
-@api_perm.allow_cookieless_require_user
+@api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
+    return http_reply.gen_redirect_for_anchor(
+        '/{}#/findByName/{}/{}'.format(simulation_type, application_mode, simulation_name))
+
+
+@api_perm.require_user
+def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
     sim_type = sirepo.template.assert_sim_type(simulation_type)
+    #TODO(pjm): need to unquote when redirecting from saved cookie redirect?
+    simulation_name = urllib.unquote(simulation_name)
     # use the existing named simulation, or copy it from the examples
     rows = simulation_db.iterate_simulation_datafiles(
         sim_type,
