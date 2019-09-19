@@ -6,7 +6,11 @@ u"""Type-based simulation operations
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkinspect
+from sirepo import simulation_db
 import importlib
+import inspect
+
 
 def get_class(type_or_data):
     """Simulation data class
@@ -39,6 +43,13 @@ class SimDataBase(object):
             if data.models.simulation.folder == '/':
                 data.models.simulation.folder = '/Examples'
 
+    @classmethod
+    def schema(cls):
+        return cls._memoize(simulation_db.get_schema(cls.sim_type()))
+
+    @classmethod
+    def sim_type(cls):
+        return cls._memoize(pkinspect.module_basename(cls))
 
     @classmethod
     def update_model_defaults(cls, model, name, schema, dynamic=None):
@@ -48,3 +59,30 @@ class SimDataBase(object):
         for f in defaults:
             if f not in model:
                 model[f] = defaults[f]
+
+    @classmethod
+    def _memoize(cls, value):
+        """Cache class method (no args)
+
+        Example::
+
+            @classmethod
+            def something(cls):
+                return cls._memoize(compute_something_once())
+
+        Args:
+            value (object): any object
+
+        Returns:
+            object: value
+        """
+        @classmethod
+        def wrap(cls):
+            return value
+
+        setattr(
+            cls,
+            inspect.currentframe().f_back.f_code.co_name,
+            wrap,
+        )
+        return value

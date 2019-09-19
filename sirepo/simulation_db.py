@@ -234,7 +234,7 @@ def fixup_old_data(data, force=False):
         pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
     except Exception as e:
-        pkdlog('{}: error: {}', data, pkdexc())
+        pkdlog('exception={} data={} stack={}', e, data, pkdexc())
         raise
 
 
