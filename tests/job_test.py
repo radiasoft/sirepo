@@ -11,7 +11,7 @@ import subprocess
 import time
 from pykern.pkdebug import pkdc, pkdp
 
-def test_v2():
+def test_myapp():
     from pykern import pkconfig
 
     pkconfig.reset_state_for_testing({
@@ -68,7 +68,6 @@ def test_v2():
                 simulationType=data.simulationType,
             ),
         )
-        pkdc(run)
         for _ in range(10):
             if run.state == 'completed':
                 break
@@ -77,11 +76,107 @@ def test_v2():
                 'runStatus',
                 run.nextRequest
             )
-            pkdc(run)
         else:
             pkunit.pkfail('runStatus: failed to complete: {}', run)
         # Just double-check it actually worked
         assert u'plots' in run
+    finally:
+        supervisor.terminate()
+        supervisor.wait()
+
+# TODO(e-carlin): discuss with rn how to set a config value to make hundli run
+# for a long time (ex sleep(1000))
+def test_cancel_long_running_job():
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing({
+        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
+        'PYTHONUNBUFFERED': '1',
+    })
+    py3_env = _assert_py3()
+
+    from sirepo import srdb
+    from sirepo import srunit
+    from pykern import pkunit
+    from sirepo import job
+
+    fc = srunit.flask_client(sim_types='myapp')
+    fc.sr_login_as_guest()
+
+    supervisor_env = dict(py3_env)
+    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
+    supervisor = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
+        env=supervisor_env,
+    )
+
+    try:
+        for _ in range(30):
+            if _server_up(job.cfg.supervisor_http_uri):
+                break
+            time.sleep(0.1)
+        else:
+            pkunit.pkfail('job supervisor did not start up')
+
+        fc.get('/myapp')
+        data = fc.sr_post(
+            'listSimulations',
+            {'simulationType': 'myapp',
+             'search': {'simulationName': 'heightWeightReport'}},
+        )
+        data = data[0].simulation
+        data = fc.sr_get_json(
+            'simulationData',
+            params=dict(
+                pretty='1',
+                simulation_id=data.simulationId,
+                simulation_type='myapp',
+            ),
+        )
+        run = fc.sr_post(
+            'runSimulation',
+            dict(
+                forceRun=False,
+                models=data.models,
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ),
+        )
+
+        run = fc.sr_post(
+            'runStatus',
+            run.nextRequest
+        )
+        assert run.state == 'running'
+
+        run = fc.sr_post(
+            'runCancel',
+            # TODO(e-carlin): What actually needs to be in this dict? I just
+            # copied from runSimulation
+            dict(
+                forceRun=False,
+                models=data.models,
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            )
+        )
+        assert run.state == 'canceled'
+
+        run = fc.sr_post(
+            'runStatus',
+            # TODO(e-carlin): What actually needs to be in this dict? I just
+            # copied from runSimulation
+            dict(
+                forceRun=False,
+                models=data.models,
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ),
+        )
+        assert run.state == 'canceled'
     finally:
         supervisor.terminate()
         supervisor.wait()

@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
-from sirepo import job
+from sirepo import job, simulation_db
 # TODO(e-carlin): load dynamically
 from sirepo.job_driver_backends import local_process
 from sirepo.pkcli import job_supervisor
@@ -34,7 +34,7 @@ def start():
         agent_id=('abc123', str, 'the id of the agent'),
         supervisor_ws_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to connect to the supervisor on'),
     )
-    pkdp(cfg.agent_id)
+    pkdlog('agent_id={}', cfg.agent_id)
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
         _Msg(agent_id=cfg.agent_id, supervisor_ws_uri=cfg.supervisor_ws_uri).loop,
@@ -79,6 +79,7 @@ class _Msg(pkcollections.Dict):
                 return await getattr(self, '_dispatch_' + m.action)(m)
         except Exception as e:
             err = 'exception=' + str(e)
+            pkdp(pkdexc())
         return self._format_reply(action='protocol_error', error=err, msg=msg)
 
     #rn maybe this should just be "cancel" since everything is a "job"
@@ -96,9 +97,7 @@ class _Msg(pkcollections.Dict):
             msg.cmd,
             msg.tmp_dir,
         )
-        return self._format_reply(
-            action=job.ACTION_COMPUTE_JOB_STARTED,
-        )
+        return self._format_reply()
 
     async def _dispatch_run_extract_job(self, msg):
         res = await self.job_tracker.run_extract_job(
@@ -107,22 +106,11 @@ class _Msg(pkcollections.Dict):
             msg.subcmd,
             msg.arg,
         )
-        return self._format_reply(
-            #rn this seems superfluous, since we are matching req_id in the supervisor,
-            #  which is more secure for the supervisor anyway. Agent shouldn't be able
-            #  to direct the results to anything else
-            # I think a message in response should be "ok" or not. With some data
-            # The "ok" can be implicit.
-            action=job.ACTION_EXTRACT_JOB_RESULTS,
-            result=res,
-        )
+        return self._format_reply(result=res)
 
     async def _dispatch_compute_job_status(self, msg):
         res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
-        return self._format_reply(
-            action=job.ACTION_COMPUTE_JOB_STATUS,
-            status=res.value,
-        )
+        return self._format_reply(status=res.value)
 
     def _format_reply(self, **kwargs):
         msg = pkcollections.Dict(
@@ -142,6 +130,8 @@ class _Msg(pkcollections.Dict):
                 if k.endswith('_dir'):
                     m[k] = pkio.py_path(v)
         except Exception as e:
+            pkdlog('Error: {}', e)
+            pkdp(pkdexc())
             return None, f'exception={e}'
         return m, None
 
@@ -161,7 +151,7 @@ class _JobTracker:
         if compute_job.status is not job.JobStatus.RUNNING:
             return
         pkdlog(
-            'kill: killing job with jhash {} in {}',
+            'job with jhash {} in {}',
             compute_job.jhash, run_dir,
         )
         compute_job.cancel_requested = True
@@ -195,7 +185,8 @@ class _JobTracker:
         if result.stderr:
             pkdlog(
                 'got output on stderr ({} {}):\n{}',
-                run_dir, jhash,
+                run_dir,
+                jhash,
                 result.stderr.decode('utf-8', errors='ignore'),
             )
 
@@ -252,18 +243,18 @@ class _JobTracker:
             del self._compute_jobs[run_dir]
             # Write status to disk
             if compute_job.cancel_requested:
-                _write_status(job.JobStatus.CANCELED, run_dir)
+                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
                 await self.run_extract_job(
                     run_dir, compute_job.jhash, 'remove_last_frame', '[]',
                 )
             elif returncode == 0:
-                _write_status(job.JobStatus.COMPLETED, run_dir)
+                simulation_db.write_result({'state': 'completed'}, run_dir=run_dir)
             else:
                 pkdlog(
                     '{} {}: job failed, returncode = {}',
                     run_dir, compute_job.jhash, returncode,
                 )
-                _write_status(job.JobStatus.ERROR, run_dir)
+                simulation_db.write_result({'state': 'error'}, run_dir=run_dir)
 
     async def compute_job_status(self, run_dir, jhash):
         """Get the current status of a specific job in the given run_dir."""
@@ -302,10 +293,3 @@ class _JobTracker:
             return compute_job.jhash, compute_job.status
 
         return None, job.JobStatus.MISSING
-
-
-def _write_status(status, run_dir):
-    fn = run_dir.join('result.json')
-    if not fn.exists():
-        pkjson.dump_pretty({'state': status.value}, filename=fn)
-        pkio.write_text(run_dir.join('status'), status.value)

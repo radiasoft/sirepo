@@ -49,7 +49,7 @@ class DriverBase(object):
         await cls._enqueue_request(request)
 
     async def _process_message(self, message):
-        if message.content.action == job.ACTION_READY_FOR_WORK:
+        if message.content.get('action') == job.ACTION_READY_FOR_WORK:
             return
         
         # TODO(e-carlin): Should an instance of a driver know more about its requests?

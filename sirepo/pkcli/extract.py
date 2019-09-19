@@ -7,6 +7,7 @@ u"""Operations run inside the report directory to extract data.
 
 from pykern import pkio
 from pykern import pkjson
+from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import functools
@@ -32,7 +33,7 @@ def _run_dir():
 
 def _input_params():
     return simulation_db.read_json(
-        template_common.INPUT_BASE_NAME, run_dir=_run_dir(),
+        _run_dir().join(template_common.INPUT_BASE_NAME)
     )
 
 

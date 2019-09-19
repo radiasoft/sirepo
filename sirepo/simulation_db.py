@@ -378,7 +378,7 @@ def json_filename(filename, run_dir=None):
 
     Args:
         filename (py.path or str): to convert
-        run_dir (py.path): which directory to joing
+        run_dir (py.path): which directory to join
     Returns:
         py.path: filename.json
     """

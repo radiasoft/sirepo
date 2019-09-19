@@ -6,7 +6,7 @@ u"""Run jobs using a local process
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdexc
 from sirepo import mpi
 from sirepo.template import template_common
 import os
@@ -37,7 +37,6 @@ async def run_extract_job(run_dir, cmd, backend_info):
     # environment, so we have to manually switch back to py2 mode.
     env['PYENV_VERSION'] = 'py2'
     cmd = ['pyenv', 'exec'] + cmd
-
     p = tornado.process.Subprocess(
         cmd,
         cwd=run_dir,
@@ -57,7 +56,9 @@ async def run_extract_job(run_dir, cmd, backend_info):
         io_loop = tornado.ioloop.IOLoop.current()
         io_loop.spawn_callback(collect, p.stdout, stdout)
         io_loop.spawn_callback(collect, p.stderr, stderr)
-        return_code = await p.wait_for_exit()
+        return_code = await p.wait_for_exit(raise_error=False)
+    except Exception:
+        pkdp(pkdexc())
     finally:
         p.proc.kill()
 
@@ -113,7 +114,7 @@ class ComputeJob():
         io_loop = tornado.ioloop.IOLoop.current()
         t = io_loop.add_timeout(
             grace_period,
-            self._sub_process.proc.kill()
+            lambda: self._sub_process.proc.kill()
         )
         self._wait_for_terminate_timeout = t
-        return self.wait_for_exit()
+        return await self.wait_for_exit()

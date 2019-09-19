@@ -60,7 +60,12 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         pkdp(self.request.uri)
 
     async def on_message(self, msg):
-        await _process_incoming('message', msg, self)
+        try:
+            await _process_incoming('message', msg, self)
+        except Exception as e:
+            # TODO(e-carlin): More handling. Ex restart agent
+            pkdlog('Error: {}', e)
+            pkdp(pkdexc())
 
 
 class _DebugRenderer():
