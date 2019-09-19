@@ -76,17 +76,11 @@ _PLOT_TITLE = pkcollections.Dict({
 
 _SDDS_INDEX = 0
 
-_SDDS_Singleton = sdds.SDDS(_SDDS_INDEX)
+_s = sdds.SDDS(_SDDS_INDEX)
+_x = getattr(_s, 'SDDS_LONGDOUBLE', None)
+_SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
 
-x = getattr(_SDDS_Singleton, 'SDDS_LONGDOUBLE', None)
-_SDDS_DOUBLE_TYPES = [
-    _SDDS_Singleton.SDDS_DOUBLE,
-    _SDDS_Singleton.SDDS_FLOAT,
-]
-if x is not None:
-    _SDDS_DOUBLE_TYPES.append(x)
-
-_SDDS_STRING_TYPE = _SDDS_Singleton.SDDS_STRING
+_SDDS_STRING_TYPE = _s.SDDS_STRING
 
 _SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
@@ -174,58 +168,6 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
         y_label=_field_label(yfield, y_col['column_def'][1]),
         title=_plot_title(xfield, yfield, page_index, page_count),
     ))
-
-
-def fixup_old_data(data):
-    for m in [
-            'bunchSource',
-            'twissReport',
-    ]:
-        if m not in data['models']:
-            data['models'][m] = pkcollections.Dict()
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'bunchFile' not in data['models']:
-        data['models']['bunchFile'] = pkcollections.Dict(
-            sourceFile=None,
-        )
-    if 'folder' not in data['models']['simulation']:
-        data['models']['simulation']['folder'] = '/'
-    if 'simulationMode' not in data['models']['simulation']:
-        data['models']['simulation']['simulationMode'] = 'parallel'
-    if 'rpnVariables' not in data['models']:
-        data['models']['rpnVariables'] = []
-    if 'commands' not in data['models']:
-        data['models']['commands'] = _create_default_commands(data)
-        for m in data['models']['elements']:
-            model_schema = _SCHEMA['model'][m['type']]
-            for k in m:
-                if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
-                    m[k] = '1'
-    for m in data['models']['elements']:
-        if m['type'] == 'WATCH':
-            m['filename'] = '1'
-            if m['mode'] == 'coordinates' or m['mode'] == 'coord':
-                m['mode'] = 'coordinate'
-        template_common.update_model_defaults(m, m['type'], _SCHEMA)
-    if 'centroid' not in data['models']['bunch']:
-        bunch = data['models']['bunch']
-        for f in ('emit_x', 'emit_y', 'emit_z'):
-            if bunch[f] and not isinstance(bunch[f], basestring):
-                bunch[f] /= 1e9
-        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
-            bunch['sigma_s'] /= 1e6
-        first_bunch_command = _find_first_bunch_command(data)
-        # first_bunch_command may not exist if the elegant sim has no bunched_beam command
-        if first_bunch_command:
-            first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
-            for f in _SCHEMA['model']['bunch']:
-                if f not in bunch and f in first_bunch_command:
-                    bunch[f] = first_bunch_command[f]
-        else:
-            bunch['centroid'] = '0,0,0,0,0,0'
-    for m in data['models']['commands']:
-        template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
-    template_common.organize_example(data)
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
@@ -743,7 +685,7 @@ def _file_info(filename, run_dir, id, output_index):
         column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
         plottable_columns = []
         double_column_count = 0
-        field_range = {}
+        field_range = pkcollections.Dict()
         for col in column_names:
             col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
             if col_type < _SDDS_STRING_TYPE:
@@ -924,10 +866,8 @@ def _get_filename_for_element_id(id, data):
 def _infix_to_postfix(expr):
     try:
         rpn = _parse_expr_infix(expr)
-        #pkdc('{} => {}', expr, rpn)
         expr = rpn
     except Exception as e:
-        #pkdc('{}: not infix: {}', expr, e)
         pass
     return expr
 
@@ -1114,7 +1054,7 @@ def _output_info(run_dir):
 
 def _parameter_definitions(parameters):
     """Convert parameters to useful definitions"""
-    res = {}
+    res = pkcollections.Dict()
     for p in parameters:
         res[p] = dict(zip(
             ['symbol', 'units', 'description', 'format_string', 'type', 'fixed_value'],
@@ -1233,10 +1173,10 @@ def _variables_to_postfix(rpn_variables):
         if 'value' not in v:
             pkdlog('rpn var missing value: {}', v['name'])
             v['value'] = '0'
-        res.append({
-            'name': v['name'],
-            'value': _infix_to_postfix(v['value']),
-        })
+        res.append(pkcollections.Dict(
+            name=v['name'],
+            value=_infix_to_postfix(v['value']),
+        ))
     return res
 
 
