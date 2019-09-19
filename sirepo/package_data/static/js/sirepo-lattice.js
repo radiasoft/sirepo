@@ -1568,7 +1568,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 }
             };
 
-            $scope.updateFixedAxis = function(axis, leftMargin) {
+            $scope.updateFixedAxis = function(axis, leftMargin, yScale, height, yOffset) {
                 if (! axis.domain) {
                     return;
                 }
@@ -1576,9 +1576,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                 var currentDomainWidth = axis.scale.domain()[1] - axis.scale.domain()[0];
                 var scale = widthInPixels / currentDomainWidth;
                 var leftPoint = (axis.scale.domain()[0] - axis.domain[0]) * scale;
-                $scope.yScale = 20;
-                $scope.height = 50;
-                $scope.yOffset = 40;
+                $scope.yScale = yScale || 20;
+                $scope.height = height || 50;
+                $scope.yOffset = yOffset || 40;
                 $scope.xScale = scale;
                 $scope.xOffset = leftMargin - leftPoint;
             };

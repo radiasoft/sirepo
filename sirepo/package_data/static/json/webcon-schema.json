@@ -93,7 +93,7 @@
             "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5]
         },
         "beamSteering": {
-            "useSteering": ["Use Steering", "Boolean", "0"],
+            "useSteering": ["Steering On", "Boolean", "0"],
             "steeringMethod": ["Steering Method", "SteeringMethod", "nmead"]
         },
         "bunch": {
@@ -111,7 +111,7 @@
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
             "serverAddress": ["Network Address", "OptionalString", "", "EPICS server network address, $\\text{<host>:<port>}$"],
-            "connectToServer": ["Connect to EPICS", "Boolean", "0"]
+            "connectToServer": ["Connected to EPICS", "Boolean", "0"]
         },
         "fftReport": {
         },

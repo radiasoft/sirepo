@@ -1269,6 +1269,14 @@ SIREPO.app.directive('webconLattice', function(appState) {
             '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
               '<div class="webcon-lattice">',
                 '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
+                '<div class="row">',
+                  '<div class="col-xs-2">HV KICKER 1</div>',
+                  '<div class="col-xs-2">HV KICKER 2</div>',
+                  '<div class="col-xs-2 text-right">F/D QUAD 1</div>',
+                  '<div class="col-xs-2">HV KICKER 3</div>',
+                  '<div class="col-xs-2">HV KICKER 4</div>',
+                  '<div class="col-xs-2 text-center">F/D QUAD 2</div>',
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -1278,7 +1286,7 @@ SIREPO.app.directive('webconLattice', function(appState) {
             function windowResize() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);
-                    latticeScope.updateFixedAxis(axis, 0);
+                    latticeScope.updateFixedAxis(axis, 0, 50, 65, 55);
                     $scope.$applyAsync();
                 }
             }
@@ -1358,7 +1366,7 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
                         return 'fill: rgba(0, 0, 255, 0.4); stroke-width: 2; stroke: black';
                     });
             };
-            
+
             function pushAndTrim(p) {
                 var MAX_BPM_POINTS = 10;
                 points.push(p);
@@ -1373,7 +1381,7 @@ SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plottin
                 $scope.select('.plot-viewport').selectAll('.webcon-scatter-point').remove();
                 $scope.refresh();
             });
-            
+
             $scope.$on('sr-pointData-' + $scope.modelName, function(event, point) {
                 if (! point) {
                     return;
