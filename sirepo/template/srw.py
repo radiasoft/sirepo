@@ -23,11 +23,12 @@ import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
 import srwlib
+import time
 import traceback
 import uti_math
 import uti_plot_com
-import zipfile
 import werkzeug
+import zipfile
 
 WANT_BROWSER_FRAME_CACHE = False
 
@@ -553,6 +554,13 @@ def get_simulation_frame(run_dir, data, model_data):
             m.rotateReshape = args.rotateReshape
         else:
             m.rotateAngle = 0
+    for i in (1, 2, 3):
+        try:
+            return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
+        except Exception:
+            # sleep and retry to work-around concurrent file read/write
+            pkdlog('sleep and retry simulation frame read: {} {}', i, data['modelName'])
+            time.sleep(2)
     return extract_report_data(str(run_dir.join(get_filename_for_model(data['modelName']))), model_data)
 
 
@@ -1923,7 +1931,7 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
             pkdlog('Cannot rotate the image - scipy.ndimage.rotate() cannot be imported.')
 
     if z_units:
-        z_label = '{} [{}]'.format(z_label, z_units)
+        z_label = u'{} [{}]'.format(z_label, z_units)
     return pkcollections.Dict({
         'x_range': x_range,
         'y_range': y_range,

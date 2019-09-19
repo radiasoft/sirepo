@@ -546,6 +546,10 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         }
     };
     self.setSingleElectron = function(value) {
+        if (srwService.isGaussianBeam()) {
+            // no partially coherence for gaussian beams
+            value = true;
+        }
         value = !!value;
         if (value != self.singleElectron) {
             simulationQueue.cancelAllItems();
@@ -1916,11 +1920,13 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     $scope.particleNumber = data.particleNumber;
                     $scope.particleCount = data.particleCount;
                 }
-                if (data.frameId && (data.frameId != $scope.frameId)) {
-                    $scope.frameId = data.frameId;
-                    $scope.frameCount++;
-                    frameCache.setFrameCount($scope.frameCount);
-                    frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                if (data.frameId) {
+                    if (data.frameId != $scope.frameId) {
+                        $scope.frameId = data.frameId;
+                        $scope.frameCount++;
+                        frameCache.setFrameCount($scope.frameCount);
+                        frameCache.setCurrentFrame($scope.model, $scope.frameCount - 1);
+                    }
                     srwService.setShowCalcCoherence(data.calcCoherence);
                 }
                 if ($scope.isFluxWithApproximateMethod() && data.state == 'stopped' && ! data.frameCount) {
