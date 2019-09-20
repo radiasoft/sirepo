@@ -7,9 +7,11 @@ u"""Type-based simulation operations
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
+from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 import importlib
 import inspect
+import re
 
 
 def get_class(type_or_data):
@@ -25,7 +27,32 @@ def get_class(type_or_data):
     return importlib.import_module('.' + type_or_data, __name__).SimData
 
 
+def template_globals(sim_type=None):
+    """Initializer for templates
+
+    Usage::
+        _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+
+    Args:
+        sim_type (str): simulation type [calling module's basename]
+    Returns:
+        (class, str, object): SimData class, simulation type, and schema
+    """
+    c = get_class(sim_type or pkinspect.module_basename(pkinspect.caller_module()))
+    return c, c.sim_type(), c.schema()
+
+
 class SimDataBase(object):
+
+    WATCHPOINT_REPORT = 'watchpointReport'
+
+    WATCHPOINT_REPORT_RE = re.compile('^{}(\d+)$'.format(WATCHPOINT_REPORT))
+
+    _TEMPLATE_FIXUP = 'sim_data_template_fixup'
+
+    @classmethod
+    def is_watchpoint(cls, name):
+        return cls.WATCHPOINT_REPORT in name
 
     @classmethod
     def model_defaults(cls, name, schema):
@@ -36,6 +63,17 @@ class SimDataBase(object):
             if len(field_info) >= 3 and field_info[2] is not None:
                 res[f] = field_info[2]
         return res
+
+    @classmethod
+    def template_fixup_get(cls, data):
+        if data.get(cls._TEMPLATE_FIXUP):
+            del data[cls._TEMPLATE_FIXUP]
+            return True
+        return False
+
+    @classmethod
+    def template_fixup_set(cls, data):
+        data[cls._TEMPLATE_FIXUP] = True
 
     @classmethod
     def organize_example(cls, data):
@@ -59,6 +97,13 @@ class SimDataBase(object):
         for f in defaults:
             if f not in model:
                 model[f] = defaults[f]
+
+    @classmethod
+    def watchpoint_id(cls, report):
+        m = cls.WATCHPOINT_REPORT_RE.search(report)
+        if not m:
+            raise RuntimeError('invalid watchpoint report name: ', report)
+        return int(m.group(1))
 
     @classmethod
     def _memoize(cls, value):

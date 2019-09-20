@@ -12,13 +12,15 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
+import sirepo.sim_data
 
 
-SIM_TYPE = 'myapp'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 INPUT_NAME = 'hundli.yml'
 
 OUTPUT_NAME = 'hundli.csv'
+
 
 def get_data_file(run_dir, model, frame, options=None):
     f = run_dir.join(OUTPUT_NAME)

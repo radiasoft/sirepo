@@ -13,14 +13,13 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import os.path
 import py.path
+import sirepo.sim_data
 import xraylib
 
-#: Simulation type
-SIM_TYPE = 'shadow'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
+
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'aspectRatio']
@@ -60,28 +59,6 @@ _FIELD_ALIAS = {
 }
 
 _WIGGLER_TRAJECTOR_FILENAME = 'xshwig.sha'
-
-
-def fixup_old_data(data):
-    if (
-        float(data.fixup_old_version) < 20170703.000001
-        and 'geometricSource' in data.models
-    ):
-        g = data.models.geometricSource
-        x = g.cone_max
-        g.cone_max = g.cone_min
-        g.cone_min = x
-    for m in [
-            'initialIntensityReport',
-            'plotXYReport',
-    ]:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    for m in data.models:
-        if template_common.is_watchpoint(m):
-            template_common.update_model_defaults(data.models[m], 'watchpointReport', _SCHEMA)
-    template_common.organize_example(data)
 
 
 def get_application_data(data):
@@ -132,7 +109,7 @@ def models_related_to_report(data):
     if r == 'initialIntensityReport' and len(data['models']['beamline']):
         res.append([data['models']['beamline'][0]['position']])
     #TODO(pjm): only include items up to the current watchpoint
-    if template_common.is_watchpoint(r):
+    if _SIM_DATA.is_watchpoint(r):
         res.append('beamline')
     for f in template_common.lib_files(data):
         res.append(f.mtime())
@@ -146,7 +123,7 @@ def python_source_for_model(data, model):
         if b['type'] == 'watch':
             watch_id = b['id']
     if watch_id:
-        data['report'] = 'watchpointReport{}'.format(watch_id)
+        data['report'] = '{}{}'.format(_SIM_DATA.WATCHPOINT_REPORT, watch_id)
     else:
         data['report'] = 'plotXYReport'
     return '''
@@ -565,8 +542,8 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
 
     if r == 'initialIntensityReport':
         v['distanceFromSource'] = beamline[0]['position'] if len(beamline) else template_common.DEFAULT_INTENSITY_DISTANCE
-    elif template_common.is_watchpoint(r):
-        v['beamlineOptics'] = _generate_beamline_optics(data['models'], template_common.watchpoint_id(r))
+    elif _SIM_DATA.is_watchpoint(r):
+        v['beamlineOptics'] = _generate_beamline_optics(data['models'], _SIM_DATA.watchpoint_id(r))
     else:
         v['distanceFromSource'] = report_model['distanceFromSource']
 
