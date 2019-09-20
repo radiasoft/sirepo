@@ -538,10 +538,12 @@ def new_simulation(data, new_simulation_data):
 
 
 def prepare_for_client(data):
+    save = False
     if _SIM_DATA.template_fixup_get(data):
         import sirepo.template.srw_fixup
         pkdlog('template fixup: {}', data.models.simulation.simulationId)
         data = sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
+        save = True
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if model_name == 'tabulatedUndulator' and not _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type
@@ -566,7 +568,9 @@ def prepare_for_client(data):
                 model['id'] = _unique_name(user_model_list, 'id', data['models']['simulation']['simulationId'] + ' {}')
                 user_model_list.append(_create_user_model(data, model_name))
                 _save_user_model_list(model_name, user_model_list)
-                simulation_db.save_simulation_json(data)
+                save = True
+    if save:
+        simulation_db.save_simulation_json(data)
     return data
 
 

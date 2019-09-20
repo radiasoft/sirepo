@@ -11,12 +11,13 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.sim_data
 import glob
 import h5py
 import numpy as np
 import re
 
-SIM_TYPE = 'flash'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -26,8 +27,6 @@ _FLASH_UNITS_PATH = {
 }
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -41,17 +40,6 @@ def background_percent_complete(report, run_dir, is_running):
         'frameCount': count,
         'error': errors,
     }
-
-
-def fixup_old_data(data):
-    for m in _SCHEMA.model:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if data.models.simulation.flashType == 'CapLaser':
-        io_model = data.models.IO
-        io_model.plot_var_5 = 'magz'
-        io_model.plot_var_6 = 'depo'
 
 
 def get_animation_name(data):
