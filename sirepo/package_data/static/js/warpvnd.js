@@ -204,6 +204,49 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         return false;
     };
 
+    self.sliceDelegate = function(scope) {
+        var d = panelState.getFieldDelegate(scope.modelName, 'slice');
+        d.range = function() {
+            return sliceRange(scope.model.axes);
+        };
+        d.readout = function() {
+            return sliceReadout(scope.model.axes);
+        };
+        d.update = function() {};
+        d.watchFields = [];
+        return d;
+    };
+
+    function sliceRange(axes) {
+         var r = rangeForAxes(axes);
+         return {
+             min: r[0],
+             step: (r[1] - r[0]) / appState.models.simulationGrid['num_' + sliceAxis(axes)],
+             max: r[1]
+         };
+    }
+
+    function sliceReadout(axes)  {
+        return 'Slice ' + sliceAxis(axes).toUpperCase();
+    }
+
+    function rangeForAxes(axes) {
+        var grid = appState.models.simulationGrid;
+        if (axes == 'yz') {
+            return [-grid.channel_width / 2.0, grid.channel_width / 2.0];
+        }
+        else if (axes === 'xy') {
+            return [0, grid.plate_spacing];
+        }
+        else {
+            return [-grid.channel_height / 2.0, grid.channel_height / 2.0];
+        }
+    }
+
+    function sliceAxis(axes) {
+        return (self.is3D() ? 'xyz' : 'xz').replace(new RegExp('[' + axes + ']', 'g'), '');
+    }
+
     self.loadSTLConductor = function(conductor) {
         var type = self.findConductorType(conductor.conductorTypeId);
         vtkPlotting.loadSTLFile(type.file).then(function (r) {
@@ -727,7 +770,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
 
     appState.whenModelsLoaded($scope, function() {
-        self.fieldSlice = appState.models.fieldCalcAnimation.slice;
+        //self.fieldSlice = appState.models.fieldCalcAnimation.slice;
+        var d = panelState.getFieldDelegate('fieldCalcAnimation', 'slice');
         setFieldState();
         updateAllFields();
         initImportedConductor();
@@ -844,9 +888,8 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
         panelState.showField('fieldAnimation', 'slice', warpvndService.is3D() && ranIn3d);
     });
 
-    //appState.watchModelFields($scope, ['fieldCalcAnimation.axes'], updateSliceRange);
-
     appState.whenModelsLoaded($scope, function () {
+        var d = panelState.getFieldDelegate('fieldAnimation', 'slice');
         appState.models.fieldAnimation.displayMode = appState.models.simulationGrid.simulation_mode;
         computeSimulationSteps();
     });
@@ -1993,6 +2036,23 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
     };
 });
 
+SIREPO.app.directive('fieldAnimation', function(appState, panelState, plotting, warpvndService, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+        },
+        template: [
+            '<div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.model = $scope.model || appState.models[$scope.modelName];
+            $scope.model.units = 'µm';
+            warpvndService.sliceDelegate($scope).watchFields = ['fieldAnimation.axes', 'simulationGrid.simulation_mode'];
+        },
+    };
+});
+
 SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation) {
     return {
         restrict: 'A',
@@ -2453,7 +2513,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     '<div data-ng-class="utilities.modelFieldID(modelName, \'slice\')">',
                         '<div data-label-with-tooltip="" class="control-label col-sm-5" data-ng-class="labelClass" data-label="Slice" data-tooltip=""></div>',
                     '</div>',
-                    '<div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-model-name="modelName" data-model="model" data-update="changeSlice"></div>',
+                    '<div class="col-sm-8" data-range-slider="" data-field="\'slice\'" data-field-delegate="sliceDelegate" data-model-name="modelName" data-model="model"></div>',
                 //'<div class="col-sm-8">',
                 //    '<input type="checkbox" checked data-ng-click="toggleConductors()"> Show Conductors',
                 //'</div>',
@@ -2465,7 +2525,6 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
 
             var lastSimMode = '';
             var ranIn3d = false;
-            var slider;
 
             $scope.axisInfo = {
                 height: 100,
@@ -2476,12 +2535,15 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                     z: 'x'
                 },
             };
-            //$scope.showConductors = true;
-            $scope.utilities = utilities;
 
-            $scope.changeSlice = function () {
+            $scope.sliceDelegate = warpvndService.sliceDelegate($scope);
+            $scope.sliceDelegate.update = function() {
                 utilities.debounce(loadSlice, 500)();
             };
+            $scope.sliceDelegate.watchFields = ['fieldCalcAnimation.axes', 'simulationGrid.simulation_mode'];
+
+            //$scope.showConductors = true;
+            $scope.utilities = utilities;
 
             $scope.showSliceRange = function() {
                 return warpvndService.is3D() && ranIn3d && ! panelState.getError('fieldCalcAnimation');
@@ -2508,66 +2570,12 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
                 appState.saveChanges($scope.modelName);
             }
 
-            function numSteps(axis) {
-                return appState.models.simulationGrid['num_' + axis];
-            }
-            
-            function rangeForAxes(axes) {
-                var grid = appState.models.simulationGrid;
-                if (axes == 'yz') {
-                    return [-grid.channel_width / 2.0, grid.channel_width / 2.0];
-                }
-                else if (axes === 'xy') {
-                    return [0, grid.plate_spacing];
-                }
-                else {
-                    return [-grid.channel_height / 2.0, grid.channel_height / 2.0];
-                }
-            }
-
-            function sliceAxis(axes) {
-                return (warpvndService.is3D() ? 'xyz' : 'xz').replace(new RegExp('[' + axes + ']', 'g'), '');
-            }
-
-            function stepSize(axes) {
-                var r = rangeForAxes(axes);
-                return (r[1] - r[0]) / numSteps(sliceAxis(axes));
-            }
-
-            function updateSliceRange() {
-                var axes = $scope.model.axes;
-                panelState.setFieldLabel($scope.modelName, 'slice', 'Slice ' + sliceAxis(axes).toUpperCase());
-                updateSlider(axes);
-           }
-
-           function updateSlider(axes) {
-                var r = rangeForAxes(axes);
-                slider.attr('min', r[0]);
-                slider.attr('max', r[1]);
-                slider.attr('step', stepSize(axes));
-           }
-
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
                 $scope.model.units = 'µm';
                 lastSimMode = appState.models.simulationGrid.simulation_mode;
                 $scope.model.displayMode = lastSimMode;
-                slider = $('#fieldCalcAnimation-slice-range');
-                updateSlider($scope.model.axes);
-                updateSliceRange();
-
-                // on load, the slider will coerce model values to fit the basic input model of range 0-100,
-                // step 1.  This resets to the saved value
-                if (
-                    ($scope.parentController.fieldSlice || $scope.parentController.fieldSlice === 0) &&
-                    $scope.model.slice != $scope.parentController.fieldSlice
-                ) {
-                    $scope.model.slice = $scope.parentController.fieldSlice;
-                }
             });
-
-            appState.watchModelFields($scope, ['fieldCalcAnimation.axes'], updateSliceRange);
-            appState.watchModelFields($scope, ['simulationGrid.simulation_mode'], updateSliceRange);
 
             // the DOM for editors does not exist until they appear, so we must show/hide fields this way
             $scope.$on('fieldCalcAnimation.editor.show', function () {
@@ -3703,13 +3711,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var zmin = 0.0;  var zmax = 1.0;
 
             var heatmap = [];
-            var fieldXFactor = 1.0;
-            var fieldZFactor = 1.0;
-            var fieldYFactor = 1.0;
             var fieldColorScale = null;
-            var pointToColorIndexMaps = [];
-
-            var minZSpacing = Number.MAX_VALUE;
 
             var impactSphereSize = 0.0125 * xzAspectRatio;
             var zoomUnits = 0;
@@ -4013,12 +4015,12 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 ymax = pointData.z_range[1];
 
                 // grid min/max
-                gXMin = 1e-6 * (-grid.channel_width / 2.0);
-                gXMax = 1e-6 * (grid.channel_width / 2.0);
-                gYMin = 1e-6 * (-grid.channel_height / 2.0);
-                gYMax = 1e-6 * (grid.channel_height / 2.0);
+                gXMin = toMicron(-grid.channel_width / 2.0);
+                gXMax = toMicron(grid.channel_width / 2.0);
+                gYMin = toMicron(-grid.channel_height / 2.0);
+                gYMax = toMicron(grid.channel_height / 2.0);
                 gZMin = 0;
-                gZMax = 1e-6 * grid.plate_spacing;
+                gZMax = toMicron(grid.plate_spacing);
 
                 var lcoords = [];
                 var lostCoords = [];
@@ -4160,10 +4162,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     }
                 }
 
-                // evenly spaced points to be linearly interpolated between the data, for
-                // purposes of coloring lines with the field colors
-                var numInterPoints = 50;
-
                 for (var dim in axes) {
                     var cfg = axisCfg[dim];
                     axes[dim].init();
@@ -4174,13 +4172,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
 
                 heatmap = appState.clone(pointData.field);
-                var hm_xlen = heatmap.length;
-                var hm_ylen = heatmap[0].length;
-                var hm_zlen = heatmap[0][0].length;
-                fieldXFactor = hm_xlen / numInterPoints;
-                fieldZFactor = hm_zlen / numInterPoints;
-                fieldYFactor = hm_ylen / numInterPoints;
-
                 var hm_zmin = Math.max(0, plotting.min3d(heatmap));
                 var hm_zmax = plotting.max3d(heatmap);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');

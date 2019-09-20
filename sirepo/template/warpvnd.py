@@ -200,7 +200,7 @@ def generate_field_report(data, run_dir, args=None):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _is_3D(data) else ''),
+        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, round(phi_slice, 3)) if _is_3D(data) else ''),
         'z_matrix': values.tolist(),
         'global_min': np.min(potential) if vals_equal else None,
         'global_max': np.max(potential) if vals_equal else None,
@@ -646,7 +646,7 @@ def _extract_field(field, data, data_file, args=None):
     y_label = 'x [m]'
     slice_text = ''
     if field == 'phi':
-        phi_slice = 0.
+        phi_slice = float(args.slice) if args and 'slice' in args else 0.
         title = 'ϕ'
         if axes == 'xz':
             if _is_3D(data):
@@ -654,7 +654,6 @@ def _extract_field(field, data, data_file, args=None):
             else:
                 values = values[0, :, :]
         elif axes == 'xy':
-            phi_slice = grid.plate_spacing / 2.  # tmp slice
             values = values[:, :, _get_slice_index(phi_slice, 0., dz, grid.num_z - 1)]
         else:
             values = values[_get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :]
@@ -675,7 +674,7 @@ def _extract_field(field, data, data_file, args=None):
             yr = [- height, height, y_max]
             x_label = 'z [m]'
             y_label = 'y [m]'
-        slice_text = ' (' + slice_axis + ' = ' + str(phi_slice) + 'µm) '
+        slice_text = ' (' + slice_axis + ' = ' + str(round(phi_slice, 3)) + 'µm) '
     else:
         values = values[:, 0, :]
         x_max = len(values[0])

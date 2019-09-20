@@ -1,6 +1,6 @@
 {
     "animationArgs": {
-        "fieldAnimation": ["field", "axes", "displayMode", "startTime"],
+        "fieldAnimation": ["field", "axes", "slice", "displayMode", "startTime"],
         "fieldCalcAnimation": ["axes", "displayMode", "slice"],
         "fieldComparisonAnimation": [
             "dimension",
@@ -359,6 +359,7 @@
                 "field",
                 "framesPerSecond",
                 "axes",
+                "slice",
                 "colorMap",
                 "notes"
             ]
