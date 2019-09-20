@@ -11,11 +11,11 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
-import sirepo.sim_data
 import glob
 import h5py
 import numpy as np
 import re
+import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
