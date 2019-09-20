@@ -96,6 +96,7 @@ def test_cancel_long_running_job():
                 simulation_type='myapp',
             ),
         )
+        data.models.simulation.name = 'srunit_long_run'
         run = fc.sr_post(
             'runSimulation',
             dict(

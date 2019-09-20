@@ -36,6 +36,13 @@ def main():
     input_yaml, output_csv = sys.argv[1:]
     with open(input_yaml, 'r') as f:
         params = yaml.load(f)
+
+    if 'srunit' in params['name']:
+        n = params['name']
+        if n == 'srunit_long_run':
+            import time
+            time.sleep(100)
+
     max_age = _max_age(params['weight'])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()
     heights = _points_size(params['height'], years)
