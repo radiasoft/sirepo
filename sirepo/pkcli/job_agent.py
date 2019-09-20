@@ -65,6 +65,7 @@ class _Msg(pkcollections.Dict):
                     pkdlog('closed{}', e)
                     break
                 m = await c.read_message()
+                pkdc('m={}', m)
                 if m is None:
                     break
                 m = await self._dispatch(m)

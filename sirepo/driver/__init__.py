@@ -29,10 +29,12 @@ class DriverBase(object):
 
     def __init__(self, uid, agent_id, resource_class):
         self.uid = uid
+        self.agent_started = False
         self.agent_id = agent_id
         self.resource_class = resource_class
         self.message_handler = None
         self.message_handler_set = tornado.locks.Event()
+        self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
@@ -41,25 +43,23 @@ class DriverBase(object):
         request.request_reply_was_sent = tornado.locks.Event()
         dc = cls._get_driver_class(request)
 
-        user_found = False
-        for u in dc.requests[request.content.resource_class]:
-            if u.uid == request.content.uid:
-                pkdc('user {} found for request content uid {}', u, request.content.uid)
-                u.requests.append(request)
-                user_found = True
+        for d in dc.resources[request.content.resource_class].drivers:
+            if d.uid == request.content.uid:
+                d.requests.append(request)
                 break
-        if not user_found:
-            pkdc(
-                'no user found for request content uid {} creating one in class {}',
+        else:
+            d = dc(
                 request.content.uid,
+                str(uuid.uuid4()),
                 request.content.resource_class
             )
-            dc.requests[request.content.resource_class].append(pkcollections.Dict(
-                uid=request.content.uid,
-                requests = [request],
-            ))
+            d.requests.append(request)
+            dc.resources[request.content.resource_class].drivers.append(d)
+            cls.driver_for_agent[d.agent_id] = d
+
         await job_scheduler.run(dc, request.content.resource_class)
         await request.request_reply_was_sent.wait()
+
 
     @classmethod
     def _get_driver_class(cls, request):
@@ -68,25 +68,25 @@ class DriverBase(object):
         return local.LocalDriver
 
     def _get_request(self, req_id):
-        u = self._get_user()
-        for r in u.requests:
+        d = self._get_driver()
+        for r in d.requests:
             if r.content.req_id == req_id:
                 return r
 
         raise AssertionError(
             'req_id {} not found in requests {}',
             req_id,
-            u.requests
+            d.requests
         )
 
-    def _get_user(self):
-        for u in type(self).requests[self.resource_class]: # pylint: disable=no-member
-            if u.uid == self.uid:
-                return u
+    def _get_driver(self):
+        for d in type(self).resources[self.resource_class].drivers: # pylint: disable=no-member
+            if d.uid == self.uid:
+                return d
         raise AssertionError(
-            'uid {} not found in requests {}',
+            'uid {} not found in drivers {}',
             self.uid,
-            type(self).requests[self.resource_class] # pylint: disable=no-member
+            type(self).resources[self.resource_class].drivers, # pylint: disable=no-member
         )
 
     @classmethod
@@ -99,7 +99,7 @@ class DriverBase(object):
 
     @classmethod
     async def incoming_request(cls, request):
-        request.state = job_scheduler.STATE_EXECUTION_PENDING
+        request.state = 'execution_pending'
         await cls._enqueue_request(request)
 
     async def _process_message(self, message):
@@ -125,6 +125,6 @@ class DriverBase(object):
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
 
     def _remove_request(self, req_id):
-        u = self._get_user()
+        d = self._get_driver()
         r = self._get_request(req_id)
-        u.requests.remove(r)
+        d.requests.remove(r)

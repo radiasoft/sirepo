@@ -29,6 +29,7 @@ ACTION_COMPUTE_JOB_STARTED = 'compute_job_started'
 ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
 ACTION_START_COMPUTE_JOB = 'start_compute_job'
+ACTION_CANCEL_JOB = 'cancel_job'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
@@ -39,6 +40,8 @@ class JobStatus(aenum.Enum):
     ERROR = 'error'         # data on disk exists, but job failed somehow
     CANCELED = 'canceled'   # data on disk exists, but is incomplete
     COMPLETED = 'completed' # data on disk exists, and is fully usable
+
+
 
 def init_by_server(app):
     """Initialize module"""
@@ -74,7 +77,7 @@ def compute_job_status(run_dir, jhash):
 
 def cancel_report_job(run_dir, jhash):
     body = pkcollections.Dict(
-        action='cancel_compute_job',
+        action=ACTION_CANCEL_JOB,
         run_dir=str(run_dir),
         jhash=jhash,
     )

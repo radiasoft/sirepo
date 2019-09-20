@@ -55,8 +55,7 @@ def _terminate(num, bar):
         for d in driver.DriverBase.driver_for_agent.values():
             if type(d) != local.LocalDriver:
                 continue
-            d.agent_process.proc.terminate()
-            d.agent_process.proc.wait()
+            d.terminate_agent()
     tornado.ioloop.IOLoop.current().stop()
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
@@ -112,7 +111,12 @@ class _ServerReq(tornado.web.RequestHandler):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
     async def post(self):
-        await _process_incoming('request', self.request.body, self)
+        try:
+            await _process_incoming('request', self.request.body, self)
+        except Exception as e:
+            # TODO(e-carlin): More handling.
+            pkdlog('Error: {}', e)
+            pkdp(pkdexc())
 
     def on_connection_close(self):
         #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
