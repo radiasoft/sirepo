@@ -70,7 +70,7 @@ class DriverBase(object):
     def _get_request(self, req_id):
         u = self._get_user()
         for r in u.requests:
-            if r.content.rid == req_id:
+            if r.content.req_id == req_id:
                 return r
 
         raise AssertionError(
@@ -103,7 +103,6 @@ class DriverBase(object):
         await cls._enqueue_request(request)
 
     async def _process_message(self, message):
-        pkdp('message {}', message)
         a = message.content.get('action')
         if a == job.ACTION_READY_FOR_WORK:
             return
@@ -113,18 +112,15 @@ class DriverBase(object):
             pkdlog('Error: {}', message)
             return
 
-        pkdp('********************** {}', message)
-        r = self._get_request(message.content.rid)
-        pkdp('*************** {}', r)
+        r = self._get_request(message.content.req_id)
         r.request_handler.write(message.content)
         r.request_reply_was_sent.set()
-        self._remove_request(message.content.rid) 
+        self._remove_request(message.content.req_id) 
         await job_scheduler.run(type(self), self.resource_class)
 
     async def _process_requests_to_send_to_agent(self):
         while True:
             r = await self.requests_to_send_to_agent.get()
-            pkdc('request={}', self.agent_id)
             await self.message_handler_set.wait()
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
 
@@ -132,7 +128,3 @@ class DriverBase(object):
         u = self._get_user()
         r = self._get_request(req_id)
         u.requests.remove(r)
-
-
-        from sirepo.driver import local
-        pkdp('&&&&&&&&&&& {}',local.LocalDriver.requests)

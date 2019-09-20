@@ -112,7 +112,7 @@ def _request(body):
     # detail to the client.
     uid = simulation_db.uid_from_dir_name(body.run_dir)
     body.uid = uid
-    body.rid = str(uuid.uuid4())
+    body.req_id = str(uuid.uuid4())
     body.setdefault('resource_class', 'sequential')
     r = requests.post(cfg.supervisor_http_uri, json=body)
     return pkjson.load_any(r.content)

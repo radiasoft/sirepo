@@ -120,7 +120,7 @@ class _Msg(pkcollections.Dict):
         if self.current_msg:
             #rn use get() because there may be an error in the sending message
             # and we really don't want to get any errors
-            msg.rid = self.current_msg.get('rid')
+            msg.req_id = self.current_msg.get('req_id')
         return pkjson.dump_bytes(msg)
 
     def _parse_req(self, msg):
