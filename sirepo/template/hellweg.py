@@ -17,6 +17,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 

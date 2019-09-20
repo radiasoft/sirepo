@@ -16,6 +16,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
+        s = cls.schema()
         for m in (
             'beamAnimation',
             'beamHistogramAnimation',
@@ -24,7 +25,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         ):
             if m not in dm:
                 dm[m] = pkcollections.Dict()
-            cls.update_model_defaults(dm[m], m, _SCHEMA)
+            cls.update_model_defaults(dm[m], m, s)
         if 'solenoidFile' not in dm.solenoid:
             dm.solenoid.solenoidFile = ''
         if 'beamDefinition' not in dm.beam:
