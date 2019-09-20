@@ -796,8 +796,6 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
     var self = this;
     self.warpvndService = warpvndService;
 
-    var axesRanges = {};
-
     function computeSimulationSteps() {
         panelState.showField('simulation', 'egun_mode', ! warpvndService.is3D());
         if (warpvndService.is3D()) {
@@ -4427,15 +4425,11 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                             k = j + 1;
                             p1 = points[i][j];
                             p2 = points[i][k];
-                            if (color) {
-                                pushLineData(p1, p2, color);
-                                continue;
-                            }
                             cp1 = cellOfPt(p1);
                             cp2 = cellOfPt(p2);
 
                             var meanVal = 0.5 * (heatmap[cp1[0]][cp1[1]][cp1[2]] + heatmap[cp2[0]][cp2[1]][cp2[2]]);
-                            c = plotting.colorsFromHexString(fieldColorScale(meanVal), 255.0);
+                            c = color || plotting.colorsFromHexString(fieldColorScale(meanVal), 255.0);
                             pushLineData(p1, p2, c);
                         }
                     }
@@ -4486,32 +4480,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         dataColors.push(Math.floor(255*comp));
                     });
                 }
-            }
-
-            function colorIndexValPriorTo(map, startIndex, spacing) {
-                var k = startIndex - spacing;
-                var prevVal = map[k];
-                while(k >= 0 && (prevVal == null || prevVal === 'undefined')) {
-                    k -= spacing;
-                    prevVal = map[k];
-                }
-                return Math.max(0, prevVal);
-            }
-
-            function colorAtIndex(index) {
-                if (index !== 0 && ! index) {
-                    return plotting.colorsFromHexString('#000000', 255.0);
-                }
-                //var fieldxIndex = Math.min(heatmap[0].length-1, Math.floor(fieldXFactor * index));
-                //var fieldzIndex = Math.min(heatmap.length-1, Math.floor(fieldZFactor * index));
-                //var fieldyIndex = Math.min(heatmap[0][0].length-1, Math.floor(fieldYFactor * index));  //Math.floor(fieldYFactor * index);
-                var fieldxIndex = Math.min(heatmap.length-1, Math.floor(fieldXFactor * index));
-                var fieldyIndex = Math.min(heatmap[0].length-1, Math.floor(fieldYFactor * index));
-                var fieldzIndex = Math.min(heatmap[0][0].length-1, Math.floor(fieldZFactor * index));  //Math.floor(fieldYFactor * index);
-                var v = heatmap[fieldxIndex][fieldyIndex][fieldzIndex];
-                //srdbg(index, 'val at', 'x', fieldxIndex, 'y', fieldyIndex, 'z', fieldzIndex, ':', v);
-                //return plotting.colorsFromHexString(fieldColorScale(heatmap[fieldzIndex][fieldxIndex]), 255.0);
-                return plotting.colorsFromHexString(fieldColorScale(v), 255.0);
             }
 
             $scope.vtkCanvasGeometry = function() {
