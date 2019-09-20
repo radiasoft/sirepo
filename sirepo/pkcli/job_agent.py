@@ -84,7 +84,7 @@ class _Msg(pkcollections.Dict):
         return self._format_reply(action='protocol_error', error=err, msg=msg)
 
     #rn maybe this should just be "cancel" since everything is a "job"
-    async def _dispatch_cancel_compute_job(self, msg):
+    async def _dispatch_cancel_job(self, msg):
         jhash, _ = self.job_tracker._run_dir_status(msg.run_dir)
         if jhash == msg.jhash:
             await self.job_tracker.kill(msg.run_dir)

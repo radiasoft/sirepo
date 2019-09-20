@@ -11,16 +11,12 @@ import subprocess
 import time
 from pykern.pkdebug import pkdc, pkdp
 
+
+
+
+
 def test_myapp():
-    from pykern import pkconfig
-
-    pkconfig.reset_state_for_testing({
-        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
-        'PYTHONUNBUFFERED': '1',
-    })
-    py3_env = _assert_py3()
-
-    from sirepo import srdb
+    py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
     from sirepo import job
@@ -28,21 +24,9 @@ def test_myapp():
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
 
-    supervisor_env = dict(py3_env)
-    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    supervisor = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
-        env=supervisor_env,
-    )
 
     try:
-        for _ in range(30):
-            if _server_up(job.cfg.supervisor_http_uri):
-                break
-            time.sleep(0.1)
-        else:
-            pkunit.pkfail('job supervisor did not start up')
-
+        supervisor = _start_supervisor(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -87,15 +71,7 @@ def test_myapp():
 # TODO(e-carlin): discuss with rn how to set a config value to make hundli run
 # for a long time (ex sleep(1000))
 def test_cancel_long_running_job():
-    from pykern import pkconfig
-
-    pkconfig.reset_state_for_testing({
-        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
-        'PYTHONUNBUFFERED': '1',
-    })
-    py3_env = _assert_py3()
-
-    from sirepo import srdb
+    py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
     from sirepo import job
@@ -103,21 +79,8 @@ def test_cancel_long_running_job():
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
 
-    supervisor_env = dict(py3_env)
-    supervisor_env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    supervisor = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
-        env=supervisor_env,
-    )
-
     try:
-        for _ in range(30):
-            if _server_up(job.cfg.supervisor_http_uri):
-                break
-            time.sleep(0.1)
-        else:
-            pkunit.pkfail('job supervisor did not start up')
-
+        supervisor = _start_supervisor(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -182,15 +145,6 @@ def test_cancel_long_running_job():
         supervisor.wait()
 
 
-def _server_up(url):
-    import requests
-    try:
-        r = requests.head(url)
-        return r.status_code == 405
-    except requests.ConnectionError:
-        pass
-
-
 def _assert_py3():
     """Check if the py3 environment is set up properly"""
     res = dict()
@@ -249,3 +203,41 @@ def _assert_py3():
         out,
     )
     return res
+
+
+def _env_setup():
+    from pykern import pkconfig
+
+    pkconfig.reset_state_for_testing({
+        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
+        'PYTHONUNBUFFERED': '1',
+    })
+    return _assert_py3()
+
+
+def _server_up(url):
+    import requests
+    try:
+        r = requests.head(url)
+        return r.status_code == 405
+    except requests.ConnectionError:
+        pass
+
+
+def _start_supervisor(env):
+    from pykern import pkunit
+    from sirepo import srdb
+    from sirepo import job
+
+    env['SIREPO_SRDB_ROOT'] = str(srdb.root())
+    supervisor = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
+        env=env,
+    )
+    for _ in range(30):
+        if _server_up(job.cfg.supervisor_http_uri):
+            break
+        time.sleep(0.1)
+    else:
+        pkunit.pkfail('job supervisor did not start up')
+    return supervisor
