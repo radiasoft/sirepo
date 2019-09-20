@@ -2683,7 +2683,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
     };
 });
 
-SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geometry) {
+SIREPO.app.directive('impactDensityPlot', function(errorService, plotting, plot2dService, geometry) {
     return {
         restrict: 'A',
         scope: {
@@ -2775,6 +2775,10 @@ SIREPO.app.directive('impactDensityPlot', function(plotting, plot2dService, geom
                         .attr('class', 'density-plot');
                     // loop over "faces"
                     (c.faces || []).forEach(function (f, fi) {
+                        if (f.err) {
+                            errorService.alertText(f.err);
+                            return;
+                        }
                         var o = [f.x.startVal, f.z.startVal].map(toNano);
                         var sk = [f.x.slopek, f.z.slopek].map(toNano);
                         var den = f.dArr;
@@ -4171,133 +4175,16 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     axes[dim].parseLabelAndUnits(cfg.label);
                 }
 
-                minZSpacing = Math.abs((zmax - zmin)) / numInterPoints;
-                var nearestPointIndex = 0;
-
-                // each line gets a map from the points that comprise it to the closest interpolated point
-                pointToColorIndexMaps = [];
-
-                // linearly interpolate the data
-                /*
-                for (var i = 0; i < lcoords.length; ++i) {
-
-                    var ptsArr = lcoords[i];
-
-                    var newIndexMap = {0:0};
-                    var lastNearestIndex = 0;
-                    nearestPointIndex = 1;
-                    var newZ = ptsArr[0][2];
-                    var finalZ = ptsArr[ptsArr.length-1][2];
-                    var cornerZs = [newZ];
-                    var cornerIdxs = [0];
-                    var prevZ = newZ;
-                    var sgn = 1;
-
-                    var initialLen = ptsArr.length;
-                    // keep track of particles changing direction
-                    for (var k = 1; k < ptsArr.length-1; ++k) {
-                        var thisZ = ptsArr[k][2];
-                        if (sgn * thisZ < sgn * prevZ) {
-                            cornerZs.push(prevZ);
-                            cornerIdxs.push(k - 1);
-                            sgn *= -1;
-                        }
-                        prevZ = thisZ;
-                    }
-                    cornerZs.push(finalZ);
-                    cornerIdxs.push(ptsArr.length-1);
-
-                    var j = 1;
-                    var lastMappedColorIndex = 0;
-
-                    sgn = 1;
-                    for (k = 0; k < cornerZs.length - 1; ++k) {
-                        newZ = cornerZs[k];
-                        finalZ = cornerZs[k + 1];
-                        j = 1;
-                        lastNearestIndex = cornerIdxs[k] + 1;
-                        while (sgn * newZ <= sgn * finalZ) {
-                            newZ = cornerZs[k] + sgn * j * minZSpacing;
-                            nearestPointIndex = lastNearestIndex;
-                            var checkZ = ptsArr[nearestPointIndex][2];
-                            while (nearestPointIndex < ptsArr.length && sgn * checkZ < sgn * newZ && sgn * checkZ < sgn * finalZ) {
-                                if (newIndexMap[nearestPointIndex] !== 0 && ! newIndexMap[nearestPointIndex]) {
-                                    // ensures we don't skip any indices, mapping them to the nearest previously mapped value
-                                    newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1) || 0;
-                                }
-                                ++nearestPointIndex;
-                                checkZ = (ptsArr[nearestPointIndex] || [])[2];
-                            }
-
-                            if (nearestPointIndex != lastNearestIndex) {
-                                lastNearestIndex = nearestPointIndex;
-                            }
-
-                            var lo = Math.max(0, nearestPointIndex - 1);
-                            var hi = Math.min(ptsArr.length - 1, nearestPointIndex);
-                            if (sgn * checkZ < sgn * finalZ) {
-                                var p = ptsArr[lo];
-                                var nextP = ptsArr[hi];
-                                var dzz = nextP[2] - p[2];
-                                var newP = [0, 0, newZ];
-                                for (var ci = 0; ci < 2; ++ci) {
-                                    newP[ci] = dzz ? p[ci] + (newP[2] - p[2]) * (nextP[ci] - p[ci]) / dzz : p[ci];
-                                }
-                                ptsArr.splice(lo + 1, 0, newP);
-                                for (var crx = k + 1; crx < cornerIdxs.length; ++crx) {
-                                    // added a point, so the remaining corner index vals increment
-                                    cornerIdxs[crx] = cornerIdxs[crx] + 1;
-                                }
-                            }
-
-                            newIndexMap[hi] = lastMappedColorIndex + sgn * j;
-                            ++j;
-                        }
-                        ++nearestPointIndex;
-                        newIndexMap[nearestPointIndex] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
-                        sgn *= -1;
-                        lastMappedColorIndex = j - 1;
-                    }
-                    var finalLen = ptsArr.length;
-                    //srdbg('line', i, 'added', finalLen - initialLen);
-                    newIndexMap[ptsArr.length-1] = colorIndexValPriorTo(newIndexMap, nearestPointIndex, 1);
-                    pointToColorIndexMaps.push(newIndexMap);
-                }
-
-                 */
-                //srdbg('pointToColorIndexMaps', pointToColorIndexMaps);
-
-                // distribute the heat map evenly over the interpolated points
-                //heatmap = appState.clone(fieldData.z_matrix).reverse();
                 heatmap = appState.clone(pointData.field);
                 var hm_xlen = heatmap.length;
                 var hm_ylen = heatmap[0].length;
                 var hm_zlen = heatmap[0][0].length;
-                //srdbg('hm lens z', hm_zlen, 'x', hm_xlen, 'y', hm_ylen);
                 fieldXFactor = hm_xlen / numInterPoints;
                 fieldZFactor = hm_zlen / numInterPoints;
                 fieldYFactor = hm_ylen / numInterPoints;
 
                 var hm_zmin = Math.max(0, plotting.min3d(heatmap));
                 var hm_zmax = plotting.max3d(heatmap);
-                //var hm_zmin = Math.max(0, plotting.min2d(heatmap));
-                //var hm_zmax = plotting.max2d(heatmap);
-                /*
-                for (var m = 0; m < hm_xlen; ++m) {
-                    var px = gXMin + m * (gXMax - gXMin) / grid.num_x;
-                    for (var n = 0; n < hm_ylen; ++n) {
-                        var py = gYMin + n * (gYMax - gYMin) / grid.num_y;
-                        for (var o = 0; o < hm_zlen; ++o) {
-                            var pz = gZMin + o * (gZMax - gZMin) / grid.num_z;
-                            var v = heatmap[m][n][o];
-                            if (v == hm_zmax) {
-                                srdbg('max', v, 'at', m, n, o, 'x/y/z', px, py, pz);
-                            }
-                        }
-                    }
-                }
-                */
-                //srdbg('hm min/max', hm_zmin, hm_zmax);
                 fieldColorScale = plotting.colorScaleForPlot({ min: hm_zmin, max: hm_zmax }, 'particle3d');
 
                 setLinesFromPoints(absorbedLineBundle, lcoords, null, true);
@@ -4378,15 +4265,15 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 return [i, j, k];
             }
 
-            // least corner in x y z
-            function ptOfCell(c) {
-                var x = gXMin + c[0] * (gXMax - gXMin) / grid.num_x;
-                var y = gYMin + c[1] * (gYMax - gYMin) / grid.num_y;
-                var z = gZMin + c[2] * (gZMax - gZMin) / grid.num_z;
-                return [x, y, z];
+            function largeMin(array) {
+                return utilities.seqApply(Math.min, array, Number.MAX_VALUE);
             }
 
-            function mapImpactDensity() {
+            function largeMax(array) {
+                return utilities.seqApply(Math.max, array, -Number.MAX_VALUE);
+            }
+
+           function mapImpactDensity() {
                 // loop over conductors
                 // arr[0][0] + k * sk + l * sl
                 var doWarn = false;
@@ -4476,13 +4363,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 }
             }
 
-            function largeMin(array) {
-                return utilities.seqApply(Math.min, array, Number.MAX_VALUE);
-            }
-             function largeMax(array) {
-                return utilities.seqApply(Math.max, array, -Number.MAX_VALUE);
-            }
-
             function mapUnstructuredDensity(faceData, condId) {
                 if (condId !== 0 && ! condId) {
                     // no matching conductor, error
@@ -4536,105 +4416,36 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 var p2 = [];
                 var cp1 = [];
                 var cp2 = [];
-                var lastP = [];
-                var newP = [];
-                var lastCell = [];
-                var newCell = [];
+                var c = [];
 
                 // lines
                 for (var i = 0; i < points.length; ++i) {
                     var l = points[i].length;
-                    var multiCell = 0;
-
                     // points making up the line
                     for (var j = 0; j < l; ++j) {
                         if (j < l - 1) {
                             k = j + 1;
                             p1 = points[i][j];
                             p2 = points[i][k];
-                            //if (color) {
-                            //    pushLineData(p1, p2, color);
-                            //    continue;
-                            //}
+                            if (color) {
+                                pushLineData(p1, p2, color);
+                                continue;
+                            }
                             cp1 = cellOfPt(p1);
-                            if (cp1[0] < 0 || cp1[0] > grid.num_x ||
-                                cp1[1] < 0 || cp1[1] > grid.num_y ||
-                                cp1[2] < 0 || cp1[2] > grid.num_z) {
-                                srdbg('line', i,  'BAD CELL', cp1, p1);
-                            }
-                            //srdbg('line', i, 'seg', j, ':', p1, '->', p1, 'of', l, 'color from', cp1);
-                            //srdbg('line', i, 'seg', j, 'color from', cp1);
-                            var c = color || plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0);
-                            pushLineData(p1, p2, c);
-                            //cp2 = cellOfPt(p2);
-                            //var cpDiff = cp1.map(function (c, cx) {
-                            //    return cp2[cx] - c;
-                            //});
-                            /*
-                            // endpoints of line segment are in different grid cells
-                            if (Math.abs(cpDiff[0] > 0) || Math.abs(cpDiff[1] > 0) || Math.abs(cpDiff[2] > 0)) {
-                                //srdbg('line', i, 'point', j, 'point1', cp1, 'point2', k, cp2, cpd);
-                                for (var m = 0; m < 3; ++m) {
-                                    var dir = Math.sign(cpDiff[m]);
-                                    if (! dir) {
-                                        continue;
-                                    }
-                                    lastP = p1;
-                                    lastCell = cp1;
-                                    for (var c = cp1[m]; c != cp2[m]; c += dir) {
-                                        var cc = [0, 0, 0];
-                                        for (var n = 0; n < 3; n++) {
-                                            if(n === m) {
-                                                cc[n] = c + dir;
-                                            }
-                                        }
-                                        newP = ptOfCell(cc);
-                                        var d = p2[m] - p1[m];
-                                        for (var n = 0; n < 3; n++) {
-                                            if (n === m) {
-                                                continue;
-                                            }
-                                            newP[n] = d ? p1[n] + (newP[m] - p1[m]) * (p2[n] - p1[n]) / d : p1[n];
-                                        }
-                                        //srdbg('line', i, 'should add pt', newP, cellOfPt(newP));
-                                        newCell = cellOfPt(newP);
-                                        pushLineData(lastP, newP, plotting.colorsFromHexString(fieldColorScale(heatmap[lastCell[0]][lastCell[1]][lastCell[2]]), 255.0));
-                                        lastP = newP;
-                                        lastCell = newCell;
-                                    }
-                                    newP = p2;
-                                    //pushLineData(lastP, newP, plotting.colorsFromHexString(fieldColorScale(heatmap[lastCell[0]][lastCell[1]][lastCell[2]]), 255.0));
-                                }
-                                multiCell++;
-                            }
-                            else {
-                                pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
-                            }
+                            cp2 = cellOfPt(p2);
 
-                             */
-                            //pushLineData(points[i][j], points[i][k], color || colorAtIndex(pointToColorIndexMaps[i][j]));
+                            var meanVal = 0.5 * (heatmap[cp1[0]][cp1[1]][cp1[2]] + heatmap[cp2[0]][cp2[1]][cp2[2]]);
+                            c = plotting.colorsFromHexString(fieldColorScale(meanVal), 255.0);
+                            pushLineData(p1, p2, c);
                         }
                     }
-                    /*
-                    if (l > j) {
-                        k = j - 1;
-                        p1 = points[i][k];
-                        p2 = points[i][l - 1];
-                        if (color) {
-                            pushLineData(p1, p2, color);
-                            continue;
-                        }
-                        cp1 = cellOfPt(p1);
-                        cp2 = cellOfPt(p2);
-                        pushLineData(p1, p2, plotting.colorsFromHexString(fieldColorScale(heatmap[cp1[0]][cp1[1]][cp1[2]]), 255.0));
-                        //pushLineData(points[i][k], points[i][l - 1], color || colorAtIndex(pointToColorIndexMaps[i][k]));
-                    }
-                    */
                     if (includeImpact) {
                         k = points[i].length - 1;
-                        //impactSphereActors.push(coordMapper.buildSphere(points[i][k], impactSphereSize, color || colorAtIndex(pointToColorIndexMaps[i][k])).actor);
+                        p2 = points[i][k];
+                        cp2 = cellOfPt(p2);
+                        c = color || plotting.colorsFromHexString(fieldColorScale(heatmap[cp2[0]][cp2[1]][cp2[2]]), 255.0);
+                        impactSphereActors.push(coordMapper.buildSphere(p2, impactSphereSize, c).actor);
                     }
-                    //if(includeImpact) {srdbg('line', i, 'num in multiple cells', multiCell, l);}
                 }
                 var p32 = window.Float32Array.from(dataPoints);
                 var l32 = window.Uint32Array.from(dataLines);
