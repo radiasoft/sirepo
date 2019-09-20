@@ -6,6 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkinspect
 from pykern import pkio
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
@@ -19,6 +20,8 @@ import numpy as np
 import os
 import py.path
 import re
+import sirepo.sim_data
+import sirepo.template.srw_fixup
 import srwl_uti_cryst
 import srwl_uti_smp
 import srwl_uti_src
@@ -26,21 +29,18 @@ import srwlib
 import traceback
 import uti_math
 import uti_plot_com
-import zipfile
 import werkzeug
+import zipfile
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
-
-#: Simulation type
-SIM_TYPE = 'srw'
 
 _ARBITRARY_FIELD_COL_COUNT = 3
 
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
-
-_WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
 _DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'coherenceXAnimation': {'filename': 'res_int_pr_me_dcx.dat', 'dimension': 3},
@@ -55,27 +55,7 @@ _DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'sourceIntensityReport': {'filename': 'res_int_se.dat', 'dimension': 3},
     'brillianceReport': {'filename': _BRILLIANCE_OUTPUT_FILE, 'dimension': 2},
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
-    _WATCHPOINT_REPORT_NAME: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
-})
-
-_EXAMPLE_FOLDERS = pkcollections.Dict({
-    'Bending Magnet Radiation': '/SR Calculator',
-    'Diffraction by an Aperture': '/Wavefront Propagation',
-    'Ellipsoidal Undulator Example': '/Examples',
-    'Focusing Bending Magnet Radiation': '/Examples',
-    'Gaussian X-ray Beam Through Perfect CRL': '/Examples',
-    'Gaussian X-ray beam through a Beamline containing Imperfect Mirrors': '/Examples',
-    'Idealized Free Electron Laser Pulse': '/SR Calculator',
-    'LCLS SXR beamline - Simplified': '/Light Source Facilities/LCLS',
-    'LCLS SXR beamline': '/Light Source Facilities/LCLS',
-    'NSLS-II CHX beamline': '/Light Source Facilities/NSLS-II/NSLS-II CHX beamline',
-    'Polarization of Bending Magnet Radiation': '/Examples',
-    'Soft X-Ray Undulator Radiation Containing VLS Grating': '/Examples',
-    'Tabulated Undulator Example': '/Examples',
-    'Undulator Radiation': '/SR Calculator',
-    'Young\'s Double Slit Experiment (green laser)': '/Wavefront Propagation',
-    'Young\'s Double Slit Experiment (green laser, no lens)': '/Wavefront Propagation',
-    'Young\'s Double Slit Experiment': '/Wavefront Propagation',
+    _SIM_DATA.WATCHPOINT_REPORT: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 })
 
 _FILE_TYPE_EXTENSIONS = {
@@ -93,10 +73,6 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 _PREDEFINED = None
 
 _REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'plotScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio', 'rotateAngle', 'rotateReshape']
-
-_RUN_ALL_MODEL = 'simulation'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
@@ -205,6 +181,16 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
+def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
+    if ebeam_position['driftCalculationMethod'] == 'auto':
+        """Calculate drift for ideal undulator."""
+        if _SIM_DATA.is_idealized_undulator(source_type, undulator_type):
+            # initial drift = 1/2 undulator length + 2 periods
+            return -0.5 * float(undulator_length) - 2 * float(undulator_period)
+        return 0
+    return ebeam_position['drift']
+
+
 def copy_related_files(data, source_path, target_path):
     # copy results and log for the long-running simulations
     for d in ('fluxAnimation', 'multiElectronAnimation'):
@@ -251,7 +237,7 @@ def extract_report_data(filename, model_data):
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
     is_gaussian = False
-    if 'models' in model_data and _is_gaussian_source(model_data['models']['simulation']):
+    if 'models' in model_data and _SIM_DATA.is_gaussian_source(model_data['models']['simulation']):
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
     if model_data['report'] == 'initialIntensityReport':
@@ -294,7 +280,7 @@ def extract_report_data(filename, model_data):
         schema_enum = _SCHEMA['enum']['Polarization']
         subtitle_datum = this_report['polarization']
         subtitle_format = '{} Polarization'
-    elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or model_report.startswith('watchpointReport'):
+    elif model_report in ['initialIntensityReport', 'sourceIntensityReport'] or _SIM_DATA.is_watchpoint(model_report):
         schema_enum = _SCHEMA['enum']['Characteristic']
         subtitle_datum = this_report['characteristic']
     # Schema enums are indexed by strings, but model data may be numeric
@@ -311,141 +297,13 @@ def extract_report_data(filename, model_data):
         'y_units': file_info[filename][1][1],
         'points': data,
     })
-    rep_name = _WATCHPOINT_REPORT_NAME if template_common.is_watchpoint(model_report) else model_report
+    rep_name = _SIM_DATA.WATCHPOINT_REPORT if _SIM_DATA.is_watchpoint(model_report) else model_report
     if _DATA_FILE_FOR_MODEL[rep_name]['dimension'] == 3:
         width_pixels = int(this_report['intensityPlotsWidth'])
         rotate_angle = this_report.get('rotateAngle', 0)
         rotate_reshape = this_report.get('rotateReshape', '0')
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape)
     return info
-
-
-def fixup_old_data(data):
-    """Fixup data to match the most recent schema."""
-    for m in ('arbitraryMagField', 'brillianceReport', 'coherenceXAnimation', 'coherenceYAnimation', 'fluxAnimation', 'fluxReport', 'gaussianBeam', 'initialIntensityReport', 'intensityReport', 'mirrorReport', 'powerDensityReport', 'simulation', 'sourceIntensityReport', 'tabulatedUndulator', 'trajectoryReport'):
-        if m not in data['models']:
-            data['models'][m] = pkcollections.Dict()
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-        if 'intensityPlotsScale' in data['models'][m]:
-            data['models'][m]['plotScale'] = data['models'][m]['intensityPlotsScale']
-            del data['models'][m]['intensityPlotsScale']
-    for m in data['models']:
-        if template_common.is_watchpoint(m):
-            template_common.update_model_defaults(data['models'][m], 'watchpointReport', _SCHEMA)
-    # move sampleFactor to simulation model
-    if 'sampleFactor' in data['models']['initialIntensityReport']:
-        if 'sampleFactor' not in data['models']['simulation']:
-            data['models']['simulation']['sampleFactor'] = data['models']['initialIntensityReport']['sampleFactor']
-        for k in data['models']:
-            if k == 'initialIntensityReport' or template_common.is_watchpoint(k):
-                if 'sampleFactor' in data['models'][k]:
-                    del data['models'][k]['sampleFactor']
-    # default intensityReport.method based on source type
-    if 'method' not in data['models']['intensityReport']:
-        if _is_undulator_source(data['models']['simulation']):
-            data['models']['intensityReport']['method'] = '1'
-        elif _is_dipole_source(data['models']['simulation']):
-            data['models']['intensityReport']['method'] = '2'
-        else:
-            data['models']['intensityReport']['method'] = '0'
-    # default sourceIntensityReport.method based on source type
-    if 'method' not in data['models']['sourceIntensityReport']:
-        if _is_undulator_source(data['models']['simulation']):
-            data['models']['sourceIntensityReport']['method'] = '1'
-        elif _is_dipole_source(data['models']['simulation']):
-            data['models']['sourceIntensityReport']['method'] = '2'
-        elif _is_arbitrary_source(data['models']['simulation']):
-            data['models']['sourceIntensityReport']['method'] = '2'
-        else:
-            data['models']['sourceIntensityReport']['method'] = '0'
-    if 'simulationStatus' not in data['models'] or 'state' in data['models']['simulationStatus']:
-        data['models']['simulationStatus'] = pkcollections.Dict()
-    if 'facility' in data['models']['simulation']:
-        del data['models']['simulation']['facility']
-    if 'multiElectronAnimation' not in data['models']:
-        m = data['models']['initialIntensityReport']
-        data['models']['multiElectronAnimation'] = pkcollections.Dict({
-            'horizontalPosition': m['horizontalPosition'],
-            'horizontalRange': m['horizontalRange'],
-            'verticalPosition': m['verticalPosition'],
-            'verticalRange': m['verticalRange'],
-        })
-    template_common.update_model_defaults(data['models']['multiElectronAnimation'], 'multiElectronAnimation', _SCHEMA)
-    _fixup_beamline(data)
-    if 'samplingMethod' not in data['models']['simulation']:
-        simulation = data['models']['simulation']
-        simulation['samplingMethod'] = 1 if simulation['sampleFactor'] > 0 else 2
-        for k in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
-            simulation[k] = data['models']['initialIntensityReport'][k]
-    if 'horizontalPosition' in data['models']['initialIntensityReport']:
-        for k in data['models']:
-            if k == 'sourceIntensityReport' or k == 'initialIntensityReport' or template_common.is_watchpoint(k):
-                for f in ['horizontalPosition', 'horizontalRange', 'verticalPosition', 'verticalRange']:
-                    del data['models'][k][f]
-    if 'indexFile' in data.models.tabulatedUndulator:
-        del data.models.tabulatedUndulator['indexFile']
-
-    # Fixup electron beam parameters (drift, moments, etc.):
-    data = _fixup_electron_beam(data)
-
-    for component in ['horizontal', 'vertical']:
-        if '{}DeflectingParameter'.format(component) not in data['models']['undulator']:
-            undulator = data['models']['undulator']
-            undulator['{}DeflectingParameter'.format(component)] = _process_undulator_definition(pkcollections.Dict({
-                'undulator_definition': 'B',
-                'undulator_parameter': None,
-                'amplitude': float(undulator['{}Amplitude'.format(component)]),
-                'undulator_period': float(undulator['period']) / 1000.0
-            }))['undulator_parameter']
-    if 'effectiveDeflectingParameter' not in  data['models']['undulator']:
-        undulator = data['models']['undulator']
-        undulator['effectiveDeflectingParameter'] = math.sqrt(undulator['horizontalDeflectingParameter']**2 + \
-                                                              undulator['verticalDeflectingParameter']**2)
-
-    if 'folder' not in data['models']['simulation']:
-        if data['models']['simulation']['name'] in _EXAMPLE_FOLDERS:
-            data['models']['simulation']['folder'] = _EXAMPLE_FOLDERS[data['models']['simulation']['name']]
-        else:
-            data['models']['simulation']['folder'] = '/'
-
-    for k in ['photonEnergy', 'horizontalPointCount', 'horizontalPosition', 'horizontalRange',
-              'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
-        if k not in data['models']['sourceIntensityReport']:
-            data['models']['sourceIntensityReport'][k] = data['models']['simulation'][k]
-
-    if 'photonEnergy' not in data['models']['gaussianBeam']:
-        data['models']['gaussianBeam']['photonEnergy'] = data['models']['simulation']['photonEnergy']
-
-    if 'length' in data['models']['tabulatedUndulator']:
-        tabulated_undulator = data['models']['tabulatedUndulator']
-        und_length = _compute_undulator_length(tabulated_undulator)
-        if _uses_tabulated_zipfile(data) and 'length' in und_length:
-            data['models']['undulator']['length'] = und_length['length']
-        del tabulated_undulator['length']
-
-    if 'longitudinalPosition' in data['models']['tabulatedUndulator']:
-        tabulated_undulator = data['models']['tabulatedUndulator']
-        for k in ['undulatorParameter', 'period', 'length', 'longitudinalPosition', 'horizontalAmplitude', 'horizontalSymmetry', 'horizontalInitialPhase', 'verticalAmplitude', 'verticalSymmetry', 'verticalInitialPhase']:
-            if k in tabulated_undulator:
-                if _is_tabulated_undulator_source(data['models']['simulation']):
-                    data['models']['undulator'][k] = tabulated_undulator[k]
-                del tabulated_undulator[k]
-
-    if 'name' not in data['models']['tabulatedUndulator']:
-        und = data['models']['tabulatedUndulator']
-        und['name'] = und['undulatorSelector'] = 'Undulator'
-
-    if data['models']['tabulatedUndulator'].get('id', '1') == '1':
-        data['models']['tabulatedUndulator']['id'] = '{} 1'.format(data['models']['simulation']['simulationId'])
-
-    if len(data['models']['postPropagation']) == 9:
-        data['models']['postPropagation'] += [0, 0, 0, 0, 0, 0, 0, 0]
-        for item_id in data['models']['propagation']:
-            for row in data['models']['propagation'][item_id]:
-                row += [0, 0, 0, 0, 0, 0, 0, 0]
-
-    if 'electronBeams' in data['models']:
-        del data['models']['electronBeams']
 
 
 def get_animation_name(data):
@@ -464,7 +322,7 @@ def get_application_data(data):
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
-                _process_beam_parameters(beam)
+                process_beam_parameters(beam)
         return pkcollections.Dict({
             'modelList': res
         })
@@ -493,8 +351,8 @@ def get_application_data(data):
     elif data['method'] == 'process_intensity_reports':
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
-        _process_beam_parameters(data['ebeam'])
-        data['ebeam']['drift'] = _calculate_beam_drift(
+        process_beam_parameters(data['ebeam'])
+        data['ebeam']['drift'] = calculate_beam_drift(
             data['ebeam_position'],
             data['source_type'],
             data['undulator_type'],
@@ -505,7 +363,7 @@ def get_application_data(data):
     elif data['method'] == 'compute_undulator_length':
         return _compute_undulator_length(data['tabulated_undulator'])
     elif data['method'] == 'process_undulator_definition':
-        return _process_undulator_definition(data)
+        return process_undulator_definition(data)
     elif data['method'] == 'processedImage':
         return _process_image(data)
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
@@ -529,8 +387,8 @@ def get_file_list(file_type):
 
 
 def get_filename_for_model(model):
-    if template_common.is_watchpoint(model):
-        model = _WATCHPOINT_REPORT_NAME
+    if _SIM_DATA.is_watchpoint(model):
+        model = _SIM_DATA.WATCHPOINT_REPORT
     return _DATA_FILE_FOR_MODEL[model]['filename']
 
 
@@ -592,9 +450,9 @@ def lib_files(data, source_lib):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
-    if _is_arbitrary_source(dm.simulation):
+    if _SIM_DATA.is_arbitrary_source(dm.simulation):
         res.append(dm.arbitraryMagField.magneticFile)
-    if _is_beamline_report(report):
+    if _SIM_DATA.is_beamline_report(report):
         for m in dm.beamline:
             for k, v in _SCHEMA.model[m.type].items():
                 t = v[1]
@@ -628,7 +486,7 @@ def models_related_to_report(data):
     if _uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
 
-    watchpoint = template_common.is_watchpoint(r)
+    watchpoint = _SIM_DATA.is_watchpoint(r)
     if watchpoint or r == 'initialIntensityReport':
         res.extend([
             'simulation.horizontalPointCount',
@@ -646,7 +504,7 @@ def models_related_to_report(data):
         beamline = data['models']['beamline']
         res.append([beamline[0]['position'] if len(beamline) else 0])
     if watchpoint:
-        wid = template_common.watchpoint_id(r)
+        wid = _SIM_DATA.watchpoint_id(r)
         beamline = data['models']['beamline']
         propagation = data['models']['propagation']
         for item in beamline:
@@ -668,24 +526,28 @@ def models_related_to_report(data):
 def new_simulation(data, new_simulation_data):
     sim = data['models']['simulation']
     sim['sourceType'] = new_simulation_data['sourceType']
-    if _is_gaussian_source(sim):
+    if _SIM_DATA.is_gaussian_source(sim):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
-    elif _is_dipole_source(sim):
+    elif _SIM_DATA.is_dipole_source(sim):
         data['models']['intensityReport']['method'] = "2"
-    elif _is_arbitrary_source(sim):
+    elif _SIM_DATA.is_arbitrary_source(sim):
         data['models']['sourceIntensityReport']['method'] = "2"
-    elif _is_tabulated_undulator_source(sim):
+    elif _SIM_DATA.is_tabulated_undulator_source(sim):
         data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
 
 
 def prepare_for_client(data):
+    if _SIM_DATA.template_fixup_get(data):
+        import sirepo.template.srw_fixup
+        pkdlog('template fixup: {}', data.models.simulation.simulationId)
+        data = sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+        if model_name == 'tabulatedUndulator' and not _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type
             continue
         model = data['models'][model_name]
-        if _is_user_defined_model(model):
+        if _SIM_DATA.is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             search_model = None
             models_by_id = _user_model_map(user_model_list, 'id')
@@ -710,11 +572,11 @@ def prepare_for_client(data):
 
 def prepare_for_save(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        if model_name == 'tabulatedUndulator' and not _is_tabulated_undulator_source(data['models']['simulation']):
+        if model_name == 'tabulatedUndulator' and not _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type
             continue
         model = data['models'][model_name]
-        if _is_user_defined_model(model):
+        if _SIM_DATA.is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             models_by_id = _user_model_map(user_model_list, 'id')
 
@@ -746,8 +608,60 @@ def prepare_output_file(run_dir, data):
             simulation_db.write_result(res, run_dir=run_dir)
 
 
+def process_beam_parameters(ebeam):
+    # if the beamDefinition is "twiss", compute the moments fields and set on ebeam
+    moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
+    for k in moments_fields:
+        if k not in ebeam:
+            ebeam[k] = 0
+    if 'beamDefinition' not in ebeam:
+        ebeam['beamDefinition'] = 't'
+
+    if ebeam['beamDefinition'] == 't':  # Twiss
+        model = copy.deepcopy(ebeam)
+        # Convert to SI units to perform SRW calculation:
+        for k in model:
+            model[k] = _convert_ebeam_units(k, ebeam[k])
+        beam = srwlib.SRWLPartBeam()
+        beam.from_Twiss(
+            _e=model['energy'],
+            _sig_e=model['rmsSpread'],
+            _emit_x=model['horizontalEmittance'],
+            _beta_x=model['horizontalBeta'],
+            _alpha_x=model['horizontalAlpha'],
+            _eta_x=model['horizontalDispersion'],
+            _eta_x_pr=model['horizontalDispersionDerivative'],
+            _emit_y=model['verticalEmittance'],
+            _beta_y=model['verticalBeta'],
+            _alpha_y=model['verticalAlpha'],
+            _eta_y=model['verticalDispersion'],
+            _eta_y_pr=model['verticalDispersionDerivative'],
+        )
+        # copy moments values into the ebeam
+        for i, k in enumerate(moments_fields):
+            v = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
+            ebeam[k] = _format_float(_convert_ebeam_units(k, v, to_si=False))
+    return ebeam
+
+
+def process_undulator_definition(model):
+    """Convert K -> B and B -> K."""
+    try:
+        if model['undulator_definition'] == 'B':
+            # Convert B -> K:
+            und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
+            model['undulator_parameter'] = _format_float(und.get_K())
+        elif model['undulator_definition'] == 'K':
+            # Convert K to B:
+            und = srwlib.SRWLMagFldU([], float(model['undulator_period']))
+            model['amplitude'] = _format_float(und.K_2_B(float(model['undulator_parameter'])))
+        return model
+    except Exception:
+        return model
+
+
 def python_source_for_model(data, model):
-    data['report'] = model or _RUN_ALL_MODEL
+    data['report'] = model or _SIM_DATA.RUN_ALL_MODEL
     return """{}
 
 if __name__ == '__main__':
@@ -779,7 +693,7 @@ def validate_delete_file(data, filename, file_type):
     """Returns True if the filename is in use by the simulation data."""
     dm = data.models
     if file_type == 'undulatorTable':
-        if _is_tabulated_undulator_source(dm.simulation):
+        if _SIM_DATA.is_tabulated_undulator_source(dm.simulation):
             return dm.tabulatedUndulator.magneticFile == filename
         return False
     field = None
@@ -916,16 +830,6 @@ def _add_report_filenames(v):
         v['{}Filename'.format(k)] = _DATA_FILE_FOR_MODEL[k]['filename']
 
 
-def _calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
-    if ebeam_position['driftCalculationMethod'] == 'auto':
-        """Calculate drift for ideal undulator."""
-        if _is_idealized_undulator(source_type, undulator_type):
-            # initial drift = 1/2 undulator length + 2 periods
-            return -0.5 * float(undulator_length) - 2 * float(undulator_period)
-        return 0
-    return ebeam_position['drift']
-
-
 def _compute_material_characteristics(model, photon_energy, prefix=''):
     fields_with_prefix = pkcollections.Dict({
         'material': 'material',
@@ -1024,10 +928,6 @@ def _compute_crystal_init(model):
     return model
 
 
-def _compute_crystal_grazing_angle(model):
-    model['grazingAngle'] = math.acos(math.sqrt(1 - model['tvx'] ** 2 - model['tvy'] **2)) * 1e3
-
-
 def _compute_crystal_orientation(model):
     if not model['dSpacing']:
         return model
@@ -1058,7 +958,7 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
-        _compute_crystal_grazing_angle(model)
+        _SIM_DATA.compute_crystal_grazing_angle(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
@@ -1075,19 +975,19 @@ def _compute_grazing_angle(model):
         if (was_negative and item[field] > 0) or item[field] < 0:
             item[field] = - item[field]
 
-    grazing_angle = float(model['grazingAngle']) / 1000.0
+    grazing_angle = float(model.grazingAngle) / 1000.0
     # z is always negative
-    model['normalVectorZ'] = - abs(math.sin(grazing_angle))
-    if model['autocomputeVectors'] == 'horizontal':
+    model.normalVectorZ = - abs(math.sin(grazing_angle))
+    if model.autocomputeVectors == 'horizontal':
         preserve_sign(model, 'normalVectorX', math.cos(grazing_angle))
         preserve_sign(model, 'tangentialVectorX', math.sin(grazing_angle))
-        model['normalVectorY'] = 0
-        model['tangentialVectorY'] = 0
-    elif model['autocomputeVectors'] == 'vertical':
+        model.normalVectorY = 0
+        model.tangentialVectorY = 0
+    elif model.autocomputeVectors == 'vertical':
         preserve_sign(model, 'normalVectorY', math.cos(grazing_angle))
         preserve_sign(model, 'tangentialVectorY', math.sin(grazing_angle))
-        model['normalVectorX'] = 0
-        model['tangentialVectorX'] = 0
+        model.normalVectorX = 0
+        model.tangentialVectorX = 0
     return model
 
 
@@ -1216,108 +1116,6 @@ def _extract_trajectory_report(model, data):
     }
 
 
-def _find_closest_angle(angle, allowed_angles):
-    """Find closest string value from the input list to
-       the specified angle (in radians)."""
-
-    def wrap(ang):
-        """Convert an angle to constraint it between -pi and pi.
-           See https://stackoverflow.com/a/29237626/4143531 for details.
-        """
-        return np.arctan2(np.sin(ang), np.cos(ang))
-
-    angles_array = np.array([float(x) for x in allowed_angles])
-    threshold = np.min(np.diff(angles_array))
-    idx = np.where(np.abs(wrap(angle) - angles_array) < threshold / 2.0)[0][0]
-    return allowed_angles[idx]
-
-
-def _fixup_beamline(data):
-    for item in data['models']['beamline']:
-        if item['type'] == 'ellipsoidMirror':
-            if 'firstFocusLength' not in item:
-                item['firstFocusLength'] = item['position']
-        if item['type'] in ['grating', 'ellipsoidMirror', 'sphericalMirror', 'toroidalMirror']:
-            if 'grazingAngle' not in item:
-                angle = 0
-                if item['normalVectorX']:
-                    angle = math.acos(abs(float(item['normalVectorX']))) * 1000
-                elif item['normalVectorY']:
-                    angle = math.acos(abs(float(item['normalVectorY']))) * 1000
-                item['grazingAngle'] = angle
-        if 'grazingAngle' in item and 'normalVectorX' in item and 'autocomputeVectors' not in item:
-            item['autocomputeVectors'] = '1'
-        if item['type'] == 'crl':
-            key_value_pairs = pkcollections.Dict({
-                'material': 'User-defined',
-                'method': 'server',
-                'absoluteFocusPosition': None,
-                'focalDistance': None,
-                'tipRadius': float(item['radius']) * 1e6,  # m -> um
-                'tipWallThickness': float(item['wallThickness']) * 1e6,  # m -> um
-            })
-            for field in key_value_pairs.keys():
-                if field not in item:
-                    item[field] = key_value_pairs[field]
-            if not item['focalDistance']:
-                item = _compute_crl_focus(item)
-
-        if item['type'] == 'crystal':
-            if 'diffractionAngle' not in item:
-                allowed_angles = [x[0] for x in _SCHEMA['enum']['DiffractionPlaneAngle']]
-                item['diffractionAngle'] = _find_closest_angle(item['grazingAngle'] or 0, allowed_angles)
-                if item['tvx'] == '':
-                    item['tvx'] = item['tvy'] = 0
-                _compute_crystal_grazing_angle(item)
-
-        if item['type'] == 'sample':
-            if 'horizontalCenterCoordinate' not in item:
-                item['horizontalCenterCoordinate'] = _SCHEMA['model']['sample']['horizontalCenterCoordinate'][2]
-                item['verticalCenterCoordinate'] = _SCHEMA['model']['sample']['verticalCenterCoordinate'][2]
-            if 'cropArea' not in item:
-                for f in ['cropArea', 'areaXStart', 'areaXEnd', 'areaYStart', 'areaYEnd', 'rotateAngle', 'rotateReshape',
-                          'cutoffBackgroundNoise', 'backgroundColor', 'tileImage', 'tileRows', 'tileColumns',
-                          'shiftX', 'shiftY', 'invert', 'outputImageFormat']:
-                    item[f] = _SCHEMA['model']['sample'][f][2]
-            if 'transmissionImage' not in item:
-                item['transmissionImage'] = _SCHEMA['model']['sample']['transmissionImage'][2]
-        if item['type'] in ('crl', 'grating', 'ellipsoidMirror', 'sphericalMirror') and 'horizontalOffset' not in item:
-            item['horizontalOffset'] = 0
-            item['verticalOffset'] = 0
-        if 'autocomputeVectors' in item:
-            if item['autocomputeVectors'] == '0':
-                item['autocomputeVectors'] = 'none'
-            elif item['autocomputeVectors'] == '1':
-                item['autocomputeVectors'] = 'vertical' if item['normalVectorX'] == 0 else 'horizontal'
-
-
-def _fixup_electron_beam(data):
-    if 'electronBeamPosition' not in data['models']:
-        ebeam = data['models']['electronBeam']
-        data['models']['electronBeamPosition'] = pkcollections.Dict({
-            'horizontalPosition': ebeam['horizontalPosition'],
-            'verticalPosition': ebeam['verticalPosition'],
-            'driftCalculationMethod': ebeam['driftCalculationMethod'] if 'driftCalculationMethod' in ebeam else 'auto',
-            'drift': ebeam['drift'] if 'drift' in ebeam else 0,
-        })
-        for f in ('horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift'):
-            if f in ebeam:
-                del ebeam[f]
-    if 'horizontalAngle' not in data['models']['electronBeamPosition']:
-        data['models']['electronBeamPosition']['horizontalAngle'] = _SCHEMA['model']['electronBeamPosition']['horizontalAngle'][2]
-        data['models']['electronBeamPosition']['verticalAngle'] = _SCHEMA['model']['electronBeamPosition']['verticalAngle'][2]
-    if 'beamDefinition' not in data['models']['electronBeam']:
-        _process_beam_parameters(data['models']['electronBeam'])
-        data['models']['electronBeamPosition']['drift'] = _calculate_beam_drift(
-            data['models']['electronBeamPosition'],
-            data['models']['simulation']['sourceType'],
-            data['models']['tabulatedUndulator']['undulatorType'],
-            float(data['models']['undulator']['length']),
-            float(data['models']['undulator']['period']) / 1000.0,
-        )
-    return data
-
-
 def _fix_file_header(filename):
     # fixes file header for coherenceXAnimation and coherenceYAnimation reports
     rows = []
@@ -1344,7 +1142,7 @@ def _format_float(v):
 
 
 def _generate_beamline_optics(report, models, last_id):
-    if not _is_beamline_report(report):
+    if not _SIM_DATA.is_beamline_report(report):
         return '    pass', ''
     has_beamline_elements = len(models.beamline) > 0
     if has_beamline_elements and not last_id:
@@ -1496,9 +1294,9 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
-        if _is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
+        if _SIM_DATA.is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
             data['models']['fluxReport']['magneticField'] = 1
-    elif template_common.is_watchpoint(report) or report == 'sourceIntensityReport':
+    elif _SIM_DATA.is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
         data['models']['initialIntensityReport'] = data['models'][report].copy()
     if report == 'sourceIntensityReport':
@@ -1506,7 +1304,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
                   'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
             data['models']['simulation'][k] = data['models']['sourceIntensityReport'][k]
 
-    if _is_tabulated_undulator_source(data['models']['simulation']):
+    if _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
 
@@ -1522,8 +1320,8 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 
     _validate_data(data, _SCHEMA)
     last_id = None
-    if template_common.is_watchpoint(report):
-        last_id = template_common.watchpoint_id(report)
+    if _SIM_DATA.is_watchpoint(report):
+        last_id = _SIM_DATA.watchpoint_id(report)
     if report == 'multiElectronAnimation':
         last_id = data['models']['multiElectronAnimation']['watchpointId']
     if int(data['models']['simulation']['samplingMethod']) == 2:
@@ -1531,7 +1329,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     res, v = template_common.generate_parameters_file(data)
 
     v['rs_type'] = source_type
-    if _is_idealized_undulator(source_type, undulator_type):
+    if _SIM_DATA.is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
 
     if report == 'mirrorReport':
@@ -1555,7 +1353,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['beamlineFirstElementPosition'] = position
 
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if _is_undulator_source(data['models']['simulation']) else 2
+    v['energyCalculationMethod'] = 1 if _SIM_DATA.is_undulator_source(data['models']['simulation']) else 2
 
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
@@ -1583,13 +1381,13 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 def _generate_srw_main(data, plot_reports):
     report = data['report']
     source_type = data['models']['simulation']['sourceType']
-    run_all = report == _RUN_ALL_MODEL
+    run_all = report == _SIM_DATA.RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
     ]
     if plot_reports and _uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
-    if run_all or template_common.is_watchpoint(report) or report == 'multiElectronAnimation':
+    if run_all or _SIM_DATA.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
     else:
         # set_optics() can be an expensive call for mirrors, only invoke if needed
@@ -1614,11 +1412,11 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.tr = True')
         if plot_reports:
             content.append("v.tr_pl = 'xz'")
-    if run_all or template_common.is_watchpoint(report):
+    if run_all or _SIM_DATA.is_watchpoint(report):
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
-    if plot_reports or not _is_background_report(report):
+    if plot_reports or not _SIM_DATA.is_background_report(report):
         #TODO(pjm): work-around for #1593
         content.append('mag = None')
         content.append("if v.rs_type == 'm':")
@@ -1668,7 +1466,7 @@ def _init():
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-        beams.append(_process_beam_parameters(pkcollections.Dict({
+        beams.append(process_beam_parameters(pkcollections.Dict({
             'name': beam[0],
             'current': info[0],
             'energy': info[1],
@@ -1709,50 +1507,6 @@ def _invert_value(value, invert=False):
     return value
 
 
-def _is_background_report(report):
-    return 'Animation' in report
-
-
-def _is_beamline_report(report):
-    if not report or template_common.is_watchpoint(report) or report in ['multiElectronAnimation', _RUN_ALL_MODEL]:
-        return True
-    return False
-
-
-def _is_arbitrary_source(sim):
-    return sim['sourceType'] == 'a'
-
-
-def _is_dipole_source(sim):
-    return sim['sourceType'] == 'm'
-
-
-def _is_gaussian_source(sim):
-    return sim['sourceType'] == 'g'
-
-
-def _is_idealized_undulator(source_type, undulator_type):
-    return source_type == 'u' or (source_type == 't' and undulator_type == 'u_i')
-
-
-def _is_tabulated_undulator_source(sim):
-    return sim['sourceType'] == 't'
-
-
-def _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type):
-    return source_type == 't' and undulator_type == 'u_t'
-
-
-def _is_undulator_source(sim):
-    return sim['sourceType'] in ['u', 't']
-
-
-def _is_user_defined_model(model):
-    if 'isReadOnly' in model and model['isReadOnly']:
-        return False
-    return True
-
-
 def _lib_file_datetime(filename):
     path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
     if path.exists():
@@ -1782,41 +1536,6 @@ def _predefined_files_for_type(file_type):
                 }))
     return res
 
-
-def _process_beam_parameters(ebeam):
-    # if the beamDefinition is "twiss", compute the moments fields and set on ebeam
-    moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
-    for k in moments_fields:
-        if k not in ebeam:
-            ebeam[k] = 0
-    if 'beamDefinition' not in ebeam:
-        ebeam['beamDefinition'] = 't'
-
-    if ebeam['beamDefinition'] == 't':  # Twiss
-        model = copy.deepcopy(ebeam)
-        # Convert to SI units to perform SRW calculation:
-        for k in model:
-            model[k] = _convert_ebeam_units(k, ebeam[k])
-        beam = srwlib.SRWLPartBeam()
-        beam.from_Twiss(
-            _e=model['energy'],
-            _sig_e=model['rmsSpread'],
-            _emit_x=model['horizontalEmittance'],
-            _beta_x=model['horizontalBeta'],
-            _alpha_x=model['horizontalAlpha'],
-            _eta_x=model['horizontalDispersion'],
-            _eta_x_pr=model['horizontalDispersionDerivative'],
-            _emit_y=model['verticalEmittance'],
-            _beta_y=model['verticalBeta'],
-            _alpha_y=model['verticalAlpha'],
-            _eta_y=model['verticalDispersion'],
-            _eta_y_pr=model['verticalDispersionDerivative'],
-        )
-        # copy moments values into the ebeam
-        for i, k in enumerate(moments_fields):
-            v = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
-            ebeam[k] = _format_float(_convert_ebeam_units(k, v, to_si=False))
-    return ebeam
 
 
 def _process_image(data):
@@ -1853,24 +1572,8 @@ def _process_image(data):
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     return pkcollections.Dict({
-        'magneticField': 2 if source_type == 'a' or _is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
+        'magneticField': 2 if source_type == 'a' or _SIM_DATA.is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
-
-
-def _process_undulator_definition(model):
-    """Convert K -> B and B -> K."""
-    try:
-        if model['undulator_definition'] == 'B':
-            # Convert B -> K:
-            und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
-            model['undulator_parameter'] = _format_float(und.get_K())
-        elif model['undulator_definition'] == 'K':
-            # Convert K to B:
-            und = srwlib.SRWLMagFldU([], float(model['undulator_period']))
-            model['amplitude'] = _format_float(und.K_2_B(float(model['undulator_parameter'])))
-        return model
-    except Exception:
-        return model
 
 
 def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rotate_reshape):
@@ -2002,7 +1705,7 @@ def _unique_name(items, field, template):
 
 
 def _uses_tabulated_zipfile(data):
-    return _is_tabulated_undulator_with_magnetic_file(data['models']['simulation']['sourceType'], data['models']['tabulatedUndulator']['undulatorType'])
+    return _SIM_DATA.is_tabulated_undulator_with_magnetic_file(data['models']['simulation']['sourceType'], data['models']['tabulatedUndulator']['undulatorType'])
 
 
 def _user_model_map(model_list, field):

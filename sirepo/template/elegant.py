@@ -13,7 +13,8 @@ from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
-from sirepo.template import template_common, sdds_util
+from sirepo.template import sdds_util
+from sirepo.template import template_common
 import ast
 import glob
 import math
@@ -23,13 +24,13 @@ import os.path
 import py.path
 import re
 import sdds
+import sirepo.sim_data
 import stat
 import werkzeug
 
-#: Simulation type
-ELEGANT_LOG_FILE = 'elegant.log'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-SIM_TYPE = elegant_common.SIM_TYPE
+ELEGANT_LOG_FILE = 'elegant.log'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -48,7 +49,6 @@ _FIELD_LABEL = pkcollections.Dict(
     GammaDeriv='GammaDeriv (1/m)',
 )
 
-#
 _FILE_ID_SEP = '-'
 
 _INFIX_TO_RPN = pkcollections.Dict({
@@ -81,8 +81,6 @@ _x = getattr(_s, 'SDDS_LONGDOUBLE', None)
 _SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
 
 _SDDS_STRING_TYPE = _s.SDDS_STRING
-
-_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
 
 _SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
 

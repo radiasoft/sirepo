@@ -46,8 +46,6 @@ _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
-_WATCHPOINT_REPORT_NAME = 'watchpointReport'
-
 
 class ModelUnits:
     """
@@ -327,10 +325,6 @@ def histogram_bins(nbins):
     return nbins
 
 
-def is_watchpoint(name):
-    return _WATCHPOINT_REPORT_NAME in name
-
-
 def lib_file_name(model_name, field, value):
     return '{}-{}.{}'.format(model_name, field, value)
 
@@ -589,13 +583,6 @@ def subprocess_output(cmd, env):
     if out != None and len(out):
         return out.strip()
     return ''
-
-
-def watchpoint_id(report):
-    m = re.search(_WATCHPOINT_REPORT_NAME + '(\d+)', report)
-    if not m:
-        raise RuntimeError('invalid watchpoint report name: ', report)
-    return int(m.group(1))
 
 
 def _escape(v):
