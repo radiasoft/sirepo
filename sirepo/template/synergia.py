@@ -18,6 +18,9 @@ import math
 import py.path
 import re
 import werkzeug
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OUTPUT_FILE = {
     'bunchReport': 'particles.h5',
@@ -27,8 +30,6 @@ OUTPUT_FILE = {
     'turnComparisonAnimation': 'diagnostics.h5',
 }
 
-SIM_TYPE = 'synergia'
-
 WANT_BROWSER_FRAME_CACHE = True
 
 _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
@@ -36,8 +37,6 @@ _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 _FILE_ID_SEP = '-'
 
 _IGNORE_ATTRIBUTES = ['lrad']
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _UNITS = {
     'x': 'm',
@@ -89,37 +88,6 @@ def background_percent_complete(report, run_dir, is_running):
         'percentComplete': 0,
         'frameCount': 0,
     }
-
-
-def fixup_old_data(data):
-    for m in [
-            'beamEvolutionAnimation',
-            'bunch',
-            'bunchAnimation',
-            'bunchTwiss',
-            'simulationSettings',
-            'turnComparisonAnimation',
-            'twissReport',
-            'twissReport2',
-    ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'bunchReport' in data['models']:
-        del data['models']['bunchReport']
-        for i in range(4):
-            m = 'bunchReport{}'.format(i + 1)
-            model = data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], 'bunchReport', _SCHEMA)
-            if i == 0:
-                model['y'] = 'xp'
-            elif i == 1:
-                model['x'] = 'y'
-                model['y'] = 'yp'
-            elif i == 3:
-                model['x'] = 'z'
-                model['y'] = 'zp'
-    template_common.organize_example(data)
 
 
 def format_float(v):

@@ -55,13 +55,14 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def model_defaults(cls, name, schema):
+    def model_defaults(cls, name, schema=None):
         """Returns a set of default model values from the schema."""
+        s = schema or cls.schema()
         res = pkcollections.Dict()
-        for f in schema.model[name]:
-            field_info = schema.model[name][f]
-            if len(field_info) >= 3 and field_info[2] is not None:
-                res[f] = field_info[2]
+        for f in s.model[name]:
+            d = s.model[name][f]
+            if len(d) >= 3 and d[2] is not None:
+                res[f] = d[2]
         return res
 
     @classmethod
@@ -77,9 +78,10 @@ class SimDataBase(object):
 
     @classmethod
     def organize_example(cls, data):
-        if 'isExample' in data.models.simulation and data.models.simulation.isExample:
-            if data.models.simulation.folder == '/':
-                data.models.simulation.folder = '/Examples'
+        dm = data.models
+        if 'isExample' in dm.simulation and dm.simulation.isExample:
+            if dm.simulation.folder == '/':
+                dm.simulation.folder = '/Examples'
 
     @classmethod
     def schema(cls):
@@ -90,8 +92,8 @@ class SimDataBase(object):
         return cls._memoize(pkinspect.module_basename(cls))
 
     @classmethod
-    def update_model_defaults(cls, model, name, schema, dynamic=None):
-        defaults = cls.model_defaults(name, schema)
+    def update_model_defaults(cls, model, name, schema=None, dynamic=None):
+        defaults = cls.model_defaults(name, schema or cls.schema())
         if dynamic is not None:
             defaults.update(dynamic)
         for f in defaults:
