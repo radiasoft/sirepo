@@ -16,23 +16,21 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        if 'dicomEditorState' not in dm:
-            dm.dicomEditorState = pkcollections.Dict()
-        if 'doseCalculation' not in dm:
-            dm.doseCalculation = pkcollections.Dict(
-                selectedPTV='',
-                selectedOARs=[],
-            )
-        if 'dicomDose' not in dm:
-            dm.dicomDose = pkcollections.Dict(frameCount=0)
-        if 'dicomAnimation4' not in dm:
-            anim = dm.dicomAnimation
-            dm.dicomAnimation4 = pkcollections.Dict(
+        dm.setdefault(
+            'dicomEditorState',
+            pkcollections.Dict(),
+            'doseCalculation',
+            pkcollections.Dict(selectedPTV='', selectedOARs=[]),
+            'dicomDose',
+            pkcollections.Dict(frameCount=0),
+            'dicomAnimation4',
+            pkcollections.Dict(
                 dicomPlane='t',
-                startTime=anim.get('startTime', 0),
-            }
-        if 'dvhReport' not in dm:
-            dm.dvhReport = pkcollections.Dict(roiNumber='')
+                startTime=dm.dicomAnimation.get('startTime', 0),
+            ),
+            'dvhReport',
+            pkcollections.Dict(roiNumber=''),
+        )
         if 'dvhType' not in dm.dvhReport:
             dm.dvhReport.update(
                 dvhType='cumulative',

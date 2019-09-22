@@ -51,6 +51,14 @@ class SimDataBase(object):
     _TEMPLATE_FIXUP = 'sim_data_template_fixup'
 
     @classmethod
+    def init_models(cls, models, names=None):
+        for n in names or cls.schema().model:
+            cls.update_model_defaults(
+                models.setdefault(n, pkcollections.Dict()),
+                n,
+            )
+
+    @classmethod
     def is_watchpoint(cls, name):
         return cls.WATCHPOINT_REPORT in name
 
@@ -66,17 +74,6 @@ class SimDataBase(object):
         return res
 
     @classmethod
-    def template_fixup_get(cls, data):
-        if data.get(cls._TEMPLATE_FIXUP):
-            del data[cls._TEMPLATE_FIXUP]
-            return True
-        return False
-
-    @classmethod
-    def template_fixup_set(cls, data):
-        data[cls._TEMPLATE_FIXUP] = True
-
-    @classmethod
     def organize_example(cls, data):
         dm = data.models
         if 'isExample' in dm.simulation and dm.simulation.isExample:
@@ -90,6 +87,17 @@ class SimDataBase(object):
     @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
+
+    @classmethod
+    def template_fixup_get(cls, data):
+        if data.get(cls._TEMPLATE_FIXUP):
+            del data[cls._TEMPLATE_FIXUP]
+            return True
+        return False
+
+    @classmethod
+    def template_fixup_set(cls, data):
+        data[cls._TEMPLATE_FIXUP] = True
 
     @classmethod
     def update_model_defaults(cls, model, name, schema=None, dynamic=None):

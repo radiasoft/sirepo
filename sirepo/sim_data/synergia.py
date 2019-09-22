@@ -16,31 +16,30 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        for m in [
-            'beamEvolutionAnimation',
-            'bunch',
-            'bunchAnimation',
-            'bunchTwiss',
-            'simulationSettings',
-            'turnComparisonAnimation',
-            'twissReport',
-            'twissReport2',
-        ]:
-            if m not in dm:
-                dm[m] = {}
-            cls.update_model_defaults(dm[m], m)
+        cls.init_models(
+            dm,
+            (
+                'beamEvolutionAnimation',
+                'bunch',
+                'bunchAnimation',
+                'bunchTwiss',
+                'simulationSettings',
+                'turnComparisonAnimation',
+                'twissReport',
+                'twissReport2',
+            ),
+        )
         if 'bunchReport' in dm:
             del dm['bunchReport']
-            for i in range(4):
-                m = 'bunchReport{}'.format(i + 1)
-                model = dm[m] = {}
-                cls.update_model_defaults(dm[m], 'bunchReport')
-                if i == 0:
-                    model['y'] = 'xp'
-                elif i == 1:
-                    model['x'] = 'y'
-                    model['y'] = 'yp'
-                elif i == 3:
-                    model['x'] = 'z'
-                    model['y'] = 'zp'
+            for i in range(1, 5):
+                m = dm['bunchReport{}'.format(i)] = pkcollections.Dict()
+                cls.update_model_defaults(m, 'bunchReport')
+                if i == 1:
+                    m.y = 'xp'
+                elif i == 2:
+                    m.x = 'y'
+                    m.y = 'yp'
+                elif i == 4:
+                    m.x = 'z'
+                    m.y = 'zp'
         cls.organize_example(data)

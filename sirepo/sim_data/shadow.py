@@ -15,22 +15,17 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
+        dm = data.models
         if (
             float(data.fixup_old_version) < 20170703.000001
-            and 'geometricSource' in data.models
+            and 'geometricSource' in dm
         ):
             g = data.models.geometricSource
             x = g.cone_max
             g.cone_max = g.cone_min
             g.cone_min = x
-        for m in [
-            'initialIntensityReport',
-            'plotXYReport',
-        ]:
-            if m not in data.models:
-                data.models[m] = pkcollections.Dict()
-            cls.update_model_defaults(data.models[m], m, cls.schema())
-        for m in data.models:
+        cls.init_models(dm, ('initialIntensityReport', 'plotXYReport'))
+        for m in dm:
             if cls.is_watchpoint(m):
-                cls.update_model_defaults(data.models[m], 'watchpointReport', cls.schema())
+                cls.update_model_defaults(dm[m], 'watchpointReport', cls.schema())
         cls.organize_example(data)

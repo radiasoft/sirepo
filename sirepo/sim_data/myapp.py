@@ -16,7 +16,4 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        for m in cls.schema().model:
-            if m not in data.models:
-                data.models[m] = pkcollections.Dict()
-            cls.update_model_defaults(data.models[m], m, cls.schema())
+        cls.init_models(data.models)

@@ -23,13 +23,13 @@ import os.path
 import py.path
 import re
 
-#: Simulation type
-SIM_TYPE = 'warppba'
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
@@ -135,93 +135,6 @@ def extract_particle_report(args, particle_type, run_dir, data_file):
         'z_matrix': hist.T.tolist(),
         'frameCount': data_file.num_frames,
     }
-
-
-def fixup_old_data(data):
-    if 'laserPreviewReport' not in data['models']:
-        data['models']['laserPreviewReport'] = {}
-    if 'particleAnimation' not in data['models']:
-        data['models']['particleAnimation'] = {
-            'x': 'z',
-            'y': 'x',
-            'histogramBins': 100,
-        }
-    if 'simulationStatus' not in data['models']:
-        data['models']['simulationStatus'] = {}
-    if 'histogramBins' not in data['models']['particleAnimation']:
-        data['models']['particleAnimation']['histogramBins'] = 100
-    if 'framesPerSecond' not in data['models']['fieldAnimation']:
-        data['models']['fieldAnimation']['framesPerSecond'] = 20
-        data['models']['particleAnimation']['framesPerSecond'] = 20
-    if 'rScale' not in data['models']['simulationGrid']:
-        grid = data['models']['simulationGrid']
-        grid['rScale'] = 4
-        grid['rLength'] = '20.324980154380'
-        grid['rMin'] = 0
-        grid['rMax'] = '20.324980154380'
-        grid['rCellsPerSpotSize'] = 8
-        grid['rCount'] = 32
-        grid['zScale'] = 2
-        grid['zLength'] = '20.324980154631'
-        grid['zMin'] = '-20.324980154631'
-        grid['zMax'] = '1.60'
-        grid['zCellsPerWavelength'] = 8
-        grid['zCount'] = 214
-        del grid['xMin']
-        del grid['xMax']
-        del grid['xCount']
-        del grid['zLambda']
-    if 'rParticlesPerCell' not in data['models']['simulationGrid']:
-        data['models']['simulationGrid']['rParticlesPerCell'] = 1
-        data['models']['simulationGrid']['zParticlesPerCell'] = 2
-    if 'field' not in data['models']['laserPreviewReport']:
-        laserPreview = data['models']['laserPreviewReport']
-        laserPreview['field'] = 'E'
-        laserPreview['coordinate'] = 'y'
-        laserPreview['mode'] = '1'
-    if 'sourceType' not in data['models']['simulation']:
-        data['models']['simulation']['sourceType'] = 'laserPulse'
-    if 'electronBeam' not in data['models']:
-        data['models']['electronBeam'] = {
-            'charge': 1.0e-08,
-            'energy': 23,
-        }
-    if 'beamPreviewReport' not in data['models']:
-        data['models']['beamPreviewReport'] = {
-            'x': 'z',
-            'y': 'x',
-            'histogramBins': 100
-        }
-    if 'beamAnimation' not in data['models']:
-        data['models']['beamAnimation'] = data['models']['particleAnimation'].copy()
-    if 'rCellResolution' not in data['models']['simulationGrid']:
-        grid = data['models']['simulationGrid']
-        grid['rCellResolution'] = 40
-        grid['zCellResolution'] = 40
-    if 'rmsLength' not in data['models']['electronBeam']:
-        beam = data['models']['electronBeam']
-        beam['rmsLength'] = 0
-        beam['rmsRadius'] = 0
-        beam['bunchLength'] = 0
-        beam['transverseEmittance'] = 0
-    if 'xMin' not in data['models']['particleAnimation']:
-        animation = data['models']['particleAnimation']
-        for v in ('x', 'y', 'z'):
-            animation['{}Min'.format(v)] = 0
-            animation['{}Max'.format(v)] = 0
-            animation['u{}Min'.format(v)] = 0
-            animation['u{}Max'.format(v)] = 0
-    if 'beamRadiusMethod' not in data['models']['electronBeam']:
-        beam = data['models']['electronBeam']
-        beam['beamRadiusMethod'] = 'a'
-        beam['transverseEmittance'] = 0.00001
-        beam['rmsRadius'] = 15
-        beam['beamBunchLengthMethod'] = 's'
-    if 'folder' not in data['models']['simulation']:
-        data['models']['simulation']['folder'] = '/'
-    for m in ('beamAnimation', 'fieldAnimation', 'particleAnimation'):
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    template_common.organize_example(data)
 
 
 def generate_parameters_file(data, is_parallel=False):

@@ -16,18 +16,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        s = cls.schema()
-        for m in ('ring', 'particleAnimation', 'twissReport'):
-            if m not in dm:
-                dm[m] = pkcollections.Dict()
-            cls.update_model_defaults(dm[m], m, s)
+        cls.init_models(dm, ('ring', 'particleAnimation', 'twissReport'))
         if 'coolingRatesAnimation' not in dm:
             for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
                 dm[m] = pkcollections.Dict()
-                cls.update_model_defaults(dm[m], m, s)
+                cls.update_model_defaults(dm[m], m)
         if 'beam_type' not in dm.ionBeam:
-            x = dm.ionBeam
-            x.beam_type = 'bunched' if x.rms_bunch_length > 0 else 'continuous'
+            dm.ionBeam.setdefault(
+                'beam_type',
+                'bunched' if dm.ionBeam.rms_bunch_length > 0 else 'continuous',
+            )
         if 'beam_type' not in dm.electronBeam:
             x = dm.electronBeam
             x.beam_type = 'continuous' if x.shape == 'dc_uniform' else 'bunched'
@@ -50,6 +48,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             ):
                 x[f] = 0
         # if model field value is less than min, set to default value
+        s = cls.schema()
         for m in dm:
             x = dm[m]
             if m in s.model:

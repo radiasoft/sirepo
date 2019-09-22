@@ -16,18 +16,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        s = cls.schema()
-        for m in (
-            'beamAnimation',
-            'beamHistogramAnimation',
-            'parameterAnimation',
-            'particleAnimation',
-        ):
-            if m not in dm:
-                dm[m] = pkcollections.Dict()
-            cls.update_model_defaults(dm[m], m, s)
-        if 'solenoidFile' not in dm.solenoid:
-            dm.solenoid.solenoidFile = ''
+        cls.init_models(
+            dm,
+            (
+                'beamAnimation',
+                'beamHistogramAnimation',
+                'parameterAnimation',
+                'particleAnimation',
+            ),
+        )
+        dm.solenoid.setdefault('solenoidFile', '')
         if 'beamDefinition' not in dm.beam:
             dm.beam.update(
                 beamDefinition='transverse_longitude',

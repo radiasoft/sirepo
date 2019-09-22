@@ -45,8 +45,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         """Fixup data to match the most recent schema."""
         dm = data.models
-        s = cls.schema()
-        for m in (
+        x = (
             'arbitraryMagField',
             'brillianceReport',
             'coherenceXAnimation',
@@ -62,16 +61,15 @@ class SimData(sirepo.sim_data.SimDataBase):
             'sourceIntensityReport',
             'tabulatedUndulator',
             'trajectoryReport',
-        ):
-            if m not in dm:
-                dm[m] = pkcollections.Dict()
-            cls.update_model_defaults(dm[m], m, s)
+        )
+        cls.init_models(dm, x)
+        for m in x:
             if 'intensityPlotsScale' in dm[m]:
                 dm[m].plotScale = dm[m].intensityPlotsScale
                 del dm[m]['intensityPlotsScale']
         for m in dm:
             if cls.is_watchpoint(m):
-                cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT, s)
+                cls.update_model_defaults(dm[m], cls.WATCHPOINT_REPORT)
         # move sampleFactor to simulation model
         if 'sampleFactor' in dm.initialIntensityReport:
             if 'sampleFactor' not in dm.simulation:
@@ -110,7 +108,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 verticalPosition=m.verticalPosition,
                 verticalRange=m.verticalRange,
             )
-        cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation', s)
+        cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
         if 'folder' not in dm.simulation:
             if dm.simulation.name in cls.EXAMPLE_FOLDERS:
                 dm.simulation.folder = cls.EXAMPLE_FOLDERS[dm.simulation.name]

@@ -15,52 +15,46 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        for m in [
-            'bunchSource',
-            'twissReport',
-        ]:
-            if m not in data['models']:
-                data['models'][m] = pkcollections.Dict()
-            cls.update_model_defaults(data['models'][m], m, cls.schema())
-        if 'bunchFile' not in data['models']:
-            data['models']['bunchFile'] = pkcollections.Dict(sourceFile=None)
-        if 'folder' not in data['models']['simulation']:
-            data['models']['simulation']['folder'] = '/'
-        if 'simulationMode' not in data['models']['simulation']:
-            data['models']['simulation']['simulationMode'] = 'parallel'
-        if 'rpnVariables' not in data['models']:
-            data['models']['rpnVariables'] = []
-        if 'commands' not in data['models']:
-            data['models']['commands'] = cls._create_commands(data)
-            for m in data['models']['elements']:
-                model_schema = cls.schema().model[m['type']]
+        s = cls.schema()
+        dm = data.models
+        cls.init_models(dm, ('bunchSource', 'twissReport'))
+        dm.setdefault('bunchFile', pkcollections.Dict(sourceFile=None))
+        dm.simulation.setdefault(
+            'folder', '/',
+            'simulationMode', 'parallel',
+        )
+        dm.setdefault('rpnVariables', [])
+        if 'commands' not in dm:
+            dm.commands = cls._create_commands(data)
+            for m in dm.elements:
+                model_schema = s.model[m['type']]
                 for k in m:
                     if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
                         m[k] = "1"
-        for m in data['models']['elements']:
-            if m['type'] == 'WATCH':
-                m['filename'] = '1'
-                if m['mode'] == 'coordinates' or m['mode'] == 'coord':
-                    m['mode'] = 'coordinate'
-            cls.update_model_defaults(m, m['type'], cls.schema())
-        if 'centroid' not in data['models']['bunch']:
-            bunch = data['models']['bunch']
-            for f in ('emit_x', 'emit_y', 'emit_z'):
-                if bunch[f] and not isinstance(bunch[f], basestring):
-                    bunch[f] /= 1e9
-            if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
-                bunch['sigma_s'] /= 1e6
-            first_bunch_command = _find_first_bunch_command(data)
+        for m in dm.elements:
+            if m.type == 'WATCH':
+                m.filename = '1'
+                if m.mode == 'coordinates' or m.mode == 'coord':
+                    m.mode = 'coordinate'
+            cls.update_model_defaults(m, m.type)
+        if 'centroid' not in dm.bunch:
+            b = dm.bunch
+            for f in 'emit_x', 'emit_y', 'emit_z':
+                if b[f] and not isinstance(b[f], basestring):
+                    b[f] /= 1e9
+            if b.sigma_s and not isinstance(b.sigma_s, basestring):
+                b.sigma_s /= 1e6
+            c = _find_first_bunch_command(data)
             # first_bunch_command may not exist if the elegant sim has no bunched_beam command
-            if first_bunch_command:
-                first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
-                for f in cls.schema().model.bunch:
-                    if f not in bunch and f in first_bunch_command:
-                        bunch[f] = first_bunch_command[f]
+            if c:
+                c.symmetrize = str(c.symmetrize)
+                for f in s.model.bunch:
+                    if f not in b and f in c:
+                        b[f] = c[f]
             else:
-                bunch['centroid'] = '0,0,0,0,0,0'
-        for m in data['models']['commands']:
-            cls.update_model_defaults(m, 'command_{}'.format(m['_type']), cls.schema())
+                bunch.centroid = '0,0,0,0,0,0'
+        for m in dm.commands:
+            cls.update_model_defaults(m, 'command_{}'.format(m._type))
         cls.organize_example(data)
 
     @classmethod

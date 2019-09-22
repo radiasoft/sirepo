@@ -15,12 +15,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        s = cls.schema()
-        for m in s.model:
-            if m not in data.models:
-                data.models[m] = pkcollections.Dict()
-            cls.update_model_defaults(data.models[m], m, s)
-        if data.models.simulation.flashType == 'CapLaser':
-            io_model = data.models.IO
-            io_model.plot_var_5 = 'magz'
-            io_model.plot_var_6 = 'depo'
+        dm = data.models
+        cls.init_models(dm)
+        if dm.simulation.flashType == 'CapLaser':
+            dm.IO.update(
+                plot_var_5='magz',
+                plot_var_6='depo',
+            )
