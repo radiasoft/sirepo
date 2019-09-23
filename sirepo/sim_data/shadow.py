@@ -27,5 +27,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls.init_models(dm, ('initialIntensityReport', 'plotXYReport'))
         for m in dm:
             if cls.is_watchpoint(m):
-                cls.update_model_defaults(dm[m], 'watchpointReport', cls.schema())
+                cls.update_model_defaults(dm[m], 'watchpointReport')
         cls.organize_example(data)

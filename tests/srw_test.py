@@ -34,7 +34,7 @@ def test_model_defaults():
         'numberOfPoints': 10,
         'finalTimeMoment': 1.0,
     }
-    template_common.update_model_defaults(model, 'trajectoryReport', simulation_db.get_schema('srw'))
+    sirepo.sim_data.get_class('srw').update_model_defaults(model, 'trajectoryReport')
     assert model['numberOfPoints'] == 10
     assert model['finalTimeMoment'] == 1.0
     assert model['plotAxisX'] == 'Z'

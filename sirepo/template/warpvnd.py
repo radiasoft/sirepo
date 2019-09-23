@@ -19,10 +19,12 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 COMPARISON_STEP_SIZE = 100
-SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
 MPI_SUMMARY_FILE = 'mpi-info.json'
 
@@ -42,56 +44,12 @@ _PARTICLE_FILE = 'particles.h5'
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = 'potential.h5'
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 _STL_POLY_FILE = 'polygons.h5'
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
     return _simulation_percent_complete(report, run_dir, is_running)
-
-
-def fixup_old_data(data):
-    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
-        data['models']['optimizer'] = {
-            'constraints': [],
-            'enabledFields': {},
-            'fields': [],
-        }
-    for m in [
-            'anode',
-            'egunCurrentAnimation',
-            'impactDensityAnimation',
-            'optimizer',
-            'optimizerAnimation',
-            'optimizerStatus',
-            'particle3d',
-            'particleAnimation',
-            'simulation',
-            'simulationGrid',
-            'fieldCalcAnimation',
-            'fieldCalculationAnimation',
-            'fieldComparisonAnimation',
-            'fieldComparisonReport',
-            'simulation',
-    ]:
-        if m not in data.models:
-            data.models[m] = {}
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
-    if 'joinEvery' in data.models.particle3d:
-        del data.models.particle3d['joinEvery']
-    types = data.models.conductorTypes if 'conductorTypes' in data.models else []
-    for c in types:
-        if c is None:
-            continue
-        if 'isConductor' not in c:
-            c.isConductor = '1' if c.voltage > 0 else '0'
-        if 'color' not in c:
-            c.color = _SCHEMA.constants.zeroVoltsColor if c.isConductor == '0' else _SCHEMA.constants.nonZeroVoltsColor
-        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
-    for c in data.models.conductors:
-        template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir, args=None):
@@ -110,7 +68,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'z': [0, _meters(grid['plate_spacing'])]
     }
     plot_range = ranges[dimension]
-    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _is_3D(data))
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _SIM_DATA.is_3d(data))
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -119,7 +77,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
         'summaryData': {
-            'runMode3d': _is_3D(data)
+            'runMode3d': _SIM_DATA.is_3d(data)
         },
     }
 
@@ -166,7 +124,7 @@ def generate_field_report(data, run_dir, args=None):
                      _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
                      ]
 
-    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _is_3D(data) else 'xz')
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _SIM_DATA.is_3d(data) else 'xz')
 
     x_max = len(values[0])
     y_max = len(values)
@@ -200,13 +158,13 @@ def generate_field_report(data, run_dir, args=None):
         'y_range': yr,
         'x_label': x_label,
         'y_label': y_label,
-        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _is_3D(data) else ''),
+        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _SIM_DATA.is_3d(data) else ''),
         'z_matrix': values.tolist(),
         'global_min': np.min(potential) if vals_equal else None,
         'global_max': np.max(potential) if vals_equal else None,
         'frequency_title': 'Volts',
         'summaryData': {
-            'runMode3d': _is_3D(data)
+            'runMode3d': _SIM_DATA.is_3d(data)
         },
     }
 
@@ -543,25 +501,6 @@ def _cull_particle_point(curr, next, prev):
     return True
 
 
-# defaults that depend on the current data
-def _dynamic_defaults(data, model):
-    if model == 'fieldComparisonAnimation' or model == 'fieldComparisonReport':
-        grid = data.models.simulationGrid
-        return {
-            'dimension': 'x',
-            'xCell1': 0,
-            'xCell2': int(grid.num_x / 2.),
-            'xCell3': grid.num_x,
-            'yCell1': 0,
-            'yCell2': int(grid.num_y / 2.) if _is_3D(data) else 0,
-            'yCell3': grid.num_y if _is_3D(data) else 0,
-            'zCell1': 0,
-            'zCell2': int(grid.num_z / 2.),
-            'zCell3': grid.num_z,
-        }
-    return None
-
-
 def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
@@ -580,7 +519,7 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = _meters(grid['plate_spacing'])
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    if _is_3D(data):
+    if _SIM_DATA.is_3d(data):
         cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
         cathode_area = _meters(grid['channel_width'])
@@ -650,7 +589,7 @@ def _extract_impact_density(run_dir, data):
     with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
         plot_info = template_common.h5_to_dict(hf, path='density')
     if 'error' in plot_info:
-        if not _is_3D(data):
+        if not _SIM_DATA.is_3d(data):
             return plot_info
         # for 3D, continue on so particle trace is still rendered
         plot_info = {
@@ -669,7 +608,7 @@ def _extract_impact_density(run_dir, data):
     dy = 0
     dz = plot_info['dz']
 
-    if _is_3D(data):
+    if _SIM_DATA.is_3d(data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
@@ -819,7 +758,7 @@ def _generate_parameters_file(data):
     v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
-    v['is3D'] = _is_3D(data)
+    v['is3D'] = _SIM_DATA.is_3d(data)
     v['anode'] = _prepare_anode(data)
     v['saveIntercept'] = v['anode']['isReflector']
     for c in data.models.conductors:
@@ -858,10 +797,6 @@ def _h5_file_list(run_dir, model_name):
         run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
-
-
-def _is_3D(data):
-    return data.models.simulationGrid.simulation_mode == '3d'
 
 
 def _is_opt_field(field_name):
@@ -986,7 +921,7 @@ def _prepare_conductors(data):
         #pkdp('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
-        if not _is_3D(data):
+        if not _SIM_DATA.is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
         ct.file = template_common.filename_to_path(
@@ -1000,7 +935,7 @@ def _prepare_conductors(data):
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])
-        if not _is_3D(data):
+        if not _SIM_DATA.is_3d(data):
             c.yCenter = 0
     return data.models.conductors
 

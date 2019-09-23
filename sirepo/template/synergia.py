@@ -730,7 +730,7 @@ def _import_elegant_file(text):
                 if v in rpn_cache:
                     v = rpn_cache[v]
                 m[f] = v
-        template_common.update_model_defaults(m, name, _SCHEMA)
+        _SIM_DATA.update_model_defaults(m, name)
         data['models']['elements'].append(m)
         element_ids[m['_id']] = True
     beamline_ids = {}

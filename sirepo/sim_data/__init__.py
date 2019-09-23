@@ -51,11 +51,12 @@ class SimDataBase(object):
     _TEMPLATE_FIXUP = 'sim_data_template_fixup'
 
     @classmethod
-    def init_models(cls, models, names=None):
+    def init_models(cls, models, names=None, dynamic=None):
         for n in names or cls.schema().model:
             cls.update_model_defaults(
                 models.setdefault(n, pkcollections.Dict()),
                 n,
+                dynamic=dynamic,
             )
 
     @classmethod
@@ -63,12 +64,10 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
-    def model_defaults(cls, name, schema=None):
+    def model_defaults(cls, name):
         """Returns a set of default model values from the schema."""
-        s = schema or cls.schema()
         res = pkcollections.Dict()
-        for f in s.model[name]:
-            d = s.model[name][f]
+        for f, d in cls.schema().model[name].items():
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
         return res
@@ -100,10 +99,10 @@ class SimDataBase(object):
         data[cls._TEMPLATE_FIXUP] = True
 
     @classmethod
-    def update_model_defaults(cls, model, name, schema=None, dynamic=None):
-        defaults = cls.model_defaults(name, schema or cls.schema())
-        if dynamic is not None:
-            defaults.update(dynamic)
+    def update_model_defaults(cls, model, name, dynamic=None):
+        defaults = cls.model_defaults(name)
+        if dynamic:
+            defaults.update(dynamic(name))
         for f in defaults:
             if f not in model:
                 model[f] = defaults[f]
