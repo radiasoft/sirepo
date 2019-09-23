@@ -12,9 +12,6 @@ import time
 from pykern.pkdebug import pkdc, pkdp
 
 
-
-
-
 def test_myapp():
     py3_env = _env_setup()
     from sirepo import srunit
@@ -23,7 +20,6 @@ def test_myapp():
 
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
-
 
     try:
         supervisor = _start_supervisor(py3_env)
@@ -68,8 +64,7 @@ def test_myapp():
         supervisor.terminate()
         supervisor.wait()
 
-# TODO(e-carlin): discuss with rn how to set a config value to make hundli run
-# for a long time (ex sleep(1000))
+
 def test_cancel_long_running_job():
     py3_env = _env_setup()
     from sirepo import srunit
