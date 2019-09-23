@@ -37,11 +37,8 @@ async def run(driver_class, resource_class):
                 if r.state != STATE_EXECUTION_PENDING:
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
-                if r.content.action in DATA_ACTIONS:
-                    pkdp('***** checking if other data jobs running action={} r.jhash={}, len()={}', r.content.action, r.content.jhash, len(d.running_data_jobs))
-                    if len(d.running_data_jobs) > 0:
-                        continue
-
+                if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
+                    continue
                 # start agent if not started and slots available
                 if not d.agent_started and _slots_available(driver_class, resource_class):
                         d.start_agent()
@@ -56,10 +53,8 @@ async def run(driver_class, resource_class):
                 #   - use some starvation algo so that if someone has an agent
                 #   and is sending a lot of jobs then after some number of jobs
                 #   there agent should be killed an another user's agent started
-
-
                 if r.content.action in DATA_ACTIONS:
-                    assert r.content.run_dir not in d.running_data_jobs
+                    assert r.content.compute_model_name not in d.running_data_jobs
                     d.running_data_jobs.add(r.content.compute_model_name)
 
                 r.state = STATE_EXECUTING
