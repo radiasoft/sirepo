@@ -36,6 +36,14 @@ class DriverBase(object):
         self.message_handler_set = tornado.locks.Event()
         self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
+
+        # TODO(e-carlin): This is used to keep track of what run_dir currently
+        # has a data job running in it. This makes it so we only send one data
+        # job at a time. I think we should create a generalized data structure
+        # that can store other types of cache information (ex what was the last
+        # status). In addition they key is currently the run_dir. It needs to be
+        # the "compute job name"
+        self.running_data_jobs = set()
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
     @classmethod
@@ -116,6 +124,18 @@ class DriverBase(object):
         r.request_handler.write(message.content)
         r.request_reply_was_sent.set()
         self._remove_request(message.content.req_id) 
+
+        # TODO(e-carlin): This is quite hacky. The logic to add is in scheduler
+        # but logic to remove is here which is not great. These ifs aren't robust
+        # what will happen when types of jobs are updated?
+        # clear out running data jobs
+        if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
+            if message.content.status != job.JobStatus.RUNNING:
+                self.running_data_jobs.discard(r.content.run_dir)
+        elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
+            self.running_data_jobs.discard(r.content.run_dir)
+
+
         await job_scheduler.run(type(self), self.resource_class)
 
     async def _process_requests_to_send_to_agent(self):

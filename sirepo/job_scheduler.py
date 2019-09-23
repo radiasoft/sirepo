@@ -13,7 +13,7 @@ import uuid
 STATE_EXECUTION_PENDING = 'execution_pending'
 STATE_EXECUTING = 'executing'
 
-_DATA_ACTIONS = [
+DATA_ACTIONS = [
     job.ACTION_RUN_EXTRACT_JOB,
     job.ACTION_START_COMPUTE_JOB,
 ]
@@ -37,9 +37,11 @@ async def run(driver_class, resource_class):
                 if r.state != STATE_EXECUTION_PENDING:
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
-                if r.content.action in _DATA_ACTIONS:
-                    if _any_requests_executing(d.requests):
+                if r.content.action in DATA_ACTIONS:
+                    if len(d.running_data_jobs) > 0:
                         continue
+
+                # start agent if not started and slots available
                 if not d.agent_started and _slots_available(driver_class, resource_class):
                         d.start_agent()
                         # TODO(e-carlin): maybe this should live within DriverBase start_agent()
@@ -53,6 +55,12 @@ async def run(driver_class, resource_class):
                 #   - use some starvation algo so that if someone has an agent
                 #   and is sending a lot of jobs then after some number of jobs
                 #   there agent should be killed an another user's agent started
+
+
+                if r.content.action in DATA_ACTIONS:
+                    assert r.content.run_dir not in d.running_data_jobs
+                    d.running_data_jobs.add(r.content.run_dir)
+
                 r.state = STATE_EXECUTING
                 drivers.append(drivers.pop(drivers.index(d)))
                 await d.requests_to_send_to_agent.put(r)

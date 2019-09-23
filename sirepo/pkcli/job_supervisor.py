@@ -79,6 +79,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             # TODO(e-carlin): More handling. Ex restart agent
             pkdlog('Error: {}', e)
             pkdp(pkdexc())
+            raise
 
 
 class _DebugRenderer():
@@ -117,6 +118,7 @@ class _ServerReq(tornado.web.RequestHandler):
             # TODO(e-carlin): More handling.
             pkdlog('Error: {}', e)
             pkdp(pkdexc())
+            raise
 
     def on_connection_close(self):
         #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
