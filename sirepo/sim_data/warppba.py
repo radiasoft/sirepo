@@ -48,6 +48,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             zCount=214,
             rParticlesPerCell=1,
             zParticlesPerCell=2,
+            rCellResolution=40,
+            zCellResolution=40,
         )
         pkcollections.unchecked_del(
             dm.simulationGrid,
@@ -62,45 +64,41 @@ class SimData(sirepo.sim_data.SimDataBase):
             coordinate='y',
             mode='1',
         )
-        dm.simulation.setdefault(sourceType='laserPulse')
-        if 'electronBeam' not in dm:
-            dm['electronBeam'] = {
-                'charge': 1.0e-08,
-                'energy': 23,
-            }
-        if 'beamPreviewReport' not in dm:
-            dm['beamPreviewReport'] = {
-                'x': 'z',
-                'y': 'x',
-                'histogramBins': 100
-            }
-        if 'beamAnimation' not in dm:
-            dm['beamAnimation'] = dm['particleAnimation'].copy()
-        if 'rCellResolution' not in dm['simulationGrid']:
-            grid = dm['simulationGrid']
-            grid['rCellResolution'] = 40
-            grid['zCellResolution'] = 40
-        if 'rmsLength' not in dm['electronBeam']:
-            beam = dm['electronBeam']
-            beam['rmsLength'] = 0
-            beam['rmsRadius'] = 0
-            beam['bunchLength'] = 0
-            beam['transverseEmittance'] = 0
-        if 'xMin' not in dm['particleAnimation']:
-            animation = dm['particleAnimation']
-            for v in ('x', 'y', 'z'):
-                animation['{}Min'.format(v)] = 0
-                animation['{}Max'.format(v)] = 0
-                animation['u{}Min'.format(v)] = 0
-                animation['u{}Max'.format(v)] = 0
-        if 'beamRadiusMethod' not in dm['electronBeam']:
-            beam = dm['electronBeam']
-            beam['beamRadiusMethod'] = 'a'
-            beam['transverseEmittance'] = 0.00001
-            beam['rmsRadius'] = 15
-            beam['beamBunchLengthMethod'] = 's'
-        if 'folder' not in dm['simulation']:
-            dm['simulation']['folder'] = '/'
-        for m in ('beamAnimation', 'fieldAnimation', 'particleAnimation'):
+        dm.simulation.setdefault(
+            sourceType='laserPulse',
+            folder='/',
+        )
+        dm.setdefault(
+            'electronBeam',
+            PKDict(charge=1.0e-08, energy=23),
+        )
+        dm.electronBeam.setdefault(
+            rmsLength=0,
+#            rmsRadius=0,
+            bunchLength=0,
+#            transverseEmittance=0,
+            beamRadiusMethod='a',
+            transverseEmittance=0.00001,
+            rmsRadius=15,
+            beamBunchLengthMethod='s',
+        )
+        dm.setdefault(
+            'beamPreviewReport',
+            PKDict(
+                x='z',
+                y='x',
+                histogramBins=100,
+            )
+        )
+        dm.setdefault('beamAnimation', dm.particleAnimation.copy())
+        if 'xMin' not in dm.particleAnimation:
+            for v in 'x', 'y', 'z':
+                dm.particleAnimation.update({
+                    '{}Min'.format(v): 0,
+                    '{}Max'.format(v): 0,
+                    'u{}Min'.format(v): 0,
+                    'u{}Max'.format(v): 0,
+                })
+        for m in 'beamAnimation', 'fieldAnimation', 'particleAnimation':
             cls.update_model_defaults(dm[m], m)
         cls.organize_example(data)

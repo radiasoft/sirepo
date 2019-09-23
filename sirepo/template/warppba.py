@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 u"""WARP execution template.
 
-:copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2015-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-#TODO(robnagler) fix up old data(?) probably just remove
-#TODO(robnagler) fix up other simulations to use template_common(?)
-
 from __future__ import absolute_import, division, print_function
 from opmd_viewer import OpenPMDTimeSeries
 from opmd_viewer.openpmd_timeseries import main
@@ -22,14 +19,15 @@ import os
 import os.path
 import py.path
 import re
-
 import sirepo.sim_data
+
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
+
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
