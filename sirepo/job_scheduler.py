@@ -38,6 +38,7 @@ async def run(driver_class, resource_class):
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
                 if r.content.action in DATA_ACTIONS:
+                    pkdp('***** checking if other data jobs running action={} r.jhash={}, len()={}', r.content.action, r.content.jhash, len(d.running_data_jobs))
                     if len(d.running_data_jobs) > 0:
                         continue
 
@@ -59,7 +60,7 @@ async def run(driver_class, resource_class):
 
                 if r.content.action in DATA_ACTIONS:
                     assert r.content.run_dir not in d.running_data_jobs
-                    d.running_data_jobs.add(r.content.run_dir)
+                    d.running_data_jobs.add(r.content.compute_model_name)
 
                 r.state = STATE_EXECUTING
                 drivers.append(drivers.pop(drivers.index(d)))

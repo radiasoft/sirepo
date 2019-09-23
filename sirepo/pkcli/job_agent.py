@@ -209,13 +209,6 @@ class _JobTracker:
                 )
                 pkio.unchecked_remove(tmp_dir)
                 return
-            else:
-                pkdlog(
-                    'job is still running; killing it (run_dir={}, jhash={})',
-                    run_dir, jhash,
-                )
-                await self.kill(run_dir)
-
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
@@ -257,6 +250,8 @@ class _JobTracker:
         """Get the current status of a specific job in the given run_dir."""
         status = job.JobStatus.MISSING
         run_dir_jhash, run_dir_status = self._run_dir_status(run_dir)
+        pkdp('run_dir_jhash={}', run_dir_jhash)
+        pkdp('incoming_jhash={}', jhash)
         if run_dir_jhash == jhash:
             status = run_dir_status
         return status

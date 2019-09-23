@@ -115,7 +115,7 @@ class DriverBase(object):
         if a == job.ACTION_READY_FOR_WORK:
             return
         elif a == 'protocol_error':
-            # TODO(e-carlin): Handle more. If message has an rid we should
+            # TODO(e-carlin): Handle more. If message has a req_id we should
             # likely resend the request
             pkdlog('Error: {}', message)
             return
@@ -130,10 +130,10 @@ class DriverBase(object):
         # what will happen when types of jobs are updated?
         # clear out running data jobs
         if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
-            if message.content.status != job.JobStatus.RUNNING:
-                self.running_data_jobs.discard(r.content.run_dir)
+            if message.content.status != job.JobStatus.RUNNING.value:
+                self.running_data_jobs.discard(r.content.compute_model_name)
         elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
-            self.running_data_jobs.discard(r.content.run_dir)
+            self.running_data_jobs.discard(r.content.compute_model_name)
 
 
         await job_scheduler.run(type(self), self.resource_class)

@@ -65,8 +65,9 @@ def init_by_server(app):
 
 
 # TODO(e-carlin): These methods have the same structure. Abstract.
-def compute_job_status(run_dir, jhash):
+def compute_job_status(compute_model_name, run_dir, jhash):
     body = pkcollections.Dict(
+        compute_model_name=compute_model_name,
         action=ACTION_COMPUTE_JOB_STATUS,
         run_dir=str(run_dir),
         jhash=jhash,
@@ -84,8 +85,9 @@ def cancel_report_job(run_dir, jhash):
     return _request(body)
 
 
-def run_extract_job(run_dir, jhash, subcmd, *args):
+def run_extract_job(compute_model_name, run_dir, jhash, subcmd, *args):
     body = pkcollections.Dict(
+        compute_model_name=compute_model_name,
         action=ACTION_RUN_EXTRACT_JOB,
         run_dir=str(run_dir),
         jhash=jhash,

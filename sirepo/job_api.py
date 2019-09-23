@@ -37,7 +37,7 @@ def api_runSimulation():
     data = http_request.parse_data_input(validate=True)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    status = job.compute_job_status(run_dir, jhash)
+    status = job.compute_job_status(_get_compute_model_name(data), run_dir, jhash)
     already_good_status = [
         job.JobStatus.RUNNING,
         job.JobStatus.COMPLETED,
@@ -84,7 +84,7 @@ def api_simulationFrame(frame_id):
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     jhash = template_common.report_parameters_hash(model_data)
     frame = job.run_extract_job(
-        run_dir, jhash, 'get_simulation_frame', data,
+        _get_compute_model_name(data) , run_dir, jhash, 'get_simulation_frame', data,
     )
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
@@ -103,8 +103,11 @@ def init_apis(*args, **kwargs):
     pass
 
 def _get_compute_model_name(data):
-    # TODO(e-carlin): create a better compute model name
-    return simulation_db.simulation_run_dir(data).basename
+    """A name that uniquely identifies a compute job"""
+    # TODO(e-carlin): talk with rn to double check this fn
+    return data.simulationId \
+        + simulation_db.simulation_run_dir(data).basename \
+        + template_common.report_parameters_hash(data)
 
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()
@@ -131,7 +134,7 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = job.compute_job_status(run_dir, jhash)
+        status = job.compute_job_status(_get_compute_model_name(data), run_dir, jhash)
         is_running = status is job.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
@@ -139,12 +142,13 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         if not is_running:
             if status is not job.JobStatus.MISSING:
                 res, err = job.run_extract_job(
-                    run_dir, jhash, 'result', data,
+                    _get_compute_model_name(data), run_dir, jhash, 'result', data,
                 )
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
             new = job.run_extract_job(
+                _get_compute_model_name(data),
                 run_dir,
                 jhash,
                 'background_percent_complete',
