@@ -39,6 +39,9 @@ async def run(driver_class, resource_class):
                 # if the request is a _DATA_ACTION then there must be no others running
                 if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
                     continue
+
+                if not d.agent_started and not _slots_available(driver_class, resource_class):
+                    _try_to_free_slot(driver_class, resource_class)
                 # start agent if not started and slots available
                 if not d.agent_started and _slots_available(driver_class, resource_class):
                         d.start_agent()
@@ -73,9 +76,12 @@ def _len_longest_requests_q(drivers):
         m = max(m, len(d.requests))
     return m
 
-
-def _any_requests_executing(requests):
-    for r in requests:
-        if r.state == STATE_EXECUTING:
-            return True
-    return False
+def _try_to_free_slot(driver_class, resource_class):
+    for d in driver_class.resources[resource_class].drivers:
+        if d.agent_started and len(d.requests) == 0:
+            pkdc('driver={} agent being terminated to free slot', d)
+            d.terminate_agent()
+            driver_class.resources[resource_class].slots_in_use -= 1
+            return
+        # TODO(e-carlin): More cases. Ex:
+        #   - if user has had an agent for a long time kill it when appropriate
