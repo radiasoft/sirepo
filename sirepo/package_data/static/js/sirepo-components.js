@@ -2707,7 +2707,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
             var slider;
             
             var delegate = $scope.fieldDelegate;
-            if (! delegate|| $.isEmptyObject(delegate)) {
+            if (! delegate || $.isEmptyObject(delegate)) {
                 delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
             }
 

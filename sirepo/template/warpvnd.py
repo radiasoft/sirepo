@@ -602,74 +602,6 @@ def _extract_field(field, data, data_file, args=None):
     return res
 
 
-def _field_input(args):
-    show3d = args.displayMode == '3d' if args is not None and 'displayMode' in args\
-        else False
-    a = args.axes if args is not None and 'axes' in args else 'xz'
-    axes = (a if show3d else 'xz') if a is not None and a != '' else 'xz'
-    slice_axis = re.sub('[' + axes + ']', '', 'xyz')
-    field_slice = float(args.slice) if args and 'slice' in args and show3d else 0.
-    return axes, slice_axis, field_slice, show3d
-
-
-def _field_values(values, axes, field_slice, grid):
-    dx = grid.channel_width / grid.num_x
-    dy = grid.channel_height / grid.num_y
-    dz = grid.plate_spacing / grid.num_z
-    if axes == 'xz':
-        return values[
-               :, _get_slice_index(
-                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
-                ), :]
-    elif axes == 'xy':
-        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
-    else:
-        return values[
-               _get_slice_index(
-                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
-               ), :, :]
-
-
-def _field_plot(values, axes, grid, is3d):
-    plate_spacing = _meters(grid.plate_spacing)
-    radius = _meters(grid.channel_width / 2.)
-    half_height = _meters(grid.channel_height / 2.)
-
-    if axes == 'xz':
-        xr = [0, plate_spacing]
-        yr = [-radius, radius]
-        x_label = 'z [m]'
-        y_label = 'x [m]'
-        ar = 6.0 / 14
-    elif axes == 'xy':
-        xr = [-half_height, half_height]
-        yr = [-radius, radius]
-        x_label = 'y [m]'
-        y_label = 'x [m]'
-        ar = radius / half_height,
-    else:
-        xr = [0, plate_spacing]
-        yr = [-half_height, half_height]
-        x_label = 'z [m]'
-        y_label = 'y [m]'
-        ar = 6.0 / 14
-
-    xr.append(len(values[0]))
-    yr.append(len(values))
-
-    return pkcollections.Dict({
-        'aspectRatio': ar,
-        'x_range': xr,
-        'y_range': yr,
-        'x_label': x_label,
-        'y_label': y_label,
-        'z_matrix': values.tolist(),
-        'summaryData': {
-            'runMode3d': is3d
-        }
-    })
-
-
 def _extract_impact_density(run_dir, data):
     with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
         plot_info = template_common.h5_to_dict(hf, path='density')
@@ -803,6 +735,74 @@ def _extract_particle(run_dir, model_name, data, args):
         'lost_z': lost_z,
         'field': field.tolist()
     }
+
+
+def _field_input(args):
+    show3d = args.displayMode == '3d' if args is not None and 'displayMode' in args\
+        else False
+    a = args.axes if args is not None and 'axes' in args else 'xz'
+    axes = (a if show3d else 'xz') if a is not None and a != '' else 'xz'
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz')
+    field_slice = float(args.slice) if args and 'slice' in args and show3d else 0.
+    return axes, slice_axis, field_slice, show3d
+
+
+def _field_values(values, axes, field_slice, grid):
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+    if axes == 'xz':
+        return values[
+               :, _get_slice_index(
+                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
+                ), :]
+    elif axes == 'xy':
+        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
+    else:
+        return values[
+               _get_slice_index(
+                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
+               ), :, :]
+
+
+def _field_plot(values, axes, grid, is3d):
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    half_height = _meters(grid.channel_height / 2.)
+
+    if axes == 'xz':
+        xr = [0, plate_spacing]
+        yr = [-radius, radius]
+        x_label = 'z [m]'
+        y_label = 'x [m]'
+        ar = 6.0 / 14
+    elif axes == 'xy':
+        xr = [-half_height, half_height]
+        yr = [-radius, radius]
+        x_label = 'y [m]'
+        y_label = 'x [m]'
+        ar = radius / half_height,
+    else:
+        xr = [0, plate_spacing]
+        yr = [-half_height, half_height]
+        x_label = 'z [m]'
+        y_label = 'y [m]'
+        ar = 6.0 / 14
+
+    xr.append(len(values[0]))
+    yr.append(len(values))
+
+    return pkcollections.Dict({
+        'aspectRatio': ar,
+        'x_range': xr,
+        'y_range': yr,
+        'x_label': x_label,
+        'y_label': y_label,
+        'z_matrix': values.tolist(),
+        'summaryData': {
+            'runMode3d': is3d
+        }
+    })
 
 
 def _find_by_id(container, id):
