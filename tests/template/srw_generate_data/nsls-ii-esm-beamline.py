@@ -107,7 +107,7 @@ def set_optics(v=None):
                 _y=v.op_M3_y,
             ))
             pp.append(v.op_M3_pp)
-            
+
         elif el_name == 'M3_SSA':
             # M3_SSA: drift 89.63m
             el.append(srwlib.SRWLOptD(
@@ -159,7 +159,7 @@ def set_optics(v=None):
                 _y=v.op_KBh_y,
             ))
             pp.append(v.op_KBh_pp)
-            
+
         elif el_name == 'KBh_KBv':
             # KBh_KBv: drift 103.646m
             el.append(srwlib.SRWLOptD(
@@ -183,7 +183,7 @@ def set_optics(v=None):
                 _y=v.op_KBv_y,
             ))
             pp.append(v.op_KBv_pp)
-            
+
         elif el_name == 'KBv_Sample':
             # KBv_Sample: drift 104.146m
             el.append(srwlib.SRWLOptD(

@@ -686,11 +686,14 @@ def process_undulator_definition(model):
 
 def python_source_for_model(data, model):
     data['report'] = model or _SIM_DATA.RUN_ALL_MODEL
-    return """{}
+    return _trim(
+        """{}
 
 if __name__ == '__main__':
     main()
-""".format(_generate_parameters_file(data, plot_reports=True))
+""".format(_generate_parameters_file(data, plot_reports=True)),
+    )
+
 
 
 def remove_last_frame(run_dir):
@@ -845,7 +848,7 @@ def write_parameters(data, run_dir, is_parallel):
     pkdc('write_parameters file to {}'.format(run_dir))
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        _generate_parameters_file(data, run_dir=run_dir)
+        _trim(_generate_parameters_file(data, run_dir=run_dir))
     )
 
 
@@ -1388,7 +1391,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
             mmz.z.extract(df, target_dir)
         v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + '/' + mmz.index_dir
         v.magneticMeasurementsIndexFile = mmz.index_file
-    return res + template_common.render_jinja(SIM_TYPE, v)
+    return _trim(res + template_common.render_jinja(SIM_TYPE, v))
 
 
 def _generate_srw_main(data, plot_reports):
@@ -1654,6 +1657,11 @@ def _remap_3d(info, allrange, z_label, z_units, width_pixels, rotate_angle, rota
     })
 
 
+def _rotated_axis_range(x, y, theta):
+    x_new = x*np.cos(theta) + y*np.sin(theta)
+    return x_new
+
+
 def _safe_beamline_item_name(name, names):
     name = re.sub(r'\W+', '_', name)
     name = re.sub(r'_+', '_', name)
@@ -1684,10 +1692,6 @@ def _superscript(val):
 def _superscript_2(val):
     return re.sub(r'\^0', u'\u00B0', val)
 
-def _rotated_axis_range(x, y, theta):
-    x_new = x*np.cos(theta) + y*np.sin(theta)
-    return x_new
-
 def _test_file_type(file_type, file_path):
     # special handling for mirror and arbitraryField - scan for first data row and count columns
     if file_type not in ('mirror', 'arbitraryField'):
@@ -1703,6 +1707,13 @@ def _test_file_type(file_type, file_path):
                 return col_count != _ARBITRARY_FIELD_COL_COUNT
     return False
 
+def _trim(v):
+    res = ''
+    for l in v.split('\n'):
+        res += l.rstrip() + '\n'
+    x = res.rstrip('\n') + '\n'
+    pkio.write_text('foo.txt', x)
+    return x
 
 def _unique_name(items, field, template):
     #TODO(pjm): this is the same logic as sirepo.js uniqueName()

@@ -998,18 +998,16 @@ def write_status(status, run_dir):
 
 
 def _create_example_and_lib_files(simulation_type):
-    d = simulation_dir(simulation_type)
-    pkio.mkdir_parent(d)
-    for s in examples(simulation_type):
-        save_new_example(s)
-    d = simulation_lib_dir(simulation_type)
-    pkio.mkdir_parent(d)
+    d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     template = sirepo.template.import_module(simulation_type)
     if hasattr(template, 'resource_files'):
         for f in template.resource_files():
             #TODO(pjm): symlink has problems in containers
             # d.join(f.basename).mksymlinkto(f)
             f.copy(d)
+    pkio.mkdir_parent(simulation_dir(simulation_type))
+    for s in examples(simulation_type):
+        save_new_example(s)
 
 
 def _files_in_schema(schema):
