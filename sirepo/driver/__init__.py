@@ -103,7 +103,7 @@ class DriverBase(object):
 
     @classmethod
     async def incoming_request(cls, request):
-        request.state = 'execution_pending'
+        request.state = job_scheduler.STATE_RUN_PENDING
         await cls._enqueue_request(request)
 
     async def _process_message(self, message):
@@ -130,7 +130,8 @@ class DriverBase(object):
                 self.running_data_jobs.discard(r.content.compute_model_name)
         elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
             self.running_data_jobs.discard(r.content.compute_model_name)
-
+        elif r.content.action == job.ACTION_CANCEL_JOB:
+            self.running_data_jobs.discard(r.content.compute_model_name)
 
         await job_scheduler.run(type(self), self.resource_class)
 

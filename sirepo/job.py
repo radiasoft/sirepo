@@ -74,8 +74,9 @@ def compute_job_status(compute_model_name, run_dir, jhash):
     return JobStatus(response.status)
 
 
-def cancel_report_job(run_dir, jhash):
+def cancel_report_job(compute_model_name, run_dir, jhash):
     body = pkcollections.Dict(
+        compute_model_name=compute_model_name,
         action=ACTION_CANCEL_JOB,
         run_dir=str(run_dir),
         jhash=jhash,

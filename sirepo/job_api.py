@@ -27,7 +27,7 @@ def api_runCancel():
     jid = simulation_db.job_id(data)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    job.cancel_report_job(run_dir, jhash)
+    job.cancel_report_job(_get_compute_model_name(data), run_dir, jhash)
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 

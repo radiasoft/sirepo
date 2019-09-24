@@ -5,13 +5,12 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import driver, job
 import uuid
 
-STATE_EXECUTION_PENDING = 'execution_pending'
-STATE_EXECUTING = 'executing'
+STATE_RUN_PENDING = 'run_pending'
+_STATE_RUNNING = 'running'
 
 DATA_ACTIONS = [
     job.ACTION_RUN_EXTRACT_JOB,
@@ -30,16 +29,18 @@ async def run(driver_class, resource_class):
         resource_class,
         _slots_available(driver_class, resource_class),
     )
-    # TODO(e-carlin): this needs a lot of work    
+    # TODO(e-carlin): complete
+    # _remove_canceled_pending_jobs(
+    #     driver_class.resources[resource_class].drivers)
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
             _free_slots_if_needed(driver_class, resource_class)
-            # there must be a request to execut
+            # there must be a request to execute
             if request_index < len(d.requests):
                 r = d.requests[request_index]
                 # the request must not already be executing
-                if r.state != STATE_EXECUTION_PENDING:
+                if r.state != STATE_RUN_PENDING:
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
                 if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
@@ -56,12 +57,32 @@ async def run(driver_class, resource_class):
                 # then delete from q and respond to server out of band about cancel
 
                 if d.agent_started:
-                    if d.agent_started and  r.content.action in DATA_ACTIONS:
+                    if d.agent_started and r.content.action in DATA_ACTIONS:
                         assert r.content.compute_model_name not in d.running_data_jobs
                         d.running_data_jobs.add(r.content.compute_model_name)
-                    r.state = STATE_EXECUTING
+                    r.state = _STATE_RUNNING
                     drivers.append(drivers.pop(drivers.index(d)))
                     await d.requests_to_send_to_agent.put(r)
+
+
+def _remove_canceled_pending_jobs(drivers):
+    for d in drivers:
+        for r in d.requests:
+            if r.content.action == job.ACTION_CANCEL_JOB:
+                _cancel_pending_jobs(driver, r)
+
+
+def _cancel_pending_jobs(driver, cancel_req):
+    job_running = False
+    for r in driver.requests:
+        if r.content.compute_model_name == cancel_req.content.compute_model_name:
+            if r.state == STATE_RUN_PENDING:
+                # remove the req
+                continue
+            job_running = True
+    if not job_running:
+        # remove the cancel_req
+        pass
 
 
 def _slots_available(driver_class, resource_class):
