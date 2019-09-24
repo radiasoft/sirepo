@@ -747,24 +747,6 @@ def _field_input(args):
     return axes, slice_axis, field_slice, show3d
 
 
-def _field_values(values, axes, field_slice, grid):
-    dx = grid.channel_width / grid.num_x
-    dy = grid.channel_height / grid.num_y
-    dz = grid.plate_spacing / grid.num_z
-    if axes == 'xz':
-        return values[
-               :, _get_slice_index(
-                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
-                ), :]
-    elif axes == 'xy':
-        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
-    else:
-        return values[
-               _get_slice_index(
-                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
-               ), :, :]
-
-
 def _field_plot(values, axes, grid, is3d):
     plate_spacing = _meters(grid.plate_spacing)
     radius = _meters(grid.channel_width / 2.)
@@ -803,6 +785,24 @@ def _field_plot(values, axes, grid, is3d):
             'runMode3d': is3d
         }
     })
+
+
+def _field_values(values, axes, field_slice, grid):
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+    if axes == 'xz':
+        return values[
+               :, _get_slice_index(
+                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
+                ), :]
+    elif axes == 'xy':
+        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
+    else:
+        return values[
+               _get_slice_index(
+                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
+               ), :, :]
 
 
 def _find_by_id(container, id):
