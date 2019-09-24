@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""myapp simulation data operations
+u"""simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkinspect
-from sirepo import simulation_db
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import math
 import numpy
 import sirepo.sim_data
@@ -15,7 +14,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    EXAMPLE_FOLDERS = pkcollections.Dict({
+    EXAMPLE_FOLDERS = PKDict({
         'Bending Magnet Radiation': '/SR Calculator',
         'Diffraction by an Aperture': '/Wavefront Propagation',
         'Ellipsoidal Undulator Example': '/Examples',
@@ -97,12 +96,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             else:
                 dm.sourceIntensityReport.method = '0'
         if 'simulationStatus' not in dm or 'state' in dm.simulationStatus:
-            dm.simulationStatus = pkcollections.Dict()
+            dm.simulationStatus = PKDict()
         if 'facility' in dm.simulation:
             del dm.simulation['facility']
         if 'multiElectronAnimation' not in dm:
             m = dm.initialIntensityReport
-            dm.multiElectronAnimation = pkcollections.Dict(
+            dm.multiElectronAnimation = PKDict(
                 horizontalPosition=m.horizontalPosition,
                 horizontalRange=m.horizontalRange,
                 verticalPosition=m.verticalPosition,
@@ -156,3 +155,10 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def is_user_defined_model(cls, model):
         return not model.get('isReadOnly', False)
+
+    @classmethod
+    def uses_tabulated_zipfile(cls, data):
+        return cls.is_tabulated_undulator_with_magnetic_file(
+            data.models.simulation.sourceType,
+            data.models.tabulatedUndulator.undulatorType,
+        )

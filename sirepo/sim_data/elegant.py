@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""myapp simulation data operations
+u"""simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkinspect
-from sirepo import simulation_db
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 
 
@@ -18,7 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         s = cls.schema()
         dm = data.models
         cls.init_models(dm, ('bunchSource', 'twissReport'))
-        dm.setdefault('bunchFile', pkcollections.Dict(sourceFile=None))
+        dm.setdefault('bunchFile', PKDict(sourceFile=None))
         dm.simulation.setdefault(
             'folder', '/',
             'simulationMode', 'parallel',
@@ -83,7 +82,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         b = data.models.bunch
         res = []
         for x in (
-            pkcollections.Dict(
+            PKDict(
                 m='command_run_setup',
                 _type='run_setup',
                 centroid='1',
@@ -96,16 +95,16 @@ class SimData(sirepo.sim_data.SimDataBase):
                 sigma='1',
                 use_beamline=data.models.simulation.get('visualizationBeamlineId', ''),
             ),
-            pkcollections.Dict(
+            PKDict(
                 m='command_run_control',
                 _type='run_control',
             ),
-            pkcollections.Dict(
+            PKDict(
                 m='command_twiss_output',
                 _type='twiss_output',
                 filename='1',
             ),
-            pkcollections.Dict(
+            PKDict(
                 m='command_bunched_beam',
                 _type='bunched_beam',
                 alpha_x=b.alpha_x,
@@ -126,7 +125,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 symmetrize='1',
                 Po=0.0,
             ),
-            pkcollections.Dict(
+            PKDict(
                 m='command_track',
                 _type='track',
             ),

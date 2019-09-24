@@ -8,7 +8,8 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
 from pykern import pkio
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import template_common
@@ -192,6 +193,17 @@ def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_
     return ebeam_position['drift']
 
 
+def compute_undulator_length(model):
+    if model['undulatorType'] == 'u_i':
+        return PKDict()
+    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
+    if zip_file.check():
+        return PKDict(
+            length=_format_float(MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])),
+        )
+    return PKDict()
+
+
 def copy_related_files(data, source_path, target_path):
     # copy results and log for the long-running simulations
     for d in ('fluxAnimation', 'multiElectronAnimation'):
@@ -362,7 +374,7 @@ def get_application_data(data):
         )
         return data['ebeam']
     elif data['method'] == 'compute_undulator_length':
-        return _compute_undulator_length(data['tabulated_undulator'])
+        return compute_undulator_length(data['tabulated_undulator'])
     elif data['method'] == 'process_undulator_definition':
         return process_undulator_definition(data)
     elif data['method'] == 'processedImage':
@@ -454,7 +466,7 @@ def lib_files(data, source_lib):
     report = data.report if 'report' in data else None
     if report == 'mirrorReport':
         res.append(dm['mirrorReport']['heightProfileFile'])
-    if _uses_tabulated_zipfile(data):
+    if _SIM_DATA.uses_tabulated_zipfile(data):
         if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
             pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
             res.append(dm.tabulatedUndulator.magneticFile)
@@ -491,7 +503,7 @@ def models_related_to_report(data):
         'simulation.sourceType', 'tabulatedUndulator', 'undulator',
         'arbitraryMagField',
     ]
-    if _uses_tabulated_zipfile(data):
+    if _SIM_DATA.uses_tabulated_zipfile(data):
         res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
 
     watchpoint = _SIM_DATA.is_watchpoint(r)
@@ -541,7 +553,7 @@ def new_simulation(data, new_simulation_data):
     elif _SIM_DATA.is_arbitrary_source(sim):
         data['models']['sourceIntensityReport']['method'] = "2"
     elif _SIM_DATA.is_tabulated_undulator_source(sim):
-        data['models']['undulator']['length'] = _compute_undulator_length(data['models']['tabulatedUndulator'])['length']
+        data['models']['undulator']['length'] = compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
 
 
@@ -1003,17 +1015,6 @@ def _compute_grazing_angle(model):
     return model
 
 
-def _compute_undulator_length(model):
-    if model['undulatorType'] == 'u_i':
-        return {}
-    zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
-    if zip_file.check():
-        return {
-            'length': _format_float(MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])),
-        }
-    return {}
-
-
 def _convert_ebeam_units(field_name, value, to_si=True):
     """Convert values from the schema to SI units (m, rad) and back.
 
@@ -1057,7 +1058,7 @@ def _delete_user_models(electron_beam, tabulated_undulator):
                 del user_model_list[i]
                 _save_user_model_list(model_name, user_model_list)
                 break
-    return pkcollections.Dict({})
+    return pkcollections.Dict()
 
 
 def _extract_brilliance_report(model, data):
@@ -1097,7 +1098,7 @@ def _extract_brilliance_report(model, data):
 
 
 def _extract_trajectory_report(model, data):
-    available_axes = {}
+    available_axes = PKDict()
     for s in _SCHEMA['enum']['TrajectoryPlotAxis']:
         available_axes[s[0]] = s[1]
     x_points = data[model['plotAxisX']]['data']
@@ -1111,21 +1112,21 @@ def _extract_trajectory_report(model, data):
                 y_range = [min(y_range[0], min(points)), max(y_range[1], max(points))]
             else:
                 y_range = [min(points), max(points)]
-            plots.append({
-                'points': points,
-                'label': available_axes[model[f]],
+            plots.append(PKDict(
+                points=points,
+                label=available_axes[model[f]],
                 #TODO(pjm): refactor with template_common.compute_plot_color_and_range()
-                'color': '#ff7f0e' if len(plots) else '#1f77b4',
-            })
-    return {
-        'title': 'Electron Trajectory',
-        'x_range': [min(x_points), max(x_points)],
-        'x_points': x_points,
-        'y_label': '[' + data[model['plotAxisY']]['units'] + ']',
-        'x_label': available_axes[model['plotAxisX']] + ' [' + data[model['plotAxisX']]['units'] + ']',
-        'y_range': y_range,
-        'plots': plots,
-    }
+                color='#ff7f0e' if len(plots) else '#1f77b4',
+            ))
+    return PKDict(
+        title='Electron Trajectory',
+        x_range=[min(x_points), max(x_points)],
+        x_points=x_points,
+        y_label='[{}]'.format(data[model['plotAxisY']]['units']),
+        x_label=available_axes[model['plotAxisX']] + ' [' + data[model['plotAxisX']]['units'] + ']',
+        y_range=y_range,
+        plots=plots,
+    )
 
 
 def _fix_file_header(filename):
@@ -1177,13 +1178,13 @@ def _generate_beamline_optics(report, models, last_id):
                 drift_name = _safe_beamline_item_name('{}_{}'.format(prev.name, name), names)
                 max_name_size = max(max_name_size, len(drift_name))
                 names.append(drift_name)
-                items.append(pkcollections.Dict({
-                    'name': drift_name,
-                    'type': 'drift',
-                    'position': prev.position,
-                    'propagation': prev.drift_propagation,
-                    'length': size,
-                }))
+                items.append(PKDict(
+                    name=drift_name,
+                    type='drift',
+                    position=prev.position,
+                    propagation=prev.drift_propagation,
+                    length=size,
+                ))
         pp = propagation[str(item.id)]
         item.propagation = pp[0]
         item.drift_propagation = pp[1]
@@ -1191,13 +1192,13 @@ def _generate_beamline_optics(report, models, last_id):
         if not is_disabled:
             if item.type == 'watch' and not len(items):
                 # first item is a watch, insert a 0 length drift in front
-                items.append(pkcollections.Dict({
-                    'name': 'zero_drift',
-                    'type': 'drift',
-                    'position': item.position,
-                    'propagation': item.propagation,
-                    'length': 0,
-                }))
+                items.append(PKDict(
+                    name='zero_drift',
+                    type='drift',
+                    position=item.position,
+                    propagation=item.propagation,
+                    length=0,
+                ))
                 names.append(items[-1].name)
             if 'heightProfileFile' in item:
                 item.heightProfileDimension = _height_profile_dimension(item)
@@ -1206,88 +1207,88 @@ def _generate_beamline_optics(report, models, last_id):
         if int(last_id) == int(item.id):
             break
         prev = item
-    args = {
-        'items': items,
-        'names': names,
-        'postPropagation': models.postPropagation,
-        'wantPostPropagation': has_beamline_elements and (int(last_id) == int(models.beamline[-1].id)),
-        'maxNameSize': max_name_size,
-        'nameMap': {
-            'apertureShape': 'ap_shape',
-            'asymmetryAngle': 'ang_as',
-            'attenuationLength': 'atten_len',
-            'complementaryAttenuationLength': 'atLen2',
-            'complementaryRefractiveIndex': 'delta2',
-            'coreAttenuationLength': 'atten_len_core',
-            'coreDiameter': 'diam_core',
-            'coreRefractiveIndex': 'delta_core',
-            'crystalThickness': 'tc',
-            'dSpacing': 'd_sp',
-            'diffractionOrder': 'm',
-            'externalAttenuationLength': 'atten_len_ext',
-            'externalRefractiveIndex': 'delta_ext',
-            'firstFocusLength': 'p',
-            'focalLength': 'q',
-            'focalPlane': 'foc_plane',
-            'grazingAngle': 'ang',
-            'gridShape': 'grid_sh',
-            'grooveDensity0': 'grDen',
-            'grooveDensity1': 'grDen1',
-            'grooveDensity2': 'grDen2',
-            'grooveDensity3': 'grDen3',
-            'grooveDensity4': 'grDen4',
-            'heightAmplification': 'amp_coef',
-            'heightProfileFile': 'hfn',
-            'horizontalApertureSize': 'apert_h',
-            'horizontalCenterPosition': 'xc',
-            'horizontalFocalLength': 'Fx',
-            'horizontalGridDimension': 'grid_dx',
-            'horizontalGridPitch': 'pitch_x',
-            'horizontalGridsNumber': 'grid_nx',
-            'horizontalMaskCoordinate': 'mask_x0',
-            'horizontalOffset': 'x',
-            'horizontalPixelsNumber': 'mask_Nx',
-            'horizontalSamplingInterval': 'hx',
-            'horizontalSize': 'Dx',
-            'horizontalTransverseSize': 'size_x',
-            'imageFile': 'file_path',
-            'length': 'L',
-            'mainAttenuationLength': 'atLen1',
-            'mainRefractiveIndex': 'delta1',
-            'maskThickness': 'thick',
-            'normalVectorX': 'nvx',
-            'normalVectorY': 'nvy',
-            'normalVectorZ': 'nvz',
-            'numberOfLenses': 'n',
-            'numberOfZones': 'nZones',
-            'orientation': 'dim',
-            'outerRadius': 'rn',
-            'radius': 'r',
-            'refractiveIndex': 'delta',
-            'sagittalRadius': 'rs',
-            'sagittalSize': 'size_sag',
-            'tangentialRadius': 'rt',
-            'tangentialSize': 'size_tang',
-            'tangentialVectorX': 'tvx',
-            'tangentialVectorY': 'tvy',
-            'thickness': 'thick',
-            'tipRadius': 'r_min',
-            'tipWallThickness': 'wall_thick',
-            'transmissionImage': 'extTransm',
-            'verticalApertureSize': 'apert_v',
-            'verticalCenterPosition': 'yc',
-            'verticalFocalLength': 'Fy',
-            'verticalGridDimension': 'grid_dy',
-            'verticalGridPitch': 'pitch_y',
-            'verticalGridsNumber': 'grid_ny',
-            'verticalMaskCoordinate': 'mask_y0',
-            'verticalOffset': 'y',
-            'verticalPixelsNumber': 'mask_Ny',
-            'verticalSamplingInterval': 'hy',
-            'verticalSize': 'Dy',
-            'verticalTransverseSize': 'size_y',
-        },
-    }
+    args = PKDict(
+        items=items,
+        names=names,
+        postPropagation=models.postPropagation,
+        wantPostPropagation=has_beamline_elements and (int(last_id) == int(models.beamline[-1].id)),
+        maxNameSize=max_name_size,
+        nameMap=PKDict(
+            apertureShape='ap_shape',
+            asymmetryAngle='ang_as',
+            attenuationLength='atten_len',
+            complementaryAttenuationLength='atLen2',
+            complementaryRefractiveIndex='delta2',
+            coreAttenuationLength='atten_len_core',
+            coreDiameter='diam_core',
+            coreRefractiveIndex='delta_core',
+            crystalThickness='tc',
+            dSpacing='d_sp',
+            diffractionOrder='m',
+            externalAttenuationLength='atten_len_ext',
+            externalRefractiveIndex='delta_ext',
+            firstFocusLength='p',
+            focalLength='q',
+            focalPlane='foc_plane',
+            grazingAngle='ang',
+            gridShape='grid_sh',
+            grooveDensity0='grDen',
+            grooveDensity1='grDen1',
+            grooveDensity2='grDen2',
+            grooveDensity3='grDen3',
+            grooveDensity4='grDen4',
+            heightAmplification='amp_coef',
+            heightProfileFile='hfn',
+            horizontalApertureSize='apert_h',
+            horizontalCenterPosition='xc',
+            horizontalFocalLength='Fx',
+            horizontalGridDimension='grid_dx',
+            horizontalGridPitch='pitch_x',
+            horizontalGridsNumber='grid_nx',
+            horizontalMaskCoordinate='mask_x0',
+            horizontalOffset='x',
+            horizontalPixelsNumber='mask_Nx',
+            horizontalSamplingInterval='hx',
+            horizontalSize='Dx',
+            horizontalTransverseSize='size_x',
+            imageFile='file_path',
+            length='L',
+            mainAttenuationLength='atLen1',
+            mainRefractiveIndex='delta1',
+            maskThickness='thick',
+            normalVectorX='nvx',
+            normalVectorY='nvy',
+            normalVectorZ='nvz',
+            numberOfLenses='n',
+            numberOfZones='nZones',
+            orientation='dim',
+            outerRadius='rn',
+            radius='r',
+            refractiveIndex='delta',
+            sagittalRadius='rs',
+            sagittalSize='size_sag',
+            tangentialRadius='rt',
+            tangentialSize='size_tang',
+            tangentialVectorX='tvx',
+            tangentialVectorY='tvy',
+            thickness='thick',
+            tipRadius='r_min',
+            tipWallThickness='wall_thick',
+            transmissionImage='extTransm',
+            verticalApertureSize='apert_v',
+            verticalCenterPosition='yc',
+            verticalFocalLength='Fy',
+            verticalGridDimension='grid_dy',
+            verticalGridPitch='pitch_y',
+            verticalGridsNumber='grid_ny',
+            verticalMaskCoordinate='mask_y0',
+            verticalOffset='y',
+            verticalPixelsNumber='mask_Ny',
+            verticalSamplingInterval='hy',
+            verticalSize='Dy',
+            verticalTransverseSize='size_y',
+        ),
+    )
     optics = template_common.render_jinja(SIM_TYPE, args, 'beamline_optics.py')
     prop = template_common.render_jinja(SIM_TYPE, args, 'beamline_parameters.py')
     return optics, prop
@@ -1371,10 +1372,10 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
     _add_report_filenames(v)
-    v['setupMagneticMeasurementFiles'] = plot_reports and _uses_tabulated_zipfile(data)
+    v['setupMagneticMeasurementFiles'] = plot_reports and _SIM_DATA.uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
-    if run_dir and _uses_tabulated_zipfile(data):
+    if run_dir and _SIM_DATA.uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
         # The MagnMeasZip class defined above has convenient properties we can use here
@@ -1397,7 +1398,7 @@ def _generate_srw_main(data, plot_reports):
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
     ]
-    if plot_reports and _uses_tabulated_zipfile(data):
+    if plot_reports and _SIM_DATA.uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or _SIM_DATA.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
@@ -1471,34 +1472,36 @@ def _init():
     if _PREDEFINED:
         return
     _PREDEFINED = pkcollections.Dict()
-    _PREDEFINED['mirrors'] = _predefined_files_for_type('mirror')
-    _PREDEFINED['magnetic_measurements'] = _predefined_files_for_type('undulatorTable')
-    _PREDEFINED['sample_images'] = _predefined_files_for_type('sample')
+    _PREDEFINED.mirrors = _predefined_files_for_type('mirror')
+    _PREDEFINED.magnetic_measurements = _predefined_files_for_type('undulatorTable')
+    _PREDEFINED.sample_images = _predefined_files_for_type('sample')
     beams = []
     for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
         info = beam[1]
         # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-        beams.append(process_beam_parameters(pkcollections.Dict({
-            'name': beam[0],
-            'current': info[0],
-            'energy': info[1],
-            'rmsSpread': info[2],
-            'horizontalEmittance': _format_float(info[3] * 1e9),
-            'horizontalBeta': info[4],
-            'horizontalAlpha': info[5],
-            'horizontalDispersion': info[6],
-            'horizontalDispersionDerivative': info[7],
-            'verticalEmittance': _format_float(info[8] * 1e9),
-            'verticalBeta': info[9],
-            'verticalAlpha': info[10],
-            'verticalDispersion': 0,
-            'verticalDispersionDerivative': 0,
-            'energyDeviation': 0,
-            'horizontalPosition': 0,
-            'verticalPosition': 0,
-            'drift': 0.0,
-            'isReadOnly': True,
-        })))
+        beams.append(
+            process_beam_parameters(PKDict(
+                name=beam[0],
+                current=info[0],
+                energy=info[1],
+                rmsSpread=info[2],
+                horizontalEmittance=_format_float(info[3] * 1e9),
+                horizontalBeta=info[4],
+                horizontalAlpha=info[5],
+                horizontalDispersion=info[6],
+                horizontalDispersionDerivative=info[7],
+                verticalEmittance=_format_float(info[8] * 1e9),
+                verticalBeta=info[9],
+                verticalAlpha=info[10],
+                verticalDispersion=0,
+                verticalDispersionDerivative=0,
+                energyDeviation=0,
+                horizontalPosition=0,
+                verticalPosition=0,
+                drift=0.0,
+                isReadOnly=True,
+            )),
+        )
     _PREDEFINED['beams'] = beams
 
 
@@ -1714,10 +1717,6 @@ def _unique_name(items, field, template):
             index += 1
         else:
             return id
-
-
-def _uses_tabulated_zipfile(data):
-    return _SIM_DATA.is_tabulated_undulator_with_magnetic_file(data['models']['simulation']['sourceType'], data['models']['tabulatedUndulator']['undulatorType'])
 
 
 def _user_model_map(model_list, field):

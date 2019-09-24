@@ -5,11 +5,9 @@ u"""synergia simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern.pkdebug import pkdp
-from sirepo import simulation_db
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
-
 
 class SimData(sirepo.sim_data.SimDataBase):
 
@@ -32,7 +30,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'bunchReport' in dm:
             del dm['bunchReport']
             for i in range(1, 5):
-                m = dm['bunchReport{}'.format(i)] = pkcollections.Dict()
+                m = dm['bunchReport{}'.format(i)] = PKDict()
                 cls.update_model_defaults(m, 'bunchReport')
                 if i == 1:
                     m.y = 'xp'

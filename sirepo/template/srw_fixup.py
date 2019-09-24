@@ -64,8 +64,8 @@ def do(template, data):
         dm.gaussianBeam.photonEnergy = dm.simulation.photonEnergy
     if 'length' in dm.tabulatedUndulator:
         tabulated_undulator = dm.tabulatedUndulator
-        und_length = _compute_undulator_length(tabulated_undulator)
-        if _uses_tabulated_zipfile(data) and 'length' in und_length:
+        und_length = template.compute_undulator_length(tabulated_undulator)
+        if _SIM_DATA.uses_tabulated_zipfile(data) and 'length' in und_length:
             dm.undulator.length = und_length.length
         del dm.tabulatedUndulator['length']
     if 'longitudinalPosition' in dm.tabulatedUndulator:
