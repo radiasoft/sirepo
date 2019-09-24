@@ -52,8 +52,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def fixup_old_data(data):
-    if 'optimizer' not in data['models'] or \
-            'enabledFields' not in data['models']['optimizer']:
+    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
         data['models']['optimizer'] = {
             'constraints': [],
             'enabledFields': {},
@@ -78,9 +77,7 @@ def fixup_old_data(data):
     ]:
         if m not in data.models:
             data.models[m] = {}
-        template_common.update_model_defaults(
-            data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m)
-        )
+        template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
     if 'joinEvery' in data.models.particle3d:
         del data.models.particle3d['joinEvery']
     types = data.models.conductorTypes if 'conductorTypes' in data.models else []
@@ -90,11 +87,8 @@ def fixup_old_data(data):
         if 'isConductor' not in c:
             c.isConductor = '1' if c.voltage > 0 else '0'
         if 'color' not in c:
-            c.color = _SCHEMA.constants.zeroVoltsColor if c.isConductor == '0' \
-                else _SCHEMA.constants.nonZeroVoltsColor
-        template_common.update_model_defaults(
-            c, c.type if 'type' in c else 'box', _SCHEMA
-        )
+            c.color = _SCHEMA.constants.zeroVoltsColor if c.isConductor == '0' else _SCHEMA.constants.nonZeroVoltsColor
+        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
     for c in data.models.conductors:
         template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
     template_common.organize_example(data)
@@ -193,14 +187,8 @@ def get_application_data(data):
 
 
 def get_data_file(run_dir, model, frame, **kwargs):
-    if model == 'particleAnimation' or model == 'egunCurrentAnimation' or \
-            model == 'particle3d':
-        filename = str(
-            run_dir.join(
-                _PARTICLE_FILE if model == 'particleAnimation' or
-                                  model == 'particle3d' else _EGUN_CURRENT_FILE
-            )
-        )
+    if model == 'particleAnimation' or model == 'egunCurrentAnimation' or model == 'particle3d':
+        filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
     #TODO(pjm): consolidate with template/warp.py
@@ -224,9 +212,7 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
     dz: Cell Size
     """
     current = np.zeros_like(mesh)
-    velocity = constants.c * momenta / np.sqrt(
-        momenta**2 + (constants.electron_mass * constants.c)**2
-    ) * particle_weight
+    velocity = constants.c * momenta / np.sqrt(momenta**2 + (constants.electron_mass * constants.c)**2) * particle_weight
 
     for index, zval in enumerate(particle_array):
         bucket = np.round(zval/dz) #value of the bucket/index in the current array
@@ -239,8 +225,7 @@ def get_simulation_frame(run_dir, data, model_data):
     md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
     model_name = data['modelName']
-    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs \
-        else []
+    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
     args = template_common.parse_animation_args(data, {'': anim_args})
     if model_name == 'currentAnimation':
         data_file = open_data_file(run_dir, model_name, frame_index)
@@ -251,9 +236,7 @@ def get_simulation_frame(run_dir, data, model_data):
     if model_name == 'particleAnimation' or model_name == 'particle3d':
         return _extract_particle(run_dir, model_name, model_data, args)
     if model_name == 'egunCurrentAnimation':
-        return _extract_egun_current(
-            model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index
-        )
+        return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
     if model_name == 'impactDensityAnimation':
         return _extract_impact_density(run_dir, model_data)
     if model_name == 'optimizerAnimation':
@@ -327,13 +310,9 @@ def prepare_output_file(run_dir, data):
         if fn.exists():
             fn.remove()
             if data.report == 'fieldComparisonReport':
-                simulation_db.write_result(
-                    generate_field_comparison_report(data, run_dir), run_dir=run_dir
-                )
+                simulation_db.write_result(generate_field_comparison_report(data, run_dir), run_dir=run_dir)
             else:
-                simulation_db.write_result(
-                    generate_field_report(data, run_dir), run_dir=run_dir
-                )
+                simulation_db.write_result(generate_field_report(data, run_dir), run_dir=run_dir)
 
 
 def python_source_for_model(data, model):
@@ -413,8 +392,7 @@ def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, li
         x_points.append(res['x'])
         y_points.append(res['y'])
         z_points.append(res['z'])
-    pkdc('particles: {} paths, {} points {} points culled',
-         len(x_points), count, cull_count)
+    pkdc('particles: {} paths, {} points {} points culled', len(x_points), count, cull_count)
 
 
 def _compute_delta_for_field(data, bounds, field):
@@ -534,42 +512,28 @@ def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
     dz = plate_spacing / grid['num_z']
-
-    # holds the z-axis grid points in an array
-    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1)
+    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     report_data = readparticles(data_file.filename)
     data_time = report_data['time']
     with h5py.File(data_file.filename, 'r') as f:
-        weights = np.array(
-            f['data/{}/particles/beam/weighting'.format(data_file.iteration)]
-        )
-    curr = get_zcurrent_new(
-        report_data['beam'][:,4], report_data['beam'][:,5], zmesh, weights, dz
-    )
+        weights = np.array(f['data/{}/particles/beam/weighting'.format(data_file.iteration)])
+    curr = get_zcurrent_new(report_data['beam'][:,4], report_data['beam'][:,5], zmesh, weights, dz)
     return _extract_current_results(data, curr, data_time)
 
 
 def _extract_current_results(data, curr, data_time):
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
-
-    # holds the z-axis grid points in an array
-    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1)
+    zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
     if _is_3D(data):
         cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
         cathode_area = _meters(grid['channel_width'])
-    RD_ideal = sources.j_rd(
-        beam['cathode_temperature'], beam['cathode_work_function']
-    ) * cathode_area
-    JCL_ideal = sources.cl_limit(
-        beam['cathode_work_function'], beam['anode_work_function'],
-        beam['anode_voltage'], plate_spacing
-    ) * cathode_area
+    RD_ideal = sources.j_rd(beam['cathode_temperature'], beam['cathode_work_function']) * cathode_area
+    JCL_ideal = sources.cl_limit(beam['cathode_work_function'], beam['anode_work_function'], beam['anode_voltage'], plate_spacing) * cathode_area
 
-    if beam['currentMode'] == '2' or \
-            (beam['currentMode'] == '1' and beam['beam_current'] >= JCL_ideal):
+    if beam['currentMode'] == '2' or (beam['currentMode'] == '1' and beam['beam_current'] >= JCL_ideal):
         curr2 = np.full_like(zmesh, JCL_ideal)
         y2_title = 'Child-Langmuir cold limit'
     else:
@@ -920,8 +884,7 @@ def _generate_parameters_file(data):
 
 def _h5_file_list(run_dir, model_name):
     return pkio.walk_tree(
-        run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' \
-                         else 'diags/fields/electric'),
+        run_dir.join('diags/xzsolver/hdf5' if model_name == 'currentAnimation' else 'diags/fields/electric'),
         r'\.h5$',
     )
 
@@ -1039,8 +1002,7 @@ def _parse_optimize_field(text):
 
 def _particle_line_has_slope(curr, next, prev, i1, i2):
     return abs(
-        _slope(curr[i1], curr[i2], next[i1], next[i2]) -
-        _slope(prev[i1], prev[i2], curr[i1], curr[i2])
+        _slope(curr[i1], curr[i2], next[i1], next[i2]) - _slope(prev[i1], prev[i2], curr[i1], curr[i2])
     ) >= _CULL_PARTICLE_SLOPE
 
 
@@ -1181,8 +1143,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
             v = np.load(str(egun_current_file), allow_pickle=True)
             res['egunCurrentFrameCount'] = len(v)
     else:
-        percent_complete = (file_index + 1.0) * \
-                           _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
+        percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
 
     if percent_complete < 0:
         percent_complete = 0
