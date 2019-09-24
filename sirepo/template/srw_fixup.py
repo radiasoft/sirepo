@@ -137,7 +137,7 @@ def _do_beamline(template, data):
                 i.diffractionAngle = _find_closest_angle(i.grazingAngle or 0, allowed_angles)
                 if i.tvx == '':
                     i.tvx = i.tvy = 0
-                template.compute_crystal_grazing_angle(i)
+                _SIM_DATA.compute_crystal_grazing_angle(i)
         if t == 'sample':
             if 'horizontalCenterCoordinate' not in i:
                 i.horizontalCenterCoordinate = _SCHEMA.model.sample.horizontalCenterCoordinate[2]
