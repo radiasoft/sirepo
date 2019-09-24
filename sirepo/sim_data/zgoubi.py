@@ -7,9 +7,6 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from pykern import pkcollections
-from pykern.pkdebug import pkdp
-from sirepo import simulation_db
 import sirepo.sim_data
 
 
@@ -19,7 +16,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         dm = data.models
         cls.init_models(
-            dm
+            dm,
             (
                 'SPNTRK',
                 'SRLOSS',
@@ -39,20 +36,20 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'twissSummaryReport',
             ),
         )
-        if 'coordinates' not in data.models.bunch:
+        if 'coordinates' not in dm.bunch:
             b = dm.bunch
             b.coordinates = []
-            for _ in range(bunch.particleCount2):
+            for _ in range(b.particleCount2):
                 c = PKDict()
                 cls.update_model_defaults(c, 'particleCoordinate')
                 b.coordinates.append(c)
         # move spntrk from simulationSettings (older) or bunch if present
         for m in 'simulationSettings', 'bunch':
             if 'spntrk' in dm:
-                data.models.SPNTRK.KSO = data.models[m].spntrk
-                del data.models[m]['spntrk']
+                data.models.SPNTRK.KSO = dm[m].spntrk
+                del dm[m]['spntrk']
                 for f in 'S_X', 'S_Y', 'S_Z':
-                    if f in data.models[m]:
+                    if f in dm[m]:
                         df.SPNTRK[f] = dm[m][f]
                         del dm[m][f]
         for e in dm.elements:

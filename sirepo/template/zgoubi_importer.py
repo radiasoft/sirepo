@@ -15,12 +15,12 @@ from sirepo.template.template_common import ModelUnits
 import glob
 import os.path
 import re
+import sirepo.sim_data
 import zipfile
 
 MODEL_UNITS = None
 
-_SIM_TYPE = 'zgoubi'
-_SCHEMA = simulation_db.get_schema(_SIM_TYPE)
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
 _UNIT_TEST_MODE = False
 
 
@@ -361,7 +361,7 @@ def _validate_and_dedup_elements(data, elements):
                 pkdlog('updating existing {} model', el['type'])
                 data['models'][el['type']].update(el)
             else:
-                template_common.update_model_defaults(el, el['type'], _SCHEMA)
+                _SIM_DATA.update_model_defaults(el, el['type'], _SCHEMA)
                 data['models'][el['type']] = el
     return info
 
@@ -370,7 +370,7 @@ def _validate_element_names(data, info):
     names = {}
     for idx in range(len(info['ids'])):
         el = info['elements'][idx]
-        template_common.update_model_defaults(el, el['type'], _SCHEMA)
+        _SIM_DATA.update_model_defaults(el, el['type'], _SCHEMA)
         el['_id'] = info['ids'][idx]
         name = info['names'][idx]
         name = re.sub(r'\\', '_', name)

@@ -52,7 +52,7 @@ class SimDataBase(object):
 
     @classmethod
     def init_models(cls, models, names=None, dynamic=None):
-        for n in names or cls.schema().model:
+        for n in names or cls.schema().models:
             cls.update_model_defaults(
                 models.setdefault(n, pkcollections.Dict()),
                 n,
