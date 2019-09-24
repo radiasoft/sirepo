@@ -5,11 +5,11 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkjson
+from pykern import pkjson, pkconfig, pkcollections
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job
 from sirepo import job_scheduler
+import importlib
 import tornado.ioloop
 import tornado.locks
 import tornado.locks
@@ -64,9 +64,12 @@ class DriverBase(object):
 
     @classmethod
     def _get_driver_class(cls, request):
-        from sirepo.driver import local
-        # TODO(e-carlin): Actually parse the request and get the class
-        return local.LocalDriver
+        # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
+        t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
+        m = importlib.import_module(
+            f'sirepo.driver.{t}'
+        )
+        return getattr(m, f'{t.capitalize()}Driver')
 
     def _get_request(self, req_id):
         d = self._get_driver()

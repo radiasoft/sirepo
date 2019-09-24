@@ -21,19 +21,17 @@ import uuid
 
 # Actions that the sirepo server, supervisor, or driver may send.
 # TODO(e-carlin): Can we use an enum without manually serializing and deserializing?
-# pkcollections.json doesn't support this: https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
-ACTION_EXTRACT_JOB_RESULTS = 'extract_job_results'
+ACTION_CANCEL_JOB = 'cancel_job'
+ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_KEEP_ALIVE = 'keep_alive'
 ACTION_READY_FOR_WORK = 'ready_for_work'
-ACTION_COMPUTE_JOB_STARTED = 'compute_job_started'
-ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
 ACTION_START_COMPUTE_JOB = 'start_compute_job'
-ACTION_CANCEL_JOB = 'cancel_job'
 
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
+# TODO(e-carlin): Use enums or string constants (like ACTIONS) not both.
 class JobStatus(aenum.Enum):
     MISSING = 'missing'     # no data on disk, not currently running
     RUNNING = 'running'     # data on disk is incomplete but it's running

@@ -36,7 +36,7 @@ class LocalDriver(driver.DriverBase):
 
     def __init__(self, uid, agent_id, resource_class):
         super(LocalDriver, self).__init__(uid, agent_id, resource_class)
-        # TODO(e-carlin): This is used to get starts about drivers as the code
+        # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Probably delete.
         tornado.ioloop.IOLoop.current().spawn_callback(
             self._stats
