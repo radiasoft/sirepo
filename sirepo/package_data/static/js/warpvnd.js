@@ -534,7 +534,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
             dims.forEach(function (d) {
                 panelState.showField(rpt, d + 'Cell' + i, dim != d);
             });
-            if (! warpvndService.is3D() || ! ranIn3d) {
+            if (! warpvndService.is3D() || ! self.ranIn3d) {
                 panelState.showField(rpt, 'yCell' + i, false);
             }
         });
@@ -585,8 +585,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         });
         panelState.showField('box', 'yLength', is3d);
         panelState.showField('conductorPosition', 'yCenter', is3d);
-        panelState.showField('fieldCalcAnimation', 'axes', is3d && ranIn3d);
-        panelState.showEnum('fieldComparisonAnimation', 'dimension', 'y', is3d && ranIn3d);
+        panelState.showField('fieldCalcAnimation', 'axes', is3d && self.ranIn3d);
+        panelState.showEnum('fieldComparisonAnimation', 'dimension', 'y', is3d && self.ranIn3d);
     }
 
     self.isWaitingForSTL = false;
@@ -720,6 +720,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         return warpvndService.is3D();
     };
 
+    self.ranIn3d = false;
+
     self.usesSTL = function() {
         return ! ! (appState.models.simulation || {}).conductorFile;
     };
@@ -763,9 +765,8 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
         }
     });
 
-    var ranIn3d = false;
     $scope.$on('fieldComparisonAnimation.summaryData', function (evt, data) {
-        ranIn3d = data.runMode3d;
+        self.ranIn3d = data.runMode3d;
     });
 
 
@@ -878,14 +879,14 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
         return frameCache.getFrameCount() > 0;
     };
 
-    var ranIn3d = false;
+    self.ranIn3d = false;
     $scope.$on('fieldAnimation.summaryData', function (evt, data) {
-        ranIn3d = data.runMode3d;
+        self.ranIn3d = data.runMode3d;
     });
 
     $scope.$on('fieldAnimation.editor.show', function () {
-        panelState.showField('fieldAnimation', 'axes', warpvndService.is3D() && ranIn3d);
-        panelState.showField('fieldAnimation', 'slice', warpvndService.is3D() && ranIn3d);
+        panelState.showField('fieldAnimation', 'axes', warpvndService.is3D() && self.ranIn3d);
+        panelState.showField('fieldAnimation', 'slice', warpvndService.is3D() && self.ranIn3d);
     });
 
     appState.whenModelsLoaded($scope, function () {
@@ -2046,9 +2047,17 @@ SIREPO.app.directive('fieldAnimation', function(appState, panelState, plotting, 
             '<div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>',
         ].join(''),
         controller: function($scope) {
-            $scope.model = $scope.model || appState.models[$scope.modelName];
-            $scope.model.units = 'µm';
-            warpvndService.sliceDelegate($scope).watchFields = ['fieldAnimation.axes', 'simulationGrid.simulation_mode'];
+
+            appState.whenModelsLoaded($scope, function () {
+                $scope.model = appState.models[$scope.modelName];
+                $scope.model.units = 'µm';
+                if (! warpvndService.is3D()) {
+                    $scope.model.axes = 'xz';
+                }
+                warpvndService.sliceDelegate($scope).watchFields = [
+                    'fieldAnimation.axes', 'simulationGrid.simulation_mode'
+                ];
+            });
         },
     };
 });
