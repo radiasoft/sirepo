@@ -137,8 +137,8 @@ def test_cancel_long_running_job():
         supervisor.wait()
 
 
-# TODO(e-carlin): pytest is async but this test need to be run in a sync manner
-def xtest_one_job_running_at_a_time():
+# TODO(e-carlin): pytest is sync but this test need to be run in a async manner
+async def xtest_one_job_running_at_a_time():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
@@ -185,19 +185,20 @@ def xtest_one_job_running_at_a_time():
 
         data.models.simulation.name = 'Scooby Doo'
         data.models.dog.gender = 'female'
-        # TODO(e-carlin): This blocks. Ideally we should run this see that the
-        # second_job is 'pending' cancel the first job and then see the second
-        # job execute
-        second_job = fc.sr_post(
-            'runSimulation',
-            dict(
-                forceRun=False,
-                models=data.models,
-                report='heightWeightReport',
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
-        )
+        # TODO(e-carlin): This blocks. Ideally we should run this in something
+        # like spawn_callback(). Then call runStatus for second_job see that it
+        # is pending. Then call runCancel for first_job. Then call runStatus for
+        # the second_job and see that it's state is now running.
+        # second_job = fc.sr_post(
+        #     'runSimulation',
+        #     dict(
+        #         forceRun=False,
+        #         models=data.models,
+        #         report='heightWeightReport',
+        #         simulationId=data.models.simulation.simulationId,
+        #         simulationType=data.simulationType,
+        #     ),
+        # )
         # second_job = fc.sr_post(
         #     'runStatus',
         #     second_job.nextRequest
@@ -233,6 +234,7 @@ def _assert_py3():
         out = e.output
     from pykern import pkunit
 
+    pkdp('out is {}', out)
     pkunit.pkok(
         '/py3/bin/sirepo' in out,
         'expecting sirepo in a py3: {}',
