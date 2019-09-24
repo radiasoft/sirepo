@@ -106,8 +106,8 @@ def _get_compute_model_name(data):
     """A name that uniquely identifies a compute job"""
     # TODO(e-carlin): talk with rn to double check this fn
     return data.simulationId \
-        + simulation_db.simulation_run_dir(data).basename \
-        + template_common.report_parameters_hash(data)
+        + '-' + simulation_db.simulation_run_dir(data).basename \
+        + '-' + template_common.report_parameters_hash(data)
 
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()

@@ -28,6 +28,7 @@ class DriverBase(object):
     )
 
     def __init__(self, uid, agent_id, resource_class):
+        # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         self.uid = uid
         self.agent_started = False
         self.agent_id = agent_id
@@ -36,7 +37,6 @@ class DriverBase(object):
         self.message_handler_set = tornado.locks.Event()
         self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
-
         # TODO(e-carlin): This is used to keep track of what run_dir currently
         # has a data job running in it. This makes it so we only send one data
         # job at a time. I think we should create a generalized data structure

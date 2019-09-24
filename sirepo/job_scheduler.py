@@ -30,6 +30,7 @@ async def run(driver_class, resource_class):
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
+            _free_slots_if_needed(driver_class, resource_class)
             # there must be a request to execut
             if request_index < len(d.requests):
                 r = d.requests[request_index]
@@ -40,29 +41,23 @@ async def run(driver_class, resource_class):
                 if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
                     continue
 
-                if not d.agent_started and not _slots_available(driver_class, resource_class):
-                    _try_to_free_slot(driver_class, resource_class)
                 # start agent if not started and slots available
                 if not d.agent_started and _slots_available(driver_class, resource_class):
-                        d.start_agent()
-                        # TODO(e-carlin): maybe this should live within DriverBase start_agent()
-                        driver_class.resources[resource_class].slots.in_use += 1
+                    d.start_agent()
+                    # TODO(e-carlin): maybe this should live within DriverBase start_agent()
+                    driver_class.resources[resource_class].slots.in_use += 1
+
                 # TODO(e-carlin): If r is a cancel and ther is no agent then???
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
                 # then delete from q and respond to server out of band about cancel
-                # TODO(e-carlin): If there are no slots free one up
-                #   - if the owner of a slot has no executing jobs then kill its
-                #   agent. If the request q is empty remove from driver from drivers
-                #   - use some starvation algo so that if someone has an agent
-                #   and is sending a lot of jobs then after some number of jobs
-                #   there agent should be killed an another user's agent started
-                if r.content.action in DATA_ACTIONS:
-                    assert r.content.compute_model_name not in d.running_data_jobs
-                    d.running_data_jobs.add(r.content.compute_model_name)
 
-                r.state = STATE_EXECUTING
-                drivers.append(drivers.pop(drivers.index(d)))
-                await d.requests_to_send_to_agent.put(r)
+                if d.agent_started:
+                    if d.agent_started and  r.content.action in DATA_ACTIONS:
+                        assert r.content.compute_model_name not in d.running_data_jobs
+                        d.running_data_jobs.add(r.content.compute_model_name)
+                    r.state = STATE_EXECUTING
+                    drivers.append(drivers.pop(drivers.index(d)))
+                    await d.requests_to_send_to_agent.put(r)
 
 
 def _slots_available(driver_class, resource_class):
@@ -76,12 +71,30 @@ def _len_longest_requests_q(drivers):
         m = max(m, len(d.requests))
     return m
 
+
+def _free_slots_if_needed(driver_class, resource_class):
+    slot_needed = False
+    for d in driver_class.resources[resource_class].drivers:
+        if not d.agent_started and len(d.requests) > 0 and not _slots_available(driver_class, resource_class):
+            slot_needed = True
+            break
+    if slot_needed:
+        _try_to_free_slot(driver_class, resource_class)
+
+
 def _try_to_free_slot(driver_class, resource_class):
     for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started and len(d.requests) == 0:
-            pkdc('driver={} agent being terminated to free slot', d)
+        if d.agent_started and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
+            pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
             d.terminate_agent()
-            driver_class.resources[resource_class].slots_in_use -= 1
+            driver_class.resources[resource_class].slots.in_use -= 1
+            driver_class.resources[resource_class].drivers.remove(d)
             return
         # TODO(e-carlin): More cases. Ex:
         #   - if user has had an agent for a long time kill it when appropriate
+        #   - if the owner of a slot has no executing jobs then terminate the
+        #   agent but keep the driver around so the pending jobs will get run
+        #   eventually
+        #   - use a starvation algo so that if someone has an agent
+        #   and is sending a lot of jobs then after some x (ex number of jobs,
+        #   time, etc) their agent is killed and another user's agent started.

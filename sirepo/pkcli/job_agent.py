@@ -250,8 +250,6 @@ class _JobTracker:
         """Get the current status of a specific job in the given run_dir."""
         status = job.JobStatus.MISSING
         run_dir_jhash, run_dir_status = self._run_dir_status(run_dir)
-        pkdp('run_dir_jhash={}', run_dir_jhash)
-        pkdp('incoming_jhash={}', jhash)
         if run_dir_jhash == jhash:
             status = run_dir_status
         return status
