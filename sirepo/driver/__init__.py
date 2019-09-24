@@ -20,13 +20,6 @@ import uuid
 class DriverBase(object):
     driver_for_agent = pkcollections.Dict()
 
-    # TODO(e-carlin): This will likely change once I have a better understanding of
-    # how we will map server job requests to a driver
-    resource_class_and_user_to_driver = pkcollections.Dict(
-        sequential=pkcollections.Dict(),
-        parallel=pkcollections.Dict(),
-    )
-
     def __init__(self, uid, agent_id, resource_class):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         self.uid = uid

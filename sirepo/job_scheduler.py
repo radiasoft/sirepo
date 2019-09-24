@@ -24,8 +24,12 @@ _OPERATOR_ACTIONS = [
 
 
 async def run(driver_class, resource_class):
-    pkdc('scheduler running for driver class {} and resource class {}', driver_class, resource_class)
-    pkdc('slots available? {}', _slots_available(driver_class, resource_class))
+    pkdc(
+        'scheduler running for driver {} and resource class {}. Slots available={}',
+        driver_class,
+        resource_class,
+        _slots_available(driver_class, resource_class),
+    )
     # TODO(e-carlin): this needs a lot of work    
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
