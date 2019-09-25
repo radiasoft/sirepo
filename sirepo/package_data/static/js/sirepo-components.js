@@ -487,6 +487,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               '<div data-ng-switch-when="OptFloat" data-ng-class="fieldClass">',
                 '<div data-optimize-float="" data-model="model" data-model-name="modelName" data-field="field" data-min="info[4]" data-max="info[5]" ></div>',
               '</div>',
+               '<div data-ng-switch-when="Range" data-ng-class="fieldClass">',
+                  '<div data-range-slider="" data-model="model" data-model-name="modelName" data-field="field" data-field-delegate="fieldDelegate"></div>',
+               '</div>',
               SIREPO.appFieldEditors || '',
               // assume it is an enum
               '<div data-ng-switch-default data-ng-class="fieldClass">',
@@ -2692,15 +2695,50 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         restrict: 'A',
         scope: {
             field: '=',
+            fieldDelegate: '<',
             model: '=',
             modelName: '=',
-            update: '&',
         },
         template: [
-            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="update()()">',
+            '<input id="{{ modelName }}-{{ field }}-range" type="range" data-ng-model="model[field]" data-ng-change="fieldDelegate.update()">',
             '<span class="valueLabel">{{ model[field] }}{{ model.units }}</span>',
         ].join(''),
         controller: function($scope) {
+            var slider;
+            
+            var delegate = $scope.fieldDelegate;
+            if (! delegate || $.isEmptyObject(delegate)) {
+                delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);
+            }
+
+            function update() {
+                updateReadout();
+                updateSlider();
+            }
+
+            function updateSlider() {
+                var r = delegate.range();
+                slider.attr('min', r.min);
+                slider.attr('step', r.step);
+                slider.attr('max', r.max);
+            }
+
+            function updateReadout() {
+                panelState.setFieldLabel($scope.modelName, $scope.field, delegate.readout());
+            }
+
+            appState.watchModelFields($scope, (delegate.watchFields || []), update);
+
+            appState.whenModelsLoaded($scope, function () {
+                slider = $('#' + $scope.modelName + '-' + $scope.field + '-range');
+                update();
+                // on load, the slider will coerce model values to fit the basic input model of range 0-100,
+                // step 1.  This resets to the saved value
+                var val = delegate.storedVal;
+                if ((val || val === 0) && $scope.model[$scope.field] != val) {
+                    $scope.model[$scope.field] = val;
+                }
+            });
         },
     };
 });

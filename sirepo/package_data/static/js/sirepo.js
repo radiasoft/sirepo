@@ -893,6 +893,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         return args.join('_');
     }
 
+    self.buildArgs = function(modelName, version) {
+        var args = [SIREPO.ANIMATION_ARGS_VERSION + version];
+        if (! SIREPO.APP_SCHEMA.animationArgs[modelName]) {
+            return  args;
+        }
+        return args.concat(SIREPO.APP_SCHEMA.animationArgs[modelName]);
+    };
+
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
         if (v) {
@@ -1178,6 +1186,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('input.form-control').prop('readonly', ! isEnabled);
         $(fc).find('select.form-control').prop('disabled', ! isEnabled);
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
+    };
+
+    // lazy creation/storage of field delegates
+    self.fieldDelegates = {};
+    self.getFieldDelegate = function(modelName, field) {
+        if (! self.fieldDelegates[modelName]) {
+            self.fieldDelegates[modelName] = {};
+        }
+        if (! self.fieldDelegates[modelName][field]) {
+            self.fieldDelegates[modelName][field] = {
+                storedVal: appState.models[modelName][field],
+            };
+        }
+        return self.fieldDelegates[modelName][field];
     };
 
     self.fileNameFromText = function(text, extension) {
