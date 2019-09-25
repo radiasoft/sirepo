@@ -22,7 +22,7 @@ def test_myapp():
     fc.sr_login_as_guest()
 
     try:
-        supervisor = _start_supervisor(py3_env)
+        job_server = _start_job_server(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -61,8 +61,8 @@ def test_myapp():
         # Just double-check it actually worked
         assert u'plots' in run
     finally:
-        supervisor.terminate()
-        supervisor.wait()
+        job_server.terminate()
+        job_server.wait()
 
 
 def test_cancel_long_running_job():
@@ -75,7 +75,7 @@ def test_cancel_long_running_job():
     fc.sr_login_as_guest()
 
     try:
-        supervisor = _start_supervisor(py3_env)
+        job_server = _start_job_server(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -133,12 +133,12 @@ def test_cancel_long_running_job():
         )
         assert run.state == 'canceled'
     finally:
-        supervisor.terminate()
-        supervisor.wait()
+        job_server.terminate()
+        job_server.wait()
 
 
 # TODO(e-carlin): pytest is sync but this test need to be run in a async manner
-async def xtest_one_job_running_at_a_time():
+def xtest_one_job_running_at_a_time():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
@@ -148,7 +148,7 @@ async def xtest_one_job_running_at_a_time():
     fc.sr_login_as_guest()
 
     try:
-        supervisor = _start_supervisor(py3_env)
+        job_server = _start_job_server(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -205,8 +205,8 @@ async def xtest_one_job_running_at_a_time():
         # )
         # assert second_job.state == 'pending'
     finally:
-        supervisor.terminate()
-        supervisor.wait()
+        job_server.terminate()
+        job_server.wait()
 
 
 def _assert_py3():
@@ -242,15 +242,15 @@ def _assert_py3():
     )
     try:
         out = subprocess.check_output(
-            ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
+            ['pyenv', 'exec', 'sirepo', 'job_server', '--help'],
             env=res,
             stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError as e:
         out = e.output
     pkunit.pkok(
-        'job_supervisor ' in out,
-        '"job_supervisor" not in help: {}',
+        'job_server' in out,
+        '"job_server" not in help: {}',
         out,
     )
 
@@ -289,20 +289,20 @@ def _server_up(url):
         pass
 
 
-def _start_supervisor(env):
+def _start_job_server(env):
     from pykern import pkunit
     from sirepo import srdb
     from sirepo import job
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    supervisor = subprocess.Popen(
-        ['pyenv', 'exec', 'sirepo', 'job_supervisor', 'start'],
+    job_server = subprocess.Popen(
+        ['pyenv', 'exec', 'sirepo', 'job_server', 'start'],
         env=env,
     )
     for _ in range(30):
-        if _server_up(job.cfg.supervisor_http_uri):
+        if _server_up(job.cfg.job_server_http_uri):
             break
         time.sleep(0.1)
     else:
-        pkunit.pkfail('job supervisor did not start up')
-    return supervisor
+        pkunit.pkfail('job server did not start up')
+    return job_server

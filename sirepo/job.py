@@ -118,20 +118,20 @@ def _request(body):
     body.uid = uid
     body.req_id = str(uuid.uuid4())
     body.setdefault('resource_class', 'sequential')
-    r = requests.post(cfg.supervisor_http_uri, json=body)
+    r = requests.post(cfg.job_server_http_uri, json=body)
     return pkjson.load_any(r.content)
 
 
 
 cfg = pkconfig.init(
-    supervisor_http_uri=(
+    job_server_http_uri=(
         'http://{}:{}/server'.format(DEFAULT_IP, DEFAULT_PORT),
         str,
-        'uri to reach the supervisor for http connections',
+        'uri to reach the job server for http connections',
     ),
-    supervisor_ws_uri=(
+    job_server_ws_uri=(
         'ws://{}:{}/agent'.format(DEFAULT_IP, DEFAULT_PORT),
         str,
-        'uri to reach the supervisor for websocket connections',
+        'uri to reach the job server for websocket connections',
     ),
 )

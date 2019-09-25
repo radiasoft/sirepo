@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Supervisor to manage drivers and the execution of jobs on the drivers.
+"""# TODO(e-carlin): Doc 
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -31,9 +31,9 @@ import uuid
 
 def start():
     cfg = pkconfig.init(
-        debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the supervisor tornado server in debug mode'),
-        ip=(job.DEFAULT_IP, str, 'ip address for the supervisor tornado server to listen to'),
-        port=(job.DEFAULT_PORT, int, 'port for the supervisor tornado server to listen to'),
+        debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the job server in debug mode'),
+        ip=(job.DEFAULT_IP, str, 'ip address for the job server to listen to'),
+        port=(job.DEFAULT_PORT, int, 'port for the job server to listen to'),
     )
     app = tornado.web.Application(
         [

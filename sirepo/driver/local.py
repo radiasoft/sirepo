@@ -38,9 +38,9 @@ class LocalDriver(driver.DriverBase):
         super(LocalDriver, self).__init__(uid, agent_id, resource_class)
         # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Probably delete.
-        tornado.ioloop.IOLoop.current().spawn_callback(
-            self._stats
-        )
+        # tornado.ioloop.IOLoop.current().spawn_callback(
+        #     self._stats
+        # )
 
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
@@ -62,7 +62,7 @@ class LocalDriver(driver.DriverBase):
         env = dict(os.environ)
         env['PYENV_VERSION'] = 'py3'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_WS_URI'] = cfg.supervisor_ws_uri
+        env['SIREPO_PKCLI_JOB_AGENT_JOB_SERVER_WS_URI'] = cfg.job_server_ws_uri
         self.agent = tornado.process.Subprocess(
             [
                 'pyenv',
@@ -86,9 +86,9 @@ class LocalDriver(driver.DriverBase):
         self.agent = None
 
 cfg = pkconfig.init(
-    supervisor_ws_uri=(
-        job.cfg.supervisor_ws_uri,
+    job_server_ws_uri=(
+        job.cfg.job_server_ws_uri,
         str,
-        'uri to reach the supervisor for websocket connections',
+        'uri to reach the job server for websocket connections',
     ),
 )

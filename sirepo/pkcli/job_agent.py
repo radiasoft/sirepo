@@ -10,7 +10,6 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job, simulation_db
 # TODO(e-carlin): load dynamically
 from sirepo.job_driver_backends import local_process
-from sirepo.pkcli import job_supervisor
 import async_generator
 import asyncio
 import contextlib
@@ -22,6 +21,7 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.locks
 import tornado.queues
+import tornado.websocket
 
 
 _KILL_TIMEOUT_SECS = 3
@@ -32,12 +32,12 @@ _RUNNER_INFO_BASENAME = 'runner-info.json'
 def start():
     cfg = pkconfig.init(
         agent_id=('abc123', str, 'the id of the agent'),
-        supervisor_ws_uri=(job.cfg.supervisor_ws_uri, str, 'the uri to connect to the supervisor on'),
+        job_server_ws_uri=(job.cfg.job_server_ws_uri, str, 'the uri to connect to the job server on'),
     )
     pkdlog('agent_id={}', cfg.agent_id)
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
-        _Msg(agent_id=cfg.agent_id, supervisor_ws_uri=cfg.supervisor_ws_uri).loop,
+        _Msg(agent_id=cfg.agent_id, job_server_ws_uri=cfg.job_server_ws_uri).loop,
     )
     io_loop.start()
 
@@ -50,9 +50,9 @@ class _Msg(pkcollections.Dict):
             self.current_msg = None
             try:
                 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await tornado.websocket.websocket_connect(self.supervisor_ws_uri)
+                c = await tornado.websocket.websocket_connect(self.job_server_ws_uri)
             except ConnectionRefusedError as e:
-                pkdlog('{} uri=', e, self.supervisor_ws_uri)
+                pkdlog('{} uri=', e, self.job_server_ws_uri)
                 await tornado.gen.sleep(_RETRY_DELAY)
                 continue
             m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
