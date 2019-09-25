@@ -143,9 +143,9 @@ class _JobTracker:
 
     async def kill(self, run_dir):
         j = self._compute_jobs.get(run_dir)
-        if j is None:
+        if j is None: # TODO(e-carlin): This can probably be removed since supervisor will not ever send a cancel in this case
             return
-        if j.status is not job.JobStatus.RUNNING:
+        if j.status is not job.JobStatus.RUNNING: # TODO(e-carlin): This can probably be removed since supervisor will not ever send a cancel in this case
             return
         pkdlog(
             'job with jhash {} in {}',

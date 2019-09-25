@@ -15,20 +15,36 @@ import os
 import sirepo.mpi
 import tornado.process
 
+# TODO(e-carlin): cfg should be at bottom like in other modules. Except that
+# class LocalDriver needs it which means it has to be declared before it
+cfg = pkconfig.init(
+    job_server_ws_uri=(
+        job.cfg.job_server_ws_uri,
+        str,
+        'uri to reach the job server for websocket connections',
+    ),
+    parallel_slots=(
+        1, int, 'total number of parallel slots'
+    ),
+    sequential_slots=(
+        1, int, 'total number of sequential slots'
+    ),
+)
 
 class LocalDriver(driver.DriverBase):
+    pkdp('******************** {}', cfg.sequential_slots) # TODO(e-carlin): Delete
     resources = pkcollections.Dict(
         parallel=pkcollections.Dict(
             drivers=[],
             slots=pkcollections.Dict(
-                total=1,
+                total=cfg.parallel_slots,
                 in_use=0,
             )
         ),
         sequential=pkcollections.Dict(
             drivers=[],
             slots=pkcollections.Dict(
-                total=1,
+                total=cfg.sequential_slots,
                 in_use=0,
             )
         ),
@@ -84,11 +100,3 @@ class LocalDriver(driver.DriverBase):
         self.agent.proc.terminate() 
         self.agent.proc.wait() 
         self.agent = None
-
-cfg = pkconfig.init(
-    job_server_ws_uri=(
-        job.cfg.job_server_ws_uri,
-        str,
-        'uri to reach the job server for websocket connections',
-    ),
-)

@@ -27,7 +27,7 @@ def api_runCancel():
     jid = simulation_db.job_id(data)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    job.cancel_report_job(_get_compute_model_name(data), run_dir, jhash)
+    job.cancel_report_job(jid, run_dir, jhash)
     # Always true from the client's perspective
     return http_reply.gen_json({'state': 'canceled'})
 
@@ -37,7 +37,8 @@ def api_runSimulation():
     data = http_request.parse_data_input(validate=True)
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
-    status = job.compute_job_status(_get_compute_model_name(data), run_dir, jhash)
+    jid = simulation_db.job_id(data)
+    status = job.compute_job_status(jid, run_dir, jhash)
     already_good_status = [
         job.JobStatus.RUNNING,
         job.JobStatus.COMPLETED,
@@ -50,7 +51,7 @@ def api_runSimulation():
         tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
         cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
         job.start_compute_job(
-            _get_compute_model_name(data),
+            jid,
             data.simulationId,
             run_dir,
             jhash,
@@ -83,8 +84,9 @@ def api_simulationFrame(frame_id):
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     jhash = template_common.report_parameters_hash(model_data)
+    jid = simulation_db.job_id(data)
     frame = job.run_extract_job(
-        _get_compute_model_name(data) , run_dir, jhash, 'get_simulation_frame', data,
+        jid, run_dir, jhash, 'get_simulation_frame', data,
     )
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
@@ -102,12 +104,6 @@ def api_simulationFrame(frame_id):
 def init_apis(*args, **kwargs):
     pass
 
-def _get_compute_model_name(data):
-    """A name that uniquely identifies a compute job"""
-    # TODO(e-carlin): talk with rn to double check this fn
-    return data.simulationId \
-        + '-' + simulation_db.simulation_run_dir(data).basename \
-        + '-' + template_common.report_parameters_hash(data)
 
 def _mtime_or_now(path):
     """mtime for path if exists else time.time()
@@ -134,7 +130,8 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
     try:
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
-        status = job.compute_job_status(_get_compute_model_name(data), run_dir, jhash)
+        jid = simulation_db.job_id(data)
+        status = job.compute_job_status(jid, run_dir, jhash)
         is_running = status is job.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
@@ -142,13 +139,13 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         if not is_running:
             if status is not job.JobStatus.MISSING:
                 res, err = job.run_extract_job(
-                    _get_compute_model_name(data), run_dir, jhash, 'result', data,
+                    jid, run_dir, jhash, 'result', data,
                 )
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
             new = job.run_extract_job(
-                _get_compute_model_name(data),
+                jid,
                 run_dir,
                 jhash,
                 'background_percent_complete',

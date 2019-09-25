@@ -63,9 +63,9 @@ def init_by_server(app):
 
 
 # TODO(e-carlin): These methods have the same structure. Abstract.
-def compute_job_status(compute_model_name, run_dir, jhash):
+def compute_job_status(jid, run_dir, jhash):
     body = pkcollections.Dict(
-        compute_model_name=compute_model_name,
+        jid=jid,
         action=ACTION_COMPUTE_JOB_STATUS,
         run_dir=str(run_dir),
         jhash=jhash,
@@ -74,9 +74,9 @@ def compute_job_status(compute_model_name, run_dir, jhash):
     return JobStatus(response.status)
 
 
-def cancel_report_job(compute_model_name, run_dir, jhash):
+def cancel_report_job(jid, run_dir, jhash):
     body = pkcollections.Dict(
-        compute_model_name=compute_model_name,
+        jid=jid,
         action=ACTION_CANCEL_JOB,
         run_dir=str(run_dir),
         jhash=jhash,
@@ -84,9 +84,9 @@ def cancel_report_job(compute_model_name, run_dir, jhash):
     return _request(body)
 
 
-def run_extract_job(compute_model_name, run_dir, jhash, subcmd, *args):
+def run_extract_job(jid, run_dir, jhash, subcmd, *args):
     body = pkcollections.Dict(
-        compute_model_name=compute_model_name,
+        jid=jid,
         action=ACTION_RUN_EXTRACT_JOB,
         run_dir=str(run_dir),
         jhash=jhash,
@@ -96,10 +96,10 @@ def run_extract_job(compute_model_name, run_dir, jhash, subcmd, *args):
     response = _request(body)
     return response.result
 
-def start_compute_job(compute_model_name, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
+def start_compute_job(jid, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
     body = pkcollections.Dict(
         action=ACTION_START_COMPUTE_JOB,
-        compute_model_name=compute_model_name,
+        jid=jid,
         sim_id=sim_id,
         run_dir=str(run_dir),
         jhash=jhash,

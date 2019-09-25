@@ -43,39 +43,36 @@ def _remove_request(msg):
         _get_request_for_message(msg)
     )
 
-async def incoming_message(message):
-    d = sirepo.driver.DriverBase.driver_for_agent[message.content.agent_id]
+async def incoming_message(msg):
+    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
     if not d.message_handler_set.is_set():
-        d.message_handler = message.message_handler
+        d.message_handler = msg.message_handler
         d.message_handler_set.set()
 
-    a = message.content.get('action')
+    a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
         return
     elif a == 'protocol_error':
-        # TODO(e-carlin): Handle more. If message has a req_id we should
+        # TODO(e-carlin): Handle more. If msg has a req_id we should
         # likely resend the request
-        pkdlog('Error: {}', message)
+        pkdlog('Error: {}', msg)
         return
 
-    r = _get_request_for_message(message)
-    r.request_handler.write(message.content)
+    r = _get_request_for_message(msg)
+    r.request_handler.write(msg.content)
     r.request_reply_was_sent.set()
-    _remove_request(message) 
+    _remove_request(msg) 
 
-    # TODO(e-carlin): This is quite hacky. The logic to add is in supervisor
-    # but logic to remove is here which is not great. These ifs aren't robust
-    # what will happen when types of jobs are updated?
-    # clear out running data jobs
+    # TODO(e-carlin): This is quite ugly. 
     if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
-        if message.content.status != job.JobStatus.RUNNING.value:
-            d.running_data_jobs.discard(r.content.compute_model_name)
+        if msg.content.status != job.JobStatus.RUNNING.value:
+            d.running_data_jobs.discard(r.content.jid)
     elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
-        d.running_data_jobs.discard(r.content.compute_model_name)
+        d.running_data_jobs.discard(r.content.jid)
     elif r.content.action == job.ACTION_CANCEL_JOB:
-        d.running_data_jobs.discard(r.content.compute_model_name)
+        d.running_data_jobs.discard(r.content.jid)
 
-    await run(type(d), d.resource_class)
+    await _run_scheduler(type(d), d.resource_class)
 
 async def incoming_request(req):
     req.state = _STATE_RUN_PENDING
@@ -96,7 +93,7 @@ async def incoming_request(req):
         dc.resources[req.content.resource_class].drivers.append(d)
         sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
 
-    await run(dc, req.content.resource_class)
+    await _run_scheduler(dc, req.content.resource_class)
     await req.request_reply_was_sent.wait()
 
 
@@ -109,7 +106,7 @@ def _get_driver_class(request):
     return getattr(m, f'{t.capitalize()}Driver')
 
 
-async def run(driver_class, resource_class):
+async def _run_scheduler(driver_class, resource_class):
     pkdc(
         'supervisor running for driver {} and resource class {}. Slots available={}',
         driver_class,
@@ -117,8 +114,8 @@ async def run(driver_class, resource_class):
         _slots_available(driver_class, resource_class),
     )
     # TODO(e-carlin): complete
-    # _remove_canceled_pending_jobs(
-    #     driver_class.resources[resource_class].drivers)
+    _handle_cancel_requests(
+        driver_class.resources[resource_class].drivers)
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
@@ -145,24 +142,24 @@ async def run(driver_class, resource_class):
 
                 if d.agent_started:
                     if d.agent_started and r.content.action in DATA_ACTIONS:
-                        assert r.content.compute_model_name not in d.running_data_jobs
-                        d.running_data_jobs.add(r.content.compute_model_name)
+                        assert r.content.jid not in d.running_data_jobs
+                        d.running_data_jobs.add(r.content.jid)
                     r.state = _STATE_RUNNING
                     drivers.append(drivers.pop(drivers.index(d)))
                     await d.requests_to_send_to_agent.put(r)
 
 
-def _remove_canceled_pending_jobs(drivers):
+def _handle_cancel_requests(drivers):
     for d in drivers:
         for r in d.requests:
             if r.content.action == job.ACTION_CANCEL_JOB:
-                _cancel_pending_jobs(driver, r)
+                _cancel_pending_jobs(d, r)
 
 
 def _cancel_pending_jobs(driver, cancel_req):
     job_running = False
     for r in driver.requests:
-        if r.content.compute_model_name == cancel_req.content.compute_model_name:
+        if r.content.jid == cancel_req.content.jid:
             if r.state == _STATE_RUN_PENDING:
                 # remove the req
                 continue
