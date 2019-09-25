@@ -5,11 +5,16 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdp, pkdc
+from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import driver, job
 import uuid
+import tornado.locks
+from pykern import pkconfig, pkcollections
+import importlib
+import sirepo.driver
+from sirepo import job
 
-STATE_RUN_PENDING = 'run_pending'
+_STATE_RUN_PENDING = 'run_pending' 
 _STATE_RUNNING = 'running'
 
 DATA_ACTIONS = [
@@ -20,6 +25,88 @@ DATA_ACTIONS = [
 _OPERATOR_ACTIONS = [
     job.ACTION_CANCEL_JOB,
 ]
+
+def _get_request_for_message(msg):
+    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
+    for r in d.requests:
+        if r.content.req_id == msg.content.req_id:
+            return r
+
+    raise AssertionError(
+        'req_id {} not found in requests {}',
+        msg.content.req_id,
+        d.requests
+    )
+
+def _remove_request(msg):
+    sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id].requests.remove(
+        _get_request_for_message(msg)
+    )
+
+async def incoming_message(message):
+    d = sirepo.driver.DriverBase.driver_for_agent[message.content.agent_id]
+    if not d.message_handler_set.is_set():
+        d.message_handler = message.message_handler
+        d.message_handler_set.set()
+
+    a = message.content.get('action')
+    if a == job.ACTION_READY_FOR_WORK:
+        return
+    elif a == 'protocol_error':
+        # TODO(e-carlin): Handle more. If message has a req_id we should
+        # likely resend the request
+        pkdlog('Error: {}', message)
+        return
+
+    r = _get_request_for_message(message)
+    r.request_handler.write(message.content)
+    r.request_reply_was_sent.set()
+    _remove_request(message) 
+
+    # TODO(e-carlin): This is quite hacky. The logic to add is in supervisor
+    # but logic to remove is here which is not great. These ifs aren't robust
+    # what will happen when types of jobs are updated?
+    # clear out running data jobs
+    if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
+        if message.content.status != job.JobStatus.RUNNING.value:
+            d.running_data_jobs.discard(r.content.compute_model_name)
+    elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
+        d.running_data_jobs.discard(r.content.compute_model_name)
+    elif r.content.action == job.ACTION_CANCEL_JOB:
+        d.running_data_jobs.discard(r.content.compute_model_name)
+
+    await run(type(d), d.resource_class)
+
+async def incoming_request(req):
+    req.state = _STATE_RUN_PENDING
+    req.request_reply_was_sent = tornado.locks.Event()
+    dc = _get_driver_class(req)
+
+    for d in dc.resources[req.content.resource_class].drivers:
+        if d.uid == req.content.uid:
+            d.requests.append(req)
+            break
+    else:
+        d = dc(
+            req.content.uid,
+            str(uuid.uuid4()),
+            req.content.resource_class
+        )
+        d.requests.append(req)
+        dc.resources[req.content.resource_class].drivers.append(d)
+        sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
+
+    await run(dc, req.content.resource_class)
+    await req.request_reply_was_sent.wait()
+
+
+def _get_driver_class(request):
+    # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
+    t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
+    m = importlib.import_module(
+        f'sirepo.driver.{t}'
+    )
+    return getattr(m, f'{t.capitalize()}Driver')
 
 
 async def run(driver_class, resource_class):
@@ -40,7 +127,7 @@ async def run(driver_class, resource_class):
             if request_index < len(d.requests):
                 r = d.requests[request_index]
                 # the request must not already be executing
-                if r.state != STATE_RUN_PENDING:
+                if r.state != _STATE_RUN_PENDING:
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
                 if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
@@ -76,7 +163,7 @@ def _cancel_pending_jobs(driver, cancel_req):
     job_running = False
     for r in driver.requests:
         if r.content.compute_model_name == cancel_req.content.compute_model_name:
-            if r.state == STATE_RUN_PENDING:
+            if r.state == _STATE_RUN_PENDING:
                 # remove the req
                 continue
             job_running = True
