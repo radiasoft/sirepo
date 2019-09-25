@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.srschema import get_enums
-from sirepo.template import template_common, elegant_common, elegant_lattice_importer
+from sirepo.template import template_common, elegant_common
 from synergia import foundation
 import glob
 import h5py
@@ -704,6 +704,10 @@ _ELEGANT_FIELD_MAP = {
 }
 
 def _import_elegant_file(text):
+    try:
+        from sirepo.template import elegant_lattice_importer
+    except AssertionError:
+        assert False, 'The elegant sirepo application is not configured.'
     elegant_data = elegant_lattice_importer.import_file(text)
     rpn_cache = elegant_data['models']['rpnCache']
     data = simulation_db.default_data(SIM_TYPE)
