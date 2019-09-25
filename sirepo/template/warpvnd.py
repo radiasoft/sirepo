@@ -69,11 +69,12 @@ def fixup_old_data(data):
             'particleAnimation',
             'simulation',
             'simulationGrid',
+            'fieldAnimation',
             'fieldCalcAnimation',
             'fieldCalculationAnimation',
             'fieldComparisonAnimation',
             'fieldComparisonReport',
-            'simulation',
+            'fieldReport',
     ]:
         if m not in data.models:
             data.models[m] = {}
