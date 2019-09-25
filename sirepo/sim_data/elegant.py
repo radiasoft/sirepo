@@ -63,9 +63,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             if model_type not in data.models:
                 continue
             for m in data.models[model_type]:
-                id = m._id if '_id' in m else m.id
-                if id > max_id:
-                    max_id = id
+                i = m._id if '_id' in m else m.id
+                if i > max_id:
+                    max_id = i
         return max_id
 
     @classmethod

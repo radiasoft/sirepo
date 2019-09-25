@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo.template import adm
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
@@ -17,6 +17,7 @@ from sirepo import http_request
 from sirepo import runner
 from sirepo import runner_client
 from sirepo import simulation_db
+from sirepo.template import adm
 from sirepo import srdb
 from sirepo import uri_router
 from sirepo import util
@@ -132,21 +133,18 @@ def api_deleteSimulation():
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-    data = {
-        'simulationType': sirepo.template.assert_sim_type(simulation_type),
-        'simulationId': simulation_id,
-        'modelName': model,
-    }
-    frame = int(frame)
-    template = sirepo.template.import_module(data)
-    if frame >= 0:
-        data['report'] = template.get_animation_name(data)
-    else:
-        data['report'] = model
-    f, c, t = template.get_data_file(
+    data = PKDict(
+        simulationType=sirepo.template.assert_sim_type(simulation_type),
+        simulationId=simulation_id,
+        modelName=model,
+    )
+    f = int(frame)
+    t = sirepo.template.import_module(data)
+    data.report = t.get_animation_name(data) if f >= 0 else model
+    f, c, t = t.get_data_file(
         simulation_db.simulation_run_dir(data),
         model,
-        frame,
+        f,
         options=data.copy().update(suffix=suffix),
     )
     return _as_attachment(flask.make_response(c), t, f)

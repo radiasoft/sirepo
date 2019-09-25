@@ -10,6 +10,7 @@ from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import hashlib
 import json
@@ -80,11 +81,11 @@ class ModelUnits:
     """
 
     # handler for common units, native --> sirepo scale
-    _COMMON_HANDLERS = {
-        'cm_to_m': 1e-2,
-        'mrad_to_rad': 1e-3,
-        'deg_to_rad': math.pi / 180,
-    }
+    _COMMON_HANDLERS = PKDict(
+        cm_to_m=1e-2,
+        mrad_to_rad=1e-3,
+        deg_to_rad=math.pi / 180,
+    )
 
     def __init__(self, unit_def):
         """
@@ -131,11 +132,11 @@ def compute_field_range(args, compute_range):
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
-    run_dir = simulation_db.simulation_run_dir({
-        'simulationType': args['simulationType'],
-        'simulationId': args['simulationId'],
-        'report': 'animation',
-    })
+    run_dir = simulation_db.simulation_run_dir(PKDict(
+        simulationType=args['simulationType'],
+        simulationId=args['simulationId'],
+        report='animation',
+    ))
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
     model_name = args['modelName']
@@ -146,9 +147,7 @@ def compute_field_range(args, compute_range):
             res = compute_range(run_dir, data)
             data.models[model_name].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
-    return {
-        'fieldRange': res,
-    }
+    return PKDict(fieldRange=res)
 
 
 def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
@@ -264,14 +263,14 @@ def filename_to_path(files, source_lib):
 
 
 def generate_parameters_file(data):
-    v = flatten_data(data['models'], pkcollections.Dict({}))
+    v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)
     res = render_jinja('.', v, name='common-header.py')
     return res, v
 
 
 def h5_to_dict(hf, path=None):
-    d = {}
+    d = PKDict()
     if path is None:
         path = '/'
     try:
@@ -307,11 +306,11 @@ def heatmap(values, model, plot_fields=None):
         elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
             range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
     hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
-    res = {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'z_matrix': hist.T.tolist(),
-    }
+    res = PKDict(
+        x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        z_matrix=hist.T.tolist(),
+    )
     if plot_fields:
         res.update(plot_fields)
     return res
@@ -349,12 +348,12 @@ def lib_files(data, source_lib=None):
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
-    res = {
-        'x_points': x,
-        'x_range': [min(x), max(x)] if len(x) else [0, 0],
-        'plots': plots,
-        'y_range': compute_plot_color_and_range(plots, plot_colors),
-    }
+    res = PKDict(
+        x_points=x,
+        x_range=[min(x), max(x)] if len(x) else [0, 0],
+        plots=plots,
+        y_range=compute_plot_color_and_range(plots, plot_colors),
+    )
     if 'plotRangeType' in model:
         if model.plotRangeType == 'fixed':
             res['x_range'] = _plot_range(model, 'horizontal')
@@ -399,9 +398,9 @@ def parse_animation_args(data, key_map):
 
 def parse_enums(enum_schema):
     """Returns a list of enum values, keyed by enum name."""
-    res = {}
+    res = PKDict()
     for k in enum_schema:
-        res[k] = {}
+        res[k] = PKDict()
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res

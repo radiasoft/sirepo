@@ -6,31 +6,24 @@ u"""elegant lattice parser
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
-import sirepo.sim_data
 import ntpath
 import re
+import sirepo.sim_data
 import subprocess
+
 
 _IGNORE_FIELD = ['rootname', 'search_path', 'semaphore_file']
 
-_SIM_DATA = sirepo.sim_data.get_class('elegant')
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
 
-_SCHEMA = _SIM_DATA.schema()
+_ELEGANT_TYPE_RE = re.compile(r'^[A-Z]+$')
 
-
-def _init_types():
-    res = {}
-    for name in _SCHEMA['model']:
-        if name == name.upper():
-            res[name] = True
-    return res
-
-
-_ELEGANT_TYPES = _init_types()
+_ELEGANT_TYPES = set(n for n in _SCHEMA.model if _ELEGANT_TYPE_RE.search(n))
 
 
 def build_variable_dependency(value, variables, depends):
@@ -47,8 +40,8 @@ def import_file(text, data=None):
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]
-    element_names = {}
-    rpn_cache = {}
+    element_names = PKDict()
+    rpn_cache = PKDict()
 
     for el in models['elements']:
         el['type'] = _validate_type(el, element_names)
@@ -86,7 +79,7 @@ def is_rpn_value(value):
 
 
 def parse_rpn_value(value, variable_list):
-    variables = {x['name']: x['value'] for x in variable_list}
+    variables = PKDict({x['name']: x['value'] for x in variable_list})
     depends = build_variable_dependency(value, variables, [])
     #TODO(robnagler) scan variable values for strings. Need to be parsable
     var_list = ' '.join(map(lambda x: '{} sto {}'.format(variables[x], x), depends))
@@ -125,7 +118,7 @@ def _model_name_for_data(model):
 
 
 def _create_name_map(models):
-    name_to_id = {}
+    name_to_id = PKDict()
     last_beamline_id = None
 
     for bl in models['beamlines']:

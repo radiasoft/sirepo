@@ -8,7 +8,8 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdp, pkdc, pkdlog
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
@@ -848,7 +849,7 @@ def _generate_variable(name, variables, visited):
 def _generate_variables(data):
     res = ''
     visited = pkcollections.Dict()
-    variables = {x['name']: x['value'] for x in data['models']['rpnVariables']}
+    variables = PKDict({x['name']: x['value'] for x in data['models']['rpnVariables']})
 
     for name in sorted(variables):
         for dependency in elegant_lattice_importer.build_variable_dependency(variables[name], variables, []):

@@ -5,12 +5,11 @@ u"""Common values for elegant
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
 import os
 
-
-#: Application name
 SIM_TYPE = 'elegant'
 
 #: Where to get files
@@ -18,10 +17,9 @@ RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 
 def sort_elements_and_beamlines(data):
-    models = data['models']
-    data['models']['elements'] = sorted(models['elements'], key=lambda el: el['type'])
-    data['models']['elements'] = sorted(models['elements'], key=lambda el: (el['type'], el['name'].lower()))
-    data['models']['beamlines'] = sorted(models['beamlines'], key=lambda b: b['name'].lower())
+    m = data['models']
+    m.elements = sorted(m.elements, key=lambda e: (e.type, e.name.lower()))
+    m.beamlines = sorted(m.beamlines, key=lambda e: e.name.lower())
 
 
 def subprocess_env():
@@ -30,9 +28,7 @@ def subprocess_env():
     Returns:
         dict: copy of env
     """
-    res = os.environ.copy()
-    res['RPN_DEFNS'] = str(RESOURCE_DIR.join('defns.rpn'))
-    return res
+    return PKDict(os.environ).update(RPN_DEFNS=str(RESOURCE_DIR.join('defns.rpn')))
 
 
 def subprocess_output(cmd):
