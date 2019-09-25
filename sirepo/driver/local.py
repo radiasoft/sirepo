@@ -10,7 +10,7 @@ from pykern import pkconfig
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import driver
 from sirepo import job
-from sirepo import job_scheduler
+from sirepo import job_supervisor
 import os
 import sirepo.mpi
 import tornado.process

@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkjson, pkconfig, pkcollections
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job
-from sirepo import job_scheduler
+from sirepo import job_supervisor
 import importlib
 import tornado.ioloop
 import tornado.locks
@@ -58,7 +58,7 @@ class DriverBase(object):
             dc.resources[request.content.resource_class].drivers.append(d)
             cls.driver_for_agent[d.agent_id] = d
 
-        await job_scheduler.run(dc, request.content.resource_class)
+        await job_supervisor.run(dc, request.content.resource_class)
         await request.request_reply_was_sent.wait()
 
 
@@ -103,7 +103,7 @@ class DriverBase(object):
 
     @classmethod
     async def incoming_request(cls, request):
-        request.state = job_scheduler.STATE_RUN_PENDING
+        request.state = job_supervisor.STATE_RUN_PENDING
         await cls._enqueue_request(request)
 
     async def _process_message(self, message):
@@ -121,7 +121,7 @@ class DriverBase(object):
         r.request_reply_was_sent.set()
         self._remove_request(message.content.req_id) 
 
-        # TODO(e-carlin): This is quite hacky. The logic to add is in scheduler
+        # TODO(e-carlin): This is quite hacky. The logic to add is in supervisor
         # but logic to remove is here which is not great. These ifs aren't robust
         # what will happen when types of jobs are updated?
         # clear out running data jobs
@@ -133,7 +133,7 @@ class DriverBase(object):
         elif r.content.action == job.ACTION_CANCEL_JOB:
             self.running_data_jobs.discard(r.content.compute_model_name)
 
-        await job_scheduler.run(type(self), self.resource_class)
+        await job_supervisor.run(type(self), self.resource_class)
 
     async def _process_requests_to_send_to_agent(self):
         while True:

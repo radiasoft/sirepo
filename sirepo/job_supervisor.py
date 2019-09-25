@@ -24,7 +24,7 @@ _OPERATOR_ACTIONS = [
 
 async def run(driver_class, resource_class):
     pkdc(
-        'scheduler running for driver {} and resource class {}. Slots available={}',
+        'supervisor running for driver {} and resource class {}. Slots available={}',
         driver_class,
         resource_class,
         _slots_available(driver_class, resource_class),

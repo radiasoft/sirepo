@@ -11,7 +11,7 @@ from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import driver
 from sirepo import job
-from sirepo import job_scheduler
+from sirepo import job_supervisor
 # TODO(e-carlin): load dynamically
 from sirepo.driver import local
 import asyncio
