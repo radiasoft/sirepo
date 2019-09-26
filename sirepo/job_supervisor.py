@@ -33,10 +33,10 @@ def _get_request_for_message(msg):
             return r
 
     raise AssertionError(
-        'req_id {} not found in requests {}',
+        'req_id {} not found in requests {}'.format(
         msg.content.req_id,
         d.requests
-    )
+    ))
 
 def _remove_request(msg):
     sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id].requests.remove(
@@ -72,7 +72,7 @@ async def incoming_message(msg):
     elif r.content.action == job.ACTION_CANCEL_JOB:
         d.running_data_jobs.discard(r.content.jid)
 
-    await _run_scheduler(type(d), d.resource_class)
+    _run_scheduler(type(d), d.resource_class)
 
 async def incoming_request(req):
     req.state = _STATE_RUN_PENDING
@@ -93,7 +93,7 @@ async def incoming_request(req):
         dc.resources[req.content.resource_class].drivers.append(d)
         sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
 
-    await _run_scheduler(dc, req.content.resource_class)
+    _run_scheduler(dc, req.content.resource_class)
     await req.request_reply_was_sent.wait()
 
 
@@ -106,7 +106,7 @@ def _get_driver_class(request):
     return getattr(m, f'{t.capitalize()}Driver')
 
 
-async def _run_scheduler(driver_class, resource_class):
+def _run_scheduler(driver_class, resource_class):
     pkdc(
         'supervisor running for driver {} and resource class {}. Slots available={}',
         driver_class,
@@ -114,8 +114,8 @@ async def _run_scheduler(driver_class, resource_class):
         _slots_available(driver_class, resource_class),
     )
     # TODO(e-carlin): complete
-    _handle_cancel_requests(
-        driver_class.resources[resource_class].drivers)
+    # _handle_cancel_requests(
+    #     driver_class.resources[resource_class].drivers)
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
@@ -146,27 +146,46 @@ async def _run_scheduler(driver_class, resource_class):
                         d.running_data_jobs.add(r.content.jid)
                     r.state = _STATE_RUNNING
                     drivers.append(drivers.pop(drivers.index(d)))
-                    await d.requests_to_send_to_agent.put(r)
+                    d.requests_to_send_to_agent.put_nowait(r)
 
 
 def _handle_cancel_requests(drivers):
     for d in drivers:
         for r in d.requests:
             if r.content.action == job.ACTION_CANCEL_JOB:
-                _cancel_pending_jobs(d, r)
+                _cancel_pending_job(d, r)
 
 
-def _cancel_pending_jobs(driver, cancel_req):
-    job_running = False
-    for r in driver.requests:
-        if r.content.jid == cancel_req.content.jid:
-            if r.state == _STATE_RUN_PENDING:
-                # remove the req
-                continue
-            job_running = True
-    if not job_running:
-        # remove the cancel_req
-        pass
+def _cancel_pending_job(driver, cancel_req):
+    def _reply_job_canceled(r, requests):
+        r.request_handler.write({
+            'status': job.JobStatus.CANCELED.value,
+            'req_id': r.content.req_id,
+        })
+        r.request_reply_was_sent.set()
+        requests.remove(r)
+    def _get_compute_request(jid):
+        for r in driver.requests:
+            if r.content.action == job.ACTION_START_COMPUTE_JOB and r.content.jid == jid:
+                return r
+        return None
+
+    compute_req = _get_compute_request(cancel_req.content.jid)
+    if compute_req is None:
+        for r in driver.requests:
+            if r.content.jid == cancel_req.content.jid:
+                _reply_job_canceled(r, driver.requests)
+        cancel_req.request_handler.write({'status': job.JobStatus.CANCELED.value})
+        cancel_req.request_reply_was_sent.set()
+        driver.requests.remove(cancel_req)
+
+    elif compute_req.state == _STATE_RUN_PENDING:
+        pkdlog('compute_req={}', compute_req)
+        _reply_job_canceled(compute_req, driver.requests)
+
+        cancel_req.request_handler.write({'status': job.JobStatus.CANCELED.value})
+        cancel_req.request_reply_was_sent.set()
+        driver.requests.remove(cancel_req)
 
 
 def _slots_available(driver_class, resource_class):
