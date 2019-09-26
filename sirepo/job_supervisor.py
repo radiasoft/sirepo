@@ -131,8 +131,6 @@ def run_scheduler(driver_class, resource_class):
                 # start agent if not started and slots available
                 if not d.agent_started() and _slots_available(driver_class, resource_class):
                     d.start_agent(r)
-                    # TODO(e-carlin): maybe this should live within DriverBase start_agent()
-                    driver_class.resources[resource_class].slots.in_use += 1
 
                 # TODO(e-carlin): If r is a cancel and ther is no agent then???
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
@@ -210,7 +208,6 @@ def _try_to_free_slot(driver_class, resource_class):
         if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
             pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
             d.kill_agent()
-            driver_class.resources[resource_class].slots.in_use -= 1
             driver_class.resources[resource_class].drivers.remove(d)
             return
         # TODO(e-carlin): More cases. Ex:

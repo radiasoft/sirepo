@@ -78,15 +78,18 @@ class LocalDriver(driver.DriverBase):
         if self._agent_starting:
             return
         self._agent_starting = True
+        self.resources[self.resource_class].slots.in_use += 1
         self._agent.start(self._on_agent_start_error)
 
     def kill_agent(self):
+        self.resources[self.resource_class].slots.in_use -= 1
         self._agent.kill()
         self._message_handler = None
         self.message_handler_set.clear()
 
     def _on_agent_start_error(self, returncode):
         pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
+        self.resources[self.resource_class].slots.in_use -= 1
         for r in self.requests:
             assert not r.request_reply_was_sent.is_set(), \
                 '{}: should not have been replied to'.format(r)
