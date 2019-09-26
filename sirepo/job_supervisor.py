@@ -48,6 +48,11 @@ async def incoming_message(msg):
     if not d.message_handler_set.is_set():
         d.message_handler = msg.message_handler
         d.message_handler_set.set()
+        # TODO(e-carlin): Does this make sense? Added to the object so we can
+        # call run scheduler on on_close()
+        d.message_handler._resource_class = d.resource_class
+        d.message_handler._driver_class = type(d)
+
 
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
@@ -71,7 +76,7 @@ async def incoming_message(msg):
     elif r.content.action == job.ACTION_CANCEL_JOB:
         d.running_data_jobs.discard(r.content.jid)
 
-    _run_scheduler(type(d), d.resource_class)
+    run_scheduler(type(d), d.resource_class)
 
 async def incoming_request(req):
     r = _Request(req)
@@ -90,7 +95,7 @@ async def incoming_request(req):
         dc.resources[r.content.resource_class].drivers.append(d)
         sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
 
-    _run_scheduler(dc, req.content.resource_class)
+    run_scheduler(dc, req.content.resource_class)
     await r.request_reply_was_sent.wait()
 
 
@@ -103,7 +108,7 @@ def _get_driver_class(request):
     return getattr(m, f'{t.capitalize()}Driver')
 
 
-def _run_scheduler(driver_class, resource_class):
+def run_scheduler(driver_class, resource_class):
     pkdc(
         'supervisor running for driver {} and resource class {}. Slots available={}',
         driver_class,
@@ -208,7 +213,7 @@ def _try_to_free_slot(driver_class, resource_class):
     for d in driver_class.resources[resource_class].drivers:
         if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
             pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
-            d.terminate_agent()
+            d.kill_agent()
             driver_class.resources[resource_class].slots.in_use -= 1
             driver_class.resources[resource_class].drivers.remove(d)
             return

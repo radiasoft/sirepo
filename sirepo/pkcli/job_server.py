@@ -54,7 +54,7 @@ def _terminate(num, bar):
     if pkconfig.channel_in('dev'):
         for d in driver.DriverBase.driver_for_agent.values():
             if type(d) == local.LocalDriver and d.agent_started():
-                d.terminate_agent()
+                d.kill_agent()
     tornado.ioloop.IOLoop.current().stop()
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
@@ -70,6 +70,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         # then when this is called we find the driver instance with that uid
         # and notify it that on_close was called.
         pkdp(self.request.uri)
+        job_supervisor.run_scheduler(self._driver_class, self._resource_class)
 
     async def on_message(self, msg):
         try:

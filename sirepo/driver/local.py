@@ -87,10 +87,10 @@ class LocalDriver(driver.DriverBase):
         self._agent_starting = True
         self._agent.start(self._on_agent_start_error)
 
-    def terminate_agent(self):
+    def kill_agent(self):
         # TODO(e-carlin): What should happen to self._agent_started_waiters()?
         # probably assert that there are none. I don't think this should happen
-        self._agent.terminate()
+        self._agent.kill()
         self.message_handler = None
         self.message_handler_set.clear()
 
@@ -111,6 +111,7 @@ class _LocalAgent():
         self._agent_process = None
         self._agent_start_attempts = 0
         self._max_agent_start_attempts = 2
+        self._agent_kill_requested = False
 
     def start(self, agent_start_error_callback):
         # TODO(e-carlin): Should this be done in a spawn_callback so we don't hold
@@ -144,17 +145,23 @@ class _LocalAgent():
         pkdc('returncode={}', returncode)
         self.agent_started = False
         self._agent_process = None
-        if returncode != 0:
+        if not self._agent_kill_requested and returncode != 0:
             if self._agent_start_attempts >= self._max_agent_start_attempts:
                 agent_start_error_callback(returncode)
             else:
+                # TODO(e-carlin): look at runner/__init__.py:203
                 # TODO(e-carlin): This isn't right. What if the agent did all of
                 # it's work and then was terminated? We shouldn't try and start
                 # it again. Need to differentiate between start exit and general
                 # exit
                 self.start(agent_start_error_callback)
 
-    def terminate(self):
+    def kill(self):
+        pkdc('agent_id={}', self._agent_id)
+        # TODO(e-carlin): More error handling. If terminate doesn't work
+        # we need to go to kill
+        # TODO(e-carlin): What happens when an exception is thrown?
+        self._agent_kill_requested = True
         self.agent_started = False
         self._agent_process.proc.terminate()
         self._agent_process.proc.wait()
