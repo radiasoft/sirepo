@@ -26,7 +26,6 @@ class DriverBase(object):
         self.uid = uid
         self.agent_id = str(uuid.uuid4())
         self.resource_class = resource_class
-        self.message_handler = None
         self.message_handler_set = tornado.locks.Event()
         self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
@@ -39,6 +38,7 @@ class DriverBase(object):
         self.running_data_jobs = set()
         self._agent_starting = False
         self._agent_started_waiters = pkcollections.Dict()
+        self._message_handler = None
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
     async def _process_requests_to_send_to_agent(self):
@@ -46,7 +46,7 @@ class DriverBase(object):
         while True:
             r = await self.requests_to_send_to_agent.get()
             await self.message_handler_set.wait()
-            self.message_handler.write_message(pkjson.dump_bytes(r.content))
+            self._message_handler.write_message(pkjson.dump_bytes(r.content))
 
     def agent_started(self):
         return self._agent.agent_started

@@ -78,10 +78,9 @@ class _Msg(pkcollections.Dict):
                 pkdlog('action={action} req_id={req_id}', **m)
                 pkdc(m)
                 return await getattr(self, '_dispatch_' + m.action)(m)
-            return self._format_reply(action='parse_req_error', error=err, msg=msg)
         except Exception as e:
             err = 'exception=' + str(e)
-            pkdp(pkdexc())
+            pkdlog(pkdexc())
         return self._format_reply(action='protocol_error', error=err, msg=msg)
 
     #rn maybe this should just be "cancel" since everything is a "job"

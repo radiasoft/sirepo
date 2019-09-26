@@ -91,7 +91,7 @@ class LocalDriver(driver.DriverBase):
         # TODO(e-carlin): What should happen to self._agent_started_waiters()?
         # probably assert that there are none. I don't think this should happen
         self._agent.kill()
-        self.message_handler = None
+        self._message_handler = None
         self.message_handler_set.clear()
 
     def _on_agent_start_error(self, returncode):
@@ -105,7 +105,7 @@ class LocalDriver(driver.DriverBase):
         
     def set_message_handler(self, message_handler):
         self._agent.agent_started = True
-        self.message_handler = message_handler
+        self._message_handler = message_handler
         self.message_handler_set.set()
         # TODO(e-carlin): Does this make sense? Added to the object so we can
         # call run scheduler on on_close()
@@ -148,7 +148,6 @@ class _LocalAgent():
                 self._on_agent_exit, agent_start_error_callback,
             )
         )
-        # self.agent_started = True
 
     def _on_agent_exit(self, agent_start_error_callback, returncode):
         pkdc('returncode={}', returncode)
