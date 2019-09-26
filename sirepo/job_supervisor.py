@@ -86,7 +86,6 @@ async def incoming_request(req):
     else:
         d = dc(
             req.content.uid,
-            str(uuid.uuid4()),
             req.content.resource_class
         )
         d.requests.append(req)

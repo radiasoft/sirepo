@@ -103,7 +103,6 @@ async def _process_incoming(req_type, content, handler):
         },
     ))
 
-
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 

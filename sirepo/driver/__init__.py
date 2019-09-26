@@ -20,11 +20,11 @@ import uuid
 class DriverBase(object):
     driver_for_agent = pkcollections.Dict()
 
-    def __init__(self, uid, agent_id, resource_class):
+    def __init__(self, uid, resource_class):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         self.uid = uid
         self.agent_started = False
-        self.agent_id = agent_id
+        self.agent_id = str(uuid.uuid4())
         self.resource_class = resource_class
         self.message_handler = None
         self.message_handler_set = tornado.locks.Event()

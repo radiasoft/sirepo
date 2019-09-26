@@ -32,7 +32,6 @@ cfg = pkconfig.init(
 )
 
 class LocalDriver(driver.DriverBase):
-    pkdp('******************** {}', cfg.sequential_slots) # TODO(e-carlin): Delete
     resources = pkcollections.Dict(
         parallel=pkcollections.Dict(
             drivers=[],
@@ -50,8 +49,8 @@ class LocalDriver(driver.DriverBase):
         ),
     )
 
-    def __init__(self, uid, agent_id, resource_class):
-        super(LocalDriver, self).__init__(uid, agent_id, resource_class)
+    def __init__(self, uid, resource_class):
+        super(LocalDriver, self).__init__(uid, resource_class)
         # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Probably delete.
         # tornado.ioloop.IOLoop.current().spawn_callback(
