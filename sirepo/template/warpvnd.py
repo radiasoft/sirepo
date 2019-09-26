@@ -604,8 +604,13 @@ def _extract_field(field, data, data_file, args=None):
 
 
 def _extract_impact_density(run_dir, data):
-    with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
-        plot_info = template_common.h5_to_dict(hf, path='density')
+    try:
+        with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
+            plot_info = template_common.h5_to_dict(hf, path='density')
+    except IOError:
+        plot_info = {
+            'error': 'Cannot load density file'
+        }
     if 'error' in plot_info:
         if not _is_3D(data):
             return plot_info
@@ -742,9 +747,10 @@ def _field_input(args):
     show3d = args.displayMode == '3d' if args is not None and 'displayMode' in args\
         else False
     a = args.axes if args is not None and 'axes' in args else 'xz'
-    axes = (a if show3d else 'xz') if a is not None and a != '' else 'xz'
+    axes = (a if show3d else 'xz') if a else 'xz'
     slice_axis = re.sub('[' + axes + ']', '', 'xyz')
-    field_slice = float(args.slice) if args and 'slice' in args and show3d else 0.
+    field_slice = (float(args.slice) if args.slice else 0.) if args and 'slice' in args \
+                                                               and show3d else 0.
     return axes, slice_axis, field_slice, show3d
 
 
