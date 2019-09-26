@@ -130,7 +130,7 @@ def _run_scheduler(driver_class, resource_class):
                     continue
 
                 # start agent if not started and slots available
-                if not d.agent_started and _slots_available(driver_class, resource_class):
+                if not d.agent_started() and _slots_available(driver_class, resource_class):
                     d.start_agent()
                     # TODO(e-carlin): maybe this should live within DriverBase start_agent()
                     driver_class.resources[resource_class].slots.in_use += 1
@@ -139,8 +139,8 @@ def _run_scheduler(driver_class, resource_class):
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
                 # then delete from q and respond to server out of band about cancel
 
-                if d.agent_started:
-                    if d.agent_started and r.content.action in DATA_ACTIONS:
+                if d.agent_started():
+                    if d.agent_started() and r.content.action in DATA_ACTIONS:
                         assert r.content.jid not in d.running_data_jobs
                         d.running_data_jobs.add(r.content.jid)
                     r.state = _STATE_RUNNING
@@ -202,7 +202,7 @@ def _len_longest_requests_q(drivers):
 def _free_slots_if_needed(driver_class, resource_class):
     slot_needed = False
     for d in driver_class.resources[resource_class].drivers:
-        if not d.agent_started and len(d.requests) > 0 and not _slots_available(driver_class, resource_class):
+        if not d.agent_started() and len(d.requests) > 0 and not _slots_available(driver_class, resource_class):
             slot_needed = True
             break
     if slot_needed:
@@ -211,7 +211,7 @@ def _free_slots_if_needed(driver_class, resource_class):
 
 def _try_to_free_slot(driver_class, resource_class):
     for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
+        if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
             pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
             d.terminate_agent()
             driver_class.resources[resource_class].slots.in_use -= 1

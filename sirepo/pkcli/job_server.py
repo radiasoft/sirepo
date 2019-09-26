@@ -53,7 +53,7 @@ def start():
 def _terminate(num, bar):
     if pkconfig.channel_in('dev'):
         for d in driver.DriverBase.driver_for_agent.values():
-            if type(d) == local.LocalDriver and d.agent_started:
+            if type(d) == local.LocalDriver and d.agent_started():
                 d.terminate_agent()
     tornado.ioloop.IOLoop.current().stop()
 

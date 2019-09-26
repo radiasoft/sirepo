@@ -51,6 +51,8 @@ class LocalDriver(driver.DriverBase):
 
     def __init__(self, uid, resource_class):
         super(LocalDriver, self).__init__(uid, resource_class)
+        self._agent = _LocalAgent(self.agent_id)
+
         # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Probably delete.
         # tornado.ioloop.IOLoop.current().spawn_callback(
@@ -64,7 +66,7 @@ class LocalDriver(driver.DriverBase):
         while True:
             pkdp('====================================')
             pkdp('AGENT_ID={}', self.agent_id)
-            pkdp('agent_started={}', self.agent_started)
+            pkdp('agent_started={}', self.agent_started())
             pkdp('running_data_jobs={}', self.running_data_jobs)
             pkdp('requests={}', self.requests)
             pkdp('====================================')
@@ -72,13 +74,28 @@ class LocalDriver(driver.DriverBase):
 
     def start_agent(self):
         pkdlog('agent_id={}', self.agent_id)
+        self._agent.start()
+
+    def terminate_agent(self):
+        self._agent.terminate()
+        self.message_handler = None
+        self.message_handler_set.clear()
+
+
+class _LocalAgent():
+    def __init__(self, agent_id):
+        self.agent_started = False
+        self._agent_id = agent_id
+        self._agent_process = None
+
+    def start(self):
         # TODO(e-carlin): Make this more robust. Ex handle failures,
         # monitor the process, be able to kill it
         env = dict(os.environ)
         env['PYENV_VERSION'] = 'py3'
-        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
+        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
         env['SIREPO_PKCLI_JOB_AGENT_JOB_SERVER_WS_URI'] = cfg.job_server_ws_uri
-        self.agent = tornado.process.Subprocess(
+        self._agent_process = tornado.process.Subprocess(
             [
                 'pyenv',
                 'exec',
@@ -89,13 +106,8 @@ class LocalDriver(driver.DriverBase):
             env=env,
         )
         self.agent_started = True
-    
-    def terminate_agent(self):
-        # TODO(e-carlin): There is too much state about agents. At the very
-        # least make more fields private
+
+    def terminate(self):
         self.agent_started = False
-        self.message_handler = None
-        self.message_handler_set.clear()
-        self.agent.proc.terminate() 
-        self.agent.proc.wait() 
-        self.agent = None
+        self._agent_process.proc.terminate()
+        self._agent_process.proc.wait()

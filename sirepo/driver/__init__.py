@@ -17,13 +17,13 @@ import tornado.queues
 import uuid
 
 
+# TODO(e-carlin): Make this an abstract base class?
 class DriverBase(object):
     driver_for_agent = pkcollections.Dict()
 
     def __init__(self, uid, resource_class):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         self.uid = uid
-        self.agent_started = False
         self.agent_id = str(uuid.uuid4())
         self.resource_class = resource_class
         self.message_handler = None
@@ -40,7 +40,12 @@ class DriverBase(object):
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
     async def _process_requests_to_send_to_agent(self):
+        # TODO(e-carlin): Exception handling
         while True:
             r = await self.requests_to_send_to_agent.get()
             await self.message_handler_set.wait()
             self.message_handler.write_message(pkjson.dump_bytes(r.content))
+
+    def agent_started(self):
+        return self._agent.agent_started
+
