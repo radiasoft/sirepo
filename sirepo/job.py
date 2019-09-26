@@ -43,19 +43,6 @@ class JobStatus(aenum.Enum):
 
 def init_by_server(app):
     """Initialize module"""
-    global cfg
-    cfg = pkconfig.init(
-        supervisor_http_uri=(
-            'http://{}:{}'.format(DEFAULT_IP, DEFAULT_PORT),
-            str,
-            'uri to reach the supervisor for http connections',
-        ),
-        supervisor_ws_uri=(
-            'ws://{}:{}/{}'.format(DEFAULT_IP, DEFAULT_PORT, DEFAULT_WS_PATH),
-            str,
-            'uri to reach the supervisor for websocket connections',
-        ),
-    )
     from sirepo import job_api
     from sirepo import uri_router
 
