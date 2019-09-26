@@ -59,8 +59,7 @@ async def incoming_message(msg):
         return
 
     r = _get_request_for_message(msg)
-    r.request_handler.write(msg.content)
-    r.request_reply_was_sent.set()
+    r.reply(msg.content)
     _remove_request(msg) 
 
     # TODO(e-carlin): This is quite ugly. 
@@ -93,13 +92,6 @@ async def incoming_request(req):
 
     _run_scheduler(dc, req.content.resource_class)
     await r.request_reply_was_sent.wait()
-
-class _Request():
-    def __init__(self, request):
-        self.content = request.content
-        self.request_reply_was_sent = tornado.locks.Event()
-        self.request_handler = request.request_handler
-        self.state = _STATE_RUN_PENDING
 
 
 def _get_driver_class(request):
@@ -163,11 +155,10 @@ def _handle_cancel_requests(drivers):
 
 def _cancel_pending_job(driver, cancel_req):
     def _reply_job_canceled(r, requests):
-        r.request_handler.write({
+        r.reply({
             'status': job.JobStatus.CANCELED.value,
             'req_id': r.content.req_id,
         })
-        r.request_reply_was_sent.set()
         requests.remove(r)
     def _get_compute_request(jid):
         for r in driver.requests:
@@ -180,16 +171,14 @@ def _cancel_pending_job(driver, cancel_req):
         for r in driver.requests:
             if r.content.jid == cancel_req.content.jid:
                 _reply_job_canceled(r, driver.requests)
-        cancel_req.request_handler.write({'status': job.JobStatus.CANCELED.value})
-        cancel_req.request_reply_was_sent.set()
+        cancel_req.reply({'status': job.JobStatus.CANCELED.value})
         driver.requests.remove(cancel_req)
 
     elif compute_req.state == _STATE_RUN_PENDING:
         pkdlog('compute_req={}', compute_req)
         _reply_job_canceled(compute_req, driver.requests)
 
-        cancel_req.request_handler.write({'status': job.JobStatus.CANCELED.value})
-        cancel_req.request_reply_was_sent.set()
+        cancel_req.reply({'status': job.JobStatus.CANCELED.value})
         driver.requests.remove(cancel_req)
 
 
@@ -231,3 +220,18 @@ def _try_to_free_slot(driver_class, resource_class):
         #   - use a starvation algo so that if someone has an agent
         #   and is sending a lot of jobs then after some x (ex number of jobs,
         #   time, etc) their agent is killed and another user's agent started.
+
+
+class _Request():
+    def __init__(self, request):
+        self.content = request.content
+        self.request_reply_was_sent = tornado.locks.Event()
+        self.request_handler = request.request_handler
+        self.state = _STATE_RUN_PENDING
+
+    def reply(self, content):
+        self.request_handler.write(content)
+        self.request_reply_was_sent.set()
+
+    def reply_error(self):
+        self.request_handler.send_error()

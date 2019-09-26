@@ -96,9 +96,12 @@ class LocalDriver(driver.DriverBase):
 
     def _on_agent_start_error(self, returncode):
         pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
-        for req_id in self._agent_started_waiters:
-            pkdp('****************** here is where I would reply that there was an error')
-            # TODO(e-carlin): complete. I think it is time to make a request object
+        for r in self._agent_started_waiters.values():
+            if r.request_reply_was_sent.is_set():
+                # TODO(e-carlin): This is a hack. If the request is already
+                # replied to then it shouldn't be in self._agent_started_waiters
+                continue
+            r.reply_error()
 
 
 class _LocalAgent():
@@ -106,8 +109,14 @@ class _LocalAgent():
         self.agent_started = False
         self._agent_id = agent_id
         self._agent_process = None
+        self._agent_start_attempts = 0
+        self._max_agent_start_attempts = 2
 
     def start(self, agent_start_error_callback):
+        # TODO(e-carlin): Should this be done in a spawn_callback so we don't hold
+        # up the thread?
+        pkdlog('agent_id={}', self._agent_id)
+        self._agent_start_attempts += 1
         # TODO(e-carlin): Make this more robust. Ex handle failures,
         # monitor the process, be able to kill it
         env = dict(os.environ)
@@ -119,8 +128,7 @@ class _LocalAgent():
                 'pyenv',
                 'exec',
                 'sirepo',
-                'asdlkjasdflkjasdf',
-                # 'job_agent',
+                'job_agent',
                 'start',
             ],
             env=env,
@@ -137,7 +145,14 @@ class _LocalAgent():
         self.agent_started = False
         self._agent_process = None
         if returncode != 0:
-            agent_start_error_callback(returncode)
+            if self._agent_start_attempts >= self._max_agent_start_attempts:
+                agent_start_error_callback(returncode)
+            else:
+                # TODO(e-carlin): This isn't right. What if the agent did all of
+                # it's work and then was terminated? We shouldn't try and start
+                # it again. Need to differentiate between start exit and general
+                # exit
+                self.start(agent_start_error_callback)
 
     def terminate(self):
         self.agent_started = False
