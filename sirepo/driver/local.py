@@ -102,6 +102,15 @@ class LocalDriver(driver.DriverBase):
                 # replied to then it shouldn't be in self._agent_started_waiters
                 continue
             r.reply_error()
+        
+    def set_message_handler(self, message_handler):
+        self._agent.agent_started = True
+        self.message_handler = message_handler
+        self.message_handler_set.set()
+        # TODO(e-carlin): Does this make sense? Added to the object so we can
+        # call run scheduler on on_close()
+        message_handler._resource_class = self.resource_class
+        message_handler._driver_class = type(self)
 
 
 class _LocalAgent():
@@ -139,7 +148,7 @@ class _LocalAgent():
                 self._on_agent_exit, agent_start_error_callback,
             )
         )
-        self.agent_started = True
+        # self.agent_started = True
 
     def _on_agent_exit(self, agent_start_error_callback, returncode):
         pkdc('returncode={}', returncode)
@@ -150,10 +159,6 @@ class _LocalAgent():
                 agent_start_error_callback(returncode)
             else:
                 # TODO(e-carlin): look at runner/__init__.py:203
-                # TODO(e-carlin): This isn't right. What if the agent did all of
-                # it's work and then was terminated? We shouldn't try and start
-                # it again. Need to differentiate between start exit and general
-                # exit
                 self.start(agent_start_error_callback)
 
     def kill(self):

@@ -5,14 +5,14 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import driver, job
-import uuid
-import tornado.locks
-from pykern import pkconfig, pkcollections
+from sirepo import job
 import importlib
 import sirepo.driver
-from sirepo import job
+import tornado.locks
+import uuid
 
 _STATE_RUN_PENDING = 'run_pending' 
 _STATE_RUNNING = 'running'
@@ -46,21 +46,17 @@ def _remove_request(msg):
 async def incoming_message(msg):
     d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
     if not d.message_handler_set.is_set():
-        d.message_handler = msg.message_handler
-        d.message_handler_set.set()
-        # TODO(e-carlin): Does this make sense? Added to the object so we can
-        # call run scheduler on on_close()
-        d.message_handler._resource_class = d.resource_class
-        d.message_handler._driver_class = type(d)
-
+        d.set_message_handler(msg.message_handler)
 
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
+        run_scheduler(type(d), d.resource_class)
         return
     elif a == 'protocol_error':
         # TODO(e-carlin): Handle more. If msg has a req_id we should
         # likely resend the request
         pkdlog('Error: {}', msg)
+        run_scheduler(type(d), d.resource_class)
         return
 
     r = _get_request_for_message(msg)

@@ -222,9 +222,6 @@ class _JobTracker:
         )
 
     async def _on_compute_job_exit(self, run_dir, compute_job):
-        # with _catch_and_log_errors(Exception, 'error in _supervise_report_job'):
-        # Make sure returncode is defined in the finally block, even if
-        # wait() somehow crashes
         returncode = None
         try:
             returncode = await compute_job.wait_for_exit()
