@@ -106,6 +106,7 @@ def _request(body):
     body.req_id = str(uuid.uuid4())
     body.setdefault('resource_class', 'sequential')
     r = requests.post(cfg.job_server_http_uri, json=body)
+    r.raise_for_status()
     return pkjson.load_any(r.content)
 
 

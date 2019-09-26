@@ -74,33 +74,22 @@ class LocalDriver(driver.DriverBase):
             await tornado.gen.sleep(2)
 
     def start_agent(self, request):
-        # TODO(e-carlin): Need to remove waiters for _agent_started_waiters because
-        # currently even if their message was replied to successfully they are
-        # held in self._agent_started_waiters and when we eventually terminate
-        # the agent we will try to reply to them
         pkdlog('agent_id={}', self.agent_id)
-        assert request.content.req_id not in self._agent_started_waiters , \
-            'TODO(e-carlin): Should we prevent requests from requesting start agent multiple times?'
-        self._agent_started_waiters[request.content.req_id] = request
         if self._agent_starting:
             return
         self._agent_starting = True
         self._agent.start(self._on_agent_start_error)
 
     def kill_agent(self):
-        # TODO(e-carlin): What should happen to self._agent_started_waiters()?
-        # probably assert that there are none. I don't think this should happen
         self._agent.kill()
         self._message_handler = None
         self.message_handler_set.clear()
 
     def _on_agent_start_error(self, returncode):
         pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
-        for r in self._agent_started_waiters.values():
-            if r.request_reply_was_sent.is_set():
-                # TODO(e-carlin): This is a hack. If the request is already
-                # replied to then it shouldn't be in self._agent_started_waiters
-                continue
+        for r in self.requests:
+            assert not r.request_reply_was_sent.is_set(), \
+                '{}: should not have been replied to'.format(r)
             r.reply_error()
         
     def set_message_handler(self, message_handler):
