@@ -75,25 +75,31 @@ async def incoming_message(msg):
     _run_scheduler(type(d), d.resource_class)
 
 async def incoming_request(req):
-    req.state = _STATE_RUN_PENDING
-    req.request_reply_was_sent = tornado.locks.Event()
+    r = _Request(req)
     dc = _get_driver_class(req)
 
-    for d in dc.resources[req.content.resource_class].drivers:
-        if d.uid == req.content.uid:
-            d.requests.append(req)
+    for d in dc.resources[r.content.resource_class].drivers:
+        if d.uid == r.content.uid:
+            d.requests.append(r)
             break
     else:
         d = dc(
-            req.content.uid,
-            req.content.resource_class
+            r.content.uid,
+            r.content.resource_class
         )
-        d.requests.append(req)
-        dc.resources[req.content.resource_class].drivers.append(d)
+        d.requests.append(r)
+        dc.resources[r.content.resource_class].drivers.append(d)
         sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
 
     _run_scheduler(dc, req.content.resource_class)
-    await req.request_reply_was_sent.wait()
+    await r.request_reply_was_sent.wait()
+
+class _Request():
+    def __init__(self, request):
+        self.content = request.content
+        self.request_reply_was_sent = tornado.locks.Event()
+        self.request_handler = request.request_handler
+        self.state = _STATE_RUN_PENDING
 
 
 def _get_driver_class(request):
