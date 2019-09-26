@@ -131,7 +131,7 @@ def _run_scheduler(driver_class, resource_class):
 
                 # start agent if not started and slots available
                 if not d.agent_started() and _slots_available(driver_class, resource_class):
-                    d.start_agent()
+                    d.start_agent(r)
                     # TODO(e-carlin): maybe this should live within DriverBase start_agent()
                     driver_class.resources[resource_class].slots.in_use += 1
 

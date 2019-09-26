@@ -37,6 +37,8 @@ class DriverBase(object):
         # status). In addition they key is currently the run_dir. It needs to be
         # the "compute job name"
         self.running_data_jobs = set()
+        self._agent_starting = False
+        self._agent_started_waiters = pkcollections.Dict()
         tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
 
     async def _process_requests_to_send_to_agent(self):
