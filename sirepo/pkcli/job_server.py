@@ -66,12 +66,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         try:
-            # TODO(e-carlin): Handle this
-            # in on_message we should set some state about who we are (ex uid).
-            # then when this is called we find the driver instance with that uid
-            # and notify it that on_close was called.
-            pkdp(self.request.uri)
-            job_supervisor.run_scheduler(self._driver_class, self._resource_class)
+            self._driver.on_ws_close()
         except Exception as e:
             pkdlog('Error: {} \n{}', e, pkdexc())
 

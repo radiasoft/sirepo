@@ -45,8 +45,7 @@ def _remove_request(msg):
 
 async def incoming_message(msg):
     d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
-    if not d.message_handler_set.is_set():
-        d.set_message_handler(msg.message_handler)
+    d.set_message_handler(msg.message_handler)
 
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
@@ -106,7 +105,7 @@ def _get_driver_class(request):
 
 def run_scheduler(driver_class, resource_class):
     pkdc(
-        'supervisor running for driver {} and resource class {}. Slots available={}',
+        'driver_class={} and resource_class={}. Slots available={}',
         driver_class,
         resource_class,
         _slots_available(driver_class, resource_class),
@@ -135,7 +134,6 @@ def run_scheduler(driver_class, resource_class):
                 # TODO(e-carlin): If r is a cancel and ther is no agent then???
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
                 # then delete from q and respond to server out of band about cancel
-
                 if d.agent_started():
                     if d.agent_started() and r.content.action in DATA_ACTIONS:
                         assert r.content.jid not in d.running_data_jobs
@@ -183,7 +181,7 @@ def _cancel_pending_job(driver, cancel_req):
 
 def _slots_available(driver_class, resource_class):
     s = driver_class.resources[resource_class].slots
-    return s.in_use < s.total
+    return len(s.in_use) < s.total
 
 
 def _len_longest_requests_q(drivers):
@@ -233,3 +231,6 @@ class _Request():
 
     def reply_error(self):
         self.request_handler.send_error()
+
+    def __repr__(self):
+        return 'state={}, content={}'.format(self.state, self.content)
