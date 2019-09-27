@@ -142,4 +142,8 @@ def _parse_madx(tfs_file):
         if name:
             for row in rows:
                 res[name].append(row[i])
+    # special case if dy and/or dpy are missing, default to 0s
+    for opt_col in ('dy', 'dpy'):
+        if opt_col not in res:
+            res[opt_col] = ['0'] * len(res['dx'])
     return res

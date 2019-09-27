@@ -50,6 +50,8 @@ _FIELD_MAP = {
     'rsecool': 'rs_ecool'
 }
 
+_OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
+
 _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
@@ -275,7 +277,7 @@ def validate_file(file_type, path):
             columns = re.split(r'\s+', match.group(1))
             is_ok = True
             for col in sdds_util.MADX_TWISS_COLUMS:
-                if col == 'NAME' or col == 'TYPE' or col == 'COUNT':
+                if col in _OPTIONAL_MADX_TWISS_COLUMNS:
                     continue
                 if col not in columns:
                     is_ok = False
