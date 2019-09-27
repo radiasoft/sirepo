@@ -79,55 +79,52 @@ class LocalDriver(driver.DriverBase):
         if self._agent_starting:
             return
         self._agent_starting = True
-
         self._agent.start(self._on_agent_error_exit)
+        # claim the slot before the agent has actually started so we don't
+        # accidentally give away 1 slot to 2 agents
         self.resources[self.resource_class].slots.in_use[self.agent_id] = self
 
     def kill_agent(self):
+        pkdlog('agent_id={}', self.agent_id)
         self._agent.kill()
         self._message_handler = None
-        self.message_handler_set.clear()
+        self._message_handler_set.clear()
 
     def _on_agent_error_exit(self, returncode):
         pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
-
-        self.message_handler_set.clear()
-        # TODO(e-carlin): It is a hack to use pop. We should know more about when an agent is running or not.
-        # It is done like this currently because it is unclear when on_agent_error_exit vs on_ws_close it called
-        self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None) 
+        self._set_agent_stopped_state()
         for r in self.requests:
             assert not r.request_reply_was_sent.is_set(), \
                 '{}: should not have been replied to'.format(r)
             r.reply_error()
             self.requests.remove(r)
         job_supervisor.run_scheduler(type(self), self.resource_class) # TODO(e-carlin): Is this necessary?
+
+    def _set_agent_stopped_state(self):
+        # TODO(e-carlin): This method is a code smell. I just clear out everything
+        # so I know we're in a good state. Maybe I should know the actual state
+        # of the agent/driver a bit better and only change things that need to
+        # be changed?
+        self._agent_starting = False
+        self._agent.agent_started = False
+        self._message_handler = None
+        self._message_handler_set.clear()
+        # TODO(e-carlin): It is a hack to use pop. We should know more about
+        # when an agent is running or not. It is done like this currently 
+        # because it is unclear when on_agent_error_exit vs on_ws_close it called
+        self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
         
     def set_message_handler(self, message_handler):
-        if not self.message_handler_set.is_set():
+        if not self._message_handler_set.is_set():
             self._agent_starting = False
             self._agent.agent_started = True
             self._message_handler = message_handler
-            self.message_handler_set.set()
-            # TODO(e-carlin): Does this make sense? Added to the object so we can
-            # call run scheduler on on_close()
-            # Give message handler a reference to us so we can get to driver in
-            # on_close()
+            self._message_handler_set.set()
             message_handler._driver = self
 
     def on_ws_close(self):
         pkdlog('agent_id={}', self.agent_id)
-        self.message_handler_set.clear()
-        # TODO(e-carlin): The manual management of the slots_in_use is dangerous
-        # and tedious. Come up with something that manages it for us. Who knows
-        # exactly the circumstances when on_close does and doesn't get called
-        # we need to free slot in both cases. I also think we could get in a scenario
-        # where on_agent_error_exit() and on_ws_close are both called and we would
-        # decrement slots too far. One thing, maybe tie slot to an agent_id and that
-        # way we can always tell who owns what and manage it properly
-
-        # TODO(e-carlin): It is a hack to use pop. We should know more about when an agent is running or not
-        self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None) 
-        self._agent.agent_started = False
+        self._set_agent_stopped_state()
         for r in self.requests:
             # TODO(e-carlin): Think more about this. If the kill was requested
             # maybe the jobs are running too long? If the kill wasn't requested
@@ -174,13 +171,13 @@ class _LocalAgent():
 
     def _on_agent_exit(self, agent_error_exit_callback, returncode):
         pkdc(
-            'returncode={}, _agent_kill_requested={}, _agent_start_attemtps={}',
+            'agent_id={}, returncode={}, _agent_kill_requested={}, _agent_start_attemtps={}',
+            self._agent_id,
             returncode,
             self._agent_kill_requested,
             self._agent_start_attempts,
         )
         self.agent_started = False
-        self._agent_process = None
         # if we didn't plan this exit
         if not self._agent_kill_requested or returncode != 0:
             if self._agent_start_attempts > self._max_agent_start_attempts:

@@ -26,7 +26,7 @@ class DriverBase(object):
         self.uid = uid
         self.agent_id = str(uuid.uuid4())
         self.resource_class = resource_class
-        self.message_handler_set = tornado.locks.Event()
+        self._message_handler_set = tornado.locks.Event()
         self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
         # TODO(e-carlin): This is used to keep track of what run_dir currently
@@ -45,7 +45,7 @@ class DriverBase(object):
         # TODO(e-carlin): Exception handling
         while True:
             r = await self.requests_to_send_to_agent.get()
-            await self.message_handler_set.wait()
+            await self._message_handler_set.wait()
             self._message_handler.write_message(pkjson.dump_bytes(r.content))
 
     def agent_started(self):
