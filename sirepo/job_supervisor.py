@@ -9,6 +9,7 @@ from pykern import pkconfig, pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import driver, job
 from sirepo import job
+import copy
 import importlib
 import sirepo.driver
 import tornado.locks
@@ -41,12 +42,14 @@ async def incoming_message(msg):
         pkdlog('Error: {}', msg)
         run_scheduler(type(d), d.resource_class)
         return
-
     r = _get_request_for_message(msg)
-    r.reply(msg.content)
     _remove_request(msg) 
-
-    # TODO(e-carlin): This is quite ugly. 
+    if type(r) == _SupervisorRequest:
+        r.result = msg
+        r.request_reply_received.set()
+        return
+    r.reply(msg.content)
+    # TODO(e-carlin): ugly
     if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
         if msg.content.status != job.JobStatus.RUNNING.value:
             d.running_data_jobs.discard(r.content.jid)
@@ -54,41 +57,36 @@ async def incoming_message(msg):
         d.running_data_jobs.discard(r.content.jid)
     elif r.content.action == job.ACTION_CANCEL_JOB:
         d.running_data_jobs.discard(r.content.jid)
-
     run_scheduler(type(d), d.resource_class)
 
 
 async def incoming_request(req):
-    r = _Request(req)
-    dc = _get_driver_class(req)
-
-    for d in dc.resources[r.content.resource_class].drivers:
-        if d.uid == r.content.uid:
-            d.requests.append(r)
-            break
-    else:
-        d = dc(
-            r.content.uid,
-            r.content.resource_class
-        )
-        d.requests.append(r)
-        dc.resources[r.content.resource_class].drivers.append(d)
-        sirepo.driver.DriverBase.driver_for_agent[d.agent_id] = d
-
-    run_scheduler(dc, req.content.resource_class)
+    r = _ServerRequest(req)
+    driver.DriverBase.enqueue_request(r)
+    if r.depends_on_another_request():
+        pkdc('r={} depends on another request', r)
+        r.waiting_on_dependent_request = True
+        await _run_dependent_request(r)
+        r.waiting_on_dependent_request = False
+    run_scheduler(
+        sirepo.driver.DriverBase.get_driver_class(r),
+        r.content.resource_class,
+    )
     await r.request_reply_was_sent.wait()
-
 
 def run_scheduler(driver_class, resource_class):
     pkdc(
-        'driver_class={} and resource_class={}. Slots available={}',
+        'driver_class={}, resource_class={}, slots_available={}',
         driver_class,
         resource_class,
         _slots_available(driver_class, resource_class),
     )
-    # TODO(e-carlin): complete
+    # TODO(e-carlin): complete. run status from runSimulation needs to be moved
+    # into here before this will work
     # _handle_cancel_requests(
     #     driver_class.resources[resource_class].drivers)
+    # TODO(e-carlin): This is the main component of the scheduler and needs
+    # to be broken down and made more readable
     drivers = driver_class.resources[resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
@@ -101,6 +99,9 @@ def run_scheduler(driver_class, resource_class):
                     continue
                 # if the request is a _DATA_ACTION then there must be no others running
                 if r.content.action in DATA_ACTIONS and len(d.running_data_jobs) > 0:
+                    continue
+
+                if r.waiting_on_dependent_request:
                     continue
 
                 # start agent if not started and slots available
@@ -158,21 +159,11 @@ def _free_slots_if_needed(driver_class, resource_class):
         _try_to_free_slot(driver_class, resource_class)
 
 
-def _get_driver_class(request):
-    # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
-    t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
-    m = importlib.import_module(
-        f'sirepo.driver.{t}'
-    )
-    return getattr(m, f'{t.capitalize()}Driver')
-
-
 def _get_request_for_message(msg):
     d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
     for r in d.requests:
         if r.content.req_id == msg.content.req_id:
             return r
-
     raise AssertionError(
         'req_id {} not found in requests {}'.format(
         msg.content.req_id,
@@ -199,13 +190,36 @@ def _remove_request(msg):
         _get_request_for_message(msg)
     )
 
-
 class _Request():
-    def __init__(self, request):
-        self.content = request.content
-        self.request_reply_was_sent = tornado.locks.Event()
-        self.request_handler = request.request_handler
+    def __init__(self, req):
         self.state = _STATE_RUN_PENDING
+        self.waiting_on_dependent_request = False
+        self.content = req.content
+
+    def depends_on_another_request(self):
+        # TODO(e-carlin): What requests will need another request run before?
+        # runSimulation is one. What else?
+        return self.content.action == job.ACTION_START_COMPUTE_JOB
+
+    def __repr__(self):
+        return 'state={}, content={}'.format(self.state, self.content)
+
+
+async def _run_dependent_request(parent_req):
+    r = _SupervisorRequest(parent_req, job.ACTION_COMPUTE_JOB_STATUS)
+    sirepo.driver.DriverBase.enqueue_request(r)
+    run_scheduler(
+        sirepo.driver.DriverBase.get_driver_class(r),
+        r.content.resource_class,
+    )
+    await r.request_reply_received.wait()
+
+
+class _ServerRequest(_Request):
+    def __init__(self, req):
+        super(_ServerRequest, self).__init__(req)
+        self.request_reply_was_sent = tornado.locks.Event()
+        self.request_handler = req.request_handler
 
     def reply(self, content):
         self.request_handler.write(content)
@@ -214,11 +228,23 @@ class _Request():
     def reply_error(self):
         self.request_handler.send_error()
 
-    def __repr__(self):
-        return 'state={}, content={}'.format(self.state, self.content)
+
 def _slots_available(driver_class, resource_class):
     s = driver_class.resources[resource_class].slots
     return len(s.in_use) < s.total
+
+
+class _SupervisorRequest(_Request):
+    def __init__(self, parent_req, action):
+        super(_SupervisorRequest, self).__init__(
+            pkcollections.Dict(
+                content=copy.deepcopy(parent_req.content)
+            )
+        )
+        self.content.action = action
+        self.content.req_id = str(uuid.uuid4())
+        self.request_reply_received = tornado.locks.Event() # TODO(e-carlin): Try and find a common name with request_reply_was_sent. Maybe just on_reply?
+        self.result = None
 
 
 def _try_to_free_slot(driver_class, resource_class):

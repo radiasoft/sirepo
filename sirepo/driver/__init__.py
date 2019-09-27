@@ -110,3 +110,28 @@ class DriverBase(object):
         # when an agent is running or not. It is done like this currently 
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
+
+    @classmethod
+    def enqueue_request(cls, req):
+        dc = cls.get_driver_class(req)
+        for d in dc.resources[req.content.resource_class].drivers:
+            if d.uid == req.content.uid:
+                d.requests.append(req)
+                break
+        else:
+            d = dc(
+                req.content.uid,
+                req.content.resource_class
+            )
+            d.requests.append(req)
+            dc.resources[req.content.resource_class].drivers.append(d)
+            cls.driver_for_agent[d.agent_id] = d
+
+    @classmethod
+    def get_driver_class(cls, req):
+        # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
+        t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
+        m = importlib.import_module(
+            f'sirepo.driver.{t}'
+        )
+        return getattr(m, f'{t.capitalize()}Driver')

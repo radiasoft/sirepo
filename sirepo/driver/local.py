@@ -55,7 +55,7 @@ class LocalDriver(driver.DriverBase):
         self._agent = _LocalAgent(self.agent_id)
 
         # TODO(e-carlin): This is used to get stats about drivers as the code
-        # is running. Only useful when closely debugging code. Probably delete.
+        # is running. Only useful when closely debugging code. Delete when stable.
         # tornado.ioloop.IOLoop.current().spawn_callback(
         #     self._stats
         # )
