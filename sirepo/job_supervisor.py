@@ -61,6 +61,42 @@ async def incoming_message(msg):
 
 
 async def incoming_request(req):
+    """
+    TODO(e-carlin): Instead of wait on request_reply_was_sent or depends_on_another_request
+    just wait on a function that returns the results of the request. Then 
+    reply to the request here instead of replying elsewhere.
+    Hmm on second thought, a downside to replying here is when there is
+    an error by replying elsewhwere the code that handles errors can reply
+    to the error there and cleanup after itself which might be easier. It makes
+    it easier to reply and reduces the if else's. We could use golang style
+    tuples and do if err ... to get around this.
+
+    r = _ServerRequest(req)
+    driver.DriverBase.enqueue_request(r)
+    if r.depends_on_another_request():
+        pkdc('r={} depends on another request', r)
+        r.waiting_on_dependent_request = True
+        res, err = _run_dependent_request(r)
+        if err:
+            r.reply_error(err)
+            run_scheduler(
+                sirepo.driver.DriverBase.get_driver_class(r),
+                r.content.resource_class,
+            )
+            # TODO(e-carlin): Who does cleanup of state? Us or where the error
+            # was first encountered?
+            return
+        r.waiting_on_dependent_request = False
+    run_scheduler(
+        sirepo.driver.DriverBase.get_driver_class(r),
+        r.content.resource_class,
+    )
+    res, err = await r.run()
+    if err:
+        r.reply_error(err)
+    r.reply(res)
+    """
+
     r = _ServerRequest(req)
     driver.DriverBase.enqueue_request(r)
     if r.depends_on_another_request():
