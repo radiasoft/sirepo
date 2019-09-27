@@ -42,110 +42,15 @@ def start():
     io_loop.start()
 
 
-class _Msg(pkcollections.Dict):
-
-    async def loop(self):
-        self.job_tracker = _JobTracker()
-        while True:
-            self.current_msg = None
-            try:
-                #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await tornado.websocket.websocket_connect(self.job_server_ws_uri)
-            except ConnectionRefusedError as e:
-                pkdlog('{} uri=', e, self.job_server_ws_uri)
-                await tornado.gen.sleep(_RETRY_DELAY)
-                continue
-            m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
-            while True:
-                try:
-                    await c.write_message(m)
-                #rn is this possible? We haven't closed it
-                except tornado.websocket.WebSocketClosedError as e:
-                    # TODO(e-carlin): Think about the failure handling more
-                    pkdlog('closed{}', e)
-                    break
-                m = await c.read_message()
-                pkdc('m={}', m)
-                if m is None:
-                    break
-                m = await self._dispatch(m)
-
-    async def _dispatch(self, msg):
-        try:
-            m, err = self._parse_req(msg)
-            if not err:
-                self.current_msg = m
-                pkdlog('action={action} req_id={req_id}', **m)
-                pkdc(m)
-                return await getattr(self, '_dispatch_' + m.action)(m)
-        except Exception as e:
-            err = 'exception=' + str(e)
-            pkdlog(pkdexc())
-        return self._format_reply(action='protocol_error', error=err, msg=msg)
-
-    #rn maybe this should just be "cancel" since everything is a "job"
-    async def _dispatch_cancel_job(self, msg):
-        jhash, _ = self.job_tracker._run_dir_status(msg.run_dir)
-        if jhash == msg.jhash:
-            await self.job_tracker.kill(msg.run_dir)
-        return self._format_reply()
-
-    #rn maybe this should just be "_compute"
-    async def _dispatch_start_compute_job(self, msg):
-        await self.job_tracker.start_compute_job(
-            msg.run_dir,
-            msg.jhash,
-            msg.cmd,
-            msg.tmp_dir,
-        )
-        return self._format_reply()
-
-    async def _dispatch_run_extract_job(self, msg):
-        res = await self.job_tracker.run_extract_job(
-            msg.run_dir,
-            msg.jhash,
-            msg.subcmd,
-            msg.arg,
-        )
-        return self._format_reply(result=res)
-
-    async def _dispatch_compute_job_status(self, msg):
-        res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
-        return self._format_reply(status=res.value)
-
-    def _format_reply(self, **kwargs):
-        msg = pkcollections.Dict(
-            kwargs,
-            agent_id = self.agent_id
-        )
-        if self.current_msg:
-            #rn use get() because there may be an error in the sending message
-            # and we really don't want to get any errors
-            msg.req_id = self.current_msg.get('req_id')
-        return pkjson.dump_bytes(msg)
-
-    def _parse_req(self, msg):
-        try:
-            m = pkjson.load_any(msg)
-            for k, v in m.items():
-                if k.endswith('_dir'):
-                    m[k] = pkio.py_path(v)
-        except Exception as e:
-            pkdlog('Error: {}', e)
-            pkdp(pkdexc())
-            return None, f'exception={e}'
-        return m, None
-
-
 class _JobTracker:
     def __init__(self):
         self._compute_jobs = pkcollections.Dict()
 
     async def kill(self, run_dir):
         j = self._compute_jobs.get(run_dir)
-        if j is None: # TODO(e-carlin): This can probably be removed since supervisor will not ever send a cancel in this case
+        if j is None: # TODO(e-carlin): This can probably be removed since supervisor will never send a cancel in this case
             return
-        if j.status is not job.JobStatus.RUNNING: # TODO(e-carlin): This can probably be removed since supervisor will not ever send a cancel in this case
+        if j.status is not job.JobStatus.RUNNING: # TODO(e-carlin): This can probably be removed since supervisor will never send a cancel in this case
             return
         pkdlog(
             'job with jhash {} in {}',
@@ -280,3 +185,97 @@ class _JobTracker:
             return compute_job.jhash, compute_job.status
 
         return None, job.JobStatus.MISSING
+
+class _Msg(pkcollections.Dict):
+    async def loop(self):
+        self.job_tracker = _JobTracker()
+        while True:
+            self.current_msg = None
+            try:
+                #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+                c = await tornado.websocket.websocket_connect(self.job_server_ws_uri)
+            except ConnectionRefusedError as e:
+                pkdlog('{} uri=', e, self.job_server_ws_uri)
+                await tornado.gen.sleep(_RETRY_DELAY)
+                continue
+            m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
+            while True:
+                try:
+                    await c.write_message(m)
+                #rn is this possible? We haven't closed it
+                except tornado.websocket.WebSocketClosedError as e:
+                    # TODO(e-carlin): Think about the failure handling more
+                    pkdlog('closed{}', e)
+                    break
+                m = await c.read_message()
+                pkdc('m={}', m)
+                if m is None:
+                    break
+                m = await self._dispatch(m)
+
+    async def _dispatch(self, msg):
+        try:
+            m, err = self._parse_req(msg)
+            if not err:
+                self.current_msg = m
+                pkdlog('action={action} req_id={req_id}', **m)
+                pkdc(m)
+                return await getattr(self, '_dispatch_' + m.action)(m)
+        except Exception as e:
+            err = 'exception=' + str(e)
+            pkdlog(pkdexc())
+        return self._format_reply(action='protocol_error', error=err, msg=msg)
+
+    #rn maybe this should just be "cancel" since everything is a "job"
+    async def _dispatch_cancel_job(self, msg):
+        jhash, _ = self.job_tracker._run_dir_status(msg.run_dir)
+        if jhash == msg.jhash:
+            await self.job_tracker.kill(msg.run_dir)
+        return self._format_reply()
+
+    async def _dispatch_compute_job_status(self, msg):
+        res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
+        return self._format_reply(status=res.value)
+
+    async def _dispatch_run_extract_job(self, msg):
+        res = await self.job_tracker.run_extract_job(
+            msg.run_dir,
+            msg.jhash,
+            msg.subcmd,
+            msg.arg,
+        )
+        return self._format_reply(result=res)
+
+    #rn maybe this should just be "_compute"
+    async def _dispatch_start_compute_job(self, msg):
+        await self.job_tracker.start_compute_job(
+            msg.run_dir,
+            msg.jhash,
+            msg.cmd,
+            msg.tmp_dir,
+        )
+        return self._format_reply()
+
+    def _format_reply(self, **kwargs):
+        msg = pkcollections.Dict(
+            kwargs,
+            agent_id = self.agent_id
+        )
+        if self.current_msg:
+            #rn use get() because there may be an error in the sending message
+            # and we really don't want to get any errors
+            msg.req_id = self.current_msg.get('req_id')
+        return pkjson.dump_bytes(msg)
+
+    def _parse_req(self, msg):
+        try:
+            m = pkjson.load_any(msg)
+            for k, v in m.items():
+                if k.endswith('_dir'):
+                    m[k] = pkio.py_path(v)
+        except Exception as e:
+            pkdlog('Error: {}', e)
+            pkdp(pkdexc())
+            return None, f'exception={e}'
+        return m, None
+

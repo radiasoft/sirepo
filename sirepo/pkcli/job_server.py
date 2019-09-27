@@ -50,19 +50,10 @@ def start():
     pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
     tornado.ioloop.IOLoop.current().start()
 
-def _terminate(num, bar):
-    if pkconfig.channel_in('dev'):
-        for d in driver.DriverBase.driver_for_agent.values():
-            if type(d) == local.LocalDriver and d.agent_started():
-                d.kill_agent()
-    tornado.ioloop.IOLoop.current().stop()
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
-
-    def open(self):
-        pkdp(self.request.uri)
 
     def on_close(self):
         try:
@@ -78,6 +69,9 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             pkdlog('Error: {}', e)
             pkdp(pkdexc())
             raise
+
+    def open(self):
+        pkdp(self.request.uri)
 
 
 class _DebugRenderer():
@@ -102,11 +96,15 @@ async def _process_incoming(req_type, content, handler):
         },
     ))
 
+
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
 
-    def set_default_headers(self):
-        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+    def on_connection_close(self):
+        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
+        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
+        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
+        pass
 
     async def post(self):
         try:
@@ -117,8 +115,13 @@ class _ServerReq(tornado.web.RequestHandler):
             pkdp(pkdexc())
             raise
 
-    def on_connection_close(self):
-        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
-        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
-        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
-        pass
+    def set_default_headers(self):
+        self.set_header("Content-Type", 'application/json; charset="utf-8"')
+
+# TODO(e-carlin): This should probably live in the supervisor
+def _terminate(num, bar):
+    if pkconfig.channel_in('dev'):
+        for d in driver.DriverBase.driver_for_agent.values():
+            if type(d) == local.LocalDriver and d.agent_started():
+                d.kill_agent()
+    tornado.ioloop.IOLoop.current().stop()

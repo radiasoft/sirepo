@@ -26,22 +26,6 @@ _OPERATOR_ACTIONS = [
     job.ACTION_CANCEL_JOB,
 ]
 
-def _get_request_for_message(msg):
-    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
-    for r in d.requests:
-        if r.content.req_id == msg.content.req_id:
-            return r
-
-    raise AssertionError(
-        'req_id {} not found in requests {}'.format(
-        msg.content.req_id,
-        d.requests
-    ))
-
-def _remove_request(msg):
-    sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id].requests.remove(
-        _get_request_for_message(msg)
-    )
 
 async def incoming_message(msg):
     d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
@@ -73,6 +57,7 @@ async def incoming_message(msg):
 
     run_scheduler(type(d), d.resource_class)
 
+
 async def incoming_request(req):
     r = _Request(req)
     dc = _get_driver_class(req)
@@ -92,15 +77,6 @@ async def incoming_request(req):
 
     run_scheduler(dc, req.content.resource_class)
     await r.request_reply_was_sent.wait()
-
-
-def _get_driver_class(request):
-    # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
-    t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
-    m = importlib.import_module(
-        f'sirepo.driver.{t}'
-    )
-    return getattr(m, f'{t.capitalize()}Driver')
 
 
 def run_scheduler(driver_class, resource_class):
@@ -143,13 +119,6 @@ def run_scheduler(driver_class, resource_class):
                     d.requests_to_send_to_agent.put_nowait(r)
 
 
-def _handle_cancel_requests(drivers):
-    for d in drivers:
-        for r in d.requests:
-            if r.content.action == job.ACTION_CANCEL_JOB:
-                _cancel_pending_job(d, r)
-
-
 def _cancel_pending_job(driver, cancel_req):
     def _reply_job_canceled(r, requests):
         r.reply({
@@ -179,18 +148,6 @@ def _cancel_pending_job(driver, cancel_req):
         driver.requests.remove(cancel_req)
 
 
-def _slots_available(driver_class, resource_class):
-    s = driver_class.resources[resource_class].slots
-    return len(s.in_use) < s.total
-
-
-def _len_longest_requests_q(drivers):
-    m = 0
-    for d in drivers:
-        m = max(m, len(d.requests))
-    return m
-
-
 def _free_slots_if_needed(driver_class, resource_class):
     slot_needed = False
     for d in driver_class.resources[resource_class].drivers:
@@ -201,21 +158,46 @@ def _free_slots_if_needed(driver_class, resource_class):
         _try_to_free_slot(driver_class, resource_class)
 
 
-def _try_to_free_slot(driver_class, resource_class):
-    for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
-            pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
-            d.kill_agent()
-            driver_class.resources[resource_class].drivers.remove(d)
-            return
-        # TODO(e-carlin): More cases. Ex:
-        #   - if user has had an agent for a long time kill it when appropriate
-        #   - if the owner of a slot has no executing jobs then terminate the
-        #   agent but keep the driver around so the pending jobs will get run
-        #   eventually
-        #   - use a starvation algo so that if someone has an agent
-        #   and is sending a lot of jobs then after some x (ex number of jobs,
-        #   time, etc) their agent is killed and another user's agent started.
+def _get_driver_class(request):
+    # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
+    t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
+    m = importlib.import_module(
+        f'sirepo.driver.{t}'
+    )
+    return getattr(m, f'{t.capitalize()}Driver')
+
+
+def _get_request_for_message(msg):
+    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
+    for r in d.requests:
+        if r.content.req_id == msg.content.req_id:
+            return r
+
+    raise AssertionError(
+        'req_id {} not found in requests {}'.format(
+        msg.content.req_id,
+        d.requests
+    ))
+
+
+def _handle_cancel_requests(drivers):
+    for d in drivers:
+        for r in d.requests:
+            if r.content.action == job.ACTION_CANCEL_JOB:
+                _cancel_pending_job(d, r)
+
+
+def _len_longest_requests_q(drivers):
+    m = 0
+    for d in drivers:
+        m = max(m, len(d.requests))
+    return m
+
+
+def _remove_request(msg):
+    sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id].requests.remove(
+        _get_request_for_message(msg)
+    )
 
 
 class _Request():
@@ -234,3 +216,23 @@ class _Request():
 
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
+def _slots_available(driver_class, resource_class):
+    s = driver_class.resources[resource_class].slots
+    return len(s.in_use) < s.total
+
+
+def _try_to_free_slot(driver_class, resource_class):
+    for d in driver_class.resources[resource_class].drivers:
+        if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
+            pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
+            d.kill_agent()
+            driver_class.resources[resource_class].drivers.remove(d)
+            return
+        # TODO(e-carlin): More cases. Ex:
+        #   - if user has had an agent for a long time kill it when appropriate
+        #   - if the owner of a slot has no executing jobs then terminate the
+        #   agent but keep the driver around so the pending jobs will get run
+        #   eventually
+        #   - use a starvation algo so that if someone has an agent
+        #   and is sending a lot of jobs then after some x (ex number of jobs,
+        #   time, etc) their agent is killed and another user's agent started.

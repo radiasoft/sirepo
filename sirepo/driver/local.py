@@ -11,10 +11,10 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import driver
 from sirepo import job
 from sirepo import job_supervisor
+import functools
 import os
 import sirepo.mpi
 import tornado.process
-import functools
 
 # TODO(e-carlin): cfg should be at bottom like in other modules. Except that
 # class LocalDriver needs it which means it has to be declared before it
@@ -56,9 +56,9 @@ class LocalDriver(driver.DriverBase):
 
         # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Probably delete.
-        tornado.ioloop.IOLoop.current().spawn_callback(
-            self._stats
-        )
+        # tornado.ioloop.IOLoop.current().spawn_callback(
+        #     self._stats
+        # )
 
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
@@ -74,65 +74,6 @@ class LocalDriver(driver.DriverBase):
             pkdp('====================================')
             await tornado.gen.sleep(2)
 
-    def start_agent(self, request):
-        pkdlog('agent_id={}', self.agent_id)
-        if self._agent_starting:
-            return
-        self._agent_starting = True
-        self._agent.start(self._on_agent_error_exit)
-        # claim the slot before the agent has actually started so we don't
-        # accidentally give away 1 slot to 2 agents
-        self.resources[self.resource_class].slots.in_use[self.agent_id] = self
-
-    def kill_agent(self):
-        pkdlog('agent_id={}', self.agent_id)
-        self._agent.kill()
-        self._message_handler = None
-        self._message_handler_set.clear()
-
-    def _on_agent_error_exit(self, returncode):
-        pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
-        self._set_agent_stopped_state()
-        for r in self.requests:
-            assert not r.request_reply_was_sent.is_set(), \
-                '{}: should not have been replied to'.format(r)
-            r.reply_error()
-            self.requests.remove(r)
-        job_supervisor.run_scheduler(type(self), self.resource_class) # TODO(e-carlin): Is this necessary?
-
-    def _set_agent_stopped_state(self):
-        # TODO(e-carlin): This method is a code smell. I just clear out everything
-        # so I know we're in a good state. Maybe I should know the actual state
-        # of the agent/driver a bit better and only change things that need to
-        # be changed?
-        self._agent_starting = False
-        self._agent.agent_started = False
-        self._message_handler = None
-        self._message_handler_set.clear()
-        # TODO(e-carlin): It is a hack to use pop. We should know more about
-        # when an agent is running or not. It is done like this currently 
-        # because it is unclear when on_agent_error_exit vs on_ws_close it called
-        self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
-        
-    def set_message_handler(self, message_handler):
-        if not self._message_handler_set.is_set():
-            self._agent_starting = False
-            self._agent.agent_started = True
-            self._message_handler = message_handler
-            self._message_handler_set.set()
-            message_handler._driver = self
-
-    def on_ws_close(self):
-        pkdlog('agent_id={}', self.agent_id)
-        self._set_agent_stopped_state()
-        for r in self.requests:
-            # TODO(e-carlin): Think more about this. If the kill was requested
-            # maybe the jobs are running too long? If the kill wasn't requested
-            # maybe the job can't be run and is what is causing the agent to
-            # die?
-            if r.state == job_supervisor._STATE_RUNNING:
-                r.state = job_supervisor._STATE_RUN_PENDING
-        job_supervisor.run_scheduler(type(self), self.resource_class)
 class _LocalAgent():
     def __init__(self, agent_id):
         self.agent_started = False
@@ -169,6 +110,16 @@ class _LocalAgent():
             )
         )
 
+    def kill(self):
+        pkdc('agent_id={}', self._agent_id)
+        # TODO(e-carlin): More error handling. If terminate doesn't work
+        # we need to go to kill
+        # TODO(e-carlin): What happens when an exception is thrown?
+        self._agent_kill_requested = True
+        self.agent_started = False
+        self._agent_process.proc.terminate()
+        self._agent_process.proc.wait()
+
     def _on_agent_exit(self, agent_error_exit_callback, returncode):
         pkdc(
             'agent_id={}, returncode={}, _agent_kill_requested={}, _agent_start_attemtps={}',
@@ -185,13 +136,3 @@ class _LocalAgent():
             else:
                 # TODO(e-carlin): look at runner/__init__.py:203
                 self.start(agent_error_exit_callback)
-
-    def kill(self):
-        pkdc('agent_id={}', self._agent_id)
-        # TODO(e-carlin): More error handling. If terminate doesn't work
-        # we need to go to kill
-        # TODO(e-carlin): What happens when an exception is thrown?
-        self._agent_kill_requested = True
-        self.agent_started = False
-        self._agent_process.proc.terminate()
-        self._agent_process.proc.wait()
