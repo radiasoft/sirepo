@@ -302,6 +302,7 @@ def require_auth_basic():
             status=401,
             headers={'WWW-Authenticate': 'Basic realm="*"'},
         )
+    cookie.set_sentinel()
     return login(m, uid=uid)
 
 

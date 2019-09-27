@@ -24,6 +24,12 @@ _MAX_CALLS = 10
 
 _SLEEP = 1
 
+_SIM_TYPE = 'srw'
+
+_SIM_NAME = 'Undulator Radiation'
+
+_SIM_REPORT = 'initialIntensityReport'
+
 @api_perm.require_auth_basic
 def api_serverStatus():
     """Allow for remote monitoring of the web server status.
@@ -44,13 +50,13 @@ def init_apis(*args, **kwargs):
 
 def _run_tests():
     """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
-    simulation_type = 'srw'
+    simulation_type = _SIM_TYPE
     res = uri_router.call_api(
         server.api_findByNameWithAuth,
         dict(
             simulation_type=simulation_type,
             application_mode='default',
-            simulation_name='Undulator Radiation',
+            simulation_name=_SIM_NAME,
         ),
     )
     m = re.search(r'\/source\/(\w+)"', res.data)
@@ -59,7 +65,7 @@ def _run_tests():
     i = m.group(1)
     d = simulation_db.read_simulation_json(simulation_type, sid=i)
     d.simulationId = i
-    d.report = 'initialIntensityReport'
+    d.report = _SIM_REPORT
     r = None
     try:
         uri_router.call_api(server.api_runSimulation, data=d)
@@ -70,9 +76,10 @@ def _run_tests():
             if r.state == 'error':
                 raise RuntimeError('simulation error: resp={}'.format(r))
             if r.state == 'completed':
-                min_size = 50
-                if len(r.z_matrix) < min_size or len(r.z_matrix[0]) < min_size:
-                    raise RuntimeError('received bad report output: resp={}', r)
+                if 'initialIntensityReport' == d.report:
+                    min_size = 50
+                    if len(r.z_matrix) < min_size or len(r.z_matrix[0]) < min_size:
+                        raise RuntimeError('received bad report output: resp={}', r)
                 return
             d = r.nextRequest
         raise RuntimeError(
