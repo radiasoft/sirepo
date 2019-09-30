@@ -8,8 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job, simulation_db
-# TODO(e-carlin): load dynamically
-from sirepo.job_driver_backends import local_process
+from sirepo import job_agent_process
 import async_generator
 import asyncio
 import contextlib
@@ -80,7 +79,7 @@ class _JobTracker:
 
         # run the job
         cmd = ['sirepo', 'extract', subcmd, arg]
-        result = await local_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
+        result = await job_agent_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
            run_dir, cmd, runner_info.backend_info,
         )
 
@@ -117,7 +116,7 @@ class _JobTracker:
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        j = local_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
+        j = job_agent_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
         self._compute_jobs[run_dir] = j
         tornado.ioloop.IOLoop.current().spawn_callback(
            self._on_compute_job_exit,
