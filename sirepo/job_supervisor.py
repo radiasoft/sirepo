@@ -288,6 +288,7 @@ class _ServerRequest(_Request):
 
     def reply_error(self):
         self.request_handler.send_error()
+        self.request_reply_was_sent.set()
 
 
 def _slots_available(driver_class, resource_class):
