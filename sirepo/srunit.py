@@ -170,7 +170,7 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return _req(route_name, params, query, self.get, raw_response=True)
 
-    def sr_get_json(self, route_name, params=None, query=None):
+    def sr_get_json(self, route_name, params=None, query=None, headers=None):
         """Gets a request to route_name to server
 
         Args:
@@ -180,7 +180,13 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        return _req(route_name, params, query, self.get, raw_response=False)
+        return _req(
+            route_name,
+            params,
+            query,
+            lambda r: self.get(r, headers=headers),
+            raw_response=False,
+        )
 
     def sr_get_root(self, sim_type=None):
         """Gets root app for sim_type
