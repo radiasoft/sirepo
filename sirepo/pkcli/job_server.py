@@ -52,6 +52,7 @@ def start():
 
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
+    sr_req_type = 'message'
     def check_origin(self, origin):
         return True
 
@@ -62,61 +63,36 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             pkdlog('Error: {} \n{}', e, pkdexc())
 
     async def on_message(self, msg):
-        try:
-            await _process_incoming('message', msg, self)
-        except Exception as e:
-            # TODO(e-carlin): More handling. Ex restart agent
-            pkdlog('Error: {}', e)
-            pkdp(pkdexc())
-            raise
+        await _process_incoming(msg, self)
 
     def open(self):
         pkdp(self.request.uri)
 
 
-class _DebugRenderer():
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __str__(self):
-        o = self.obj
-        if isinstance(o, pkcollections.Dict):
-            return str({x: o[x] for x in o if x not in ['result', 'arg']})
-        raise AssertionError('unknown object to render: {}', o)
-
-
-async def _process_incoming(req_type, content, handler):
-    pkdc('req_type={}, content={}', req_type, content)
-    c = pkjson.load_any(content)
-    pkdlog('{}: {}', req_type,  _DebugRenderer(c))
-    await getattr(job_supervisor, f'incoming_{req_type}')(
-        pkcollections.Dict({
-            f'{req_type}_handler': handler,
-            'content': c,
-        },
-    ))
+async def _process_incoming(content, handler):
+        pkdc('req_type={}, content={}', handler.sr_req_type, content)
+        await job_supervisor.process_incoming(
+            pkjson.load_any(content),
+            handler
+        )
 
 
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
+    sr_req_type = 'request'
 
     def on_connection_close(self):
-        #TODO(e-carlin): Handle this. This occurs when the client drops the connection.
+        # TODO(e-carlin): Handle this. This occurs when the client drops the connection.
         # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
         # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
         pass
 
     async def post(self):
-        try:
-            await _process_incoming('request', self.request.body, self)
-        except Exception as e:
-            # TODO(e-carlin): More handling.
-            pkdlog('Error: {}', e)
-            pkdp(pkdexc())
-            raise
+        await _process_incoming(self.request.body, self)
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
+
 
 # TODO(e-carlin): This should probably live in the supervisor
 def _terminate(num, bar):
@@ -126,6 +102,6 @@ def _terminate(num, bar):
                 if type(d) == local.LocalDriver and d.agent_started():
                     d.kill_agent()
         tornado.ioloop.IOLoop.current().stop()
-        tornado.ioloop.IOLoop.current().add_callback_from_signal(
-            _run_terminate
-        )
+    tornado.ioloop.IOLoop.current().add_callback_from_signal(
+        _run_terminate
+    )

@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkcollections
-from pykern.pkdebug import pkdp, pkdc, pkdlog
+from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import driver, job
 from sirepo import job
 import copy
@@ -110,6 +110,21 @@ async def incoming_request(req):
     )
     await r.request_reply_was_sent.wait()
 
+
+async def process_incoming(content, handler):
+    try:
+        pkdlog('{}: {}', handler.sr_req_type,  _DebugRenderer(content))
+        await globals()[f'incoming_{handler.sr_req_type}'](
+            pkcollections.Dict({
+                f'{handler.sr_req_type}_handler': handler,
+                'content': content,
+            })
+        )
+    except Exception as e:
+        pkdlog('Error: {}', e)
+        pkdlog(pkdexc())
+
+
 def run_scheduler(driver_class, resource_class):
     pkdc(
         'driver_class={}, resource_class={}, slots_available={}',
@@ -183,6 +198,17 @@ def _cancel_pending_job(driver, cancel_req):
 
         cancel_req.reply({'status': job.JobStatus.CANCELED.value})
         driver.requests.remove(cancel_req)
+
+
+class _DebugRenderer():
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __str__(self):
+        o = self.obj
+        if isinstance(o, pkcollections.Dict):
+            return str({x: o[x] for x in o if x not in ['result', 'arg']})
+        raise AssertionError('unknown object to render: {}', o)
 
 
 def _free_slots_if_needed(driver_class, resource_class):
