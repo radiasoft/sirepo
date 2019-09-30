@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""# TODO(e-carlin): Doc 
+"""# TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -120,8 +120,12 @@ class _ServerReq(tornado.web.RequestHandler):
 
 # TODO(e-carlin): This should probably live in the supervisor
 def _terminate(num, bar):
-    if pkconfig.channel_in('dev'):
-        for d in driver.DriverBase.driver_for_agent.values():
-            if type(d) == local.LocalDriver and d.agent_started():
-                d.kill_agent()
-    tornado.ioloop.IOLoop.current().stop()
+    def _run_terminate():
+        if pkconfig.channel_in('dev'):
+            for d in driver.DriverBase.driver_for_agent.values():
+                if type(d) == local.LocalDriver and d.agent_started():
+                    d.kill_agent()
+        tornado.ioloop.IOLoop.current().stop()
+        tornado.ioloop.IOLoop.current().add_callback_from_signal(
+            _run_terminate
+        )
