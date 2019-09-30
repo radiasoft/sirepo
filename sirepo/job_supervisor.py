@@ -102,7 +102,7 @@ async def incoming_request(req):
     if r.depends_on_another_request():
         pkdc('r={} depends on another request', r)
         r.waiting_on_dependent_request = True
-        await _run_dependent_request(r)
+        await r.run_dependent_request()
         r.waiting_on_dependent_request = False
     run_scheduler(
         sirepo.driver.DriverBase.get_driver_class(r),
@@ -266,15 +266,14 @@ class _Request():
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
 
-
-async def _run_dependent_request(parent_req):
-    r = _SupervisorRequest(parent_req, job.ACTION_COMPUTE_JOB_STATUS)
-    sirepo.driver.DriverBase.enqueue_request(r)
-    run_scheduler(
-        sirepo.driver.DriverBase.get_driver_class(r),
-        r.content.resource_class,
-    )
-    await r.request_reply_received.wait()
+    async def run_dependent_request(self):
+        r = _SupervisorRequest(self, job.ACTION_COMPUTE_JOB_STATUS)
+        sirepo.driver.DriverBase.enqueue_request(r)
+        run_scheduler(
+            sirepo.driver.DriverBase.get_driver_class(r),
+            r.content.resource_class,
+        )
+        await r.request_reply_received.wait()
 
 
 class _ServerRequest(_Request):
