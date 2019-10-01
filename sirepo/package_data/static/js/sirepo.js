@@ -1438,7 +1438,9 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.isLoggedIn || (route.controller && route.controller.indexOf('login') >= 0)) {
+        if (! SIREPO.authState.isLoggedIn
+            || SIREPO.authState.needCompleteRegistration
+            || (route.controller && route.controller.indexOf('login') >= 0)) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -1446,8 +1448,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             cookieService.removeCookie(SIREPO.APP_SCHEMA.cookies.previousRoute);
             var parts = prevRoute.split(' ');
             if (parts[0] == SIREPO.APP_SCHEMA.simulationType) {
-                event.preventDefault();
-                $location.path(parts[1]);
+                if ($location.path() != parts[1]) {
+                    event.preventDefault();
+                    $location.path(parts[1]);
+                }
             }
         }
     }
