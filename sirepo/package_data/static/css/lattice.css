@@ -3,6 +3,10 @@
   cursor: move;
   border: solid 2px #777;
 }
+.sr-lattice-item.sr-item-selected {
+  background-color: blue;
+  border-color: blue;
+}
 
 .sr-lattice-item:hover, .sr-lattice-item.drag-over {
   border-color: black;
@@ -51,6 +55,7 @@
 .sr-lattice-icon {
   background-color: #222;
   border-color: #222;
+  border-radius: 0;
 }
 
 .sr-lattice-icon-disabled {
