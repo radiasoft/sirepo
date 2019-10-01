@@ -414,6 +414,17 @@ def _auth_hook_from_header(values):
     """
     if values.get(_COOKIE_STATE):
         # normal case: we've seen a cookie at least once
+        # check for cfg.methods changes
+        m = values.get(_COOKIE_METHOD)
+        if m and m not in valid_methods:
+            # invalid method (changed config), reset state
+            pkdlog('possibly misconfigured server: invalid cookie_method={}, clearing values={}', values)
+            pkcollections.unchecked_del(
+                values,
+                _COOKIE_METHOD,
+                _COOKIE_USER,
+                _COOKIE_STATE,
+            )
         return values
     u = values.get('sru') or values.get('uid')
     if not u:

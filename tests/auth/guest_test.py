@@ -35,6 +35,30 @@ def test_happy_path():
     )
 
 
+def test_invalid_method():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre
+    from pykern.pkdebug import pkdp
+    import re
+
+    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
+    fc.sr_post('listSimulations', {'simulationType': sim_type})
+    import sirepo.auth
+    sirepo.auth.cfg.methods = sirepo.auth.visible_methods = sirepo.auth.valid_methods = ['email']
+    sirepo.auth.non_guest_methods = ['email']
+    sirepo.auth.cfg.deprecated_methods = []
+    del sirepo.auth._METHOD_MODULES['guest']
+    fc.sr_auth_state(
+        displayName=None,
+        isLoggedIn=False,
+        needCompleteRegistration=False,
+        uid=None,
+        userName=None,
+    )
+
+
 def test_timeout():
     fc, sim_type = _fc()
 

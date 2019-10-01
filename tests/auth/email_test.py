@@ -200,6 +200,38 @@ def test_happy_path():
     )
 
 
+def test_invalid_method():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre
+    from pykern.pkdebug import pkdp
+    import re
+
+    # login as a new user, not in db
+    r = fc.sr_post('authEmailLogin', {'email': 'will-be-invalid@b.c', 'simulationType': sim_type})
+    fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+    )
+    fc.sr_post('listSimulations', {'simulationType': sim_type})
+    import sirepo.auth
+    sirepo.auth.cfg.methods = sirepo.auth.visible_methods = sirepo.auth.valid_methods = ['guest']
+    sirepo.auth.non_guest_methods = []
+    sirepo.auth.cfg.deprecated_methods = []
+    fc.sr_auth_state(
+        displayName=None,
+        isLoggedIn=False,
+        needCompleteRegistration=False,
+        uid=None,
+        userName=None,
+    )
+
+
 def test_oauth_conversion(monkeypatch):
     """See `x_test_oauth_conversion_setup`"""
     fc, sim_type = _fc()
