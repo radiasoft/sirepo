@@ -2704,7 +2704,7 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     var self = this;
     self.authService = authService;
 
-    if (authState.isLoggedIn && ! authState.isGuestUser && authState.displayName) {
+    if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
         requestSender.localRedirect('simulations');
         return;
     }

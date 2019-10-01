@@ -210,7 +210,6 @@
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
-                  "controller": "LoginController as login",
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
