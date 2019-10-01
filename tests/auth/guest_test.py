@@ -89,22 +89,20 @@ def test_timeout():
 
 def _fc(guest_only=False):
     from pykern.pkdebug import pkdp
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
 
     sim_type = 'myapp'
-    cfg = {
-        'SIREPO_AUTH_EMAIL_FROM_EMAIL': 'x',
-        'SIREPO_AUTH_EMAIL_FROM_NAME': 'x',
-        'SIREPO_AUTH_EMAIL_SMTP_PASSWORD': 'x',
-        'SIREPO_AUTH_EMAIL_SMTP_SERVER': 'dev',
-        'SIREPO_AUTH_EMAIL_SMTP_USER': 'x',
-        'SIREPO_AUTH_GITHUB_CALLBACK_URI': '/uri',
-        'SIREPO_AUTH_GITHUB_KEY': 'key',
-        'SIREPO_AUTH_GITHUB_SECRET': 'secret',
-        'SIREPO_AUTH_GUEST_EXPIRY_DAYS': '1',
-        'SIREPO_AUTH_METHODS': 'guest' if guest_only else 'email:guest',
-        'SIREPO_FEATURE_CONFIG_SIM_TYPES': sim_type,
-    }
+    cfg = PKDict(
+        SIREPO_AUTH_EMAIL_FROM_EMAIL='x',
+        SIREPO_AUTH_EMAIL_FROM_NAME='x',
+        SIREPO_AUTH_EMAIL_SMTP_PASSWORD='x',
+        SIREPO_AUTH_EMAIL_SMTP_SERVER='dev',
+        SIREPO_AUTH_EMAIL_SMTP_USER='x',
+        SIREPO_AUTH_GUEST_EXPIRY_DAYS='1',
+        SIREPO_AUTH_METHODS='guest' if guest_only else 'email:guest',
+        SIREPO_FEATURE_CONFIG_SIM_TYPES=sim_type,
+    )
     fc = srunit.flask_client(cfg=cfg)
     # set the sentinel
     fc.cookie_jar.clear()

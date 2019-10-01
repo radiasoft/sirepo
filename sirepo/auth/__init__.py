@@ -279,10 +279,13 @@ def login_fail_redirect(sim_type=None, module=None, reason=None):
 def login_success_redirect(sim_type):
     if sim_type:
         if cookie.get_value(_COOKIE_STATE) == _STATE_COMPLETE_REGISTRATION:
-            return http_reply.gen_redirect_for_local_route(
-                sim_type,
-                'completeRegistration',
-            )
+            if cookie.get_value(_COOKIE_METHOD) == METHOD_GUEST:
+                complete_registration()
+            else:
+                return http_reply.gen_redirect_for_local_route(
+                    sim_type,
+                    'completeRegistration',
+                )
     return http_reply.gen_redirect_for_root(sim_type)
 
 
