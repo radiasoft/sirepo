@@ -63,6 +63,7 @@ cfg = pkconfig.init(
     sim_types=(None, _cfg_sim_types, 'simulation types (codes) to be imported'),
     srw=dict(
         mask_in_toolbar=(pkconfig.channel_in_internal_test(), bool, 'Show the mask element in toolbar'),
+        beamline3d=(pkconfig.channel_in_internal_test(), bool, 'Show 3D beamline plot'),
     ),
     warpvnd=dict(
         allow_3d_mode=(True, bool, 'Include 3D features in the Warp VND UI'),

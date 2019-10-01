@@ -1,26 +1,27 @@
 <div class="container-fluid">
   <div data-mobile-app-title="nav"></div>
-  <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamline.beamlineService.isEditable()" data-parent-controller="beamline"></div>
-  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels" data-show-active-watchpoints="beamline.isMultiElectron()" data-active-watchpoint-title="Watchpoint for Partially Coherent Report">
+  <div data-beamline-toolbar="beamline.toolbarItemNames" data-ng-show="beamline.isEditable()" data-parent-controller="beamline"></div>
+  <div data-beamline-builder="beamline" data-beamline-models="beamline.beamlineModels" data-show-active-watchpoints="beamline.isActiveTab('multi')" data-active-watchpoint-title="Watchpoint for Partially Coherent Report">
       <div class="btn btn-default srw-propagation-button" data-ng-show="beamline.appState.models.beamline.length" data-ng-click="beamline.showPropagationModal()" title="Propagation Parameters"><span class="glyphicon glyphicon-pencil"></span> <small class="hidden-xs">Propagation</small></div>
       <div class="btn btn-default srw-wavefront-button" data-ng-click="beamline.showSimulationGrid()" title="Initial Wavefront Simulation Grid"><span class="glyphicon glyphicon-th"></span> <small class="hidden-xs">Initial Wavefront</small></div>
   </div>
 </div> <!-- /container -->
 
 <div class="container-fluid">
-  <div data-ng-if="beamline.showTabs()" class="row">
+  <div class="row">
     <div class="col-sm-12">
       <ul class="nav nav-tabs">
-        <li role="presentation" data-ng-class="{active: beamline.isSingleElectron()}"><a class="srw-tab" href data-ng-click="beamline.setReloadOnSearch(false); beamline.setSingleElectron(true)"><strong>Coherent</strong></a></li>
-        <li role="presentation" data-ng-class="{active: beamline.isMultiElectron()}"><a class="srw-tab" href data-ng-click="beamline.setReloadOnSearch(false); beamline.setSingleElectron(false)"><strong><span class="glyphicon glyphicon-option-vertical"></span> Partially Coherent</strong></a></li>
+        <li role="presentation" data-ng-class="{active: beamline.isActiveTab('single')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('single')"><strong>Coherent Results</strong></a></li>
+        <li data-ng-if="beamline.showMultiTab()" role="presentation" data-ng-class="{active: beamline.isActiveTab('multi')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('multi')"><strong><span class="glyphicon glyphicon-option-vertical"></span> Partially Coherent Results</strong></a></li>
+        <li role="presentation" data-ng-if="beamline.isBeamline3dEnabled" data-ng-class="{active: beamline.isActiveTab('beamline3d')}"><a class="srw-tab" href data-ng-click="beamline.setActiveTab('beamline3d')"><strong>3D Beamline</strong></a></li>
       </ul>
       <br />
     </div>
   </div>
-  <div data-ng-if="beamline.isSingleElectron()" class="row">
+  <div data-ng-if="beamline.isActiveTab('single')" class="row">
     <div data-beamline-reports=""></div>
   </div>
-  <div data-ng-if="beamline.isMultiElectron()" class="row">
+  <div data-ng-if="beamline.isActiveTab('multi')" class="row">
     <div data-column-for-aspect-ratio="multiElectronAnimation">
       <div data-report-panel="3d" data-model-name="multiElectronAnimation" data-panel-title="{{ beamline.srwService.getReportTitle('multiElectronAnimation') }}"><div data-simulation-status-panel="multiElectronAnimation"></div></div>
     </div>
@@ -29,6 +30,11 @@
     </div>
     <div data-ng-if="beamline.srwService.showCalcCoherence" data-column-for-aspect-ratio="coherenceYAnimation">
       <div data-report-panel="3d" data-model-name="coherenceYAnimation"></div>
+    </div>
+  </div>
+  <div data-ng-if="beamline.isActiveTab('beamline3d')" class="row">
+    <div class="col-xs-12">
+      <div data-report-panel="beamline3d" data-model-name="beamline3DReport"></div>
     </div>
   </div>
   <div class="clearfix"></div>

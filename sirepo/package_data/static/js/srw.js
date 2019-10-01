@@ -9,6 +9,9 @@ SIREPO.SINGLE_FRAME_ANIMATION = ['coherenceXAnimation', 'coherenceYAnimation', '
 SIREPO.PLOTTING_COLOR_MAP = 'grayscale';
 SIREPO.PLOTTING_SHOW_FWHM = true;
 //TODO(pjm): provide API for this, keyed by field type
+SIREPO.appReportTypes = [
+    '<div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}" data-report-id="reportId"></div>',
+];
 SIREPO.appFieldEditors = [
     '<div data-ng-switch-when="BeamList">',
       '<div data-model-selection-list="" data-model-name="modelName" data-model="model" data-field="field" data-field-class="fieldClass"></div>',
@@ -51,8 +54,6 @@ SIREPO.PLOTTING_SHOW_CONVERGENCE_LINEOUTS = true;
 SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope, $route) {
     var FORMAT_DECIMALS = 8;
     var self = {};
-    self.applicationMode = 'default';
-    appDataService.applicationMode = null;
     self.originalCharacteristicEnum = null;
     self.singleElectronCharacteristicEnum = null;
     self.showCalcCoherence = false;
@@ -67,7 +68,7 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
          };
     };
     appDataService.canCopy = function() {
-        if (self.applicationMode == 'calculator' || self.applicationMode == 'wavefront') {
+        if (appDataService.applicationMode == 'calculator' || appDataService.applicationMode == 'wavefront') {
             return false;
         }
         return true;
@@ -93,12 +94,18 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
         return false;
     }
 
+    self.disableReloadOnSearch = function() {
+        if ($route.current && $route.current.$$route) {
+            $route.current.$$route.reloadOnSearch = false;
+        }
+    };
+
     self.formatFloat = function(v) {
         return +parseFloat(v).toFixed(FORMAT_DECIMALS);
     };
 
     self.isApplicationMode = function(name) {
-        return name == self.applicationMode;
+        return name == appDataService.applicationMode;
     };
 
     self.isElectronBeam = function() {
@@ -185,28 +192,15 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
 
     $rootScope.$on('$locationChangeSuccess', function (event) {
         // reset reloadOnSearch so that back/next browser buttons will trigger a page load
-        if($route.current && $route.current.$$route) {
+        if ($route.current && $route.current.$$route) {
             $route.current.$$route.reloadOnSearch = true;
         }
     });
+
     $rootScope.$on('$routeChangeSuccess', function() {
         var search = $location.search();
         if(search) {
-            self.applicationMode = search.application_mode || 'default';
-            appDataService.applicationMode = self.applicationMode;
-            beamlineService.setEditable(self.applicationMode == 'default');
-            if(activeSection.getActiveSection() === 'beamline') {
-                // use the coherence from the url query if it exists
-                if(search.coherence) {
-                    beamlineService.coherence = search.coherence;
-                }
-                // if coherence was not previously set, set it to full.  Otherwise keep the stored value
-                else {
-                    if(! beamlineService.coherence) {
-                        beamlineService.coherence = 'full';
-                    }
-                }
-            }
+            appDataService.applicationMode = search.application_mode || 'default';
         }
     });
 
@@ -219,6 +213,9 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     });
 
     self.getReportTitle = function(modelName, itemId) {
+        if (! appState.isLoaded()) {
+            return '';
+        }
         if (modelName == 'multiElectronAnimation') {
             // multiElectronAnimation title is cached on the simulation model
             var title = appState.models.simulation.multiElectronAnimationTitle;
@@ -231,16 +228,17 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
     return self;
 });
 
-SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineService, panelState, requestSender, srwService, $scope, simulationQueue, $location, activeSection, $route) {
+SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState, beamlineService, panelState, requestSender, simulationQueue, srwService, $scope, $location) {
     var self = this;
     var grazingAngleElements = ['ellipsoidMirror', 'grating', 'sphericalMirror', 'toroidalMirror'];
+    // tabs: single, multi, beamline3d
+    var activeTab = 'single';
     self.mirrorReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     self.appState = appState;
     self.beamlineService = beamlineService;
     self.srwService = srwService;
     self.postPropagation = [];
     self.propagations = [];
-    self.singleElectron = true;
     self.beamlineModels = ['beamline', 'propagation', 'postPropagation'];
     self.toolbarItemNames = [
         ['Refractive/Diffractive optics and transmission objects', ['lens', 'crl', 'zonePlate', 'fiber', 'aperture', 'obstacle', 'mask', 'sample']],
@@ -248,6 +246,7 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         ['Elements of monochromator', ['crystal', 'grating']],
         'watch',
     ];
+    self.isBeamline3dEnabled = SIREPO.APP_SCHEMA.feature_config.beamline3d;
 
     function attenuationPrefixes(item) {
         return item.type == 'fiber'
@@ -482,12 +481,13 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         panelState.showField('initialIntensityReport', 'fieldUnits', srwService.isGaussianBeam());
     };
 
-    self.isSingleElectron = function() {
-        return self.singleElectron;
+    self.isActiveTab = function(tab) {
+        return tab == activeTab;
     };
 
-    self.isMultiElectron = function() {
-        return ! self.isSingleElectron();
+    self.isEditable = function() {
+        beamlineService.setEditable(srwService.isApplicationMode('default'));
+        return beamlineService.isEditable();
     };
 
     self.prepareToSave = function() {
@@ -540,28 +540,31 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
         appState.models.propagation = newPropagations;
     };
 
-    self.setReloadOnSearch = function(value) {
-        if($route.current && $route.current.$$route) {
-            $route.current.$$route.reloadOnSearch = value;
+    self.showMultiTab = function() {
+        if (! appState.isLoaded()) {
+            return false;
         }
+        if (beamlineService.getWatchItems().length === 0
+            || srwService.isApplicationMode('wavefront')
+            || srwService.isGaussianBeam()) {
+            if (activeTab == 'multi') {
+                // reset to single-electron results
+                self.setActiveTab('single');
+            }
+            return false;
+        }
+        return true;
     };
-    self.setSingleElectron = function(value) {
-        if (srwService.isGaussianBeam()) {
-            // no partially coherence for gaussian beams
-            value = true;
-        }
-        value = !!value;
-        if (value != self.singleElectron) {
-            simulationQueue.cancelAllItems();
-        }
-        self.singleElectron = value;
 
-        // store the coherence
-        beamlineService.coherence = value ? 'full' : 'partial';
-        var currentCoherence = $location.search().coherence || 'full';
-        if (beamlineService.coherence != currentCoherence) {
-            // only set search if changed - it causes a page reload
-            $location.search('coherence', beamlineService.coherence);
+    self.setActiveTab = function(tab) {
+        if (tab != activeTab) {
+            srwService.disableReloadOnSearch();
+            $location.search('tab', tab);
+            activeTab = tab;
+            if (activeTab != 'single') {
+                // tab changed, cancel single-electron queue items
+                simulationQueue.cancelAllItems();
+            }
         }
     };
 
@@ -573,22 +576,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     self.showSimulationGrid = function() {
         panelState.showModalEditor('simulationGrid', null, $scope);
-    };
-
-    self.showTabs = function() {
-        if (beamlineService.getWatchItems().length === 0) {
-            if(self.isMultiElectron()) {
-                self.setSingleElectron(true);
-            }
-            return false;
-        }
-        if (srwService.isApplicationMode('wavefront')) {
-            return false;
-        }
-        if (srwService.isGaussianBeam()) {
-            return false;
-        }
-        return true;
     };
 
     self.setWatchpointActive = function(item) {
@@ -629,16 +616,6 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
 
     appState.whenModelsLoaded($scope, function() {
         srwService.setShowCalcCoherence(false);
-        // set the single electron state based on the stored coherence value
-        if(beamlineService.coherence) {
-            if (appState.models.beamline.length == 0) {
-                self.setSingleElectron(true);
-            }
-            else {
-                self.setSingleElectron(beamlineService.coherence !== 'partial');
-            }
-        }
-
         updatePhotonEnergyHelpText();
         syncFirstElementPositionToDistanceFromSource();
         grazingAngleElements.forEach(function(m) {
@@ -677,15 +654,31 @@ SIREPO.app.controller('SRWBeamlineController', function (appState, beamlineServi
                 appState.saveChanges(watchRptName);
             }
         }
+    });
 
+    $scope.$on('$routeChangeSuccess', function() {
+        var search = $location.search();
+        if (search) {
+            if (search.tab) {
+                self.setActiveTab(search.tab);
+            }
+            // old tab name in bookmarks
+            else if (search.coherence) {
+                if (search.coherence == 'partial') {
+                    self.setActiveTab('multi');
+                }
+                $location.search('coherence', null);
+            }
+        }
     });
 
     $scope.$on('$destroy', function() {
-        // clear the coherence if we went away from the beamline tab
-        // but remember it in the service
-        if(activeSection.getActiveSection() !== 'beamline') {
-            $location.search('coherence', null);
+        var section = activeSection.getActiveSection();
+        if (section == 'beamline' || section == 'copy-session') {
+            // preserve search when staying on the beamline page, or coming from a shared session
+            return;
         }
+        $location.search('tab', null);
     });
 
 });
@@ -1984,5 +1977,614 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 coherenceYAnimation: coherentArgs,
             });
        },
+    };
+});
+
+//TODO(pjm): move this to sirepo-components and share with warpvnd
+SIREPO.app.service('vtkToPNG', function(plotToPNG, utilities) {
+    this.pngCanvas = function(reportId, vtkRenderer, panel) {
+        var canvas = document.createElement('canvas');
+        var res = {
+            copyCanvas: function() {
+                var canvas3d = $(panel).find('canvas')[0];
+                canvas.width = parseInt(canvas3d.getAttribute('width'));
+                canvas.height = parseInt(canvas3d.getAttribute('height'));
+                // this call makes sure the buffer is fresh (it appears)
+                vtkRenderer.getOpenGLRenderWindow().traverseAllPasses();
+                canvas.getContext('2d').drawImage(canvas3d, 0, 0, canvas.width, canvas.height);
+            },
+            destroy: function() {
+                panel.off();
+                plotToPNG.removeCanvas(reportId);
+            },
+        };
+        plotToPNG.addCanvas(canvas, reportId);
+        $(panel).on('pointerup', res.copyCanvas);
+        $(panel).on('wheel', utilities.debounce(res.copyCanvas, 100));
+        return res;
+    };
+});
+
+SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkToPNG) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '@',
+            reportId: '<',
+        },
+        template: [
+            '<div style="float: right; margin-top: -10px; margin-bottom: 5px;">',
+            '<div style="display: inline-block" data-ng-repeat="dim in ::dimensions track by $index">',
+            '<button data-ng-attr-class="btn btn-{{ selectedDimension == dim ? \'primary\' : \'default\' }}" data-ng-click="setCamera(dim)">{{ dim | uppercase }}{{ viewDirection[dim] > 0 ? \'+\' : \'-\' }}</button>&nbsp;',
+            '</div>',
+            '</div>',
+            '<div style="padding-bottom:1px; clear: both; border: 1px solid black">',
+              //TODO(pjm): use explicity width/height, update in resize()
+              '<div class="sr-beamline3d-content" style="width: 100%; height: 50vw;"></div>',
+            '</div>',
+            // force the Download Report menu to appear
+            '<svg></svg>',
+        ].join(''),
+        controller: function($scope, $element) {
+            var LABEL_FONT_HEIGHT = 96;
+            var LABEL_FONT = 'normal ' + LABEL_FONT_HEIGHT + 'px Arial';
+            var MAX_CONDENSED_LENGTH = 3;
+            var MIN_CONDENSED_LENGTH = 0.7;
+            var beamline, fsRenderer, labelCanvas, labels, orientationMarker, pngCanvas;
+            $scope.isClientOnly = true;
+            $scope.dimensions = ['x', 'y', 'z'];
+            $scope.viewDirection = null;
+            $scope.selectedDimension = null;
+
+            function addActor(source, prop, texture) {
+                var actor = vtk.Rendering.Core.vtkActor.newInstance();
+                actor.getProperty().set(prop);
+                var mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+                mapper.setInputConnection(source.getOutputPort());
+                actor.setMapper(mapper);
+                if (texture) {
+                    actor.addTexture(texture);
+                }
+                fsRenderer.getRenderer().addActor(actor);
+                return actor;
+            }
+
+            function addBeam(points) {
+                var pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+                pd.getPoints().setData(new window.Float32Array(points), 3);
+                var lines = [points.length / 3];
+                for (var i = 0; i < points.length / 3; i++) {
+                    lines.push(i);
+                }
+                pd.getLines().setData(new window.Uint32Array(lines));
+                var tubeFilter = vtk.Filters.General.vtkTubeFilter.newInstance({
+                    numberOfSides: 25,
+                    capping: true,
+                    radius: 0.05,
+                });
+                tubeFilter.setInputData(pd);
+                addActor(tubeFilter, {
+                    lighting: false,
+                    color: color('#99a2ff'),
+                });
+            }
+
+            function addBeamline() {
+                if (! beamline.length) {
+                    return;
+                }
+                // x, y, z
+                var pos = [0, 0, 0];
+                // x, y, z
+                var angle = [0, 0, 0];
+                var rotationMatrix = vtk.Common.Core.vtkMatrixBuilder.buildFromRadian();
+                var points = beamline[0].type == 'drift' ? pos.slice() : [];
+                var labelSize = maxTextDimensions(beamline);
+                beamline.forEach(function(item) {
+                    if (item.type == 'drift') {
+                        var length = item.length;
+                        var p1 = [0, 0, length];
+                        rotationMatrix.apply(p1);
+                        pos[0] += p1[0];
+                        pos[1] += p1[1];
+                        pos[2] += p1[2];
+                        return;
+                    }
+                    var center = pos.slice();
+                    if (points.length) {
+                        var last = points.length - 3;
+                        if (center[0] == points[last]
+                            && center[1] == points[last + 1]
+                            && center[2] == points[last + 2]) {
+                            // skip duplicate, avoids tubeFilter coincident point errors.
+                            // only label the first element at one position
+                            item.name = '';
+                        }
+                        else {
+                            $.merge(points, center);
+                        }
+                    }
+                    else {
+                        $.merge(points, center);
+                    }
+                    var rotate = [degrees(angle[0]), degrees(angle[1]), degrees(angle[2])];
+                    if (item.xAngle) {
+                        center[1] += item.height / 2 * (item.xAngle < 0 ? -1 : 1);
+                        angle[0] += item.xAngle;
+                        rotationMatrix.rotateX(item.xAngle);
+                        rotate[0] += degrees(item.xAngle / 2);
+                    }
+                    if (item.yAngle) {
+                        center[0] += item.width / 2 * (item.yAngle < 0 ? -1 : 1);
+                        angle[1] -= item.yAngle;
+                        rotationMatrix.rotateY(-item.yAngle);
+                        rotate[1] += degrees(-item.yAngle / 2);
+                    }
+                    if (item.zAngle) {
+                        angle[2] += item.zAngle;
+                    }
+                    addBeamlineItem(item, center, rotate, labelSize);
+                });
+                return points;
+            }
+
+            function addBeamlineItem(item, center, rotate, labelSize) {
+                addBox(item, center, rotate);
+                if (item.type == 'aperture') {
+                    addBox(item, center, rotate, {
+                        xLength: item.height,
+                        yLength: item.width,
+                    });
+                }
+                if (options().showLabels == '1') {
+                    addLabel(item, labelSize, center);
+                }
+            }
+
+            function addBox(item, center, rotate, props) {
+                props = $.extend({
+                    xLength: item.width,
+                    yLength: item.height,
+                    zLength: item.size,
+                    center: center,
+                    rotations: rotate,
+                }, props || {});
+                addActor(
+                    vtk.Filters.Sources.vtkCubeSource.newInstance(props),
+                    {
+                        color: item.color || color('#39af62'),
+                        edgeVisibility: true,
+                        lighting: true,
+                        opacity: item.opacity || 1,
+                    });
+            }
+
+            function addLabel(item, labelSize, center) {
+                if (! item.name || ! labelSize.width) {
+                    return;
+                }
+                var plane = vtk.Filters.Sources.vtkPlaneSource.newInstance({
+                    xResolution: 1,
+                    yResolution: 1,
+                });
+                var actor = addActor(
+                    plane,
+                    {
+                        color: color('#ffffff'),
+                        //edgeVisibility: true,
+                        lighting: false,
+                    },
+                    vtk.Rendering.Core.vtkTexture.newInstance({
+                        interpolate: true,
+                        inputData: [labelImage(itemText(item), labelSize)],
+                    }));
+                labels.push({
+                    plane: plane,
+                    elementCenter: center,
+                    labelSize: labelSize,
+                });
+            }
+
+            function addOrientationMarker() {
+                orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+                    actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
+                    interactor: fsRenderer.getRenderWindow().getInteractor(),
+                    viewportCorner: vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT,
+                    viewportSize: 0.15,
+                });
+                orientationMarker.setEnabled(true);
+            }
+
+            function buildBeamline() {
+                beamline = [];
+                var pos = 0;
+                if (options().includeSource == "1") {
+                    //TODO(pjm): use undulator center position and length
+                    beamline.push({
+                        type: 'source',
+                        name: 'Source',
+                        size: srwService.isGaussianBeam() ? 0.1 : 2.5,
+                        height: srwService.isGaussianBeam() ? 0.2 : 1,
+                        width: srwService.isGaussianBeam() ? 0.2 : 1,
+                    });
+                }
+                else {
+                    if (appState.applicationState().beamline.length) {
+                        pos = appState.applicationState().beamline[0].position - 1;
+                    }
+                }
+                var prevItem;
+                appState.applicationState().beamline.forEach(function(item) {
+                    if (pos < item.position) {
+                        var length = item.position - pos;
+                        if (options().condenseBeamline == '1') {
+                            if (length > MAX_CONDENSED_LENGTH) {
+                                length = MAX_CONDENSED_LENGTH;
+                            }
+                            else if (length < MIN_CONDENSED_LENGTH) {
+                                length = MIN_CONDENSED_LENGTH;
+                            }
+                        }
+                        beamline.push({
+                            type: 'drift',
+                            length: length,
+                        });
+                        pos = item.position;
+                    }
+                    if (item.isDisabled) {
+                        return;
+                    }
+                    item = appState.clone(item);
+                    item.name = item.title;
+                    if (item.type == 'aperture') {
+                        $.extend(item, {
+                            height: 1,
+                            width: 0.4,
+                            size: 0.1,
+                            color: color('#666666'),
+                        });
+                    }
+                    else if (item.type == 'mirror') {
+                        item.opacity = 0.4;
+                        //TODO(pjm): unit conversion
+                        item.grazingAngle *= 1e-3;
+                        if (item.orientation == 'x') {
+                            $.extend(item, {
+                                height: mirrorSize(item.verticalTransverseSize * 1e-3),
+                                width: 0.1,
+                                size: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                                yAngle: item.grazingAngle,
+                            });
+                        }
+                        else {
+                            $.extend(item, {
+                                height: 0.1,
+                                width: mirrorSize(item.horizontalTransverseSize * 1e-3),
+                                size: mirrorSize(item.verticalTransverseSize * 1e-3),
+                                xAngle: item.grazingAngle,
+                            });
+                        }
+                    }
+                    else if (item.type.search(/mirror|grating|crystal/i) >= 0) {
+                        item.grazingAngle *= 1e-3;
+                        item.opacity = 0.4;
+                        if (item.type == 'crystal') {
+                            $.extend(item, {
+                                opacity: 0.1,
+                                color: color('#9269ff'),
+                                normalVectorX: item.nvx,
+                                normalVectorY: item.nvy,
+                            });
+                            if (prevItem && prevItem.type == 'crystal' && item.position == prevItem.position) {
+                                // add a small drift between crystals if necessary
+                                item.name = '';
+                                beamline.push({
+                                    type: 'drift',
+                                    length: 0.2,
+                                });
+                            }
+                        }
+                        else if (item.type == 'grating') {
+                            item.color = color('#ff6992');
+                        }
+                        if (Math.abs(item.normalVectorX) > Math.abs(item.normalVectorY)) {
+                            // horizontal mirror
+                            $.extend(item, {
+                                height: mirrorSize(item.sagittalSize || 0),
+                                width: 0.1,
+                                size: mirrorSize(item.tangentialSize || 0),
+                                yAngle: Math.abs(item.grazingAngle),
+                            });
+                            if (item.normalVectorX < 0) {
+                                item.yAngle = - Math.abs(item.yAngle);
+                            }
+                        }
+                        else {
+                            // vertical mirror
+                            $.extend(item, {
+                                height: 0.1,
+                                width: mirrorSize(item.sagittalSize || 0),
+                                size: mirrorSize(item.tangentialSize || 0),
+                                xAngle: Math.abs(item.grazingAngle),
+                            });
+                            if (item.normalVectorY > 0) {
+                                item.xAngle = - Math.abs(item.xAngle);
+                            }
+                        }
+                    }
+                    else if (item.type == 'lens') {
+                        $.extend(item, {
+                            opacity: 0.3,
+                            size: 0.1,
+                            width: 0.5,
+                            height: 0.5,
+                            color: color('#ffff99'),
+                        });
+                    }
+                    else if (item.type == 'zonePlate') {
+                        $.extend(item, {
+                            size: 0.1,
+                            width: 0.8,
+                            height: 0.8,
+                            color: color('#000000'),
+                        });
+                    }
+                    else if (item.type == 'crl') {
+                        $.extend(item, {
+                            //TODO(pjm): how to size a crl?
+                            width: 0.5,
+                            height: 0.5,
+                            size: 0.5,
+                            color: color('#3962af'),
+                        });
+                    }
+                    else if (item.type == 'fiber') {
+                        $.extend(item, {
+                            size: 0.5,
+                            width: 0.15,
+                            height: 0.15,
+                            color: color('#999999'),
+                        });
+                    }
+                    else if (item.type == 'obstacle') {
+                        $.extend(item, {
+                            size: 0.15,
+                            width: 0.15,
+                            height: 0.15,
+                            color: color('#000000'),
+                        });
+                    }
+                    else if (item.type == 'watch') {
+                        $.extend(item, {
+                            width: 0.5,
+                            height: 0.5,
+                            size: 0.25,
+                            color: color('#ffff99'),
+                        });
+                    }
+                    else {
+                        return;
+                    }
+                    beamline.push(item);
+                    prevItem = item;
+                });
+            }
+
+            function color(v) {
+                return vtk.Common.Core.vtkMath.hex2float(v);
+            }
+
+            function degrees(radians) {
+                return radians * 180 / Math.PI;
+            }
+
+            function itemText(item) {
+                if (item.name) {
+                    var res = item.name;
+                    if (options().showPosition == '1' && item.position) {
+                        res += ', ' + parseFloat(item.position).toFixed(1) + 'm';
+                    }
+                    return res;
+                }
+                return '';
+            }
+
+            function labelCanvasSize(labelSize) {
+                return {
+                    width: labelSize.width + 5,
+                    height: labelSize.height * 2,
+                };
+            }
+
+            function labelImage(text, labelSize) {
+                var size = labelCanvasSize(labelSize);
+                labelCanvas.width = size.width;
+                labelCanvas.height = size.height;
+                var ctxt = labelCanvas.getContext('2d');
+                ctxt.fillStyle = 'rgba(0, 0, 0, 0)';
+                ctxt.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+                ctxt.save();
+                ctxt.translate(0, labelCanvas.height);
+                ctxt.scale(1, -1);
+                ctxt.translate(0, labelCanvas.height / 2);
+                ctxt.textAlign = 'left';
+                ctxt.fillStyle = 'black';
+                ctxt.font = LABEL_FONT;
+                ctxt.textBaseline = 'middle';
+                ctxt.fillText(text, 0, 0);
+                ctxt.restore();
+                return vtk.Common.Core.vtkImageHelper.canvasToImageData(labelCanvas);
+            }
+
+            function labelPlanePoints(labelSize, center, dir) {
+                var size = labelCanvasSize(labelSize);
+                // label height in meters
+                var labelHeight = 0.7;
+                var labelWidth = labelHeight * size.width / size.height;
+                var origin;
+
+                if (dir == 'z') {
+                    // margin from element center in meters
+                    var labelMargin = 1;
+                    origin = [center[0] + $scope.viewDirection[dir] * labelMargin, center[1] - labelHeight / 2, center[2]];
+                    return [
+                        origin,
+                        [origin[0] + $scope.viewDirection[dir] * labelWidth, origin[1], origin[2]],
+                        [origin[0], origin[1] + labelHeight, origin[2]],
+                    ];
+                }
+                else {
+                    // rotate the text by 50 degrees
+                    var angle = radians(50);
+                    var angle2 = Math.PI / 2 - angle;
+                    origin = [center[0], center[1], center[2] + $scope.viewDirection[dir] * labelHeight / 4];
+                    var idx = dir == 'x' ? 1 : 0;
+                    // label margin from element center in meters
+                    origin[idx] += 0.5;
+                    var point1 = [
+                        origin[0],
+                        origin[1],
+                        origin[2] + $scope.viewDirection[dir] * labelWidth * Math.cos(angle2)];
+                    var point2 = [
+                        origin[0],
+                        origin[1],
+                        origin[2] - $scope.viewDirection[dir] * labelHeight * Math.cos(angle)];
+                    point1[idx] += labelWidth * Math.sin(angle2);
+                    point2[idx] += labelHeight * Math.sin(angle);
+                    return [origin, point1, point2];
+                }
+                throw 'no plane for alignment: ' + $scope.viewDirection[dir] + dir;
+            }
+
+            function maxTextDimensions() {
+                var ctxt = labelCanvas.getContext('2d');
+                ctxt.font = LABEL_FONT;
+                var maxX = 0;
+                beamline.forEach(function(item) {
+                    if (item.name) {
+                        var width = ctxt.measureText(itemText(item)).width;
+                        if (width > maxX) {
+                            maxX = width;
+                        }
+                    }
+                });
+                return {
+                    width: maxX,
+                    height: LABEL_FONT_HEIGHT,
+                };
+            }
+
+            function mirrorSize(size) {
+                return Math.max(Math.min(size, 1), 0.5);
+            }
+
+            function options() {
+                return appState.applicationState().beamline3DReport;
+            }
+
+            function radians(degrees) {
+                return degrees * Math.PI / 180;
+            }
+
+            function refresh() {
+                removeActors();
+                buildBeamline();
+                labels = [];
+                $scope.selectedDimension = null;
+                $scope.viewDirection = {
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                };
+                addBeam(addBeamline());
+                addOrientationMarker();
+                $scope.setCamera($scope.dimensions[0]);
+                pngCanvas.copyCanvas();
+            }
+
+            function removeActors() {
+                var renderer = fsRenderer.getRenderer();
+                renderer.getActors().forEach(function(actor) {
+                    renderer.removeActor(actor);
+                });
+            }
+
+            function updateOrientation() {
+                if ($scope.selectedDimension) {
+                    $scope.selectedDimension = null;
+                    $scope.$apply();
+                }
+            }
+
+            $scope.destroy = function() {
+                window.removeEventListener('resize', fsRenderer.resize);
+                fsRenderer.getInteractor().unbindEvents();
+                pngCanvas.destroy();
+            };
+
+            $scope.init = function() {
+                if (! appState.isLoaded()) {
+                    appState.whenModelsLoaded($scope, $scope.init);
+                    return;
+                }
+                fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+                    background: color('#ffffff'),
+                    container: $('.sr-beamline3d-content')[0],
+                });
+                labelCanvas = document.createElement('canvas');
+                fsRenderer.getInteractor().onAnimation(vtk.macro.debounce(updateOrientation, 250));
+                pngCanvas = vtkToPNG.pngCanvas($scope.reportId, fsRenderer, $element);
+                refresh();
+                $scope.$on('beamline.changed', refresh);
+                $scope.$on('beamline3DReport.changed', refresh);
+            };
+
+            $scope.resize = function() {};
+
+            $scope.setCamera = function(dim) {
+                if ($scope.selectedDimension == dim) {
+                    $scope.viewDirection[dim] = -$scope.viewDirection[dim];
+                }
+                $scope.selectedDimension = dim;
+                // align all labels
+                labels.forEach(function(label) {
+                    var planePoints = labelPlanePoints(label.labelSize, label.elementCenter, dim);
+                    label.plane.setOrigin(planePoints[0]);
+                    label.plane.setPoint1(planePoints[1]);
+                    label.plane.setPoint2(planePoints[2]);
+                });
+                // position the camera
+                var renderer = fsRenderer.getRenderer();
+                var cam = renderer.get().activeCamera;
+                cam.setFocalPoint(0, 0, 0);
+                if (dim == 'x') {
+                    cam.setPosition(- $scope.viewDirection.x, 0, 0);
+                    cam.setViewUp(0, 1, 0);
+                }
+                else if (dim == 'y') {
+                    cam.setPosition(0, $scope.viewDirection.y, 0);
+                    cam.setViewUp(1, 0, 0);
+                }
+                else {
+                    cam.setPosition(0, 0, $scope.viewDirection.z);
+                    cam.setViewUp(0, 1, 0);
+                }
+                // can experiment with this. Higher viewAngle causes more label distortion
+                // smaller viewAngle mimics parallel projection
+                if (options().projection == 'parallel') {
+                    cam.setParallelProjection(true);
+                }
+                else {
+                    cam.setViewAngle(15);
+                }
+                renderer.resetCamera();
+                cam.zoom(1.5);
+                orientationMarker.updateMarkerOrientation();
+                fsRenderer.getRenderWindow().render();
+            };
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
     };
 });
