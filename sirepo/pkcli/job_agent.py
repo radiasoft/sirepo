@@ -218,7 +218,7 @@ class _Msg(pkcollections.Dict):
             if not err:
                 self.current_msg = m
                 pkdlog('action={action} req_id={req_id}', **m)
-                pkdc(m)
+                pkdc('{}', m)
                 return await getattr(self, '_dispatch_' + m.action)(m)
         except Exception as e:
             err = 'exception=' + str(e)
