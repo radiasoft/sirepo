@@ -13,6 +13,9 @@ from sirepo.template import sdds_util, template_common
 import os.path
 import re
 import sirepo.template.jspec as template
+import sirepo.sim_data
+
+_SIM_DATA = sirepo.sim_data.get_class('jspec')
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):

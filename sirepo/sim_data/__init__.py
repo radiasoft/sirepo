@@ -64,6 +64,10 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
+    def lib_file_name(cls, model_name, field, value):
+        return '{}-{}.{}'.format(model_name, field, value)
+
+    @classmethod
     def model_defaults(cls, name):
         """Returns a set of default model values from the schema."""
         res = pkcollections.Dict()

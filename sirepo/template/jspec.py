@@ -170,9 +170,9 @@ def lib_files(data, source_lib):
     ring = data['models']['ring']
     lattice_source = ring['latticeSource']
     if lattice_source == 'madx':
-        res.append(template_common.lib_file_name('ring', 'lattice', ring['lattice']))
+        res.append(_SIM_DATA.lib_file_name('ring', 'lattice', ring['lattice']))
     elif lattice_source == 'elegant':
-        res.append(template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
+        res.append(_SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
     res = template_common.filename_to_path(res, source_lib)
     if lattice_source == 'elegant-sirepo' and 'elegantSirepo' in ring:
         f = _elegant_dir().join(ring['elegantSirepo'], _ELEGANT_TWISS_PATH)
@@ -193,7 +193,7 @@ def python_source_for_model(data, model):
     ring = data['models']['ring']
     elegant_twiss_file = None
     if ring['latticeSource'] == 'elegant':
-        elegant_twiss_file = template_common.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
+        elegant_twiss_file = _SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss'])
     elif  ring['latticeSource'] == 'elegant-sirepo':
         elegant_twiss_file = ELEGANT_TWISS_FILENAME
     convert_twiss_to_tfs = ''
@@ -412,7 +412,7 @@ def _generate_parameters_file(data):
     v['runSimulation'] = report is None or report == 'animation'
     v['runRateCalculation'] = report is None or report == 'rateCalculationReport'
     if data['models']['ring']['latticeSource'] == 'madx':
-        v['latticeFilename'] = template_common.lib_file_name('ring', 'lattice', v['ring_lattice'])
+        v['latticeFilename'] = _SIM_DATA.lib_file_name('ring', 'lattice', v['ring_lattice'])
     else:
         v['latticeFilename'] = JSPEC_TWISS_FILENAME
     if v['ionBeam_beam_type'] == 'continuous':

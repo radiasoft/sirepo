@@ -213,7 +213,7 @@ def lib_files(data, source_lib):
     res = []
     for m in data.models.conductorTypes:
         if m.type == 'stl':
-            res.append(template_common.lib_file_name('stl', 'file', m.file))
+            res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
     return template_common.filename_to_path(res, source_lib)
 
 
@@ -1105,12 +1105,12 @@ def _slope(x1, y1, x2, y2):
 
 
 def _stl_file(conductor_type):
-    return template_common.lib_file_name('stl', 'file', conductor_type.file)
+    return _SIM_DATA.lib_file_name('stl', 'file', conductor_type.file)
 
 
 def _stl_polygon_file(filename):
     return template_common.filename_to_path(
-        [template_common.lib_file_name('stl', filename, _STL_POLY_FILE)],
+        [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
         simulation_db.simulation_lib_dir(SIM_TYPE)
     )[0]
 

@@ -442,7 +442,7 @@ def write_epics_values(server_address, fields, values):
 
 
 def _analysis_data_file(data):
-    return template_common.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+    return _SIM_DATA.lib_file_name('analysisData', 'file', data.models.analysisData.file)
 
 
 def _analysis_data_path(run_dir, data):
@@ -882,7 +882,7 @@ def _label(col_info, idx):
 
 # For hashing purposes, return an object mapping the file name to a mod date
 def _lib_file_datetime(filename):
-    lib_filename = template_common.lib_file_name('analysisData','file', filename)
+    lib_filename = _SIM_DATA.lib_file_name('analysisData','file', filename)
     path = simulation_db.simulation_lib_dir(SIM_TYPE).join(lib_filename)
     if path.exists():
         return PKDict(filename=path.mtime())

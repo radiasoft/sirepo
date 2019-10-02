@@ -318,10 +318,6 @@ def histogram_bins(nbins):
     return nbins
 
 
-def lib_file_name(model_name, field, value):
-    return '{}-{}.{}'.format(model_name, field, value)
-
-
 def lib_files(data, source_lib=None):
     """Return list of files used by the simulation
 

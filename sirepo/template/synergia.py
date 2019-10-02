@@ -260,7 +260,7 @@ def save_report_data(data, run_dir):
         report = data.models[data['report']]
         bunch = data.models.bunch
         if bunch.distribution == 'file':
-            bunch_file = template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+            bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
         else:
             bunch_file = OUTPUT_FILE['bunchReport']
         if not run_dir.join(bunch_file).exists():
@@ -616,7 +616,7 @@ def _generate_parameters_file(data):
     v['diagnosticFilename'] = OUTPUT_FILE['beamEvolutionAnimation']
     v['twissFileName'] = OUTPUT_FILE['twissReport']
     if data.models.bunch.distribution == 'file':
-        v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+        v['bunchFile'] = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
     v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
@@ -938,7 +938,7 @@ def _simulation_files(data):
     res = []
     bunch = data.models.bunch
     if bunch.distribution == 'file':
-        res.append(template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile))
+        res.append(_SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile))
     return res
 
 

@@ -783,7 +783,7 @@ def _generate_bunch_simulation(data, v):
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
         if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
-            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchInputFile'] = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
     v['bunchOutputFile'] = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
@@ -930,7 +930,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                     elif el_type == 'OutputFile':
                         value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                     elif el_type.startswith('InputFile'):
-                        value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
+                        value = _SIM_DATA.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif el_type == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
                     elif el_type == 'LatticeBeamlineList':
@@ -955,7 +955,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
 def _iterator_input_files(state, model, element_schema=None, field_name=None):
     if element_schema:
         if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append(template_common.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
+            state.append(_SIM_DATA.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
 
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
@@ -974,14 +974,14 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                 if model['type'] == 'SCRIPT' and field_name == 'command':
                     for f in ('commandFile', 'commandInputFile'):
                         if f in model and model[f]:
-                            fn = template_common.lib_file_name(model['type'], f, model[f])
+                            fn = _SIM_DATA.lib_file_name(model['type'], f, model[f])
                             value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
                     if model['commandFile']:
                         value = './' + value
                 if el_type == 'RPNValue':
                     value = _format_rpn_value(value)
                 if el_type.startswith('InputFile'):
-                    value = template_common.lib_file_name(model['type'], field_name, value)
+                    value = _SIM_DATA.lib_file_name(model['type'], field_name, value)
                     if el_type == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif el_type == 'OutputFile':

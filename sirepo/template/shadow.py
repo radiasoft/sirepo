@@ -608,4 +608,4 @@ def _validate_data(data, schema):
 
 
 def _wiggler_file(value):
-    return template_common.lib_file_name('wiggler', 'trajFile', value)
+    return _SIM_DATA.lib_file_name('wiggler', 'trajFile', value)
