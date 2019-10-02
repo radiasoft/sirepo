@@ -55,13 +55,13 @@ _AVATAR_SIZE = 40
 _uwsgi = None
 
 #: methods + deprecated_methods
-valid_methods = []
+valid_methods = None
 
 #: Methods that the user is allowed to see
-visible_methods = []
+visible_methods = None
 
 #: visible_methods excluding guest
-non_guest_methods = []
+non_guest_methods = None
 
 
 @api_perm.require_cookie_sentinel
@@ -152,12 +152,12 @@ def guest_uids():
 
 
 def init_apis(app, *args, **kwargs):
-    global uri_router, simulation_db, _app, cfg
+    global uri_router, simulation_db, _app, cfg, visible_methods, valid_methods, non_guest_methods
     assert not _METHOD_MODULES
 
     cfg = pkconfig.init(
-        methods=((METHOD_GUEST,), tuple, 'for logging in'),
-        deprecated_methods=(tuple(), tuple, 'for migrating to methods'),
+        methods=((METHOD_GUEST,), set, 'for logging in'),
+        deprecated_methods=(set(), set, 'for migrating to methods'),
     )
     uri_router = importlib.import_module('sirepo.uri_router')
     simulation_db = importlib.import_module('sirepo.simulation_db')
@@ -165,7 +165,8 @@ def init_apis(app, *args, **kwargs):
     _app = app
     this_module = pkinspect.this_module()
     p = this_module.__name__
-    valid_methods.extend(cfg.methods + cfg.deprecated_methods)
+    visible_methods = []
+    valid_methods = cfg.methods.union(cfg.deprecated_methods)
     for n in valid_methods:
         m = importlib.import_module(pkinspect.module_name_join((p, n)))
         uri_router.register_api_module(m)
@@ -173,7 +174,8 @@ def init_apis(app, *args, **kwargs):
         if m.AUTH_METHOD_VISIBLE and n in cfg.methods:
             visible_methods.append(n)
         setattr(this_module, n, m)
-    non_guest_methods.extend([m for m in visible_methods if m != METHOD_GUEST])
+    visible_methods = tuple(visible_methods)
+    non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
     cookie.auth_hook_from_header = _auth_hook_from_header
 
 

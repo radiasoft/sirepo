@@ -40,13 +40,13 @@ def for_sim_type(sim_type):
 
 @pkconfig.parse_none
 def _cfg_sim_types(value):
-    res = pkconfig.parse_tuple(value)
+    res = pkconfig.parse_set(value)
     if not res:
         return _codes()
     for c in res:
         assert c in _codes(), \
             'invalid sim_type={}, expected one of={}'.format(c, _codes())
-    return res
+    return tuple(res)
 
 
 def _codes(want_all=None):
@@ -56,7 +56,7 @@ def _codes(want_all=None):
 
 
 cfg = pkconfig.init(
-    api_modules=((), tuple, 'optional api modules, e.g. status'),
+    api_modules=((), set, 'optional api modules, e.g. status'),
     runner_daemon=(False, bool, 'use the runner daemon'),
     #TODO(robnagler) make sim_type config
     rs4pi_dose_calc=(False, bool, 'run the real dose calculator'),
