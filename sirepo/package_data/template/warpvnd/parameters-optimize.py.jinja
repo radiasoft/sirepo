@@ -43,12 +43,12 @@ def analyze_scraped_particles2(top, particles, conductors):
 
 def get_lost_counts():
     scraper_record = analyze_scraped_particles2(wp.top, beam, scraper.conductors)
-    if np.sum(scraper_record[1][:, 1]):
+    if source_condid in scraper_record and np.sum(scraper_record[source_condid][:, 1]):
         print('WARNING: source had particles')
-    plate_count = np.sum(scraper_record[2][:, 1])
+    plate_count = np.sum(scraper_record[plate_condid][:, 1])
     conductor_count = 0
     for idx in scraper_record:
-        if idx <= 2:
+        if idx == source_condid or idx == plate_condid:
             continue
         conductor_count += np.sum(scraper_record[idx][:, 1])
     return np.array([plate_count, conductor_count])
