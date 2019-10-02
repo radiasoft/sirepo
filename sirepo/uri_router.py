@@ -103,7 +103,7 @@ def init(app):
         return
     global _app
     _app = app
-    for n in _REQUIRED_MODULES + feature_config.cfg.api_modules:
+    for n in _REQUIRED_MODULES + tuple(sorted(feature_config.cfg.api_modules)):
         register_api_module(importlib.import_module('sirepo.' + n))
     _init_uris(app, simulation_db)
 

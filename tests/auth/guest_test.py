@@ -46,9 +46,10 @@ def test_invalid_method():
     r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     import sirepo.auth
-    sirepo.auth.cfg.methods = sirepo.auth.visible_methods = sirepo.auth.valid_methods = ['email']
-    sirepo.auth.non_guest_methods = ['email']
-    sirepo.auth.cfg.deprecated_methods = []
+    sirepo.auth.cfg.methods = set(['email'])
+    sirepo.auth.cfg.deprecated_methods = set()
+    sirepo.auth.non_guest_methods \
+        = sirepo.auth.visible_methods = sirepo.auth.valid_methods = tuple(sirepo.auth.cfg.methods)
     del sirepo.auth._METHOD_MODULES['guest']
     fc.sr_auth_state(
         displayName=None,
