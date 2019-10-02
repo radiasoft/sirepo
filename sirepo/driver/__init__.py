@@ -84,8 +84,6 @@ class DriverBase(object):
         pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
         self._set_agent_stopped_state()
         for r in self.requests:
-            assert not r.request_reply_was_sent.is_set(), \
-                '{}: should not have been replied to'.format(r)
             r.set_response(
                 pkcollections.Dict(
                     error='agent exited with returncode {}'.format(returncode)
