@@ -5,26 +5,26 @@ u"""elegant lattice parser.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 import re
 
 from sirepo.template.line_parser import LineParser
 
 # a map of old elegant names to the new name
-_FIELD_ALIAS = {
-    'bmax': 'b_max',
-}
+_FIELD_ALIAS = PKDict(bmax='b_max')
 
 
 def parse_file(lattice_text, maxId=0):
     parser = LineParser(maxId)
     lines = lattice_text.replace('\r', '').split('\n')
     prev_line = ''
-    models = {
-        'beamlines': [],
-        'elements': [],
-        'default_beamline_name': None,
-        'rpnVariables': {},
-    }
+    models = PKDict(
+        beamlines=[],
+        elements=[],
+        default_beamline_name=None,
+        rpnVariables=PKDict(),
+    )
     for line in lines:
         parser.increment_line_number()
         if re.search(r'^\s*\!', line):
@@ -35,17 +35,17 @@ def parse_file(lattice_text, maxId=0):
         if not _parse_line(parser, prev_line + line, models):
             break
         prev_line = ''
-    models['rpnVariables'] = map(lambda x: { 'name': x, 'value': models['rpnVariables'][x] }, models['rpnVariables'].keys())
+    models['rpnVariables'] = [PKDict(name=k, value=v) for k, v in models.rpnVariables.items()]
     return models
 
 
 def _parse_beamline(parser, name):
     parser.assert_char('=')
-    return {
-        'name': name,
-        'id': parser.next_id(),
-        'items': _parse_beamline_items(parser),
-    }
+    return PKDict(
+        name=name,
+        id=parser.next_id(),
+        items=_parse_beamline_items(parser),
+    )
 
 
 def _parse_beamline_items(parser):
@@ -80,11 +80,11 @@ def _parse_beamline_items(parser):
 
 
 def _parse_element(parser, name, type):
-    el = {
-        '_id': parser.next_id(),
-        'type': type,
-        'name': name,
-    }
+    el = PKDict(
+        _id=parser.next_id(),
+        type=type,
+        name=name,
+    )
     while parser.peek_char() == ',':
         parser.assert_char(',')
         field = parser.parse_value()

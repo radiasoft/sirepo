@@ -5,18 +5,21 @@ u"""elegant lattice parser.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-
-import re
-
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_command_parser
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
+import re
+import sirepo.sim_data
 
-_SCHEMA = simulation_db.get_schema('elegant')
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
+
 
 def _init_types():
-    res = {}
+    res = PKDict()
     for name in _SCHEMA['model']:
         if name.startswith('command_'):
             name = re.sub(r'^command_', '', name)
@@ -37,10 +40,10 @@ def import_file(text):
         cmd_type = cmd['_type']
         if not cmd_type in _ELEGANT_TYPES:
             raise IOError('unknown command: {}'.format(cmd_type))
-        elegant_lattice_importer.validate_fields(cmd, {}, {})
-    data = simulation_db.default_data(elegant_common.SIM_TYPE)
+        elegant_lattice_importer.validate_fields(cmd, PKDict(), PKDict())
+    data = simulation_db.default_data(SIM_TYPE)
     #TODO(pjm) javascript needs to set bunch, bunchSource, bunchFile values from commands
-    data['models']['commands'] = commands
+    data.models.commands = commands
     return data
 
 

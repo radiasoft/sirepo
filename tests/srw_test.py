@@ -16,25 +16,29 @@ from sirepo import srunit
 @srunit.wrap_in_request(sim_types='srw')
 def test_model_defaults():
     from pykern import pkconfig
+    from pykern.pkcollections import PKDict
     from sirepo.template import template_common
     from sirepo import simulation_db
-    res = template_common.model_defaults('trajectoryReport', simulation_db.get_schema('srw'))
-    assert res == {
-        'notes': '',
-        'plotAxisY2': 'None',
-        'timeMomentEstimation': 'auto',
-        'magneticField': '2',
-        'initialTimeMoment': 0.0,
-        'numberOfPoints': 10000,
-        'plotAxisY': 'X',
-        'plotAxisX': 'Z',
-        'finalTimeMoment': 0.0,
-    }
-    model = {
-        'numberOfPoints': 10,
-        'finalTimeMoment': 1.0,
-    }
-    template_common.update_model_defaults(model, 'trajectoryReport', simulation_db.get_schema('srw'))
+    import sirepo.sim_data
+
+    s = sirepo.sim_data.get_class('srw')
+    res = s.model_defaults('trajectoryReport')
+    assert res == PKDict(
+        notes='',
+        plotAxisY2='None',
+        timeMomentEstimation='auto',
+        magneticField='2',
+        initialTimeMoment=0.0,
+        numberOfPoints=10000,
+        plotAxisY='X',
+        plotAxisX='Z',
+        finalTimeMoment=0.0,
+    )
+    model = PKDict(
+        numberOfPoints=10,
+        finalTimeMoment=1.0,
+    )
+    s.update_model_defaults(model, 'trajectoryReport')
     assert model['numberOfPoints'] == 10
     assert model['finalTimeMoment'] == 1.0
     assert model['plotAxisX'] == 'Z'
@@ -65,5 +69,4 @@ def test_prepare_aux_files():
         },
         "report": "intensityReport"
     }''')
-    d = pkunit.work_dir()
-    template_common.copy_lib_files(data, None, d)
+    template_common.copy_lib_files(data, None, pkunit.work_dir())

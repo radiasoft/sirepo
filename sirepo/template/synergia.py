@@ -7,6 +7,7 @@ u"""Synergia execution template.
 
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.srschema import get_enums
@@ -18,6 +19,9 @@ import math
 import py.path
 import re
 import werkzeug
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 OUTPUT_FILE = {
     'bunchReport': 'particles.h5',
@@ -27,8 +31,6 @@ OUTPUT_FILE = {
     'turnComparisonAnimation': 'diagnostics.h5',
 }
 
-SIM_TYPE = 'synergia'
-
 WANT_BROWSER_FRAME_CACHE = True
 
 _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
@@ -36,8 +38,6 @@ _COORD6 = ['x', 'xp', 'y', 'yp', 'z', 'zp']
 _FILE_ID_SEP = '-'
 
 _IGNORE_ATTRIBUTES = ['lrad']
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _UNITS = {
     'x': 'm',
@@ -89,37 +89,6 @@ def background_percent_complete(report, run_dir, is_running):
         'percentComplete': 0,
         'frameCount': 0,
     }
-
-
-def fixup_old_data(data):
-    for m in [
-            'beamEvolutionAnimation',
-            'bunch',
-            'bunchAnimation',
-            'bunchTwiss',
-            'simulationSettings',
-            'turnComparisonAnimation',
-            'twissReport',
-            'twissReport2',
-    ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'bunchReport' in data['models']:
-        del data['models']['bunchReport']
-        for i in range(4):
-            m = 'bunchReport{}'.format(i + 1)
-            model = data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], 'bunchReport', _SCHEMA)
-            if i == 0:
-                model['y'] = 'xp'
-            elif i == 1:
-                model['x'] = 'y'
-                model['y'] = 'yp'
-            elif i == 3:
-                model['x'] = 'z'
-                model['y'] = 'zp'
-    template_common.organize_example(data)
 
 
 def format_float(v):
@@ -754,10 +723,10 @@ def _import_elegant_file(text):
         el['name'] = re.sub(r':', '_', el['name'])
         name = _ELEGANT_NAME_MAP[el['type']]
         schema = _SCHEMA['model'][name]
-        m = {
+        m = PKDict({
             '_id': el['_id'],
             'type': name,
-        }
+        })
         for f in el:
             v = el[f]
             if el['type'] in _ELEGANT_FIELD_MAP and f in _ELEGANT_FIELD_MAP[el['type']]:
@@ -766,7 +735,7 @@ def _import_elegant_file(text):
                 if v in rpn_cache:
                     v = rpn_cache[v]
                 m[f] = v
-        template_common.update_model_defaults(m, name, _SCHEMA)
+        _SIM_DATA.update_model_defaults(m, name)
         data['models']['elements'].append(m)
         element_ids[m['_id']] = True
     beamline_ids = {}
@@ -779,11 +748,11 @@ def _import_elegant_file(text):
         for element_id in bl['items']:
             if element_id in element_ids:
                 items.append(element_id)
-        data['models']['beamlines'].append({
+        data['models']['beamlines'].append(PKDict({
             'id': bl['id'],
             'items': items,
             'name': bl['name'],
-        })
+        }))
     elegant_sim = elegant_data['models']['simulation']
     if 'activeBeamlineId' in elegant_sim:
         data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
@@ -807,7 +776,7 @@ def _import_elements(lattice, data):
         model_name = el.get_type().upper()
         if model_name not in _SCHEMA.model:
             raise IOError('Unsupported element type: {}'.format(model_name))
-        m = template_common.model_defaults(model_name, _SCHEMA)
+        m = _SIM_DATA.model_defaults(model_name)
         if 'l' in attrs:
             attrs['l'] = float(str(attrs['l']))
         if model_name == 'DRIFT' and re.search(r'^auto_drift', el.get_name()):
@@ -867,11 +836,11 @@ def _import_main_beamline(reader, data, beamline_names):
     beamline_name = _sort_beamlines_by_length(lines)[0][0]
     res = reader.get_lattice(beamline_name)
     current_id = 1
-    data['models']['beamlines'].append({
+    data['models']['beamlines'].append(PKDict({
         'id': current_id,
         'items': [],
         'name': beamline_name,
-    })
+    }))
     data['models']['simulation']['activeBeamlineId'] = current_id
     data['models']['simulation']['visualizationBeamlineId'] = current_id
     return res

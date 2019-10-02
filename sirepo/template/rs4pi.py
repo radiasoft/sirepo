@@ -90,42 +90,6 @@ def copy_related_files(data, source_path, target_path):
         py.path.local(f).copy(dicom_dir)
 
 
-def fixup_old_data(data):
-    if 'dicomEditorState' not in data['models']:
-        data['models']['dicomEditorState'] = {}
-    if 'doseCalculation' not in data['models']:
-        data['models']['doseCalculation'] = {
-            'selectedPTV': '',
-            'selectedOARs': [],
-        }
-    if 'dicomDose' not in data['models']:
-        data['models']['dicomDose'] = {
-            'frameCount': 0,
-        }
-    if 'dicomAnimation4' not in data['models']:
-        anim = data['models']['dicomAnimation']
-        data['models']['dicomAnimation4'] = {
-            'dicomPlane': 't',
-            'startTime': anim['startTime'] if 'startTime' in anim else 0,
-        }
-    if 'dvhReport' not in data['models']:
-        data['models']['dvhReport'] = {
-            'roiNumber': '',
-        }
-    if 'dvhType' not in data['models']['dvhReport']:
-        dvhReport = data['models']['dvhReport']
-        dvhReport['dvhType'] = 'cumulative'
-        dvhReport['dvhVolume'] = 'relative'
-    if 'roiNumbers' not in data['models']['dvhReport']:
-        dvhReport = data['models']['dvhReport']
-        if 'roiNumber' in dvhReport:
-            if dvhReport['roiNumber']:
-                dvhReport['roiNumbers'] = [dvhReport['roiNumber']]
-            del dvhReport['roiNumber']
-    if 'doseTransparency' not in data['models']['dicomAnimation4']:
-        data['models']['dicomAnimation4']['doseTransparency'] = 56
-
-
 def generate_rtdose_file(data, run_dir):
     dose_hd5 = str(run_dir.join(DOSE_CALC_OUTPUT))
     dicom_series = data['models']['dicomSeries']

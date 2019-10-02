@@ -8,8 +8,8 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
-from sirepo.template import adm
 from sirepo import api_perm
 from sirepo import feature_config
 from sirepo import http_reply
@@ -17,6 +17,7 @@ from sirepo import http_request
 from sirepo import runner
 from sirepo import runner_client
 from sirepo import simulation_db
+from sirepo.template import adm
 from sirepo import srdb
 from sirepo import uri_router
 from sirepo import util
@@ -28,6 +29,7 @@ import os.path
 import py.path
 import re
 import sirepo.template
+import string
 import sys
 import time
 import urllib
@@ -131,36 +133,32 @@ def api_deleteSimulation():
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-    data = {
-        'simulationType': sirepo.template.assert_sim_type(simulation_type),
-        'simulationId': simulation_id,
-        'modelName': model,
-    }
-    options = pkcollections.Dict(data)
-    options.suffix = suffix
-    frame = int(frame)
-    template = sirepo.template.import_module(data)
-    if frame >= 0:
-        data['report'] = template.get_animation_name(data)
-    else:
-        data['report'] = model
-    run_dir = simulation_db.simulation_run_dir(data)
-    filename, content, content_type = template.get_data_file(run_dir, model, frame, options=options)
-    return _as_attachment(flask.make_response(content), content_type, filename)
+    data = PKDict(
+        simulationType=sirepo.template.assert_sim_type(simulation_type),
+        simulationId=simulation_id,
+        modelName=model,
+    )
+    f = int(frame)
+    t = sirepo.template.import_module(data)
+    data.report = t.get_animation_name(data) if f >= 0 else model
+    f, c, t = t.get_data_file(
+        simulation_db.simulation_run_dir(data),
+        model,
+        f,
+        options=data.copy().update(suffix=suffix),
+    )
+    return _as_attachment(flask.make_response(c), t, f)
 
 
 @api_perm.require_user
 def api_downloadFile(simulation_type, simulation_id, filename):
     #TODO(pjm): simulation_id is an unused argument
-    lib = simulation_db.simulation_lib_dir(simulation_type)
-    filename = werkzeug.secure_filename(filename)
-    p = lib.join(filename)
-    if simulation_type == 'srw':
-        attachment_name = filename
-    else:
+    n = werkzeug.secure_filename(filename)
+    p = simulation_db.simulation_lib_dir(simulation_type).join(n)
+    if simulation_type != 'srw':
         # strip file_type prefix from attachment filename
-        attachment_name = re.sub(r'^.*?-.*?\.', '', filename)
-    return flask.send_file(str(p), as_attachment=True, attachment_filename=attachment_name)
+        n = re.sub(r'^.*?-.*?\.', '', n)
+    return flask.send_file(str(p), as_attachment=True, attachment_filename=n)
 
 
 @api_perm.allow_visitor
@@ -398,20 +396,15 @@ def api_newSimulation():
 
 @api_perm.require_user
 def api_pythonSource(simulation_type, simulation_id, model=None, report=None):
-    import string
-    data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
-    template = sirepo.template.import_module(data)
-    sim_name = data.models.simulation.name.lower()
-    report_rider = '' if report is None else '-' + report.lower()
-    py_name = sim_name + report_rider
-    py_name = re.sub(r'[\"&\'()+,/:<>?\[\]\\`{}|]', '', py_name)
-    py_name = re.sub(r'\s', '-', py_name)
-    return _as_attachment(
-        flask.make_response(template.python_source_for_model(data, model)),
-        'text/x-python',
-        '{}.py'.format(py_name),
+    d = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
+    return _safe_attachment(
+        flask.make_response(
+            sirepo.template.import_module(d)\
+                .python_source_for_model(d, model),
+        ),
+        d.models.simulation.name + ('-' + report if report else ''),
+        'py',
     )
-
 
 @api_perm.allow_visitor
 def api_robotsTxt():
@@ -573,10 +566,10 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
             pretty=pretty,
         )
         if pretty:
-            _as_attachment(
+            _safe_attachment(
                 resp,
-                http_reply.MIME_TYPE.json,
-                '{}.json'.format(data.models.simulation.name),
+                data.models.simulation.name,
+                'json',
             )
     except simulation_db.CopyRedirect as e:
         if e.sr_response['redirect'] and section:
@@ -837,6 +830,16 @@ def _render_root_page(page, values):
     ))
     return http_reply.render_static(page, 'html', values, cache_ok=True)
 
+
+def _safe_attachment(resp, base, suffix):
+    return _as_attachment(
+        resp,
+        http_reply.MIME_TYPE[suffix],
+        '{}.{}'.format(
+            re.sub(r'[^\w]+', '-', base).strip('-') or 'download',
+            suffix,
+        ).lower(),
+    )
 
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)

@@ -17,6 +17,9 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 HELLWEG_DUMP_FILE = 'all-data.bin'
 
@@ -26,9 +29,6 @@ HELLWEG_INI_FILE = 'defaults.ini'
 
 HELLWEG_INPUT_FILE = 'input.txt'
 
-#: Simulation type
-SIM_TYPE = 'hellweg'
-
 WANT_BROWSER_FRAME_CACHE = True
 
 # lattice element is required so make it very short and wide drift
@@ -37,8 +37,6 @@ _DEFAULT_DRIFT_ELEMENT = 'DRIFT 1e-16 1e+16 2' + "\n"
 _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
 _REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
@@ -142,25 +140,6 @@ def extract_particle_report(report, run_dir):
         'points': particle_info['y_values'],
         'y_range': particle_info['y_range'],
     }
-
-
-def fixup_old_data(data):
-    for m in ('beamAnimation', 'beamHistogramAnimation', 'parameterAnimation', 'particleAnimation'):
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'solenoidFile' not in data['models']['solenoid']:
-        data['models']['solenoid']['solenoidFile'] = ''
-    if 'beamDefinition' not in data['models']['beam']:
-        beam = data['models']['beam']
-        beam['beamDefinition'] = 'transverse_longitude'
-        beam['cstCompress'] = '0'
-        beam['transversalFile2d'] = ''
-        beam['transversalFile4d'] = ''
-        beam['longitudinalFile1d'] = ''
-        beam['longitudinalFile2d'] = ''
-        beam['cstFile'] = ''
-    template_common.organize_example(data)
 
 
 def get_animation_name(data):

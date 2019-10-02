@@ -7,6 +7,7 @@ u"""zgoubi datafile parser
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_common, zgoubi_parser
@@ -15,12 +16,12 @@ from sirepo.template.template_common import ModelUnits
 import glob
 import os.path
 import re
+import sirepo.sim_data
 import zipfile
 
 MODEL_UNITS = None
 
-_SIM_TYPE = 'zgoubi'
-_SCHEMA = simulation_db.get_schema(_SIM_TYPE)
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('zgoubi')
 _UNIT_TEST_MODE = False
 
 
@@ -28,7 +29,7 @@ def import_file(text, unit_test_mode=False):
     if unit_test_mode:
         global _UNIT_TEST_MODE
         _UNIT_TEST_MODE = unit_test_mode
-    data = simulation_db.default_data(_SIM_TYPE)
+    data = simulation_db.default_data(SIM_TYPE)
     #TODO(pjm): need a common way to clean-up/uniquify a simulation name from imported text
     title, elements, unhandled_elements = zgoubi_parser.parse_file(text, 1)
     title = re.sub(r'\s+', ' ', title)
@@ -54,11 +55,11 @@ def tosca_info(tosca):
     # determine the list of available files (from zip if necessary)
     # compute the tosca length from datafile
     #TODO(pjm): keep a cache on the tosca model?
-    datafile = simulation_db.simulation_lib_dir(_SIM_TYPE).join(template_common.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
+    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(template_common.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
     if not datafile.exists():
-        return {
-            'error': 'missing or invalid file: {}'.format(tosca['magnetFile']),
-        }
+        return PKDict(
+            error='missing or invalid file: {}'.format(tosca['magnetFile']),
+        )
     error = None
     length = None
     if is_zip_file(datafile):
@@ -77,16 +78,14 @@ def tosca_info(tosca):
         with pkio.open_text(str(datafile)) as f:
             length, error = _tosca_length(tosca, f)
     if error:
-        return {
-            'error': error
-        }
-    return {
-        'toscaInfo': {
-            'toscaLength': length,
-            'fileList': sorted(filenames) if filenames else None,
-            'magnetFile': tosca['magnetFile'],
-        },
-    }
+        return PKDict(error=error)
+    return PKDict(
+        toscaInfo=PKDict(
+            toscaLength=length,
+            fileList=sorted(filenames) if filenames else None,
+            magnetFile=tosca['magnetFile'],
+        ),
+    )
 
 
 def _init_model_units():
@@ -135,164 +134,164 @@ def _init_model_units():
                 return '[{}]'.format(','.join(v.split('|')))
         return ModelUnits.scale_value(v, 'cm_to_m', is_native)
 
-    return ModelUnits({
-        'AUTOREF': {
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-            'ALE': 'mrad_to_rad',
-        },
-        'BEND': {
-            'l': 'cm_to_m',
-            'IL': _il,
-            'X_E': 'cm_to_m',
-            'LAM_E': 'cm_to_m',
-            'X_S': 'cm_to_m',
-            'LAM_S': 'cm_to_m',
-            'XPAS': _xpas,
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'CAVITE': {
-        },
-        'CHANGREF': {
-            'ALE': 'deg_to_rad',
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'CHANGREF2': {
-            'subElements': _changref2,
-        },
-        'DRIFT': {
-            'l': 'cm_to_m',
-        },
-        'ffaDipole': {
-            'ACN': 'deg_to_rad',
-            'DELTA_RM': 'cm_to_m',
-            'G0_E': 'cm_to_m',
-            'SHIFT_E': 'cm_to_m',
-            'OMEGA_E': 'deg_to_rad',
-            'THETA_E': 'deg_to_rad',
-            'R1_E': 'cm_to_m',
-            'U1_E': 'cm_to_m',
-            'U2_E': 'cm_to_m',
-            'R2_E': 'cm_to_m',
-            'G0_S': 'cm_to_m',
-            'SHIFT_S': 'cm_to_m',
-            'OMEGA_S': 'deg_to_rad',
-            'THETA_S': 'deg_to_rad',
-            'R1_S': 'cm_to_m',
-            'U1_S': 'cm_to_m',
-            'U2_S': 'cm_to_m',
-            'R2_S': 'cm_to_m',
-            'G0_L': 'cm_to_m',
-            'SHIFT_L': 'cm_to_m',
-            'OMEGA_L': 'deg_to_rad',
-            'THETA_L': 'deg_to_rad',
-            'R1_L': 'cm_to_m',
-            'U1_L': 'cm_to_m',
-            'U2_L': 'cm_to_m',
-            'R2_L': 'cm_to_m',
-        },
-        'ffaSpiDipole': {
-            'ACN': 'deg_to_rad',
-            'DELTA_RM': 'cm_to_m',
-            'G0_E': 'cm_to_m',
-            'SHIFT_E': 'cm_to_m',
-            'OMEGA_E': 'deg_to_rad',
-            'XI_E': 'deg_to_rad',
-            'G0_S': 'cm_to_m',
-            'SHIFT_S': 'cm_to_m',
-            'OMEGA_S': 'deg_to_rad',
-            'XI_S': 'deg_to_rad',
-            'G0_L': 'cm_to_m',
-            'SHIFT_L': 'cm_to_m',
-            'OMEGA_L': 'deg_to_rad',
-            'XI_L': 'deg_to_rad',
-        },
-        'FFA': {
-            'IL': _il,
-            'AT': 'deg_to_rad',
-            'RM': 'cm_to_m',
-            'XPAS': 'cm_to_m',
-            'RE': 'cm_to_m',
-            'RS': 'cm_to_m',
-        },
-        'FFA_SPI': {
-            'IL': _il,
-            'AT': 'deg_to_rad',
-            'RM': 'cm_to_m',
-            'XPAS': 'cm_to_m',
-            'RE': 'cm_to_m',
-            'RS': 'cm_to_m',
-        },
-        'MARKER': {
-            'plt': _marker_plot,
-        },
-        'MULTIPOL': {
-            'l': 'cm_to_m',
-            'IL': _il,
-            'R_0': 'cm_to_m',
-            'X_E': 'cm_to_m',
-            'LAM_E': 'cm_to_m',
-            'X_S': 'cm_to_m',
-            'LAM_S': 'cm_to_m',
-            'XPAS': _xpas,
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'particleCoordinate': {
-            'Y': 'cm_to_m',
-            'Z': 'cm_to_m',
-            'S': 'cm_to_m',
-            'T': 'mrad_to_rad',
-            'P': 'mrad_to_rad',
-        },
-        'QUADRUPO': {
-            'l': 'cm_to_m',
-            'IL': _il,
-            'R_0': 'cm_to_m',
-            'X_E': 'cm_to_m',
-            'LAM_E': 'cm_to_m',
-            'X_S': 'cm_to_m',
-            'XPAS': _xpas,
-            'LAM_S': 'cm_to_m',
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'SEXTUPOL': {
-            'l': 'cm_to_m',
-            'IL': _il,
-            'R_0': 'cm_to_m',
-            'X_E': 'cm_to_m',
-            'LAM_E': 'cm_to_m',
-            'X_S': 'cm_to_m',
-            'XPAS': _xpas,
-            'LAM_S': 'cm_to_m',
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'SOLENOID': {
-            'l': 'cm_to_m',
-            'IL': _il,
-            'R_0': 'cm_to_m',
-            'X_E': 'cm_to_m',
-            'X_S': 'cm_to_m',
-            'XPAS': _xpas,
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-        },
-        'TOSCA': {
-            'IL': _il,
-            'A': 'cm_to_m',
-            'B': 'cm_to_m',
-            'C': 'cm_to_m',
-            'XPAS': _xpas,
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-            'RE': 'cm_to_m',
-            'RS': 'cm_to_m',
-        },
-    })
+    return ModelUnits(PKDict(
+        AUTOREF=PKDict(
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+            ALE='mrad_to_rad',
+        ),
+        BEND=PKDict(
+            l='cm_to_m',
+            IL=_il,
+            X_E='cm_to_m',
+            LAM_E='cm_to_m',
+            X_S='cm_to_m',
+            LAM_S='cm_to_m',
+            XPAS=_xpas,
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        CAVITE=PKDict(
+        ),
+        CHANGREF=PKDict(
+            ALE='deg_to_rad',
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        CHANGREF2=PKDict(
+            subElements=_changref2,
+        ),
+        DRIFT=PKDict(
+            l='cm_to_m',
+        ),
+        ffaDipole=PKDict(
+            ACN='deg_to_rad',
+            DELTA_RM='cm_to_m',
+            G0_E='cm_to_m',
+            SHIFT_E='cm_to_m',
+            OMEGA_E='deg_to_rad',
+            THETA_E='deg_to_rad',
+            R1_E='cm_to_m',
+            U1_E='cm_to_m',
+            U2_E='cm_to_m',
+            R2_E='cm_to_m',
+            G0_S='cm_to_m',
+            SHIFT_S='cm_to_m',
+            OMEGA_S='deg_to_rad',
+            THETA_S='deg_to_rad',
+            R1_S='cm_to_m',
+            U1_S='cm_to_m',
+            U2_S='cm_to_m',
+            R2_S='cm_to_m',
+            G0_L='cm_to_m',
+            SHIFT_L='cm_to_m',
+            OMEGA_L='deg_to_rad',
+            THETA_L='deg_to_rad',
+            R1_L='cm_to_m',
+            U1_L='cm_to_m',
+            U2_L='cm_to_m',
+            R2_L='cm_to_m',
+        ),
+        ffaSpiDipole=PKDict(
+            ACN='deg_to_rad',
+            DELTA_RM='cm_to_m',
+            G0_E='cm_to_m',
+            SHIFT_E='cm_to_m',
+            OMEGA_E='deg_to_rad',
+            XI_E='deg_to_rad',
+            G0_S='cm_to_m',
+            SHIFT_S='cm_to_m',
+            OMEGA_S='deg_to_rad',
+            XI_S='deg_to_rad',
+            G0_L='cm_to_m',
+            SHIFT_L='cm_to_m',
+            OMEGA_L='deg_to_rad',
+            XI_L='deg_to_rad',
+        ),
+        FFA=PKDict(
+            IL=_il,
+            AT='deg_to_rad',
+            RM='cm_to_m',
+            XPAS='cm_to_m',
+            RE='cm_to_m',
+            RS='cm_to_m',
+        ),
+        FFA_SPI=PKDict(
+            IL=_il,
+            AT='deg_to_rad',
+            RM='cm_to_m',
+            XPAS='cm_to_m',
+            RE='cm_to_m',
+            RS='cm_to_m',
+        ),
+        MARKER=PKDict(
+            plt=_marker_plot,
+        ),
+        MULTIPOL=PKDict(
+            l='cm_to_m',
+            IL=_il,
+            R_0='cm_to_m',
+            X_E='cm_to_m',
+            LAM_E='cm_to_m',
+            X_S='cm_to_m',
+            LAM_S='cm_to_m',
+            XPAS=_xpas,
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        particleCoordinate=PKDict(
+            Y='cm_to_m',
+            Z='cm_to_m',
+            S='cm_to_m',
+            T='mrad_to_rad',
+            P='mrad_to_rad',
+        ),
+        QUADRUPO=PKDict(
+            l='cm_to_m',
+            IL=_il,
+            R_0='cm_to_m',
+            X_E='cm_to_m',
+            LAM_E='cm_to_m',
+            X_S='cm_to_m',
+            XPAS=_xpas,
+            LAM_S='cm_to_m',
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        SEXTUPOL=PKDict(
+            l='cm_to_m',
+            IL=_il,
+            R_0='cm_to_m',
+            X_E='cm_to_m',
+            LAM_E='cm_to_m',
+            X_S='cm_to_m',
+            XPAS=_xpas,
+            LAM_S='cm_to_m',
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        SOLENOID=PKDict(
+            l='cm_to_m',
+            IL=_il,
+            R_0='cm_to_m',
+            X_E='cm_to_m',
+            X_S='cm_to_m',
+            XPAS=_xpas,
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+        ),
+        TOSCA=PKDict(
+            IL=_il,
+            A='cm_to_m',
+            B='cm_to_m',
+            C='cm_to_m',
+            XPAS=_xpas,
+            XCE='cm_to_m',
+            YCE='cm_to_m',
+            RE='cm_to_m',
+            RS='cm_to_m',
+        ),
+    ))
 
 
 def _tosca_length(tosca, lines):
@@ -329,20 +328,20 @@ def _validate_and_dedup_elements(data, elements):
     beamline = []
     current_id = 1
     data['models']['beamlines'] = [
-        {
-            'name': 'BL1',
-            'id': current_id,
-            'items': beamline,
-        },
+        PKDict(
+            name='BL1',
+            id=current_id,
+            items=beamline,
+        ),
     ]
     data['models']['simulation']['activeBeamlineId'] = current_id
     data['models']['simulation']['visualizationBeamlineId'] = current_id
-    info = {
-        'ids': [],
-        'names': [],
-        'elements': [],
-        'missingFiles': [],
-    }
+    info = PKDict(
+        ids=[],
+        names=[],
+        elements=[],
+        missingFiles=[],
+    )
     for el in elements:
         _validate_model(el['type'], el, info['missingFiles'])
         if 'name' in el:
@@ -361,16 +360,16 @@ def _validate_and_dedup_elements(data, elements):
                 pkdlog('updating existing {} model', el['type'])
                 data['models'][el['type']].update(el)
             else:
-                template_common.update_model_defaults(el, el['type'], _SCHEMA)
+                _SIM_DATA.update_model_defaults(el, el['type'])
                 data['models'][el['type']] = el
     return info
 
 
 def _validate_element_names(data, info):
-    names = {}
+    names = PKDict()
     for idx in range(len(info['ids'])):
         el = info['elements'][idx]
-        template_common.update_model_defaults(el, el['type'], _SCHEMA)
+        _SIM_DATA.update_model_defaults(el, el['type'])
         el['_id'] = info['ids'][idx]
         name = info['names'][idx]
         name = re.sub(r'\\', '_', name)
@@ -423,9 +422,9 @@ def _validate_file_names(model, file_names):
     if len(file_names) == 1:
         name = file_names[0]
         target = template_common.lib_file_name(model['type'], 'magnetFile', name)
-        if os.path.exists(str(simulation_db.simulation_lib_dir(_SIM_TYPE).join(target))):
+        if os.path.exists(str(simulation_db.simulation_lib_dir(SIM_TYPE).join(target))):
             magnet_file = name
-    for f in glob.glob(str(simulation_db.simulation_lib_dir(_SIM_TYPE).join('*.zip'))):
+    for f in glob.glob(str(simulation_db.simulation_lib_dir(SIM_TYPE).join('*.zip'))):
         zip_has_files = True
         zip_names = []
         with zipfile.ZipFile(f, 'r') as z:
@@ -444,9 +443,9 @@ def _validate_file_names(model, file_names):
         if 'toscaInfo' in info:
             model['l'] = info['toscaInfo']['toscaLength']
         return
-    return {
+    return PKDict({
         model['type']: sorted(file_names),
-    }
+    })
 
 
 def _validate_model(model_type, model, missing_files):
