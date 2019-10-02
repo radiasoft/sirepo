@@ -2660,9 +2660,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             $scope.panelState = panelState;
 
             function handleStatus(data) {
-                if (data.mpiCores) {
-                    $scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
-                }
+                $scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
