@@ -34,82 +34,56 @@ async def incoming_message(msg):
 
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
-        run_scheduler(type(d), d.resource_class)
-        return
+        pass
     elif a == 'protocol_error':
         # TODO(e-carlin): Handle more. If msg has a req_id we should
         # likely resend the request
         pkdlog('Error: {}', msg)
-        run_scheduler(type(d), d.resource_class)
-        return
-    r = _get_request_for_message(msg)
-    _remove_request(msg) 
-    if type(r) == _SupervisorRequest:
-        r.result = msg
-        r.request_reply_received.set()
-        return
-    r.reply(msg.content)
-    # TODO(e-carlin): ugly
-    if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
-        if msg.content.status != job.JobStatus.RUNNING.value:
+    else:
+        r = _get_request_for_message(msg)
+        r.set_response(msg.content)
+        # TODO(e-carlin): ugly
+        if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
+            if msg.content.status != job.JobStatus.RUNNING.value:
+                d.running_data_jobs.discard(r.content.jid)
+        elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
             d.running_data_jobs.discard(r.content.jid)
-    elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
-        d.running_data_jobs.discard(r.content.jid)
-    elif r.content.action == job.ACTION_CANCEL_JOB:
-        d.running_data_jobs.discard(r.content.jid)
+        elif r.content.action == job.ACTION_CANCEL_JOB:
+            d.running_data_jobs.discard(r.content.jid)
     run_scheduler(type(d), d.resource_class)
 
 
 async def incoming_request(req):
-    """
-    TODO(e-carlin): Instead of wait on request_reply_was_sent or depends_on_another_request
-    just wait on a function that returns the results of the request. Then 
-    reply to the request here instead of replying elsewhere.
-    Hmm on second thought, a downside to replying here is when there is
-    an error by replying elsewhwere the code that handles errors can reply
-    to the error there and cleanup after itself which might be easier. It makes
-    it easier to reply and reduces the if else's. We could use golang style
-    tuples and do if err ... to get around this.
-
-    r = _ServerRequest(req)
-    driver.DriverBase.enqueue_request(r)
-    if r.depends_on_another_request():
-        pkdc('r={} depends on another request', r)
-        r.waiting_on_dependent_request = True
-        res, err = _run_dependent_request(r)
-        if err:
-            r.reply_error(err)
-            run_scheduler(
-                sirepo.driver.DriverBase.get_driver_class(r),
-                r.content.resource_class,
-            )
-            # TODO(e-carlin): Who does cleanup of state? Us or where the error
-            # was first encountered?
-            return
-        r.waiting_on_dependent_request = False
-    run_scheduler(
-        sirepo.driver.DriverBase.get_driver_class(r),
-        r.content.resource_class,
-    )
-    res, err = await r.run()
+    r = _Request(req)
+    if r.content.action == job.ACTION_START_COMPUTE_JOB:
+        res, err = await _run_compute_job_request(r)
+    else:
+        res, err = await r.get_reply()
+    
     if err:
-        r.reply_error(err)
+        r.reply_error()
+        return
     r.reply(res)
-    """
 
-    r = _ServerRequest(req)
-    driver.DriverBase.enqueue_request(r)
-    if r.depends_on_another_request():
-        pkdc('r={} depends on another request', r)
-        r.waiting_on_dependent_request = True
-        await r.run_dependent_request()
-        r.waiting_on_dependent_request = False
-    run_scheduler(
-        sirepo.driver.DriverBase.get_driver_class(r),
-        r.content.resource_class,
+
+async def _run_compute_job_request(run_compute_job_req):
+    run_status_req = _SupervisorRequest(
+        run_compute_job_req,
+        job.ACTION_COMPUTE_JOB_STATUS
     )
-    await r.request_reply_was_sent.wait()
-
+    res, err = await run_status_req.get_reply()
+    already_good_status = [
+        job.JobStatus.RUNNING,
+        job.JobStatus.COMPLETED,
+    ]
+    if 'status' in res and res.status not in already_good_status:
+        run_compute_job_req.waiting_on_dependent_request = False
+        run_scheduler(
+            sirepo.driver.DriverBase.get_driver_class(run_compute_job_req),
+            run_compute_job_req.content.resource_class,
+        )
+        res, err = await run_compute_job_req.get_reply()
+    return res, err
 
 async def process_incoming(content, handler):
     try:
@@ -247,48 +221,48 @@ def _len_longest_requests_q(drivers):
     return m
 
 
-def _remove_request(msg):
-    sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id].requests.remove(
-        _get_request_for_message(msg)
-    )
-
 class _Request():
     def __init__(self, req):
         self.state = _STATE_RUN_PENDING
-        self.waiting_on_dependent_request = False
         self.content = req.content
-
-    def depends_on_another_request(self):
-        # TODO(e-carlin): What requests will need another request run before?
-        # runSimulation is one. What else?
-        return self.content.action == job.ACTION_START_COMPUTE_JOB
+        self._request_handler = req.get('request_handler', None)
+        self._response_or_error_received = tornado.locks.Event()
+        self._response_or_error = [None, None]
+        self.waiting_on_dependent_request = self._requires_dependent_request()
+        driver.DriverBase.enqueue_request(self)
+        run_scheduler(
+            sirepo.driver.DriverBase.get_driver_class(self),
+            self.content.resource_class,
+        )
 
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
 
-    async def run_dependent_request(self):
-        r = _SupervisorRequest(self, job.ACTION_COMPUTE_JOB_STATUS)
-        sirepo.driver.DriverBase.enqueue_request(r)
-        run_scheduler(
-            sirepo.driver.DriverBase.get_driver_class(r),
-            r.content.resource_class,
-        )
-        await r.request_reply_received.wait()
+    async def get_reply(self):
+        await self._response_or_error_received.wait()
+        driver.DriverBase.dequeue_request(self)
+        if self._response_or_error[0] is None:
+            assert self._response_or_error[1] is not None
+        else:
+            assert self._response_or_error[1] is None
+        return self._response_or_error
 
-
-class _ServerRequest(_Request):
-    def __init__(self, req):
-        super(_ServerRequest, self).__init__(req)
-        self.request_reply_was_sent = tornado.locks.Event()
-        self.request_handler = req.request_handler
-
-    def reply(self, content):
-        self.request_handler.write(content)
-        self.request_reply_was_sent.set()
+    def reply(self, reply):
+        self._request_handler.write(reply)
 
     def reply_error(self):
-        self.request_handler.send_error()
-        self.request_reply_was_sent.set()
+        self._request_handler.send_error()
+
+    def set_response(self, response):
+        self._response_or_error[0] = response
+        self._response_or_error_received.set()
+
+    def set_response_error(self, error):
+        self._response_or_error[1] = error
+        self._response_or_error_received.set()
+
+    def _requires_dependent_request(self):
+        return self.content.action == job.ACTION_START_COMPUTE_JOB
 
 
 def _slots_available(driver_class, resource_class):
@@ -305,8 +279,15 @@ class _SupervisorRequest(_Request):
         )
         self.content.action = action
         self.content.req_id = str(uuid.uuid4())
-        self.request_reply_received = tornado.locks.Event() # TODO(e-carlin): Try and find a common name with request_reply_was_sent. Maybe just on_reply?
-        self.result = None
+        # TODO(e-carlin): Fix this is a hack. If the parent request requires a 
+        # dependent req then when we call super() this will be set. This overrides
+        # it with the action that is actually going to be for this request.
+        self.waiting_on_dependent_request = self._requires_dependent_request()
+        # TODO(e-carlin): Same hack as above
+        run_scheduler(
+            sirepo.driver.DriverBase.get_driver_class(self),
+            self.content.resource_class,
+        )
 
 
 def _try_to_free_slot(driver_class, resource_class):

@@ -86,8 +86,7 @@ class DriverBase(object):
         for r in self.requests:
             assert not r.request_reply_was_sent.is_set(), \
                 '{}: should not have been replied to'.format(r)
-            r.reply_error()
-            self.requests.remove(r)
+            r.set_response_error('agent exited with returncode {}', returncode)
         job_supervisor.run_scheduler(type(self), self.resource_class) # TODO(e-carlin): Is this necessary?
 
     async def _process_requests_to_send_to_agent(self):
@@ -135,3 +134,17 @@ class DriverBase(object):
             f'sirepo.driver.{t}'
         )
         return getattr(m, f'{t.capitalize()}Driver')
+    
+    @classmethod
+    def dequeue_request(cls, req):
+        dc = cls.get_driver_class(req)
+        for d in dc.resources[req.content.resource_class].drivers:
+            if d.uid == req.content.uid:
+                d.requests.remove(req)
+                break
+        else:
+            raise AssertionError(
+                'req={}. Could not be removed because it was not found.',
+                req
+            )
+
