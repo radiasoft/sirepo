@@ -14,6 +14,7 @@ from sirepo import job_supervisor
 import functools
 import os
 import sirepo.mpi
+import tornado.ioloop
 import tornado.process
 
 # TODO(e-carlin): cfg should be at bottom like in other modules. Except that
@@ -84,30 +85,8 @@ class _LocalAgent():
         self._agent_kill_requested = False
 
     def start(self, agent_error_exit_callback):
-        # TODO(e-carlin): Should this be done in a spawn_callback so we don't hold
-        # up the thread?
-        pkdlog('agent_id={}', self._agent_id)
-        self._agent_start_attempts += 1
-        # TODO(e-carlin): Make this more robust. Ex handle failures,
-        # monitor the process, be able to kill it
-        env = dict(os.environ)
-        env['PYENV_VERSION'] = 'py3'
-        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_JOB_SERVER_WS_URI'] = cfg.job_server_ws_uri
-        self._agent_process = tornado.process.Subprocess(
-            [
-                'pyenv',
-                'exec',
-                'sirepo',
-                'job_agent',
-                'start',
-            ],
-            env=env,
-        )
-        self._agent_process.set_exit_callback(
-            functools.partial(
-                self._on_agent_exit, agent_error_exit_callback,
-            )
+        tornado.ioloop.IOLoop.current().spawn_callback(
+            self._start, agent_error_exit_callback
         )
 
     def kill(self):
@@ -136,3 +115,29 @@ class _LocalAgent():
             else:
                 # TODO(e-carlin): look at runner/__init__.py:203
                 self.start(agent_error_exit_callback)
+            
+    def _start(self, agent_error_exit_callback):
+        pkdlog('agent_id={}', self._agent_id)
+        self._agent_start_attempts += 1
+        # TODO(e-carlin): Make this more robust. Ex handle failures,
+        # monitor the process, be able to kill it
+        env = dict(os.environ)
+        env['PYENV_VERSION'] = 'py3'
+        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
+        env['SIREPO_PKCLI_JOB_AGENT_JOB_SERVER_WS_URI'] = cfg.job_server_ws_uri
+        self._agent_process = tornado.process.Subprocess(
+            [
+                'pyenv',
+                'exec',
+                'sirepo',
+                'job_agent',
+                'start',
+            ],
+            env=env,
+        )
+        self._agent_process.set_exit_callback(
+            functools.partial(
+                self._on_agent_exit, agent_error_exit_callback,
+            )
+        )
+
