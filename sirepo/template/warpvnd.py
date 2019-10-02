@@ -85,88 +85,35 @@ def generate_field_comparison_report(data, run_dir, args=None):
 def generate_field_report(data, run_dir, args=None):
 
     grid = data.models.simulationGrid
-    plate_spacing = grid.plate_spacing * 1e-6
-    radius = grid.channel_width / 2. * 1e-6
-    height = grid.channel_height / 2. * 1e-6
-
-    dx = grid.channel_width / grid.num_x
-    dy = grid.channel_height / grid.num_y
-    dz = grid.plate_spacing / grid.num_z
+    axes, slice_axis, phi_slice, show3d = _field_input(args)
+    slice_text = ' ({} = {}µm)'.format(slice_axis, round(phi_slice, 3)) \
+        if _SIM_DATA.is_3d(data) else ''
 
     f = str(py.path.local(run_dir).join(_POTENTIAL_FILE))
-    hf = h5py.File(f, 'r')
-    potential = np.array(template_common.h5_to_dict(hf, path='potential'))
-    hf.close()
+    with h5py.File(f, 'r') as hf:
+        potential = np.array(template_common.h5_to_dict(hf, path='potential'))
 
-    axes = args.axes if args is not None else data.models.fieldReport.axes
-    show3d = args.displayMode == '3d' if args is not None else False
-    axes = axes if show3d else 'xz'
-    axes = axes if axes is not None else 'xz'
-
-    phi_slice = 0.
     # if 2d potential, asking for 2d vs 3d doesn't matter
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
-        # 3d results
-        if show3d:
-            phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
-        if axes == 'xz':
-            values = potential[
-                     :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
-                     ]
-        elif axes == 'xy':
-            values = potential[
-                     :, :,_get_slice_index(phi_slice, 0., dz, grid.num_z - 1)
-                     ]
-        else:
-            values = potential[
-                     _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
-                     ]
+        values = _field_values(potential, axes, phi_slice, grid)
 
-    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _SIM_DATA.is_3d(data) else 'xz')
-
-    x_max = len(values[0])
-    y_max = len(values)
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
-    if axes == 'xz':
-        xr = [0, plate_spacing, x_max]
-        yr = [- radius, radius, y_max]
-        x_label = 'z [m]'
-        y_label = 'x [m]'
-        ar = 6.0 / 14
-    elif axes == 'xy':
-        xr = [- height, height, x_max]
-        yr = [- radius, radius, y_max]
-        x_label = 'y [m]'
-        y_label = 'x [m]'
-        ar = radius / height,
-    else:
-        xr = [0, plate_spacing, x_max]
-        yr = [- height, height, y_max]
-        x_label = 'z [m]'
-        y_label = 'y [m]'
-        ar = 6.0 / 14
 
     if np.isnan(values).any():
         return {
-            'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
+            'error': 'Results could not be calculated.\n\nThe Simulation Grid may' +
+                     ' require adjustments to the Grid Points and Channel Width.',
         }
-    return {
-        'aspectRatio': ar,
-        'x_range': xr,
-        'y_range': yr,
-        'x_label': x_label,
-        'y_label': y_label,
-        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _SIM_DATA.is_3d(data) else ''),
-        'z_matrix': values.tolist(),
-        'global_min': np.min(potential) if vals_equal else None,
-        'global_max': np.max(potential) if vals_equal else None,
-        'frequency_title': 'Volts',
-        'summaryData': {
-            'runMode3d': _SIM_DATA.is_3d(data)
-        },
-    }
+
+    res = _field_plot(values, axes, grid, _SIM_DATA.is_3d(data))
+    res.title= 'ϕ Across Whole Domain' + slice_text
+    res.global_min = np.min(potential) if vals_equal else None
+    res.global_max = np.max(potential) if vals_equal else None
+    res.frequency_title = 'Volts'
+
+    return res
 
 
 # use concept of "runner" animation?
@@ -235,30 +182,29 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 def get_simulation_frame(run_dir, data, model_data):
     md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'currentAnimation':
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
+    model_name = data['modelName']
+    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
+    args = template_common.parse_animation_args(data, {'': anim_args})
+    if model_name == 'currentAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
         return _extract_current(model_data, data_file)
-    if data['modelName'] == 'fieldAnimation':
-        args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return _extract_field(args.field, model_data, data_file)
-    if data['modelName'] == 'particleAnimation' or data['modelName'] == 'particle3d':
-        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
-        return _extract_particle(run_dir, model_data, int(args.renderCount))
-    if data['modelName'] == 'egunCurrentAnimation':
+    if model_name == 'fieldAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
+        return _extract_field(args.field, model_data, data_file, args)
+    if model_name == 'particleAnimation' or model_name == 'particle3d':
+        return _extract_particle(run_dir, model_name, model_data, args)
+    if model_name == 'egunCurrentAnimation':
         return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
-    if data['modelName'] == 'impactDensityAnimation':
+    if model_name == 'impactDensityAnimation':
         return _extract_impact_density(run_dir, model_data)
-    if data['modelName'] == 'optimizerAnimation':
+    if model_name == 'optimizerAnimation':
         args = template_common.parse_animation_args(data, {'': ['x', 'y']})
         return _extract_optimization_results(run_dir, model_data, args)
-    if data['modelName'] == 'fieldCalcAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
+    if model_name == 'fieldCalcAnimation':
         return generate_field_report(md, run_dir, args=args)
-    if data['modelName'] == 'fieldComparisonAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
+    if model_name == 'fieldComparisonAnimation':
         return generate_field_comparison_report(md, run_dir, args=args)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
+    raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
 
 
 def lib_files(data, source_lib):
@@ -387,7 +333,7 @@ def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, li
                 electrons[0][i][j],
                 electrons[2][i][j],
             ]
-            if j > 0 and j < num_points - 1:
+            if 0 < j < num_points - 1:
                 next = [
                     electrons[1][i][j+1],
                     electrons[0][i][j+1],
@@ -551,43 +497,58 @@ def _extract_current_results(data, curr, data_time):
 def _extract_egun_current(data, data_file, frame_index):
     v = np.load(str(data_file), allow_pickle=True)
     if frame_index >= len(v):
-        frame_index = -1;
+        frame_index = -1
     # the first element in the array is the time, the rest are the current measurements
     return _extract_current_results(data, v[frame_index][1:], v[frame_index][0])
 
 
-def _extract_field(field, data, data_file):
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
-    selector = field
-    if not field == 'phi':
-        selector = 'E/{}'.format(field)
-    with h5py.File(data_file.filename, 'r') as f:
-        values = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, selector)])
-        data_time = f['data/{}'.format(data_file.iteration)].attrs['time']
-        dt = f['data/{}'.format(data_file.iteration)].attrs['dt']
+def _extract_field(field, data, data_file, args=None):
+    grid = data.models.simulationGrid
+    axes, slice_axis, field_slice, show3d = _field_input(args)
+
+    selector = field if field == 'phi' else 'E/{}'.format(field)
+    with h5py.File(data_file.filename, 'r') as hf:
+        field_values = np.array(
+            hf['data/{}/meshes/{}'.format(data_file.iteration, selector)]
+        )
+        data_time = hf['data/{}'.format(data_file.iteration)].attrs['time']
+        dt = hf['data/{}'.format(data_file.iteration)].attrs['dt']
+
+    slice_text = ' ({} = {}µm)'.format(slice_axis, round(field_slice, 3)) \
+        if _SIM_DATA.is_3d(data) else ''
+
     if field == 'phi':
-        values = values[0,:,:]
         title = 'ϕ'
+        if not _SIM_DATA.is_3d(data):
+            values = field_values[0, :, :]
+        else:
+            values = _field_values(field_values, axes, field_slice, grid)
     else:
-        values = values[:,0,:]
         title = 'E {}'.format(field)
-    return {
-        'x_range': [0, plate_spacing, len(values[0])],
-        'y_range': [- radius, radius, len(values)],
-        'x_label': 'z [m]',
-        'y_label': 'x [m]',
-        'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'aspectRatio': 6.0 / 14,
-        'z_matrix': values.tolist(),
-    }
+        if not _SIM_DATA.is_3d(data):
+            values = field_values[:, 0, :]
+        else:
+            values = _field_values(field_values, axes, field_slice, grid)
+
+    vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
+
+    res = _field_plot(values, axes, grid, _SIM_DATA.is_3d(data))
+    res.title = '{}{} for Time: {:.4e}s, Step {}'.format(
+        title, slice_text, data_time, data_file.iteration
+    )
+    res.global_min = np.min(field_values) if vals_equal else None
+    res.global_max = np.max(field_values) if vals_equal else None
+    return res
 
 
 def _extract_impact_density(run_dir, data):
-    with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
-        plot_info = template_common.h5_to_dict(hf, path='density')
+    try:
+        with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
+            plot_info = template_common.h5_to_dict(hf, path='density')
+    except IOError:
+        plot_info = {
+            'error': 'Cannot load density file'
+        }
     if 'error' in plot_info:
         if not _SIM_DATA.is_3d(data):
             return plot_info
@@ -679,7 +640,8 @@ def _extract_optimization_results(run_dir, data, args):
     }
 
 
-def _extract_particle(run_dir, data, limit):
+def _extract_particle(run_dir, model_name, data, args):
+    limit = int(args.renderCount)
     hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
     d = template_common.h5_to_dict(hf, 'particle')
     kept_electrons = d['kept']
@@ -698,6 +660,9 @@ def _extract_particle(run_dir, data, limit):
     lost_y = []
     lost_z = []
     _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, half_height, limit)
+    data_file = open_data_file(run_dir, model_name, None)
+    with h5py.File(data_file.filename, 'r') as f:
+        field = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, 'phi')])
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -711,8 +676,78 @@ def _extract_particle(run_dir, data, limit):
         'z_range': [-half_height, half_height],
         'lost_x': lost_x,
         'lost_y': lost_y,
-        'lost_z': lost_z
+        'lost_z': lost_z,
+        'field': field.tolist()
     }
+
+
+def _field_input(args):
+    show3d = args.displayMode == '3d' if args is not None and 'displayMode' in args\
+        else False
+    a = args.axes if args is not None and 'axes' in args else 'xz'
+    axes = (a if show3d else 'xz') if a else 'xz'
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz')
+    field_slice = (float(args.slice) if args.slice else 0.) if args and 'slice' in args \
+                                                               and show3d else 0.
+    return axes, slice_axis, field_slice, show3d
+
+
+def _field_plot(values, axes, grid, is3d):
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    half_height = _meters(grid.channel_height / 2.)
+
+    if axes == 'xz':
+        xr = [0, plate_spacing]
+        yr = [-radius, radius]
+        x_label = 'z [m]'
+        y_label = 'x [m]'
+        ar = 6.0 / 14
+    elif axes == 'xy':
+        xr = [-half_height, half_height]
+        yr = [-radius, radius]
+        x_label = 'y [m]'
+        y_label = 'x [m]'
+        ar = radius / half_height,
+    else:
+        xr = [0, plate_spacing]
+        yr = [-half_height, half_height]
+        x_label = 'z [m]'
+        y_label = 'y [m]'
+        ar = 6.0 / 14
+
+    xr.append(len(values[0]))
+    yr.append(len(values))
+
+    return pkcollections.Dict({
+        'aspectRatio': ar,
+        'x_range': xr,
+        'y_range': yr,
+        'x_label': x_label,
+        'y_label': y_label,
+        'z_matrix': values.tolist(),
+        'summaryData': {
+            'runMode3d': is3d
+        }
+    })
+
+
+def _field_values(values, axes, field_slice, grid):
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+    if axes == 'xz':
+        return values[
+               :, _get_slice_index(
+                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
+                ), :]
+    elif axes == 'xy':
+        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
+    else:
+        return values[
+               _get_slice_index(
+                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
+               ), :, :]
 
 
 def _find_by_id(container, id):

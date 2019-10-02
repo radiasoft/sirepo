@@ -102,7 +102,7 @@ class SimDataBase(object):
     def update_model_defaults(cls, model, name, dynamic=None):
         defaults = cls.model_defaults(name)
         if dynamic:
-            defaults.update(dynamic[name])
+            defaults.update(dynamic(name))
         for f in defaults:
             if f not in model:
                 model[f] = defaults[f]

@@ -46,6 +46,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm = data.models
         x = (
             'arbitraryMagField',
+            'beamline3DReport',
             'brillianceReport',
             'coherenceXAnimation',
             'coherenceYAnimation',

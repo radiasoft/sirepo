@@ -10,7 +10,6 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
     // consider moving to "constant" section of schema
     var DEFAULT_INTENSITY_DISTANCE = 20;
     self.activeItem = null;
-    self.coherence = 'full';
     var browserSupportsSVGForeignObject = false;
 
     // Try to detect mobile/tablet devices using Mozilla recommendation below
