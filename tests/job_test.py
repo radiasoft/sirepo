@@ -11,6 +11,12 @@ import subprocess
 import time
 from pykern.pkdebug import pkdc, pkdp
 
+# TODO(e-carlin): Tests that need to be implemented
+#   - agent never starts
+#   - agent response is bad (ex no req_id)
+#   - server_req is malformed
+#   - agent starts but we never get an incoming 'read_for_work' message
+#   -
 
 def test_myapp():
     py3_env = _env_setup()

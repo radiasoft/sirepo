@@ -86,7 +86,11 @@ class DriverBase(object):
         for r in self.requests:
             assert not r.request_reply_was_sent.is_set(), \
                 '{}: should not have been replied to'.format(r)
-            r.set_response_error('agent exited with returncode {}', returncode)
+            r.set_response(
+                pkcollections.Dict(
+                    error='agent exited with returncode {}'.format(returncode)
+                )
+            )
         job_supervisor.run_scheduler(type(self), self.resource_class) # TODO(e-carlin): Is this necessary?
 
     async def _process_requests_to_send_to_agent(self):

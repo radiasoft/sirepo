@@ -42,28 +42,21 @@ async def incoming_message(msg):
     else:
         r = _get_request_for_message(msg)
         r.set_response(msg.content)
-        # TODO(e-carlin): ugly
-        if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
-            if msg.content.status != job.JobStatus.RUNNING.value:
-                d.running_data_jobs.discard(r.content.jid)
-        elif r.content.action == job.ACTION_RUN_EXTRACT_JOB:
-            d.running_data_jobs.discard(r.content.jid)
-        elif r.content.action == job.ACTION_CANCEL_JOB:
-            d.running_data_jobs.discard(r.content.jid)
+        _remove_from_running_data_jobs(d, r, msg)
     run_scheduler(type(d), d.resource_class)
 
 
 async def incoming_request(req):
     r = _Request(req)
     if r.content.action == job.ACTION_START_COMPUTE_JOB:
-        res, err = await _run_compute_job_request(r)
+        res = await _run_compute_job_request(r)
     else:
-        res, err = await r.get_reply()
-    
-    if err:
-        r.reply_error()
-        return
+        res = await r.get_reply()
     r.reply(res)
+    run_scheduler(
+        sirepo.driver.DriverBase.get_driver_class(r),
+        r.content.resource_class,
+    )
 
 
 async def _run_compute_job_request(run_compute_job_req):
@@ -71,7 +64,7 @@ async def _run_compute_job_request(run_compute_job_req):
         run_compute_job_req,
         job.ACTION_COMPUTE_JOB_STATUS
     )
-    res, err = await run_status_req.get_reply()
+    res = await run_status_req.get_reply()
     already_good_status = [
         job.JobStatus.RUNNING,
         job.JobStatus.COMPLETED,
@@ -82,8 +75,8 @@ async def _run_compute_job_request(run_compute_job_req):
             sirepo.driver.DriverBase.get_driver_class(run_compute_job_req),
             run_compute_job_req.content.resource_class,
         )
-        res, err = await run_compute_job_req.get_reply()
-    return res, err
+        res = await run_compute_job_req.get_reply()
+    return res
 
 async def process_incoming(content, handler):
     try:
@@ -137,12 +130,16 @@ def run_scheduler(driver_class, resource_class):
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
                 # then delete from q and respond to server out of band about cancel
                 if d.agent_started():
-                    if d.agent_started() and r.content.action in DATA_ACTIONS:
-                        assert r.content.jid not in d.running_data_jobs
-                        d.running_data_jobs.add(r.content.jid)
+                    _add_to_running_data_jobs(d, r)
                     r.state = _STATE_RUNNING
                     drivers.append(drivers.pop(drivers.index(d)))
                     d.requests_to_send_to_agent.put_nowait(r)
+
+
+def _add_to_running_data_jobs(driver, req):
+    if  req.content.action in DATA_ACTIONS:
+        assert req.content.jid not in driver.running_data_jobs
+        driver.running_data_jobs.add(req.content.jid)
 
 
 def _cancel_pending_job(driver, cancel_req):
@@ -221,13 +218,23 @@ def _len_longest_requests_q(drivers):
     return m
 
 
+def _remove_from_running_data_jobs(driver, req, msg):
+    # TODO(e-carlin): ugly
+    if req.content.action == job.ACTION_COMPUTE_JOB_STATUS:
+        if msg.content.status != job.JobStatus.RUNNING.value:
+            driver.running_data_jobs.discard(req.content.jid)
+    elif req.content.action == job.ACTION_RUN_EXTRACT_JOB \
+        or req.content.action == job.ACTION_CANCEL_JOB:
+        driver.running_data_jobs.discard(req.content.jid)
+
+
 class _Request():
     def __init__(self, req):
         self.state = _STATE_RUN_PENDING
         self.content = req.content
         self._request_handler = req.get('request_handler', None)
-        self._response_or_error_received = tornado.locks.Event()
-        self._response_or_error = [None, None]
+        self._response_received = tornado.locks.Event()
+        self._response = None
         self.waiting_on_dependent_request = self._requires_dependent_request()
         driver.DriverBase.enqueue_request(self)
         run_scheduler(
@@ -239,13 +246,9 @@ class _Request():
         return 'state={}, content={}'.format(self.state, self.content)
 
     async def get_reply(self):
-        await self._response_or_error_received.wait()
+        await self._response_received.wait()
         driver.DriverBase.dequeue_request(self)
-        if self._response_or_error[0] is None:
-            assert self._response_or_error[1] is not None
-        else:
-            assert self._response_or_error[1] is None
-        return self._response_or_error
+        return self._response
 
     def reply(self, reply):
         self._request_handler.write(reply)
@@ -254,12 +257,8 @@ class _Request():
         self._request_handler.send_error()
 
     def set_response(self, response):
-        self._response_or_error[0] = response
-        self._response_or_error_received.set()
-
-    def set_response_error(self, error):
-        self._response_or_error[1] = error
-        self._response_or_error_received.set()
+        self._response = response
+        self._response_received.set()
 
     def _requires_dependent_request(self):
         return self.content.action == job.ACTION_START_COMPUTE_JOB
