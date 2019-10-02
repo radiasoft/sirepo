@@ -10,17 +10,15 @@ must be py2 compatible.
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections, pkjson, pkconfig
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-from sirepo import simulation_db, srdb
+from sirepo import simulation_db
 import aenum
-import contextlib
 import requests
-import sirepo.mpi
-import socket
 import uuid
 
 
 # Actions that the sirepo server, supervisor, or driver may send.
-# TODO(e-carlin): Can we use an enum without manually serializing and deserializing?
+# TODO(e-carlin): Can we use an enum without manually serializing
+# and deserializing?
 ACTION_CANCEL_JOB = 'cancel_job'
 ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_KEEP_ALIVE = 'keep_alive'
@@ -31,6 +29,7 @@ ACTION_START_COMPUTE_JOB = 'start_compute_job'
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
+
 # TODO(e-carlin): Use enums or string constants (like ACTIONS) not both.
 class JobStatus(aenum.Enum):
     MISSING = 'missing'     # no data on disk, not currently running
@@ -38,7 +37,6 @@ class JobStatus(aenum.Enum):
     ERROR = 'error'         # data on disk exists, but job failed somehow
     CANCELED = 'canceled'   # data on disk exists, but is incomplete
     COMPLETED = 'completed' # data on disk exists, and is fully usable
-
 
 
 def init_by_server(app):
@@ -83,6 +81,7 @@ def run_extract_job(jid, run_dir, jhash, subcmd, *args):
     response = _request(body)
     return response.result
 
+
 def start_compute_job(jid, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
     body = pkcollections.Dict(
         action=ACTION_START_COMPUTE_JOB,
@@ -97,10 +96,11 @@ def start_compute_job(jid, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
     _request(body)
     return {}
 
+
 def _request(body):
-    #TODO(e-carlin): uid is used to identify the proper broker for the reuqest
-    # We likely need a better key and maybe we shouldn't expose this implementation
-    # detail to the client.
+    # TODO(e-carlin): uid is used to identify the proper broker for the reuqest
+    # We likely need a better key and maybe we shouldn't expose this
+    # implementation detail to the client.
     uid = simulation_db.uid_from_dir_name(body.run_dir)
     body.uid = uid
     body.req_id = str(uuid.uuid4())
@@ -111,7 +111,6 @@ def _request(body):
     if 'error' in c:
         raise Exception('Error: {}'.format(c))
     return c
-
 
 
 cfg = pkconfig.init(

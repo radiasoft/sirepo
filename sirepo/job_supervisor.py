@@ -15,7 +15,7 @@ import sirepo.driver
 import tornado.locks
 import uuid
 
-_STATE_RUN_PENDING = 'run_pending' 
+_STATE_RUN_PENDING = 'run_pending'
 _STATE_RUNNING = 'running'
 
 DATA_ACTIONS = [
@@ -278,7 +278,7 @@ class _SupervisorRequest(_Request):
         )
         self.content.action = action
         self.content.req_id = str(uuid.uuid4())
-        # TODO(e-carlin): Fix this is a hack. If the parent request requires a 
+        # TODO(e-carlin): Fix this is a hack. If the parent request requires a
         # dependent req then when we call super() this will be set. This overrides
         # it with the action that is actually going to be for this request.
         self.waiting_on_dependent_request = self._requires_dependent_request()
