@@ -130,7 +130,7 @@ def _do_beamline(template, data):
                 if k not in i:
                     i[k] = v
             if not i.focalDistance:
-                _compute_crl_focus(i)
+                template.compute_crl_focus(i)
         if t == 'crystal':
             if 'diffractionAngle' not in i:
                 allowed_angles = [x[0] for x in _SCHEMA.enum.DiffractionPlaneAngle]

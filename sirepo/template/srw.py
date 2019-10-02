@@ -193,6 +193,18 @@ def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_
     return ebeam_position['drift']
 
 
+def compute_crl_focus(model):
+    d = bnlcrl.pkcli.simulate.calc_ideal_focus(
+        radius=float(model['tipRadius']) * 1e-6,  # um -> m
+        n=model['numberOfLenses'],
+        delta=model['refractiveIndex'],
+        p0=model['position']
+    )
+    model['focalDistance'] = d['ideal_focus']
+    model['absoluteFocusPosition'] = d['p1_ideal_from_source']
+    return model
+
+
 def compute_undulator_length(model):
     if model['undulatorType'] == 'u_i':
         return PKDict()
@@ -344,7 +356,7 @@ def get_application_data(data):
     if data['method'] == 'compute_grazing_angle':
         return _compute_grazing_angle(data['optical_element'])
     elif data['method'] == 'compute_crl_characteristics':
-        return _compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
+        return compute_crl_focus(_compute_material_characteristics(data['optical_element'], data['photon_energy']))
     elif data['method'] == 'compute_dual_characteristics':
         return _compute_material_characteristics(
             _compute_material_characteristics(
@@ -573,7 +585,7 @@ def prepare_for_client(data):
             user_model_list = _load_user_model_list(model_name)
             search_model = None
             models_by_id = _user_model_map(user_model_list, 'id')
-            if model['id'] in models_by_id:
+            if 'id' in model and model['id'] in models_by_id:
                 search_model = models_by_id[model['id']]
             if search_model:
                 data['models'][model_name] = search_model
@@ -902,18 +914,6 @@ def _compute_material_characteristics(model, photon_energy, prefix=''):
         atten = bnlcrl.pkcli.simulate.find_delta(**kwargs)
         model[fields_with_prefix['attenuationLength']] = atten['characteristic_value']
 
-    return model
-
-
-def _compute_crl_focus(model):
-    d = bnlcrl.pkcli.simulate.calc_ideal_focus(
-        radius=float(model['tipRadius']) * 1e-6,  # um -> m
-        n=model['numberOfLenses'],
-        delta=model['refractiveIndex'],
-        p0=model['position']
-    )
-    model['focalDistance'] = d['ideal_focus']
-    model['absoluteFocusPosition'] = d['p1_ideal_from_source']
     return model
 
 
