@@ -107,7 +107,10 @@ def _request(body):
     body.setdefault('resource_class', 'sequential')
     r = requests.post(cfg.job_server_http_uri, json=body)
     r.raise_for_status()
-    return pkjson.load_any(r.content)
+    c = pkjson.load_any(r.content)
+    if 'error' in c:
+        raise Exception('Error: {}'.format(c))
+    return c
 
 
 
