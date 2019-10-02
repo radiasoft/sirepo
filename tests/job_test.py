@@ -16,7 +16,9 @@ from pykern.pkdebug import pkdc, pkdp
 #   - agent response is bad (ex no req_id)
 #   - server_req is malformed
 #   - agent starts but we never get an incoming 'read_for_work' message
-#   -
+#   - canceling of requests in the q and running requests
+#   - using only the resources that are available
+#   - agent sigterm -> sigkill progression
 
 def test_myapp():
     py3_env = _env_setup()

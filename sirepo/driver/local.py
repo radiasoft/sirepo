@@ -15,7 +15,10 @@ import functools
 import os
 import sirepo.mpi
 import tornado.ioloop
+import tornado.locks
 import tornado.process
+
+_TERMINATE_TIMEOUT_SECS = 3
 
 # TODO(e-carlin): cfg should be at bottom like in other modules. Except that
 # class LocalDriver needs it which means it has to be declared before it
@@ -83,6 +86,8 @@ class _LocalAgent():
         self._agent_start_attempts = 0
         self._max_agent_start_attempts = 2
         self._agent_kill_requested = False
+        self._wait_for_terminate_timeout = None
+        self._agent_exited = tornado.locks.Event()
 
     def start(self, agent_error_exit_callback):
         tornado.ioloop.IOLoop.current().spawn_callback(
@@ -90,14 +95,20 @@ class _LocalAgent():
         )
 
     def kill(self):
+        def _kill(self):
+            pkdlog('agent_id={} killed with SIGKILL', self._agent_id)
+            self._agent_process.proc.kill()
+
         pkdc('agent_id={}', self._agent_id)
         # TODO(e-carlin): More error handling. If terminate doesn't work
         # we need to go to kill
         # TODO(e-carlin): What happens when an exception is thrown?
+        self._wait_for_terminate_timeout = tornado.ioloop.IOLoop.current().call_later(
+            _TERMINATE_TIMEOUT_SECS,
+            _kill, self
+        )
         self._agent_kill_requested = True
-        self.agent_started = False
         self._agent_process.proc.terminate()
-        self._agent_process.proc.wait()
 
     def _on_agent_exit(self, agent_error_exit_callback, returncode):
         pkdc(
@@ -107,6 +118,10 @@ class _LocalAgent():
             self._agent_kill_requested,
             self._agent_start_attempts,
         )
+        if self._wait_for_terminate_timeout:
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._wait_for_terminate_timeout
+            )
         self.agent_started = False
         # if we didn't plan this exit
         if not self._agent_kill_requested or returncode != 0:

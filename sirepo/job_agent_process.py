@@ -100,8 +100,9 @@ class ComputeJob():
 
     def on_exit_callback(self, returncode):
         if self._wait_for_terminate_timeout:
-            io_loop = tornado.ioloop.IOLoop.current()
-            io_loop.remove_timeout(self._wait_for_terminate_timeout)
+            tornado.ioloop.IOLoop.current().remove_timeout(
+                self._wait_for_terminate_timeout
+            )
 
         self.returncode = returncode
         self._process_exited.set()
@@ -111,10 +112,8 @@ class ComputeJob():
         return self.returncode
 
     async def kill(self, grace_period):
-        io_loop = tornado.ioloop.IOLoop.current()
-        t = io_loop.add_timeout(
+        self._wait_for_terminate_timeout = tornado.ioloop.IOLoop.current().call_later(
             grace_period,
             lambda: self._sub_process.proc.kill()
         )
-        self._wait_for_terminate_timeout = t
         return await self.wait_for_exit()
