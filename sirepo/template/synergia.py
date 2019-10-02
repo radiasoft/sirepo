@@ -7,6 +7,7 @@ u"""Synergia execution template.
 
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.srschema import get_enums
@@ -722,10 +723,10 @@ def _import_elegant_file(text):
         el['name'] = re.sub(r':', '_', el['name'])
         name = _ELEGANT_NAME_MAP[el['type']]
         schema = _SCHEMA['model'][name]
-        m = {
+        m = PKDict({
             '_id': el['_id'],
             'type': name,
-        }
+        })
         for f in el:
             v = el[f]
             if el['type'] in _ELEGANT_FIELD_MAP and f in _ELEGANT_FIELD_MAP[el['type']]:
@@ -747,11 +748,11 @@ def _import_elegant_file(text):
         for element_id in bl['items']:
             if element_id in element_ids:
                 items.append(element_id)
-        data['models']['beamlines'].append({
+        data['models']['beamlines'].append(PKDict({
             'id': bl['id'],
             'items': items,
             'name': bl['name'],
-        })
+        }))
     elegant_sim = elegant_data['models']['simulation']
     if 'activeBeamlineId' in elegant_sim:
         data['models']['simulation']['activeBeamlineId'] = elegant_sim['activeBeamlineId']
@@ -775,7 +776,7 @@ def _import_elements(lattice, data):
         model_name = el.get_type().upper()
         if model_name not in _SCHEMA.model:
             raise IOError('Unsupported element type: {}'.format(model_name))
-        m = template_common.model_defaults(model_name, _SCHEMA)
+        m = _SIM_DATA.model_defaults(model_name)
         if 'l' in attrs:
             attrs['l'] = float(str(attrs['l']))
         if model_name == 'DRIFT' and re.search(r'^auto_drift', el.get_name()):
@@ -835,11 +836,11 @@ def _import_main_beamline(reader, data, beamline_names):
     beamline_name = _sort_beamlines_by_length(lines)[0][0]
     res = reader.get_lattice(beamline_name)
     current_id = 1
-    data['models']['beamlines'].append({
+    data['models']['beamlines'].append(PKDict({
         'id': current_id,
         'items': [],
         'name': beamline_name,
-    })
+    }))
     data['models']['simulation']['activeBeamlineId'] = current_id
     data['models']['simulation']['visualizationBeamlineId'] = current_id
     return res

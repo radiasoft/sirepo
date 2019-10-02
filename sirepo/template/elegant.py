@@ -810,7 +810,7 @@ def _generate_full_simulation(data, v):
 
 
 def _generate_twiss_simulation(data, v):
-    max_id = elegant_lattice_importer.max_id(data)
+    max_id = _SIM_DATA.max_id(data)
     sim = data['models']['simulation']
     sim['simulationMode'] = 'serial'
     run_setup = _find_first_command(data, 'run_setup') or pkcollections.Dict(

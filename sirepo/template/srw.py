@@ -1712,7 +1712,6 @@ def _trim(v):
     for l in v.split('\n'):
         res += l.rstrip() + '\n'
     x = res.rstrip('\n') + '\n'
-    pkio.write_text('foo.txt', x)
     return x
 
 def _unique_name(items, field, template):

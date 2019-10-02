@@ -71,11 +71,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             'electronBeam',
             PKDict(charge=1.0e-08, energy=23),
         )
+        if 'rmsRadius' in dm.electronBeam and dm.electronBeam.rmsRadius == 0:
+            del dm.electronBeam['rmsRadius']
         dm.electronBeam.setdefault(
             rmsLength=0,
-#            rmsRadius=0,
             bunchLength=0,
-#            transverseEmittance=0,
             beamRadiusMethod='a',
             transverseEmittance=0.00001,
             rmsRadius=15,
