@@ -7,11 +7,9 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkjson, pkconfig, pkcollections
 from pykern.pkdebug import pkdp, pkdlog, pkdc
-from sirepo import job
 from sirepo import job_supervisor
 import importlib
 import tornado.ioloop
-import tornado.locks
 import tornado.locks
 import tornado.queues
 import uuid
@@ -39,10 +37,54 @@ class DriverBase(object):
         self._agent_starting = False
         self._agent_started_waiters = pkcollections.Dict()
         self._message_handler = None
-        tornado.ioloop.IOLoop.current().spawn_callback(self._process_requests_to_send_to_agent)
+        tornado.ioloop.IOLoop.current().spawn_callback(
+            self._process_requests_to_send_to_agent
+        )
 
     def agent_started(self):
         return self._agent.agent_started
+
+    @classmethod
+    def dequeue_request(cls, req):
+        dc = cls.get_driver_class(req)
+        for d in dc.resources[req.content.resource_class].drivers:
+            if d.uid == req.content.uid:
+                d.requests.remove(req)
+                break
+        else:
+            raise AssertionError(
+                'req={}. Could not be removed because it was not found.',
+                req
+            )
+
+    @classmethod
+    def enqueue_request(cls, req):
+        dc = cls.get_driver_class(req)
+        for d in dc.resources[req.content.resource_class].drivers:
+            if d.uid == req.content.uid:
+                d.requests.append(req)
+                break
+        else:
+            d = dc(
+                req.content.uid,
+                req.content.resource_class
+            )
+            d.requests.append(req)
+            dc.resources[req.content.resource_class].drivers.append(d)
+            cls.driver_for_agent[d.agent_id] = d
+
+    @classmethod
+    def get_driver_class(cls, req):
+        # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
+        t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
+        m = importlib.import_module(
+            f'sirepo.driver.{t}'
+        )
+        return getattr(m, f'{t.capitalize()}Driver')
+
+    @classmethod
+    def get_driver_for_agent(cls, agent_id):
+        return cls.driver_for_agent[agent_id]
 
     def kill_agent(self):
         pkdlog('agent_id={}', self.agent_id)
@@ -108,45 +150,6 @@ class DriverBase(object):
         self._message_handler = None
         self._message_handler_set.clear()
         # TODO(e-carlin): It is a hack to use pop. We should know more about
-        # when an agent is running or not. It is done like this currently 
+        # when an agent is running or not. It is done like this currently
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
-
-    @classmethod
-    def enqueue_request(cls, req):
-        dc = cls.get_driver_class(req)
-        for d in dc.resources[req.content.resource_class].drivers:
-            if d.uid == req.content.uid:
-                d.requests.append(req)
-                break
-        else:
-            d = dc(
-                req.content.uid,
-                req.content.resource_class
-            )
-            d.requests.append(req)
-            dc.resources[req.content.resource_class].drivers.append(d)
-            cls.driver_for_agent[d.agent_id] = d
-
-    @classmethod
-    def get_driver_class(cls, req):
-        # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
-        t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
-        m = importlib.import_module(
-            f'sirepo.driver.{t}'
-        )
-        return getattr(m, f'{t.capitalize()}Driver')
-    
-    @classmethod
-    def dequeue_request(cls, req):
-        dc = cls.get_driver_class(req)
-        for d in dc.resources[req.content.resource_class].drivers:
-            if d.uid == req.content.uid:
-                d.requests.remove(req)
-                break
-        else:
-            raise AssertionError(
-                'req={}. Could not be removed because it was not found.',
-                req
-            )
-

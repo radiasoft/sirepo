@@ -29,7 +29,7 @@ _OPERATOR_ACTIONS = [
 
 
 async def incoming_message(msg):
-    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
+    d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
     d.set_message_handler(msg.message_handler)
 
     a = msg.content.get('action')
@@ -77,6 +77,7 @@ async def _run_compute_job_request(run_compute_job_req):
         )
         res = await run_compute_job_req.get_reply()
     return res
+
 
 async def process_incoming(content, handler):
     try:
@@ -193,7 +194,7 @@ def _free_slots_if_needed(driver_class, resource_class):
 
 
 def _get_request_for_message(msg):
-    d = sirepo.driver.DriverBase.driver_for_agent[msg.content.agent_id]
+    d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
     for r in d.requests:
         if r.content.req_id == msg.content.req_id:
             return r
