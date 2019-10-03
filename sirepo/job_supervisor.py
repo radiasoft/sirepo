@@ -5,12 +5,10 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkconfig, pkcollections
+from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import driver, job
-from sirepo import job
 import copy
-import importlib
 import sirepo.driver
 import tornado.locks
 import uuid
@@ -36,21 +34,26 @@ async def incoming_message(msg):
         _send_kill_to_uknown_agent(msg)
         return
     except AttributeError:
-        pkdlog('msg={} malformed', msg)
+        pkdlog('msg={} did not contain agent_id', DebugRenderer(msg))
         return
     d.set_message_handler(msg.message_handler)
-
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
-        pass
-    elif a == 'protocol_error':
-        # TODO(e-carlin): Handle more. If msg has a req_id we should
-        # likely resend the request
-        pkdlog('Error: {}', msg)
-    else:
+        run_scheduler(type(d), d.resource_class)
+        return
+    if a == job.ACTION_ERROR:
+        pkdlog('Error: {}', DebugRenderer(msg))
+    try:
         r = _get_request_for_message(msg)
-        r.set_response(msg.content)
-        _remove_from_running_data_jobs(d, r, msg)
+    except (KeyError, AttributeError):
+        pkdlog(
+            'Error no associated request for msg={} \n{}',
+            DebugRenderer(msg),
+            pkdexc()
+        )
+        return
+    r.set_response(msg.content)
+    _remove_from_running_data_jobs(d, r, msg)
     run_scheduler(type(d), d.resource_class)
 
 
@@ -89,7 +92,7 @@ async def _run_compute_job_request(run_compute_job_req):
 
 async def process_incoming(content, handler):
     try:
-        pkdlog('{}: {}', handler.sr_req_type,  _DebugRenderer(content))
+        pkdlog('{}: {}', handler.sr_req_type,  DebugRenderer(content))
         await globals()[f'incoming_{handler.sr_req_type}'](
             pkcollections.Dict({
                 f'{handler.sr_req_type}_handler': handler,
@@ -180,14 +183,16 @@ def _cancel_pending_job(driver, cancel_req):
         driver.requests.remove(cancel_req)
 
 
-class _DebugRenderer():
+class DebugRenderer():
     def __init__(self, obj):
         self.obj = obj
 
     def __str__(self):
         o = self.obj
         if isinstance(o, pkcollections.Dict):
-            return str({x: o[x] for x in o if x not in ['result', 'arg']})
+            return str(
+                {x: (o[x] if x not in ['result', 'arg'] else '<snip>') for x in o}
+            )
         raise AssertionError('unknown object to render: {}', o)
 
 

@@ -21,6 +21,7 @@ import uuid
 # and deserializing?
 ACTION_CANCEL_JOB = 'cancel_job'
 ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
+ACTION_ERROR = 'error'
 ACTION_KEEP_ALIVE = 'keep_alive'
 ACTION_KILL = 'kill'
 ACTION_READY_FOR_WORK = 'ready_for_work'
@@ -109,8 +110,9 @@ def _request(body):
     r = requests.post(cfg.job_server_http_uri, json=body)
     r.raise_for_status()
     c = pkjson.load_any(r.content)
-    if 'error' in c:
-        raise Exception('Error: {}'.format(c))
+    if 'error' in c or c.get('action') == 'error':
+        pkdlog('Error: {}', c)
+        raise Exception('Error. Please try agin.') # TODO(e-carlin): Something better
     return c
 
 

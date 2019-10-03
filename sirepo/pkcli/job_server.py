@@ -72,11 +72,10 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 
 async def _process_incoming(content, handler):
-        pkdc('req_type={}, content={}', handler.sr_req_type, content)
-        await job_supervisor.process_incoming(
-            pkjson.load_any(content),
-            handler
-        )
+    await job_supervisor.process_incoming(
+        pkjson.load_any(content),
+        handler
+    )
 
 
 class _ServerReq(tornado.web.RequestHandler):

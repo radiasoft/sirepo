@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job, simulation_db
+from sirepo import job, simulation_db, job_supervisor
 from sirepo import job_agent_process
 import sys
 import tornado.gen
@@ -61,7 +61,7 @@ class _JobTracker:
         await j.kill(_KILL_TIMEOUT_SECS)
 
     async def run_extract_job(self, run_dir, jhash, subcmd, arg):
-        pkdc('{} {}: {} {}', run_dir, jhash, subcmd, arg)
+        pkdc('{} {}', run_dir, jhash)
         status = await self.compute_job_status(run_dir, jhash)
         if status is job.JobStatus.MISSING:
             pkdlog('{} {}: report is missing; skipping extract job',
@@ -209,7 +209,7 @@ class _Msg(pkcollections.Dict):
                     pkdlog('closed{}', e)
                     break
                 m = await c.read_message()
-                pkdc('m={}', m)
+                pkdc('m={}', job_supervisor.DebugRenderer(m))
                 if m is None:
                     break
                 m = await self._dispatch(m)
@@ -220,12 +220,12 @@ class _Msg(pkcollections.Dict):
             if not err:
                 self.current_msg = m
                 pkdlog('action={action} req_id={req_id}', **m)
-                pkdc('{}', m)
+                pkdc('{}', job_supervisor.DebugRenderer(m))
                 return await getattr(self, '_dispatch_' + m.action)(m)
         except Exception as e:
             err = 'exception=' + str(e)
             pkdlog(pkdexc())
-        return self._format_reply(action='protocol_error', error=err, msg=msg)
+        return self._format_reply(action=job.ACTION_ERROR, error=err, msg=msg)
 
     #rn maybe this should just be "cancel" since everything is a "job"
     async def _dispatch_cancel_job(self, msg):
