@@ -6,15 +6,9 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections, pkio, pkjson, pkconfig
-from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdlog
+from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job, simulation_db
 from sirepo import job_agent_process
-import async_generator
-import asyncio
-import contextlib
-import contextlib
-import functools
-import math
 import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
@@ -28,16 +22,22 @@ _RETRY_DELAY = 1
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 
 
-
 def start():
     cfg = pkconfig.init(
         agent_id=('abc123', str, 'the id of the agent'),
-        job_server_ws_uri=(job.cfg.job_server_ws_uri, str, 'the uri to connect to the job server on'),
+        job_server_ws_uri=(
+            job.cfg.job_server_ws_uri,
+            str,
+            'the uri to connect to the job server on'
+        ),
     )
     pkdlog('agent_id={}', cfg.agent_id)
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
-        _Msg(agent_id=cfg.agent_id, job_server_ws_uri=cfg.job_server_ws_uri).loop,
+        _Msg(
+            agent_id=cfg.agent_id,
+            job_server_ws_uri=cfg.job_server_ws_uri
+        ).loop,
     )
     io_loop.start()
 
@@ -80,7 +80,7 @@ class _JobTracker:
 
         # run the job
         cmd = ['sirepo', 'extract', subcmd, arg]
-        result = await job_agent_process.run_extract_job( #TODO(e-carlin): Handle multiple backends
+        result = await job_agent_process.run_extract_job(  # TODO(e-carlin): Handle multiple backends
            run_dir, cmd, runner_info.backend_info,
         )
 
@@ -278,4 +278,3 @@ class _Msg(pkcollections.Dict):
             pkdp(pkdexc())
             return None, f'exception={e}'
         return m, None
-
