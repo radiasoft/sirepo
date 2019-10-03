@@ -9,6 +9,7 @@ from pykern import pkcollections, pkio, pkjson, pkconfig
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job, simulation_db
 from sirepo import job_agent_process
+import sys
 import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
@@ -237,6 +238,11 @@ class _Msg(pkcollections.Dict):
         res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
         return self._format_reply(status=res.value)
 
+    async def _dispatch_kill(self, msg):
+        # TODO(e-carlin): This is aggressive. Should we try to  check if there
+        # is a running job and terminate it gracefully?
+        sys.exit(1)
+
     async def _dispatch_run_extract_job(self, msg):
         res = await self.job_tracker.run_extract_job(
             msg.run_dir,
@@ -259,7 +265,7 @@ class _Msg(pkcollections.Dict):
     def _format_reply(self, **kwargs):
         msg = pkcollections.Dict(
             kwargs,
-            agent_id = self.agent_id
+            agent_id=self.agent_id
         )
         if self.current_msg:
             #rn use get() because there may be an error in the sending message

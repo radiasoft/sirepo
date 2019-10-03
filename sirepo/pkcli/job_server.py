@@ -59,6 +59,8 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def on_close(self):
         try:
             self._driver.on_ws_close()
+        except AttributeError:
+            pkdlog('unkown ws closed connection')
         except Exception as e:
             pkdlog('Error: {} \n{}', e, pkdexc())
 

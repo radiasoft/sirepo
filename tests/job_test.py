@@ -19,6 +19,8 @@ from pykern.pkdebug import pkdc, pkdp
 #   - canceling of requests in the q and running requests
 #   - using only the resources that are available
 #   - agent sigterm -> sigkill progression
+#   - send kill to uknown agent
+
 
 def test_myapp():
     py3_env = _env_setup()

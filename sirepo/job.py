@@ -22,6 +22,7 @@ import uuid
 ACTION_CANCEL_JOB = 'cancel_job'
 ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_KEEP_ALIVE = 'keep_alive'
+ACTION_KILL = 'kill'
 ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
 ACTION_START_COMPUTE_JOB = 'start_compute_job'

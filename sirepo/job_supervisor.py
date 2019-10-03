@@ -29,7 +29,15 @@ _OPERATOR_ACTIONS = [
 
 
 async def incoming_message(msg):
-    d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
+    try:
+        d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
+    except KeyError:
+        pkdlog('no known agent with id={}. Sending kill', msg.content.agent_id)
+        _send_kill_to_uknown_agent(msg)
+        return
+    except AttributeError:
+        pkdlog('msg={} malformed', msg)
+        return
     d.set_message_handler(msg.message_handler)
 
     a = msg.content.get('action')
@@ -263,6 +271,18 @@ class _Request():
 
     def _requires_dependent_request(self):
         return self.content.action == job.ACTION_START_COMPUTE_JOB
+
+
+def _send_kill_to_uknown_agent(incoming_msg):
+    try:
+        incoming_msg.message_handler.write_message(
+           pkcollections.Dict(
+               action=job.ACTION_KILL,
+               req_id=str(uuid.uuid4()),
+            )
+        )
+    except Exception as e:
+        pkdlog('Error: {}', e)
 
 
 def _slots_available(driver_class, resource_class):
