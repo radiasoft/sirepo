@@ -70,6 +70,9 @@ async def incoming_request(req):
     )
 
 
+# TODO(e-carlin): This isn't necessary right now. It was built to show the
+# pathway of the supervisor adding requests to the q. When runStatus can
+# be pulled out of job_api then this will actually become useful.
 async def _run_compute_job_request(run_compute_job_req):
     run_status_req = _SupervisorRequest(
         run_compute_job_req,
