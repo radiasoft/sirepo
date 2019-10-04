@@ -30,13 +30,14 @@ def test_importer():
     from pykern import pkjson
     from pykern.pkunit import pkeq
     from sirepo.template import zgoubi
+    import sirepo.sim_data
 
     with pkunit.save_chdir_work():
         for fn in pkio.sorted_glob(pkunit.data_dir().join('*.dat')):
             error = None
             try:
                 data = zgoubi.import_file(FlaskRequest(fn), unit_test_mode=True)
-                zgoubi.fixup_old_data(data)
+                sirepo.sim_data.get_class('zgoubi').fixup_old_data(data)
                 #TODO(pjm): easier way to convert nested dict to pkcollections.Dict?
                 data = pkcollections.json_load_any(pkjson.dump_pretty(data))
             except Exception as e:

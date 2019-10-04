@@ -12,22 +12,14 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
+import sirepo.sim_data
 
 
-SIM_TYPE = 'myapp'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 INPUT_NAME = 'hundli.yml'
 
 OUTPUT_NAME = 'hundli.csv'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
-
-
-def fixup_old_data(data):
-    for m in _SCHEMA.model:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
 
 
 def get_data_file(run_dir, model, frame, options=None):

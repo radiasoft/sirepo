@@ -247,21 +247,24 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         return (self.is3D() ? 'xyz' : 'xz').replace(new RegExp('[' + axes + ']', 'g'), '');
     }
 
-    self.loadSTLConductor = function(conductor) {
+    self.loadSTLConductor = function(conductor, callback) {
         var type = self.findConductorType(conductor.conductorTypeId);
         vtkPlotting.loadSTLFile(type.file).then(function (r) {
             vtkPlotting.addSTLReader(type.file, r);
-            self.loadSTLConductorData(r, conductor, type);
+            self.loadSTLConductorData(r, conductor, type, callback);
         });
     };
 
-    self.loadSTLConductorData = function(reader, conductor, type) {
+    self.loadSTLConductorData = function(reader, conductor, type, callback) {
         if (! reader) {
             return;
         }
         reader.loadData()
             .then(function (res) {
                 self.saveSTLPolys(reader, type.name);
+                if (callback) {
+                    callback(reader, conductor, type);
+                }
             }, function (reason) {
                 throw type.file + ': Error loading data from .stl file: ' + reason;
             })
@@ -357,6 +360,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
                 t.file = f;
                 t.name = f.substring(0, f.indexOf('.'));
                 t.voltage = 0;
+                warpvndService.saveSTLPolys(r, t.name);
                 var bounds = r.getOutputData().getBounds();
                 t.scale = initScale(bounds);
                 t.zLength = normalizeToum(Math.abs(bounds[5] - bounds[4]), t.scale);
@@ -771,7 +775,6 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
 
 
     appState.whenModelsLoaded($scope, function() {
-        //self.fieldSlice = appState.models.fieldCalcAnimation.slice;
         var d = panelState.getFieldDelegate('fieldCalcAnimation', 'slice');
         setFieldState();
         updateAllFields();
@@ -890,6 +893,7 @@ SIREPO.app.controller('VisualizationController', function (appState, errorServic
     });
 
     appState.whenModelsLoaded($scope, function () {
+        warpvndService.loadSTLConductors();
         var d = panelState.getFieldDelegate('fieldAnimation', 'slice');
         appState.models.fieldAnimation.displayMode = appState.models.simulationGrid.simulation_mode;
         computeSimulationSteps();
@@ -2656,9 +2660,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
             $scope.panelState = panelState;
 
             function handleStatus(data) {
-                if (data.mpiCores) {
-                    $scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
-                }
+                $scope.mpiCores = data.mpiCores > 1 ? data.mpiCores : 0;
                 SINGLE_PLOTS.forEach(function(name) {
                     frameCache.setFrameCount(0, name);
                 });
@@ -3330,28 +3332,7 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
 
             function loadConductor(conductor, type) {
                 $scope.parentController.isWaitingForSTL = true;
-                vtkPlotting.loadSTLFile(type.file).then(function (r) {
-                    vtkPlotting.addSTLReader(type.file, r);
-                    loadConductorData(r, conductor, type);
-                });
-            }
-
-            function loadConductorData(reader, conductor, type) {
-                if (! reader) {
-                    return;
-                }
-                reader.loadData()
-                    .then(function (res) {
-                        setupConductor(reader, conductor, type);
-                    }, function (reason) {
-                        throw type.file + ': Error loading data from .stl file: ' + reason;
-                    },
-                        showLoadProgress
-                ).catch(function (e) {
-                    $scope.parentController.isWaitingForSTL = false;
-                    errorService.alertText(e);
-                });
-
+                warpvndService.loadSTLConductor(conductor, setupConductor);
             }
 
             function setScaling() {

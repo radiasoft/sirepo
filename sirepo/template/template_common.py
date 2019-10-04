@@ -10,6 +10,7 @@ from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import hashlib
 import json
@@ -29,8 +30,6 @@ DEFAULT_INTENSITY_DISTANCE = 20
 #: Input json file
 INPUT_BASE_NAME = 'in'
 
-LIB_FILE_PARAM_RE = re.compile(r'.*File$')
-
 #: Output json file
 OUTPUT_BASE_NAME = 'out'
 
@@ -46,53 +45,45 @@ _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
-_WATCHPOINT_REPORT_NAME = 'watchpointReport'
 
+class ModelUnits(object):
+    """Convert model fields from native to sirepo format, or from sirepo to native format.
 
-class ModelUnits:
-    """
-    Convert model fields from native to sirepo format, or from sirepo to native
-    format.
+    Examples::
+        def _xpas(value, is_native):
+            # custom field conversion code would go here
+            return value
 
-    Examples
-    --------
-
-    def _xpas(value, is_native):
-        # custom field conversion code would go here
-        return value
-
-    mu = ModelUnits({
-        'CHANGREF': {
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-            'ALE': 'deg_to_rad',
-            'XPAS': _xpas,
-        },
-    })
-    m = mu.scale_from_native('CHANGREF', {
-        'XCE': 2,
-        'YCE': 0,
-        'ALE': 8,
-        'XPAS': '#20|20|20',
-    })
-    assert m['XCE'] == 2e-2
-    assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
-    assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
-
+        mu = ModelUnits({
+            'CHANGREF': {
+                'XCE': 'cm_to_m',
+                'YCE': 'cm_to_m',
+                'ALE': 'deg_to_rad',
+                'XPAS': _xpas,
+            },
+        })
+        m = mu.scale_from_native('CHANGREF', {
+            'XCE': 2,
+            'YCE': 0,
+            'ALE': 8,
+            'XPAS': '#20|20|20',
+        })
+        assert m['XCE'] == 2e-2
+        assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
+        assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
     """
 
     # handler for common units, native --> sirepo scale
-    _COMMON_HANDLERS = {
-        'cm_to_m': 1e-2,
-        'mrad_to_rad': 1e-3,
-        'deg_to_rad': math.pi / 180,
-    }
+    _COMMON_HANDLERS = PKDict(
+        cm_to_m=1e-2,
+        mrad_to_rad=1e-3,
+        deg_to_rad=math.pi / 180,
+    )
 
     def __init__(self, unit_def):
         """
-        Parameters
-        ----------
-        unit_def: dict
+        Args:
+            unit_def (dict):
             Map of model name to field handlers
         """
         self.unit_def = unit_def
@@ -105,10 +96,10 @@ class ModelUnits:
         """ Scale values from sirepo units to native values. """
         return self.__scale_model(name, model, False)
 
-    @staticmethod
-    def scale_value(value, scale_type, is_native):
+    @classmethod
+    def scale_value(cls, value, scale_type, is_native):
         """ Scale one value using the specified handler. """
-        handler = ModelUnits._COMMON_HANDLERS.get(scale_type, scale_type)
+        handler = cls._COMMON_HANDLERS.get(scale_type, scale_type)
         if isinstance(handler, float):
             return float(value) * (handler if is_native else 1 / handler)
         assert isinstance(handler, types.FunctionType), \
@@ -133,11 +124,11 @@ def compute_field_range(args, compute_range):
     read the simulation specific datafiles and extract the ranges by field.
     """
     from sirepo import simulation_db
-    run_dir = simulation_db.simulation_run_dir({
-        'simulationType': args['simulationType'],
-        'simulationId': args['simulationId'],
-        'report': 'animation',
-    })
+    run_dir = simulation_db.simulation_run_dir(PKDict(
+        simulationType=args['simulationType'],
+        simulationId=args['simulationId'],
+        report='animation',
+    ))
     data = simulation_db.read_json(run_dir.join(INPUT_BASE_NAME))
     res = None
     model_name = args['modelName']
@@ -148,9 +139,7 @@ def compute_field_range(args, compute_range):
             res = compute_range(run_dir, data)
             data.models[model_name].fieldRange = res
             simulation_db.write_json(run_dir.join(INPUT_BASE_NAME), data)
-    return {
-        'fieldRange': res,
-    }
+    return PKDict(fieldRange=res)
 
 
 def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
@@ -266,14 +255,14 @@ def filename_to_path(files, source_lib):
 
 
 def generate_parameters_file(data):
-    v = flatten_data(data['models'], pkcollections.Dict({}))
+    v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)
     res = render_jinja('.', v, name='common-header.py')
     return res, v
 
 
 def h5_to_dict(hf, path=None):
-    d = {}
+    d = PKDict()
     if path is None:
         path = '/'
     try:
@@ -309,11 +298,11 @@ def heatmap(values, model, plot_fields=None):
         elif model['plotRangeType'] == 'fit' and 'fieldRange' in model:
             range = [model.fieldRange[model['x']], model.fieldRange[model['y']]]
     hist, edges = np.histogramdd(values, histogram_bins(model['histogramBins']), range=range)
-    res = {
-        'x_range': [float(edges[0][0]), float(edges[0][-1]), len(hist)],
-        'y_range': [float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
-        'z_matrix': hist.T.tolist(),
-    }
+    res = PKDict(
+        x_range=[float(edges[0][0]), float(edges[0][-1]), len(hist)],
+        y_range=[float(edges[1][0]), float(edges[1][-1]), len(hist[0])],
+        z_matrix=hist.T.tolist(),
+    )
     if plot_fields:
         res.update(plot_fields)
     return res
@@ -327,10 +316,6 @@ def histogram_bins(nbins):
     elif nbins > _HISTOGRAM_BINS_MAX:
         nbins = _HISTOGRAM_BINS_MAX
     return nbins
-
-
-def is_watchpoint(name):
-    return _WATCHPOINT_REPORT_NAME in name
 
 
 def lib_file_name(model_name, field, value):
@@ -354,23 +339,13 @@ def lib_files(data, source_lib=None):
     )
 
 
-def model_defaults(name, schema):
-    """Returns a set of default model values from the schema."""
-    res = pkcollections.Dict()
-    for f in schema['model'][name]:
-        field_info = schema['model'][name][f]
-        if len(field_info) >= 3 and field_info[2] is not None:
-            res[f] = field_info[2]
-    return res
-
-
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
-    res = {
-        'x_points': x,
-        'x_range': [min(x), max(x)] if len(x) else [0, 0],
-        'plots': plots,
-        'y_range': compute_plot_color_and_range(plots, plot_colors),
-    }
+    res = PKDict(
+        x_points=x,
+        x_range=[min(x), max(x)] if len(x) else [0, 0],
+        plots=plots,
+        y_range=compute_plot_color_and_range(plots, plot_colors),
+    )
     if 'plotRangeType' in model:
         if model.plotRangeType == 'fixed':
             res['x_range'] = _plot_range(model, 'horizontal')
@@ -386,12 +361,6 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     if plot_fields:
         res.update(plot_fields)
     return res
-
-
-def organize_example(data):
-    if 'isExample' in data.models.simulation and data.models.simulation.isExample:
-        if data.models.simulation.folder == '/':
-            data.models.simulation.folder = '/Examples'
 
 
 def parse_animation_args(data, key_map):
@@ -421,9 +390,9 @@ def parse_animation_args(data, key_map):
 
 def parse_enums(enum_schema):
     """Returns a list of enum values, keyed by enum name."""
-    res = {}
+    res = PKDict()
     for k in enum_schema:
-        res[k] = {}
+        res[k] = PKDict()
         for v in enum_schema[k]:
             res[k][v[0]] = True
     return res
@@ -496,15 +465,6 @@ def resource_dir(sim_type):
         py.path.Local: absolute path to folder
     """
     return _RESOURCE_DIR.join(sim_type)
-
-
-def update_model_defaults(model, name, schema, dynamic=None):
-    defaults = model_defaults(name, schema)
-    if dynamic is not None:
-        defaults.update(dynamic)
-    for f in defaults:
-        if f not in model:
-            model[f] = defaults[f]
 
 
 def validate_model(model_data, model_schema, enum_info):
@@ -616,13 +576,6 @@ def subprocess_output(cmd, env):
     if out != None and len(out):
         return out.strip()
     return ''
-
-
-def watchpoint_id(report):
-    m = re.search(_WATCHPOINT_REPORT_NAME + '(\d+)', report)
-    if not m:
-        raise RuntimeError('invalid watchpoint report name: ', report)
-    return int(m.group(1))
 
 
 def _escape(v):

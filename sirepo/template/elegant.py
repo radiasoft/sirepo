@@ -5,14 +5,17 @@ u"""elegant execution template.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkresource
-from pykern.pkdebug import pkdp, pkdc, pkdlog
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
-from sirepo.template import template_common, sdds_util
+from sirepo.template import sdds_util
+from sirepo.template import template_common
 import ast
 import glob
 import math
@@ -22,35 +25,34 @@ import os.path
 import py.path
 import re
 import sdds
+import sirepo.sim_data
 import stat
 import werkzeug
 
-#: Simulation type
-ELEGANT_LOG_FILE = 'elegant.log'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-SIM_TYPE = elegant_common.SIM_TYPE
+ELEGANT_LOG_FILE = 'elegant.log'
 
 WANT_BROWSER_FRAME_CACHE = True
 
 _ELEGANT_SEMAPHORE_FILE = 'run_setup.semaphore'
 
-_FIELD_LABEL = {
-    'x': 'x [m]',
-    'xp': "x' [rad]",
-    'y': 'y [m]',
-    'yp': "y' [rad]",
-    't': 't [s]',
-    'p': 'p (mₑc)',
-    's': 's [m]',
-    'LinearDensity': 'Linear Density (C/s)',
-    'LinearDensityDeriv': 'LinearDensityDeriv (C/s²)',
-    'GammaDeriv': 'GammaDeriv (1/m)',
-}
+_FIELD_LABEL = pkcollections.Dict(
+    x='x [m]',
+    xp="x' [rad]",
+    y='y [m]',
+    yp="y' [rad]",
+    t='t [s]',
+    p='p (mₑc)',
+    s='s [m]',
+    LinearDensity='Linear Density (C/s)',
+    LinearDensityDeriv='LinearDensityDeriv (C/s²)',
+    GammaDeriv='GammaDeriv (1/m)',
+)
 
-#
 _FILE_ID_SEP = '-'
 
-_INFIX_TO_RPN = {
+_INFIX_TO_RPN = pkcollections.Dict({
     ast.Add: '+',
     ast.Div: '/',
     ast.Invert: '!',
@@ -60,34 +62,26 @@ _INFIX_TO_RPN = {
     ast.Sub: '-',
     ast.UAdd: '+',
     ast.USub: '+',
-}
+})
 
 _OUTPUT_INFO_FILE = 'outputInfo.json'
 
 _OUTPUT_INFO_VERSION = '2'
 
-_PLOT_TITLE = {
+_PLOT_TITLE = pkcollections.Dict({
     'x-xp': 'Horizontal',
     'y-yp': 'Vertical',
     'x-y': 'Cross-section',
     't-p': 'Longitudinal',
-}
+})
 
 _SDDS_INDEX = 0
 
-_SDDS_Singleton = sdds.SDDS(_SDDS_INDEX)
+_s = sdds.SDDS(_SDDS_INDEX)
+_x = getattr(_s, 'SDDS_LONGDOUBLE', None)
+_SDDS_DOUBLE_TYPES = [_s.SDDS_DOUBLE, _s.SDDS_FLOAT] + ([_x] if _x else [])
 
-x = getattr(_SDDS_Singleton, 'SDDS_LONGDOUBLE', None)
-_SDDS_DOUBLE_TYPES = [
-    _SDDS_Singleton.SDDS_DOUBLE,
-    _SDDS_Singleton.SDDS_FLOAT,
-]
-if x is not None:
-    _SDDS_DOUBLE_TYPES.append(x)
-
-_SDDS_STRING_TYPE = _SDDS_Singleton.SDDS_STRING
-
-_SCHEMA = simulation_db.get_schema(elegant_common.SIM_TYPE)
+_SDDS_STRING_TYPE = _s.SDDS_STRING
 
 _SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
 
@@ -97,11 +91,11 @@ _X_FIELD = 's'
 def background_percent_complete(report, run_dir, is_running):
     #TODO(robnagler) remove duplication in run_dir.exists() (outer level?)
     errors, last_element = parse_elegant_log(run_dir)
-    res = {
-        'percentComplete': 100,
-        'frameCount': 0,
-        'errors': errors,
-    }
+    res = pkcollections.Dict(
+        percentComplete=100,
+        frameCount=0,
+        errors=errors,
+    )
     if is_running:
         data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         res['percentComplete'] = _compute_percent_complete(data, last_element)
@@ -109,13 +103,13 @@ def background_percent_complete(report, run_dir, is_running):
     if not run_dir.join(_ELEGANT_SEMAPHORE_FILE).exists():
         return res
     output_info = _output_info(run_dir)
-    return {
-        'percentComplete': 100,
-        'frameCount': 1,
-        'outputInfo': output_info,
-        'lastUpdateTime': output_info[0]['lastUpdateTime'],
-        'errors': errors,
-    }
+    return pkcollections.Dict(
+        percentComplete=100,
+        frameCount=1,
+        outputInfo=output_info,
+        lastUpdateTime=output_info[0]['lastUpdateTime'],
+        errors=errors,
+    )
 
 
 def copy_related_files(data, source_path, target_path):
@@ -137,12 +131,12 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
     if not _is_histogram_file(xFilename, x_col['column_names']):
         # parameter plot
         plots = []
-        filename = {
-            'y1': xFilename,
+        filename = pkcollections.Dict(
+            y1=xFilename,
             #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
-            'y2': xFilename,
-            'y3': xFilename,
-        }
+            y2=xFilename,
+            y3=xFilename,
+        )
         for f in ('y1', 'y2', 'y3'):
             if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
                 continue
@@ -151,84 +145,32 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
             if y_col['err']:
                 return y_col['err']
             y = y_col['values']
-            plots.append({
-                'field': yfield,
-                'points': y,
-                'label': _field_label(yfield, y_col['column_def'][1]),
-            })
+            plots.append(pkcollections.Dict(
+                field=yfield,
+                points=y,
+                label=_field_label(yfield, y_col['column_def'][1]),
+            ))
         title = ''
         if page_count > 1:
             title = 'Plot {} of {}'.format(page_index + 1, page_count)
-        return template_common.parameter_plot(x, plots, data, {
-            'title': title,
-            'y_label': '',
-            'x_label': _field_label(xfield, x_col['column_def'][1]),
-        })
+        return template_common.parameter_plot(x, plots, data, pkcollections.Dict(
+            title=title,
+            y_label='',
+            x_label=_field_label(xfield, x_col['column_def'][1]),
+        ))
     yfield = data['y1'] if 'y1' in data else data['y']
     y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
     if y_col['err']:
         return y_col['err']
-    return template_common.heatmap([x, y_col['values']], data, {
-        'x_label': _field_label(xfield, x_col['column_def'][1]),
-        'y_label': _field_label(yfield, y_col['column_def'][1]),
-        'title': _plot_title(xfield, yfield, page_index, page_count),
-    })
-
-
-def fixup_old_data(data):
-    for m in [
-            'bunchSource',
-            'twissReport',
-    ]:
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'bunchFile' not in data['models']:
-        data['models']['bunchFile'] = {
-            'sourceFile': None,
-        }
-    if 'folder' not in data['models']['simulation']:
-        data['models']['simulation']['folder'] = '/'
-    if 'simulationMode' not in data['models']['simulation']:
-        data['models']['simulation']['simulationMode'] = 'parallel'
-    if 'rpnVariables' not in data['models']:
-        data['models']['rpnVariables'] = []
-    if 'commands' not in data['models']:
-        data['models']['commands'] = _create_default_commands(data)
-        for m in data['models']['elements']:
-            model_schema = _SCHEMA['model'][m['type']]
-            for k in m:
-                if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
-                    m[k] = "1"
-    for m in data['models']['elements']:
-        if m['type'] == 'WATCH':
-            m['filename'] = '1'
-            if m['mode'] == 'coordinates' or m['mode'] == 'coord':
-                m['mode'] = 'coordinate'
-        template_common.update_model_defaults(m, m['type'], _SCHEMA)
-    if 'centroid' not in data['models']['bunch']:
-        bunch = data['models']['bunch']
-        for f in ('emit_x', 'emit_y', 'emit_z'):
-            if bunch[f] and not isinstance(bunch[f], basestring):
-                bunch[f] /= 1e9
-        if bunch['sigma_s'] and not isinstance(bunch['sigma_s'], basestring):
-            bunch['sigma_s'] /= 1e6
-        first_bunch_command = _find_first_bunch_command(data)
-        # first_bunch_command may not exist if the elegant sim has no bunched_beam command
-        if first_bunch_command:
-            first_bunch_command['symmetrize'] = str(first_bunch_command['symmetrize'])
-            for f in _SCHEMA['model']['bunch']:
-                if f not in bunch and f in first_bunch_command:
-                    bunch[f] = first_bunch_command[f]
-        else:
-            bunch['centroid'] = '0,0,0,0,0,0'
-    for m in data['models']['commands']:
-        template_common.update_model_defaults(m, 'command_{}'.format(m['_type']), _SCHEMA)
-    template_common.organize_example(data)
+    return template_common.heatmap([x, y_col['values']], data, pkcollections.Dict(
+        x_label=_field_label(xfield, x_col['column_def'][1]),
+        y_label=_field_label(yfield, y_col['column_def'][1]),
+        title=_plot_title(xfield, yfield, page_index, page_count),
+    ))
 
 
 def generate_lattice(data, filename_map, beamline_map, v):
-    beamlines = {}
+    beamlines = pkcollections.Dict()
 
     selected_beamline_id = 0
     sim = data['models']['simulation']
@@ -246,15 +188,15 @@ def generate_lattice(data, filename_map, beamline_map, v):
 
     for id in beamlines:
         _add_beamlines(beamlines[id], beamlines, ordered_beamlines)
-    state = {
-        'lattice': '',
-        'beamline_map': beamline_map,
-        'filename_map': filename_map,
-    }
+    state = pkcollections.Dict(
+        lattice='',
+        beamline_map=beamline_map,
+        filename_map=filename_map,
+    )
     _iterate_model_fields(data, state, _iterator_lattice_elements)
     res = state['lattice']
     res = res[:-1]
-    res += "\n"
+    res += '\n'
 
     for bl in ordered_beamlines:
         if len(bl['items']):
@@ -266,7 +208,7 @@ def generate_lattice(data, filename_map, beamline_map, v):
                     id = abs(id)
                 res += '{},'.format(sign + beamline_map[id].upper())
             res = res[:-1]
-            res += ")\n"
+            res += ')\n'
     return res
 
 
@@ -319,13 +261,13 @@ def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     frame_data = template_common.parse_animation_args(
         data,
-        {
+        pkcollections.Dict({
             '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
             '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
             '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
             '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
             '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
-        },
+        }),
     )
     page_count = 0
     for info in _output_info(run_dir):
@@ -442,7 +384,7 @@ def parse_elegant_log(run_dir):
     want_next_line = False
     prev_line = ''
     prev_err = ''
-    for line in text.split("\n"):
+    for line in text.split('\n'):
         if line == prev_line:
             continue
         match = re.search('^Starting (\S+) at s\=', line)
@@ -451,7 +393,7 @@ def parse_elegant_log(run_dir):
             if not re.search('^M\d+\#', name):
                 last_element = name
         if want_next_line:
-            res += line + "\n"
+            res += line + '\n'
             want_next_line = False
         elif _is_ignore_error_text(line):
             pass
@@ -460,7 +402,7 @@ def parse_elegant_log(run_dir):
                 want_next_line = True
             else:
                 if line != prev_err:
-                    res += line + "\n"
+                    res += line + '\n'
                 prev_err = line
         prev_line = line
     return res, last_element
@@ -470,13 +412,13 @@ def prepare_for_client(data):
     if 'models' not in data:
         return data
     # evaluate rpn values into model.rpnCache
-    cache = {}
+    cache = pkcollections.Dict()
     data['models']['rpnCache'] = cache
     variables = _variables_to_postfix(data['models']['rpnVariables'])
-    state = {
-        'cache': cache,
-        'rpnVariables': variables,
-    }
+    state = pkcollections.Dict(
+        cache=cache,
+        rpnVariables=variables,
+    )
     _iterate_model_fields(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
@@ -640,17 +582,17 @@ def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  ')
 
 
 def _build_beamline_map(data):
-    res = {}
+    res = pkcollections.Dict()
     for bl in data['models']['beamlines']:
         res[bl['id']] = bl['name']
     return res
 
 
 def _build_filename_map(data):
-    res = {
-        'keys_in_order': [],
-    }
-    model_index = {}
+    res = pkcollections.Dict(
+        keys_in_order=[],
+    )
+    model_index = pkcollections.Dict()
     for model_type in ['commands', 'elements']:
         for model in data['models'][model_type]:
             field_index = 0
@@ -688,14 +630,14 @@ def _command_file_extension(model):
 def _compute_percent_complete(data, last_element):
     if not last_element:
         return 0
-    elements = {}
+    elements = pkcollections.Dict()
     for e in data['models']['elements']:
         elements[e['_id']] = e
-    beamlines = {}
+    beamlines = pkcollections.Dict()
     for b in data['models']['beamlines']:
         beamlines[b['id']] = b
     id = data['models']['simulation']['visualizationBeamlineId']
-    beamline_map = {}
+    beamline_map = pkcollections.Dict()
     count = _walk_beamline(beamlines[id], 1, elements, beamlines, beamline_map)
     index = beamline_map[last_element] if last_element in beamline_map else 0
     res = index * 100 / count
@@ -714,70 +656,8 @@ def _contains_columns(column_names, search):
 def _correct_halo_gaussian_distribution_type(m):
     # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
     if 'distribution_type' in m and 'halogaussian' in m['distribution_type']:
-        m['distribution_type'] = m['distribution_type'].replace("halogaussian", 'halo(gaussian)')
+        m['distribution_type'] = m['distribution_type'].replace('halogaussian', 'halo(gaussian)')
 
-
-def _create_command(model_name, data):
-    model_schema = _SCHEMA['model'][model_name]
-    for k in model_schema:
-        if k not in data:
-            data[k] = model_schema[k][2]
-    return data
-
-
-def _create_default_commands(data):
-    max_id = elegant_lattice_importer.max_id(data)
-    simulation = data['models']['simulation']
-    bunch = data['models']['bunch']
-    return [
-        _create_command('command_run_setup', {
-            "_id": max_id + 1,
-            "_type": "run_setup",
-            "centroid": "1",
-            "concat_order": 2,
-            "lattice": "Lattice",
-            "output": "1",
-            "p_central_mev": bunch['p_central_mev'],
-            "parameters": "1",
-            "print_statistics": "1",
-            "sigma": "1",
-            "use_beamline": simulation['visualizationBeamlineId'] if 'visualizationBeamlineId' in simulation else '',
-        }),
-        _create_command('command_run_control', {
-            "_id": max_id + 2,
-            "_type": "run_control",
-        }),
-        _create_command('command_twiss_output', {
-            "_id": max_id + 3,
-            "_type": "twiss_output",
-            "filename": "1",
-        }),
-        _create_command('command_bunched_beam', {
-            "_id": max_id + 4,
-            "_type": "bunched_beam",
-            "alpha_x": bunch['alpha_x'],
-            "alpha_y": bunch['alpha_y'],
-            "alpha_z": bunch['alpha_z'],
-            "beta_x": bunch['beta_x'],
-            "beta_y": bunch['beta_y'],
-            "beta_z": bunch['beta_z'],
-            "distribution_cutoff": '3, 3, 3',
-            "enforce_rms_values": '1, 1, 1',
-            "emit_x": bunch['emit_x'] / 1e09,
-            "emit_y": bunch['emit_y'] / 1e09,
-            "emit_z": bunch['emit_z'],
-            "n_particles_per_bunch": bunch['n_particles_per_bunch'],
-            "one_random_bunch": '0',
-            "sigma_dp": bunch['sigma_dp'],
-            "sigma_s": bunch['sigma_s'] / 1e06,
-            "symmetrize": '1',
-            "Po": 0.0,
-        }),
-        _create_command('command_track', {
-            "_id": max_id + 5,
-            "_type": "track",
-        }),
-    ]
 
 def _field_label(field, units):
     if field in _FIELD_LABEL:
@@ -791,12 +671,12 @@ def _file_info(filename, run_dir, id, output_index):
     file_path = run_dir.join(filename)
     if not re.search(r'.sdds$', filename, re.IGNORECASE):
         if file_path.exists():
-            return {
-                'isAuxFile': True,
-                'filename': filename,
-                'id': '{}{}{}'.format(id, _FILE_ID_SEP, output_index),
-                'lastUpdateTime': int(os.path.getmtime(str(file_path))),
-            }
+            return pkcollections.Dict(
+                isAuxFile=True,
+                filename=filename,
+                id='{}{}{}'.format(id, _FILE_ID_SEP, output_index),
+                lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            )
         return None
     try:
         if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
@@ -804,7 +684,7 @@ def _file_info(filename, run_dir, id, output_index):
         column_names = sdds.sddsdata.GetColumnNames(_SDDS_INDEX)
         plottable_columns = []
         double_column_count = 0
-        field_range = {}
+        field_range = pkcollections.Dict()
         for col in column_names:
             col_type = sdds.sddsdata.GetColumnDefinition(_SDDS_INDEX, col)[4]
             if col_type < _SDDS_STRING_TYPE:
@@ -835,20 +715,20 @@ def _file_info(filename, run_dir, id, output_index):
                     field_range[col][1] = max(_safe_sdds_value(max(values)), field_range[col][1])
                 else:
                     field_range[col] = [_safe_sdds_value(min(values)), _safe_sdds_value(max(values))]
-        return {
-            'isAuxFile': False if double_column_count > 1 else True,
-            'filename': filename,
-            'id': '{}-{}'.format(id, output_index),
-            'rowCounts': row_counts,
-            'pageCount': page_count,
-            'columns': column_names,
-            'parameters': parameters,
-            'parameterDefinitions': _parameter_definitions(parameters),
-            'plottableColumns': plottable_columns,
-            'lastUpdateTime': int(os.path.getmtime(str(file_path))),
-            'isHistogram': _is_histogram_file(filename, column_names),
-            'fieldRange': field_range,
-        }
+        return pkcollections.Dict(
+            isAuxFile=False if double_column_count > 1 else True,
+            filename=filename,
+            id='{}-{}'.format(id, output_index),
+            rowCounts=row_counts,
+            pageCount=page_count,
+            columns=column_names,
+            parameters=parameters,
+            parameterDefinitions=_parameter_definitions(parameters),
+            plottableColumns=plottable_columns,
+            lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            isHistogram=_is_histogram_file(filename, column_names),
+            fieldRange=field_range,
+        )
     finally:
         try:
             sdds.sddsdata.Terminate(_SDDS_INDEX)
@@ -910,13 +790,13 @@ def _generate_bunch_simulation(data, v):
 
 
 def _generate_commands(data, filename_map, beamline_map, v):
-    state = {
-        'commands': '',
-        'filename_map': filename_map,
-        'beamline_map': beamline_map,
-    }
+    state = pkcollections.Dict(
+        commands='',
+        filename_map=filename_map,
+        beamline_map=beamline_map,
+    )
     _iterate_model_fields(data, state, _iterator_commands)
-    state['commands'] += '&end' + "\n"
+    state['commands'] += '&end' + '\n'
     return state['commands']
 
 
@@ -930,21 +810,21 @@ def _generate_full_simulation(data, v):
 
 
 def _generate_twiss_simulation(data, v):
-    max_id = elegant_lattice_importer.max_id(data)
+    max_id = _SIM_DATA.max_id(data)
     sim = data['models']['simulation']
     sim['simulationMode'] = 'serial'
-    run_setup = _find_first_command(data, 'run_setup') or {
-        '_id': max_id + 1,
-        '_type': 'run_setup',
-        'lattice': 'Lattice',
-        'p_central_mev': data['models']['bunch']['p_central_mev'],
-    }
+    run_setup = _find_first_command(data, 'run_setup') or pkcollections.Dict(
+        _id=max_id + 1,
+        _type='run_setup',
+        lattice='Lattice',
+        p_central_mev=data['models']['bunch']['p_central_mev'],
+    )
     run_setup['use_beamline'] = sim['activeBeamlineId']
-    twiss_output = _find_first_command(data, 'twiss_output') or {
-        '_id': max_id + 2,
-        '_type': 'twiss_output',
-        'filename': '1',
-    }
+    twiss_output = _find_first_command(data, 'twiss_output') or pkcollections.Dict(
+        _id=max_id + 2,
+        _type='twiss_output',
+        filename='1',
+    )
     twiss_output['final_values_only'] = '0'
     twiss_output['output_at_each_step'] = '0'
     data['models']['commands'] = [
@@ -961,15 +841,15 @@ def _generate_twiss_simulation(data, v):
 def _generate_variable(name, variables, visited):
     res = ''
     if name not in visited:
-        res += "% " + '{} sto {}'.format(_format_rpn_value(variables[name]), name) + "\n"
+        res += '% ' + '{} sto {}'.format(_format_rpn_value(variables[name]), name) + '\n'
         visited[name] = True
     return res
 
 
 def _generate_variables(data):
     res = ''
-    visited = {}
-    variables = {x['name']: x['value'] for x in data['models']['rpnVariables']}
+    visited = pkcollections.Dict()
+    variables = PKDict({x['name']: x['value'] for x in data['models']['rpnVariables']})
 
     for name in sorted(variables):
         for dependency in elegant_lattice_importer.build_variable_dependency(variables[name], variables, []):
@@ -985,10 +865,8 @@ def _get_filename_for_element_id(id, data):
 def _infix_to_postfix(expr):
     try:
         rpn = _parse_expr_infix(expr)
-        #pkdc('{} => {}', expr, rpn)
         expr = rpn
     except Exception as e:
-        #pkdc('{}: not infix: {}', expr, e)
         pass
     return expr
 
@@ -1044,7 +922,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
             if str(value) != str(default_value):
                 el_type = element_schema[1]
                 if el_type.endswith('StringArray'):
-                    state['commands'] += '  {}[0] = {},'.format(field_name, value) + "\n"
+                    state['commands'] += '  {}[0] = {},'.format(field_name, value) + '\n'
                 else:
                     #TODO(pjm): combine with lattice file input formatting below
                     if el_type == 'RPNValue':
@@ -1064,14 +942,14 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                             value = value + '.filename.lte'
                     if not _is_numeric(el_type, str(value)):
                         value = '"{}"'.format(value)
-                    state['commands'] += '  {} = {},'.format(field_name, value) + "\n"
+                    state['commands'] += '  {} = {},'.format(field_name, value) + '\n'
     else:
         state['field_index'] = 0
         if state['commands']:
-            state['commands'] += '&end' + "\n"
-        state['commands'] += "\n" + '&{}'.format(model['_type']) + "\n"
+            state['commands'] += '&end' + '\n'
+        state['commands'] += '\n' + '&{}'.format(model['_type']) + '\n'
         if model['_type'] == 'run_setup':
-            state['commands'] += '  semaphore_file = {},'.format(_ELEGANT_SEMAPHORE_FILE) + "\n"
+            state['commands'] += '  semaphore_file = {},'.format(_ELEGANT_SEMAPHORE_FILE) + '\n'
 
 
 def _iterator_input_files(state, model, element_schema=None, field_name=None):
@@ -1115,7 +993,7 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
         state['field_index'] = 0
         if state['lattice']:
             state['lattice'] = state['lattice'][:-1]
-            state['lattice'] += "\n"
+            state['lattice'] += '\n'
         state['lattice'] += '"{}": {},'.format(model['name'].upper(), model['type'])
         state['beamline_map'][model['_id']] = model['name']
 
@@ -1175,7 +1053,7 @@ def _output_info(run_dir):
 
 def _parameter_definitions(parameters):
     """Convert parameters to useful definitions"""
-    res = {}
+    res = pkcollections.Dict()
     for p in parameters:
         res[p] = dict(zip(
             ['symbol', 'units', 'description', 'format_string', 'type', 'fixed_value'],
@@ -1225,7 +1103,7 @@ def _parse_expr_infix(expr):
 
     tree = ast.parse(expr, filename='eval', mode='eval')
     assert isinstance(tree, ast.Expression), \
-        "{}: must be an expression".format(tree)
+        '{}: must be an expression'.format(tree)
     return ' '.join(_do(tree))
 
 
@@ -1294,10 +1172,10 @@ def _variables_to_postfix(rpn_variables):
         if 'value' not in v:
             pkdlog('rpn var missing value: {}', v['name'])
             v['value'] = '0'
-        res.append({
-            'name': v['name'],
-            'value': _infix_to_postfix(v['value']),
-        })
+        res.append(pkcollections.Dict(
+            name=v['name'],
+            value=_infix_to_postfix(v['value']),
+        ))
     return res
 
 

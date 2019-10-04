@@ -163,6 +163,7 @@ def init_by_server(app):
         html='text/html',
         js='application/javascript',
         json=app.config.get('JSONIFY_MIMETYPE', 'application/json'),
+        py='text/x-python',
     )
 
 

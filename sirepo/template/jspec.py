@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 u"""JSPEC execution template.
 
-:copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2017-2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
@@ -18,6 +17,9 @@ import os.path
 import py.path
 import re
 import sdds
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
 
@@ -26,8 +28,6 @@ JSPEC_INPUT_FILENAME = 'jspec.in'
 JSPEC_LOG_FILE = 'jspec.log'
 
 JSPEC_TWISS_FILENAME = 'jspec.tfs'
-
-SIM_TYPE = 'jspec'
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -50,9 +50,9 @@ _FIELD_MAP = {
     'rsecool': 'rs_ecool'
 }
 
-_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
+_OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
 
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _X_FIELD = 't'
 
@@ -101,42 +101,6 @@ def background_percent_complete(report, run_dir, is_running):
         'frameCount': 0,
     }
 
-
-def fixup_old_data(data):
-    for m in ('ring', 'particleAnimation', 'twissReport'):
-        if m not in data['models']:
-            data['models'][m] = {}
-        template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'coolingRatesAnimation' not in data['models']:
-        for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
-            data['models'][m] = {}
-            template_common.update_model_defaults(data['models'][m], m, _SCHEMA)
-    if 'beam_type' not in data['models']['ionBeam']:
-        ion_beam = data['models']['ionBeam']
-        ion_beam['beam_type'] = 'bunched' if ion_beam['rms_bunch_length'] > 0 else 'continuous'
-    if 'beam_type' not in data['models']['electronBeam']:
-        ebeam = data['models']['electronBeam']
-        ebeam['beam_type'] = 'continuous' if ebeam['shape'] == 'dc_uniform' else 'bunched'
-        ebeam['rh'] = ebeam['rv'] = 0.004
-    settings = data['models']['simulationSettings']
-    if settings['model'] == 'model_beam':
-        settings['model'] = 'particle'
-    if 'ibs' not in settings:
-        settings['ibs'] = '1'
-        settings['e_cool'] = '1'
-    if 'ref_bet_x' not in settings or not settings['ref_bet_x']:
-        settings['ref_bet_x'] = settings['ref_bet_y'] = 10
-        for f in ('ref_alf_x', 'ref_disp_x', 'ref_disp_dx', 'ref_alf_y', 'ref_disp_y', 'ref_disp_dy'):
-            settings[f] = 0
-    # if model field value is less than min, set to default value
-    for m in data['models']:
-        model = data['models'][m]
-        if m in _SCHEMA['model']:
-            for f in _SCHEMA['model'][m]:
-                field_def = _SCHEMA['model'][m][f]
-                if len(field_def) > 4 and model[f] < field_def[4]:
-                    model[f] = field_def[2]
-    template_common.organize_example(data)
 
 
 def get_animation_name(data):
@@ -275,7 +239,7 @@ def validate_file(file_type, path):
             columns = re.split(r'\s+', match.group(1))
             is_ok = True
             for col in sdds_util.MADX_TWISS_COLUMS:
-                if col == 'NAME' or col == 'TYPE' or col == 'COUNT':
+                if col in _OPTIONAL_MADX_TWISS_COLUMNS:
                     continue
                 if col not in columns:
                     is_ok = False

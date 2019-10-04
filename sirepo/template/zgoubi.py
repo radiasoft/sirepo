@@ -19,10 +19,11 @@ import math
 import numpy as np
 import py.path
 import re
+import sirepo.sim_data
 import werkzeug
 import zipfile
 
-SIM_TYPE = 'zgoubi'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 BUNCH_SUMMARY_FILE = 'bunch.json'
 
@@ -31,8 +32,6 @@ WANT_BROWSER_FRAME_CACHE = True
 TUNES_INPUT_FILE = 'tunesFromFai.In'
 
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _ELEMENT_NAME_MAP = {
     'FFAG': 'FFA',
@@ -393,49 +392,6 @@ def extract_tunes_report(run_dir, data):
         'y_label': '',
         'x_label': '',
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
-
-
-def fixup_old_data(data):
-    for m in [
-            'SPNTRK',
-            'SRLOSS',
-            'bunch',
-            'bunchAnimation',
-            'bunchAnimation2',
-            'elementStepAnimation',
-            'energyAnimation',
-            'opticsReport',
-            'particle',
-            'particleAnimation',
-            'particleCoordinate',
-            'simulationSettings',
-            'tunesReport',
-            'twissReport',
-            'twissReport2',
-            'twissSummaryReport',
-    ]:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'coordinates' not in data.models.bunch:
-        bunch = data.models.bunch
-        bunch.coordinates = []
-        for idx in range(bunch.particleCount2):
-            coord = {}
-            template_common.update_model_defaults(coord, 'particleCoordinate', _SCHEMA)
-            bunch.coordinates.append(coord)
-    # move spntrk from simulationSettings (older) or bunch if present
-    for m in ('simulationSettings', 'bunch'):
-        if 'spntrk' in data.models[m]:
-            data.models.SPNTRK.KSO = data.models[m].spntrk
-            del data.models[m]['spntrk']
-            for f in ('S_X', 'S_Y', 'S_Z'):
-                if f in data.models[m]:
-                    data.models.SPNTRK[f] = data.models[m][f]
-                    del data.models[m][f]
-    for el in data.models.elements:
-        template_common.update_model_defaults(el, el.type, _SCHEMA)
-    template_common.organize_example(data)
 
 
 def get_animation_name(data):

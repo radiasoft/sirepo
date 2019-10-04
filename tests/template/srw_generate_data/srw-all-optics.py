@@ -232,7 +232,7 @@ def set_optics(v=None):
                 _y=v.op_Circular_Cylinder_y,
             ))
             pp.append(v.op_Circular_Cylinder_pp)
-            
+
         elif el_name == 'Circular_Cylinder_Circular_Cylinder2':
             # Circular_Cylinder_Circular_Cylinder2: drift 29.0m
             el.append(srwlib.SRWLOptD(
@@ -287,7 +287,7 @@ def set_optics(v=None):
                 _y=v.op_Elliptical_Cylinder_y,
             ))
             pp.append(v.op_Elliptical_Cylinder_pp)
-            
+
         elif el_name == 'Elliptical_Cylinder_Elliptical_Cylinder2':
             # Elliptical_Cylinder_Elliptical_Cylinder2: drift 30.0m
             el.append(srwlib.SRWLOptD(
@@ -344,7 +344,7 @@ def set_optics(v=None):
                 _tvy=v.op_Toroid_tvy,
             ))
             pp.append(v.op_Toroid_pp)
-            
+
         elif el_name == 'Toroid_Toroid2':
             # Toroid_Toroid2: drift 31.0m
             el.append(srwlib.SRWLOptD(
@@ -406,7 +406,7 @@ def set_optics(v=None):
             )
             el.append(crystal)
             pp.append(v.op_Crystal_pp)
-            
+
         elif el_name == 'Crystal_Crystal2':
             # Crystal_Crystal2: drift 32.0m
             el.append(srwlib.SRWLOptD(

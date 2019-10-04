@@ -2288,7 +2288,7 @@ SIREPO.app.directive('resetSimulationModal', function(appDataService, appState, 
     };
 });
 
-SIREPO.app.directive('completeRegistration', function($window, requestSender, errorService) {
+SIREPO.app.directive('completeRegistration', function($window, requestSender, authState, errorService) {
     return {
         restrict: 'A',
         scope: {},
@@ -2310,6 +2310,14 @@ SIREPO.app.directive('completeRegistration', function($window, requestSender, er
             '</form>',
         ].join(''),
         controller: function($scope) {
+            if (! authState.isLoggedIn) {
+                requestSender.localRedirect('login');
+                return;
+            }
+            if (! authState.needCompleteRegistration) {
+                requestSender.localRedirect('simulations');
+                return;
+            }
             function handleResponse(data) {
                 if (data.state === 'ok') {
                     $scope.showWarning = false;
@@ -2705,7 +2713,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
         ].join(''),
         controller: function($scope) {
             var slider;
-            
+
             var delegate = $scope.fieldDelegate;
             if (! delegate || $.isEmptyObject(delegate)) {
                 delegate = panelState.getFieldDelegate($scope.modelName, $scope.field);

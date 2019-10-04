@@ -51,7 +51,7 @@ def set_optics(v=None):
                 _y=v.op_HFM_y,
             ))
             pp.append(v.op_HFM_pp)
-            
+
         elif el_name == 'HFM_S1':
             # HFM_S1: drift 34.2608m
             el.append(srwlib.SRWLOptD(
@@ -97,7 +97,7 @@ def set_optics(v=None):
             )
             el.append(crystal)
             pp.append(v.op_DCM_C1_pp)
-            
+
         elif el_name == 'DCM_C2':
             # DCM_C2: crystal 36.4488m
             crystal = srwlib.SRWLOptCryst(
@@ -120,7 +120,7 @@ def set_optics(v=None):
             )
             el.append(crystal)
             pp.append(v.op_DCM_C2_pp)
-            
+
         elif el_name == 'DCM_C2_At_BPM1':
             # DCM_C2_At_BPM1: drift 36.4488m
             el.append(srwlib.SRWLOptD(
@@ -190,7 +190,7 @@ def set_optics(v=None):
                 _y=v.op_KBV_y,
             ))
             pp.append(v.op_KBV_pp)
-            
+
         elif el_name == 'KBV_KBH':
             # KBV_KBH: drift 62.663m
             el.append(srwlib.SRWLOptD(
@@ -214,7 +214,7 @@ def set_optics(v=None):
                 _y=v.op_KBH_y,
             ))
             pp.append(v.op_KBH_pp)
-            
+
         elif el_name == 'KBH_At_Sample':
             # KBH_At_Sample: drift 63.0m
             el.append(srwlib.SRWLOptD(
@@ -267,7 +267,7 @@ varParam = srwl_bl.srwl_uti_ext_options([
     ['und_b2e', '', '', 'estimate undulator fundamental photon energy (in [eV]) for the amplitude of sinusoidal magnetic field defined by und_b or und_bx, und_by', 'store_true'],
     ['und_e2b', '', '', 'estimate undulator field amplitude (in [T]) for the photon energy defined by w_e', 'store_true'],
     ['und_per', 'f', 0.02, 'undulator period [m]'],
-    ['und_len', 'f', 3.0, 'undulator length [m]'],
+    ['und_len', 'f', 2.500648, 'undulator length [m]'],
     ['und_zc', 'f', -1.25, 'undulator center longitudinal position [m]'],
     ['und_sx', 'i', 1, 'undulator horizontal magnetic field symmetry vs longitudinal position'],
     ['und_sy', 'i', -1, 'undulator vertical magnetic field symmetry vs longitudinal position'],
