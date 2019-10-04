@@ -315,6 +315,10 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         };
     };
 
+    self.isReversed = function(beamlineId) {
+        return beamlineId < 0;
+    };
+
     self.newBeamline = function() {
         appState.models.beamline = self.getNextBeamline();
         panelState.showModalEditor('beamline');
@@ -587,7 +591,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 var res = itemNameCache[id];
                 if (res === undefined) {
                     res = latticeService.nameForId(id);
-                    res = (id < 0 ? '-' : '') + res;
+                    res = (latticeService.isReversed(id) ? '-' : '') + res;
                     // cache is cleared below if item model is changed
                     itemNameCache[id] = res;
                 }
@@ -875,19 +879,13 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 }
                 var idx = $scope.beamlineItems.indexOf($scope.selectedItem);
                 if (idx >= 0) {
-                    var sourceBeamline = latticeService.elementForId($scope.selectedItem.id);
-                    var items = [];
-                    activeBeamline.items.forEach(function(id, i) {
-                        if (i == idx) {
-                            sourceBeamline.items.forEach(function(id2) {
-                                items.push(id2);
-                            });
-                        }
-                        else {
-                            items.push(id);
-                        }
-                    });
-                    activeBeamline.items = items;
+                    var items = latticeService.elementForId($scope.selectedItem.id).items;
+                    if (latticeService.isReversed($scope.selectedItem.id)) {
+                        items = items.slice().reverse();
+                    }
+                    activeBeamline.items = activeBeamline.items.slice(0, idx)
+                        .concat(items)
+                        .concat(activeBeamline.items.slice(idx + 1));
                     appState.saveChanges('beamlines');
                 }
             };
@@ -1104,7 +1102,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
 
             function itemTrackHash(item, group, length, angle) {
                 return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
-                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0) + '-' + item.indexClass;
+                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0) + '-' + item.beamlineIndex;
             }
 
             function subScaleWatch() {
@@ -1212,6 +1210,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             color: getPicColor(item, 'blue'),
                             points: points,
                             trackHash: itemTrackHash(item, group, length, angle),
+                            title: item.name + ': ' + item.type,
                         });
                         x += radius;
                         newAngle = latticeService.radiansToDegrees(angle);
@@ -1235,6 +1234,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             x: pos.radius + pos.x + x,
                             height: 0,
                             width: length,
+                            title: item.name + ': ' + item.type,
                         };
                         if (picType == 'watch') {
                             groupItem.height = 1;
@@ -1504,7 +1504,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     else {
-                        explodeItems(item.items, res, id < 0, item.beamlineIndex);
+                        explodeItems(item.items, res, latticeService.isReversed(id), item.beamlineIndex);
                     }
                 }
                 return res;

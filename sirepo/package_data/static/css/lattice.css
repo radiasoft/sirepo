@@ -82,3 +82,7 @@ div.sr-lattice-icon-disabled span {
   stroke: black !important;
   stroke-width: 0.01 !important;
 }
+
+.sr-lattice rect, .sr-lattice polygon, .sr-lattice line, .sr-lattice path, .sr-lattice ellipse, .sr-lattice circle {
+  cursor: pointer;
+}

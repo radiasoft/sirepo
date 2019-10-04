@@ -3,58 +3,58 @@
   <div ng-attr-style="{{ ::plotStyle }}"><svg class="sr-plot" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
       <rect ng-attr-width="{{ width }}" ng-attr-height="{{ height }}" style="fill: none;"></rect>
       <g ng-attr-transform="translate({{ ::margin }},{{ ::margin }})">
-        <g class="sr-zoom-plot">
+        <g class="sr-zoom-plot sr-lattice">
           <g ng-attr-transform="translate({{ xOffset }},{{ yOffset }}) scale({{ xScale }},{{ yScale }})">
             <!-- render drifts first, lowest z index -->
             <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
               <g ng-repeat="item in ::group.items track by item.trackHash" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
-                <rect ng-if="::item.picType == 'drift' || item.picType == 'aperture'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
+                <rect ng-if="::item.picType == 'drift' || item.picType == 'aperture'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></rect>
               </g>
             </g>
             <!-- render apertures and zeroLength in middle layer -->
             <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
               <g ng-repeat="item in ::group.items track by item.trackHash" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
                 <g ng-if="::item.picType == 'aperture'">
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - 2 * item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.element.name }}</title></rect>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.element.name }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - 2 * item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.opening + item.height / 2 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.opening }}" ng-attr-style="fill: {{ ::item.apertureColor }}"><title>{{ ::item.title }}</title></rect>
                 </g>
-                <line ng-if="::item.picType == 'zeroLength'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x1="{{ ::item.x }}" ng-attr-y1="{{ ::item.y - item.height }}" ng-attr-x2="{{ ::item.x }}" ng-attr-y2="{{ ::item.y + item.height }}" ng-attr-style="stroke: {{ ::item.color }}; stroke-width: 0.05"><title>{{ ::item.element.name }}</title></line>
+                <line ng-if="::item.picType == 'zeroLength'" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x1="{{ ::item.x }}" ng-attr-y1="{{ ::item.y - item.height }}" ng-attr-x2="{{ ::item.x }}" ng-attr-y2="{{ ::item.y + item.height }}" ng-attr-style="stroke: {{ ::item.color }}; stroke-width: 0.05"><title>{{ ::item.title }}</title></line>
               </g>
             </g>
             <!-- render other elements on top -->
             <g ng-repeat="group in svgGroups track by group.trackHash" ng-attr-transform="rotate({{ ::group.rotate }},{{ ::group.rotateX }},{{ ::group.rotateY }})">
               <g ng-repeat="item in ::group.items track by item.trackHash" ng-switch="::item.picType" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
-                <polygon ng-switch-when="bend" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{::item.points[0][0] +',' + item.points[0][1] + ' ' + item.points[1][0] + ',' + item.points[1][1] + ' ' + item.points[2][0] + ',' + item.points[2][1] + ' ' + item.points[3][0] + ',' + item.points[3][1] }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></polygon>
+                <polygon ng-switch-when="bend" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{::item.points[0][0] +',' + item.points[0][1] + ' ' + item.points[1][0] + ',' + item.points[1][1] + ' ' + item.points[2][0] + ',' + item.points[2][1] + ' ' + item.points[3][0] + ',' + item.points[3][1] }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></polygon>
                 <g ng-switch-when="watch" ng-attr-transform="translate({{ ::item.x }},{{ ::item.y }})">
-                  <path ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-transform="scale({{ item.subScaling().x }}, {{ item.subScaling().y }})" ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="stroke: black; fill: {{ ::item.color}}; stroke-width: 0.01"><title>{{ ::item.element.name }}</title></path>
+                  <path ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-transform="scale({{ item.subScaling().x }}, {{ item.subScaling().y }})" ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="stroke: black; fill: {{ ::item.color}}; stroke-width: 0.01"><title>{{ ::item.title }}</title></path>
                 </g>
                 <g ng-switch-when="undulator">
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.height / 4 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 2 }}" style="fill: white"><title>{{ ::item.element.name }}</title></rect>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-repeat="block in ::item.blocks" ng-attr-x="{{ ::block[0] }}" ng-attr-y="{{ ::block[1] }}" ng-attr-width="{{ ::item.blockWidth }}" ng-attr-height="{{ ::item.blockHeight }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y + item.height / 4 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 2 }}" style="fill: white"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-repeat="block in ::item.blocks" ng-attr-x="{{ ::block[0] }}" ng-attr-y="{{ ::block[1] }}" ng-attr-width="{{ ::item.blockWidth }}" ng-attr-height="{{ ::item.blockHeight }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></rect>
                 </g>
                 <g ng-switch-when="rf">
                   <g ng-repeat="oval in ::item.ovals">
-                    <ellipse ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::oval }}" ng-attr-cy="{{ ::item.y }}" ng-attr-rx="{{ ::item.ovalWidth / 2 }}" ng-attr-ry="{{ ::item.height / 2 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.element.name }}</title></ellipse>
+                    <ellipse ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::oval }}" ng-attr-cy="{{ ::item.y }}" ng-attr-rx="{{ ::item.ovalWidth / 2 }}" ng-attr-ry="{{ ::item.height / 2 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.title }}</title></ellipse>
                   </g>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - item.height / 6 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 3 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.element.name }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - item.height / 6 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 3 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.title }}</title></rect>
                 </g>
                 <g ng-switch-when="recirc" ng-attr-transform="rotate(-16, {{ ::item.x }}, {{ ::item.y }})">
-                  <circle ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::item.x }}" ng-attr-cy="{{ ::item.y }}" ng-attr-r="{{ ::item.radius }}" ng-attr-style="fill: none; stroke-width: 0.03; stroke: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></circle>
-                  <polygon ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{ ::item.leftEdge + ',' + (item.y - 0.05) + ' ' + (item.leftEdge + 0.05) + ',' + (item.y + 0.05) + ' ' + (item.leftEdge - 0.05) + ',' + (item.y + 0.05) }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></polygon>
-                  <polygon ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{ ::item.rightEdge + ',' + (item.y + 0.05) + ' ' + (item.rightEdge - 0.05) + ',' + (item.y - 0.05) + ' ' + (item.rightEdge + 0.05) + ',' + (item.y - 0.05) }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.element.name }}</title></polygon>
+                  <circle ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::item.x }}" ng-attr-cy="{{ ::item.y }}" ng-attr-r="{{ ::item.radius }}" ng-attr-style="fill: none; stroke-width: 0.03; stroke: {{ ::item.color }}"><title>{{ ::item.title }}</title></circle>
+                  <polygon ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{ ::item.leftEdge + ',' + (item.y - 0.05) + ' ' + (item.leftEdge + 0.05) + ',' + (item.y + 0.05) + ' ' + (item.leftEdge - 0.05) + ',' + (item.y + 0.05) }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></polygon>
+                  <polygon ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{ ::item.rightEdge + ',' + (item.y + 0.05) + ' ' + (item.rightEdge - 0.05) + ',' + (item.y - 0.05) + ' ' + (item.rightEdge + 0.05) + ',' + (item.y - 0.05) }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></polygon>
                 </g>
                 <g ng-switch-when="alpha" ng-attr-transform="rotate({{ ::- item.angle }}, {{ ::item.x }}, {{ ::item.y + item.height / 2 }})">
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" style="fill: red"><title>{{ ::item.element.name }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" style="fill: red"><title>{{ ::item.title }}</title></rect>
                   <path ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-d="M{{ ::item.x }},{{ ::item.y + item.height / 2 }} C{{ ::item.x + item.width * 6 / 5 }},{{ ::item.y - item.height * 3 / 4 }} {{ ::item.x + item.width * 6 / 5 }},{{ ::item.y + item.height * 7 / 4}} {{ ::item.x }},{{ ::item.y + item.height / 2 }}" style="stroke: blue; fill: none; stroke-width: 0.005" />
                 </g>
                 <g ng-switch-when="mirror" ng-attr-transform="rotate({{ ::- item.angle }}, {{ ::item.x }}, {{ ::item.y + item.height / 2 }})">
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.element.name }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.title }}</title></rect>
                 </g>
                 <g ng-switch-when="drift"></g>
                 <g ng-switch-when="aperture"></g>
                 <g ng-switch-when="zeroLength"></g>
-                <rect ng-switch-default="" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: {{ ::item.width / 50.0 }}"><title>{{ ::item.element.name }}</title></rect>
+                <rect ng-switch-default="" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: {{ ::item.width / 50.0 }}"><title>{{ ::item.title }}</title></rect>
               </g>
             </g>
           </g>
