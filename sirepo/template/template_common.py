@@ -30,8 +30,6 @@ DEFAULT_INTENSITY_DISTANCE = 20
 #: Input json file
 INPUT_BASE_NAME = 'in'
 
-LIB_FILE_PARAM_RE = re.compile(r'.*File$')
-
 #: Output json file
 OUTPUT_BASE_NAME = 'out'
 
@@ -48,36 +46,31 @@ _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 _RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 
-class ModelUnits:
-    """
-    Convert model fields from native to sirepo format, or from sirepo to native
-    format.
+class ModelUnits(object):
+    """Convert model fields from native to sirepo format, or from sirepo to native format.
 
-    Examples
-    --------
+    Examples::
+        def _xpas(value, is_native):
+            # custom field conversion code would go here
+            return value
 
-    def _xpas(value, is_native):
-        # custom field conversion code would go here
-        return value
-
-    mu = ModelUnits({
-        'CHANGREF': {
-            'XCE': 'cm_to_m',
-            'YCE': 'cm_to_m',
-            'ALE': 'deg_to_rad',
-            'XPAS': _xpas,
-        },
-    })
-    m = mu.scale_from_native('CHANGREF', {
-        'XCE': 2,
-        'YCE': 0,
-        'ALE': 8,
-        'XPAS': '#20|20|20',
-    })
-    assert m['XCE'] == 2e-2
-    assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
-    assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
-
+        mu = ModelUnits({
+            'CHANGREF': {
+                'XCE': 'cm_to_m',
+                'YCE': 'cm_to_m',
+                'ALE': 'deg_to_rad',
+                'XPAS': _xpas,
+            },
+        })
+        m = mu.scale_from_native('CHANGREF', {
+            'XCE': 2,
+            'YCE': 0,
+            'ALE': 8,
+            'XPAS': '#20|20|20',
+        })
+        assert m['XCE'] == 2e-2
+        assert ModelUnits.scale_value(2, 'cm_to_m', True) == 2e-2
+        assert ModelUnits.scale_value(0.02, 'cm_to_m', False) == 2
     """
 
     # handler for common units, native --> sirepo scale
@@ -89,9 +82,8 @@ class ModelUnits:
 
     def __init__(self, unit_def):
         """
-        Parameters
-        ----------
-        unit_def: dict
+        Args:
+            unit_def (dict):
             Map of model name to field handlers
         """
         self.unit_def = unit_def
@@ -104,10 +96,10 @@ class ModelUnits:
         """ Scale values from sirepo units to native values. """
         return self.__scale_model(name, model, False)
 
-    @staticmethod
-    def scale_value(value, scale_type, is_native):
+    @classmethod
+    def scale_value(cls, value, scale_type, is_native):
         """ Scale one value using the specified handler. """
-        handler = ModelUnits._COMMON_HANDLERS.get(scale_type, scale_type)
+        handler = cls._COMMON_HANDLERS.get(scale_type, scale_type)
         if isinstance(handler, float):
             return float(value) * (handler if is_native else 1 / handler)
         assert isinstance(handler, types.FunctionType), \
