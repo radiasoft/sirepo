@@ -106,7 +106,7 @@ def test_auth_login():
     bluesky.auth_hash(req)
     resp = fc.sr_post('authBlueskyLogin', req)
     pkeq('ok', resp['state'])
-    pkeq(req.simulationId, simulation_db.parse_sid(resp['data']))
+    pkeq(req.simulationId, resp.data.models.simulation.simulationId)
     pkeq('srw', resp['schema']['simulationType'])
     req.authHash = 'not match'
     resp = fc.sr_post('authBlueskyLogin', req, raw_response=True)

@@ -482,21 +482,6 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
     return fixup_old_data(data)[0] if fixup else data
 
 
-def parse_sid(data):
-    """Extract id from data
-
-    Args:
-        data (dict): models or request
-
-    Returns:
-        str: simulationId from data
-    """
-    try:
-        return str(data['simulationId'])
-    except KeyError:
-        return str(data['models']['simulation']['simulationId'])
-
-
 def parse_sim_ser(data):
     """Extract simulationStatus from data
 
@@ -558,8 +543,8 @@ def prepare_simulation(data, tmp_dir=None):
         run_dir = simulation_run_dir(data)
         pkio.mkdir_parent(tmp_dir)
         out_dir = tmp_dir
-    sim_type = data['simulationType']
-    sid = parse_sid(data)
+    sim_type = data.simulationType
+    sid = data.models.simulation.simulationId
     template = sirepo.template.import_module(data)
     template_common.copy_lib_files(data, None, out_dir)
 
@@ -818,17 +803,18 @@ def simulation_lib_dir(simulation_type):
     return simulation_dir(simulation_type).join(_LIB_DIR)
 
 
-def simulation_run_dir(data, remove_dir=False):
+def simulation_run_dir(req_or_data, remove_dir=False):
     """Where to run the simulation
 
     Args:
-        data (dict): contains simulationType and simulationId
+        req_or_data (dict): may be simulation data or a request
         remove_dir (bool): remove the directory [False]
 
     Returns:
         py.path: directory to run
     """
-    d = simulation_dir(data['simulationType'], parse_sid(data)).join(_report_dir(data))
+    sid = req_or_data.get('simulationId') or req_or_data.models.simulation.simulationId
+    d = simulation_dir(req_or_data.simulationType, sid).join(_report_dir(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
@@ -925,11 +911,11 @@ def validate_serial(req_data):
         object: None if all ok, or json response (bad)
     """
     with _global_lock:
-        sim_type = sirepo.template.assert_sim_type(req_data['simulationType'])
-        sid = parse_sid(req_data)
-        req_ser = req_data['models']['simulation']['simulationSerial']
+        sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
+        sid = req_data.models.simulation.simulationId
+        req_ser = req_data.models.simulation.simulationSerial
         curr = read_simulation_json(sim_type, sid=sid)
-        curr_ser = curr['models']['simulation']['simulationSerial']
+        curr_ser = curr.models.simulation.simulationSerial
         if not req_ser is None:
             if req_ser == curr_ser:
                 return None

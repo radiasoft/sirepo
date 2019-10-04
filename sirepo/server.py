@@ -76,10 +76,10 @@ def api_copyNonSessionSimulation():
     )
     if 'report' in data:
         del data['report']
-    data['models']['simulation']['isExample'] = False
-    data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+    data.models.simulation.isExample = False
+    data.models.simulation.outOfSessionSimulationId = req.simulationId
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
+    target = simulation_db.simulation_dir(sim_type, data.models.simulation.simulationId)
     template_common.copy_lib_files(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
