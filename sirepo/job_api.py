@@ -139,7 +139,7 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         if not is_running:
             if status is not job.JobStatus.MISSING:
                 res, err = job.run_extract_job(
-                    jid, run_dir, jhash, 'result', data,
+                    jid, run_dir, jhash, 'result',
                 )
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', run_dir)

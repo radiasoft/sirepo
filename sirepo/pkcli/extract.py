@@ -53,9 +53,12 @@ def background_percent_complete(is_running):
     )
 
 
-# XX FIXME: can we avoid passing the whole data dict through here?
 @_extract_cmd
-def result(data):
+def result():
+    data = simulation_db.read_json(
+        _run_dir().join(template_common.INPUT_BASE_NAME)
+    )  # TODO(e-carlin): verify with rn that in.json has the correct data.
+       # previously we were using "data" which was passed in from the GUI
     template = sirepo.template.import_module(data)
 
     if hasattr(template, 'prepare_output_file') and 'models' in data:

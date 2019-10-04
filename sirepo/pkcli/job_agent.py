@@ -79,7 +79,6 @@ class _JobTracker:
             )
         assert runner_info.version == 1
 
-        # run the job
         cmd = ['sirepo', 'extract', subcmd, arg]
         result = await job_agent_process.run_extract_job(  # TODO(e-carlin): Handle multiple backends
            run_dir, cmd, runner_info.backend_info,
