@@ -38,7 +38,12 @@ def api_runSimulation():
     jhash = template_common.report_parameters_hash(data)
     run_dir = simulation_db.simulation_run_dir(data)
     jid = simulation_db.job_id(data)
-    status = job.compute_job_status(jid, run_dir, jhash)
+    status = job.compute_job_status(
+        jid,
+        run_dir,
+        jhash,
+        simulation_db.is_parallel(data)
+    )
     already_good_status = [
         job.JobStatus.RUNNING,
         job.JobStatus.COMPLETED,
@@ -131,10 +136,21 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         run_dir = simulation_db.simulation_run_dir(data)
         jhash = template_common.report_parameters_hash(data)
         jid = simulation_db.job_id(data)
-        status = job.compute_job_status(jid, run_dir, jhash)
+        status = job.compute_job_status(
+            jid,
+            run_dir,
+            jhash,
+            simulation_db.is_parallel(data),
+        )
         is_running = status is job.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
         res = {'state': status.value}
+        pkdc(
+            '{}: is_running={} state={}',
+            rep.job_id,
+            is_running,
+            status,
+        )
 
         if not is_running:
             if status is not job.JobStatus.MISSING:

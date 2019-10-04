@@ -77,8 +77,6 @@ class ComputeJob():
         self.returncode = None
         self._wait_for_terminate_timeout = None
         self._process_exited = tornado.locks.Event()
-
-        # Start the compute job subprocess
         env = _subprocess_env()
         run_log_path = run_dir.join(template_common.RUN_LOG)
         # we're in py3 mode, and regular subprocesses will inherit our
@@ -97,6 +95,13 @@ class ComputeJob():
                 env=env,
             )
             self._sub_process.set_exit_callback(self.on_exit_callback)
+
+    def __repr__(self):
+        return 'run_dir={}, jhash={}, status={}'.format(
+            self.run_dir,
+            self.jhash,
+            self.status,
+            )
 
     def on_exit_callback(self, returncode):
         if self._wait_for_terminate_timeout:

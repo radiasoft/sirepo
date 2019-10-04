@@ -95,8 +95,7 @@ class _JobTracker:
         if result.returncode != 0:
             pkdlog(
                 'failed with return code {} ({} {}), stdout:\n{}',
-                result.returncode,
-                run_dir,
+                result.retu_dir,
                 subcmd,
                 result.stdout.decode('utf-8', errors='ignore'),
             )
@@ -168,12 +167,13 @@ class _JobTracker:
         if disk_in_path.exists() and disk_status_path.exists():
             # status should be recorded on disk XOR in memory
             assert run_dir not in self._compute_jobs
-            disk_in_text = pkio.read_text(disk_in_path)
-            disk_jhash = pkjson.load_any(disk_in_text).reportParametersHash
+            disk_jhash = pkjson.load_any(
+                pkio.read_text(disk_in_path)
+            ).reportParametersHash
             disk_status = pkio.read_text(disk_status_path)
             if disk_status == 'pending':
-                # We never write this, so it must be stale, in which case
-                # the job is no longer pending...
+                # Only runner code writes this, so it must be stale,
+                # in which case the job is no longer pending...
                 pkdlog(
                     'found "pending" status, treating as "error" ({})',
                     disk_status_path,
@@ -279,7 +279,6 @@ class _Msg(pkcollections.Dict):
                 if k.endswith('_dir'):
                     m[k] = pkio.py_path(v)
         except Exception as e:
-            pkdlog('Error: {}', e)
-            pkdp(pkdexc())
+            pkdlog('Error: {}\n{}', e, pkdexc())
             return None, f'exception={e}'
         return m, None

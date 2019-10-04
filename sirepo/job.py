@@ -39,6 +39,7 @@ class JobStatus(aenum.Enum):
     ERROR = 'error'         # data on disk exists, but job failed somehow
     CANCELED = 'canceled'   # data on disk exists, but is incomplete
     COMPLETED = 'completed' # data on disk exists, and is fully usable
+    PENDING = 'pending' # job has been sent to supervisor but hasn't started running
 
 
 def init_by_server(app):
@@ -50,12 +51,14 @@ def init_by_server(app):
 
 
 # TODO(e-carlin): These methods have the same structure. Abstract.
-def compute_job_status(jid, run_dir, jhash):
+def compute_job_status(jid, run_dir, jhash, parallel):
     body = pkcollections.Dict(
         jid=jid,
         action=ACTION_COMPUTE_JOB_STATUS,
         run_dir=str(run_dir),
         jhash=jhash,
+        parallel=parallel,
+
     )
     response = _request(body)
     return JobStatus(response.status)
@@ -81,6 +84,7 @@ def run_extract_job(jid, run_dir, jhash, subcmd, *args):
         arg=pkjson.dump_pretty(args),
     )
     response = _request(body)
+    # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
     return response.result
 
 

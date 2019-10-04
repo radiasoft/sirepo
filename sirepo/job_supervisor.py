@@ -42,7 +42,7 @@ async def incoming_message(msg):
         run_scheduler(type(d), d.resource_class)
         return
     if a == job.ACTION_ERROR:
-        pkdlog('Error: {}', DebugRenderer(msg))
+        pkdlog('received error from agent: {}', DebugRenderer(msg))
     try:
         r = _get_request_for_message(msg)
     except (KeyError, AttributeError):
@@ -134,6 +134,18 @@ def run_scheduler(driver_class, resource_class):
                 if r.waiting_on_dependent_request:
                     continue
 
+                # if the request is for status of a job pending in the q or in
+                # running_data_jobs then reply out of band
+                if r.content.action == job.ACTION_COMPUTE_JOB_STATUS:
+                    j = _get_data_job_request(d, r.content.jid)
+                    if j and j.state == _STATE_RUN_PENDING:
+                        r.state = _STATE_RUNNING
+                        r.set_response(pkcollections.Dict(
+                            status=job.JobStatus.PENDING.value,
+                            )
+                        )
+                        continue
+
                 # start agent if not started and slots available
                 if not d.agent_started() and _slots_available(driver_class, resource_class):
                     d.start_agent(r)
@@ -149,7 +161,7 @@ def run_scheduler(driver_class, resource_class):
 
 
 def _add_to_running_data_jobs(driver, req):
-    if  req.content.action in DATA_ACTIONS:
+    if req.content.action in DATA_ACTIONS:
         assert req.content.jid not in driver.running_data_jobs
         driver.running_data_jobs.add(req.content.jid)
 
@@ -204,6 +216,14 @@ def _free_slots_if_needed(driver_class, resource_class):
             break
     if slot_needed:
         _try_to_free_slot(driver_class, resource_class)
+
+
+def _get_data_job_request(driver, jid):
+    for r in driver.requests:
+        if r.content.action in DATA_ACTIONS:
+            if r.content.jid is jid:
+                return r
+    return None
 
 
 def _get_request_for_message(msg):
