@@ -13,4 +13,4 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        cls.init_models(data.models)
+        cls._init_models(data.models)

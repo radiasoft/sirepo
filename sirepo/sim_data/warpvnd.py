@@ -22,7 +22,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             enabledFields=PKDict(),
             fields=[],
         )
-        cls.init_models(
+        cls._init_models(
             dm,
             (
                 # simulationGrid must be first
@@ -61,7 +61,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls.update_model_defaults(c, c.get('type', 'box'))
         for c in dm.conductors:
             cls.update_model_defaults(c, 'conductorPosition')
-        cls.organize_example(data)
+        cls._organize_example(data)
 
     @classmethod
     def is_3d(cls, data):

@@ -15,7 +15,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls.init_models(dm, ('ring', 'particleAnimation', 'twissReport'))
+        cls._init_models(dm, ('ring', 'particleAnimation', 'twissReport'))
         if 'coolingRatesAnimation' not in dm:
             for m in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
                 dm[m] = PKDict()
@@ -55,4 +55,4 @@ class SimData(sirepo.sim_data.SimDataBase):
                     d = s.model[m][f]
                     if len(d) > 4 and x[f] < d[4]:
                         x[f] = d[2]
-        cls.organize_example(data)
+        cls._organize_example(data)

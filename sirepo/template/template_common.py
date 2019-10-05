@@ -420,36 +420,19 @@ def report_parameters_hash(data):
         str: url safe encoded hash
     """
     if not 'reportParametersHash' in data:
-        models = sirepo.template.import_module(data).models_related_to_report(data)
+        fields = sirepo.sim_data.get_class(data.simulationType).compute_job_fields(data)
         res = hashlib.md5()
         dm = data['models']
-        for m in models:
+        for f in fields:
             if isinstance(m, pkconfig.STRING_TYPES):
-                name, field = m.split('.') if '.' in m else (m, None)
-                value = dm[name][field] if field else dm[name]
+                x = f.split('.')
+                v = dm[x[0]][x[1]] if len(x) > 1 else dm[x[0]]
             else:
-                value = m
-            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode())
+                # probably an mtime for a file
+                v = m
+            res.update(json.dumps(v, sort_keys=True, allow_nan=False).encode())
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
-
-
-def report_fields(data, report_name, style_fields):
-    # if the model has "style" fields, then return the full list of non-style fields
-    # otherwise returns the report name (which implies all model fields)
-    if report_name not in data.models:
-        return [report_name]
-    m = data.models[report_name]
-    for style_field in style_fields:
-        if style_field not in m:
-            continue
-        res = []
-        for f in m:
-            if f in style_fields:
-                continue
-            res.append('{}.{}'.format(report_name, f))
-        return res
-    return [report_name]
 
 
 def resource_dir(sim_type):

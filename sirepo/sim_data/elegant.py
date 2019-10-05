@@ -16,7 +16,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         s = cls.schema()
         dm = data.models
-        cls.init_models(dm, ('bunchSource', 'twissReport'))
+        cls._init_models(dm, ('bunchSource', 'twissReport'))
         dm.setdefault('bunchFile', PKDict(sourceFile=None))
         dm.simulation.setdefault(
             'folder', '/',
@@ -54,7 +54,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 bunch.centroid = '0,0,0,0,0,0'
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
-        cls.organize_example(data)
+        cls._organize_example(data)
 
     @classmethod
     def max_id(cls, data):

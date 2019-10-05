@@ -62,7 +62,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'tabulatedUndulator',
             'trajectoryReport',
         )
-        cls.init_models(dm, x)
+        cls._init_models(dm, x)
         for m in x:
             if 'intensityPlotsScale' in dm[m]:
                 dm[m].plotScale = dm[m].intensityPlotsScale
@@ -114,7 +114,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.folder = cls.EXAMPLE_FOLDERS[dm.simulation.name]
             else:
                 dm.simulation.folder = '/'
-        cls.template_fixup_set(data)
+        cls._template_fixup_set(data)
 
     @classmethod
     def is_arbitrary_source(cls, sim):

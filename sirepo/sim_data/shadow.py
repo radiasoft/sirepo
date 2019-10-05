@@ -11,6 +11,33 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    _ANALYSIS_ONLY_FIELDS = ['colorMap', 'notes', 'aspectRatio']
+
+    @classmethod
+    def compute_job_fields(cls, data):
+        from sirepo.template import template_common
+
+        r = data['report']
+        res = cls._fields_for_compute(data, r) + [
+            'bendingMagnet',
+            'electronBeam',
+            'geometricSource',
+            'rayFilter',
+            'simulation.istar1',
+            'simulation.npoint',
+            'simulation.sourceType',
+            'sourceDivergence',
+            'wiggler',
+        ]
+        if r == 'initialIntensityReport' and len(data['models']['beamline']):
+            res.append([data['models']['beamline'][0]['position']])
+        #TODO(pjm): only include items up to the current watchpoint
+        if _SIM_DATA.is_watchpoint(r):
+            res.append('beamline')
+        for f in template_common.lib_files(data):
+            res.append(f.mtime())
+        return res
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -22,8 +49,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             x = g.cone_max
             g.cone_max = g.cone_min
             g.cone_min = x
-        cls.init_models(dm, ('initialIntensityReport', 'plotXYReport'))
+        cls._init_models(dm, ('initialIntensityReport', 'plotXYReport'))
         for m in dm:
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], 'watchpointReport')
-        cls.organize_example(data)
+        cls._organize_example(data)

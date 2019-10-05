@@ -100,4 +100,4 @@ class SimData(sirepo.sim_data.SimDataBase):
                 })
         for m in 'beamAnimation', 'fieldAnimation', 'particleAnimation':
             cls.update_model_defaults(dm[m], m)
-        cls.organize_example(data)
+        cls._organize_example(data)

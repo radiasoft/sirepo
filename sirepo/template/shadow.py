@@ -22,8 +22,6 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'aspectRatio']
-
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
     'geometricSource': ['wxsou', 'wzsou', 'sigmax', 'sigmaz', 'wysou', 'sigmay'],
@@ -84,36 +82,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
 
 def lib_files(data, source_lib):
     return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'bendingMagnet',
-        'electronBeam',
-        'geometricSource',
-        'rayFilter',
-        'simulation.istar1',
-        'simulation.npoint',
-        'simulation.sourceType',
-        'sourceDivergence',
-        'wiggler',
-    ]
-    if r == 'initialIntensityReport' and len(data['models']['beamline']):
-        res.append([data['models']['beamline'][0]['position']])
-    #TODO(pjm): only include items up to the current watchpoint
-    if _SIM_DATA.is_watchpoint(r):
-        res.append('beamline')
-    for f in template_common.lib_files(data):
-        res.append(f.mtime())
-    return res
 
 
 def python_source_for_model(data, model):

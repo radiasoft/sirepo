@@ -36,7 +36,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if n not in dm:
                     dm[n] = m = PKDict(_id=e._id)
                     cls.update_model_defaults(m, 'watchpointReport')
-        cls.organize_example(data)
+        cls._organize_example(data)
 
     @classmethod
     def _init_default_beamline(cls, data):

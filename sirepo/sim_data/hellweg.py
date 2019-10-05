@@ -14,7 +14,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls.init_models(
+        cls._init_models(
             dm,
             (
                 'beamAnimation',
@@ -35,4 +35,4 @@ class SimData(sirepo.sim_data.SimDataBase):
                 longitudinalFile2d='',
                 cstFile='',
             )
-        cls.organize_example(data)
+        cls._organize_example(data)
