@@ -5,6 +5,7 @@ u"""Run jobs using a local process
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdexc
 from sirepo import mpi
@@ -16,19 +17,12 @@ import tornado.process
 import tornado.locks
 import tornado.ioloop
 
+
 #: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
 # See https://github.com/radiasoft/sirepo/issues/1323
 # We also remove SIREPO_ and PYKERN vars, because we shouldn't
 # need to pass any of that on, just like runner.docker, doesn't
 _EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
-
-def _subprocess_env():
-    env = dict(os.environ)
-    for k in list(env):
-        if _EXEC_ENV_REMOVE.search(k):
-            del env[k]
-    env['SIREPO_MPI_CORES'] = str(mpi.cfg.cores)
-    return env
 
 
 async def run_extract_job(run_dir, cmd, backend_info):
@@ -62,13 +56,14 @@ async def run_extract_job(run_dir, cmd, backend_info):
     finally:
         p.proc.kill()
 
-    return pkcollections.Dict(
+    return PKDict(
         returncode=return_code,
         stdout=stdout,
         stderr=stderr,
     )
 
-class ComputeJob():
+
+class ComputeJob(PKDict):
     def __init__(self, run_dir, jhash, status, cmd):
         self.run_dir = run_dir
         self.jhash = jhash
@@ -122,3 +117,13 @@ class ComputeJob():
             lambda: self._sub_process.proc.kill()
         )
         return await self.wait_for_exit()
+
+
+def _subprocess_env():
+    env = PKDict(os.environ)
+    pkcollections.unchecked_del(
+        env,
+        [k for k in env if_EXEC_ENV_REMOVE.search(k)],
+    )
+    env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
+    return env

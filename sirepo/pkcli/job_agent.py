@@ -5,9 +5,13 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections, pkio, pkjson, pkconfig
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkio
+from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job, simulation_db, job_supervisor
+from sirepo import job, simulation_db
 from sirepo import job_agent_process
 import sys
 import tornado.gen
@@ -23,14 +27,10 @@ _RETRY_DELAY = 1
 _RUNNER_INFO_BASENAME = 'runner-info.json'
 
 
-def start():
+def default_command():
     cfg = pkconfig.init(
-        agent_id=('abc123', str, 'the id of the agent'),
-        job_server_ws_uri=(
-            job.cfg.job_server_ws_uri,
-            str,
-            'the uri to connect to the job server on'
-        ),
+        agent_id=pkconfig.Required(str, 'id of this agent'),
+        supervisor_uri=pkconfig.Required(str, 'how to connect to the supervisor'),
     )
     pkdlog('agent_id={}', cfg.agent_id)
     io_loop = tornado.ioloop.IOLoop.current()
@@ -60,13 +60,16 @@ class _JobTracker:
         j.cancel_requested = True
         await j.kill(_KILL_TIMEOUT_SECS)
 
-    async def run_extract_job(self, run_dir, jhash, subcmd, arg):
-        pkdc('{} {}', run_dir, jhash)
+    async def run_extract_job(self, run_dir, jhash, cmd, arg):
+        pkdc('run_dir={} jhash={}', run_dir, jhash)
         status = await self.compute_job_status(run_dir, jhash)
         if status is job.JobStatus.MISSING:
-            pkdlog('{} {}: report is missing; skipping extract job',
-                   run_dir, jhash)
-            return {}
+            pkdlog(
+                '{} {}: report is missing; skipping extract job',
+                run_dir,
+                jhash,
+            )
+            return PKDict()
         #rn do we want this?
         # figure out which backend and any backend-specific info
         runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
@@ -74,13 +77,16 @@ class _JobTracker:
             runner_info = pkjson.load_any(runner_info_file)
         else:
             # Legacy run_dir
-            runner_info = pkcollections.Dict(
-                version=1, backend='local', backend_info={},
+            runner_info = PKDict(
+                version=1,
+                backend='local',
+                backend_info=PKDict(),
             )
         assert runner_info.version == 1
 
-        cmd = ['sirepo', 'extract', subcmd, arg]
-        result = await job_agent_process.run_extract_job(  # TODO(e-carlin): Handle multiple backends
+        cmd = ['sirepo', 'extract', cmd, arg]
+        # TODO(e-carlin): Handle multiple backends
+        result = await job_agent_process.run_extract_job(
            run_dir, cmd, runner_info.backend_info,
         )
 
@@ -94,9 +100,9 @@ class _JobTracker:
 
         if result.returncode != 0:
             pkdlog(
-                'failed with return code {} ({} {}), stdout:\n{}',
-                result.retu_dir,
-                subcmd,
+                'failed with returncode={} cmd={} stdout={}',
+                result.returncode,
+                cmd,
                 result.stdout.decode('utf-8', errors='ignore'),
             )
             raise AssertionError
@@ -208,7 +214,7 @@ class _Msg(pkcollections.Dict):
                     pkdlog('closed{}', e)
                     break
                 m = await c.read_message()
-                pkdc('m={}', job_supervisor.DebugRenderer(m))
+                pkdc('m={}', job.DebugRenderer(m))
                 if m is None:
                     break
                 m = await self._dispatch(m)
@@ -219,7 +225,7 @@ class _Msg(pkcollections.Dict):
             if not err:
                 self.current_msg = m
                 pkdlog('action={action} req_id={req_id}', **m)
-                pkdc('{}', job_supervisor.DebugRenderer(m))
+                pkdc('{}', job.DebugRenderer(m))
                 return await getattr(self, '_dispatch_' + m.action)(m)
         except Exception as e:
             err = 'exception=' + str(e)
@@ -246,7 +252,7 @@ class _Msg(pkcollections.Dict):
         res = await self.job_tracker.run_extract_job(
             msg.run_dir,
             msg.jhash,
-            msg.subcmd,
+            msg.cmd,
             msg.arg,
         )
         return self._format_reply(result=res)

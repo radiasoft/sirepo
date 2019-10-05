@@ -9,27 +9,18 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-from sirepo import driver
 from sirepo import job
 from sirepo import job_supervisor
-# TODO(e-carlin): load dynamically
-from sirepo.driver import local
 import asyncio
 import os.path
 import signal
-import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
-import tornado.locks
-import tornado.options
-import tornado.process
-import tornado.queues
 import tornado.web
 import tornado.websocket
-import uuid
 
 
-def start():
+def default_command():
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the job server in debug mode'),
         ip=(job.DEFAULT_IP, str, 'ip address for the job server to listen to'),
@@ -37,30 +28,36 @@ def start():
     )
     app = tornado.web.Application(
         [
-            ('/agent', _AgentMsg),
-            ('/server', _ServerReq),
+            (job.AGENT_URI, _AgentMsg),
+            (job.SERVER_URI, _ServerReq),
         ],
         debug=cfg.debug,
     )
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
-    signal.signal(signal.SIGTERM, _terminate)
-    signal.signal(signal.SIGINT, _terminate)
+    signal.signal(signal.SIGTERM, _sigterm)
+    signal.signal(signal.SIGINT, _sigterm)
 
     pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
+    job_supervisor.init()
     tornado.ioloop.IOLoop.current().start()
 
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     sr_req_type = 'message'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialized by DriverBase.set_message_handler
+        self.driver = None
+
     def check_origin(self, origin):
         return True
 
     def on_close(self):
         try:
-            self._driver.on_ws_close()
-        except AttributeError:
-            pkdlog('unkown ws closed connection')
+            if self.driver:
+                self.driver.on_ws_close()
         except Exception as e:
             pkdlog('Error: {} \n{}', e, pkdexc())
 
@@ -68,7 +65,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         await _process_incoming(msg, self)
 
     def open(self):
-        pkdp(self.request.uri)
+        pkdlog(self.request.uri)
 
 
 async def _process_incoming(content, handler):
@@ -95,14 +92,10 @@ class _ServerReq(tornado.web.RequestHandler):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
 
-# TODO(e-carlin): This should probably live in the supervisor
-def _terminate(num, bar):
-    def _run_terminate():
-        if pkconfig.channel_in('dev'):
-            for d in driver.DriverBase.driver_for_agent.values():
-                if type(d) == local.LocalDriver and d.agent_started():
-                    d.kill_agent()
-        tornado.ioloop.IOLoop.current().stop()
-    tornado.ioloop.IOLoop.current().add_callback_from_signal(
-        _run_terminate
-    )
+def _sigterm(num, bar):
+    tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
+
+
+def _terminate():
+    job_supervisor.terminate()
+    tornado.ioloop.IOLoop.current().stop()

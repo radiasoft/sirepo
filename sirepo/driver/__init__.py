@@ -5,7 +5,12 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkinspect
+from pykern import pkjson
 from pykern import pkjson, pkconfig, pkcollections
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job_supervisor
 import importlib
@@ -15,15 +20,59 @@ import tornado.queues
 import uuid
 
 
+#: map of driver names to class
+_CLASSES = None
+
+
+#: default class when not determined by request
+_DEFAULT_CLASS = None
+
+
+cfg = None
+
+def get_class(req):
+    return _DEFAULT_CLASS
+
+
+def init():
+    global _CLASSES, _DEFAULT_CLASS, cfg
+    assert not _CLASSES
+    cfg = pkconfig.init(
+        modules=(('local',), set, 'driver modules'),
+    )
+    this_module = pkinspect.this_module()
+    p = pkinspect.this_module().__name__
+    _CLASSES = PKDict()
+    for n in cfg.modules:
+        m = importlib.import_module(pkinspect.module_name_join((p, n)))
+        _CLASSES[n] = m.init_class()
+    # when we support more than one class, we 'll have to define
+    # _DEFAULT_CLASS some how
+    assert len(_CLASSES) == 1
+    _DEFAULT_CLASS = _CLASSES.values()[0]
+
+    return
+
+
+def terminate():
+    for c in _CLASSES.values():
+        c.terminate_class()
+    if pkconfig.channel_in('dev'):
+        for d in driver.DriverBase.driver_for_agent.values():
+    #rn not explicit import cascade (term)
+
+            if type(d) == local.LocalDriver and d.agent_started():
+                d.kill_agent()
+
+
 # TODO(e-carlin): Make this an abstract base class?
-class DriverBase(object):
+class DriverBase(PKDict):
     driver_for_agent = pkcollections.Dict()
 
-    def __init__(self, uid, resource_class):
+    def __init__(self, *args, **kwargs):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
-        self.uid = uid
+        super().__init__(*args, **kwargs)
         self.agent_id = str(uuid.uuid4())
-        self.resource_class = resource_class
         self._message_handler_set = tornado.locks.Event()
         self.requests = []
         self.requests_to_send_to_agent = tornado.queues.Queue()
@@ -46,7 +95,7 @@ class DriverBase(object):
 
     @classmethod
     def dequeue_request(cls, req):
-        dc = cls.get_driver_class(req)
+        dc = get_class(req)
         for d in dc.resources[req.content.resource_class].drivers:
             if d.uid == req.content.uid:
                 d.requests.remove(req)
@@ -59,28 +108,19 @@ class DriverBase(object):
 
     @classmethod
     def enqueue_request(cls, req):
-        dc = cls.get_driver_class(req)
+        dc = get_class(req)
         for d in dc.resources[req.content.resource_class].drivers:
             if d.uid == req.content.uid:
                 d.requests.append(req)
                 break
         else:
             d = dc(
-                req.content.uid,
-                req.content.resource_class
+                uid=req.content.uid,
+                resource_class=req.content.resource_class,
             )
             d.requests.append(req)
-            dc.resources[req.content.resource_class].drivers.append(d)
+            dc.resources[d.resource_class].drivers.append(d)
             cls.driver_for_agent[d.agent_id] = d
-
-    @classmethod
-    def get_driver_class(cls, req):
-        # TODO(e-carlin): Handle nersc and sbatch. Request will need to be parsed
-        t = 'docker' if pkconfig.channel_in('alpha', 'beta', 'prod') else 'local'
-        m = importlib.import_module(
-            f'sirepo.driver.{t}'
-        )
-        return getattr(m, f'{t.capitalize()}Driver')
 
     @classmethod
     def get_driver_for_agent(cls, agent_id):
@@ -110,7 +150,7 @@ class DriverBase(object):
             self._agent.agent_started = True
             self._message_handler = message_handler
             self._message_handler_set.set()
-            message_handler._driver = self
+            message_handler.driver = self
 
     def start_agent(self, request):
         pkdlog('agent_id={}', self.agent_id)

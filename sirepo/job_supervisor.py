@@ -29,12 +29,16 @@ _OPERATOR_ACTIONS = [
 async def incoming_message(msg):
     try:
         d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
+#rn this should be explict, because it implicitly assumes datastructure, could be AttributeError
+# or KeyError or NotFound or... Be explicit here (returnNone)
     except KeyError:
         pkdlog('no known agent with id={}. Sending kill', msg.content.agent_id)
         _send_kill_to_uknown_agent(msg)
         return
     except AttributeError:
-        pkdlog('msg={} did not contain agent_id', DebugRenderer(msg))
+#rn again, be explict. the eafb is not quite right in this context because there are
+# are all kinds of attributes in teh cde block (sirepo.driver is an atribute check)
+        pkdlog('msg={} did not contain agent_id', job.DebugRenderer(msg))
         return
     d.set_message_handler(msg.message_handler)
     a = msg.content.get('action')
@@ -42,13 +46,13 @@ async def incoming_message(msg):
         run_scheduler(type(d), d.resource_class)
         return
     if a == job.ACTION_ERROR:
-        pkdlog('received error from agent: {}', DebugRenderer(msg))
+        pkdlog('received error from agent: {}', job.DebugRenderer(msg))
     try:
         r = _get_request_for_message(msg)
     except (KeyError, AttributeError):
         pkdlog(
             'Error no associated request for msg={} \n{}',
-            DebugRenderer(msg),
+            job.DebugRenderer(msg),
             pkdexc()
         )
         return
@@ -69,6 +73,13 @@ async def incoming_request(req):
         r.content.resource_class,
     )
 
+
+def init():
+    sirepo.driver.init()
+
+
+def terminate():
+    driver.terminate()
 
 # TODO(e-carlin): This isn't necessary right now. It was built to show the
 # pathway of the supervisor adding requests to the q. When runStatus can
@@ -95,7 +106,7 @@ async def _run_compute_job_request(run_compute_job_req):
 
 async def process_incoming(content, handler):
     try:
-        pkdlog('{}: {}', handler.sr_req_type,  DebugRenderer(content))
+        pkdlog('{}: {}', handler.sr_req_type,  job.DebugRenderer(content))
         await globals()[f'incoming_{handler.sr_req_type}'](
             pkcollections.Dict({
                 f'{handler.sr_req_type}_handler': handler,
@@ -198,23 +209,11 @@ def _cancel_pending_job(driver, cancel_req):
         driver.requests.remove(cancel_req)
 
 
-class DebugRenderer():
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __str__(self):
-        o = self.obj
-        if isinstance(o, pkcollections.Dict):
-            return str(
-                {x: (o[x] if x not in ['result', 'arg'] else '<snip>') for x in o}
-            )
-        raise AssertionError('unknown object to render: {}', o)
-
-
 def _free_slots_if_needed(driver_class, resource_class):
     slot_needed = False
     for d in driver_class.resources[resource_class].drivers:
-        if not d.agent_started() and len(d.requests) > 0 and not _slots_available(driver_class, resource_class):
+        if d.agent_started() and len(d.requests) > 0 \
+            and not _slots_available(driver_class, resource_class):
             slot_needed = True
             break
     if slot_needed:

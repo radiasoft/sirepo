@@ -28,22 +28,56 @@ ACTION_READY_FOR_WORK = 'ready_for_work'
 ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
 ACTION_START_COMPUTE_JOB = 'start_compute_job'
 
+#: path supervisor registers to receive messages from agent
+AGENT_URI = '/agent'
+
+#: path supervisor registers to receive requests from server
+SERVER_URI = '/server'
+
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
+cfg = None
+
 
 # TODO(e-carlin): Use enums or string constants (like ACTIONS) not both.
-class JobStatus(aenum.Enum):
-    MISSING = 'missing'     # no data on disk, not currently running
-    RUNNING = 'running'     # data on disk is incomplete but it's running
-    ERROR = 'error'         # data on disk exists, but job failed somehow
-    CANCELED = 'canceled'   # data on disk exists, but is incomplete
-    COMPLETED = 'completed' # data on disk exists, and is fully usable
-    PENDING = 'pending' # job has been sent to supervisor but hasn't started running
+class Status(aenum.Enum):
+    #: data on disk exists, but is incomplete
+    CANCELED = 'canceled'
+    #: data on disk exists, and is fully usable
+    COMPLETED = 'completed'
+    #: data on disk exists, but job failed somehow
+    ERROR = 'error'
+    #: no data on disk, not currently running
+    MISSING = 'missing'
+    #: job has been sent to supervisor but hasn't started running
+    PENDING = 'pending'
+    #: data on disk is incomplete but it's running
+    RUNNING = 'running'
+
+
+def init():
+    global cfg
+
+    assert not cfg
+    cfg = pkconfig.init(
+        supervisor_agent_uri=(
+            'http://{}:{}/server'.format(DEFAULT_IP, DEFAULT_PORT),
+            str,
+            'uri to reach the job server for http connections',
+        ),
+        job_server_agent_uri=(
+            'ws://{}:{}/agent'.format(DEFAULT_IP, DEFAULT_PORT),
+            str,
+            'uri to reach the job server for websocket connections',
+        ),
+    )
 
 
 def init_by_server(app):
     """Initialize module"""
+    init()
+
     from sirepo import job_api
     from sirepo import uri_router
 
@@ -74,13 +108,13 @@ def cancel_report_job(jid, run_dir, jhash):
     return _request(body)
 
 
-def run_extract_job(jid, run_dir, jhash, subcmd, *args):
+def run_extract_job(jid, run_dir, jhash, cmd, *args):
     body = pkcollections.Dict(
         jid=jid,
         action=ACTION_RUN_EXTRACT_JOB,
         run_dir=str(run_dir),
         jhash=jhash,
-        subcmd=subcmd,
+        cmd=cmd,
         arg=pkjson.dump_pretty(args),
     )
     response = _request(body)
@@ -120,15 +154,14 @@ def _request(body):
     return c
 
 
-cfg = pkconfig.init(
-    job_server_http_uri=(
-        'http://{}:{}/server'.format(DEFAULT_IP, DEFAULT_PORT),
-        str,
-        'uri to reach the job server for http connections',
-    ),
-    job_server_ws_uri=(
-        'ws://{}:{}/agent'.format(DEFAULT_IP, DEFAULT_PORT),
-        str,
-        'uri to reach the job server for websocket connections',
-    ),
-)
+class DebugRenderer():
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __str__(self):
+        o = self.obj
+        if isinstance(o, pkcollections.Dict):
+            return str(
+                {x: (o[x] if x not in ['result', 'arg'] else '<snip>') for x in o}
+            )
+        raise AssertionError('unknown object to render: {}', o)

@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import driver
 from sirepo import job
@@ -18,44 +19,35 @@ import tornado.ioloop
 import tornado.locks
 import tornado.process
 
+
 _TERMINATE_TIMEOUT_SECS = 3
 
-# TODO(e-carlin): cfg should be at bottom like in other modules. Except that
-# class LocalDriver needs it which means it has to be declared before it
-cfg = pkconfig.init(
-    job_server_ws_uri=(
-        job.cfg.job_server_ws_uri,
-        str,
-        'uri to reach the job server for websocket connections',
-    ),
-    parallel_slots=(
-        1, int, 'total number of parallel slots'
-    ),
-    sequential_slots=(
-        1, int, 'total number of sequential slots'
-    ),
-)
+cfg = None
 
-class LocalDriver(driver.DriverBase):
-    resources = pkcollections.Dict(
-        parallel=pkcollections.Dict(
-            drivers=[],
-            slots=pkcollections.Dict(
-                total=cfg.parallel_slots,
-                in_use=pkcollections.Dict(),
-            )
-        ),
-        sequential=pkcollections.Dict(
-            drivers=[],
-            slots=pkcollections.Dict(
-                total=cfg.sequential_slots,
-                in_use=pkcollections.Dict(),
-            )
+def init_class():
+    # TODO(e-carlin): cfg should be at bottom like in other modules. Except that
+    # class LocalDriver needs it which means it has to be declared before it
+    global cfg
+
+    cfg = pkconfig.init(
+        parallel_slots=(1, int, 'total number of parallel slots'),
+        sequential_slots=(1, int, 'total number of sequential slots'),
+        supervisor_uri=(
+            'http://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.SERVER_URI),
+            str,
+            'how agents connect to supervisor',
         ),
     )
+    LocalDriver.resources = PKDict(
+        parallel=_Resources(cfg.parallel_slots),
+        sequential=_Resources(cfg.sequential_slots),
+    )
+    return LocalDriver
 
-    def __init__(self, uid, resource_class):
-        super(LocalDriver, self).__init__(uid, resource_class)
+
+class LocalDriver(driver.DriverBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwarg)
         self._agent = _LocalAgent(self.agent_id)
 
         # TODO(e-carlin): This is used to get stats about drivers as the code
@@ -64,19 +56,24 @@ class LocalDriver(driver.DriverBase):
         #     self._stats
         # )
 
+    def __repr__(self):
+        return ''
+        return 'agent_id={} agent_started={} running_data_jobs={} requests={} resources={}'.format(
+            self.agent_id,
+            self.agent_started(),
+            self.running_data_jobs,
+            self.requests,
+            self.resources,
+        )
+
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
     async def _stats(self):
         import tornado.gen
         while True:
-            pkdp('====================================')
-            pkdp('AGENT_ID={}', self.agent_id)
-            pkdp('agent_started={}', self.agent_started())
-            pkdp('running_data_jobs={}', self.running_data_jobs)
-            pkdp('requests={}', self.requests)
-            pkdp('resources={}', self.resources)
-            pkdp('====================================')
-            await tornado.gen.sleep(2)
+            pkdlog('{}', self)
+            await tornado.gen.sleep(cfg.stats_secs)
+
 
 class _LocalAgent():
     def __init__(self, agent_id):
@@ -130,16 +127,17 @@ class _LocalAgent():
             else:
                 # TODO(e-carlin): look at runner/__init__.py:203
                 self.start(agent_error_exit_callback)
-            
+
     def _start(self, agent_error_exit_callback):
         pkdlog('agent_id={}', self._agent_id)
         self._agent_start_attempts += 1
         # TODO(e-carlin): Make this more robust. Ex handle failures,
         # monitor the process, be able to kill it
         env = dict(os.environ)
+#rn wrap this in job_subprocess()
         env['PYENV_VERSION'] = 'py3'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_JOB_SERVER_WS_URI'] = cfg.job_server_ws_uri
+        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = cfg.supervisor_uri
         self._agent_process = tornado.process.Subprocess(
             [
                 'pyenv',
@@ -156,3 +154,12 @@ class _LocalAgent():
             )
         )
 
+
+class _Resources(PKDict):
+    def __init__(self, total):
+        self.drivers []
+        self.slots = PKDict(
+            total=total,
+            in_use=pkcollections.Dict(),
+        )
+    )
