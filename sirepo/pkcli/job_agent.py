@@ -6,10 +6,10 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
-from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job, simulation_db
@@ -31,7 +31,10 @@ _INFO_FILE = 'job.json'
 
 _INFO_VERSION = 1
 
+_EXTRACT_ARG_FILE = 'extract-{}.json'
+
 cfg = None
+
 
 def default_command():
     job_supervisor.init()
@@ -41,99 +44,78 @@ def default_command():
         agent_id=pkconfig.Required(str, 'id of this agent'),
         supervisor_uri=pkconfig.Required(str, 'how to connect to the supervisor'),
     )
-    pkdlog('agent_id={} supervisor_uri={}', cfg.agent_id, cfg.supervisor_uri)
-    io_loop = tornado.ioloop.IOLoop.current()
-    io_loop.spawn_callback(
-        _Main()loop,
-    )
-    io_loop.start()
+    pkdlog('{}', cfg)
+    i = tornado.ioloop.IOLoop.current()
+    i.spawn_callback(_Main()loop)
+    i.start()
 
 
 class _JobTracker:
     def __init__(self):
         self._compute_jobs = pkcollections.Dict()
 
-    async def kill(self, run_dir):
+    async def kill(self, msg):
         j = self._compute_jobs.get(run_dir)
-        if j is None: # TODO(e-carlin): This can probably be removed since supervisor will never send a cancel in this case
+        if j is None:
+            pkdlog('not found in _compute_jobs msg={}', job.LogFormatter(msg))
             return
-        if j.status is not job.JobStatus.RUNNING: # TODO(e-carlin): This can probably be removed since supervisor will never send a cancel in this case
+        if j.status != job.Status.RUNNING:
+            pkdlog('status={} should be RUNNING msg={}', j.status, job.LogFormatter(msg))
             return
-        pkdlog(
-            'job with jhash {} in {}',
-            j.jhash, run_dir,
-        )
+        pkdlog('killing msg={}', job.LogFormatter(msg))
         j.cancel_requested = True
         await j.kill(_KILL_TIMEOUT_SECS)
 
-    async def run_extract_job(self, run_dir, jhash, cmd, arg):
-        pkdc('run_dir={} jhash={}', run_dir, jhash)
-        status = await self.compute_job_status(run_dir, jhash)
-        if status is job.JobStatus.MISSING:
+    async def run_extract_job(self, msg):
+        pkdc('{}', job.LogFormatter(msg))
+        s = await self.compute_job_status(msg)
+        if s is job.Status.MISSING:
             pkdlog(
-                '{} {}: report is missing; skipping extract job',
-                run_dir,
-                jhash,
+                'skipping, because no status file msg={}',
+                job.LogFormatter(msg),
             )
             return PKDict()
-        #rn do we want this?
-        # figure out which backend and any backend-specific info
-        f = run_dir.join(_INFO_FILE)
-        if f.exists():
-            i = pkjson.load_any(f)
-        else:
-            # Legacy run_dir
-            i = PKDict(
-                version=_INFO_VERSION,
-                backend='local',
-                backend_info=PKDict(),
-            )
-        assert i.version == _INFO_VERSION
-
-        cmd = ['sirepo', 'extract', cmd, arg]
-        # TODO(e-carlin): Handle multiple backends
-        result = await job_agent_process.run_extract_job(
-           run_dir, cmd, runner_info.backend_info,
+        f = msg.run_dir.join(_EXTRACT_ARG_FILE.format(cfg.agent_id))
+        pkjson.dump_pretty(msg.get('arg'), filename=f, pretty=False)
+        r = await job_agent_process.run_extract_job(
+            msg.run_dir,
+            ['sirepo', 'extract', msg.cmd, str(f)],
         )
-
-        if result.stderr:
+        if r.stderr:
             pkdlog(
-                'got output on stderr ({} {}):\n{}',
-                run_dir,
-                jhash,
-                result.stderr.decode('utf-8', errors='ignore'),
+                'msg={} stderr={}',
+                job.LogFormatter(msg),
+                r.stderr.decode('utf-8', errors='ignore'),
             )
-
-        if result.returncode != 0:
+        if r.returncode != 0:
             pkdlog(
-                'failed with returncode={} cmd={} stdout={}',
-                result.returncode,
-                cmd,
-                result.stdout.decode('utf-8', errors='ignore'),
+                'error msg={} returncode={} stdout={}',
+                job.LogFormatter(msg),
+                r.returncode,
+                r.stdout.decode('utf-8', errors='ignore'),
             )
-            raise AssertionError
-
+            raise RuntimeError('command error')
         return pkjson.load_any(result.stdout)
 
-    async def start_compute_job(self, run_dir, jhash, cmd, tmp_dir):
-        current_jhash, current_status = self._run_dir_status(run_dir)
-        if current_status is job.JobStatus.RUNNING:
-            if current_jhash == jhash:
+    async def start_compute_job(self, msg):
+        j, s = self._run_dir_status(msg)
+        if s is job.Status.RUNNING:
+            if j == jhash:
                 pkdlog(
-                    'job is already running; skipping (run_dir={}, jhash={}, tmp_dir={})',
-                    run_dir, jhash, tmp_dir,
+                    'ignoring already running; msg={}',
+                    job.LogFormatter(msg),
                 )
-                pkio.unchecked_remove(tmp_dir)
+                pkio.unchecked_remove(msg.tmp_dir)
                 return
         assert run_dir not in self._compute_jobs
         pkio.unchecked_remove(run_dir)
         tmp_dir.rename(run_dir)
-        j = job_agent_process.ComputeJob(run_dir, jhash, job.JobStatus.RUNNING, cmd)
+        j = job_agent_process.ComputeJob(run_dir, jhash, job.Status.RUNNING, cmd)
         self._compute_jobs[run_dir] = j
         tornado.ioloop.IOLoop.current().spawn_callback(
            self._on_compute_job_exit,
            run_dir,
-           j
+            j,
         )
 
     async def _on_compute_job_exit(self, run_dir, compute_job):
@@ -146,57 +128,55 @@ class _JobTracker:
             del self._compute_jobs[run_dir]
             # Write status to disk
             if compute_job.cancel_requested:
-                simulation_db.write_result({'state': 'canceled'}, run_dir=run_dir)
+                simulation_db.write_result(PKDict(state='canceled'), run_dir=run_dir)
                 await self.run_extract_job(
-                    run_dir, compute_job.jhash, 'remove_last_frame', '[]',
+                    PKDict(
+                        cmd='remove_last_frame',
+                        jhash=compute_job.jhash,
+                        run_dir=run_dir,
+                    ),
                 )
             elif returncode == 0:
-                simulation_db.write_result({'state': 'completed'}, run_dir=run_dir)
+                simulation_db.write_result(PKDict(state='completed'), run_dir=run_dir)
             else:
                 pkdlog(
                     '{} {}: job failed, returncode = {}',
                     run_dir, compute_job.jhash, returncode,
                 )
-                simulation_db.write_result({'state': 'error'}, run_dir=run_dir)
+                simulation_db.write_result(PKDict(state='error'), run_dir=run_dir)
 
-    async def compute_job_status(self, run_dir, jhash):
+    async def compute_job_status(self, msg):
         """Get the current status of a specific job in the given run_dir."""
-        status = job.JobStatus.MISSING
-        run_dir_jhash, run_dir_status = self._run_dir_status(run_dir)
-        if run_dir_jhash == jhash:
-            status = run_dir_status
-        return status
+        j, s = self._run_dir_status(msg)
+        return s if j == msg.jhash else job.Status.MISSING
 
-    def _run_dir_status(self, run_dir):
+    def _run_dir_status(self, msg):
         """Get the current status of whatever's happening in run_dir.
 
         Returns:
         Tuple of (jhash or None, status of that job)
 
         """
-        disk_in_path = run_dir.join('in.json')
-        disk_status_path = run_dir.join('status')
-        if disk_in_path.exists() and disk_status_path.exists():
+        i = msg.run_dir.join('in.json')
+        s = msg.run_dir.join('status')
+        if i.exists() and s.exists():
+#TODO(robnagler) maybe we don't want this constraint?
             # status should be recorded on disk XOR in memory
-            assert run_dir not in self._compute_jobs
-            disk_jhash = pkjson.load_any(
-                pkio.read_text(disk_in_path)
-            ).reportParametersHash
-            disk_status = pkio.read_text(disk_status_path)
-            if disk_status == 'pending':
-                # Only runner code writes this, so it must be stale,
-                # in which case the job is no longer pending...
-                pkdlog(
-                    'found "pending" status, treating as "error" ({})',
-                    disk_status_path,
-                )
-                disk_status = job.JobStatus.ERROR
-            return disk_jhash, job.JobStatus(disk_status)
-        elif run_dir in self._compute_jobs:
-            compute_job = self._compute_jobs[run_dir]
-            return compute_job.jhash, compute_job.status
+            assert msg.run_dir not in self._compute_jobs
+            j = pkjson.load_any(i).reportParametersHash
+            x = None
+            try:
+                x = s.read()
+                s = job.Status(x)
+            except ValueError:
+                pkdlog('unexpected status={} file={}', x, s)
+                s = job.Status.ERROR
+            return j, s
+        elif msg.run_dir in self._compute_jobs:
+            c = self._compute_jobs[msg.run_dir]
+            return c.jhash, c.status
+        return None, job.Status.MISSING
 
-        return None, job.JobStatus.MISSING
 
 class _Main(PKDict):
     async def loop(self):
@@ -240,37 +220,32 @@ class _Main(PKDict):
 
     #rn maybe this should just be "cancel" since everything is a "job"
     async def _dispatch_cancel_job(self, msg):
-        jhash, _ = self.job_tracker._run_dir_status(msg.run_dir)
-        if jhash == msg.jhash:
-            await self.job_tracker.kill(msg.run_dir)
+        j, _ = self.job_tracker._run_dir_status(msg)
+        if j == msg.jhash:
+            await self.job_tracker.kill(msg)
         return self._format_reply()
 
     async def _dispatch_compute_job_status(self, msg):
-        res = await self.job_tracker.compute_job_status(msg.run_dir, msg.jhash)
-        return self._format_reply(status=res.value)
+        return self._format_reply(
+            status=await self.job_tracker.compute_job_status(msg).value,
+        )
 
+#rn need to distinguish between terminate and killing the process
+#   i think you have to kill the subprocess
     async def _dispatch_kill(self, msg):
         # TODO(e-carlin): This is aggressive. Should we try to  check if there
         # is a running job and terminate it gracefully?
-        sys.exit(1)
+        tornado.ioloop.IOLoop.current().stop()
 
     async def _dispatch_run_extract_job(self, msg):
-        res = await self.job_tracker.run_extract_job(
-            msg.run_dir,
-            msg.jhash,
-            msg.cmd,
-            msg.arg,
+        self._format_reply(
+            result=await self.job_tracker.run_extract_job(msg),
         )
-        return self._format_reply(result=res)
+        return
 
-    #rn maybe this should just be "_compute"
+#rn maybe this should just be "_compute"
     async def _dispatch_start_compute_job(self, msg):
-        await self.job_tracker.start_compute_job(
-            msg.run_dir,
-            msg.jhash,
-            msg.cmd,
-            msg.tmp_dir,
-        )
+        await self.job_tracker.start_compute_job(msg)
         return self._format_reply()
 
     def _format_reply(self, **kwargs):

@@ -128,10 +128,7 @@ def run_scheduler(driver):
                     j = _get_data_job_request(d, r.content.jid)
                     if j and j.state == _STATE_RUN_PENDING:
                         r.state = _STATE_RUNNING
-                        r.set_response(pkcollections.Dict(
-                            status=job.Status.PENDING.value,
-                            )
-                        )
+                        r.set_response(PKDict(status=job.Status.PENDING.value))
                         continue
 
                 # start agent if not started and slots available

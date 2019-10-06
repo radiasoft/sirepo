@@ -7,7 +7,7 @@ u"""Run jobs using a local process
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern import pkcollections
-from pykern.pkdebug import pkdp, pkdexc
+from pykern.pkdebug import pkdp, pkdexc, pkdlog
 from sirepo import mpi
 from sirepo.template import template_common
 import os
@@ -25,7 +25,7 @@ import tornado.ioloop
 _EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
-async def run_extract_job(run_dir, cmd, backend_info):
+async def run_extract_job(run_dir, cmd):
     env = _subprocess_env()
     # we're in py3 mode, and regular subprocesses will inherit our
     # environment, so we have to manually switch back to py2 mode.
@@ -43,24 +43,19 @@ async def run_extract_job(run_dir, cmd, backend_info):
     try:
         async def collect(stream, out_array):
             out_array += await stream.read_until_close()
-
-        stdout = bytearray()
-        stderr = bytearray()
-
-        io_loop = tornado.ioloop.IOLoop.current()
-        io_loop.spawn_callback(collect, p.stdout, stdout)
-        io_loop.spawn_callback(collect, p.stderr, stderr)
-        return_code = await p.wait_for_exit(raise_error=False)
+        r = PKDict(
+            stdout=bytearray(),
+            stderr=bytearray(),
+        )
+        i = tornado.ioloop.IOLoop.current()
+        i.spawn_callback(collect, p.stdout, r.stdout)
+        i.spawn_callback(collect, p.stderr, r.stderr)
+        r.returncode = await p.wait_for_exit(raise_error=False)
     except Exception:
-        pkdp(pkdexc())
+        pkdlog(pkdexc())
     finally:
         p.proc.kill()
-
-    return PKDict(
-        returncode=return_code,
-        stdout=stdout,
-        stderr=stderr,
-    )
+    return r
 
 
 class ComputeJob(PKDict):
@@ -89,16 +84,16 @@ class ComputeJob(PKDict):
                 stderr=run_log,
                 env=env,
             )
-            self._sub_process.set_exit_callback(self.on_exit_callback)
+            self._sub_process.set_exit_callback(self._on_exit)
 
     async def kill(self, grace_period):
         self._wait_for_terminate_timeout = tornado.ioloop.IOLoop.current().call_later(
             grace_period,
-            lambda: self._sub_process.proc.kill()
+            lambda: self._sub_process.proc.kill(),
         )
         return await self.wait_for_exit()
 
-    def on_exit_callback(self, returncode):
+    def _on_exit(self, returncode):
         if self._wait_for_terminate_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(
                 self._wait_for_terminate_timeout
