@@ -16,24 +16,21 @@ import uuid
 _STATE_RUN_PENDING = 'run_pending'
 _STATE_RUNNING = 'running'
 
-DATA_ACTIONS = [
-    job.ACTION_RUN_EXTRACT_JOB,
-    job.ACTION_START_COMPUTE_JOB,
-]
+DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB]
 
-_OPERATOR_ACTIONS = [
-    job.ACTION_CANCEL_JOB,
-]
+_OPERATOR_ACTIONS = (job.ACTION_CANCEL_JOB,)
 
+
+_ALREADY_GOOD_STATUS = (job.JobStatus.RUNNING, job.JobStatus.COMPLETED)
 
 async def incoming_message(msg):
     try:
-        d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
+        d = sirepo.driver.get_instance(msg.content.agent_id)
 #rn this should be explict, because it implicitly assumes datastructure, could be AttributeError
 # or KeyError or NotFound or... Be explicit here (returnNone)
     except KeyError:
         pkdlog('no known agent with id={}. Sending kill', msg.content.agent_id)
-        _send_kill_to_uknown_agent(msg)
+        _send_kill_to_unknown_agent(msg)
         return
     except AttributeError:
 #rn again, be explict. the eafb is not quite right in this context because there are
@@ -43,7 +40,7 @@ async def incoming_message(msg):
     d.set_message_handler(msg.message_handler)
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
-        run_scheduler(type(d), d.resource_class)
+        run_scheduler(d)
         return
     if a == job.ACTION_ERROR:
         pkdlog('received error from agent: {}', job.DebugRenderer(msg))
@@ -58,7 +55,7 @@ async def incoming_message(msg):
         return
     r.set_response(msg.content)
     _remove_from_running_data_jobs(d, r, msg)
-    run_scheduler(type(d), d.resource_class)
+    run_scheduler(d)
 
 
 async def incoming_request(req):
@@ -68,10 +65,7 @@ async def incoming_request(req):
     else:
         res = await r.get_reply()
     r.reply(res)
-    run_scheduler(
-        sirepo.driver.DriverBase.get_driver_class(r),
-        r.content.resource_class,
-    )
+    run_scheduler(r._driver)
 
 
 def init():
@@ -84,24 +78,14 @@ def terminate():
 # TODO(e-carlin): This isn't necessary right now. It was built to show the
 # pathway of the supervisor adding requests to the q. When runStatus can
 # be pulled out of job_api then this will actually become useful.
-async def _run_compute_job_request(run_compute_job_req):
-    run_status_req = _SupervisorRequest(
-        run_compute_job_req,
-        job.ACTION_COMPUTE_JOB_STATUS
-    )
-    res = await run_status_req.get_reply()
-    already_good_status = [
-        job.JobStatus.RUNNING,
-        job.JobStatus.COMPLETED,
-    ]
-    if 'status' in res and res.status not in already_good_status:
-        run_compute_job_req.waiting_on_dependent_request = False
-        run_scheduler(
-            sirepo.driver.DriverBase.get_driver_class(run_compute_job_req),
-            run_compute_job_req.content.resource_class,
-        )
-        res = await run_compute_job_req.get_reply()
-    return res
+async def _run_compute_job_request(req):
+    s = _SupervisorRequest(req, job.ACTION_COMPUTE_JOB_STATUS)
+    r = await s.get_reply()
+    if 'status' in r and r.status not in _ALREADY_GOOD_STATUS:
+        req.waiting_on_dependent_request = False
+        run_scheduler(req._driver)
+        r = await req.get_reply()
+    return r
 
 
 async def process_incoming(content, handler):
@@ -118,20 +102,15 @@ async def process_incoming(content, handler):
         pkdlog(pkdexc())
 
 
-def run_scheduler(driver_class, resource_class):
-    pkdc(
-        'driver_class={}, resource_class={}, slots_available={}',
-        driver_class,
-        resource_class,
-        _slots_available(driver_class, resource_class),
-    )
+def run_scheduler(driver):
+    pkdc('{}', driver)
     # TODO(e-carlin): complete. run status from runSimulation needs to be moved
     # into here before this will work
     # _handle_cancel_requests(
     #     driver_class.resources[resource_class].drivers)
     # TODO(e-carlin): This is the main component of the scheduler and needs
     # to be broken down and made more readable
-    drivers = driver_class.resources[resource_class].drivers
+    drivers = driver.resources[driver.resource_class].drivers
     for request_index in range(_len_longest_requests_q(drivers)):
         for d in drivers:
             _free_slots_if_needed(driver_class, resource_class)
@@ -161,8 +140,8 @@ def run_scheduler(driver_class, resource_class):
                         continue
 
                 # start agent if not started and slots available
-                if not d.agent_started() and _slots_available(driver_class, resource_class):
-                    d.start_agent(r)
+                if not d.started() and d.slots_available():
+                    d.start(r)
 
                 # TODO(e-carlin): If r is a cancel and ther is no agent then???
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
@@ -212,8 +191,7 @@ def _cancel_pending_job(driver, cancel_req):
 def _free_slots_if_needed(driver_class, resource_class):
     slot_needed = False
     for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started() and len(d.requests) > 0 \
-            and not _slots_available(driver_class, resource_class):
+        if d.agent_started() and len(d.requests) > 0  and not d.slots_available():
             slot_needed = True
             break
     if slot_needed:
@@ -222,14 +200,13 @@ def _free_slots_if_needed(driver_class, resource_class):
 
 def _get_data_job_request(driver, jid):
     for r in driver.requests:
-        if r.content.action in DATA_ACTIONS:
-            if r.content.jid is jid:
+        if r.content.action in DATA_ACTIONS and r.content.jid is jid:
                 return r
     return None
 
 
 def _get_request_for_message(msg):
-    d = sirepo.driver.DriverBase.get_driver_for_agent(msg.content.agent_id)
+    d = sirepo.driver.get_instance(msg.content.agent_id)
     for r in d.requests:
         if r.content.req_id == msg.content.req_id:
             return r
@@ -264,7 +241,7 @@ def _remove_from_running_data_jobs(driver, req, msg):
         driver.running_data_jobs.discard(req.content.jid)
 
 
-class _Request():
+class _Request(PKDict):
     def __init__(self, req):
         self.state = _STATE_RUN_PENDING
         self.content = req.content
@@ -272,18 +249,15 @@ class _Request():
         self._response_received = tornado.locks.Event()
         self._response = None
         self.waiting_on_dependent_request = self._requires_dependent_request()
-        driver.DriverBase.enqueue_request(self)
-        run_scheduler(
-            sirepo.driver.DriverBase.get_driver_class(self),
-            self.content.resource_class,
-        )
+        self._driver = driver.get_class(self).enqueue_request(self)
+        run_scheduler(d)
 
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
 
     async def get_reply(self):
         await self._response_received.wait()
-        driver.DriverBase.dequeue_request(self)
+        self._driver.dequeue_request(self)
         return self._response
 
     def reply(self, reply):
@@ -300,7 +274,7 @@ class _Request():
         return self.content.action == job.ACTION_START_COMPUTE_JOB
 
 
-def _send_kill_to_uknown_agent(incoming_msg):
+def _send_kill_to_unknown_agent(incoming_msg):
     try:
         incoming_msg.message_handler.write_message(
            pkcollections.Dict(
@@ -309,32 +283,15 @@ def _send_kill_to_uknown_agent(incoming_msg):
             )
         )
     except Exception as e:
-        pkdlog('Error: {}', e)
-
-
-def _slots_available(driver_class, resource_class):
-    s = driver_class.resources[resource_class].slots
-    return len(s.in_use) < s.total
+        pkdlog('msg={} exception={}', incoming_msg, e)
 
 
 class _SupervisorRequest(_Request):
-    def __init__(self, parent_req, action):
-        super(_SupervisorRequest, self).__init__(
-            pkcollections.Dict(
-                content=copy.deepcopy(parent_req.content)
-            )
-        )
-        self.content.action = action
-        self.content.req_id = str(uuid.uuid4())
-        # TODO(e-carlin): Fix this is a hack. If the parent request requires a
-        # dependent req then when we call super() this will be set. This overrides
-        # it with the action that is actually going to be for this request.
-        self.waiting_on_dependent_request = self._requires_dependent_request()
-        # TODO(e-carlin): Same hack as above
-        run_scheduler(
-            sirepo.driver.DriverBase.get_driver_class(self),
-            self.content.resource_class,
-        )
+    def __init__(self, req, action):
+        c = copy.deepcopy(req.content)
+        c.action = action
+        c.req_id = str(uuid.uuid4())
+        super().__init__(PKDict(content=c)))
 
 
 def _try_to_free_slot(driver_class, resource_class):

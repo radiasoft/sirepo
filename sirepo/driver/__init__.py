@@ -34,6 +34,10 @@ def get_class(req):
     return _DEFAULT_CLASS
 
 
+def get_instance(agent_id):
+    return DriverBase.instances[agent_id]
+
+
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES
@@ -55,27 +59,33 @@ def init():
 
 
 def terminate():
-    for c in _CLASSES.values():
-        c.terminate_class()
     if pkconfig.channel_in('dev'):
-        for d in driver.DriverBase.driver_for_agent.values():
-    #rn not explicit import cascade (term)
+        for d in DriverBase.instances.values():
+            d.kill()
 
-            if type(d) == local.LocalDriver and d.agent_started():
-                d.kill_agent()
+
+class Status(aenum.Enum):
+    IDLE = 'idle'
+    KILLING = 'killing'
+    STARTED = 'started'
+    STARTING = 'starting'
 
 
 # TODO(e-carlin): Make this an abstract base class?
 class DriverBase(PKDict):
-    driver_for_agent = pkcollections.Dict()
+    instances = pkcollections.Dict()
 
     def __init__(self, *args, **kwargs):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
-        super().__init__(*args, **kwargs)
-        self.agent_id = str(uuid.uuid4())
-        self._message_handler_set = tornado.locks.Event()
-        self.requests = []
-        self.requests_to_send_to_agent = tornado.queues.Queue()
+        super().__init__(
+            agent_id=str(uuid.uuid4()),
+            _status=Status.IDLE,
+            _message_handler_set=tornado.locks.Event(),
+            _message_handler=None,
+            requests=[],
+            requests_to_send_to_agent=tornado.queues.Queue(),
+            **kwargs,
+        )
         # TODO(e-carlin): This is used to keep track of what run_dir currently
         # has a data job running in it. This makes it so we only send one data
         # job at a time. I think we should create a generalized data structure
@@ -83,57 +93,46 @@ class DriverBase(PKDict):
         # status). In addition they key is currently the run_dir. It needs to be
         # the "compute job name"
         self.running_data_jobs = set()
-        self._agent_starting = False
-        self._agent_started_waiters = pkcollections.Dict()
-        self._message_handler = None
         tornado.ioloop.IOLoop.current().spawn_callback(
             self._process_requests_to_send_to_agent
         )
 
-    def agent_started(self):
-        return self._agent.agent_started
+    def is_started(self):
+        return self._status in (Status.STARTED, Status.KILLING)
 
     @classmethod
     def dequeue_request(cls, req):
-        dc = get_class(req)
-        for d in dc.resources[req.content.resource_class].drivers:
+        for d in cls.resources[req.content.resource_class].drivers:
             if d.uid == req.content.uid:
                 d.requests.remove(req)
                 break
         else:
-            raise AssertionError(
-                'req={}. Could not be removed because it was not found.',
-                req
-            )
+            raise AssertionError('req={} not found', req)
 
     @classmethod
     def enqueue_request(cls, req):
-        dc = get_class(req)
-        for d in dc.resources[req.content.resource_class].drivers:
+        for d in cls.resources[req.content.resource_class].drivers:
             if d.uid == req.content.uid:
-                d.requests.append(req)
                 break
         else:
-            d = dc(
+            d = cls(
                 uid=req.content.uid,
                 resource_class=req.content.resource_class,
             )
-            d.requests.append(req)
-            dc.resources[d.resource_class].drivers.append(d)
-            cls.driver_for_agent[d.agent_id] = d
+            d.resources[d.resource_class].drivers.append(d)
+            cls.instances[d.agent_id] = d
+        d.requests.append(req)
+        return d
 
-    @classmethod
-    def get_driver_for_agent(cls, agent_id):
-        return cls.driver_for_agent[agent_id]
-
-    def kill_agent(self):
+    def kill(self):
         pkdlog('agent_id={}', self.agent_id)
-        self._agent.kill()
+        self._kill()
         self._message_handler = None
         self._message_handler_set.clear()
 
     def on_ws_close(self):
         pkdlog('agent_id={}', self.agent_id)
+#rn will need to kill just in case socket closed not due to process exit
         self._set_agent_stopped_state()
         for r in self.requests:
             # TODO(e-carlin): Think more about this. If the kill was requested
@@ -146,24 +145,24 @@ class DriverBase(PKDict):
 
     def set_message_handler(self, message_handler):
         if not self._message_handler_set.is_set():
-            self._agent_starting = False
-            self._agent.agent_started = True
+            self._status = Status.STARTED
             self._message_handler = message_handler
             self._message_handler_set.set()
             message_handler.driver = self
 
-    def start_agent(self, request):
+    def start(self, request):
         pkdlog('agent_id={}', self.agent_id)
-        if self._agent_starting:
+#rn why not an assert?
+        if self.status == Status.STARTING:
             return
-        self._agent_starting = True
-        self._agent.start(self._on_agent_error_exit)
+        self.status = Status.STARTING
         # claim the slot before the agent has actually started so we don't
         # accidentally give away 1 slot to 2 agents
         self.resources[self.resource_class].slots.in_use[self.agent_id] = self
+        self._start()
 
-    def _on_agent_error_exit(self, returncode):
-        pkdlog('agent={} exited with returncode={}', self.agent_id, returncode)
+    def _on_agent_error_exit(self):
+        pkdlog('agent={}', self.agent_id)
         self._set_agent_stopped_state()
         for r in self.requests:
             r.set_response(
@@ -185,11 +184,19 @@ class DriverBase(PKDict):
         # so I know we're in a good state. Maybe I should know the actual state
         # of the agent/driver a bit better and only change things that need to
         # be changed?
-        self._agent_starting = False
-        self._agent.agent_started = False
+        self._starting = Status.IDLE
+        self._started = False
         self._message_handler = None
         self._message_handler_set.clear()
         # TODO(e-carlin): It is a hack to use pop. We should know more about
         # when an agent is running or not. It is done like this currently
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
+
+    def __repr__(self):
+        return 'class={} resource_class={} agent_id={} slots_available={}'.format(
+            type(self),
+            self.resource_class,
+            self.slots_available(),
+            self.agent_id,
+        )

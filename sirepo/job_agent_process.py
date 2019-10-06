@@ -74,11 +74,11 @@ class ComputeJob(PKDict):
         self._process_exited = tornado.locks.Event()
         env = _subprocess_env()
         run_log_path = run_dir.join(template_common.RUN_LOG)
+#rn wrap this; including exit call back
         # we're in py3 mode, and regular subprocesses will inherit our
         # environment, so we have to manually switch back to py2 mode.
         env['PYENV_VERSION'] = 'py2'
         cmd = ['pyenv', 'exec'] + cmd
-
         with open(run_log_path, 'a+b') as run_log:
             self._sub_process = tornado.process.Subprocess(
                 cmd,
@@ -91,12 +91,12 @@ class ComputeJob(PKDict):
             )
             self._sub_process.set_exit_callback(self.on_exit_callback)
 
-    def __repr__(self):
-        return 'run_dir={}, jhash={}, status={}'.format(
-            self.run_dir,
-            self.jhash,
-            self.status,
-            )
+    async def kill(self, grace_period):
+        self._wait_for_terminate_timeout = tornado.ioloop.IOLoop.current().call_later(
+            grace_period,
+            lambda: self._sub_process.proc.kill()
+        )
+        return await self.wait_for_exit()
 
     def on_exit_callback(self, returncode):
         if self._wait_for_terminate_timeout:
@@ -111,12 +111,12 @@ class ComputeJob(PKDict):
         await self._process_exited.wait()
         return self.returncode
 
-    async def kill(self, grace_period):
-        self._wait_for_terminate_timeout = tornado.ioloop.IOLoop.current().call_later(
-            grace_period,
-            lambda: self._sub_process.proc.kill()
+    def __repr__(self):
+        return 'run_dir={}, jhash={}, status={}'.format(
+            self.run_dir,
+            self.jhash,
+            self.status,
         )
-        return await self.wait_for_exit()
 
 
 def _subprocess_env():
