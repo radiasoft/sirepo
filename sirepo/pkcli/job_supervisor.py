@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-"""# TODO(e-carlin): Doc
+"""Runs job supervisor tornado server
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
@@ -20,11 +19,16 @@ import tornado.web
 import tornado.websocket
 
 
+cfg = None
+
+
 def default_command():
+    global cfg
+
     cfg = pkconfig.init(
-        debug=(pkconfig.channel_in('dev'), bool, 'whether or not to run the job server in debug mode'),
-        ip=(job.DEFAULT_IP, str, 'ip address for the job server to listen to'),
-        port=(job.DEFAULT_PORT, int, 'port for the job server to listen to'),
+        debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
+        ip=(job.DEFAULT_IP, str, 'ip address to listen on'),
+        port=(job.DEFAULT_PORT, int, 'what port to listen on'),
     )
     app = tornado.web.Application(
         [
@@ -37,8 +41,7 @@ def default_command():
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
-
-    pkdlog('Server listening on {}:{}', cfg.ip, cfg.port)
+    pkdlog('ip={} port={}', cfg.ip, cfg.port)
     job_supervisor.init()
     tornado.ioloop.IOLoop.current().start()
 
@@ -59,20 +62,13 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             if self.driver:
                 self.driver.on_close()
         except Exception as e:
-            pkdlog('Error: {} \n{}', e, pkdexc())
+            pkdlog('exception={} {}', e, pkdexc())
 
     async def on_message(self, msg):
-        await _process_incoming(msg, self)
+        await job_supervisor.process_incoming(msg, self)
 
     def open(self):
         pkdlog(self.request.uri)
-
-
-async def _process_incoming(content, handler):
-    await job_supervisor.process_incoming(
-        pkjson.load_any(content),
-        handler,
-    )
 
 
 class _ServerReq(tornado.web.RequestHandler):
@@ -86,7 +82,7 @@ class _ServerReq(tornado.web.RequestHandler):
         pass
 
     async def post(self):
-        await _process_incoming(self.request.body, self)
+        await job_supervisor.process_incoming(self.request.body, self)
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')

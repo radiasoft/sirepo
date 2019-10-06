@@ -25,35 +25,26 @@ _ALREADY_GOOD_STATUS = (job.JobStatus.RUNNING, job.JobStatus.COMPLETED)
 
 async def incoming_message(msg):
     try:
-        d = sirepo.driver.get_instance(msg.content.agent_id)
+        d = sirepo.driver.get_instance(msg)
 #rn this should be explict, because it implicitly assumes datastructure, could be AttributeError
 # or KeyError or NotFound or... Be explicit here (returnNone)
-    except KeyError:
-        pkdlog('no known agent with id={}. Sending kill', msg.content.agent_id)
-        _send_kill_to_unknown_agent(msg)
-        return
-    except AttributeError:
+    except Exception as e:
 #rn again, be explict. the eafb is not quite right in this context because there are
 # are all kinds of attributes in teh cde block (sirepo.driver is an atribute check)
-        pkdlog('msg={} did not contain agent_id', job.DebugRenderer(msg))
+        pkdlog('exception={} msg={}', job.LogFormatter(msg))
         return
-    d.set_message_handler(msg.message_handler)
     a = msg.content.get('action')
     if a == job.ACTION_READY_FOR_WORK:
         run_scheduler(d)
         return
     if a == job.ACTION_ERROR:
-        pkdlog('received error from agent: {}', job.DebugRenderer(msg))
+        pkdlog('received error from agent: {}', job.LogFormatter(msg))
     try:
-
-set_message_handler is a problem
-
-
         r = _get_request_for_message(msg)
     except (KeyError, AttributeError):
         pkdlog(
             'Error no associated request for msg={} \n{}',
-            job.DebugRenderer(msg),
+            job.LogFormatter(msg),
             pkdexc()
         )
         return
@@ -73,6 +64,7 @@ async def incoming_request(req):
 
 
 def init():
+    job.init()
     sirepo.driver.init()
 
 
@@ -94,7 +86,8 @@ async def _run_compute_job_request(req):
 
 async def process_incoming(content, handler):
     try:
-        pkdlog('{}: {}', handler.sr_req_type,  job.DebugRenderer(content))
+        c = pkjson.load_any(content),
+        pkdlog('{}: {}', handler.sr_req_type,  job.LogFormatter(content))
         await globals()[f'incoming_{handler.sr_req_type}'](
             pkcollections.Dict({
                 f'{handler.sr_req_type}_handler': handler,
@@ -102,7 +95,7 @@ async def process_incoming(content, handler):
             })
         )
     except Exception as e:
-        pkdlog('Error: {}', e)
+        pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())
 
 
@@ -210,7 +203,7 @@ def _get_data_job_request(driver, jid):
 
 
 def _get_request_for_message(msg):
-    d = sirepo.driver.get_instance(msg.content.agent_id)
+    d = sirepo.driver.get_instance(msg)
     for r in d.requests:
         if r.content.req_id == msg.content.req_id:
             return r
@@ -279,16 +272,13 @@ class _Request(PKDict):
         return self.content.action == job.ACTION_START_COMPUTE_JOB
 
 
-def _send_kill_to_unknown_agent(incoming_msg):
+def _send_kill_to_unknown_agent(msg):
     try:
-        incoming_msg.message_handler.write_message(
-           pkcollections.Dict(
-               action=job.ACTION_KILL,
-               req_id=str(uuid.uuid4()),
-            )
+        msg.message_handler.write_message(
+           PKDict(action=job.ACTION_KILL, req_id=job.msg_id()))
         )
     except Exception as e:
-        pkdlog('msg={} exception={}', incoming_msg, e)
+        pkdlog('exception={} msg={}', e, job.LogFormatter(msg))
 
 
 class _SupervisorRequest(_Request):

@@ -6,6 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -23,22 +24,27 @@ import tornado.websocket
 
 
 _KILL_TIMEOUT_SECS = 3
-_RETRY_DELAY = 1
-_RUNNER_INFO_BASENAME = 'runner-info.json'
 
+_RETRY_SECS = 1
+
+_INFO_FILE = 'job.json'
+
+_INFO_VERSION = 1
+
+cfg = None
 
 def default_command():
+    job_supervisor.init()
+    global cfg
+
     cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, 'id of this agent'),
         supervisor_uri=pkconfig.Required(str, 'how to connect to the supervisor'),
     )
-    pkdlog('agent_id={}', cfg.agent_id)
+    pkdlog('agent_id={} supervisor_uri={}', cfg.agent_id, cfg.supervisor_uri)
     io_loop = tornado.ioloop.IOLoop.current()
     io_loop.spawn_callback(
-        _Msg(
-            agent_id=cfg.agent_id,
-            job_server_ws_uri=cfg.job_server_ws_uri
-        ).loop,
+        _Main()loop,
     )
     io_loop.start()
 
@@ -72,17 +78,17 @@ class _JobTracker:
             return PKDict()
         #rn do we want this?
         # figure out which backend and any backend-specific info
-        runner_info_file = run_dir.join(_RUNNER_INFO_BASENAME)
-        if runner_info_file.exists():
-            runner_info = pkjson.load_any(runner_info_file)
+        f = run_dir.join(_INFO_FILE)
+        if f.exists():
+            i = pkjson.load_any(f)
         else:
             # Legacy run_dir
-            runner_info = PKDict(
-                version=1,
+            i = PKDict(
+                version=_INFO_VERSION,
                 backend='local',
                 backend_info=PKDict(),
             )
-        assert runner_info.version == 1
+        assert i.version == _INFO_VERSION
 
         cmd = ['sirepo', 'extract', cmd, arg]
         # TODO(e-carlin): Handle multiple backends
@@ -192,17 +198,17 @@ class _JobTracker:
 
         return None, job.JobStatus.MISSING
 
-class _Msg(pkcollections.Dict):
+class _Main(PKDict):
     async def loop(self):
         self.job_tracker = _JobTracker()
         while True:
             self.current_msg = None
             try:
                 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await tornado.websocket.websocket_connect(self.job_server_ws_uri)
+                c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
             except ConnectionRefusedError as e:
-                pkdlog('{} uri=', e, self.job_server_ws_uri)
-                await tornado.gen.sleep(_RETRY_DELAY)
+                pkdlog('{} uri=', e, cfg.supervisor_uri)
+                await tornado.gen.sleep(_RETRY_SECS)
                 continue
             m = self._format_reply(action=job.ACTION_READY_FOR_WORK)
             while True:
@@ -214,7 +220,7 @@ class _Msg(pkcollections.Dict):
                     pkdlog('closed{}', e)
                     break
                 m = await c.read_message()
-                pkdc('m={}', job.DebugRenderer(m))
+                pkdc('m={}', job.LogFormatter(m))
                 if m is None:
                     break
                 m = await self._dispatch(m)
@@ -225,7 +231,7 @@ class _Msg(pkcollections.Dict):
             if not err:
                 self.current_msg = m
                 pkdlog('action={action} req_id={req_id}', **m)
-                pkdc('{}', job.DebugRenderer(m))
+                pkdc('{}', job.LogFormatter(m))
                 return await getattr(self, '_dispatch_' + m.action)(m)
         except Exception as e:
             err = 'exception=' + str(e)
@@ -268,10 +274,7 @@ class _Msg(pkcollections.Dict):
         return self._format_reply()
 
     def _format_reply(self, **kwargs):
-        msg = pkcollections.Dict(
-            kwargs,
-            agent_id=self.agent_id
-        )
+        msg = PKDict(kwargs, agent_id=cfg.agent_id)
         if self.current_msg:
             #rn use get() because there may be an error in the sending message
             # and we really don't want to get any errors

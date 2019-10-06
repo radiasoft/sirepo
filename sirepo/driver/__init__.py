@@ -12,6 +12,7 @@ from pykern import pkjson
 from pykern import pkjson, pkconfig, pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
+from sirepo import job
 from sirepo import job_supervisor
 import importlib
 import tornado.ioloop
@@ -34,8 +35,8 @@ def get_class(req):
     return _DEFAULT_CLASS
 
 
-def get_instance(agent_id):
-    return DriverBase.instances[agent_id]
+def get_instance(msg):
+    return DriverBase.instances[msg.content.agent_id]
 
 
 def init():
@@ -43,6 +44,11 @@ def init():
     assert not _CLASSES
     cfg = pkconfig.init(
         modules=(('local',), set, 'driver modules'),
+        supervisor_uri=(
+            'http://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.SERVER_URI),
+            str,
+            'how agents connect to supervisor',
+        ),
     )
     this_module = pkinspect.this_module()
     p = pkinspect.this_module().__name__
@@ -54,7 +60,6 @@ def init():
     # _DEFAULT_CLASS some how
     assert len(_CLASSES) == 1
     _DEFAULT_CLASS = _CLASSES.values()[0]
-
     return
 
 
@@ -111,6 +116,7 @@ class DriverBase(PKDict):
             d = cls(
                 uid=req.content.uid,
                 resource_class=req.content.resource_class,
+                supervisor_uri=cfg.supervisor_uri,
             )
             d.resources[d.resource_class].drivers.append(d)
             cls.instances[d.agent_id] = d
@@ -126,7 +132,7 @@ class DriverBase(PKDict):
         self._message_handler = None
         self._message_handler_set.clear()
 
-    def on_ws_close(self):
+    def on_close(self):
         pkdlog('agent_id={}', self.agent_id)
 #rn will need to kill just in case socket closed not due to process exit
         self._set_agent_stopped_state()
@@ -161,7 +167,7 @@ class DriverBase(PKDict):
         pkdlog('agent={}', self.agent_id)
         self._set_agent_stopped_state()
         for r in self.requests:
-            r.set_response(
+            r.set_response(a
                 pkcollections.Dict(
                     error='agent exited with returncode {}'.format(returncode)
                 )
@@ -187,10 +193,6 @@ class DriverBase(PKDict):
         # when an agent is running or not. It is done like this currently
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
-
-
-move slot alloc down to local
-
 
     def __repr__(self):
         return 'class={} resource_class={} uid={} agent_id={} slots_available={}'.format(

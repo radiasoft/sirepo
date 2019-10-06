@@ -11,14 +11,12 @@ from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
-from sirepo import runner
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo.template import template_common
 import datetime
 import sirepo.template
 import time
-import uuid
 
 
 @api_perm.require_user
@@ -53,16 +51,23 @@ def api_runSimulation():
             'startTime': int(time.time()),
             'state': 'pending',
         }
-        tmp_dir = run_dir + '-' + jhash + '-' + uuid.uuid4() + srdb.TMP_DIR_SUFFIX
-        cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=tmp_dir)
+        i = job.msg_id()
+        d = run_dir.new(
+            purebasename='-'.join((run_dir.purebasename, jhash, i)),
+            ext=srdb.TMP_DIR_SUFFIX,
+        )
+        cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=d)
         job.start_compute_job(
-            jid,
-            data.simulationId,
-            run_dir,
-            jhash,
-            cmd,
-            tmp_dir,
-            simulation_db.is_parallel(data),
+            body=PKDict(
+                cmd=cmd,
+                jhash=jhash,
+                jid=jid,
+                parallel=simulation_db.is_parallel(data),
+                req_id=i,
+                run_dir=run_dir,
+                sim_id=data.simulationId,
+                tmp_dir=d,
+            ),
         )
 #rn at this point, you'll
     res = _simulation_run_status_job_supervisor(data, quiet=True)
@@ -133,9 +138,11 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         dict: status response
     """
     try:
-        run_dir = simulation_db.simulation_run_dir(data)
-        jhash = template_common.report_parameters_hash(data)
-        jid = simulation_db.job_id(data)
+        b = PKDict(
+            run_dir=simulation_db.simulation_run_dir(data),
+            jhash=template_common.report_parameters_hash(data),
+            jid=simulation_db.job_id(data),
+        )
         status = job.compute_job_status(
             jid,
             run_dir,
@@ -151,21 +158,17 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
             is_running,
             status,
         )
-
         if not is_running:
             if status is not job.JobStatus.MISSING:
-                res, err = job.run_extract_job(
-                    jid, run_dir, jhash, 'result',
-                )
+                res, err = job.run_extract_job(b.setdefault(cmd='result', arg=None))
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', run_dir)
         if simulation_db.is_parallel(data):
             new = job.run_extract_job(
-                jid,
-                run_dir,
-                jhash,
-                'background_percent_complete',
-                is_running,
+                b.setdefault(
+                    cmd='background_percent_complete',
+                    arg=is_running,
+                ),
             )
             new.setdefault('percentComplete', 0.0)
             new.setdefault('frameCount', 0)

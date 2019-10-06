@@ -8,7 +8,9 @@ must be py2 compatible.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections, pkjson, pkconfig
+from pykern import pkcollections
+from pykern import pkconfig
+from pykern import pkjson
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import simulation_db
 import aenum
@@ -19,12 +21,14 @@ import uuid
 # Actions that the sirepo server, supervisor, or driver may send.
 # TODO(e-carlin): Can we use an enum without manually serializing
 # and deserializing?
+#rn remove the word _JOB
 ACTION_CANCEL_JOB = 'cancel_job'
 ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
 ACTION_ERROR = 'error'
 ACTION_KEEP_ALIVE = 'keep_alive'
 ACTION_KILL = 'kill'
 ACTION_READY_FOR_WORK = 'ready_for_work'
+#rn structure should be same "run" or "start"
 ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
 ACTION_START_COMPUTE_JOB = 'start_compute_job'
 
@@ -56,20 +60,39 @@ class Status(aenum.Enum):
     RUNNING = 'running'
 
 
+# TODO(e-carlin): These methods have the same structure. Abstract.
+def compute_job_status(jid, run_dir, jhash, parallel):
+    body = pkcollections.Dict(
+        jid=jid,
+        action=ACTION_COMPUTE_JOB_STATUS,
+        run_dir=str(run_dir),
+        jhash=jhash,
+        parallel=parallel,
+
+    )
+    return Status(_request(body).status)
+
+
+def cancel_report_job(jid, run_dir, jhash):
+    body = pkcollections.Dict(
+        jid=jid,
+        action=ACTION_CANCEL_JOB,
+        run_dir=str(run_dir),
+        jhash=jhash,
+    )
+    return _request(body)
+
+
 def init():
     global cfg
 
-    assert not cfg
+    if cfg:
+        return
     cfg = pkconfig.init(
-        supervisor_agent_uri=(
-            'http://{}:{}/server'.format(DEFAULT_IP, DEFAULT_PORT),
+        supervisor_uri=(
+            'http://{}:{}/{}'.format(DEFAULT_IP, DEFAULT_PORT, SERVER_URI),
             str,
-            'uri to reach the job server for http connections',
-        ),
-        job_server_agent_uri=(
-            'ws://{}:{}/agent'.format(DEFAULT_IP, DEFAULT_PORT),
-            str,
-            'uri to reach the job server for websocket connections',
+            'for supervisor requests',
         ),
     )
 
@@ -84,84 +107,83 @@ def init_by_server(app):
     uri_router.register_api_module(job_api)
 
 
-# TODO(e-carlin): These methods have the same structure. Abstract.
-def compute_job_status(jid, run_dir, jhash, parallel):
-    body = pkcollections.Dict(
-        jid=jid,
-        action=ACTION_COMPUTE_JOB_STATUS,
-        run_dir=str(run_dir),
-        jhash=jhash,
-        parallel=parallel,
+def msg_id():
+    return str(uuid.uuid4())
 
-    )
-    response = _request(body)
-    return JobStatus(response.status)
-
-
-def cancel_report_job(jid, run_dir, jhash):
-    body = pkcollections.Dict(
-        jid=jid,
-        action=ACTION_CANCEL_JOB,
-        run_dir=str(run_dir),
-        jhash=jhash,
-    )
-    return _request(body)
-
-
-def run_extract_job(jid, run_dir, jhash, cmd, *args):
-    body = pkcollections.Dict(
-        jid=jid,
-        action=ACTION_RUN_EXTRACT_JOB,
-        run_dir=str(run_dir),
-        jhash=jhash,
-        cmd=cmd,
-        arg=pkjson.dump_pretty(args),
-    )
-    response = _request(body)
+def run_extract_job(body):
+    return _request(
+        body.setdefault(
+            action=ACTION_RUN_EXTRACT_JOB,
+            arg='',
+        ),
+    ).result
     # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
-    return response.result
 
 
-def start_compute_job(jid, sim_id, run_dir, jhash, cmd, tmp_dir, parallel):
-    body = pkcollections.Dict(
-        action=ACTION_START_COMPUTE_JOB,
-        jid=jid,
-        sim_id=sim_id,
-        run_dir=str(run_dir),
-        jhash=jhash,
-        cmd=cmd,
-        tmp_dir=str(tmp_dir),
-        resource_class='parallel' if parallel else 'sequential',
+def start_compute_job(body):
+    _request(
+        body.setdefault(
+            action=ACTION_START_COMPUTE_JOB,
+            resource_class='parallel' if parallel else 'sequential',
+        )
     )
-    _request(body)
-    return {}
+    # always success
+    return PKDict()
 
 
-def _request(body):
-    # TODO(e-carlin): uid is used to identify the proper broker for the reuqest
-    # We likely need a better key and maybe we shouldn't expose this
-    # implementation detail to the client.
-    uid = simulation_db.uid_from_dir_name(body.run_dir)
-    body.uid = uid
-    body.req_id = str(uuid.uuid4())
-    body.setdefault('resource_class', 'sequential')
-    r = requests.post(cfg.job_server_http_uri, json=body)
-    r.raise_for_status()
-    c = pkjson.load_any(r.content)
-    if 'error' in c or c.get('action') == 'error':
-        pkdlog('Error: {}', c)
-        raise Exception('Error. Please try agin.') # TODO(e-carlin): Something better
-    return c
+#TODO(robnagler) consider moving this into pkdebug
+class LogFormatter:
+    """Convert arbitrary objects to length-limited strings"""
 
+    #: maximum length of elements or total string
+    MAX_STR = 2000
 
-class DebugRenderer():
+    #: maximum number of elements
+    MAX_LIST = 10
+
+    SNIP = '[...]'
+
     def __init__(self, obj):
         self.obj = obj
 
-    def __str__(self):
-        o = self.obj
-        if isinstance(o, pkcollections.Dict):
-            return str(
-                {x: (o[x] if x not in ['result', 'arg'] else '<snip>') for x in o}
+    def __repr__(self):
+        def _s(s):
+            return s[:self.MAX_STR] + (s[self.MAX_STR:] and self.SNIP)
+
+        def _j(values, delims):
+            v = list(values)
+            return delims[0] + ' '.join(
+                v[:self.MAX_LIST] + (v[self.MAX_LIST:] and [self.SNIP])
+            ) + delims[1]
+
+        if isinstance(self.obj, dict):
+            return _j
+                _s(k) + ': ' + _s(v) for k, v in self.obj.items() \
+                    if k not in ('result', 'arg'),
+                '{}',
             )
-        raise AssertionError('unknown object to render: {}', o)
+        if isinstance(self.obj, (tuple, list)):
+            return _j(
+                _s(v) for v in self.obj,
+                '[]' if isinstance(self.obj, list) else '()',
+            )
+        return _s(o)
+
+
+def _request(body):
+    # TODO(e-carlin): uid is used to identify the proper broker for the request
+    # We likely need a better key and maybe we shouldn't expose this
+    # implementation detail to the client.
+    uid = simulation_db.uid_from_dir_name(body.run_dir)
+    body =
+    body.uid = uid
+    body.setdefault(req_id=msg_id())
+    body.setdefault(resource_class='sequential')
+    r = requests.post(cfg.supervisor_uri, json=body)
+    r.raise_for_status()
+    c = pkjson.load_any(r.content)
+    if 'error' in c or c.get('action') == 'error':
+        pkdlog('reply={}', c)
+        # TODO(e-carlin): Something better
+        raise RuntimeError('Error. Please try agin.')
+    return c

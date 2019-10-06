@@ -9,9 +9,7 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-from sirepo import driver
-from sirepo import job
-from sirepo import job_supervisor
+from sirepo.driver
 import functools
 import os
 import tornado.ioloop
@@ -31,11 +29,6 @@ def init_class():
     cfg = pkconfig.init(
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
-        supervisor_uri=(
-            'http://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.SERVER_URI),
-            str,
-            'how agents connect to supervisor',
-        ),
     )
     LocalDriver.resources = PKDict(
         parallel=_Resources(cfg.parallel_slots),
@@ -44,7 +37,7 @@ def init_class():
     return LocalDriver
 
 
-class LocalDriver(driver.DriverBase):
+class LocalDriver(sirepo.driver.DriverBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwarg)
         self.agent_started = False
@@ -129,7 +122,7 @@ class LocalDriver(driver.DriverBase):
 #rn wrap this in job_subprocess()
         env['PYENV_VERSION'] = 'py3'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = cfg.supervisor_uri
+        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = self.supervisor_uri
 #rn cwd is where? Probably should be a tmp directory
         self._subprocess = tornado.process.Subprocess(
             [
