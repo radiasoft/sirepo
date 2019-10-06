@@ -53,7 +53,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if c is None:
                 continue
 #TODO(robnagler) why is this not a bool?
-            x = c.setdefault(isConductor='1' if c.voltage > 0 else '0')
+            x = c.setdefault('isConductor', '1' if c.voltage > 0 else '0')
             c.setdefault(
                 color=s.get('zeroVoltsColor' if x == '0' else 'nonZeroVoltsColor'),
             )
