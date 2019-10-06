@@ -51,7 +51,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Initialized by DriverBase.set_message_handler
+        # Initialized by sirepo.driver.get_instance
         self.driver = None
 
     def check_origin(self, origin):
@@ -65,7 +65,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
             pkdlog('exception={} {}', e, pkdexc())
 
     async def on_message(self, msg):
-        await job_supervisor.process_incoming(msg, self)
+        await job_supervisor.incoming(msg, self)
 
     def open(self):
         pkdlog(self.request.uri)

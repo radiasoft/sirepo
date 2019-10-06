@@ -36,7 +36,14 @@ def get_class(req):
 
 
 def get_instance(msg):
-    return DriverBase.instances[msg.content.agent_id]
+    d = DriverBase.instances[msg.content.agent_id]
+    if not d._handler_set.is_set():
+        d._status = Status.COMMUNICATING
+        d._handler = handler
+        d._handler_set.set()
+        #rn so driver gets on_close callback
+        d.driver = d
+    return d
 
 
 def init():
@@ -85,8 +92,8 @@ class DriverBase(PKDict):
         super().__init__(
             agent_id=str(uuid.uuid4()),
             _status=Status.IDLE,
-            _message_handler_set=tornado.locks.Event(),
-            _message_handler=None,
+            _handler_set=tornado.locks.Event(),
+            _handler=None,
             requests=[],
             requests_to_send_to_agent=tornado.queues.Queue(),
             **kwargs,
@@ -127,30 +134,17 @@ class DriverBase(PKDict):
         return self._status in (Status.COMMUNICATING, Status.KILLING)
 
     def kill(self):
-        pkdlog('agent_id={}', self.agent_id)
+        pkdlog('{}', self)
         self._kill()
-        self._message_handler = None
-        self._message_handler_set.clear()
+        self._handler = None
+        self._handler_set.clear()
 
     def on_close(self):
         pkdlog('agent_id={}', self.agent_id)
 #rn will need to kill just in case socket closed not due to process exit
         self._set_agent_stopped_state()
-        for r in self.requests:
-            # TODO(e-carlin): Think more about this. If the kill was requested
-            # maybe the jobs are running too long? If the kill wasn't requested
-            # maybe the job can't be run and is what is causing the agent to
-            # die?
-            if r.state == job_supervisor._STATE_RUNNING:
-                r.state = job_supervisor._STATE_RUN_PENDING
+        job_supervisor.restart_requests(self)
         job_supervisor.run_scheduler(self)
-
-    def set_message_handler(self, message_handler):
-        if not self._message_handler_set.is_set():
-            self._status = Status.COMMUNICATING
-            self._message_handler = message_handler
-            self._message_handler_set.set()
-            message_handler.driver = self
 
     def start(self, request):
         pkdlog('agent_id={}', self.agent_id)
@@ -178,8 +172,8 @@ class DriverBase(PKDict):
         # TODO(e-carlin): Exception handling
         while True:
             r = await self.requests_to_send_to_agent.get()
-            await self._message_handler_set.wait()
-            self._message_handler.write_message(pkjson.dump_bytes(r.content))
+            await self._handler_set.wait()
+            self._handler.write_message(pkjson.dump_bytes(r.content))
 
     def _set_agent_stopped_state(self):
         # TODO(e-carlin): This method is a code smell. I just clear out everything
@@ -187,8 +181,8 @@ class DriverBase(PKDict):
         # of the agent/driver a bit better and only change things that need to
         # be changed?
         self._status = Status.IDLE
-        self._message_handler = None
-        self._message_handler_set.clear()
+        self._handler = None
+        self._handler_set.clear()
         # TODO(e-carlin): It is a hack to use pop. We should know more about
         # when an agent is running or not. It is done like this currently
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
