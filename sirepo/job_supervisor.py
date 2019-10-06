@@ -18,9 +18,12 @@ _DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB]
 _OPERATOR_ACTIONS = (job.ACTION_CANCEL_JOB,)
 
 class _RequestState(aenum.Enum):
-    RUN_PENDING = 'run_pending'
-    RUNNING = 'running'
+    CHECK_STATUS = 'check_status'
     REPLY = 'reply'
+    RUN = 'run'
+    RUN_PENDING = 'run_pending'
+
+_WAIT = (_RequestState.RUN_PENDING, _RequestState.CHECK_STATUS)
 
 
 async def incoming(content, handler):
@@ -78,7 +81,7 @@ def restart_requests(driver):
         # maybe the jobs are running too long? If the kill wasn't requested
         # maybe the job can't be run and is what is causing the agent to
         # die?
-        if r.state == _RequestState.RUNNING:
+        if r.state == _RequestState.RUN:
             r.state = _RequestState.RUN_PENDING
 
 
@@ -93,15 +96,14 @@ def run_scheduler(driver):
     for d in driver.resources[driver.resource_class].drivers:
         for r in d.requests:
             a = r.content.action
-            if r.state is not _RequestState.RUN_PENDING or r.waiting_on_dependent_request \
-                or a in _DATA_ACTIONS and d.running_data_jobs:
+            if r.state not in _WAIT or a in _DATA_ACTIONS and d.running_data_jobs:
                 continue
             # if the request is for status of a job pending in the q or in
             # running_data_jobs then reply out of band
             if a == job.ACTION_COMPUTE_JOB_STATUS:
                 j = _get_data_job_request(d, r.content.jid)
 #TODO(robnagler) why not reply in all cases if we have it?
-                if j and j.state is _RequestState.RUN_PENDING:
+                if j and j.state in _WAIT:
                     r.state = _RequestState.REPLY
                     r.set_response(PKDict(status=job.Status.PENDING.value))
                     continue
@@ -111,12 +113,13 @@ def run_scheduler(driver):
                 d.start(r)
 
             # TODO(e-carlin): If r is a cancel and there is no agent then???
-            # TODO(e-carlin): If r is a cancel and the job is execution_pending
-            # then delete from q and respond to server out of band about cancel
+            # rn nothing to do, just reply canceled
+            # TODO(e-carlin): If r is a cancel and the job is run_pending
+            # then delete from q and respond to server in band about cancel
             if d.is_started():
 #TODO(robnagler) how do we know which "r" is started?
                 _add_to_running_data_jobs(d, r)
-                r.state = _RequestState.RUNNING
+                r.state = _RequestState.RUN
                 drivers.append(drivers.pop(drivers.index(d)))
                 d.requests_to_send_to_agent.put_nowait(r)
 
@@ -127,12 +130,12 @@ def terminate():
 
 class _Request(PKDict):
     def __init__(self, req):
-        self.state = _STATE_RUN_PENDING
         self.content = req.content
+        self.state = _RequestState.CHECK_STATUS if req.content.action == job.ACTION_START_COMPUTE_JOB \
+            else _RequestState.RUN_PENDING
         self._handler = req.get('handler')
         self._response_received = tornado.locks.Event()
         self._response = None
-        self.waiting_on_dependent_request = self._requires_dependent_request()
         self._driver = sirepo.driver.get_class(self).enqueue_request(self)
         run_scheduler(self._driver)
 
@@ -156,7 +159,7 @@ class _Request(PKDict):
         self._response_received.set()
 
     def _requires_dependent_request(self):
-        return self.content.action == job.ACTION_START_COMPUTE_JOB
+        return
 
 
 class _SupervisorRequest(_Request):
@@ -171,36 +174,6 @@ def _add_to_running_data_jobs(driver, req):
     if req.content.action in _DATA_ACTIONS:
         assert req.content.jid not in driver.running_data_jobs
         driver.running_data_jobs.add(req.content.jid)
-
-
-def _cancel_pending_job(driver, cancel_req):
-    def _reply_job_canceled(r, requests):
-        r.reply({
-            'status': job.Status.CANCELED.value,
-            'req_id': r.content.req_id,
-        })
-        requests.remove(r)
-
-    def _get_compute_request(jid):
-        for r in driver.requests:
-            if r.content.action == job.ACTION_START_COMPUTE_JOB and r.content.jid == jid:
-                return r
-        return None
-
-    compute_req = _get_compute_request(cancel_req.content.jid)
-    if compute_req is None:
-        for r in driver.requests:
-            if r.content.jid == cancel_req.content.jid:
-                _reply_job_canceled(r, driver.requests)
-        cancel_req.reply({'status': job.Status.CANCELED.value})
-        driver.requests.remove(cancel_req)
-
-    elif compute_req.state == _STATE_RUN_PENDING:
-        pkdlog('compute_req={}', compute_req)
-        _reply_job_canceled(compute_req, driver.requests)
-
-        cancel_req.reply({'status': job.Status.CANCELED.value})
-        driver.requests.remove(cancel_req)
 
 
 def _free_slots_if_needed(driver_class, resource_class):
@@ -232,13 +205,6 @@ def _get_request_for_message(msg):
     ))
 
 
-def _handle_cancel_requests(drivers):
-    for d in drivers:
-        for r in d.requests:
-            if r.content.action == job.ACTION_CANCEL_JOB:
-                _cancel_pending_job(d, r)
-
-
 def _len_longest_requests_q(drivers):
     m = 0
     for d in drivers:
@@ -262,7 +228,7 @@ async def _run_compute_job_request(req):
     s = _SupervisorRequest(req, job.ACTION_COMPUTE_JOB_STATUS)
     r = await s.get_reply()
     if 'status' in r and r.status not in job.ALREADY_GOOD_STATUS:
-        req.waiting_on_dependent_request = False
+        req.state = _RequestState.RUN_PENDING
         run_scheduler(req._driver)
         r = await req.get_reply()
     return r
