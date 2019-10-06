@@ -67,7 +67,7 @@ def terminate():
 class Status(aenum.Enum):
     IDLE = 'idle'
     KILLING = 'killing'
-    STARTED = 'started'
+    COMMUNICATING = 'communicating'
     STARTING = 'starting'
 
 
@@ -97,17 +97,10 @@ class DriverBase(PKDict):
             self._process_requests_to_send_to_agent
         )
 
-    def is_started(self):
-        return self._status in (Status.STARTED, Status.KILLING)
-
-    @classmethod
-    def dequeue_request(cls, req):
-        for d in cls.resources[req.content.resource_class].drivers:
-            if d.uid == req.content.uid:
-                d.requests.remove(req)
-                break
-        else:
-            raise AssertionError('req={} not found', req)
+    def dequeue_request(self, req):
+        assert self.uid == req.content.uid, \
+            'req={} uid does not match driver={}'.format(req, self)
+        d.requests.remove(req)
 
     @classmethod
     def enqueue_request(cls, req):
@@ -123,6 +116,9 @@ class DriverBase(PKDict):
             cls.instances[d.agent_id] = d
         d.requests.append(req)
         return d
+
+    def is_started(self):
+        return self._status in (Status.COMMUNICATING, Status.KILLING)
 
     def kill(self):
         pkdlog('agent_id={}', self.agent_id)
@@ -141,11 +137,11 @@ class DriverBase(PKDict):
             # die?
             if r.state == job_supervisor._STATE_RUNNING:
                 r.state = job_supervisor._STATE_RUN_PENDING
-        job_supervisor.run_scheduler(type(self), self.resource_class)
+        job_supervisor.run_scheduler(self)
 
     def set_message_handler(self, message_handler):
         if not self._message_handler_set.is_set():
-            self._status = Status.STARTED
+            self._status = Status.COMMUNICATING
             self._message_handler = message_handler
             self._message_handler_set.set()
             message_handler.driver = self
@@ -170,7 +166,7 @@ class DriverBase(PKDict):
                     error='agent exited with returncode {}'.format(returncode)
                 )
             )
-        job_supervisor.run_scheduler(type(self), self.resource_class) # TODO(e-carlin): Is this necessary?
+        job_supervisor.run_scheduler(self)
 
     async def _process_requests_to_send_to_agent(self):
         # TODO(e-carlin): Exception handling
@@ -184,8 +180,7 @@ class DriverBase(PKDict):
         # so I know we're in a good state. Maybe I should know the actual state
         # of the agent/driver a bit better and only change things that need to
         # be changed?
-        self._starting = Status.IDLE
-        self._started = False
+        self._status = Status.IDLE
         self._message_handler = None
         self._message_handler_set.clear()
         # TODO(e-carlin): It is a hack to use pop. We should know more about
@@ -193,9 +188,14 @@ class DriverBase(PKDict):
         # because it is unclear when on_agent_error_exit vs on_ws_close it called
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
 
+
+move slot alloc down to local
+
+
     def __repr__(self):
-        return 'class={} resource_class={} agent_id={} slots_available={}'.format(
+        return 'class={} resource_class={} uid={} agent_id={} slots_available={}'.format(
             type(self),
+            self.uid,
             self.resource_class,
             self.slots_available(),
             self.agent_id,

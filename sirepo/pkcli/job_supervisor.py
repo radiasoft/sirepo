@@ -57,7 +57,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def on_close(self):
         try:
             if self.driver:
-                self.driver.on_ws_close()
+                self.driver.on_close()
         except Exception as e:
             pkdlog('Error: {} \n{}', e, pkdexc())
 
@@ -71,7 +71,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 async def _process_incoming(content, handler):
     await job_supervisor.process_incoming(
         pkjson.load_any(content),
-        handler
+        handler,
     )
 
 

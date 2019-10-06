@@ -63,7 +63,6 @@ class LocalDriver(driver.DriverBase):
         # )
 
     def __repr__(self):
-        return ''
         return 'agent_id={} agent_started={} running_data_jobs={} requests={} resources={}'.format(
             self.agent_id,
             self.agent_started(),

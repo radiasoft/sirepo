@@ -45,6 +45,10 @@ async def incoming_message(msg):
     if a == job.ACTION_ERROR:
         pkdlog('received error from agent: {}', job.DebugRenderer(msg))
     try:
+
+set_message_handler is a problem
+
+
         r = _get_request_for_message(msg)
     except (KeyError, AttributeError):
         pkdlog(
@@ -146,7 +150,7 @@ def run_scheduler(driver):
                 # TODO(e-carlin): If r is a cancel and ther is no agent then???
                 # TODO(e-carlin): If r is a cancel and the job is execution_pending
                 # then delete from q and respond to server out of band about cancel
-                if d.agent_started():
+                if d.is_started():
                     _add_to_running_data_jobs(d, r)
                     r.state = _STATE_RUNNING
                     drivers.append(drivers.pop(drivers.index(d)))
@@ -191,7 +195,7 @@ def _cancel_pending_job(driver, cancel_req):
 def _free_slots_if_needed(driver_class, resource_class):
     slot_needed = False
     for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started() and len(d.requests) > 0  and not d.slots_available():
+        if d.is_started() and len(d.requests) > 0  and not d.slots_available():
             slot_needed = True
             break
     if slot_needed:
@@ -250,7 +254,7 @@ class _Request(PKDict):
         self._response = None
         self.waiting_on_dependent_request = self._requires_dependent_request()
         self._driver = driver.get_class(self).enqueue_request(self)
-        run_scheduler(d)
+        run_scheduler(self._driver)
 
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
@@ -258,6 +262,7 @@ class _Request(PKDict):
     async def get_reply(self):
         await self._response_received.wait()
         self._driver.dequeue_request(self)
+        self._driver = None
         return self._response
 
     def reply(self, reply):
@@ -296,7 +301,7 @@ class _SupervisorRequest(_Request):
 
 def _try_to_free_slot(driver_class, resource_class):
     for d in driver_class.resources[resource_class].drivers:
-        if d.agent_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
+        if d.is_started() and len(d.requests) == 0 and len(d.running_data_jobs) == 0:
             pkdc('agent_id={} agent being terminated to free slot', d.agent_id)
             d.kill_agent()
             driver_class.resources[resource_class].drivers.remove(d)
