@@ -59,28 +59,16 @@ class Status(aenum.Enum):
     #: data on disk is incomplete but it's running
     RUNNING = 'running'
 
-
-# TODO(e-carlin): These methods have the same structure. Abstract.
-def compute_job_status(jid, run_dir, jhash, parallel):
-    body = pkcollections.Dict(
-        jid=jid,
-        action=ACTION_COMPUTE_JOB_STATUS,
-        run_dir=str(run_dir),
-        jhash=jhash,
-        parallel=parallel,
-
-    )
-    return Status(_request(body).status)
+#: run_status will not re-run a simulation in these states
+ALREADY_GOOD_STATUS = (Status.RUNNING, Status.COMPLETED)
 
 
-def cancel_report_job(jid, run_dir, jhash):
-    body = pkcollections.Dict(
-        jid=jid,
-        action=ACTION_CANCEL_JOB,
-        run_dir=str(run_dir),
-        jhash=jhash,
-    )
-    return _request(body)
+def cancel_report_job():
+    return _request(ACTION_CANCEL_JOB, body)
+
+
+def compute_job_status(body):
+    return Status(_request(ACTION_COMPUTE_JOB_STATUS, body).status)
 
 
 def init():
@@ -110,23 +98,14 @@ def init_by_server(app):
 def msg_id():
     return str(uuid.uuid4())
 
+
 def run_extract_job(body):
-    return _request(
-        body.setdefault(
-            action=ACTION_RUN_EXTRACT_JOB,
-            arg='',
-        ),
-    ).result
+    return _request(ACTION_RUN_EXTRACT_JOB, body.setdefault(arg='')).result
     # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
 
 
 def start_compute_job(body):
-    _request(
-        body.setdefault(
-            action=ACTION_START_COMPUTE_JOB,
-            resource_class='parallel' if parallel else 'sequential',
-        )
-    )
+    _request(ACTION_START_COMPUTE_JOB, body)
     # always success
     return PKDict()
 
@@ -170,16 +149,21 @@ class LogFormatter:
         return _s(o)
 
 
-def _request(body):
+def _request(action, body):
     # TODO(e-carlin): uid is used to identify the proper broker for the request
     # We likely need a better key and maybe we shouldn't expose this
     # implementation detail to the client.
-    uid = simulation_db.uid_from_dir_name(body.run_dir)
-    body =
-    body.uid = uid
-    body.setdefault(req_id=msg_id())
-    body.setdefault(resource_class='sequential')
-    r = requests.post(cfg.supervisor_uri, json=body)
+    body.setdefault(
+        action=action,
+        req_id=msg_id(),
+        resource_class='parallel' if body.get('parallel') else 'sequential',
+        uid=simulation_db.uid_from_dir_name(body.run_dir),
+    )
+    r = requests.post(
+        cfg.supervisor_uri,
+        data=pkjson.dump_bytes(body),
+        headers=PKDict('Content-type'='application/json'),
+    )
     r.raise_for_status()
     c = pkjson.load_any(r.content)
     if 'error' in c or c.get('action') == 'error':

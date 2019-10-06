@@ -21,8 +21,6 @@ DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB]
 _OPERATOR_ACTIONS = (job.ACTION_CANCEL_JOB,)
 
 
-_ALREADY_GOOD_STATUS = (job.JobStatus.RUNNING, job.JobStatus.COMPLETED)
-
 async def incoming_message(msg):
     try:
         d = sirepo.driver.get_instance(msg)
@@ -77,7 +75,7 @@ def terminate():
 async def _run_compute_job_request(req):
     s = _SupervisorRequest(req, job.ACTION_COMPUTE_JOB_STATUS)
     r = await s.get_reply()
-    if 'status' in r and r.status not in _ALREADY_GOOD_STATUS:
+    if 'status' in r and r.status not in job.ALREADY_GOOD_STATUS:
         req.waiting_on_dependent_request = False
         run_scheduler(req._driver)
         r = await req.get_reply()
@@ -131,7 +129,7 @@ def run_scheduler(driver):
                     if j and j.state == _STATE_RUN_PENDING:
                         r.state = _STATE_RUNNING
                         r.set_response(pkcollections.Dict(
-                            status=job.JobStatus.PENDING.value,
+                            status=job.Status.PENDING.value,
                             )
                         )
                         continue
@@ -159,7 +157,7 @@ def _add_to_running_data_jobs(driver, req):
 def _cancel_pending_job(driver, cancel_req):
     def _reply_job_canceled(r, requests):
         r.reply({
-            'status': job.JobStatus.CANCELED.value,
+            'status': job.Status.CANCELED.value,
             'req_id': r.content.req_id,
         })
         requests.remove(r)
@@ -174,14 +172,14 @@ def _cancel_pending_job(driver, cancel_req):
         for r in driver.requests:
             if r.content.jid == cancel_req.content.jid:
                 _reply_job_canceled(r, driver.requests)
-        cancel_req.reply({'status': job.JobStatus.CANCELED.value})
+        cancel_req.reply({'status': job.Status.CANCELED.value})
         driver.requests.remove(cancel_req)
 
     elif compute_req.state == _STATE_RUN_PENDING:
         pkdlog('compute_req={}', compute_req)
         _reply_job_canceled(compute_req, driver.requests)
 
-        cancel_req.reply({'status': job.JobStatus.CANCELED.value})
+        cancel_req.reply({'status': job.Status.CANCELED.value})
         driver.requests.remove(cancel_req)
 
 
@@ -231,7 +229,7 @@ def _len_longest_requests_q(drivers):
 def _remove_from_running_data_jobs(driver, req, msg):
     # TODO(e-carlin): ugly
     if req.content.action == job.ACTION_COMPUTE_JOB_STATUS:
-        if msg.content.status != job.JobStatus.RUNNING.value:
+        if msg.content.status != job.Status.RUNNING.value:
             driver.running_data_jobs.discard(req.content.jid)
     elif req.content.action == job.ACTION_RUN_EXTRACT_JOB \
         or req.content.action == job.ACTION_CANCEL_JOB:

@@ -15,36 +15,20 @@ import sirepo
 import sys
 
 
-# These commands take json-encoded arguments, and then print their result as
-# json to stdout.
-def _extract_cmd(fn):
+def _cmd(fn):
+    """Wrap function by decoding arguments"""
     @functools.wraps(fn)
     def wrapper(arg):
-        result = fn(*pkjson.load_any(arg))
-        encoded = pkjson.dump_pretty(result)
-        sys.stdout.write(encoded)
+        sys.stdout.write(
+            pkjson.dump_pretty(
+                fn(*pkjson.load_any(arg)),
+                pretty=False,
+            ),
+        )
     return wrapper
 
 
-# These commands are always run with cwd set to the appropriate run_dir
-def _run_dir():
-    return pkio.py_path('.')
-
-
-def _input_params():
-    return simulation_db.read_json(
-        _run_dir().join(template_common.INPUT_BASE_NAME)
-    )
-
-
-@_extract_cmd
-def remove_last_frame():
-    template = sirepo.template.import_module(_input_params())
-    if hasattr(template, 'remove_last_frame'):
-        template.remove_last_frame(_run_dir())
-
-
-@_extract_cmd
+@_cmd
 def background_percent_complete(is_running):
     params = _input_params()
     template = sirepo.template.import_module(params)
@@ -53,7 +37,21 @@ def background_percent_complete(is_running):
     )
 
 
-@_extract_cmd
+@_cmd
+def get_simulation_frame(frame_data):
+    params = _input_params()
+    template = sirepo.template.import_module(params)
+    return template.get_simulation_frame(_run_dir(), frame_data, params)
+
+
+@_cmd
+def remove_last_frame():
+    template = sirepo.template.import_module(_input_params())
+    if hasattr(template, 'remove_last_frame'):
+        template.remove_last_frame(_run_dir())
+
+
+@_cmd
 def result():
     data = simulation_db.read_json(
         _run_dir().join(template_common.INPUT_BASE_NAME)
@@ -72,8 +70,12 @@ def result():
     return res, err
 
 
-@_extract_cmd
-def get_simulation_frame(frame_data):
-    params = _input_params()
-    template = sirepo.template.import_module(params)
-    return template.get_simulation_frame(_run_dir(), frame_data, params)
+def _input_params():
+    return simulation_db.read_json(
+        _run_dir().join(template_common.INPUT_BASE_NAME)
+    )
+
+
+# These commands are always run with cwd set to the appropriate run_dir
+def _run_dir():
+    return pkio.py_path('.')

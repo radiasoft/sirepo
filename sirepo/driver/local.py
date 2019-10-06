@@ -89,9 +89,6 @@ class LocalDriver(sirepo.driver.DriverBase):
         self.killing = True
         self._subprocess.proc.terminate()
 
-    def _start(self):
-        tornado.ioloop.IOLoop.current().spawn_callback(self._start)
-
     def _on_exit(self, returncode):
         pkdc(
             'agent_id={}, returncode={}, killing={}, _agent_start_attemtps={}',
@@ -108,12 +105,16 @@ class LocalDriver(sirepo.driver.DriverBase):
         # if we didn't plan this exit
         if not self.killing or returncode != 0:
             if self._agent_start_attempts > self._max_agent_start_attempts:
-                agent_error_exit_callback(returncode)
+                self._on_agent_error_exit()
             else:
                 # TODO(e-carlin): look at runner/__init__.py:203
-                self.start(agent_error_exit_callback)
+#rn restart's definitely need to be delayed
+                self._start()
 
-    def _start_cb(self, agent_error_exit_callback):
+    def _start(self):
+        tornado.ioloop.IOLoop.current().spawn_callback(self._start_cb)
+
+    def _start_cb(self):
         pkdlog('agent_id={}', self._agent_id)
         self._start_attempts += 1
         # TODO(e-carlin): Make this more robust. Ex handle failures,
@@ -130,15 +131,10 @@ class LocalDriver(sirepo.driver.DriverBase):
                 'exec',
                 'sirepo',
                 'job_agent',
-                'start',
             ],
             env=env,
         )
-        self._subprocess.set_exit_callback(
-            functools.partial(
-                self._on_exit, agent_error_exit_callback,
-            )
-        )
+        self._subprocess.set_exit_callback(self._on_exit)
 
 
 class _Resources(PKDict):

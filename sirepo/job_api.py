@@ -5,7 +5,7 @@ u"""Entry points for job execution
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
 from sirepo import http_reply
@@ -13,40 +13,40 @@ from sirepo import http_request
 from sirepo import job
 from sirepo import simulation_db
 from sirepo import srdb
+from sirepo import srtime
 from sirepo.template import template_common
+import calendar
 import datetime
 import sirepo.template
 import time
 
 
+_YEAR = datetime.timedelta(365)
+
 @api_perm.require_user
 def api_runCancel():
     data = http_request.parse_data_input()
-    jid = simulation_db.job_id(data)
-    jhash = template_common.report_parameters_hash(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    job.cancel_report_job(jid, run_dir, jhash)
+    job.cancel_report_job(
+        PKDict(
+            jid=simulation_db.job_id(data)
+            jhash=template_common.report_parameters_hash(data),
+            run_dir=simulation_db.simulation_run_dir(data),
+        ),
+    )
     # Always true from the client's perspective
-    return http_reply.gen_json({'state': 'canceled'})
+    return http_reply.gen_json(PKDict(state='canceled'))
 
 @api_perm.require_user
 def api_runSimulation():
-    from pykern import pkjson
     data = http_request.parse_data_input(validate=True)
-    jhash = template_common.report_parameters_hash(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    jid = simulation_db.job_id(data)
-    status = job.compute_job_status(
-        jid,
-        run_dir,
-        jhash,
-        simulation_db.is_parallel(data)
+    b = PKDict(
+        jhash=template_common.report_parameters_hash(data),
+        run_dir=simulation_db.simulation_run_dir(data),
+        jid=simulation_db.job_id(data),
+        parallel=simulation_db.is_parallel(data),
     )
-    already_good_status = [
-        job.JobStatus.RUNNING,
-        job.JobStatus.COMPLETED,
-    ]
-    if status not in already_good_status:
+    status = job.compute_job_status(b)
+    if status not in job.ALREADY_GOOD_STATUS:
         data['simulationStatus'] = {
             'startTime': int(time.time()),
             'state': 'pending',
@@ -88,24 +88,28 @@ def api_simulationFrame(frame_id):
     #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
 #rn pkcollections.Dict
-    data = dict(zip(keys, frame_id.split('*')))
+    data = PKDict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
-    data['report'] = template.get_animation_name(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    jhash = template_common.report_parameters_hash(model_data)
-    jid = simulation_db.job_id(data)
-    frame = job.run_extract_job(
-        jid, run_dir, jhash, 'get_simulation_frame', data,
+    data.report = template.get_animation_name(data)
+    b = PKDict(
+        jid=simulation_db.job_id(data),
+        run_dir=simulation_db.simulation_run_dir(data),
+        cmd='get_simulation_frame',
+        arg=data,
     )
+    b.jhash = template_common.report_parameters_hash(
+        simulation_db.read_json(b.run_dir.join(template_common.INPUT_BASE_NAME)),
+    )
+    frame = job.run_extract_job(b)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
-        now = datetime.datetime.utcnow()
-        expires = now + datetime.timedelta(365)
-#rn why is this public? this is not public data.
-        resp.headers['Cache-Control'] = 'public, max-age=31536000'
-        resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        n = srtime.utc_now()
+#TODO(robnagler) test non-public
+        resp.headers.update({
+            'Cache-Control': 'public, max-age=31536000',
+            'Expires': _rfc1123(n + _YEAR),
+            'Last-Modified': _rfc1123(n),
+        })
     else:
         http_reply.headers_for_no_cache(resp)
     return resp
@@ -113,6 +117,10 @@ def api_simulationFrame(frame_id):
 
 def init_apis(*args, **kwargs):
     pass
+
+
+def _rfc1123(dt):
+    return wsgiref.handlers.format_date_time(srtime.to_timestamp(dt))
 
 
 def _mtime_or_now(path):
@@ -142,16 +150,12 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
             run_dir=simulation_db.simulation_run_dir(data),
             jhash=template_common.report_parameters_hash(data),
             jid=simulation_db.job_id(data),
+            parallel=simulation_db.is_parallel(data),
         )
-        status = job.compute_job_status(
-            jid,
-            run_dir,
-            jhash,
-            simulation_db.is_parallel(data),
-        )
-        is_running = status is job.JobStatus.RUNNING
+        status = job.compute_job_status(b)
+        is_running = status is job.Status.RUNNING
         rep = simulation_db.report_info(data)
-        res = {'state': status.value}
+        res = PKDict(state=status.value)
         pkdc(
             '{}: is_running={} state={}',
             rep.job_id,
@@ -159,11 +163,11 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
             status,
         )
         if not is_running:
-            if status is not job.JobStatus.MISSING:
-                res, err = job.run_extract_job(b.setdefault(cmd='result', arg=None))
+            if status is not job.Status.MISSING:
+                res, err = job.run_extract_job(b.setdefault(cmd='result'))
                 if err:
-                    return http_reply.subprocess_error(err, 'error in read_result', run_dir)
-        if simulation_db.is_parallel(data):
+                    return http_reply.subprocess_error(err, 'error in read_result', b.run_dir)
+        if b.parallel:
             new = job.run_extract_job(
                 b.setdefault(
                     cmd='background_percent_complete',

@@ -274,10 +274,8 @@ class _Main(PKDict):
         return self._format_reply()
 
     def _format_reply(self, **kwargs):
-        msg = PKDict(kwargs, agent_id=cfg.agent_id)
+        msg = PKDict(agent_id=cfg.agent_id, **kwargs)
         if self.current_msg:
-            #rn use get() because there may be an error in the sending message
-            # and we really don't want to get any errors
             msg.req_id = self.current_msg.get('req_id')
         return pkjson.dump_bytes(msg)
 
