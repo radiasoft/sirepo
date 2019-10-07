@@ -194,10 +194,12 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
             var analysisData = appState.models.analysisData;
             if (currentFile != analysisData.file) {
                 currentFile = analysisData.file;
-                updateAnalysisParameters();
-                webconService.removeAllSubreports();
-                appState.models.analysisReport.action = null;
-                appState.saveChanges(['analysisReport', 'hiddenReport']);
+                if (currentFile) {
+                    updateAnalysisParameters();
+                    webconService.removeAllSubreports();
+                    appState.models.analysisReport.action = null;
+                    appState.saveChanges(['analysisReport', 'hiddenReport']);
+                }
             }
         });
         $scope.$on('modelChanged', function(e, name) {
