@@ -68,7 +68,7 @@ class _JobTracker:
 
     async def run_extract_job(self, msg):
         pkdc('{}', job.LogFormatter(msg))
-        s = await self.compute_job_status(msg)
+        s = self.compute_job_status(msg)
         if s is job.Status.MISSING:
             pkdlog(
                 'skipping, because no status file msg={}',
@@ -95,26 +95,31 @@ class _JobTracker:
                 r.stdout.decode('utf-8', errors='ignore'),
             )
             raise RuntimeError('command error')
-        return pkjson.load_any(result.stdout)
+        return pkjson.load_any(r.stdout)
 
     async def start_compute_job(self, msg):
-        j, s = self._run_dir_status(msg)
+        h, s = self._run_dir_status(msg)
         if s is job.Status.RUNNING:
-            if j == jhash:
+            if h == jhash:
                 pkdlog(
                     'ignoring already running; msg={}',
                     job.LogFormatter(msg),
                 )
                 pkio.unchecked_remove(msg.tmp_dir)
                 return
-        assert run_dir not in self._compute_jobs
-        pkio.unchecked_remove(run_dir)
-        tmp_dir.rename(run_dir)
-        j = job_agent_process.ComputeJob(run_dir, jhash, job.Status.RUNNING, cmd)
-        self._compute_jobs[run_dir] = j
+        assert msg.run_dir not in self._compute_jobs
+        pkio.unchecked_remove(msg.run_dir)
+        msg.tmp_dir.rename(msg.run_dir)
+        j = job_agent_process.ComputeJob(
+            msg.run_dir,
+            msg.jhash,
+            job.Status.RUNNING,
+            msg.cmd,
+        )
+        self._compute_jobs[msg.run_dir] = j
         tornado.ioloop.IOLoop.current().spawn_callback(
-           self._on_compute_job_exit,
-           run_dir,
+            self._on_compute_job_exit,
+            msg.run_dir,
             j,
         )
 
@@ -145,7 +150,7 @@ class _JobTracker:
                 )
                 simulation_db.write_result(PKDict(state='error'), run_dir=run_dir)
 
-    async def compute_job_status(self, msg):
+    def compute_job_status(self, msg):
         """Get the current status of a specific job in the given run_dir."""
         j, s = self._run_dir_status(msg)
         return s if j == msg.jhash else job.Status.MISSING
@@ -227,7 +232,7 @@ class _Main(PKDict):
 
     async def _dispatch_compute_job_status(self, msg):
         return self._format_reply(
-            status=await self.job_tracker.compute_job_status(msg).value,
+            status=self.job_tracker.compute_job_status(msg).value,
         )
 
 #rn need to distinguish between terminate and killing the process
@@ -236,12 +241,12 @@ class _Main(PKDict):
         # TODO(e-carlin): This is aggressive. Should we try to  check if there
         # is a running job and terminate it gracefully?
         tornado.ioloop.IOLoop.current().stop()
+        return self._format_reply()
 
     async def _dispatch_run_extract_job(self, msg):
-        self._format_reply(
+        return self._format_reply(
             result=await self.job_tracker.run_extract_job(msg),
         )
-        return
 
 #rn maybe this should just be "_compute"
     async def _dispatch_start_compute_job(self, msg):

@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_supervisor
@@ -59,13 +60,15 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         try:
+#rn sr_driver
             if self.driver:
                 self.driver.on_close()
+                self.driver = None
         except Exception as e:
             pkdlog('exception={} {}', e, pkdexc())
 
     async def on_message(self, msg):
-        await job_supervisor.incoming(msg, self)
+        await _incoming(msg, self)
 
     def open(self):
         pkdlog(self.request.uri)
@@ -79,10 +82,10 @@ class _ServerReq(tornado.web.RequestHandler):
         # TODO(e-carlin): Handle this. This occurs when the client drops the connection.
         # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
         # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
-        pass
+        self.driver = None
 
     async def post(self):
-        await job_supervisor.incoming(self.request.body, self)
+        await _incoming(self.request.body, self)
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
@@ -92,9 +95,7 @@ async def _incoming(content, handler):
     try:
         c = pkjson.load_any(content)
         pkdc('type={} content={}', handler.sr_req_type, job.LogFormatter(c))
-        await job_supervisor.incoming(
-            PKDict(handler=handler, content=content),
-        )
+        await job_supervisor.incoming(PKDict(handler=handler, content=c))
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())

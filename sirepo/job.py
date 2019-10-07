@@ -64,7 +64,7 @@ class Status(aenum.Enum):
 ALREADY_GOOD_STATUS = (Status.RUNNING, Status.COMPLETED)
 
 
-def cancel_report_job():
+def cancel_report_job(body):
     return _request(ACTION_CANCEL_JOB, body)
 
 
@@ -128,6 +128,7 @@ class LogFormatter:
 
     def __repr__(self):
         def _s(s):
+            s = str(s)
             return s[:self.MAX_STR] + (s[self.MAX_STR:] and self.SNIP)
 
         def _j(values, delims):
@@ -147,13 +148,14 @@ class LogFormatter:
                 (_s(v) for v in self.obj),
                 '[]' if isinstance(self.obj, list) else '()',
             )
-        return _s(o)
+        return _s(self.obj)
 
 
 def _request(action, body):
     # TODO(e-carlin): uid is used to identify the proper broker for the request
     # We likely need a better key and maybe we shouldn't expose this
     # implementation detail to the client.
+    body = body.copy()
     body.setdefault(
         action=action,
         req_id=unique_key(),

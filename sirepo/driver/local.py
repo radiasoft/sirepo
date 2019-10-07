@@ -39,11 +39,11 @@ def init_class():
 
 class LocalDriver(sirepo.driver.DriverBase):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwarg)
-        self.agent_started = False
+        super().__init__(*args, **kwargs)
+        assert self.resources
         self._subprocess = None
-        self._agent_start_attempts = 0
-        self._max_agent_start_attempts = 2
+        self._start_attempts = 0
+        self._max_start_attempts = 2
         self.killing = False
         self._terminate_timeout = None
         self._agent_exited = tornado.locks.Event()
@@ -56,9 +56,9 @@ class LocalDriver(sirepo.driver.DriverBase):
         # )
 
     def __repr__(self):
-        return 'agent_id={} agent_started={} running_data_jobs={} requests={} resources={}'.format(
+        return 'agent_id={} status={} running_data_jobs={} requests={} resources={}'.format(
             self.agent_id,
-            self.agent_started(),
+            self._status,
             self.running_data_jobs,
             self.requests,
             self.resources,
@@ -78,51 +78,55 @@ class LocalDriver(sirepo.driver.DriverBase):
             await tornado.gen.sleep(cfg.stats_secs)
 
     def _kill(self):
-        pkdlog('agent_id={}', self._agent_id)
+        assert self._status
+        pkdlog('{}', self)
         # TODO(e-carlin): More error handling. If terminate doesn't work
         # we need to go to kill
         # TODO(e-carlin): What happens when an exception is thrown?
+        self._status = sirepo.driver.Status.KILLING
         self._kill_timeout = tornado.ioloop.IOLoop.current().call_later(
             _KILL_TIMEOUT_SECS,
-            _kill, self
+            self._subprocess.proc.kill,
         )
-        self.killing = True
         self._subprocess.proc.terminate()
 
     def _on_exit(self, returncode):
         pkdc(
-            'agent_id={}, returncode={}, killing={}, _agent_start_attemtps={}',
-            self.agent_id,
+            '{} returncode={} _agent_start_attemtps={}',
+            self,
             returncode,
-            self.killing,
-            self._agent_start_attempts,
+            self._start_attempts,
         )
-        if self._wait_for_terminate_timeout:
-            tornado.ioloop.IOLoop.current().remove_timeout(
-                self._wait_for_terminate_timeout
-            )
-        self.agent_started = False
+        if self._kill_timeout:
+            tornado.ioloop.IOLoop.current().remove_timeout(self._kill_timeout)
+            self._kill_timeout = None
+
         # if we didn't plan this exit
-        if not self.killing or returncode != 0:
-            if self._agent_start_attempts > self._max_agent_start_attempts:
-                self._on_agent_error_exit()
-            else:
-                # TODO(e-carlin): look at runner/__init__.py:203
-#rn restart's definitely need to be delayed
-                self._start()
+        if self._status is sirepo.driver.Status.KILLING:
+            return
+        if self._start_attempts > self._max_start_attempts:
+            self._on_agent_error_exit()
+        else:
+            # TODO(e-carlin): look at runner/__init__.py:203
+#rn restarts definitely need to be delayed
+            self._start()
 
     def _start(self):
+        self._status = sirepo.driver.Status.STARTING
+        self._start_attempts += 1
         tornado.ioloop.IOLoop.current().spawn_callback(self._start_cb)
 
     def _start_cb(self):
-        pkdlog('agent_id={}', self._agent_id)
-        self._start_attempts += 1
+        pkdlog('agent_id={}', self.agent_id)
         # TODO(e-carlin): Make this more robust. Ex handle failures,
         # monitor the process, be able to kill it
         env = dict(os.environ)
 #rn wrap this in job_subprocess()
         env['PYENV_VERSION'] = 'py3'
-        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self._agent_id
+#        env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
+#        env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
+#        env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
+        env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
         env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = self.supervisor_uri
 #rn cwd is where? Probably should be a tmp directory
         self._subprocess = tornado.process.Subprocess(

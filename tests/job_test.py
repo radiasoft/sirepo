@@ -9,7 +9,7 @@ import pytest
 import os
 import subprocess
 import time
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog
 
 # TODO(e-carlin): Tests that need to be implemented
 #   - agent never starts
@@ -248,7 +248,7 @@ def _assert_py3():
         out = e.output
     from pykern import pkunit
 
-    pkdp('out is {}', out)
+    pkdlog('out is {}', out)
     pkunit.pkok(
         '/py3/bin/sirepo' in out,
         'expecting sirepo in a py3: {}',
@@ -309,6 +309,9 @@ def _start_job_supervisor(env):
     from sirepo import job
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
+#    env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
+#    env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
+#    env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
     job_supervisor = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,

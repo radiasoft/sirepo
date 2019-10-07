@@ -51,12 +51,13 @@ async def incoming_message(msg):
 
 async def incoming_request(req):
     r = _Request(req)
+    d = r._driver
     if r.content.action == job.ACTION_START_COMPUTE_JOB:
         res = await _run_compute_job_request(r)
     else:
         res = await r.get_reply()
     r.reply(res)
-    return r._driver
+    return d
 
 
 def init():
@@ -83,35 +84,38 @@ def run_scheduler(driver):
         #     driver_class.resources[resource_class].drivers)
         # TODO(e-carlin): This is the main component of the scheduler and needs
         # to be broken down and made more readable
-        for d in driver.resources[driver.resource_class].drivers:
-            for r in d.requests:
-                a = r.content.action
-                if r.state not in _WAIT or a in _DATA_ACTIONS and d.running_data_jobs:
+        drivers = driver.resources[driver.resource_class].drivers
+        for d in drivers:
+            if not d.requests:
+                continue
+            r = d.requests[0]
+            a = r.content.action
+            if r.state not in _WAIT or a in _DATA_ACTIONS and d.running_data_jobs:
+                continue
+            # if the request is for status of a job pending in the q or in
+            # running_data_jobs then reply out of band
+            if a == job.ACTION_COMPUTE_JOB_STATUS:
+                j = _get_data_job_request(d, r.content.jid)
+#TODO(robnagler) why not reply in all cases if we have it?
+                if j and j.state in _WAIT:
+                    r.state = _RequestState.REPLY
+                    r.set_response(PKDict(status=job.Status.PENDING.value))
                     continue
-                # if the request is for status of a job pending in the q or in
-                # running_data_jobs then reply out of band
-                if a == job.ACTION_COMPUTE_JOB_STATUS:
-                    j = _get_data_job_request(d, r.content.jid)
-    #TODO(robnagler) why not reply in all cases if we have it?
-                    if j and j.state in _WAIT:
-                        r.state = _RequestState.REPLY
-                        r.set_response(PKDict(status=job.Status.PENDING.value))
-                        continue
 
-                # start agent if not started and slots available
-                if not d.is_started() and d.slots_available():
-                    d.start(r)
+            # start agent if not started and slots available
+            if not d.is_started() and d.slots_available():
+                d.start(r)
 
-                # TODO(e-carlin): If r is a cancel and there is no agent then???
-                # rn nothing to do, just reply canceled
-                # TODO(e-carlin): If r is a cancel and the job is run_pending
-                # then delete from q and respond to server in band about cancel
-                if d.is_started():
-    #TODO(robnagler) how do we know which "r" is started?
-                    _add_to_running_data_jobs(d, r)
-                    r.state = _RequestState.RUN
-                    drivers.append(drivers.pop(drivers.index(d)))
-                    d.requests_to_send_to_agent.put_nowait(r)
+            # TODO(e-carlin): If r is a cancel and there is no agent then???
+            # rn nothing to do, just reply canceled
+            # TODO(e-carlin): If r is a cancel and the job is run_pending
+            # then delete from q and respond to server in band about cancel
+            if d.is_started():
+#TODO(robnagler) how do we know which "r" is started?
+                _add_to_running_data_jobs(d, r)
+                r.state = _RequestState.RUN
+                drivers.append(drivers.pop(drivers.index(d)))
+                d.requests_to_send_to_agent.put_nowait(r)
     except Exception as e:
         pkdlog('exception={} driver={}', e, driver)
         pkdlog(pkdexc())

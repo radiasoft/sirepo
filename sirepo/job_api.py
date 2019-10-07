@@ -51,25 +51,21 @@ def api_runSimulation():
             'startTime': int(time.time()),
             'state': 'pending',
         }
-        i = job.unique_key()
-        d = run_dir.new(
-            purebasename='-'.join((run_dir.purebasename, jhash, i)),
+        b.req_id = job.unique_key()
+        d = b.run_dir.new(
+            purebasename='-'.join(
+                (b.run_dir.purebasename, b.jhash, b.req_id),
+            ),
             ext=srdb.TMP_DIR_SUFFIX,
         )
         cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=d)
         job.start_compute_job(
-            body=PKDict(
+            body=b.update(
                 cmd=cmd,
-                jhash=jhash,
-                jid=jid,
-                parallel=simulation_db.is_parallel(data),
-                req_id=i,
-                run_dir=run_dir,
                 sim_id=data.simulationId,
                 tmp_dir=d,
             ),
         )
-#rn at this point, you'll
     res = _simulation_run_status_job_supervisor(data, quiet=True)
     return http_reply.gen_json(res)
 
@@ -157,7 +153,7 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         rep = simulation_db.report_info(data)
         res = PKDict(state=status.value)
         pkdc(
-            '{}: is_running={} state={}',
+            'jid={} is_running={} state={}',
             rep.job_id,
             is_running,
             status,

@@ -39,10 +39,10 @@ def get_instance(msg):
     d = DriverBase.instances[msg.content.agent_id]
     if not d._handler_set.is_set():
         d._status = Status.COMMUNICATING
-        d._handler = handler
+        d._handler = msg.handler
         d._handler_set.set()
         #rn so driver gets on_close callback
-        d.driver = d
+        msg.handler.driver = d
     return d
 
 
@@ -83,6 +83,9 @@ class Status(aenum.Enum):
     STARTING = 'starting'
 
 
+STATUS_IS_RUN = (Status.STARTING, Status.COMMUNICATING, Status.IDLE)
+
+
 # TODO(e-carlin): Make this an abstract base class?
 class DriverBase(PKDict):
     instances = pkcollections.Dict()
@@ -112,7 +115,7 @@ class DriverBase(PKDict):
     def dequeue_request(self, req):
         assert self.uid == req.content.uid, \
             'req={} uid does not match driver={}'.format(req, self)
-        d.requests.remove(req)
+        self.requests.remove(req)
 
     @classmethod
     def enqueue_request(cls, req):
@@ -149,9 +152,9 @@ class DriverBase(PKDict):
     def start(self, request):
         pkdlog('agent_id={}', self.agent_id)
 #rn why not an assert?
-        if self.status == Status.STARTING:
+        if self._status == Status.STARTING:
             return
-        self.status = Status.STARTING
+        self._status = Status.STARTING
         # claim the slot before the agent has actually started so we don't
         # accidentally give away 1 slot to 2 agents
         self.resources[self.resource_class].slots.in_use[self.agent_id] = self
@@ -189,9 +192,10 @@ class DriverBase(PKDict):
         self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
 
     def __repr__(self):
-        return 'class={} resource_class={} uid={} agent_id={} slots_available={}'.format(
+        return 'class={} resource_class={} uid={} status={} agent_id={} slots_available={}'.format(
             type(self),
             self.uid,
+            self._status,
             self.resource_class,
             self.slots_available(),
             self.agent_id,
