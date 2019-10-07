@@ -6,7 +6,7 @@ u"""SRW execution template.
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
-from pykern import pkcompat
+from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
 from pykern import pkresource
@@ -428,7 +428,7 @@ def report_parameters_hash(data):
         res = hashlib.md5()
         dm = data['models']
         for m in models:
-            if pkcompat.isinstance_str(m):
+            if isinstance(m, pkconfig.STRING_TYPES):
                 name, field = m.split('.') if '.' in m else (m, None)
                 value = dm[name][field] if field else dm[name]
             else:
