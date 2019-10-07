@@ -15,6 +15,9 @@ import sirepo
 import sys
 
 
+#TODO(robnagler) single entry point that takes operation as arg,
+# and then passes to functions. Not sure if should be in template
+# or here. default_command?
 def _cmd(func):
     @functools.wraps(func)
     def w(extract_arg_file):
@@ -41,15 +44,16 @@ def get_simulation_frame(frame_data, data, template, run_dir):
 
 
 @_cmd
-def remove_last_frame(_, data, template, run_dir):
+def remove_last_frame(ignored, data, template, run_dir):
+#TODO(robnagler) make remove_last_frame "inherited"
     if hasattr(template, 'remove_last_frame'):
         template.remove_last_frame(run_dir)
 
 
 @_cmd
-def result(_, data, template, run_dir):
-#rn models should always be in data(?)
-    if hasattr(template, 'prepare_output_file') and 'models' in data:
+def result(ignored, data, template, run_dir):
+#TODO(robnagler) make a single call that does this
+    if hasattr(template, 'prepare_output_file'):
         template.prepare_output_file(run_dir, data)
     r, e = simulation_db.read_result(run_dir)
     if e and hasattr(template, 'parse_error_log'):
@@ -61,8 +65,6 @@ def result(_, data, template, run_dir):
 
 def _common_args():
     r = pkio.py_path()
-    # TODO(e-carlin): verify with rn that in.json has the correct data.
-    # previously we were using "data" which was passed in from the GUI
     d = simulation_db.read_json(
         r.join(template_common.INPUT_BASE_NAME)
     )
