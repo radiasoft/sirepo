@@ -6,16 +6,20 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
+from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import driver, job
+import aenum
 import copy
 import sirepo.driver
+import sys
 import tornado.locks
-import uuid
 
-_DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB]
+_DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB)
 
 _OPERATOR_ACTIONS = (job.ACTION_CANCEL_JOB,)
+
 
 class _RequestState(aenum.Enum):
     CHECK_STATUS = 'check_status'
@@ -26,25 +30,10 @@ class _RequestState(aenum.Enum):
 _WAIT = (_RequestState.RUN_PENDING, _RequestState.CHECK_STATUS)
 
 
-async def incoming(content, handler):
-    try:
-        c = pkjson.load_any(content)
-        pkdc('type={} content={}', handler.sr_req_type, job.LogFormatter(c))
-        d = await globals()[f'incoming_{handler.sr_req_type}'](
-            pkcollections.Dict({
-                'handler': handler,
-                'content': c,
-            })
-        )
-    except Exception as e:
-        pkdlog('exception={} handler={} content={}', e, content, handler)
-        pkdlog(pkdexc())
-        if hasattr(handler, 'close'):
-            handler.close()
-        else:
-            handler.send_error()
-        return
-    run_scheduler(d)
+async def incoming(msg):
+    run_scheduler(
+        await globals()[f'incoming_{msg.handler.sr_req_type}'](msg),
+    )
 
 
 async def incoming_message(msg):
@@ -86,42 +75,47 @@ def restart_requests(driver):
 
 
 def run_scheduler(driver):
-    pkdc('{}', driver)
-    # TODO(e-carlin): complete. run status from runSimulation needs to be moved
-    # into here before this will work
-    # _handle_cancel_requests(
-    #     driver_class.resources[resource_class].drivers)
-    # TODO(e-carlin): This is the main component of the scheduler and needs
-    # to be broken down and made more readable
-    for d in driver.resources[driver.resource_class].drivers:
-        for r in d.requests:
-            a = r.content.action
-            if r.state not in _WAIT or a in _DATA_ACTIONS and d.running_data_jobs:
-                continue
-            # if the request is for status of a job pending in the q or in
-            # running_data_jobs then reply out of band
-            if a == job.ACTION_COMPUTE_JOB_STATUS:
-                j = _get_data_job_request(d, r.content.jid)
-#TODO(robnagler) why not reply in all cases if we have it?
-                if j and j.state in _WAIT:
-                    r.state = _RequestState.REPLY
-                    r.set_response(PKDict(status=job.Status.PENDING.value))
+    try:
+        pkdc('{}', driver)
+        # TODO(e-carlin): complete. run status from runSimulation needs to be moved
+        # into here before this will work
+        # _handle_cancel_requests(
+        #     driver_class.resources[resource_class].drivers)
+        # TODO(e-carlin): This is the main component of the scheduler and needs
+        # to be broken down and made more readable
+        for d in driver.resources[driver.resource_class].drivers:
+            for r in d.requests:
+                a = r.content.action
+                if r.state not in _WAIT or a in _DATA_ACTIONS and d.running_data_jobs:
                     continue
+                # if the request is for status of a job pending in the q or in
+                # running_data_jobs then reply out of band
+                if a == job.ACTION_COMPUTE_JOB_STATUS:
+                    j = _get_data_job_request(d, r.content.jid)
+    #TODO(robnagler) why not reply in all cases if we have it?
+                    if j and j.state in _WAIT:
+                        r.state = _RequestState.REPLY
+                        r.set_response(PKDict(status=job.Status.PENDING.value))
+                        continue
 
-            # start agent if not started and slots available
-            if not d.is_started() and d.slots_available():
-                d.start(r)
+                # start agent if not started and slots available
+                if not d.is_started() and d.slots_available():
+                    d.start(r)
 
-            # TODO(e-carlin): If r is a cancel and there is no agent then???
-            # rn nothing to do, just reply canceled
-            # TODO(e-carlin): If r is a cancel and the job is run_pending
-            # then delete from q and respond to server in band about cancel
-            if d.is_started():
-#TODO(robnagler) how do we know which "r" is started?
-                _add_to_running_data_jobs(d, r)
-                r.state = _RequestState.RUN
-                drivers.append(drivers.pop(drivers.index(d)))
-                d.requests_to_send_to_agent.put_nowait(r)
+                # TODO(e-carlin): If r is a cancel and there is no agent then???
+                # rn nothing to do, just reply canceled
+                # TODO(e-carlin): If r is a cancel and the job is run_pending
+                # then delete from q and respond to server in band about cancel
+                if d.is_started():
+    #TODO(robnagler) how do we know which "r" is started?
+                    _add_to_running_data_jobs(d, r)
+                    r.state = _RequestState.RUN
+                    drivers.append(drivers.pop(drivers.index(d)))
+                    d.requests_to_send_to_agent.put_nowait(r)
+    except Exception as e:
+        pkdlog('exception={} driver={}', e, driver)
+        pkdlog(pkdexc())
+        # run_scheduler cannot throw exceptions
 
 
 def terminate():
@@ -166,8 +160,8 @@ class _SupervisorRequest(_Request):
     def __init__(self, req, action):
         c = copy.deepcopy(req.content)
         c.action = action
-        c.req_id = str(uuid.uuid4())
-        super().__init__(PKDict(content=c)))
+        c.req_id = job.unique_key()
+        super().__init__(PKDict(content=c))
 
 
 def _add_to_running_data_jobs(driver, req):
@@ -215,9 +209,10 @@ def _len_longest_requests_q(drivers):
 def _remove_from_running_data_jobs(driver, req, msg):
     # TODO(e-carlin): ugly
     a = req.content.action
-    if a == job.ACTION_COMPUTE_JOB_STATUS
-        and job.Status.RUNNING.value != msg.content.status \
-        or a in (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_CANCEL_JOB):
+    if (a == job.ACTION_COMPUTE_JOB_STATUS
+        and job.Status.RUNNING.value != msg.content.status
+        or a in (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_CANCEL_JOB)
+    ):
         driver.running_data_jobs.discard(req.content.jid)
 
 
@@ -237,7 +232,7 @@ async def _run_compute_job_request(req):
 def _send_kill_to_unknown_agent(msg):
     try:
         msg.handler.write_message(
-           PKDict(action=job.ACTION_KILL, req_id=job.msg_id()))
+            PKDict(action=job.ACTION_KILL, req_id=job.unique_key()),
         )
     except Exception as e:
         pkdlog('exception={} msg={}', e, job.LogFormatter(msg))

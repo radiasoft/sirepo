@@ -118,7 +118,7 @@ def _subprocess_env():
     env = PKDict(os.environ)
     pkcollections.unchecked_del(
         env,
-        [k for k in env if_EXEC_ENV_REMOVE.search(k)],
+        *(k for k in env if EXEC_ENV_REMOVE.search(k)),
     )
     env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
     return env

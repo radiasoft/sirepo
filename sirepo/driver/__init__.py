@@ -14,11 +14,11 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job
 from sirepo import job_supervisor
+import aenum
 import importlib
 import tornado.ioloop
 import tornado.locks
 import tornado.queues
-import uuid
 
 
 #: map of driver names to class
@@ -52,7 +52,7 @@ def init():
     cfg = pkconfig.init(
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
-            'http://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.SERVER_URI),
+            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
             str,
             'how agents connect to supervisor',
         ),
@@ -66,7 +66,7 @@ def init():
     # when we support more than one class, we 'll have to define
     # _DEFAULT_CLASS some how
     assert len(_CLASSES) == 1
-    _DEFAULT_CLASS = _CLASSES.values()[0]
+    _DEFAULT_CLASS = list(_CLASSES.values())[0]
     return
 
 
@@ -90,7 +90,7 @@ class DriverBase(PKDict):
     def __init__(self, *args, **kwargs):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         super().__init__(
-            agent_id=str(uuid.uuid4()),
+            agent_id=job.unique_key(),
             _status=Status.IDLE,
             _handler_set=tornado.locks.Event(),
             _handler=None,
@@ -161,7 +161,7 @@ class DriverBase(PKDict):
         pkdlog('agent={}', self.agent_id)
         self._set_agent_stopped_state()
         for r in self.requests:
-            r.set_response(a
+            r.set_response(
                 pkcollections.Dict(
                     error='agent exited with returncode {}'.format(returncode)
                 )

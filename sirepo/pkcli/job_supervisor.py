@@ -82,11 +82,27 @@ class _ServerReq(tornado.web.RequestHandler):
         pass
 
     async def post(self):
-        await job_supervisor.process_incoming(self.request.body, self)
+        await job_supervisor.incoming(self.request.body, self)
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
+
+async def _incoming(content, handler):
+    try:
+        c = pkjson.load_any(content)
+        pkdc('type={} content={}', handler.sr_req_type, job.LogFormatter(c))
+        await job_supervisor.incoming(
+            PKDict(handler=handler, content=content),
+        )
+    except Exception as e:
+        pkdlog('exception={} handler={} content={}', e, content, handler)
+        pkdlog(pkdexc())
+        if hasattr(handler, 'close'):
+            handler.close()
+        else:
+            handler.send_error()
+        return
 
 def _sigterm(num, bar):
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)

@@ -37,7 +37,7 @@ cfg = None
 
 
 def default_command():
-    job_supervisor.init()
+    job.init()
     global cfg
 
     cfg = pkconfig.init(
@@ -46,7 +46,7 @@ def default_command():
     )
     pkdlog('{}', cfg)
     i = tornado.ioloop.IOLoop.current()
-    i.spawn_callback(_Main()loop)
+    i.spawn_callback(_Main().loop)
     i.start()
 
 
@@ -75,7 +75,7 @@ class _JobTracker:
                 job.LogFormatter(msg),
             )
             return PKDict()
-        f = msg.run_dir.join(_EXTRACT_ARG_FILE.format(cfg.agent_id))
+        f = msg.run_dir.join(_EXTRACT_ARG_FILE.format(job.unique_key()))
         pkjson.dump_pretty(msg.get('arg'), filename=f, pretty=False)
         r = await job_agent_process.run_extract_job(
             msg.run_dir,

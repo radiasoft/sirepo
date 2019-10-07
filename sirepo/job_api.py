@@ -28,7 +28,7 @@ def api_runCancel():
     data = http_request.parse_data_input()
     job.cancel_report_job(
         PKDict(
-            jid=simulation_db.job_id(data)
+            jid=simulation_db.job_id(data),
             jhash=template_common.report_parameters_hash(data),
             run_dir=simulation_db.simulation_run_dir(data),
         ),
@@ -51,7 +51,7 @@ def api_runSimulation():
             'startTime': int(time.time()),
             'state': 'pending',
         }
-        i = job.msg_id()
+        i = job.unique_key()
         d = run_dir.new(
             purebasename='-'.join((run_dir.purebasename, jhash, i)),
             ext=srdb.TMP_DIR_SUFFIX,

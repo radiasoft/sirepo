@@ -9,9 +9,9 @@ from pykern import pkcollections
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-from sirepo.driver
 import functools
 import os
+import sirepo.driver
 import tornado.ioloop
 import tornado.locks
 import tornado.process

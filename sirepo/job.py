@@ -11,6 +11,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import simulation_db
 import aenum
@@ -78,7 +79,7 @@ def init():
         return
     cfg = pkconfig.init(
         supervisor_uri=(
-            'http://{}:{}/{}'.format(DEFAULT_IP, DEFAULT_PORT, SERVER_URI),
+            'http://{}:{}{}'.format(DEFAULT_IP, DEFAULT_PORT, SERVER_URI),
             str,
             'for supervisor requests',
         ),
@@ -95,10 +96,6 @@ def init_by_server(app):
     uri_router.register_api_module(job_api)
 
 
-def msg_id():
-    return str(uuid.uuid4())
-
-
 def run_extract_job(body):
     return _request(ACTION_RUN_EXTRACT_JOB, body.setdefault(arg='')).result
     # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
@@ -108,6 +105,10 @@ def start_compute_job(body):
     _request(ACTION_START_COMPUTE_JOB, body)
     # always success
     return PKDict()
+
+
+def unique_key():
+    return str(uuid.uuid4())
 
 
 #TODO(robnagler) consider moving this into pkdebug
@@ -136,14 +137,14 @@ class LogFormatter:
             ) + delims[1]
 
         if isinstance(self.obj, dict):
-            return _j
-                _s(k) + ': ' + _s(v) for k, v in self.obj.items() \
-                    if k not in ('result', 'arg'),
+            return _j(
+                (_s(k) + ': ' + _s(v) for k, v in self.obj.items() \
+                    if k not in ('result', 'arg')),
                 '{}',
             )
         if isinstance(self.obj, (tuple, list)):
             return _j(
-                _s(v) for v in self.obj,
+                (_s(v) for v in self.obj),
                 '[]' if isinstance(self.obj, list) else '()',
             )
         return _s(o)
@@ -155,14 +156,14 @@ def _request(action, body):
     # implementation detail to the client.
     body.setdefault(
         action=action,
-        req_id=msg_id(),
+        req_id=unique_key(),
         resource_class='parallel' if body.get('parallel') else 'sequential',
         uid=simulation_db.uid_from_dir_name(body.run_dir),
     )
     r = requests.post(
         cfg.supervisor_uri,
         data=pkjson.dump_bytes(body),
-        headers=PKDict('Content-type'='application/json'),
+        headers=PKDict({'Content-type': 'application/json'}),
     )
     r.raise_for_status()
     c = pkjson.load_any(r.content)
