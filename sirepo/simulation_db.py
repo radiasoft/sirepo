@@ -138,6 +138,15 @@ def celery_queue(data):
     return celery_tasks.queue_name(is_parallel(data))
 
 
+def compute_job_model(data):
+    """Return the report execution directory name. Allows multiple models to get data from same simulation run.
+    """
+    template = sirepo.template.import_module(data)
+    if hasattr(template, 'simulation_dir_name'):
+        return template.simulation_dir_name(_report_name(data))
+    return _report_name(data)
+
+
 def default_data(sim_type):
     """New simulation base data
 
@@ -828,7 +837,10 @@ def simulation_run_dir(data, remove_dir=False):
     Returns:
         py.path: directory to run
     """
-    d = simulation_dir(data['simulationType'], parse_sid(data)).join(_report_dir(data))
+    d = simulation_dir(
+        data['simulationType'],
+        parse_sid(data),
+    ).join(compute_job_model(data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
@@ -1142,15 +1154,6 @@ def _random_id(parent_dir, simulation_type=None):
                 pass
             raise
     raise RuntimeError('{}: failed to create unique directory'.format(parent_dir))
-
-
-def _report_dir(data):
-    """Return the report execution directory name. Allows multiple models to get data from same simulation run.
-    """
-    template = sirepo.template.import_module(data)
-    if hasattr(template, 'simulation_dir_name'):
-        return template.simulation_dir_name(_report_name(data))
-    return _report_name(data)
 
 
 def _report_name(data):

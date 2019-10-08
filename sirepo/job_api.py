@@ -40,30 +40,31 @@ def api_runCancel():
 def api_runSimulation():
     data = http_request.parse_data_input(validate=True)
     b = PKDict(
-        jhash=template_common.report_parameters_hash(data),
-        run_dir=simulation_db.simulation_run_dir(data),
-        jid=simulation_db.job_id(data),
+#TODO(robnagler) remove run_dir
+        analysis_jid=simulation_db.job_id(data),
+        analysis_model=data.report,
+        compute_hash=template_common.report_parameters_hash(data),
+        compute_model=simulation_db.compute_job_model(data),
         parallel=simulation_db.is_parallel(data),
+        run_dir=simulation_db.simulation_run_dir(data),
     )
+    b.compute_jid = _compute_jid(b)
     status = job.compute_job_status(b)
+#TODO(robnagler) move into supervisor & agent
     if status not in job.ALREADY_GOOD_STATUS:
         data['simulationStatus'] = {
             'startTime': int(time.time()),
             'state': 'pending',
         }
         b.req_id = job.unique_key()
-        d = b.run_dir.new(
-            purebasename='-'.join(
-                (b.run_dir.purebasename, b.jhash, b.req_id),
-            ),
-            ext=srdb.TMP_DIR_SUFFIX,
-        )
+        d = simulation_db.tmp_dir()
+#TODO(robnagler) prepare_simulation runs only in the agent
         cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=d)
         job.start_compute_job(
             body=b.update(
                 cmd=cmd,
                 sim_id=data.simulationId,
-                tmp_dir=d,
+                input_dir=d,
             ),
         )
     res = _simulation_run_status_job_supervisor(data, quiet=True)
@@ -77,25 +78,32 @@ def api_runStatus():
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-#rn this needs work. I need to encapsulate this so it is shared with the
+#TODO(robnagler) https://github.com/radiasoft/sirepo/issues/1557
+
+#TODO(robnagler) this needs work. I need to encapsulate this so it is shared with the
 #   javascript expliclitly (even if the code is not shared) especially
 #   the order of the params. This would then be used by the extract job
 #   not here so this should be a new type of job: simulation_frame
-    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
+
+    f = frame_id.split('*')
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-#rn pkcollections.Dict
-    data = PKDict(zip(keys, frame_id.split('*')))
-    template = sirepo.template.import_module(data)
-    data.report = template.get_animation_name(data)
+    if len(f) > len(keys):
+        assert f.pop(0) == 'v2', \
+            'invalid frame_id={}'.format(frame_id)
+        keys.append('computeHash')
+    p = PKDict(zip(keys, f))
+    template = sirepo.template.import_module(p)
+    p.report = template.get_animation_name(p)
     b = PKDict(
-        jid=simulation_db.job_id(data),
-        run_dir=simulation_db.simulation_run_dir(data),
+        analysis_jid=simulation_db.job_id(p),
+        analysis_model=p.report,
+        arg=p,
         cmd='get_simulation_frame',
-        arg=data,
+        compute_hash=p.get('computeHash'),
+        compute_model=simulation_db.compute_job_model(p),
+        run_dir=simulation_db.simulation_run_dir(p),
     )
-    b.jhash = template_common.report_parameters_hash(
-        simulation_db.read_json(b.run_dir.join(template_common.INPUT_BASE_NAME)),
-    )
+    b.compute_jid = _compute_jid(b)
     frame = job.run_extract_job(b)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
@@ -113,6 +121,17 @@ def api_simulationFrame(frame_id):
 
 def init_apis(*args, **kwargs):
     pass
+
+
+def _compute_jid(body):
+    """Replace data.report with run_dir.basename
+
+    This is a hack to support the concept of compute_jid,
+    distinct from analysis_jid.
+    """
+#TODO(robnagler) compute_model should be added to data at the same
+#   time data.report (analysis_model) is set
+    return body.analysis_jid.replace(body.analysis_model, body.compute_model)
 
 
 def _rfc1123(dt):
