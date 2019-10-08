@@ -116,6 +116,7 @@ class DriverBase(PKDict):
             self._process_requests_to_send_to_agent
         )
 
+
     def dequeue_request(self, req):
         assert self.uid == req.content.uid, \
             'req={} uid does not match driver={}'.format(req, self)

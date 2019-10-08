@@ -15,7 +15,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import simulation_db
 import aenum
-import requests
 import uuid
 
 

@@ -76,7 +76,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
-    sr_class = job_supervisor.ServerRequest
+    sr_class = job_supervisor.ServerReq
 
     def on_connection_close(self):
         # TODO(e-carlin): Handle this. This occurs when the client drops the connection.

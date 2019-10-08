@@ -5,7 +5,7 @@ u"""Entry points for job execution
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkinspect
+from pykern import pkinspect, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
@@ -18,6 +18,7 @@ from sirepo import srtime
 from sirepo.template import template_common
 import calendar
 import datetime
+import requests
 import sirepo.template
 import time
 
@@ -90,11 +91,11 @@ def _request(**kwargs):
     b = _request_body(kwargs)
     b.setdefault(
         action=pkinspect.caller().name,
-        req_id=unique_key(),
+        req_id=job.unique_key(),
         uid=simulation_db.uid_from_jid(b.compute_jid),
     )
     r = requests.post(
-        cfg.supervisor_uri,
+        job.cfg.supervisor_uri,
         data=pkjson.dump_bytes(b),
         headers=PKDict({'Content-type': 'application/json'}),
     )
@@ -124,3 +125,5 @@ def _request_body(kwargs):
         ('run_dir', lambda: simulation_db.simulation_run_dir(d)),
     ):
         b[k] = d[k] if k in d else v()
+    
+    return b
