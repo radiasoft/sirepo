@@ -358,7 +358,7 @@ def lib_files(data, source_lib):
             'beam_line_example.db',
             'epics-boot.cmd',
         ]
-    elif data.models.analysisData.file:
+    elif 'file' in data.models.analysisData and data.models.analysisData.file:
         res.append(_analysis_data_file(data))
     return template_common.filename_to_path(res, source_lib)
 
@@ -367,7 +367,9 @@ def models_related_to_report(data):
     r = data['report']
     if r == 'epicsServerAnimation':
         return []
-    res = [r, 'analysisData', _lib_file_datetime(data['models']['analysisData']['file'])]
+    res = [r, 'analysisData']
+    if 'file' in data['models']['analysisData'] and data['models']['analysisData']['file']:
+        res.append(_lib_file_datetime(data['models']['analysisData']['file']))
     if 'fftReport' in r:
         name = _analysis_report_name_for_fft_report(r, data)
         res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
