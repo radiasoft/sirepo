@@ -158,6 +158,120 @@ class _Request(PKDict):
             PKDict(),
         )
 
+def _simulation_run_status_job_supervisor(data, quiet=False):
+    """Look for simulation status and output
+
+    Args:
+        data (dict): request
+        quiet (bool): don't write errors to log
+
+    Returns:
+        dict: status response
+    """
+    try:
+        b = PKDict(
+            run_dir=simulation_db.simulation_run_dir(data),
+            jhash=template_common.report_parameters_hash(data),
+            jid=simulation_db.job_id(data),
+            parallel=simulation_db.is_parallel(data),
+        )
+        rep = simulation_db.report_info(data)
+        res = PKDict(state=status.value)
+
+        status = job.compute_job_status(b)
+        is_running = status is job.Status.RUNNING
+
+
+bla bla
+
+
+        pkdc(
+            'jid={} is_running={} state={}',
+            rep.job_id,
+            is_running,
+            status,
+        )
+        if not is_running:
+            if status is not job.Status.MISSING:
+                res, err = job.run_extract_job(b.setdefault(cmd='result'))
+                if err:
+                    return http_reply.subprocess_error(err, 'error in read_result', b.run_dir)
+        if b.parallel:
+            new = job.run_extract_job(
+                b.setdefault(
+                    cmd='background_percent_complete',
+                    arg=is_running,
+                ),
+            )
+            new.setdefault('percentComplete', 0.0)
+            new.setdefault('frameCount', 0)
+            res.update(new)
+        res['parametersChanged'] = rep.parameters_changed
+        if res['parametersChanged']:
+            pkdlog(
+                '{}: parametersChanged=True req_hash={} cached_hash={}',
+                rep.job_id,
+                rep.req_hash,
+                rep.cached_hash,
+            )
+        #TODO(robnagler) verify serial number to see what's newer
+        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+also return computeHash for simulationFrame
+        if is_running:
+            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
+            res['nextRequest'] = {
+                'report': rep.model_name,
+                'reportParametersHash': rep.cached_hash,
+                'simulationId': rep.cached_data['simulationId'],
+                'simulationType': rep.cached_data['simulationType'],
+            }
+        pkdc(
+            '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
+            rep.job_id,
+            is_running,
+            res['state'],
+            rep.cache_hit,
+            rep.cached_hash,
+            rep.req_hash,
+        )
+    except Exception:
+        return http_reply.subprocess_error(pkdexc(), quiet=quiet)
+    return res
+
+def _mtime_or_now(path):
+    """mtime for path if exists else time.time()
+
+    Args:
+        path (py.path):
+
+    Returns:
+        int: modification time
+    """
+    return int(path.mtime() if path.exists() else time.time())
+
+
+def compute():
+    status = job.compute_job_status(b)
+#TODO(robnagler) move into supervisor & agent
+    if status not in job.ALREADY_GOOD_STATUS:
+        b.req_id = job.unique_key()
+        job.start_compute_job(
+            body=b.update(
+                cmd=cmd,
+                sim_id=data.simulationId,
+                input_dir=d,
+            ),
+        )
+    res = _simulation_run_status_job_supervisor(data, quiet=True)
+    return http_reply.gen_json(res)
+
+def cancel():
+    # Always true from the client's perspective
+    return http_reply.gen_json(PKDict(state='canceled'))
+
+
     async def _do(self):
         self.enqueue()
 
@@ -169,8 +283,7 @@ class _Request(PKDict):
         if self.content.action in (job.ACTION_CANCEL, job.ACTION_STATUS):
             self._my_queue.insert(0, self)
         else:
-            self._my_queue.append(0, self)
-        self.requests.append(
+            self._my_queue.append(self)
         for d in cls.resources[req.content.resource_class].drivers:
             if d.uid == req.content.uid:
                 break

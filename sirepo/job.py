@@ -32,6 +32,7 @@ ACTION_READY_FOR_WORK = 'ready_for_work'
 #rn structure should be same "run" or "start"
 ACTION_ANALYSIS = 'analysis'
 ACTION_COMPUTE = 'compute'
+ACTION_RUN_SIMULATION = 'runSimulation'
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'
@@ -64,14 +65,6 @@ class Status(aenum.Enum):
 ALREADY_GOOD_STATUS = (Status.RUNNING, Status.COMPLETED)
 
 
-def cancel_report_job(body):
-    return _request(ACTION_CANCEL, body)
-
-
-def compute_job_status(body):
-    return Status(_request(ACTION_STATUS, body).status)
-
-
 def init():
     global cfg
 
@@ -94,17 +87,6 @@ def init_by_server(app):
     from sirepo import uri_router
 
     uri_router.register_api_module(job_api)
-
-
-def run_extract_job(body):
-    return _request(ACTION_ANALYSIS, body.setdefault(arg='')).result
-    # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
-
-
-def start_compute_job(body):
-    _request(ACTION_COMPUTE, body)
-    # always success
-    return PKDict()
 
 
 def unique_key():
@@ -149,28 +131,3 @@ class LogFormatter:
                 '[]' if isinstance(self.obj, list) else '()',
             )
         return _s(self.obj)
-
-
-def _request(action, body):
-    # TODO(e-carlin): uid is used to identify the proper broker for the request
-    # We likely need a better key and maybe we shouldn't expose this
-    # implementation detail to the client.
-    body = body.copy()
-    body.setdefault(
-        action=action,
-        req_id=unique_key(),
-        resource_class='parallel' if body.get('parallel') else 'sequential',
-        uid=simulation_db.uid_from_dir_name(body.run_dir),
-    )
-    r = requests.post(
-        cfg.supervisor_uri,
-        data=pkjson.dump_bytes(body),
-        headers=PKDict({'Content-type': 'application/json'}),
-    )
-    r.raise_for_status()
-    c = pkjson.load_any(r.content)
-    if 'error' in c or c.get('action') == 'error':
-        pkdlog('reply={}', c)
-        # TODO(e-carlin): Something better
-        raise RuntimeError('Error. Please try agin.')
-    return c

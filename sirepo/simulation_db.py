@@ -63,6 +63,9 @@ _ID_PARTIAL_RE_STR = '[{}]{{{}}}'.format(_ID_CHARS, _ID_LEN)
 #: Verify ID
 _ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 
+#: use to separate components of job_id
+_JOB_ID_SEP = '-'
+
 #: where users live under db_dir
 _LIB_DIR = 'lib'
 
@@ -376,11 +379,11 @@ def job_id(data):
     Returns:
         str: unique name
     """
-    return '{}-{}-{}'.format(
+    return _JOB_ID_SEP.join((
         auth.logged_in_user(),
         data.simulationId,
         data.report,
-    )
+    ))
 
 
 def json_filename(filename, run_dir=None):
@@ -897,6 +900,18 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
+
+
+def uid_from_jid(jid):
+    """Extra user id from job id
+
+    Args:
+        jid (str): must be same as `job_id`
+
+    Return:
+        str: user id
+    """
+    return jid.split(_JOB_ID_SEP)[0]
 
 
 def user_create(login_callback):
