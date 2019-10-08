@@ -23,15 +23,15 @@ import uuid
 # TODO(e-carlin): Can we use an enum without manually serializing
 # and deserializing?
 #rn remove the word _JOB
-ACTION_CANCEL_JOB = 'cancel_job'
-ACTION_COMPUTE_JOB_STATUS = 'compute_job_status'
+ACTION_CANCEL = 'cancel'
+ACTION_STATUS = 'status'
 ACTION_ERROR = 'error'
 ACTION_KEEP_ALIVE = 'keep_alive'
 ACTION_KILL = 'kill'
 ACTION_READY_FOR_WORK = 'ready_for_work'
 #rn structure should be same "run" or "start"
-ACTION_RUN_EXTRACT_JOB = 'run_extract_job'
-ACTION_START_COMPUTE_JOB = 'start_compute_job'
+ACTION_ANALYSIS = 'analysis'
+ACTION_COMPUTE = 'compute'
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'
@@ -65,11 +65,11 @@ ALREADY_GOOD_STATUS = (Status.RUNNING, Status.COMPLETED)
 
 
 def cancel_report_job(body):
-    return _request(ACTION_CANCEL_JOB, body)
+    return _request(ACTION_CANCEL, body)
 
 
 def compute_job_status(body):
-    return Status(_request(ACTION_COMPUTE_JOB_STATUS, body).status)
+    return Status(_request(ACTION_STATUS, body).status)
 
 
 def init():
@@ -97,12 +97,12 @@ def init_by_server(app):
 
 
 def run_extract_job(body):
-    return _request(ACTION_RUN_EXTRACT_JOB, body.setdefault(arg='')).result
+    return _request(ACTION_ANALYSIS, body.setdefault(arg='')).result
     # TODO(e-carlin): Caller expecting (res, err). This doesn't return that
 
 
 def start_compute_job(body):
-    _request(ACTION_START_COMPUTE_JOB, body)
+    _request(ACTION_COMPUTE, body)
     # always success
     return PKDict()
 

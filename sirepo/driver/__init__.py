@@ -46,6 +46,10 @@ def get_instance(msg):
     return d
 
 
+def get_kind(req):
+    return get_class(req).KIND
+
+
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES

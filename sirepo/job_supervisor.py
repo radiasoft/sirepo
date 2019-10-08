@@ -16,9 +16,9 @@ import sirepo.driver
 import sys
 import tornado.locks
 
-_DATA_ACTIONS = (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_START_COMPUTE_JOB)
+_DATA_ACTIONS = (job.ACTION_ANALYSIS, job.ACTION_COMPUTE)
 
-_OPERATOR_ACTIONS = (job.ACTION_CANCEL_JOB,)
+_OPERATOR_ACTIONS = (job.ACTION_CANCEL,)
 
 
 class _RequestState(aenum.Enum):
@@ -28,6 +28,13 @@ class _RequestState(aenum.Enum):
     RUN_PENDING = 'run_pending'
 
 _WAIT = (_RequestState.RUN_PENDING, _RequestState.CHECK_STATUS)
+
+
+class Base(PKDict):
+
+    async def do(self):
+        await self._do()
+        self.run_scheduler()
 
 
 async def incoming(msg):
@@ -52,7 +59,7 @@ async def incoming_message(msg):
 async def incoming_request(req):
     r = _Request(req)
     d = r._driver
-    if r.content.action == job.ACTION_START_COMPUTE_JOB:
+    if r.content.action == job.ACTION_COMPUTE:
         res = await _run_compute_job_request(r)
     else:
         res = await r.get_reply()
@@ -94,7 +101,7 @@ def run_scheduler(driver):
                 continue
             # if the request is for status of a job pending in the q or in
             # running_data_jobs then reply out of band
-            if a == job.ACTION_COMPUTE_JOB_STATUS:
+            if a == job.ACTION_STATUS:
                 j = _get_data_job_request(d, r.content.jid)
 #TODO(robnagler) why not reply in all cases if we have it?
                 if j and j.state in _WAIT:
@@ -127,18 +134,56 @@ def terminate():
 
 
 class _Request(PKDict):
+    requests = PKDict()
+
     def __init__(self, req):
         self.content = req.content
-        self.state = _RequestState.CHECK_STATUS if req.content.action == job.ACTION_START_COMPUTE_JOB \
+        self.state = _RequestState.CHECK_STATUS if req.content.action == job.ACTION_COMPUTE \
             else _RequestState.RUN_PENDING
         self._handler = req.get('handler')
         self._response_received = tornado.locks.Event()
         self._response = None
-        self._driver = sirepo.driver.get_class(self).enqueue_request(self)
-        run_scheduler(self._driver)
+        self._action = self.content.action
+        self._uid = self.content.uid
+        self._resource_class = self.content.resource_class
+        self._driver_kind = sirepo.driver.get_kind(self)
+        self._my_queue = self.instances.setdefault(
+            self._driver_kind,
+            PKDict(),
+        ).setdefault(
+            self._resource_class,
+            PKDict(),
+        ).setdefault(
+            self._uid,
+            PKDict(),
+        )
+
+    async def _do(self):
+        self.enqueue()
 
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
+
+    def enqueue(self):
+        # type of request matters:
+        if self.content.action in (job.ACTION_CANCEL, job.ACTION_STATUS):
+            self._my_queue.insert(0, self)
+        else:
+            self._my_queue.append(0, self)
+        self.requests.append(
+        for d in cls.resources[req.content.resource_class].drivers:
+            if d.uid == req.content.uid:
+                break
+        else:
+            d = cls(
+                uid=req.content.uid,
+                resource_class=req.content.resource_class,
+                supervisor_uri=cfg.supervisor_uri,
+            )
+            d.resources[d.resource_class].drivers.append(d)
+            cls.instances[d.agent_id] = d
+        d.requests.append(req)
+        return d
 
     async def get_reply(self):
         await self._response_received.wait()
@@ -213,9 +258,9 @@ def _len_longest_requests_q(drivers):
 def _remove_from_running_data_jobs(driver, req, msg):
     # TODO(e-carlin): ugly
     a = req.content.action
-    if (a == job.ACTION_COMPUTE_JOB_STATUS
+    if (a == job.ACTION_STATUS
         and job.Status.RUNNING.value != msg.content.status
-        or a in (job.ACTION_RUN_EXTRACT_JOB, job.ACTION_CANCEL_JOB)
+        or a in (job.ACTION_ANALYSIS, job.ACTION_CANCEL)
     ):
         driver.running_data_jobs.discard(req.content.jid)
 
@@ -224,7 +269,7 @@ def _remove_from_running_data_jobs(driver, req, msg):
 # pathway of the supervisor adding requests to the q. When runStatus can
 # be pulled out of job_api then this will actually become useful.
 async def _run_compute_job_request(req):
-    s = _SupervisorRequest(req, job.ACTION_COMPUTE_JOB_STATUS)
+    s = _SupervisorRequest(req, job.ACTION_STATUS)
     r = await s.get_reply()
     if 'status' in r and r.status not in job.ALREADY_GOOD_STATUS:
         req.state = _RequestState.RUN_PENDING

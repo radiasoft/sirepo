@@ -48,7 +48,7 @@ def default_command():
 
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
-    sr_req_type = 'message'
+    sr_class = job_supervisor.AgentMsg
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,7 +76,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
 class _ServerReq(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ["POST"]
-    sr_req_type = 'request'
+    sr_class = job_supervisor.ServerRequest
 
     def on_connection_close(self):
         # TODO(e-carlin): Handle this. This occurs when the client drops the connection.
@@ -94,8 +94,8 @@ class _ServerReq(tornado.web.RequestHandler):
 async def _incoming(content, handler):
     try:
         c = pkjson.load_any(content)
-        pkdc('type={} content={}', handler.sr_req_type, job.LogFormatter(c))
-        await job_supervisor.incoming(PKDict(handler=handler, content=c))
+        pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
+        await handler.sr_class(handler=handler, content=c).do()
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())

@@ -54,19 +54,7 @@ class _JobTracker:
     def __init__(self):
         self._compute_jobs = pkcollections.Dict()
 
-    async def kill(self, msg):
-        j = self._compute_jobs.get(run_dir)
-        if j is None:
-            pkdlog('not found in _compute_jobs msg={}', job.LogFormatter(msg))
-            return
-        if j.status != job.Status.RUNNING:
-            pkdlog('status={} should be RUNNING msg={}', j.status, job.LogFormatter(msg))
-            return
-        pkdlog('killing msg={}', job.LogFormatter(msg))
-        j.cancel_requested = True
-        await j.kill(_KILL_TIMEOUT_SECS)
-
-    async def run_extract_job(self, msg):
+    async def do_analysis(self, msg):
         pkdc('{}', job.LogFormatter(msg))
         s = self.compute_job_status(msg)
         if s is job.Status.MISSING:
@@ -97,7 +85,7 @@ class _JobTracker:
             raise RuntimeError('command error')
         return pkjson.load_any(r.stdout)
 
-    async def start_compute_job(self, msg):
+    async def do_compute(self, msg):
         h, s = self._run_dir_status(msg)
         if s is job.Status.RUNNING:
             if h == jhash:
@@ -122,6 +110,23 @@ class _JobTracker:
             msg.run_dir,
             j,
         )
+
+    def do_status(self, msg):
+        """Get the current status of a specific job in the given run_dir."""
+        j, s = self._run_dir_status(msg)
+        return s if j == msg.jhash else job.Status.MISSING
+
+    async def kill(self, msg):
+        j = self._compute_jobs.get(run_dir)
+        if j is None:
+            pkdlog('not found in _compute_jobs msg={}', job.LogFormatter(msg))
+            return
+        if j.status != job.Status.RUNNING:
+            pkdlog('status={} should be RUNNING msg={}', j.status, job.LogFormatter(msg))
+            return
+        pkdlog('killing msg={}', job.LogFormatter(msg))
+        j.cancel_requested = True
+        await j.kill(_KILL_TIMEOUT_SECS)
 
     async def _on_compute_job_exit(self, run_dir, compute_job):
         returncode = None
@@ -149,11 +154,6 @@ class _JobTracker:
                     run_dir, compute_job.jhash, returncode,
                 )
                 simulation_db.write_result(PKDict(state='error'), run_dir=run_dir)
-
-    def compute_job_status(self, msg):
-        """Get the current status of a specific job in the given run_dir."""
-        j, s = self._run_dir_status(msg)
-        return s if j == msg.jhash else job.Status.MISSING
 
     def _run_dir_status(self, msg):
         """Get the current status of whatever's happening in run_dir.
@@ -224,15 +224,15 @@ class _Main(PKDict):
         return self._format_reply(action=job.ACTION_ERROR, error=err, msg=msg)
 
     #rn maybe this should just be "cancel" since everything is a "job"
-    async def _dispatch_cancel_job(self, msg):
+    async def _dispatch_cancel(self, msg):
         j, _ = self.job_tracker._run_dir_status(msg)
         if j == msg.jhash:
             await self.job_tracker.kill(msg)
         return self._format_reply()
 
-    async def _dispatch_compute_job_status(self, msg):
+    async def _dispatch_status(self, msg):
         return self._format_reply(
-            status=self.job_tracker.compute_job_status(msg).value,
+            status=self.job_tracker.do_status(msg).value,
         )
 
 #rn need to distinguish between terminate and killing the process
@@ -243,14 +243,14 @@ class _Main(PKDict):
         tornado.ioloop.IOLoop.current().stop()
         return self._format_reply()
 
-    async def _dispatch_run_extract_job(self, msg):
+    async def _dispatch_analysis(self, msg):
         return self._format_reply(
-            result=await self.job_tracker.run_extract_job(msg),
+            result=await self.job_tracker.do_analysis(msg),
         )
 
 #rn maybe this should just be "_compute"
     async def _dispatch_start_compute_job(self, msg):
-        await self.job_tracker.start_compute_job(msg)
+        await self.job_tracker.do_compute(msg)
         return self._format_reply()
 
     def _format_reply(self, **kwargs):

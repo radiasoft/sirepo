@@ -38,6 +38,8 @@ def init_class():
 
 
 class LocalDriver(sirepo.driver.DriverBase):
+    KIND = 'local'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert self.resources
