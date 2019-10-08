@@ -239,6 +239,7 @@ def extract_report_data(filename, model_data):
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
         _fix_file_header(filename)
     data, _, allrange, _, _ = uti_plot_com.file_load(filename, multicolumn_data=model_data['report'] in ('brillianceReport', 'trajectoryReport'))
+    pkdc('anhe allrange in extract:{}'.format(allrange))
     if model_data['report'] == 'brillianceReport':
         return _extract_brilliance_report(model_data['models']['brillianceReport'], data)
     if model_data['report'] == 'trajectoryReport':
@@ -320,6 +321,7 @@ def extract_report_data(filename, model_data):
         scale = model_data['models'][orig_rep_name]['intensityPlotsScale']
         rotate_angle = model_data['models'][orig_rep_name].get('rotateAngle', 0)
         rotate_reshape = model_data['models'][orig_rep_name].get('rotateReshape', '0')
+        pkdc('anhe before remap_3d allrange:{}'.format(allrange))
         info = _remap_3d(info, allrange, file_info[filename][0][3], file_info[filename][1][2], width_pixels, rotate_angle, rotate_reshape, scale)
     return info
 
