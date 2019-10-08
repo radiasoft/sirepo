@@ -63,6 +63,8 @@ def api_authEmailAuthorized(simulation_type, token):
 
     Token must exist in db and not be expired.
     """
+    if http_request.is_spider():
+        util.raise_forbidden('robots not allowed')
     t = sirepo.template.assert_sim_type(simulation_type)
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
