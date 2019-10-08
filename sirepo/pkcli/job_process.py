@@ -16,8 +16,8 @@ import sirepo
 import sys
 
 
-def default_command(arg_file):
-    f = pkio.py_path(arg_file)
+def default_command(in_file):
+    f = pkio.py_path(in_file)
     a = pkjson.load_any(f)
     f.remove()
     sys.stdout.write(
@@ -27,12 +27,19 @@ def default_command(arg_file):
         ),
     )
 
+
 def _do_background_percent_complete(is_running, data, template, run_dir):
     return template.background_percent_complete(data.report, run_dir, is_running)
 
 
-def _do_get_simulation_frame(frame_data, data, template, run_dir):
-    return template.get_simulation_frame(run_dir, frame_data, data)
+def _do_get_simulation_frame(msg):
+    d = pkio.py_path()
+    return template.get_simulation_frame(
+        d,
+        # parsed frame_id
+        msg.data,
+        simulation_db.read_json(d.join(template_common.INPUT_BASE_NAME)),
+    )
 
 
 def _do_compute(args):
@@ -45,6 +52,12 @@ def _do_compute(args):
             'startTime': int(time.time()),
             'state': 'pending',
         }
+    if hasattr(t, 'remove_last_frame'):
+        t.remove_last_frame(run_dir)
+
+def _do_full_status():
+    return report_info on simulation db
+
 
 def _do_remove_last_frame(ignored, data, template, run_dir):
 #TODO(robnagler) make remove_last_frame "inherited"
@@ -64,11 +77,11 @@ def _do_result(ignored, data, template, run_dir):
     return r, e
 
 
-def _args(args):
-    if args.cmd =
+def _do_status(args):
+    read status file
+    return ''
 
+def _args(args):
     r = pkio.py_path()
-    d = simulation_db.read_json(
-        r.join(template_common.INPUT_BASE_NAME)
-    )
+    d =
     return d, sirepo.template.import_module(d), r

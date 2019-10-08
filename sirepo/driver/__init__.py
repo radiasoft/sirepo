@@ -54,6 +54,12 @@ def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES
     cfg = pkconfig.init(
+        agent_dir=(
+            # Assumes user directory is mounted over NFS
+            simulation_db.user_dir_name('{uid}').join('agent').join('{agent_id}'),
+            str,
+            'default run directory for agents',
+        ),
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
@@ -105,6 +111,7 @@ class DriverBase(PKDict):
             requests_to_send_to_agent=tornado.queues.Queue(),
             **kwargs,
         )
+        self._agent_dir = pkio.mkdir_parent(cfg.agent_dir(**self))
         # TODO(e-carlin): This is used to keep track of what run_dir currently
         # has a data job running in it. This makes it so we only send one data
         # job at a time. I think we should create a generalized data structure

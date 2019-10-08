@@ -131,6 +131,7 @@ class LocalDriver(sirepo.driver.DriverBase):
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
         env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = self.supervisor_uri
 #rn cwd is where? Probably should be a tmp directory
+        pkio.mkdir_parent(msg.agent_dir)
         self._subprocess = tornado.process.Subprocess(
             [
                 'pyenv',
@@ -138,6 +139,7 @@ class LocalDriver(sirepo.driver.DriverBase):
                 'sirepo',
                 'job_agent',
             ],
+            cwd=str(self._agent_dir),
             env=env,
         )
         self._subprocess.set_exit_callback(self._on_exit)

@@ -34,7 +34,6 @@ class _Base(PKDict):
 
     async def do(self):
         await self._do()
-        self.run_scheduler()
 
 
 # async def incoming(msg):
@@ -91,7 +90,7 @@ def run_scheduler(kind):
 
             o = j.ops[0]
             r = j.requests[0]
-            
+
 #         # TODO(e-carlin): complete. run status from runSimulation needs to be moved
 #         # into here before this will work
 #         # _handle_cancel_requests(
@@ -141,8 +140,6 @@ def terminate():
 
 
 class ServerReq(_Base):
-    requests = PKDict()
-
     def __init__(self, req):
         self.content = req.content
         self.state = _RequestState.CHECK_STATUS if req.content.action == job.ACTION_COMPUTE \
@@ -207,7 +204,9 @@ bla bla
             new = job.run_extract_job(
                 b.setdefault(
                     cmd='background_percent_complete',
+
                     arg=is_running,
+
                 ),
             )
             new.setdefault('percentComplete', 0.0)
@@ -260,6 +259,8 @@ def _mtime_or_now(path):
 
 
 def compute():
+    has to call report_info (not status)
+    if first time to create job
     status = job.compute_job_status(b)
 #TODO(robnagler) move into supervisor & agent
     if status not in job.ALREADY_GOOD_STATUS:
@@ -340,7 +341,7 @@ class _Job():
         j = cls._get_job(request)
         j.requests.append(request)
         await j.get_status()
-        return 
+        return
 
     @classmethod
     def _get_job(cls, request):

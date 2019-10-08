@@ -53,6 +53,8 @@ def api_simulationFrame(frame_id):
     f = frame_id.split('*')
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     if len(f) > len(keys):
+#TODO(robnagler) should this be v2 or 2 like in animationArgs
+#   probably need consistency anyway for dealing with separators
         assert f.pop(0) == 'v2', \
             'invalid frame_id={}'.format(frame_id)
         keys.append('computeHash')
@@ -61,7 +63,6 @@ def api_simulationFrame(frame_id):
     p.report = template.get_animation_name(p)
     p.compute_hash = p.get('computeHash')
     frame = _request(
-        arg=p,
         cmd='get_simulation_frame',
         data=p,
     )
@@ -125,5 +126,4 @@ def _request_body(kwargs):
         ('run_dir', lambda: simulation_db.simulation_run_dir(d)),
     ):
         b[k] = d[k] if k in d else v()
-    
     return b
