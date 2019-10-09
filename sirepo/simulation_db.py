@@ -65,7 +65,7 @@ _ID_PARTIAL_RE_STR = '[{}]{{{}}}'.format(_ID_CHARS, _ID_LEN)
 _ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
 
 #: use to separate components of job_id
-_JOB_ID_SEP = '-'
+JOB_ID_SEP = '-'
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
@@ -377,7 +377,7 @@ def job_id(data):
     Returns:
         str: unique name
     """
-    return _JOB_ID_SEP.join((
+    return JOB_ID_SEP.join((
         auth.logged_in_user(),
         data.simulationId,
         data.report,
@@ -893,7 +893,7 @@ def uid_from_jid(jid):
     Return:
         str: user id
     """
-    return jid.split(_JOB_ID_SEP)[0]
+    return jid.split(JOB_ID_SEP)[0]
 
 
 def user_create(login_callback):

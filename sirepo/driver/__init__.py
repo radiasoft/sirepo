@@ -12,7 +12,7 @@ from pykern import pkjson
 from pykern import pkjson, pkconfig, pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
-from sirepo import job
+import sirepo.job
 from sirepo import job_supervisor
 import aenum
 import importlib
@@ -31,11 +31,19 @@ _DEFAULT_CLASS = None
 
 cfg = None
 
-def get_class(req):
+def get_class(job):
     return _DEFAULT_CLASS
 
 
-def get_instance(msg):
+def get_compute_status(job):
+    return await (await get_instance_for_job(job)).get_compute_status(job)
+
+
+async def get_instance_for_job(job):
+    return await get_class(job.req).get_instance(job)
+
+
+def get_instance_from_msg(msg):
     d = DriverBase.instances[msg.content.agent_id]
     if not d._handler_set.is_set():
         d._status = Status.COMMUNICATING
@@ -47,7 +55,7 @@ def get_instance(msg):
 
 
 def get_kind(req):
-    return get_class(req).KIND
+    return get_class(req).get_kind(req.content.resource_class)
 
 
 def init():
@@ -62,7 +70,7 @@ def init():
         ),
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
-            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
+            'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP, sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
             str,
             'how agents connect to supervisor',
         ),
@@ -103,7 +111,7 @@ class DriverBase(PKDict):
     def __init__(self, *args, **kwargs):
         # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         super().__init__(
-            agent_id=job.unique_key(),
+            agent_id=sirepo.job.unique_key(),
             _status=Status.IDLE,
             _handler_set=tornado.locks.Event(),
             _handler=None,
@@ -129,6 +137,7 @@ class DriverBase(PKDict):
             'req={} uid does not match driver={}'.format(req, self)
         self.requests.remove(req)
 
+
     @classmethod
     def enqueue_request(cls, req):
         for d in cls.resources[req.content.resource_class].drivers:
@@ -144,6 +153,11 @@ class DriverBase(PKDict):
             cls.instances[d.agent_id] = d
         d.requests.append(req)
         return d
+
+    @classmethod
+    def get_kind(cls, resource_class):
+        assert resource_class in ('sequential', 'parallel')
+        return resource_class + '-' + cls.module_name
 
     def is_started(self):
         return self._status in (Status.COMMUNICATING, Status.KILLING)

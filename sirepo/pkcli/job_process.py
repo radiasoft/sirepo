@@ -46,6 +46,17 @@ def _do_background_percent_complete(msg, template):
         msg.run_dir,
         msg.is_running,
     )
+            new = job.run_extract_job(
+                b.setdefault(
+                    cmd='background_percent_complete',
+
+                    arg=is_running,
+
+                ),
+            )
+            new.setdefault('percentComplete', 0.0)
+            new.setdefault('frameCount', 0)
+            res.update(new)
 
 
 def _do_get_simulation_frame(msg, template):

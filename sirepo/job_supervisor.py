@@ -9,16 +9,17 @@ from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
-from sirepo import driver, job
 import aenum
 import copy
 import sirepo.driver
+import sirepo.job
 import sys
 import tornado.locks
 
-_DATA_ACTIONS = (job.ACTION_ANALYSIS, job.ACTION_COMPUTE)
 
-_OPERATOR_ACTIONS = (job.ACTION_CANCEL,)
+_DATA_ACTIONS = (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_COMPUTE)
+
+_OPERATOR_ACTIONS = (sirepo.job.ACTION_CANCEL,)
 
 
 class _RequestState(aenum.Enum):
@@ -45,10 +46,10 @@ class _Base(PKDict):
 # async def incoming_message(msg):
 #     d = sirepo.driver.get_instance(msg)
 #     a = msg.content.get('action')
-#     if a == job.ACTION_READY_FOR_WORK:
+#     if a == sirepo.job.ACTION_READY_FOR_WORK:
 #         return d
-#     if a == job.ACTION_ERROR:
-#         pkdlog('received error msg={}', job.LogFormatter(msg))
+#     if a == sirepo.job.ACTION_ERROR:
+#         pkdlog('received error msg={}', sirepo.job.LogFormatter(msg))
 #     r = _get_request_for_message(msg)
 #     r.set_response(msg.content)
 #     _remove_from_running_data_jobs(d, r, msg)
@@ -58,7 +59,7 @@ class _Base(PKDict):
 # async def incoming_request(req):
 #     r = ServerReq(req)
 #     d = r._driver
-#     if r.content.action == job.ACTION_COMPUTE:
+#     if r.content.action == sirepo.job.ACTION_COMPUTE:
 #         res = await _run_compute_job_request(r)
 #     else:
 #         res = await r.get_reply()
@@ -67,7 +68,7 @@ class _Base(PKDict):
 
 
 def init():
-    job.init()
+    sirepo.job.init()
     sirepo.driver.init()
 
 
@@ -107,12 +108,12 @@ def run_scheduler(kind):
 #                 continue
 #             # if the request is for status of a job pending in the q or in
 #             # running_data_jobs then reply out of band
-#             if a == job.ACTION_STATUS:
+#             if a == sirepo.job.ACTION_STATUS:
 #                 j = _get_data_job_request(d, r.content.jid)
 # #TODO(robnagler) why not reply in all cases if we have it?
 #                 if j and j.state in _WAIT:
 #                     r.state = _RequestState.REPLY
-#                     r.set_response(PKDict(status=job.Status.PENDING.value))
+#                     r.set_response(PKDict(status=sirepo.job.Status.PENDING.value))
 #                     continue
 
 #             # start agent if not started and slots available
@@ -139,28 +140,60 @@ def terminate():
     sirepo.driver.terminate()
 
 
+class _Job(PKDict):
+
+    instances = PKDict()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'jid' not in self:
+            self.jid = self._jid_for_req(self.req)
+
+    @classmethod
+    async def get_compute_status(cls, req):
+        #TODO(robnagler) deal with non-in-memory job state (db?)
+        self = cls.instances.get(cls._jid(req))
+        if not self:
+            self = cls(req=req)
+        return await sirepo.driver.get_compute_status(self)
+
+    def _jid_for_req(cls, req):
+        c = req.content
+        if c.api in ('api_runStatus', 'api_runCancel', 'api_runSimulation')
+            return c.compute_jid
+        if c.api in ('api_simulationFrame',):
+            return c.analysis_jid
+        raise AssertionError('unknown api={} req={}', c.api, req)
+
+
 class ServerReq(_Base):
     def __init__(self, req):
-        self.content = req.content
-        self.state = _RequestState.CHECK_STATUS if req.content.action == job.ACTION_COMPUTE \
+        c = req.content
+        self.content = c
+        self.state = _RequestState.CHECK_STATUS if req.content.action == sirepo.job.ACTION_COMPUTE \
             else _RequestState.RUN_PENDING
         self._handler = req.get('handler')
         self._response_received = tornado.locks.Event()
         self._response = None
-        self._action = self.content.action
-        self._uid = self.content.uid
-        self._resource_class = self.content.resource_class
-        self._driver_kind = sirepo.driver.get_kind(self)
+        self._action = c.action
+        self.uid = c.uid
+        self._resource_class = sirepo.job
+        self.driver_kind = sirepo.driver.get_kind(self)
         self._my_queue = self.instances.setdefault(
             self._driver_kind,
-            PKDict(),
-        ).setdefault(
-            self._resource_class,
             PKDict(),
         ).setdefault(
             self._uid,
             PKDict(),
         )
+
+    async def _do(self):
+        c = self.content
+        if c.api == 'api_runStatus':
+            self._handler.write(await Job.get_compute_status(self))
+            return
+
+
 
 def _simulation_run_status_job_supervisor(data, quiet=False):
     """Look for simulation status and output
@@ -183,7 +216,8 @@ def _simulation_run_status_job_supervisor(data, quiet=False):
         res = PKDict(state=status.value)
 
         status = job.compute_job_status(b)
-        is_running = status is job.Status.RUNNING
+        is_running = status is sirepo.job.Status.RUNNING
+
 
 
 bla bla
@@ -196,22 +230,10 @@ bla bla
             status,
         )
         if not is_running:
-            if status is not job.Status.MISSING:
-                res, err = job.run_extract_job(b.setdefault(cmd='result'))
+            if status is not sirepo.job.Status.MISSING:
+                res, err = job_api.run_extract_job(b.setdefault(cmd='result'))
                 if err:
                     return http_reply.subprocess_error(err, 'error in read_result', b.run_dir)
-        if b.parallel:
-            new = job.run_extract_job(
-                b.setdefault(
-                    cmd='background_percent_complete',
-
-                    arg=is_running,
-
-                ),
-            )
-            new.setdefault('percentComplete', 0.0)
-            new.setdefault('frameCount', 0)
-            res.update(new)
         res['parametersChanged'] = rep.parameters_changed
         if res['parametersChanged']:
             pkdlog(
@@ -263,8 +285,8 @@ def compute():
     if first time to create job
     status = job.compute_job_status(b)
 #TODO(robnagler) move into supervisor & agent
-    if status not in job.ALREADY_GOOD_STATUS:
-        b.req_id = job.unique_key()
+    if status not in sirepo.job.ALREADY_GOOD_STATUS:
+        b.req_id = sirepo.job.unique_key()
         job.start_compute_job(
             body=b.update(
                 cmd=cmd,
@@ -280,17 +302,12 @@ def cancel():
     return http_reply.gen_json(PKDict(state='canceled'))
 
 
-    async def _do(self):
-        if self.content.action == job.ACTION_STATUS:
-            j = await Job.status(self)
-        # self.enqueue()
-
     def __repr__(self):
         return 'state={}, content={}'.format(self.state, self.content)
 
     def enqueue(self):
         # type of request matters:
-        if self.content.action in (job.ACTION_CANCEL, job.ACTION_STATUS):
+        if self.content.action in (sirepo.job.ACTION_CANCEL, sirepo.job.ACTION_STATUS):
             self._my_queue.insert(0, self)
         else:
             self._my_queue.append(self)
@@ -398,7 +415,7 @@ class _Op():
 #     def __init__(self, req, action):
 #         c = copy.deepcopy(req.content)
 #         c.action = action
-#         c.req_id = job.unique_key()
+#         c.req_id = sirepo.job.unique_key()
 #         super().__init__(PKDict(content=c))
 
 
@@ -447,9 +464,9 @@ def _len_longest_requests_q(drivers):
 def _remove_from_running_data_jobs(driver, req, msg):
     # TODO(e-carlin): ugly
     a = req.content.action
-    if (a == job.ACTION_STATUS
-        and job.Status.RUNNING.value != msg.content.status
-        or a in (job.ACTION_ANALYSIS, job.ACTION_CANCEL)
+    if (a == sirepo.job.ACTION_STATUS
+        and sirepo.job.Status.RUNNING.value != msg.content.status
+        or a in (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_CANCEL)
     ):
         driver.running_data_jobs.discard(req.content.jid)
 
@@ -458,9 +475,9 @@ def _remove_from_running_data_jobs(driver, req, msg):
 # pathway of the supervisor adding requests to the q. When runStatus can
 # be pulled out of job_api then this will actually become useful.
 async def _run_compute_job_request(req):
-    s = _SupervisorRequest(req, job.ACTION_STATUS)
+    s = _SupervisorRequest(req, sirepo.job.ACTION_STATUS)
     r = await s.get_reply()
-    if 'status' in r and r.status not in job.ALREADY_GOOD_STATUS:
+    if 'status' in r and r.status not in sirepo.job.ALREADY_GOOD_STATUS:
         req.state = _RequestState.RUN_PENDING
         run_scheduler(req._driver)
         r = await req.get_reply()
@@ -470,10 +487,10 @@ async def _run_compute_job_request(req):
 def _send_kill_to_unknown_agent(msg):
     try:
         msg.handler.write_message(
-            PKDict(action=job.ACTION_KILL, req_id=job.unique_key()),
+            PKDict(action=sirepo.job.ACTION_KILL, req_id=sirepo.job.unique_key()),
         )
     except Exception as e:
-        pkdlog('exception={} msg={}', e, job.LogFormatter(msg))
+        pkdlog('exception={} msg={}', e, sirepo.job.LogFormatter(msg))
 
 
 def _try_to_free_slot(driver_class, resource_class):

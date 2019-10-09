@@ -88,7 +88,7 @@ def _rfc1123(dt):
 def _request(**kwargs):
     b = _request_body(kwargs)
     b.setdefault(
-        action=pkinspect.caller().name,
+        api=pkinspect.caller().name,
         req_id=job.unique_key(),
         uid=simulation_db.uid_from_jid(b.compute_jid),
     )
@@ -110,14 +110,14 @@ def _request_body(kwargs):
     b = PKDict(kwargs)
     d = b.get('data') or http_request.parse_data_input()
     for k, v in (
-        ('analysis_jid', lambda: simulation_db.job_id(d)),
         ('analysis_model', lambda: d.report),
         ('compute_hash', lambda: template_common.report_parameters_hash(d)),
         ('compute_model', lambda: simulation_db.compute_job_model(d)),
         ('parallel', lambda: simulation_db.is_parallel(d)),
         ('sim_type', lambda: d.simulationType),
         # depends on some of the above
-        ('compute_jid', lambda: b.analysis_jid.replace(b.analysis_model, b.compute_model)),
+        ('compute_jid', lambda: simulation_db.job_id(d).replace(b.analysis_model, b.compute_model)),
+        ('analysis_jid', lambda: b.compute_jid + simulation_db.JOB_ID_SEP + b.analysis_model),
 #TODO(robnagler) remove this
         ('run_dir', lambda: simulation_db.simulation_run_dir(d)),
     ):

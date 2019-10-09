@@ -34,21 +34,58 @@ def init_class():
         parallel=_Resources(cfg.parallel_slots),
         sequential=_Resources(cfg.sequential_slots),
     )
+    _Slot.init_class(LocalDriver)
     return LocalDriver
 
 
+class _Slot(object):
+    available = PKDict()
+    in_use = PKDict()
+
+    @classmethod
+    def init_class(cls, driver_class):
+        for r in 'sequential', 'parallel':
+            k = driver_class.get_kind(r)
+            q = cls.available[k] = tornado.queues.Queue()
+            for n in cfg[r + '_slots']:
+                q.put_nowait(_Slot(kind=k))
+            cls.in_use[k] = []
+
+
+    @classmethod
+    async def garbage_collect(cls, kind):
+        for d in cls.in_use[kind]:
+            if not d.jobs:
+                await d.terminate()
+
+    @classmethod
+    async def get_instance(cls, kind):
+        try:
+            return cls.available[kind].get_nowait()
+        except tornado.queues.QueueEmpty:
+            tornado.ioloop.IOLoop.current().spawn_callback(
+                cls.garbage_collect,
+                kind,
+            )
+            return await cls.available[kind].get()
+
 class LocalDriver(sirepo.driver.DriverBase):
-    KIND = 'local'
+    #TODO(robnagler) pkinspect this
+    module_name = 'local'
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert self.resources
+        super().__init__(slot, job, *args, **kwargs)
+        self.slot = slot
+        self.kind = slot.kind
+        self.jobs = [job]
+        self.uid = job.uid
         self._subprocess = None
         self._start_attempts = 0
         self._max_start_attempts = 2
         self.killing = False
         self._terminate_timeout = None
         self._agent_exited = tornado.locks.Event()
+        slot.in_use[slot.kind].append(self)
 
 
         # TODO(e-carlin): This is used to get stats about drivers as the code
@@ -56,6 +93,26 @@ class LocalDriver(sirepo.driver.DriverBase):
         # tornado.ioloop.IOLoop.current().spawn_callback(
         #     self._stats
         # )
+
+    @classmethod
+    async def get_instance(cls, job):
+        for i in cls.instances[job.driver_kind].get(job.uid, []):
+            # operating drvier case
+            if job.jid in i.jobs:
+                return i
+        for i in cls.instances[job.driver_kind].get(job.uid, []):
+            # cache driver case
+            if i.has_capacity(job):
+                return i.assign_job(job)
+        return cls(
+            await _Slot.get_instance(job.driver_kind),
+            job,
+        )
+
+
+    def has_capacity(self, job):
+        return self.jobs < 1
+
 
     def __repr__(self):
         return 'agent_id={} status={} running_data_jobs={} requests={} resources={}'.format(
@@ -70,6 +127,10 @@ class LocalDriver(sirepo.driver.DriverBase):
     def slots_available(self):
         s = self.resources[self.resource_class].slots
         return len(s.in_use) < s.total
+
+    def terminate(self):
+        self._kill()
+
 
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
@@ -102,16 +163,10 @@ class LocalDriver(sirepo.driver.DriverBase):
         if self._kill_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(self._kill_timeout)
             self._kill_timeout = None
-
-        # if we didn't plan this exit
-        if self._status is sirepo.driver.Status.KILLING:
-            return
-        if self._start_attempts > self._max_start_attempts:
+        self.slot.in_use[self.kind].remove(self)
+        self.slot.available[self.kind].put_nowait(self)
+        if self._status is not sirepo.driver.Status.KILLING:
             self._on_agent_error_exit()
-        else:
-            # TODO(e-carlin): look at runner/__init__.py:203
-#rn restarts definitely need to be delayed
-            self._start()
 
     def _start(self):
         self._status = sirepo.driver.Status.STARTING
@@ -143,12 +198,3 @@ class LocalDriver(sirepo.driver.DriverBase):
             env=env,
         )
         self._subprocess.set_exit_callback(self._on_exit)
-
-
-class _Resources(PKDict):
-    def __init__(self, total):
-        self.drivers = []
-        self.slots = PKDict(
-            total=total,
-            in_use=PKDict(),
-        )
