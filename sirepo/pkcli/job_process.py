@@ -88,7 +88,7 @@ def _do_compute_status(msg, template):
                 template_common.INPUT_BASE_NAME,
                 msg.run_dir,
             ),
-        status=simulation_db.read_status(msg.run_dir),a
+        status=simulation_db.read_status(msg.run_dir),
     )
 
 

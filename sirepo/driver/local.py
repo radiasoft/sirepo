@@ -53,10 +53,11 @@ class _Slot(object):
 
 
     @classmethod
-    async def garbage_collect(cls, kind):
+    async def garbage_collect_one(cls, kind):
         for d in cls.in_use[kind]:
             if not d.jobs:
                 await d.terminate()
+                return
 
     @classmethod
     async def get_instance(cls, kind):
@@ -64,7 +65,7 @@ class _Slot(object):
             return cls.available[kind].get_nowait()
         except tornado.queues.QueueEmpty:
             tornado.ioloop.IOLoop.current().spawn_callback(
-                cls.garbage_collect,
+                cls.garbage_collect_one,
                 kind,
             )
             return await cls.available[kind].get()

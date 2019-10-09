@@ -35,10 +35,6 @@ def get_class(job):
     return _DEFAULT_CLASS
 
 
-def get_compute_status(job):
-    return await (await get_instance_for_job(job)).get_compute_status(job)
-
-
 async def get_instance_for_job(job):
     return await get_class(job.req).get_instance(job)
 
@@ -116,9 +112,12 @@ class DriverBase(PKDict):
             _handler_set=tornado.locks.Event(),
             _handler=None,
             requests=[],
+            sender=None,
             requests_to_send_to_agent=tornado.queues.Queue(),
+            send_lock=tornado.locks.Semaphore(1),
             **kwargs,
         )
+        self.send_lock.acquire()
         self._agent_dir = pkio.mkdir_parent(cfg.agent_dir(**self))
         # TODO(e-carlin): This is used to keep track of what run_dir currently
         # has a data job running in it. This makes it so we only send one data
@@ -130,6 +129,32 @@ class DriverBase(PKDict):
         tornado.ioloop.IOLoop.current().spawn_callback(
             self._process_requests_to_send_to_agent
         )
+
+
+    def reply(self, msg):
+        if self.sender and msg.op_id and self.op.op_id == msg.op_id:
+            s = self.sender
+            self.op = None
+            s.set_result()
+        elif first time:
+            self.send_lock.release()
+        else:
+            dispatch to unsolicited event
+
+
+    def do_op(self, op, **kwargs):
+        kwargs.setdefault('op_id', sirepo.job.unique_key())
+        kwargs['op'] = op
+        m = PKDict(kwargs)
+        await self.send_lock.acquire()
+        f = Future()
+        self.sender = Future()
+        await self._handler.write_message(pkjson.dump_bytes(m))
+        self.ops[m.op_id] = m
+        m.result = Future()
+        r = await self.sender
+        self.send_lock.release()
+        return r
 
 
     def dequeue_request(self, req):

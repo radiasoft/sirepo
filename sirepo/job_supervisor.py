@@ -155,7 +155,14 @@ class _Job(PKDict):
         self = cls.instances.get(cls._jid(req))
         if not self:
             self = cls(req=req)
-        return await sirepo.driver.get_compute_status(self)
+        d = await sirepo.driver.get_instance_for_job(self)
+        await d.do_op(
+            OP_COMPUTE_STATUS,
+            jid=self.req.compute_jid,
+            run_dir=self.req.run_dir,
+        )
+
+
 
     def _jid_for_req(cls, req):
         c = req.content
