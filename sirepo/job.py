@@ -32,6 +32,17 @@ ACTION_ANALYSIS = 'analysis'
 ACTION_COMPUTE = 'compute'
 ACTION_RUN_SIMULATION = 'runSimulation'
 
+# Bidirectional operations
+OP_ANALYSIS = 'analysis'
+OP_CANCEL = 'cancel'
+OP_CONDITION = 'condition'
+OP_COMPUTE_STATUS = 'compute_status'
+OP_ERROR = 'error'
+OP_KILL = 'kill'
+OP_OK = 'ok'
+OP_RUN = 'run'
+OP_STATUS = 'status'
+
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'
 

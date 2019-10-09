@@ -85,9 +85,6 @@ _SCHEMA_CACHE = pkcollections.Dict()
 #: Special field to direct pseudo-subclassing of schema objects
 _SCHEMA_SUPERCLASS_FIELD = '_super'
 
-#: Status file name
-_STATUS_FILE = 'status'
-
 #: created under dir
 _TMP_DIR = 'tmp'
 

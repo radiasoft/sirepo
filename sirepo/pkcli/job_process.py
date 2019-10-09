@@ -70,16 +70,14 @@ def _do_compute(msg):
         t.remove_last_frame(run_dir)
 
 
-def _do_full_status(msg, template):
-    compute_hash = template_common.report_parameters_hash(
-        simulation_db.json_filename(
-            template_common.INPUT_BASE_NAME,
-            msg.run_dir,
-        ),
-    )
-    status = simulation_db.read_status(msg.run_dir)
+def _do_compute_status(msg, template):
     return PKDict(
-        runner_status=simulation_db.read_status(msg.run_dir),
+        compute_hash=template_common.report_parameters_hash(
+            simulation_db.json_filename(
+                template_common.INPUT_BASE_NAME,
+                msg.run_dir,
+            ),
+        status=simulation_db.read_status(msg.run_dir),a
     )
 
 
