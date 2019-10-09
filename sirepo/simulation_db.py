@@ -26,6 +26,7 @@ import os.path
 import py
 import random
 import re
+import sirepo.job
 import sirepo.template
 import threading
 import time
@@ -338,7 +339,7 @@ def hack_nfs_write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    fn = run_dir.join(_STATUS_FILE)
+    fn = run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
     for i in range(cfg.nfs_tries):
         if fn.check(file=True):
             break
@@ -540,49 +541,33 @@ def poll_seconds(data):
     return 2 if is_parallel(data) else 1
 
 
-def prepare_simulation(data, tmp_dir=None):
+def prepare_simulation(data, run_dir=None):
     """Create and install files, update parameters, and generate command.
 
-    Copies files into the simulation directory (``run_dir``), or (if
-    specified) a ``tmp_dir``.
+    Copies files into the simulation directory (``run_dir``)
     Updates the parameters in ``data`` and save.
     Generate the pkcli command to pass to task runner.
 
     Args:
         data (dict): report and model parameters
-        tmp_dir (py.path.local):
+        run_dir (py.path.local): defaults to `simulation_run_dir`
     Returns:
         list, py.path: pkcli command, simulation directory
     """
-    if tmp_dir is None:
+    if run_dir is None:
         # This is the legacy (pre-runner-daemon) code path
         run_dir = simulation_run_dir(data, remove_dir=True)
         #TODO(robnagler) create a lock_dir -- what node/pid/thread to use?
         #   probably can only do with celery.
         pkio.mkdir_parent(run_dir)
-        out_dir = run_dir
         # Only done on the legacy path, because the job supervisor owns the
         # status file.
-        write_status('pending', out_dir)
-    else:
-        # This is the runner-daemon code path -- tmp_dir is always given, as a
-        # new temporary directory we have to create.
-        run_dir = simulation_run_dir(data)
-        pkio.mkdir_parent(tmp_dir)
-        out_dir = tmp_dir
-    sim_type = data['simulationType']
-    sid = parse_sid(data)
+        write_status('pending', run_dir)
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, out_dir)
-
-    write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
-    #TODO(robnagler) encapsulate in template
+    template_common.copy_lib_files(data, None, run_dir)
+    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     is_p = is_parallel(data)
-    template.write_parameters(
-        data,
-        run_dir=out_dir,
-        is_parallel=is_p,
-    )
+    template.write_parameters(data, run_dir=run_dir, is_parallel=is_p)
     cmd = [
         pkinspect.root_package(template),
         pkinspect.module_basename(template),
@@ -685,7 +670,7 @@ def read_status(run_dir):
         run_dir (py.path): where to read
     """
     try:
-        return pkio.read_text(run_dir.join(_STATUS_FILE))
+        return pkio.read_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE))
     except IOError as e:
         if pkio.exception_is_not_found(e):
             # simulation may never have been run

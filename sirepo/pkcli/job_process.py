@@ -17,71 +17,85 @@ import sys
 
 
 def default_command(in_file):
+    """Reads `in_file` passes to `msg.job_process_cmd`
+
+    Must be called in run_dir
+
+    Writes its output on stdout.
+
+    Args:
+        in_file (str): json parsed to msg
+    Returns:
+        str: json output of command, e.g. status msg
+    """
     f = pkio.py_path(in_file)
-    a = pkjson.load_any(f)
+    msg = pkjson.load_any(f)
     f.remove()
-    sys.stdout.write(
-        pkjson.dump_pretty(
-            globals()['_do_' + a.cmd](*_args(a)),
-            pretty=False,
+    return pkjson.dump_pretty(
+        globals()['_do_' + msg.job_process_cmd](
+            msg,
+            sirepo.template.import_module(msg.sim_type),
         ),
+        pretty=False,
     )
 
 
-def _do_background_percent_complete(is_running, data, template, run_dir):
-    return template.background_percent_complete(data.report, run_dir, is_running)
+def _do_background_percent_complete(msg, template):
+    return template.background_percent_complete(
+        msg.data.report,
+        msg.run_dir,
+        msg.is_running,
+    )
 
 
-def _do_get_simulation_frame(msg):
-    d = pkio.py_path()
+def _do_get_simulation_frame(msg, template):
     return template.get_simulation_frame(
-        d,
+        msg.run_dir,
         # parsed frame_id
         msg.data,
-        simulation_db.read_json(d.join(template_common.INPUT_BASE_NAME)),
+        simulation_db.read_json(msg.run_dir.join(template_common.INPUT_BASE_NAME)),
     )
 
 
-def _do_compute(args):
-#TODO(robnagler) make remove_last_frame "inherited"
-    write_json()
-    d = simulation_db.tmp_dir()
-#TODO(robnagler) prepare_simulation runs only in the agent
-        cmd, _ = simulation_db.prepare_simulation(data, tmp_dir=d)
-        data['simulationStatus'] = {
-            'startTime': int(time.time()),
-            'state': 'pending',
-        }
+def _do_compute(msg):
+    with pkio.save_chdir('/'):
+        pkio.unchecked_remove(msg.run_dir)
+    cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
+    msg.data['simulationStatus'] = {
+        'startTime': int(time.time()),
+        'state': 'pending',
+    }
+    str(run_dir.join(template_common.RUN_LOG)),
     if hasattr(t, 'remove_last_frame'):
         t.remove_last_frame(run_dir)
 
-def _do_full_status():
-    return report_info on simulation db
+
+def _do_full_status(msg, template):
+    compute_hash = template_common.report_parameters_hash(
+        simulation_db.json_filename(
+            template_common.INPUT_BASE_NAME,
+            msg.run_dir,
+        ),
+    )
+    status = simulation_db.read_status(msg.run_dir)
+    return PKDict(
+        runner_status=simulation_db.read_status(msg.run_dir),
+    )
 
 
-def _do_remove_last_frame(ignored, data, template, run_dir):
-#TODO(robnagler) make remove_last_frame "inherited"
-    if hasattr(template, 'remove_last_frame'):
-        template.remove_last_frame(run_dir)
-
-
-def _do_result(ignored, data, template, run_dir):
-#TODO(robnagler) make a single call that does this
+def _do_result(msg, template):
     if hasattr(template, 'prepare_output_file'):
-        template.prepare_output_file(run_dir, data)
-    r, e = simulation_db.read_result(run_dir)
-    if e and hasattr(template, 'parse_error_log'):
-        r = template.parse_error_log(run_dir)
-        if r:
-            return (r, None)
-    return r, e
+        template.prepare_output_file(msg.run_dir, msg.data)
+    r, e = simulation_db.read_result(msg.run_dir)
+    if not e:
+        return PKDict(result=r)
+    l = None
+    if hasattr(template, 'parse_error_log'):
+        l = template.parse_error_log(msg.run_dir)
+    return PKDict(error=e, error_log=l)
 
-
-def _do_status(args):
-    read status file
-    return ''
 
 def _args(args):
     r = pkio.py_path()
     d =
-    return d, sirepo.template.import_module(d), r
+    return d,

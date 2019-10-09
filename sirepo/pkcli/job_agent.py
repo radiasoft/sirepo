@@ -12,7 +12,6 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job, simulation_db
 from sirepo import job_agent_process
 import sys
 import tornado.gen
@@ -28,11 +27,11 @@ _TERMINATE_SECS = 3
 
 _RETRY_SECS = 1
 
-_INFO_FILE = 'job.json'
-
-_INFO_VERSION = 1
-
 _IN_FILE = 'in-{}.json'
+
+_AGENT_FILE = 'job_agent.json'
+
+_AGENT_FILE_COMMON = PKDict(version=1)
 
 cfg = None
 
@@ -58,18 +57,30 @@ def default_command():
 class _Process(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._agent_file = None
+        self._in_file = None
         self._subprocess = None
         self._terminating = False
 
     async def start(self):
-        env = _subprocess_env()
-        # we're in py3 mode, and regular subprocesses will inherit our
-        # environment, so we have to manually switch back to py2 mode.
-        env['PYENV_VERSION'] = 'py2'
         f = self._in_file = self.run_dir.join(_IN_FILE.format(job.unique_key()))
         # SECURITY msg must not contain agent_id
         assert not self.msg.get('agent_id')
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
+        env = _subprocess_env()
+#TODO(robnagler) should this be here?
+        if msg.job_process_cmd == 'compute':
+            self._agent_file = self.run_dir.join(_AGENT_FILE)
+            self._agent_file_data = PKDict(_AGENT_FILE_COMMON).update(
+                compute_hash=self.msg.compute_hash,
+                start_time=time.time(),
+                status=job.Status.RUNNING.value,
+            )
+#TODO(robnagler) pkio.atomic_write?
+        self._agent_file.write(self._agent_file_data)
+        # we're in py3 mode, and regular subprocesses will inherit our
+        # environment, so we have to manually switch back to py2 mode.
+        env['PYENV_VERSION'] = 'py2'
         p = self._subprocess = tornado.process.Subprocess(
             ('pyenv', 'exec', 'sirepo', 'job_process', str(f)),
             # SECURITY: need to change cwd, because agent_dir has agent_id
@@ -104,17 +115,29 @@ class _Process(PKDict):
                 self._kill,
             )
             self._terminating = True
+            self._commit(job.Status.CANCELED.value)
             self._subprocess.proc.terminate()
 
     def kill(self)
         self._terminating = True
         if self._subprocess:
+            self._commit(job.Status.CANCELED.value)
             self._subprocess.proc.kill()
             self._subprocess = None
+
+    def _commit(self, status):
+        if self._agent_file:
+            self._agent_file_data.status = status
+            self._agent_file.write(self._agent_file_data)
+            self._agent_file = None
+        if self._in_file:
+            pkio.unchecked_remove(self._in_file)
+            self._in_file = None
 
     async def _exit(self, return_code):
         if self._terminating:
             return
+        self._commit(job.Status.COMPLETED.value if return_code == 0 else job.Status.ERROR.value)
         self.stderr.decode('utf-8', errors='ignore')
         report done
         kill backgournd_percent timer
@@ -204,8 +227,17 @@ class _Main(PKDict):
         self.kill()
 
     async def _op_status(self, msg):
-        msg.run_dir
-        return self._format_reply(msg, action=job.ACTION_STATUS)
+        try:
+            return self.format_reply(
+                msg,
+                agent_status=pkjson.load_any(msg.run_dir.join(_AGENT_FILE)),
+            )
+        except Exception:
+            f = msg.run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
+            if not f.exists():
+                return self.format_reply(msg, agent_status=None)
+do not reply
+        return self._format_reply(msg)
 
     async def _op_process(self, msg):
         p = _Process(msg=msg)

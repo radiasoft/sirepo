@@ -62,10 +62,7 @@ def api_simulationFrame(frame_id):
     template = sirepo.template.import_module(p)
     p.report = template.get_animation_name(p)
     p.compute_hash = p.get('computeHash')
-    frame = _request(
-        cmd='get_simulation_frame',
-        data=p,
-    )
+    frame = _request(data=p)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
         n = srtime.utc_now()
@@ -110,16 +107,15 @@ def _request(**kwargs):
 
 
 def _request_body(kwargs):
-    b = PKDict()
-    for k, v in kwargs.items():
-        b[k] = v
-    d = kwargs.get('data') or http_request.parse_data_input()
+    b = PKDict(kwargs)
+    d = b.get('data') or http_request.parse_data_input()
     for k, v in (
         ('analysis_jid', lambda: simulation_db.job_id(d)),
         ('analysis_model', lambda: d.report),
         ('compute_hash', lambda: template_common.report_parameters_hash(d)),
         ('compute_model', lambda: simulation_db.compute_job_model(d)),
         ('parallel', lambda: simulation_db.is_parallel(d)),
+        ('sim_type', lambda: d.simulationType),
         # depends on some of the above
         ('compute_jid', lambda: b.analysis_jid.replace(b.analysis_model, b.compute_model)),
 #TODO(robnagler) remove this
