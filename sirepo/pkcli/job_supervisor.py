@@ -21,6 +21,7 @@ import tornado.websocket
 
 
 cfg = None
+cfg = 'evan'
 
 
 def default_command():

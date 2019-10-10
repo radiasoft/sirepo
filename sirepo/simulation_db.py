@@ -1003,7 +1003,7 @@ def write_status(status, run_dir):
         status (str): pending, running, completed, canceled
         run_dir (py.path): where to write the file
     """
-    pkio.write_text(run_dir.join(_STATUS_FILE), status)
+    pkio.write_text(run_dir.join(sirepo.job.RUNNER_STATUS_FILE), status)
 
 
 def _create_example_and_lib_files(simulation_type):

@@ -10,6 +10,7 @@ import os
 import subprocess
 import time
 from pykern.pkdebug import pkdc, pkdp, pkdlog
+from pykern.pkcollections import PKDict
 
 # TODO(e-carlin): Tests that need to be implemented
 #   - agent never starts
@@ -49,28 +50,42 @@ def test_myapp():
                 simulation_type='myapp',
             ),
         )
+        nr = PKDict({
+            'report': 'heightWeightReport',
+            'simulationId': 'zoVkfTWT',
+            'simulationType': 'myapp',
+            'reportParametersHash': 'cc093c5d2ff817018618f1422b06fb8e'
+            })
+
         run = fc.sr_post(
-            'runSimulation',
-            dict(
-                forceRun=False,
-                models=data.models,
-                report='heightWeightReport',
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
+            'runStatus',
+            nr,
         )
-        for _ in range(10):
-            if run.state == 'completed':
-                break
-            time.sleep(1)
-            run = fc.sr_post(
-                'runStatus',
-                run.nextRequest
-            )
-        else:
-            pkunit.pkfail('runStatus: failed to complete: {}', run)
-        # Just double-check it actually worked
-        assert u'plots' in run
+
+        assert run.status == job.Status.MISSING.value
+        pkdp(run)
+        # run = fc.sr_post(
+        #     'runSimulation',
+        #     dict(
+        #         forceRun=False,
+        #         models=data.models,
+        #         report='heightWeightReport',
+        #         simulationId=data.models.simulation.simulationId,
+        #         simulationType=data.simulationType,
+        #     ),
+        # )
+        # for _ in range(10):
+        #     if run.state == 'completed':
+        #         break
+        #     time.sleep(1)
+        #     run = fc.sr_post(
+        #         'runStatus',
+        #         run.nextRequest
+        #     )
+        # else:
+        #     pkunit.pkfail('runStatus: failed to complete: {}', run)
+        # # Just double-check it actually worked
+        # assert u'plots' in run
     finally:
         if job_supervisor:
             job_supervisor.terminate()
@@ -81,7 +96,6 @@ def xtest_cancel_long_running_job():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
-    from sirepo import job
 
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
@@ -156,7 +170,6 @@ def xtest_one_job_running_at_a_time():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
-    from sirepo import job
 
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
@@ -195,7 +208,6 @@ def xtest_one_job_running_at_a_time():
             first_job.nextRequest
         )
         assert first_job.state == 'running'
-
 
         data.models.simulation.name = 'Scooby Doo'
         data.models.dog.gender = 'female'
@@ -306,18 +318,18 @@ def _server_up(url):
 def _start_job_supervisor(env):
     from pykern import pkunit
     from sirepo import srdb
-    from sirepo import job
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-#    env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
-#    env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
-#    env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
+    env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
+    env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
+    env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
     job_supervisor = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,
     )
+    from sirepo import job
     for _ in range(30):
-        if _server_up(job.cfg.supervisor_uri):
+        if _server_up('http://127.0.0.1:8001/server'):
             break
         time.sleep(0.1)
     else:

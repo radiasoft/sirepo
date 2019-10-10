@@ -12,8 +12,9 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job_agent_process
+from sirepo import job_agent_process, job
 import sys
+import signal
 import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
@@ -37,6 +38,11 @@ cfg = None
 
 
 def default_command():
+    import os
+    os.environ['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
+    os.environ['PYKERN_PKDEBUG_REDIRECT_LOGGING'] = '1'
+    os.environ['PYKERN_PKDEBUG_CONTROL'] = '.*'
+
     job.init()
     global cfg
 
@@ -184,28 +190,31 @@ class _Comm(PKDict):
         self._processes = PKDict()
 
         while True:
-            self._websocket = None
             try:
-                #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
-                self._websocket = c
-            except ConnectionRefusedError as e:
-                pkdlog('error={}', e)
-                await tornado.gen.sleep(_RETRY_SECS)
-                continue
-            m = self._format_reply(None, OP_OK)
-            while True:
+                self._websocket = None
                 try:
-                    if m:
-                        await c.write_message(m)
-                except tornado.websocket.WebSocketClosedError as e:
+                    #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+                    c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
+                    self._websocket = c
+                except ConnectionRefusedError as e:
                     pkdlog('error={}', e)
-                    break
-                m = await c.read_message()
-                pkdc('msg={}', job.LogFormatter(m))
-                if m is None:
-                    break
-                m = await self._op(m)
+                    await tornado.gen.sleep(_RETRY_SECS)
+                    continue
+                m = self._format_reply(None, job.OP_OK)
+                while True:
+                    try:
+                        if m:
+                            await c.write_message(m)
+                    except tornado.websocket.WebSocketClosedError as e:
+                        pkdlog('error={}', e)
+                        break
+                    m = await c.read_message()
+                    pkdc('msg={}', job.LogFormatter(m))
+                    if m is None:
+                        break
+                    m = await self._op(m)
+            except Exception as e:
+                pkdlog('error={} \n{}', e , pkdexc())
 
     async def write_message(self, msg, op, **kwargs):
         try:
@@ -225,19 +234,19 @@ class _Comm(PKDict):
         try:
             m = pkjson.load_any(msg)
             m.run_dir = pkio.py_path(m.run_dir)
-            r = await getattr(self, '_op_' + m.op_name)(m)
+            r = await getattr(self, '_op_' + m.op)(m)
             if r:
                 return r if isinstance(r, dict) else self._format_reply(m, job.OP_OK)
             return None
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
-            return self._format_reply(None, OP_ERROR, error=err, stack=stack)
+            return self._format_reply(None, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
         p = self._processes.get(msg.jid)
         if not p:
-            return self._format_reply(msg, OP_ERROR, error='no such jid')
+            return self._format_reply(msg, job.OP_ERROR, error='no such jid')
         await p.cancel()
         return True
 
@@ -256,7 +265,7 @@ class _Comm(PKDict):
             p = self._processes.get(msg.jid)
             return self.format_reply(
                 msg,
-                OP_OK,
+                job.OP_OK,
                 compute_status=p and p.compute_status \
                 or pkjson.load_any(msg.run_dir.join(_STATUS_FILE)),
             )
@@ -269,7 +278,7 @@ class _Comm(PKDict):
                 )
                 await self._process(msg)
                 return
-        return self.format_reply(msg, OP_OK, compute_status=None)
+        return self.format_reply(msg, job.OP_OK, compute_status=None)
 
     async def _process(self, msg):
         p = _Process(msg=msg, comm=self)

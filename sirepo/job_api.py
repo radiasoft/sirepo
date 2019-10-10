@@ -87,8 +87,9 @@ def _rfc1123(dt):
 
 def _request(**kwargs):
     b = _request_body(kwargs)
+    import inspect
     b.setdefault(
-        api=pkinspect.caller().name,
+        api=inspect.stack()[1][3],
         req_id=job.unique_key(),
         uid=simulation_db.uid_from_jid(b.compute_jid),
     )
@@ -98,6 +99,7 @@ def _request(**kwargs):
         headers=PKDict({'Content-type': 'application/json'}),
     )
     r.raise_for_status()
+    pkdp('@@@@@@@@@@@@@ content={}', r.content)
     c = pkjson.load_any(r.content)
     if 'error' in c or c.get('action') == 'error':
         pkdlog('reply={} request={}', c, b)
@@ -113,13 +115,13 @@ def _request_body(kwargs):
         ('analysis_model', lambda: d.report),
         ('compute_hash', lambda: template_common.report_parameters_hash(d)),
         ('compute_model', lambda: simulation_db.compute_job_model(d)),
-        ('parallel', lambda: simulation_db.is_parallel(d)),
+        ('resource_class', lambda: 'parallel' if simulation_db.is_parallel(d) else 'sequential'),
         ('sim_type', lambda: d.simulationType),
         # depends on some of the above
         ('compute_jid', lambda: simulation_db.job_id(d).replace(b.analysis_model, b.compute_model)),
         ('analysis_jid', lambda: b.compute_jid + simulation_db.JOB_ID_SEP + b.analysis_model),
 #TODO(robnagler) remove this
-        ('run_dir', lambda: simulation_db.simulation_run_dir(d)),
+        ('run_dir', lambda: str(simulation_db.simulation_run_dir(d))),
     ):
         b[k] = d[k] if k in d else v()
     return b

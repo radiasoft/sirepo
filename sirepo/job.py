@@ -52,6 +52,8 @@ SERVER_URI = '/server'
 DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8001
 
+RUNNER_STATUS_FILE = 'status'
+
 cfg = None
 
 
@@ -86,6 +88,7 @@ def init():
             'for supervisor requests',
         ),
     )
+    pkdp('cfg set {}', cfg)
 
 
 def init_by_server(app):

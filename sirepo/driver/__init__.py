@@ -5,15 +5,11 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
-from pykern import pkconfig
-from pykern import pkinspect
-from pykern import pkjson
-from pykern import pkjson, pkconfig, pkcollections
+from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 import sirepo.job
-from sirepo import job_supervisor
+from sirepo import job_supervisor, simulation_db
 import aenum
 import importlib
 import tornado.ioloop
@@ -31,23 +27,21 @@ _DEFAULT_CLASS = None
 
 cfg = None
 
+
 def get_class(job):
     return _DEFAULT_CLASS
 
 
 async def get_instance_for_job(job):
-    return await get_class(job.req).get_instance(job)
+    """Get a driver instance for a job.
+
+    The method blocks until a driver can be freed.
+    """
+    return await get_class(job.req).get_instance_for_job(job)
 
 
-def get_instance_from_msg(msg):
-    d = DriverBase.instances[msg.content.agent_id]
-    if not d._handler_set.is_set():
-        d._status = Status.COMMUNICATING
-        d._handler = msg.handler
-        d._handler_set.set()
-        #rn so driver gets on_close callback
-        msg.handler.driver = d
-    return d
+def get_instance_for_agent(agent_id):
+    return DriverBase.instances.get(agent_id)
 
 
 def get_kind(req):
@@ -57,16 +51,26 @@ def get_kind(req):
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES
+    import types
     cfg = pkconfig.init(
+        # TODO(e-carlin): fix
+        # agent_dir=(
+        #     # Assumes user directory is mounted over NFS
+        #     simulation_db.user_dir_name(
+        #         '{uid}').join('agent').join('{agent_id}'),
+        #     str,
+        #     'default run directory for agents',
+        # ),
         agent_dir=(
             # Assumes user directory is mounted over NFS
-            simulation_db.user_dir_name('{uid}').join('agent').join('{agent_id}'),
+            '/home/vagrant/src/radiasoft/sirepo/run/user/kcnyRqLD/agent/abc123',
             str,
             'default run directory for agents',
         ),
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
-            'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP, sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
+            'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP,
+                                  sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
             str,
             'how agents connect to supervisor',
         ),
@@ -105,142 +109,45 @@ class DriverBase(PKDict):
     instances = pkcollections.Dict()
 
     def __init__(self, *args, **kwargs):
-        # TODO(e-carlin): Do all of these fields need to be public? Doubtful...
         super().__init__(
             agent_id=sirepo.job.unique_key(),
-            _status=Status.IDLE,
-            _handler_set=tornado.locks.Event(),
-            _handler=None,
+            ops=PKDict(),
             requests=[],
-            sender=None,
             requests_to_send_to_agent=tornado.queues.Queue(),
-            send_lock=tornado.locks.Semaphore(1),
+            send_lock=tornado.locks.BoundedSemaphore(1),
+            sender=None,
+            _handler=None,
+            _handler_set=tornado.locks.Event(),
+            _status=Status.IDLE,
             **kwargs,
         )
-        self.send_lock.acquire()
-        self._agent_dir = pkio.mkdir_parent(cfg.agent_dir(**self))
-        # TODO(e-carlin): This is used to keep track of what run_dir currently
-        # has a data job running in it. This makes it so we only send one data
-        # job at a time. I think we should create a generalized data structure
-        # that can store other types of cache information (ex what was the last
-        # status). In addition they key is currently the run_dir. It needs to be
-        # the "compute job name"
-        self.running_data_jobs = set()
-        tornado.ioloop.IOLoop.current().spawn_callback(
-            self._process_requests_to_send_to_agent
-        )
+        # TODO(e-carlin): Fix 
+        # self._agent_dir = pkio.mkdir_parent(cfg.agent_dir(**self))
+        self._agent_dir = pkio.mkdir_parent(cfg.agent_dir)
+        self.instances[self.agent_id] = self
 
+    def set_handler(self, handler):
+        if not self._handler_set.is_set():
+            self._handler_set.set()
+            self._handler = handler
 
-    def reply(self, msg):
-        if self.sender and msg.op_id and self.op.op_id == msg.op_id:
-            s = self.sender
-            self.op = None
-            s.set_result()
-        elif first time:
-            self.send_lock.release()
-        else:
-            dispatch to unsolicited event
-
-
-    def do_op(self, op, **kwargs):
+    async def do_op(self, **kwargs):
         kwargs.setdefault('op_id', sirepo.job.unique_key())
-        kwargs['op'] = op
         m = PKDict(kwargs)
+        o = job_supervisor.Op(msg=m)
+        self.ops[m.op_id] = o
         await self.send_lock.acquire()
-        f = Future()
-        self.sender = Future()
+        # TODO(e-carlin): Clunky to have send_lock and handler_set
+        await self._handler_set.wait()
         await self._handler.write_message(pkjson.dump_bytes(m))
-        self.ops[m.op_id] = m
-        m.result = Future()
-        r = await self.sender
+        r = await o.get_result()
         self.send_lock.release()
         return r
-
-
-    def dequeue_request(self, req):
-        assert self.uid == req.content.uid, \
-            'req={} uid does not match driver={}'.format(req, self)
-        self.requests.remove(req)
-
-
-    @classmethod
-    def enqueue_request(cls, req):
-        for d in cls.resources[req.content.resource_class].drivers:
-            if d.uid == req.content.uid:
-                break
-        else:
-            d = cls(
-                uid=req.content.uid,
-                resource_class=req.content.resource_class,
-                supervisor_uri=cfg.supervisor_uri,
-            )
-            d.resources[d.resource_class].drivers.append(d)
-            cls.instances[d.agent_id] = d
-        d.requests.append(req)
-        return d
 
     @classmethod
     def get_kind(cls, resource_class):
         assert resource_class in ('sequential', 'parallel')
         return resource_class + '-' + cls.module_name
-
-    def is_started(self):
-        return self._status in (Status.COMMUNICATING, Status.KILLING)
-
-    def kill(self):
-        pkdlog('{}', self)
-        self._kill()
-        self._handler = None
-        self._handler_set.clear()
-
-    def on_close(self):
-        pkdlog('agent_id={}', self.agent_id)
-#rn will need to kill just in case socket closed not due to process exit
-        self._set_agent_stopped_state()
-        job_supervisor.restart_requests(self)
-        job_supervisor.run_scheduler(self)
-
-    def start(self, request):
-        pkdlog('agent_id={}', self.agent_id)
-#rn why not an assert?
-        if self._status == Status.STARTING:
-            return
-        self._status = Status.STARTING
-        # claim the slot before the agent has actually started so we don't
-        # accidentally give away 1 slot to 2 agents
-        self.resources[self.resource_class].slots.in_use[self.agent_id] = self
-        self._start()
-
-    def _on_agent_error_exit(self):
-        pkdlog('agent={}', self.agent_id)
-        self._set_agent_stopped_state()
-        for r in self.requests:
-            r.set_response(
-                pkcollections.Dict(
-                    error='agent exited with returncode {}'.format(returncode)
-                )
-            )
-        job_supervisor.run_scheduler(self)
-
-    async def _process_requests_to_send_to_agent(self):
-        # TODO(e-carlin): Exception handling
-        while True:
-            r = await self.requests_to_send_to_agent.get()
-            await self._handler_set.wait()
-            self._handler.write_message(pkjson.dump_bytes(r.content))
-
-    def _set_agent_stopped_state(self):
-        # TODO(e-carlin): This method is a code smell. I just clear out everything
-        # so I know we're in a good state. Maybe I should know the actual state
-        # of the agent/driver a bit better and only change things that need to
-        # be changed?
-        self._status = Status.IDLE
-        self._handler = None
-        self._handler_set.clear()
-        # TODO(e-carlin): It is a hack to use pop. We should know more about
-        # when an agent is running or not. It is done like this currently
-        # because it is unclear when on_agent_error_exit vs on_ws_close it called
-        self.resources[self.resource_class].slots.in_use.pop(self.agent_id, None)
 
     def __repr__(self):
         return 'class={} resource_class={} uid={} status={} agent_id={} slots_available={}'.format(

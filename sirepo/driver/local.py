@@ -6,7 +6,7 @@
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
-from pykern import pkconfig
+from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import functools
@@ -30,15 +30,12 @@ def init_class():
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
     )
-    LocalDriver.resources = PKDict(
-        parallel=_Resources(cfg.parallel_slots),
-        sequential=_Resources(cfg.sequential_slots),
-    )
     _Slot.init_class(LocalDriver)
+    LocalDriver.init_class()
     return LocalDriver
 
 
-class _Slot(object):
+class _Slot(PKDict):
     available = PKDict()
     in_use = PKDict()
 
@@ -47,7 +44,7 @@ class _Slot(object):
         for r in 'sequential', 'parallel':
             k = driver_class.get_kind(r)
             q = cls.available[k] = tornado.queues.Queue()
-            for n in cfg[r + '_slots']:
+            for _ in range(cfg[r + '_slots']):
                 q.put_nowait(_Slot(kind=k))
             cls.in_use[k] = []
 
@@ -74,21 +71,20 @@ class LocalDriver(sirepo.driver.DriverBase):
     #TODO(robnagler) pkinspect this
     module_name = 'local'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, slot, job, *args, **kwargs):
         super().__init__(slot, job, *args, **kwargs)
-        self.slot = slot
-        self.kind = slot.kind
         self.jobs = [job]
-        self.uid = job.uid
-        self._subprocess = None
-        self._start_attempts = 0
-        self._max_start_attempts = 2
         self.killing = False
-        self._terminate_timeout = None
+        self.kind = slot.kind
+        self.slot = slot
+        self.uid = job.uid
         self._agent_exited = tornado.locks.Event()
+        self._max_start_attempts = 2
+        self._start_attempts = 0
+        self._subprocess = None
+        self._terminate_timeout = None
         slot.in_use[slot.kind].append(self)
-
-
+        self._start()
         # TODO(e-carlin): This is used to get stats about drivers as the code
         # is running. Only useful when closely debugging code. Delete when stable.
         # tornado.ioloop.IOLoop.current().spawn_callback(
@@ -96,11 +92,12 @@ class LocalDriver(sirepo.driver.DriverBase):
         # )
 
     @classmethod
-    async def get_instance(cls, job):
+    async def get_instance_for_job(cls, job):
         for i in cls.instances[job.driver_kind].get(job.uid, []):
             # operating drvier case
-            if job.jid in i.jobs:
-                return i
+            for j in i.jobs:
+                if job.jid == j.jid:
+                    return i
         for i in cls.instances[job.driver_kind].get(job.uid, []):
             # cache driver case
             if i.has_capacity(job):
@@ -110,28 +107,19 @@ class LocalDriver(sirepo.driver.DriverBase):
             job,
         )
 
+    @classmethod
+    def init_class(cls):
+        for r in 'sequential', 'parallel':
+            cls.instances[cls.get_kind(r)] = PKDict()
+
+    def assign_job(self, job):
+        self.jobs.append(job)
 
     def has_capacity(self, job):
         return self.jobs < 1
 
-
     def __repr__(self):
-        return 'agent_id={} status={} running_data_jobs={} requests={} resources={}'.format(
-            self.agent_id,
-            self._status,
-            self.running_data_jobs,
-            self.requests,
-            self.resources,
-        )
-
-
-    def slots_available(self):
-        s = self.resources[self.resource_class].slots
-        return len(s.in_use) < s.total
-
-    def terminate(self):
-        self._kill()
-
+        return 'agent_id={}'.format(self.agent_id,)
 
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
@@ -164,30 +152,29 @@ class LocalDriver(sirepo.driver.DriverBase):
         if self._kill_timeout:
             tornado.ioloop.IOLoop.current().remove_timeout(self._kill_timeout)
             self._kill_timeout = None
+        del self.instances[self.agent_id]
         self.slot.in_use[self.kind].remove(self)
-        self.slot.available[self.kind].put_nowait(self)
+        self.slot.available[self.kind].put_nowait(_Slot(kind=self.kind))
         if self._status is not sirepo.driver.Status.KILLING:
-            self._on_agent_error_exit()
+            self._on_agent_error_exit() # TODO(e-carlin): impl
 
     def _start(self):
+        pkdlog('agent_id={}', self.agent_id)
+        assert self._status != sirepo.driver.Status.STARTING
         self._status = sirepo.driver.Status.STARTING
         self._start_attempts += 1
         tornado.ioloop.IOLoop.current().spawn_callback(self._start_cb)
 
-    def _start_cb(self):
+    async def _start_cb(self):
         pkdlog('agent_id={}', self.agent_id)
-        # TODO(e-carlin): Make this more robust. Ex handle failures,
-        # monitor the process, be able to kill it
         env = dict(os.environ)
-#rn wrap this in job_subprocess()
         env['PYENV_VERSION'] = 'py3'
-#        env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
-#        env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
-#        env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = self.supervisor_uri
-#rn cwd is where? Probably should be a tmp directory
-        pkio.mkdir_parent(msg.agent_dir)
+        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = sirepo.driver.cfg.supervisor_uri
+        env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
+        env['PYKERN_PKDEBUG_REDIRECT_LOGGING'] = '1'
+        env['PYKERN_PKDEBUG_CONTROL'] = '.*'
+        pkio.mkdir_parent(self._agent_dir)
         self._subprocess = tornado.process.Subprocess(
             [
                 'pyenv',
