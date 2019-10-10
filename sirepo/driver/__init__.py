@@ -53,29 +53,14 @@ def init():
     assert not _CLASSES
     import types
     cfg = pkconfig.init(
-        # TODO(e-carlin): fix
-        # agent_dir=(
-        #     # Assumes user directory is mounted over NFS
-        #     simulation_db.user_dir_name(
-        #         '{uid}').join('agent').join('{agent_id}'),
-        #     str,
-        #     'default run directory for agents',
-        # ),
-        agent_dir=(
-            # Assumes user directory is mounted over NFS
-            '/home/vagrant/src/radiasoft/sirepo/run/user/kcnyRqLD/agent/abc123',
-            str,
-            'default run directory for agents',
-        ),
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP,
-                                  sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
+                                sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
             str,
             'how agents connect to supervisor',
         ),
     )
-    this_module = pkinspect.this_module()
     p = pkinspect.this_module().__name__
     _CLASSES = PKDict()
     for n in cfg.modules:
@@ -85,13 +70,14 @@ def init():
     # _DEFAULT_CLASS some how
     assert len(_CLASSES) == 1
     _DEFAULT_CLASS = list(_CLASSES.values())[0]
-    return
 
 
 def terminate():
-    if pkconfig.channel_in('dev'):
-        for d in DriverBase.instances.values():
-            d.kill()
+    pkdp('TODO: implement terminate')
+    # if pkconfig.channel_in('dev'):
+    #     for k in DriverBase.instances.keys():
+    #         if 'local' in k:
+    #             for d in DriverBase.instances[k].values()
 
 
 class Status(aenum.Enum):
@@ -106,14 +92,13 @@ STATUS_IS_RUN = (Status.STARTING, Status.COMMUNICATING, Status.IDLE)
 
 # TODO(e-carlin): Make this an abstract base class?
 class DriverBase(PKDict):
+    # TODO(e-carlin): Instances is overloaded. Has keys of agent_id and kind:uid
     instances = pkcollections.Dict()
 
     def __init__(self, *args, **kwargs):
         super().__init__(
             agent_id=sirepo.job.unique_key(),
             ops=PKDict(),
-            requests=[],
-            requests_to_send_to_agent=tornado.queues.Queue(),
             send_lock=tornado.locks.BoundedSemaphore(1),
             sender=None,
             _handler=None,
@@ -121,9 +106,6 @@ class DriverBase(PKDict):
             _status=Status.IDLE,
             **kwargs,
         )
-        # TODO(e-carlin): Fix 
-        # self._agent_dir = pkio.mkdir_parent(cfg.agent_dir(**self))
-        self._agent_dir = pkio.mkdir_parent(cfg.agent_dir)
         self.instances[self.agent_id] = self
 
     def set_handler(self, handler):

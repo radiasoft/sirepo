@@ -22,7 +22,6 @@ _DATA_ACTIONS = (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_COMPUTE)
 _OPERATOR_ACTIONS = (sirepo.job.ACTION_CANCEL,)
 
 def init():
-    pkdp('job supervisor init')
     sirepo.job.init()
     sirepo.driver.init()
 
@@ -33,10 +32,11 @@ def terminate():
 
 class _Base(PKDict):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.content = kwargs['content']
-        self._handler = kwargs['handler']
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     pkdp('777777777777 {}', self)
+    #     self.content = kwargs['content']
+    #     self._handler = kwargs['handler']
 
     async def do(self):
         pkdp('type={} content={}', type(self), self.content)
@@ -76,6 +76,8 @@ class _Job(PKDict):
             self.jid = self._jid_for_req(self.req)
         self.driver_kind = self.req.driver_kind
         self.uid = self.req.content.uid
+        self.run_dir = self.req.content.run_dir
+        self.agent_dir = self.req.content.agent_dir
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -91,7 +93,6 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             run_dir=self.req.run_dir,
         )
-        pkdp('111111111111111111111111111111111')
         return pkdp(r)
 
     @classmethod
@@ -109,6 +110,7 @@ class _Job(PKDict):
 class ServerReq(_Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        pkdp('8888888888 {}', self)
         c = self.content
         self._response_received = tornado.locks.Event()
         self._response = None
@@ -120,10 +122,11 @@ class ServerReq(_Base):
 
     async def _do(self):
         c = self.content
-        dispatch = {
-            'api_runStatus': self._handler.write(await _Job.get_compute_status(self))
-        }
-        return await dispatch[c.content.api]
+        pkdp('11111111111111 {}', c.api)
+        if c.api == 'api_runStatus':
+            r = await _Job.get_compute_status(self)
+            await self.handler.write(r)
+        raise AssertionError('api={} unkown', c.api)
 
 
 class Op(PKDict):
@@ -139,4 +142,4 @@ class Op(PKDict):
 
     def set_result(self, res):
         self._result = res
-        self._resul_set.set()
+        self._result_set.set()

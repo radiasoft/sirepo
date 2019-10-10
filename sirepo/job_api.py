@@ -87,11 +87,13 @@ def _rfc1123(dt):
 
 def _request(**kwargs):
     b = _request_body(kwargs)
+    u = simulation_db.uid_from_jid(b.compute_jid)
     import inspect
     b.setdefault(
-        api=inspect.stack()[1][3],
+        api=inspect.stack()[1][3], # TODO(e-carlin): Use pkinspect.caller()
         req_id=job.unique_key(),
-        uid=simulation_db.uid_from_jid(b.compute_jid),
+        uid=u,
+        agent_dir=str(simulation_db.user_dir_name(u).join('agent').join('{agent_id}')),
     )
     r = requests.post(
         job.cfg.supervisor_uri,

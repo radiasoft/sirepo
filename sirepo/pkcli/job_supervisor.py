@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_supervisor
 import asyncio
-import os.path
 import signal
 import tornado.httpserver
 import tornado.ioloop
@@ -106,8 +105,8 @@ async def _incoming(content, handler):
             handler.send_error()
         return
 
-def _sigterm(num, bar):
-    tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
+def _sigterm(signum, frame):
+        tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
 
 
 def _terminate():

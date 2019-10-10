@@ -83,6 +83,9 @@ class LocalDriver(sirepo.driver.DriverBase):
         self._start_attempts = 0
         self._subprocess = None
         self._terminate_timeout = None
+        pkdp('1111111111111111 {}', job.agent_dir)
+        pkdp('2222222222222 {}', self)
+        self._agent_dir = job.agent_dir.format(agent_id=self.agent_id)
         slot.in_use[slot.kind].append(self)
         self._start()
         # TODO(e-carlin): This is used to get stats about drivers as the code
@@ -104,7 +107,7 @@ class LocalDriver(sirepo.driver.DriverBase):
                 return i.assign_job(job)
         return cls(
             await _Slot.get_instance(job.driver_kind),
-            job,
+            job=job,
         )
 
     @classmethod
@@ -129,13 +132,15 @@ class LocalDriver(sirepo.driver.DriverBase):
             pkdlog('{}', self)
             await tornado.gen.sleep(cfg.stats_secs)
 
-    def _kill(self):
+    def kill(self):
         assert self._status
         pkdlog('{}', self)
+        self._status = sirepo.driver.Status.KILLING
         # TODO(e-carlin): More error handling. If terminate doesn't work
         # we need to go to kill
         # TODO(e-carlin): What happens when an exception is thrown?
-        self._status = sirepo.driver.Status.KILLING
+        if not self._subprocess:
+            return
         self._kill_timeout = tornado.ioloop.IOLoop.current().call_later(
             _KILL_TIMEOUT_SECS,
             self._subprocess.proc.kill,

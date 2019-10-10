@@ -263,14 +263,14 @@ class _Comm(PKDict):
     async def _op_compute_status(self, msg):
         try:
             p = self._processes.get(msg.jid)
-            return self.format_reply(
+            return self._format_reply(
                 msg,
                 job.OP_OK,
                 compute_status=p and p.compute_status \
                 or pkjson.load_any(msg.run_dir.join(_STATUS_FILE)),
             )
         except Exception:
-            f = msg.run_dir.join(sirepo.job.RUNNER_STATUS_FILE)
+            f = msg.run_dir.join(job.RUNNER_STATUS_FILE)
             if f.exists():
                 assert msg.jid not in self._processes
                 msg.update(
@@ -278,7 +278,7 @@ class _Comm(PKDict):
                 )
                 await self._process(msg)
                 return
-        return self.format_reply(msg, job.OP_OK, compute_status=None)
+        return self._format_reply(msg, job.OP_OK, compute_status=None)
 
     async def _process(self, msg):
         p = _Process(msg=msg, comm=self)

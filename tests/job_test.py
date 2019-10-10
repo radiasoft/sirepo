@@ -331,7 +331,7 @@ def _start_job_supervisor(env):
     for _ in range(30):
         if _server_up('http://127.0.0.1:8001/server'):
             break
-        time.sleep(0.1)
+        time.sleep(1.1)
     else:
         pkunit.pkfail('job server did not start up')
     return job_supervisor
