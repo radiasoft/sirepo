@@ -439,7 +439,7 @@ def lib_files(data, source_lib):
     for el in data.models.elements:
         if el.type == 'TOSCA' and el.magnetFile:
             res.append(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
-    return template_common.filename_to_path(res, source_lib)
+    return _SIM_DATA.lib_file_abspath(res, source_lib)
 
 
 def models_related_to_report(data):

@@ -11,7 +11,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    _ANALYSIS_ONLY_FIELDS = ['colorMap', 'notes', 'aspectRatio']
+    _ANALYSIS_ONLY_FIELDS = frozenset('colorMap', 'notes', 'aspectRatio')
 
     @classmethod
     def compute_job_fields(cls, data):
@@ -54,3 +54,18 @@ class SimData(sirepo.sim_data.SimDataBase):
             if cls.is_watchpoint(m):
                 cls.update_model_defaults(dm[m], 'watchpointReport')
         cls._organize_example(data)
+
+    @classmethod
+    def _lib_files(cls, data, *args, **kwargs):
+        return _cls.shadow_simulation_files(data)
+
+    @classmethod
+    def shadow_simulation_files(cls, data):
+        m = data.models
+        if m.simulation.sourceType == 'wiggler' && m.wiggler.b_from in ('1', '2'):
+            return [cls.shadow_wiggler_file(m.wiggler.trajFile)]
+        return []
+
+    @classmethod
+    def shadow_wiggler_file(cls, value):
+        return _SIM_DATA.lib_file_name('wiggler', 'trajFile', value)

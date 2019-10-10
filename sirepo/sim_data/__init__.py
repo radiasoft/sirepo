@@ -12,6 +12,7 @@ from sirepo import simulation_db
 import importlib
 import inspect
 import re
+import sirepo.util
 
 
 def get_class(type_or_data):
@@ -54,7 +55,7 @@ class SimDataBase(object):
     _ANALYSIS_JOB_ONLY_FIELDS = frozenset()
 
     @classmethod
-    def compute_fields(cls, data):
+    def compute_job_fields(cls, data):
         """What fields are required for ``data.report``
 
         If a field is a model name, then
@@ -78,12 +79,51 @@ class SimDataBase(object):
         raise NotImplemented()
 
     @classmethod
+    def is_file_used(cls, data, filename):
+        """Check if file in use by simulation
+
+        Args:
+            data (dict): simulation
+            filename (str): to check
+        Returns:
+            bool: True if `filename` in use by `data`
+        """
+        return any(f for cls.lib_files(data) if f.basename == filename)
+
+    @classmethod
     def is_watchpoint(cls, name):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
     def lib_file_name(cls, model_name, field, value):
         return '{}-{}.{}'.format(model_name, field, value)
+
+    @classmethod
+    def lib_file_abspath(cls, files, source_lib):
+        """Returns full, unique paths of simulation files
+
+        Args:
+            files (iter): lib file names
+            source_lib (py.path): path to lib (simulation_lib_dir)
+        Returns:
+            list: py.path.local to files (duplicates removed)
+        """
+        return sorted(set((source_lib.join(f) for f in files)))
+
+    @classmethod
+    def lib_files(data, source_lib=None):
+        """Return list of files used by the simulation
+
+        Args:
+            data (dict): sim db
+
+        Returns:
+            list: py.path.local to files
+        """
+        return cls.lib_file_abspath(
+            cls._lib_files(data),
+            source_lib or simulation_db.simulation_lib_dir(cls.sim_type()),
+        )
 
     @classmethod
     def model_defaults(cls, name):
@@ -139,6 +179,31 @@ class SimDataBase(object):
         if not s:
             return [model]
         return ['{}.{}'.format(model, x) for x in s]
+
+    @classmethod
+    def _force_recompute(cls):
+        """Random value to force a compute_job to recompute.
+
+        Used by `compute_job_fields`
+
+        Returns:
+            str: random value
+        """
+        return sirepo.util.random_base62()
+
+    @classmethod
+    def _lib_file_mtime(cls, lib_file):
+        """Modified time of `lib_file`
+
+        For compute_job_fields only. Will return 0 if file doesn't exist.
+
+        Args:
+            lib_file (str): basename of related file
+        Returns:
+            float: mtime of lib_file or 0
+        """
+        f = cls.lib_file_abspath(lib_file)
+        return f.mtime() if f.exists() else 0.
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):

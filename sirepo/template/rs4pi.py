@@ -209,7 +209,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
 
 
 def lib_files(data, source_lib):
-    return template_common.filename_to_path([_BEAMLIST_FILENAME], source_lib)
+    return _SIM_DATA.lib_file_abspath([_BEAMLIST_FILENAME], source_lib)
 
 
 def models_related_to_report(data):

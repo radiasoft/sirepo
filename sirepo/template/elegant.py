@@ -341,39 +341,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
     return data
 
 
-def lib_files(data, source_lib):
-    """Returns list of auxiliary files
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path): directory of source
-
-    Returns:
-        list: py.path.local of source files
-    """
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    res = []
-    if r == 'twissReport' or 'bunchReport' in r:
-        res = ['bunch', 'bunchSource', 'bunchFile']
-        for f in template_common.lib_files(data):
-            if f.exists():
-                res.append(f.mtime())
-    if r == 'twissReport':
-        res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
-    return res
-
-
 def parse_elegant_log(run_dir):
     path = run_dir.join(ELEGANT_LOG_FILE)
     if not path.exists():
@@ -481,11 +448,6 @@ def simulation_dir_name(report_name):
     if 'bunchReport' in report_name:
         return 'bunchReport'
     return report_name
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -1145,14 +1107,6 @@ def _sdds_beam_type_from_file(filename):
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
         res = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
     sdds.sddsdata.Terminate(_SDDS_INDEX)
-    return res
-
-
-def _simulation_files(data):
-    res = []
-    _iterate_model_fields(data, res, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
     return res
 
 

@@ -1052,11 +1052,8 @@ def _simulation_run_status(data, quiet=False):
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
     res = []
-    template = sirepo.template.import_module(simulation_type)
-    if not hasattr(template, 'validate_delete_file'):
-        return res
     for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if template.validate_delete_file(row, search_name, file_type):
+        if sim_data.simulation_using_file(row, search_name):
             sim = row['models']['simulation']
             if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
                 continue

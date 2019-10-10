@@ -74,8 +74,6 @@ _RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 
 _PREDEFINED = None
 
-_REPORT_STYLE_FIELDS = ['intensityPlotsWidth', 'plotScale', 'colorMap', 'plotAxisX', 'plotAxisY', 'plotAxisY2', 'copyCharacteristic', 'notes', 'aspectRatio', 'rotateAngle', 'rotateReshape']
-
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
 _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
@@ -462,99 +460,6 @@ def import_file(request, lib_dir, tmp_dir):
     return data
 
 
-def lib_files(data, source_lib):
-    """Returns list of auxiliary files
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path): directory of source
-
-    Returns:
-        list: py.path.local of source files
-    """
-    res = []
-    dm = data.models
-    # the mirrorReport.heightProfileFile may be different than the file in the beamline
-    report = data.report if 'report' in data else None
-    if report == 'mirrorReport':
-        res.append(dm['mirrorReport']['heightProfileFile'])
-    if _SIM_DATA.uses_tabulated_zipfile(data):
-        if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
-            pkdc('dm.tabulatedUndulator.magneticFile',dm.tabulatedUndulator.magneticFile)
-            res.append(dm.tabulatedUndulator.magneticFile)
-    if _SIM_DATA.is_arbitrary_source(dm.simulation):
-        res.append(dm.arbitraryMagField.magneticFile)
-    if _SIM_DATA.is_beamline_report(report):
-        for m in dm.beamline:
-            for k, v in _SCHEMA.model[m.type].items():
-                t = v[1]
-                if m[k] and t in ['MirrorFile', 'ImageFile']:
-                    res.append(m[k])
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    if r == 'mirrorReport':
-        return [
-            'mirrorReport.heightProfileFile',
-            _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
-            'mirrorReport.orientation',
-            'mirrorReport.grazingAngle',
-            'mirrorReport.heightAmplification',
-        ]
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
-        'simulation.sourceType', 'tabulatedUndulator', 'undulator',
-        'arbitraryMagField',
-    ]
-    if _SIM_DATA.uses_tabulated_zipfile(data):
-        res.append(_lib_file_datetime(data['models']['tabulatedUndulator']['magneticFile']))
-
-    watchpoint = _SIM_DATA.is_watchpoint(r)
-    if watchpoint or r == 'initialIntensityReport':
-        res.extend([
-            'simulation.horizontalPointCount',
-            'simulation.horizontalPosition',
-            'simulation.horizontalRange',
-            'simulation.photonEnergy',
-            'simulation.sampleFactor',
-            'simulation.samplingMethod',
-            'simulation.verticalPointCount',
-            'simulation.verticalPosition',
-            'simulation.verticalRange',
-            'simulation.distanceFromSource',
-        ])
-    if r == 'initialIntensityReport':
-        beamline = data['models']['beamline']
-        res.append([beamline[0]['position'] if len(beamline) else 0])
-    if watchpoint:
-        wid = _SIM_DATA.watchpoint_id(r)
-        beamline = data['models']['beamline']
-        propagation = data['models']['propagation']
-        for item in beamline:
-            item_copy = item.copy()
-            del item_copy['title']
-            res.append(item_copy)
-            res.append(propagation[str(item['id'])])
-            if item['type'] == 'mirror':
-                res.append(_lib_file_datetime(item['heightProfileFile']))
-            elif item['type'] == 'sample':
-                res.append(_lib_file_datetime(item['imageFile']))
-            elif item['type'] == 'watch' and item['id'] == wid:
-                break
-        if beamline[-1]['id'] == wid:
-            res.append('postPropagation')
-    return res
-
-
 def new_simulation(data, new_simulation_data):
     sim = data['models']['simulation']
     sim['sourceType'] = new_simulation_data['sourceType']
@@ -726,29 +631,6 @@ def resource_files():
             except KeyError:
                 pass
     return res
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    dm = data.models
-    if file_type == 'undulatorTable':
-        if _SIM_DATA.is_tabulated_undulator_source(dm.simulation):
-            return dm.tabulatedUndulator.magneticFile == filename
-        return False
-    field = None
-    if file_type == 'mirror':
-        field = 'MirrorFile'
-    elif file_type == 'sample':
-        field = 'ImageFile'
-    if not field:
-        return False
-    for m in dm.beamline:
-        for k, v in _SCHEMA.model[m.type].items():
-            t = v[1]
-            if m[k] and t == field:
-                if m[k] == filename:
-                    return True
-    return False
 
 
 def validate_file(file_type, path):
@@ -1523,14 +1405,6 @@ def _invert_value(value, invert=False):
     if invert:
         value **= (-1)
     return value
-
-
-def _lib_file_datetime(filename):
-    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(filename)
-    if path.exists():
-        return path.mtime()
-    pkdlog('error, missing lib file: {}', path)
-    return 0
 
 
 def _load_user_model_list(model_name):

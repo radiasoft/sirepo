@@ -27,18 +27,6 @@ def get_data_file(run_dir, model, frame, options=None):
     return f.basename, f.read(), 'text/csv'
 
 
-def lib_files(data, source_lib):
-    return []
-
-
-def models_related_to_report(data):
-    r = data['report']
-    return [
-        r,
-        'dog',
-    ]
-
-
 def python_source_for_model(data, model):
     return _generate_parameters_file(data)
 

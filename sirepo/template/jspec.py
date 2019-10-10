@@ -173,7 +173,7 @@ def lib_files(data, source_lib):
         res.append(_SIM_DATA.lib_file_name('ring', 'lattice', ring['lattice']))
     elif lattice_source == 'elegant':
         res.append(_SIM_DATA.lib_file_name('ring', 'elegantTwiss', ring['elegantTwiss']))
-    res = template_common.filename_to_path(res, source_lib)
+    res = _SIM_DATA.lib_file_abspath(res, source_lib)
     if lattice_source == 'elegant-sirepo' and 'elegantSirepo' in ring:
         f = _elegant_dir().join(ring['elegantSirepo'], _ELEGANT_TWISS_PATH)
         if f.exists():

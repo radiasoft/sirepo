@@ -235,7 +235,7 @@ def get_data_file(run_dir, model, frame, options=None):
 
 
 def get_fft(run_dir, data):
-    data.report = _analysis_report_name_for_fft_report(data.report, data)
+    data.report = _SIM_DATA.analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
     col1 = _safe_index(col_info, report.x)
     col2 = _safe_index(col_info, report.y1)
@@ -350,33 +350,6 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
-def lib_files(data, source_lib):
-    res = []
-    report = data.report if 'report' in data else None
-    if report == 'epicsServerAnimation':
-        res += [
-            'beam_line_example.db',
-            'epics-boot.cmd',
-        ]
-    elif data.models.analysisData.file:
-        res.append(_analysis_data_file(data))
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == 'epicsServerAnimation':
-        return []
-    res = [r, 'analysisData', _lib_file_datetime(data['models']['analysisData']['file'])]
-    if 'fftReport' in r:
-        name = _analysis_report_name_for_fft_report(r, data)
-        res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
-    if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
-        # always recompute the EPICS reports
-        res += [random.random()]
-    return res
-
-
 def python_source_for_model(data, model):
     return _generate_parameters_file(None, data)
 
@@ -441,16 +414,8 @@ def write_epics_values(server_address, fields, values):
     return True
 
 
-def _analysis_data_file(data):
-    return _SIM_DATA.lib_file_name('analysisData', 'file', data.models.analysisData.file)
-
-
 def _analysis_data_path(run_dir, data):
-    return str(run_dir.join(_analysis_data_file(data)))
-
-
-def _analysis_report_name_for_fft_report(report, data):
-    return data.models[report].get('analysisReport', 'analysisReport')
+    return str(run_dir.join(_SIM_DATA.webcon_analysis_data_file(data)))
 
 
 def _beam_pos_plots(data, history, start_time):
@@ -878,16 +843,6 @@ def _label(col_info, idx):
     if units:
         return '{} [{}]'.format(name, units)
     return name
-
-
-# For hashing purposes, return an object mapping the file name to a mod date
-def _lib_file_datetime(filename):
-    lib_filename = _SIM_DATA.lib_file_name('analysisData','file', filename)
-    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(lib_filename)
-    if path.exists():
-        return PKDict(filename=path.mtime())
-    pkdlog('error, missing lib file: {}', path)
-    return 0
 
 
 def _load_file_with_history(report, path, col_info):

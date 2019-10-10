@@ -13,6 +13,22 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
+    def compute_job_fields(cls, data):
+        from sirepo.template import template_common
+
+        r = data.report
+        res = []
+        if r == 'twissReport' or 'bunchReport' in r:
+            res = ['bunch', 'bunchSource', 'bunchFile']
+            for f in template_common.lib_files(data):
+                if f.exists():
+                    res.append(f.mtime())
+        if r == 'twissReport':
+            res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
+        return res
+
+
+    @classmethod
     def fixup_old_data(cls, data):
         s = cls.schema()
         dm = data.models
@@ -135,4 +151,15 @@ class SimData(sirepo.sim_data.SimDataBase):
             i += 1
             x._id = i
             res.append(cls._create_command(m, x))
+        return res
+
+
+    def _lib_files(cls, data, source_lib):
+        return _simulation_files(data), source_lib)
+
+    def _simulation_files(cls, data):
+        res = []
+        _iterate_model_fields(data, res, _iterator_input_files)
+        if data['models']['bunchFile']['sourceFile']:
+            res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
         return res

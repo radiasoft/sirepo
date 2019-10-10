@@ -14,6 +14,20 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    _ANALYSIS_ONLY_FIELDS = frozenset(
+        'aspectRatio',
+        'colorMap',
+        'copyCharacteristic',
+        'intensityPlotsWidth',
+        'notes',
+        'plotAxisX',
+        'plotAxisY',
+        'plotAxisY2',
+        'plotScale',
+        'rotateAngle',
+        'rotateReshape',
+    )
+
     EXAMPLE_FOLDERS = PKDict({
         'Bending Magnet Radiation': '/SR Calculator',
         'Diffraction by an Aperture': '/Wavefront Propagation',
@@ -35,6 +49,62 @@ class SimData(sirepo.sim_data.SimDataBase):
     })
 
     RUN_ALL_MODEL = 'simulation'
+
+    @classmethod
+    def compute_job_fields(cls, data):
+        r = data['report']
+        if r == 'mirrorReport':
+            return [
+                'mirrorReport.heightProfileFile',
+                _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
+                'mirrorReport.orientation',
+                'mirrorReport.grazingAngle',
+                'mirrorReport.heightAmplification',
+            ]
+        res = cls._fields_for_compute(data, r) + [
+            'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
+            'simulation.sourceType', 'tabulatedUndulator', 'undulator',
+            'arbitraryMagField',
+        ]
+        if cls.uses_tabulated_zipfile(data):
+            res.append(cls._lib_file_mtime(data.models.tabulatedUndulator.magneticFile))
+        watchpoint = cls.is_watchpoint(r)
+        if watchpoint or r == 'initialIntensityReport':
+            res.extend([
+                'simulation.horizontalPointCount',
+                'simulation.horizontalPosition',
+                'simulation.horizontalRange',
+                'simulation.photonEnergy',
+                'simulation.sampleFactor',
+                'simulation.samplingMethod',
+                'simulation.verticalPointCount',
+                'simulation.verticalPosition',
+                'simulation.verticalRange',
+                'simulation.distanceFromSource',
+            ])
+        if r == 'initialIntensityReport':
+            beamline = data['models']['beamline']
+            res.append([beamline[0]['position'] if len(beamline) else 0])
+        if watchpoint:
+            wid = cls.watchpoint_id(r)
+            beamline = data['models']['beamline']
+            propagation = data['models']['propagation']
+            for item in beamline:
+                item_copy = item.copy()
+                del item_copy['title']
+                res.append(item_copy)
+                res.append(propagation[str(item['id'])])
+                if item['type'] == 'mirror':
+                    res.append(_lib_file_datetime(item['heightProfileFile']))
+                elif item['type'] == 'sample':
+                    res.append(_lib_file_datetime(item['imageFile']))
+                elif item['type'] == 'watch' and item['id'] == wid:
+                    break
+            if beamline[-1]['id'] == wid:
+                res.append('postPropagation')
+        return res
+
+
 
     @classmethod
     def compute_crystal_grazing_angle(cls, model):
@@ -163,3 +233,25 @@ class SimData(sirepo.sim_data.SimDataBase):
             data.models.simulation.sourceType,
             data.models.tabulatedUndulator.undulatorType,
         )
+
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        dm = data.models
+        # the mirrorReport.heightProfileFile may be different than the file in the beamline
+        r = data.get('report')
+        if r == 'mirrorReport':
+            res.append(dm.mirrorReport.heightProfileFile)
+        if cls.uses_tabulated_zipfile(data):
+            if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
+                res.append(dm.tabulatedUndulator.magneticFile)
+        if cls.is_arbitrary_source(dm.simulation):
+            res.append(dm.arbitraryMagField.magneticFile)
+        if cls.is_beamline_report(r):
+            for m in dm.beamline:
+                for k, v in _SCHEMA.model[m.type].items():
+                    t = v[1]
+                    if m[k] and t in ('MirrorFile', 'ImageFile'):
+                        res.append(m[k])
+        return res

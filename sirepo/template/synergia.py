@@ -186,7 +186,7 @@ def label(field, enum_labels=None):
 
 
 def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
+    return _SIM_DATA.lib_file_abspath(_simulation_files(data), source_lib)
 
 
 def models_related_to_report(data):

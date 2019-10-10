@@ -80,10 +80,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
         return filename, f.read(), 'application/octet-stream'
 
 
-def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
 def python_source_for_model(data, model):
     beamline = data['models']['beamline']
     watch_id = None
@@ -108,11 +104,6 @@ def remove_last_frame(run_dir):
 
 def resource_files():
     return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -524,7 +515,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryFilename'] = _WIGGLER_TRAJECTOR_FILENAME
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
-            v['wigglerTrajectoryInput'] = _wiggler_file(data['models']['wiggler']['trajFile'])
+            v['wigglerTrajectoryInput'] = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
     return template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -559,21 +550,9 @@ def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
 
 
-def _simulation_files(data):
-    res = []
-    if data['models']['simulation']['sourceType'] == 'wiggler':
-        if data['models']['wiggler']['b_from'] in ('1', '2'):
-            res.append(_wiggler_file(data['models']['wiggler']['trajFile']))
-    return res
-
-
 def _source_field(model, fields):
     return _fields('source', model, fields)
 
 
 def _validate_data(data, schema):
     template_common.validate_models(data, schema)
-
-
-def _wiggler_file(value):
-    return _SIM_DATA.lib_file_name('wiggler', 'trajFile', value)

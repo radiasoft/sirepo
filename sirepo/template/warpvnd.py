@@ -214,7 +214,7 @@ def lib_files(data, source_lib):
     for m in data.models.conductorTypes:
         if m.type == 'stl':
             res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
-    return template_common.filename_to_path(res, source_lib)
+    return _SIM_DATA.lib_file_abspath(res, source_lib)
 
 
 def models_related_to_report(data):
@@ -961,7 +961,7 @@ def _prepare_conductors(data):
         if not _SIM_DATA.is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
-        ct.file = template_common.filename_to_path(
+        ct.file = _SIM_DATA.lib_file_abspath(
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
         )[0] if 'file' in ct else 'None'
@@ -1109,7 +1109,7 @@ def _stl_file(conductor_type):
 
 
 def _stl_polygon_file(filename):
-    return template_common.filename_to_path(
+    return _SIM_DATA.lib_file_abspath(
         [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
         simulation_db.simulation_lib_dir(SIM_TYPE)
     )[0]

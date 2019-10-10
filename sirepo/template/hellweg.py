@@ -153,7 +153,7 @@ def get_application_data(data):
 
 
 def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
+    return _SIM_DATA.lib_file_abspath(_simulation_files(data), source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -232,11 +232,6 @@ s.save_output('output.txt')
 
 def remove_last_frame(run_dir):
     pass
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def write_parameters(data, run_dir, is_parallel):

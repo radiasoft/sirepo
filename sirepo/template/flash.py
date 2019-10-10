@@ -55,13 +55,13 @@ def get_simulation_frame(run_dir, data, model_data):
 
 
 def lib_files(data, source_lib):
-    #return template_common.filename_to_path(['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    #return template_common.filename_to_path(['flash.par', 'helm_table.dat'], source_lib)
+    #return _SIM_DATA.lib_file_abspath(['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
+    #return _SIM_DATA.lib_file_abspath(['flash.par', 'helm_table.dat'], source_lib)
     if data.models.simulation.flashType == 'RTFlame':
-        return template_common.filename_to_path(['helm_table.dat'], source_lib)
+        return _SIM_DATA.lib_file_abspath(['helm_table.dat'], source_lib)
     if data.models.simulation.flashType == 'CapLaser':
-        return template_common.filename_to_path(['al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    assert False, 'invalid flashType: {}'.format(data.models.simulation.flashType)
+        return _SIM_DATA.lib_file_abspath(['al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
+    raise AssertionError('invalid flashType: {}'.format(data.models.simulation.flashType))
 
 
 def models_related_to_report(data):
