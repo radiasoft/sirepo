@@ -207,6 +207,8 @@ verify that lib_files are there, and if not copy them from resource
         Returns:
             float: mtime of lib_file or 0
         """
+blow up if missing
+
         x = lib_files or cls.lib_files(data)
         return [f.mtime() for f in lib_files if f.exists()]
 

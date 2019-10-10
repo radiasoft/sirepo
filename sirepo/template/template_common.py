@@ -178,6 +178,9 @@ def copy_lib_files(data, source, target):
         data (dict): simulation db
         target (py.path): destination directory
     """
+
+copy files, and blow up
+
     for f in lib_files(data, source):
         path = target.join(f.basename)
         pkio.mkdir_parent_only(path)
@@ -192,6 +195,8 @@ def copy_lib_files(data, source, target):
                 else:
                     pkdlog('No file in lib or resource: {}', f)
                     continue
+make a flag for this case (symlink)
+
             if source:
                 # copy files from another session
                 f.copy(path)
