@@ -14,18 +14,13 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def compute_job_fields(cls, data):
-        from sirepo.template import template_common
-
         r = data.report
         res = []
         if r == 'twissReport' or 'bunchReport' in r:
-            res = ['bunch', 'bunchSource', 'bunchFile']
-            for f in template_common.lib_files(data):
-                if f.exists():
-                    res.append(f.mtime())
+            res += ['bunch', 'bunchSource', 'bunchFile'] \
         if r == 'twissReport':
             res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
-        return res
+        return res + cls._lib_file_mtimes(data=data)
 
 
     @classmethod
@@ -73,7 +68,18 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def max_id(cls, data):
+    def elegant_iterator(cls, data, state, callback):
+        s = cls.schema()
+        for t in 'commands', 'elements':
+            for m in data.models[t]:
+                e = s.model[cls.elegant_model_name(m)]
+                callback(state, m)
+                for k in sorted(m):
+                    if k in e:
+                        callback(state, m, s[k], k)
+
+    @classmethod
+    def elegant_max_id(cls, data):
         max_id = 1
         for model_type in 'elements', 'beamlines', 'commands':
             if model_type not in data.models:
@@ -85,6 +91,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
+    def elegant_model_name(model):
+        return 'command_{}'.format(model._type) if '_type' in model else model.type
+
+    @classmethod
     def _create_command(cls, name, data):
         s = cls.schema().model[name]
         for k in s:
@@ -94,7 +104,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _create_commands(cls, data):
-        i = cls.max_id(data)
+        i = cls.elegant_max_id(data)
         b = data.models.bunch
         res = []
         for x in (
@@ -154,10 +164,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
 
-    def _lib_files(cls, data, source_lib):
-        return _simulation_files(data), source_lib)
-
-    def _simulation_files(cls, data):
+    @classmethod
+    def _lib_files(cls, data):
         res = []
         _iterate_model_fields(data, res, _iterator_input_files)
         if data['models']['bunchFile']['sourceFile']:

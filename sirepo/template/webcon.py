@@ -235,7 +235,7 @@ def get_data_file(run_dir, model, frame, options=None):
 
 
 def get_fft(run_dir, data):
-    data.report = _SIM_DATA.analysis_report_name_for_fft(data)
+    data.report = _SIM_DATA.webcon_analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
     col1 = _safe_index(col_info, report.x)
     col2 = _safe_index(col_info, report.y1)

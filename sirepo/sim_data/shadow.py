@@ -15,8 +15,6 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def compute_job_fields(cls, data):
-        from sirepo.template import template_common
-
         r = data['report']
         res = cls._fields_for_compute(data, r) + [
             'bendingMagnet',
@@ -34,9 +32,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         #TODO(pjm): only include items up to the current watchpoint
         if _SIM_DATA.is_watchpoint(r):
             res.append('beamline')
-        for f in template_common.lib_files(data):
-            res.append(f.mtime())
-        return res
+        return res + cls._lib_file_mtimes(data)
 
     @classmethod
     def fixup_old_data(cls, data):

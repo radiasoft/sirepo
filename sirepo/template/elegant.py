@@ -193,7 +193,7 @@ def generate_lattice(data, filename_map, beamline_map, v):
         beamline_map=beamline_map,
         filename_map=filename_map,
     )
-    _iterate_model_fields(data, state, _iterator_lattice_elements)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_lattice_elements)
     res = state['lattice']
     res = res[:-1]
     res += '\n'
@@ -386,7 +386,7 @@ def prepare_for_client(data):
         cache=cache,
         rpnVariables=variables,
     )
-    _iterate_model_fields(data, state, _iterator_rpn_values)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
         v, err = _parse_expr(rpn_var['value'], variables)
@@ -558,7 +558,7 @@ def _build_filename_map(data):
     for model_type in ['commands', 'elements']:
         for model in data['models'][model_type]:
             field_index = 0
-            model_name = _model_name_for_data(model)
+            model_name = _SIM_DATA.elegant_model_name(model)
             if model_name in model_index:
                 model_index[model_name] += 1
             else:
@@ -757,7 +757,7 @@ def _generate_commands(data, filename_map, beamline_map, v):
         filename_map=filename_map,
         beamline_map=beamline_map,
     )
-    _iterate_model_fields(data, state, _iterator_commands)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_commands)
     state['commands'] += '&end' + '\n'
     return state['commands']
 
@@ -772,7 +772,7 @@ def _generate_full_simulation(data, v):
 
 
 def _generate_twiss_simulation(data, v):
-    max_id = _SIM_DATA.max_id(data)
+    max_id = _SIM_DATA.elegant_max_id(data)
     sim = data['models']['simulation']
     sim['simulationMode'] = 'serial'
     run_setup = _find_first_command(data, 'run_setup') or pkcollections.Dict(
@@ -859,19 +859,6 @@ def _is_numeric(el_type, value):
         and re.search(r'^[\-\+0-9eE\.]+$', str(value))
 
 
-def _iterate_model_fields(data, state, callback):
-    for model_type in ['commands', 'elements']:
-        for m in data['models'][model_type]:
-            model_schema = _SCHEMA['model'][_model_name_for_data(m)]
-            callback(state, m)
-
-            for k in sorted(m):
-                if k not in model_schema:
-                    continue
-                element_schema = model_schema[k]
-                callback(state, m, element_schema, k)
-
-
 def _iterator_commands(state, model, element_schema=None, field_name=None):
     # only interested in commands, not elements
     if '_type' not in model:
@@ -917,7 +904,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
 def _iterator_input_files(state, model, element_schema=None, field_name=None):
     if element_schema:
         if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append(_SIM_DATA.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
+            state.append(_SIM_DATA.lib_file_name(_SIM_DATA.elegant_model_name(model), field_name, model[field_name]))
 
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
@@ -981,10 +968,6 @@ def _map_commands_to_lattice(data):
                 if bl['name'].upper() == name:
                     cmd['use_beamline'] = bl['id']
                     break
-
-
-def _model_name_for_data(model):
-    return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
 def _output_info(run_dir):
@@ -1116,7 +1099,7 @@ def _validate_data(data, schema):
     _correct_halo_gaussian_distribution_type(data['models']['bunch'])
     for model_type in ['elements', 'commands']:
         for m in data['models'][model_type]:
-            template_common.validate_model(m, schema['model'][_model_name_for_data(m)], enum_info)
+            template_common.validate_model(m, schema['model'][_SIM_DATA.elegant_model_name(m)], enum_info)
             _correct_halo_gaussian_distribution_type(m)
 
 

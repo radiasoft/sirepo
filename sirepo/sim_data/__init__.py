@@ -120,6 +120,11 @@ class SimDataBase(object):
         Returns:
             list: py.path.local to files
         """
+
+
+verify that lib_files are there, and if not copy them from resource
+
+
         return cls.lib_file_abspath(
             cls._lib_files(data),
             source_lib or simulation_db.simulation_lib_dir(cls.sim_type()),
@@ -192,18 +197,18 @@ class SimDataBase(object):
         return sirepo.util.random_base62()
 
     @classmethod
-    def _lib_file_mtime(cls, lib_file):
+    def _lib_file_mtimes(cls, lib_files=None, data=None):
         """Modified time of `lib_file`
 
         For compute_job_fields only. Will return 0 if file doesn't exist.
 
         Args:
-            lib_file (str): basename of related file
+            lib_files (iter): lib_files related file
         Returns:
             float: mtime of lib_file or 0
         """
-        f = cls.lib_file_abspath(lib_file)
-        return f.mtime() if f.exists() else 0.
+        x = lib_files or cls.lib_files(data)
+        return [f.mtime() for f in lib_files if f.exists()]
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):

@@ -13,14 +13,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def analysis_data_file(cls, data):
-        return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
-
-    @classmethod
-    def analysis_report_name_for_fft(data):
-        return data.models[data.report].get('analysisReport', 'analysisReport')
-
-    @classmethod
     def compute_job_fields(cls, data):
         r = data['report']
         if r == 'epicsServerAnimation':
@@ -28,10 +20,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = [
             r,
             'analysisData',
-            cls._lib_file_mtime(cls.analysis_data_file(data)),
+            cls._lib_file_mtime(cls.webcon_analysis_data_file(data)),
         ]
         if 'fftReport' in r:
-            n = cls.analysis_report_name_for_fft(data)
+            n = cls.webcon_analysis_report_name_for_fft(data)
             res += ['{}.{}'.format(n, v) for v in ('x', 'y1', 'history')]
         if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
             # always recompute the EPICS reports
@@ -65,6 +57,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
+    def webcon_analysis_data_file(cls, data):
+        return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+
+    @classmethod
+    def webcon_analysis_report_name_for_fft(data):
+        return data.models[data.report].get('analysisReport', 'analysisReport')
+
+    @classmethod
     def _lib_files(cls, data, source_lib):
         res = []
         r = data.get('report')
@@ -74,7 +74,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'epics-boot.cmd',
             ]
         elif data.models.analysisData.file:
-            res.append(cls.analysis_data_file(data))
+            res.append(cls.webcon_analysis_data_file(data))
         return res
 
     @classmethod

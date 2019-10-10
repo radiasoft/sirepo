@@ -65,7 +65,7 @@ def do(template, data):
     if 'length' in dm.tabulatedUndulator:
         tabulated_undulator = dm.tabulatedUndulator
         und_length = template.compute_undulator_length(tabulated_undulator)
-        if _SIM_DATA.uses_tabulated_zipfile(data) and 'length' in und_length:
+        if _SIM_DATA.srw_uses_tabulated_zipfile(data) and 'length' in und_length:
             dm.undulator.length = und_length.length
         del dm.tabulatedUndulator['length']
     if 'longitudinalPosition' in dm.tabulatedUndulator:
@@ -83,7 +83,7 @@ def do(template, data):
             'verticalInitialPhase',
         ):
             if k in u:
-                if _SIM_DATA.is_tabulated_undulator_source(dm.simulation):
+                if _SIM_DATA.srw_is_tabulated_undulator_source(dm.simulation):
                     dm.undulator[k] = u[k]
                 del u[k]
     if 'name' not in dm['tabulatedUndulator']:
@@ -137,7 +137,7 @@ def _do_beamline(template, data):
                 i.diffractionAngle = _find_closest_angle(i.grazingAngle or 0, allowed_angles)
                 if i.tvx == '':
                     i.tvx = i.tvy = 0
-                _SIM_DATA.compute_crystal_grazing_angle(i)
+                _SIM_DATA.srw_compute_crystal_grazing_angle(i)
         if t == 'sample':
             if 'horizontalCenterCoordinate' not in i:
                 i.horizontalCenterCoordinate = _SCHEMA.model.sample.horizontalCenterCoordinate[2]

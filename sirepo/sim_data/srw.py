@@ -28,7 +28,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         'rotateReshape',
     )
 
-    EXAMPLE_FOLDERS = PKDict({
+    __EXAMPLE_FOLDERS = PKDict({
         'Bending Magnet Radiation': '/SR Calculator',
         'Diffraction by an Aperture': '/Wavefront Propagation',
         'Ellipsoidal Undulator Example': '/Examples',
@@ -48,7 +48,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         'Young\'s Double Slit Experiment': '/Wavefront Propagation',
     })
 
-    RUN_ALL_MODEL = 'simulation'
+    SRW_RUN_ALL_MODEL = 'simulation'
 
     @classmethod
     def compute_job_fields(cls, data):
@@ -66,8 +66,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
             'arbitraryMagField',
         ]
-        if cls.uses_tabulated_zipfile(data):
-            res.append(cls._lib_file_mtime(data.models.tabulatedUndulator.magneticFile))
+        if cls.srw_uses_tabulated_zipfile(data):
+            res += cls._lib_file_mtimes(data.models.tabulatedUndulator.magneticFile)
         watchpoint = cls.is_watchpoint(r)
         if watchpoint or r == 'initialIntensityReport':
             res.extend([
@@ -103,12 +103,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             if beamline[-1]['id'] == wid:
                 res.append('postPropagation')
         return res
-
-
-
-    @classmethod
-    def compute_crystal_grazing_angle(cls, model):
-        model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -150,19 +144,19 @@ class SimData(sirepo.sim_data.SimDataBase):
                         del dm[k]['sampleFactor']
         # default intensityReport.method based on source type
         if 'method' not in dm.intensityReport:
-            if cls.is_undulator_source(dm.simulation):
+            if cls.srw_is_undulator_source(dm.simulation):
                 dm.intensityReport.method = '1'
-            elif cls.is_dipole_source(dm.simulation):
+            elif cls.srw_is_dipole_source(dm.simulation):
                 dm.intensityReport.method = '2'
             else:
                 dm.intensityReport.method = '0'
         # default sourceIntensityReport.method based on source type
         if 'method' not in dm.sourceIntensityReport:
-            if cls.is_undulator_source(dm.simulation):
+            if cls.srw_is_undulator_source(dm.simulation):
                 dm.sourceIntensityReport.method = '1'
-            elif cls.is_dipole_source(dm.simulation):
+            elif cls.srw_is_dipole_source(dm.simulation):
                 dm.sourceIntensityReport.method = '2'
-            elif cls.is_arbitrary_source(dm.simulation):
+            elif cls.srw_is_arbitrary_source(dm.simulation):
                 dm.sourceIntensityReport.method = '2'
             else:
                 dm.sourceIntensityReport.method = '0'
@@ -180,56 +174,60 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
         cls.update_model_defaults(dm.multiElectronAnimation, 'multiElectronAnimation')
         if 'folder' not in dm.simulation:
-            if dm.simulation.name in cls.EXAMPLE_FOLDERS:
-                dm.simulation.folder = cls.EXAMPLE_FOLDERS[dm.simulation.name]
+            if dm.simulation.name in cls.__EXAMPLE_FOLDERS:
+                dm.simulation.folder = cls.__EXAMPLE_FOLDERS[dm.simulation.name]
             else:
                 dm.simulation.folder = '/'
         cls._template_fixup_set(data)
 
     @classmethod
-    def is_arbitrary_source(cls, sim):
+    def srw_compute_crystal_grazing_angle(cls, model):
+        model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
+
+    @classmethod
+    def srw_is_arbitrary_source(cls, sim):
         return sim.sourceType == 'a'
 
     @classmethod
-    def is_background_report(cls, report):
+    def srw_is_background_report(cls, report):
         return 'Animation' in report
 
     @classmethod
-    def is_beamline_report(cls, report):
+    def srw_is_beamline_report(cls, report):
         return not report or cls.is_watchpoint(report) \
-            or report in ('multiElectronAnimation', cls.RUN_ALL_MODEL)
+            or report in ('multiElectronAnimation', cls.SRW_RUN_ALL_MODEL)
 
     @classmethod
-    def is_dipole_source(cls, sim):
+    def srw_is_dipole_source(cls, sim):
         return sim.sourceType == 'm'
 
     @classmethod
-    def is_gaussian_source(cls, sim):
+    def srw_is_gaussian_source(cls, sim):
         return sim.sourceType == 'g'
 
     @classmethod
-    def is_idealized_undulator(cls, source_type, undulator_type):
+    def srw_is_idealized_undulator(cls, source_type, undulator_type):
         return source_type == 'u' or (source_type == 't' and undulator_type == 'u_i')
 
     @classmethod
-    def is_tabulated_undulator_source(cls, sim):
+    def srw_is_tabulated_undulator_source(cls, sim):
         return sim.sourceType == 't'
 
     @classmethod
-    def is_tabulated_undulator_with_magnetic_file(cls, source_type, undulator_type):
+    def srw_is_tabulated_undulator_with_magnetic_file(cls, source_type, undulator_type):
         return source_type == 't' and undulator_type == 'u_t'
 
     @classmethod
-    def is_undulator_source(cls, sim):
+    def srw_is_undulator_source(cls, sim):
         return sim.sourceType in ('u', 't')
 
     @classmethod
-    def is_user_defined_model(cls, model):
+    def srw_is_user_defined_model(cls, model):
         return not model.get('isReadOnly', False)
 
     @classmethod
-    def uses_tabulated_zipfile(cls, data):
-        return cls.is_tabulated_undulator_with_magnetic_file(
+    def srw_uses_tabulated_zipfile(cls, data):
+        return cls.srw_is_tabulated_undulator_with_magnetic_file(
             data.models.simulation.sourceType,
             data.models.tabulatedUndulator.undulatorType,
         )
@@ -243,12 +241,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         r = data.get('report')
         if r == 'mirrorReport':
             res.append(dm.mirrorReport.heightProfileFile)
-        if cls.uses_tabulated_zipfile(data):
+        if cls.srw_uses_tabulated_zipfile(data):
             if 'tabulatedUndulator' in dm and dm.tabulatedUndulator.magneticFile:
                 res.append(dm.tabulatedUndulator.magneticFile)
-        if cls.is_arbitrary_source(dm.simulation):
+        if cls.srw_is_arbitrary_source(dm.simulation):
             res.append(dm.arbitraryMagField.magneticFile)
-        if cls.is_beamline_report(r):
+        if cls.srw_is_beamline_report(r):
             for m in dm.beamline:
                 for k, v in _SCHEMA.model[m.type].items():
                     t = v[1]

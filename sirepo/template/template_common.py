@@ -239,21 +239,6 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def filename_to_path(files, source_lib):
-    """Returns full, unique paths of simulation files
-
-    Returns:
-        list: py.path.local to files
-    """
-    res = []
-    seen = set()
-    for f in files:
-        if f not in seen:
-            seen.add(f)
-            res.append(source_lib.join(f))
-    return res
-
-
 def generate_parameters_file(data):
     v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)

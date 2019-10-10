@@ -184,7 +184,7 @@ def background_percent_complete(report, run_dir, is_running):
 def calculate_beam_drift(ebeam_position, source_type, undulator_type, undulator_length, undulator_period):
     if ebeam_position['driftCalculationMethod'] == 'auto':
         """Calculate drift for ideal undulator."""
-        if _SIM_DATA.is_idealized_undulator(source_type, undulator_type):
+        if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
             # initial drift = 1/2 undulator length + 2 periods
             return -0.5 * float(undulator_length) - 2 * float(undulator_period)
         return 0
@@ -260,7 +260,7 @@ def extract_report_data(filename, model_data):
         sValShort = 'Intensity'
         sValUnit = 'ph/s/.1%bw/mm^2'
     is_gaussian = False
-    if 'models' in model_data and _SIM_DATA.is_gaussian_source(model_data['models']['simulation']):
+    if 'models' in model_data and _SIM_DATA.srw_is_gaussian_source(model_data['models']['simulation']):
         is_gaussian = True
     #TODO(pjm): move filename and metadata to a constant, using _DATA_FILE_FOR_MODEL
     if model_data['report'] == 'initialIntensityReport':
@@ -463,13 +463,13 @@ def import_file(request, lib_dir, tmp_dir):
 def new_simulation(data, new_simulation_data):
     sim = data['models']['simulation']
     sim['sourceType'] = new_simulation_data['sourceType']
-    if _SIM_DATA.is_gaussian_source(sim):
+    if _SIM_DATA.srw_is_gaussian_source(sim):
         data['models']['initialIntensityReport']['sampleFactor'] = 0
-    elif _SIM_DATA.is_dipole_source(sim):
+    elif _SIM_DATA.srw_is_dipole_source(sim):
         data['models']['intensityReport']['method'] = "2"
-    elif _SIM_DATA.is_arbitrary_source(sim):
+    elif _SIM_DATA.srw_is_arbitrary_source(sim):
         data['models']['sourceIntensityReport']['method'] = "2"
-    elif _SIM_DATA.is_tabulated_undulator_source(sim):
+    elif _SIM_DATA.srw_is_tabulated_undulator_source(sim):
         data['models']['undulator']['length'] = compute_undulator_length(data['models']['tabulatedUndulator'])['length']
         data['models']['electronBeamPosition']['driftCalculationMethod'] = 'manual'
 
@@ -482,11 +482,11 @@ def prepare_for_client(data):
         data = sirepo.template.srw_fixup.do(pkinspect.this_module(), data)
         save = True
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        if model_name == 'tabulatedUndulator' and not _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
+        if model_name == 'tabulatedUndulator' and not _SIM_DATA.srw_is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type
             continue
         model = data['models'][model_name]
-        if _SIM_DATA.is_user_defined_model(model):
+        if _SIM_DATA.srw_is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             search_model = None
             models_by_id = _user_model_map(user_model_list, 'id')
@@ -513,11 +513,11 @@ def prepare_for_client(data):
 
 def prepare_for_save(data):
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
-        if model_name == 'tabulatedUndulator' and not _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
+        if model_name == 'tabulatedUndulator' and not _SIM_DATA.srw_is_tabulated_undulator_source(data['models']['simulation']):
             # don't add a named undulator if tabulated is not the current source type
             continue
         model = data['models'][model_name]
-        if _SIM_DATA.is_user_defined_model(model):
+        if _SIM_DATA.srw_is_user_defined_model(model):
             user_model_list = _load_user_model_list(model_name)
             models_by_id = _user_model_map(user_model_list, 'id')
 
@@ -602,7 +602,7 @@ def process_undulator_definition(model):
 
 
 def python_source_for_model(data, model):
-    data['report'] = model or _SIM_DATA.RUN_ALL_MODEL
+    data['report'] = model or _SIM_DATA.SRW_RUN_ALL_MODEL
     return _trim(
         """{}
 
@@ -867,7 +867,7 @@ def _compute_crystal_orientation(model):
         model['nvz'] = nCr[2]
         model['tvx'] = tCr[0]
         model['tvy'] = tCr[1]
-        _SIM_DATA.compute_crystal_grazing_angle(model)
+        _SIM_DATA.srw_compute_crystal_grazing_angle(model)
     except Exception:
         pkdlog('\n{}', traceback.format_exc())
         for key in parms_list:
@@ -1040,7 +1040,7 @@ def _format_float(v):
 
 
 def _generate_beamline_optics(report, models, last_id):
-    if not _SIM_DATA.is_beamline_report(report):
+    if not _SIM_DATA.srw_is_beamline_report(report):
         return '    pass', ''
     has_beamline_elements = len(models.beamline) > 0
     if has_beamline_elements and not last_id:
@@ -1192,7 +1192,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     report = data['report']
     if report == 'fluxAnimation':
         data['models']['fluxReport'] = data['models'][report].copy()
-        if _SIM_DATA.is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
+        if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type) and int(data['models']['fluxReport']['magneticField']) == 2:
             data['models']['fluxReport']['magneticField'] = 1
     elif _SIM_DATA.is_watchpoint(report) or report == 'sourceIntensityReport':
         # render the watchpoint report settings in the initialIntensityReport template slot
@@ -1202,7 +1202,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
                   'sampleFactor', 'samplingMethod', 'verticalPointCount', 'verticalPosition', 'verticalRange']:
             data['models']['simulation'][k] = data['models']['sourceIntensityReport'][k]
 
-    if _SIM_DATA.is_tabulated_undulator_source(data['models']['simulation']):
+    if _SIM_DATA.srw_is_tabulated_undulator_source(data['models']['simulation']):
         if undulator_type == 'u_i':
             data['models']['tabulatedUndulator']['gap'] = 0.0
 
@@ -1227,7 +1227,7 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     res, v = template_common.generate_parameters_file(data)
 
     v['rs_type'] = source_type
-    if _SIM_DATA.is_idealized_undulator(source_type, undulator_type):
+    if _SIM_DATA.srw_is_idealized_undulator(source_type, undulator_type):
         v['rs_type'] = 'u'
 
     if report == 'mirrorReport':
@@ -1251,16 +1251,16 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
     v['beamlineFirstElementPosition'] = position
 
     # 1: auto-undulator 2: auto-wiggler
-    v['energyCalculationMethod'] = 1 if _SIM_DATA.is_undulator_source(data['models']['simulation']) else 2
+    v['energyCalculationMethod'] = 1 if _SIM_DATA.srw_is_undulator_source(data['models']['simulation']) else 2
 
     if data['models']['electronBeam']['beamDefinition'] == 'm':
         v['electronBeam_horizontalBeta'] = None
     v[report] = 1
     _add_report_filenames(v)
-    v['setupMagneticMeasurementFiles'] = plot_reports and _SIM_DATA.uses_tabulated_zipfile(data)
+    v['setupMagneticMeasurementFiles'] = plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v['srwMain'] = _generate_srw_main(data, plot_reports)
 
-    if run_dir and _SIM_DATA.uses_tabulated_zipfile(data):
+    if run_dir and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         src_zip = str(run_dir.join(v['tabulatedUndulator_magneticFile']))
         target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
         # The MagnMeasZip class defined above has convenient properties we can use here
@@ -1279,11 +1279,11 @@ def _generate_parameters_file(data, plot_reports=False, run_dir=None):
 def _generate_srw_main(data, plot_reports):
     report = data['report']
     source_type = data['models']['simulation']['sourceType']
-    run_all = report == _SIM_DATA.RUN_ALL_MODEL
+    run_all = report == _SIM_DATA.SRW_RUN_ALL_MODEL
     content = [
         'v = srwl_bl.srwl_uti_parse_options(varParam, use_sys_argv={})'.format(plot_reports),
     ]
-    if plot_reports and _SIM_DATA.uses_tabulated_zipfile(data):
+    if plot_reports and _SIM_DATA.srw_uses_tabulated_zipfile(data):
         content.append('setup_magnetic_measurement_files("{}", v)'.format(data['models']['tabulatedUndulator']['magneticFile']))
     if run_all or _SIM_DATA.is_watchpoint(report) or report == 'multiElectronAnimation':
         content.append('op = set_optics(v)')
@@ -1314,7 +1314,7 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
-    if plot_reports or not _SIM_DATA.is_background_report(report):
+    if plot_reports or not _SIM_DATA.srw_is_background_report(report):
         #TODO(pjm): work-around for #1593
         content.append('mag = None')
         content.append("if v.rs_type == 'm':")
@@ -1464,7 +1464,7 @@ def _process_image(data):
 def _process_intensity_reports(source_type, undulator_type):
     # Magnetic field processing:
     return pkcollections.Dict({
-        'magneticField': 2 if source_type == 'a' or _SIM_DATA.is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
+        'magneticField': 2 if source_type == 'a' or _SIM_DATA.srw_is_tabulated_undulator_with_magnetic_file(source_type, undulator_type) else 1,
     })
 
 
