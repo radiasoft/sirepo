@@ -101,7 +101,6 @@ def _request(**kwargs):
         headers=PKDict({'Content-type': 'application/json'}),
     )
     r.raise_for_status()
-    pkdp('@@@@@@@@@@@@@ content={}', r.content)
     c = pkjson.load_any(r.content)
     if 'error' in c or c.get('action') == 'error':
         pkdlog('reply={} request={}', c, b)

@@ -73,11 +73,11 @@ def init():
 
 
 def terminate():
-    pkdp('TODO: implement terminate')
-    # if pkconfig.channel_in('dev'):
-    #     for k in DriverBase.instances.keys():
-    #         if 'local' in k:
-    #             for d in DriverBase.instances[k].values()
+    if pkconfig.channel_in('dev'):
+        for k in DriverBase.instances.keys():
+            if 'local' in k:
+                for d in DriverBase.instances[k].values():
+                    d.kill()
 
 
 class Status(aenum.Enum):
@@ -92,10 +92,9 @@ STATUS_IS_RUN = (Status.STARTING, Status.COMMUNICATING, Status.IDLE)
 
 # TODO(e-carlin): Make this an abstract base class?
 class DriverBase(PKDict):
-    # TODO(e-carlin): Instances is overloaded. Has keys of agent_id and kind:uid
     instances = pkcollections.Dict()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, slot, job, *args, **kwargs):
         super().__init__(
             agent_id=sirepo.job.unique_key(),
             ops=PKDict(),
@@ -106,7 +105,9 @@ class DriverBase(PKDict):
             _status=Status.IDLE,
             **kwargs,
         )
+        # TODO(e-carlin): Instances is overloaded. Has keys of agent_id and kind:uid
         self.instances[self.agent_id] = self
+        self.instances[slot.kind][self.agent_id] = self
 
     def set_handler(self, handler):
         if not self._handler_set.is_set():

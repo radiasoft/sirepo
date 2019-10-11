@@ -53,7 +53,7 @@ class _Slot(PKDict):
     async def garbage_collect_one(cls, kind):
         for d in cls.in_use[kind]:
             if not d.jobs:
-                await d.terminate()
+                await d.kill()
                 return
 
     @classmethod
@@ -83,8 +83,6 @@ class LocalDriver(sirepo.driver.DriverBase):
         self._start_attempts = 0
         self._subprocess = None
         self._terminate_timeout = None
-        pkdp('1111111111111111 {}', job.agent_dir)
-        pkdp('2222222222222 {}', self)
         self._agent_dir = job.agent_dir.format(agent_id=self.agent_id)
         slot.in_use[slot.kind].append(self)
         self._start()
@@ -136,8 +134,6 @@ class LocalDriver(sirepo.driver.DriverBase):
         assert self._status
         pkdlog('{}', self)
         self._status = sirepo.driver.Status.KILLING
-        # TODO(e-carlin): More error handling. If terminate doesn't work
-        # we need to go to kill
         # TODO(e-carlin): What happens when an exception is thrown?
         if not self._subprocess:
             return
