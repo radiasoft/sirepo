@@ -561,7 +561,7 @@ def prepare_simulation(data, run_dir=None):
         # status file.
         write_status('pending', run_dir)
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, run_dir)
+    template_common.copy_lib_files(data, lib_dir_from_sim_dir(run_dir), run_dir)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     is_p = is_parallel(data)
     template.write_parameters(data, run_dir=run_dir, is_parallel=is_p)

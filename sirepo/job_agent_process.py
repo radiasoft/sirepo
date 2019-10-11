@@ -8,7 +8,6 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern.pkdebug import pkdp, pkdexc, pkdlog
-from sirepo import mpi
 from sirepo.template import template_common
 import os
 import re
@@ -69,7 +68,7 @@ class ComputeJob(PKDict):
         self._process_exited = tornado.locks.Event()
         env = _subprocess_env()
         run_log_path = run_dir.join(template_common.RUN_LOG)
-#rn wrap this; including exit call back
+        #rn wrap this; including exit call back
         # we're in py3 mode, and regular subprocesses will inherit our
         # environment, so we have to manually switch back to py2 mode.
         env['PYENV_VERSION'] = 'py2'

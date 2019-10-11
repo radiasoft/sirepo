@@ -7,15 +7,27 @@ u"""Operations run inside the report directory to extract data.
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjson
+from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import job
 from sirepo import simulation_db
+from sirepo import mpi
 from sirepo.template import template_common
 import functools
+import os
+import re
 import sirepo
+import subprocess
 import sys
 import time
+
+
+#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
+# See https://github.com/radiasoft/sirepo/issues/1323
+# We also remove SIREPO_ and PYKERN vars, because we shouldn't
+# need to pass any of that on, just like runner.docker, doesn't
+_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 def default_command(in_file):
@@ -70,27 +82,61 @@ def _do_get_simulation_frame(msg, template):
     )
 
 
-def _do_compute(msg):
+def _do_compute(msg, template):
+    pkdp('starting compute')
+    msg.run_dir = pkio.py_path(msg.run_dir)
     with pkio.save_chdir('/'):
+        pkdp('after save_chdir  before remove')
         pkio.unchecked_remove(msg.run_dir)
+        pkio.mkdir_parent(msg.run_dir)
+        pkdp('after remove')
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
         'state': 'pending',
     }
-    str(run_dir.join(template_common.RUN_LOG)),
-    if hasattr(t, 'remove_last_frame'):
-        t.remove_last_frame(run_dir)
+    run_log_path = msg.run_dir.join(template_common.RUN_LOG)
+    cmd = ['pyenv', 'exec'] + cmd
+    with open(str(run_log_path), 'a+b') as run_log, open(os.devnull, 'w') as FNULL:
+        pkdp('start')
+        p = None
+        try:
+            p = subprocess.Popen(
+                cmd,
+                cwd=str(msg.run_dir),
+                stdin=FNULL,
+                stdout=run_log,
+                stderr=run_log,
+                env=_subprocess_env(),
+            )
+            pkdp('begin wait')
+            p.wait()
+            pkdp('end wait')
+            p = None
+        finally:
+            if p:
+                pkdp('terminate')
+                p.terminate()
+                # TODO(e-carlin): kill
+    pkdp('done')
+    # if hasattr(template, 'remove_last_frame'):
+    #     template.remove_last_frame(msg.run_dir)
 
 
 def _do_compute_status(msg, template):
+    """Legacy code path. Read status from simulation_db.
+
+    In the legacy code path compute status was kept in a 'status' file in the db.
+    This reads from that file. In the supervisor code path status is stored in
+    the supervisor or in the job_agent._STATUS_FILE
+    """
     return PKDict(
         compute_hash=template_common.report_parameters_hash(
             simulation_db.json_filename(
                 template_common.INPUT_BASE_NAME,
                 msg.run_dir,
             ),
-        status=simulation_db.read_status(msg.run_dir),
+        compute_status=simulation_db.read_status(msg.run_dir),
     ))
 
 
@@ -105,8 +151,11 @@ def _do_result(msg, template):
         l = template.parse_error_log(msg.run_dir)
     return PKDict(error=e, error_log=l)
 
-
-def _args(args):
-    r = pkio.py_path()
-    d =
-    return d,
+def _subprocess_env():
+    env = PKDict(os.environ)
+    # pkcollections.unchecked_del(
+    #     env, 
+    #     *(k for k in env if _EXEC_ENV_REMOVE.search(k))
+    # )
+    # env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
+    return env

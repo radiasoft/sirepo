@@ -37,11 +37,11 @@ async def get_instance_for_job(job):
 
     The method blocks until a driver can be freed.
     """
-    return await get_class(job.req).get_instance_for_job(job)
+    return await get_class(job).get_instance_for_job(job)
 
 
 def get_instance_for_agent(agent_id):
-    return DriverBase.instances.get(agent_id)
+    return DriverBase.driver_for_agents.get(agent_id)
 
 
 def get_kind(req):
@@ -56,9 +56,9 @@ def init():
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
             'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP,
-                                sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
+                                  sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
             str,
-            'how agents connect to supervisor',
+            'uri for agent ws connection with supervisor',
         ),
     )
     p = pkinspect.this_module().__name__
@@ -93,21 +93,31 @@ STATUS_IS_RUN = (Status.STARTING, Status.COMMUNICATING, Status.IDLE)
 # TODO(e-carlin): Make this an abstract base class?
 class DriverBase(PKDict):
     instances = pkcollections.Dict()
+    driver_for_agents = PKDict()
 
     def __init__(self, slot, job, *args, **kwargs):
+        a = sirepo.job.unique_key()
         super().__init__(
-            agent_id=sirepo.job.unique_key(),
+            agent_id=a,
+            jobs=[job],
+            killing=False,
+            kind=job.req.driver_kind,
             ops=PKDict(),
             send_lock=tornado.locks.BoundedSemaphore(1),
             sender=None,
+            slot=slot,
+            _agent_dir=job.req.agent_dir.format(agent_id=a),
+            _agent_exited=tornado.locks.Event(),
             _handler=None,
             _handler_set=tornado.locks.Event(),
+            _max_start_attempts=2,
+            _start_attempts=0,
             _status=Status.IDLE,
+            _terminate_timeout=None,
             **kwargs,
         )
-        # TODO(e-carlin): Instances is overloaded. Has keys of agent_id and kind:uid
-        self.instances[self.agent_id] = self
-        self.instances[slot.kind][self.agent_id] = self
+        self.driver_for_agents[self.agent_id] = self
+        self.instances[slot.kind][job.req.uid] = self
 
     def set_handler(self, handler):
         if not self._handler_set.is_set():
@@ -117,6 +127,9 @@ class DriverBase(PKDict):
     async def do_op(self, **kwargs):
         kwargs.setdefault('op_id', sirepo.job.unique_key())
         m = PKDict(kwargs)
+        pkdp('444444444444444444444444444yy')
+        pkdp(m)
+        pkdp('444444444444444444444444444yy')
         o = job_supervisor.Op(msg=m)
         self.ops[m.op_id] = o
         await self.send_lock.acquire()

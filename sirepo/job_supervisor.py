@@ -29,16 +29,9 @@ def init():
 def terminate():
     sirepo.driver.terminate()
 
-
-class _Base(PKDict):
+class AgentMsg(PKDict):
 
     async def do(self):
-        await self._do()
-
-
-class AgentMsg(_Base):
-
-    async def _do(self):
         pkdlog('content={}', self.content)
         d = sirepo.driver.get_instance_for_agent(self.content.agent_id)
         if not d:
@@ -53,6 +46,41 @@ class AgentMsg(_Base):
         d.ops[i].set_result(self.content)
 
 
+class ServerReq(PKDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.agent_dir = self.content.agent_dir
+        self.compute_jid = self.content.compute_jid
+        self.driver_kind = sirepo.driver.get_kind(self)
+        self.run_dir = self.content.run_dir
+        self.uid = self.content.uid
+        # self._resource_class = sirepo.job
+        self._response = None
+        self._response_received = tornado.locks.Event()
+
+    async def do(self):
+        c = self.content
+        if c.api == 'api_runStatus':
+            self.handler.write(await _Job.get_compute_status(self))
+            return
+        elif c.api == 'api_runSimulation':
+            pkdp('in runSim getting status')
+            s = await _Job.get_compute_status(self)
+            pkdp('got back status {}', s)
+            if s not in sirepo.job.ALREADY_GOOD_STATUS:
+                # TODO(e-carlin): Handle forceRun
+                # TODO(e-carlin): Handle parametersChanged
+                pkdp('not already good going to run')
+                await _Job.run(self)
+                pkdp('done with run')
+
+
+            pkdp('********************************')
+            pkdp(s)
+            pkdp('********************************')
+        raise AssertionError('api={} unkown', c.api)
+
+
 class _RequestState(aenum.Enum):
     CHECK_STATUS = 'check_status'
     REPLY = 'reply'
@@ -65,12 +93,12 @@ class _Job(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if 'jid' not in self:
-            self.jid = self._jid_for_req(self.req)
-        self.driver_kind = self.req.driver_kind
-        self.uid = self.req.content.uid
-        self.run_dir = self.req.content.run_dir
-        self.agent_dir = self.req.content.agent_dir
+        self.jid = self._jid_for_req(self.req)
+        # self.agent_dir = self.req.content.agent_dir
+        # self.driver_kind = self.req.driver_kind
+        # self.run_dir = self.req.content.run_dir
+        # self.uid = self.req.content.uid
+        self.instances[self.jid] = self
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -90,6 +118,24 @@ class _Job(PKDict):
         return r
 
     @classmethod
+    async def run(cls, req):
+        self = cls.instances.get(cls._jid_for_req(req))
+        if not self:
+            self = cls(req=req)
+        d = await sirepo.driver.get_instance_for_job(self)
+        r = await d.do_op(
+            op=sirepo.job.OP_RUN,
+            jid=self.req.compute_jid,
+            **self.req.content,
+        )
+        pkdp('************************************')
+        pkdp(r)
+        pkdp('************************************')
+        import time
+        time.sleep(10000)
+        assert False
+
+    @classmethod
     def _jid_for_req(cls, req):
         """Get the jid (compute or analysis) for a job from a request.
         """
@@ -100,25 +146,6 @@ class _Job(PKDict):
             return c.analysis_jid
         raise AssertionError('unknown api={} req={}', c.api, req)
 
-
-class ServerReq(_Base):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        c = self.content
-        self._response_received = tornado.locks.Event()
-        self._response = None
-        self.uid = c.uid
-        self._resource_class = sirepo.job
-        self.driver_kind = sirepo.driver.get_kind(self)
-        self.compute_jid = self.content.compute_jid
-        self.run_dir = self.content.run_dir
-
-    async def _do(self):
-        c = self.content
-        if c.api == 'api_runStatus':
-            self.handler.write(await _Job.get_compute_status(self))
-            return
-        raise AssertionError('api={} unkown', c.api)
 
 
 class Op(PKDict):

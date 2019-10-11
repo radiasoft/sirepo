@@ -54,6 +54,7 @@ DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
 
+
 cfg = None
 
 
@@ -73,7 +74,7 @@ class Status(aenum.Enum):
     RUNNING = 'running'
 
 #: run_status will not re-run a simulation in these states
-ALREADY_GOOD_STATUS = (Status.RUNNING, Status.COMPLETED)
+ALREADY_GOOD_STATUS = (Status.RUNNING.value, Status.COMPLETED.value, Status.PENDING.value)
 
 
 def init():

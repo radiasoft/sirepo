@@ -22,8 +22,7 @@ from pykern.pkcollections import PKDict
 #   - agent sigterm -> sigkill progression
 #   - send kill to uknown agent
 
-
-def test_myapp():
+def test_runStatus():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
@@ -63,17 +62,48 @@ def test_myapp():
         )
 
         assert run.status == job.Status.MISSING.value
-        pkdp(run)
-        # run = fc.sr_post(
-        #     'runSimulation',
-        #     dict(
-        #         forceRun=False,
-        #         models=data.models,
-        #         report='heightWeightReport',
-        #         simulationId=data.models.simulation.simulationId,
-        #         simulationType=data.simulationType,
-        #     ),
-        # )
+    finally:
+        if job_supervisor:
+            job_supervisor.terminate()
+            job_supervisor.wait()
+
+def test_myapp():
+    py3_env = _env_setup()
+    from sirepo import srunit
+    from pykern import pkunit
+    from sirepo import job
+
+    fc = srunit.flask_client(sim_types='myapp')
+    fc.sr_login_as_guest()
+
+    job_supervisor = None
+    try:
+        job_supervisor = _start_job_supervisor(py3_env)
+        fc.get('/myapp')
+        data = fc.sr_post(
+            'listSimulations',
+            {'simulationType': 'myapp',
+             'search': {'simulationName': 'heightWeightReport'}},
+        )
+        data = data[0].simulation
+        data = fc.sr_get_json(
+            'simulationData',
+            params=dict(
+                pretty='1',
+                simulation_id=data.simulationId,
+                simulation_type='myapp',
+            ),
+        )
+        run = fc.sr_post(
+            'runSimulation',
+            dict(
+                forceRun=False,
+                models=data.models,
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+            ),
+        )
         # for _ in range(10):
         #     if run.state == 'completed':
         #         break
@@ -331,7 +361,7 @@ def _start_job_supervisor(env):
     for _ in range(30):
         if _server_up('http://127.0.0.1:8001/server'):
             break
-        time.sleep(1.1)
+        time.sleep(0.1)
     else:
         pkunit.pkfail('job server did not start up')
     return job_supervisor

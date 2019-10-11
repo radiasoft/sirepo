@@ -48,7 +48,6 @@ class _Slot(PKDict):
                 q.put_nowait(_Slot(kind=k))
             cls.in_use[k] = []
 
-
     @classmethod
     async def garbage_collect_one(cls, kind):
         for d in cls.in_use[kind]:
@@ -67,45 +66,31 @@ class _Slot(PKDict):
             )
             return await cls.available[kind].get()
 
+
 class LocalDriver(sirepo.driver.DriverBase):
     #TODO(robnagler) pkinspect this
     module_name = 'local'
 
     def __init__(self, slot, job, *args, **kwargs):
         super().__init__(slot, job, *args, **kwargs)
-        self.jobs = [job]
-        self.killing = False
-        self.kind = slot.kind
-        self.slot = slot
-        self.uid = job.uid
-        self._agent_exited = tornado.locks.Event()
-        self._max_start_attempts = 2
-        self._start_attempts = 0
         self._subprocess = None
-        self._terminate_timeout = None
-        self._agent_dir = job.agent_dir.format(agent_id=self.agent_id)
         slot.in_use[slot.kind].append(self)
         self._start()
-        # TODO(e-carlin): This is used to get stats about drivers as the code
-        # is running. Only useful when closely debugging code. Delete when stable.
-        # tornado.ioloop.IOLoop.current().spawn_callback(
-        #     self._stats
-        # )
 
     @classmethod
     async def get_instance_for_job(cls, job):
-        for i in cls.instances[job.driver_kind].get(job.uid, []):
+        d = cls.instances[job.req.driver_kind].get(job.req.uid)
+        if d:
             # operating drvier case
-            for j in i.jobs:
+            for j in d.jobs:
                 if job.jid == j.jid:
-                    return i
-        for i in cls.instances[job.driver_kind].get(job.uid, []):
+                    return d
             # cache driver case
-            if i.has_capacity(job):
-                return i.assign_job(job)
+            if d.has_capacity(job):
+                return d.assign_job(job)
         return cls(
-            await _Slot.get_instance(job.driver_kind),
-            job=job,
+            await _Slot.get_instance(job.req.driver_kind),
+            job,
         )
 
     @classmethod
@@ -120,11 +105,20 @@ class LocalDriver(sirepo.driver.DriverBase):
         return self.jobs < 1
 
     def __repr__(self):
-        return 'agent_id={}'.format(self.agent_id,)
+        return '<agent_id={} kind={} jobs={}>'.format(
+            self.agent_id,
+            self.kind,
+            self.jobs,
+        )
 
     # TODO(e-carlin): If IoLoop.spawn_callback(self._stats) is deleted then
     # this can be deleted too.
     async def _stats(self):
+        # TODO(e-carlin): This is used to get stats about drivers as the code
+        # is running. Only useful when closely debugging code. Delete when stable.
+        # tornado.ioloop.IOLoop.current().spawn_callback(
+        #     self._stats
+        # )
         import tornado.gen
         while True:
             pkdlog('{}', self)
