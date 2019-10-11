@@ -5,11 +5,12 @@ u"""response generation
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from pykern import pkcollections
-from sirepo import util
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import re
+
 
 #: HTTP status code for srException (BAD REQUEST)
 SR_EXCEPTION_STATUS = 400
@@ -20,10 +21,12 @@ SR_EXCEPTION_STATE = 'srException'
 #: mapping of extension (json, js, html) to MIME type
 MIME_TYPE = None
 
-STATE = 'state'
+_ERROR_STATE = 'error'
+
+_STATE = 'state'
 
 #: Default response
-_RESPONSE_OK = pkcollections.Dict({STATE: 'ok'})
+_RESPONSE_OK = PKDict({_STATE: 'ok'})
 
 
 def gen_json(value, pretty=False, response_kwargs=None):
@@ -43,6 +46,20 @@ def gen_json(value, pretty=False, response_kwargs=None):
         mimetype=MIME_TYPE.json,
         **response_kwargs
     )
+
+
+def gen_user_alert(exc):
+    """Generate state=error JSON flask response from UserAlert
+
+    Args:
+        exc (sirepo.util.UserAlert): contains what to display
+    Returns:
+        flask.Response: reply object
+    """
+    return gen_json(PKDict({
+        _STATE: _ERROR_STATE,
+        _ERROR_STATE: exc.display_text,
+    }))
 
 
 def gen_json_ok(*args, **kwargs):
@@ -134,8 +151,8 @@ def gen_sr_exception(route, params=None):
         'route={} not found in schema='.format(route, s.simulationType)
     pkdlog('srException: route={} params={}', route, params)
     return gen_json(
-        pkcollections.Dict({
-            STATE: SR_EXCEPTION_STATE,
+        PKDict({
+            _STATE: SR_EXCEPTION_STATE,
             SR_EXCEPTION_STATE: pkcollections.Dict(
                 routeName=route,
                 params=params,

@@ -66,11 +66,11 @@ def flask_client(cfg=None, sim_types=None):
     return getattr(app, a)
 
 
-def init_auth_db(*args, **kwargs):
-    """Force a request that creates a user in db"""
-    fc = flask_client(*args, **kwargs)
+def init_auth_db():
+    """Force a request that creates a user in db with just myapp"""
+    fc = flask_client(sim_types='myapp')
     fc.sr_login_as_guest('myapp')
-    fc.sr_post('listSimulations', {'simulationType': 'myapp'})
+    return fc, fc.sr_post('listSimulations', {'simulationType': 'myapp'})
 
 
 def file_as_stream(filename):

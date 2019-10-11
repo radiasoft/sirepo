@@ -20,7 +20,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = [
             r,
             'analysisData',
-            cls._lib_file_mtime(cls.webcon_analysis_data_file(data)),
         ]
         if 'fftReport' in r:
             n = cls.webcon_analysis_report_name_for_fft(data)
@@ -73,7 +72,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'beam_line_example.db',
                 'epics-boot.cmd',
             ]
-        elif data.models.analysisData.file:
+        elif data.models.analysisData.get('file'):
             res.append(cls.webcon_analysis_data_file(data))
         return res
 

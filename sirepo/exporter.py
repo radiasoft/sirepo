@@ -5,10 +5,14 @@ u"""Export simulations in a single archive
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
+from pykern import pkio
+from pykern import pkjinja
 from pykern.pkdebug import pkdp
 import os.path
 import py.path
 import zipfile
+import sirepo.util
 
 
 def create_archive(sim_type, sim_id, filename):
@@ -22,12 +26,9 @@ def create_archive(sim_type, sim_id, filename):
     Returns:
         py.path.Local: zip file name
     """
-    from pykern import pkio
-    from sirepo import uri_router
-
     if not pkio.has_file_extension(filename, ('zip', 'html')):
-        raise uri_router.NotFound(
-            '{}: unknown file type; expecting html or zip',
+        raise sirepo.util.raise_not_found(
+            'unknown file type={}; expecting html or zip',
             filename,
         )
     want_zip = filename.endswith('zip')
@@ -46,8 +47,6 @@ def _create_html(zip_path, data):
     Returns:
         py.path, str: file and mime type
     """
-    from pykern import pkjinja
-    from pykern import pkcollections
     from sirepo import uri_router
     from sirepo import simulation_db
     import py.path
@@ -80,7 +79,6 @@ def _create_zip(sim_type, sim_id, want_python):
     Returns:
         py.path.Local: zip file name
     """
-    from pykern import pkio
     from sirepo import simulation_db
     from sirepo.template import template_common
 
