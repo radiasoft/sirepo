@@ -32,14 +32,7 @@ def terminate():
 
 class _Base(PKDict):
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     pkdp('777777777777 {}', self)
-    #     self.content = kwargs['content']
-    #     self._handler = kwargs['handler']
-
     async def do(self):
-        pkdp('type={} content={}', type(self), self.content)
         await self._do()
 
 
@@ -93,7 +86,8 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             run_dir=self.req.run_dir,
         )
-        return pkdp(r)
+        r.status = r.compute_status
+        return r
 
     @classmethod
     def _jid_for_req(cls, req):
@@ -110,7 +104,6 @@ class _Job(PKDict):
 class ServerReq(_Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        pkdp('8888888888 {}', self)
         c = self.content
         self._response_received = tornado.locks.Event()
         self._response = None
@@ -122,10 +115,9 @@ class ServerReq(_Base):
 
     async def _do(self):
         c = self.content
-        pkdp('11111111111111 {}', c.api)
         if c.api == 'api_runStatus':
-            r = await _Job.get_compute_status(self)
-            await self.handler.write(r)
+            self.handler.write(await _Job.get_compute_status(self))
+            return
         raise AssertionError('api={} unkown', c.api)
 
 

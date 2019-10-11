@@ -12,9 +12,13 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job_agent_process, job
-import sys
+from sirepo import job_agent_process, job, mpi
+import os
+import re
 import signal
+import subprocess
+import sys
+import time
 import tornado.gen
 import tornado.httpclient
 import tornado.ioloop
@@ -34,11 +38,16 @@ _STATUS_FILE = 'job_agent.json'
 
 _STATUS_FILE_COMMON = PKDict(version=1)
 
+#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
+# See https://github.com/radiasoft/sirepo/issues/1323
+# We also remove SIREPO_ and PYKERN vars, because we shouldn't
+# need to pass any of that on, just like runner.docker, doesn't
+_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
+
 cfg = None
 
 
 def default_command():
-    import os
     os.environ['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
     os.environ['PYKERN_PKDEBUG_REDIRECT_LOGGING'] = '1'
     os.environ['PYKERN_PKDEBUG_CONTROL'] = '.*'
@@ -60,6 +69,16 @@ def default_command():
     i.start()
 
 
+def _subprocess_env():
+    env = PKDict(os.environ)
+    pkcollections.unchecked_del(
+        env,
+        *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
+    )
+    env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
+    return env
+
+
 class _Process(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,14 +95,14 @@ class _Process(PKDict):
         pkjson.dump_pretty(self.msg, filename=f, pretty=False)
         env = _subprocess_env()
         if self.msg.job_process_cmd == 'compute':
-#TODO(robnagler) background_percent_complete needs to start if parallel
+            #TODO(robnagler) background_percent_complete needs to start if parallel
             self.compute_status_file = self.run_dir.join(_STATUS_FILE)
             self.compute_status = PKDict(_STATUS_FILE_COMMON).update(
                 compute_hash=self.msg.compute_hash,
                 start_time=time.time(),
-                status=job.compute_status.RUNNING.value,
+                status=job.Status.RUNNING.value,
             )
-#TODO(robnagler) pkio.atomic_write?
+            #TODO(robnagler) pkio.atomic_write?
             self.compute_status_file.write(self.compute_status)
         # we're in py3 mode, and regular subprocesses will inherit our
         # environment, so we have to manually switch back to py2 mode.
@@ -224,6 +243,7 @@ class _Comm(PKDict):
 
     def _format_reply(self, msg, op, **kwargs):
         if msg:
+            # TODO(e-carlin): remove agent_id
             kwargs['op_id'] = msg.get('op_id')
             kwargs['jid'] = msg.get('jid')
         return pkjson.dump_bytes(
@@ -236,7 +256,8 @@ class _Comm(PKDict):
             m.run_dir = pkio.py_path(m.run_dir)
             r = await getattr(self, '_op_' + m.op)(m)
             if r:
-                return r if isinstance(r, dict) else self._format_reply(m, job.OP_OK)
+                r =  r if isinstance(r, bytes) else self._format_reply(m, job.OP_OK)
+                return r
             return None
         except Exception as e:
             err = 'exception=' + str(e)
@@ -278,7 +299,7 @@ class _Comm(PKDict):
                 )
                 await self._process(msg)
                 return
-        return self._format_reply(msg, job.OP_OK, compute_status=None)
+        return self._format_reply(msg, job.OP_OK, compute_status=job.Status.MISSING.value)
 
     async def _process(self, msg):
         p = _Process(msg=msg, comm=self)

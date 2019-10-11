@@ -7,6 +7,7 @@ u"""Operations run inside the report directory to extract data.
 from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import job
 from sirepo import simulation_db
@@ -14,6 +15,7 @@ from sirepo.template import template_common
 import functools
 import sirepo
 import sys
+import time
 
 
 def default_command(in_file):
@@ -46,17 +48,17 @@ def _do_background_percent_complete(msg, template):
         msg.run_dir,
         msg.is_running,
     )
-            new = job.run_extract_job(
-                b.setdefault(
-                    cmd='background_percent_complete',
+    new = job.run_extract_job(
+        b.setdefault(
+            cmd='background_percent_complete',
 
-                    arg=is_running,
+            arg=is_running,
 
-                ),
-            )
-            new.setdefault('percentComplete', 0.0)
-            new.setdefault('frameCount', 0)
-            res.update(new)
+        ),
+    )
+    new.setdefault('percentComplete', 0.0)
+    new.setdefault('frameCount', 0)
+    res.update(new)
 
 
 def _do_get_simulation_frame(msg, template):
@@ -89,7 +91,7 @@ def _do_compute_status(msg, template):
                 msg.run_dir,
             ),
         status=simulation_db.read_status(msg.run_dir),
-    )
+    ))
 
 
 def _do_result(msg, template):
