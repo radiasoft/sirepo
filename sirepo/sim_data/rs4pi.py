@@ -35,3 +35,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             x.roiNumbers = [x.roiNumber]
             del x['roiNumber']
         dm.dicomAnimation4.setdefault('doseTransparency', 56)
+
+
+    @classmethod
+    def resource_files(cls):
+        return cls.resource_glob('beamlist*.txt')

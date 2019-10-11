@@ -19,6 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 import sirepo.template
 import subprocess
 import types
@@ -42,8 +43,6 @@ RUN_LOG = 'run.log'
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
-
-_RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 
 class ModelUnits(object):
@@ -171,40 +170,6 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def copy_lib_files(data, source, target):
-    """Copy auxiliary files to target
-
-    Args:
-        data (dict): simulation db
-        target (py.path): destination directory
-    """
-
-copy files, and blow up
-
-    for f in lib_files(data, source):
-        path = target.join(f.basename)
-        pkio.mkdir_parent_only(path)
-        if not path.exists():
-            if not f.exists():
-                sim_resource = resource_dir(data.simulationType)
-                r = sim_resource.join(f.basename)
-                # the file doesn't exist in the simulation lib, check the resource lib
-                if r.exists():
-                    pkio.mkdir_parent_only(f)
-                    r.copy(f)
-                else:
-                    pkdlog('No file in lib or resource: {}', f)
-                    continue
-make a flag for this case (symlink)
-
-            if source:
-                # copy files from another session
-                f.copy(path)
-            else:
-                # symlink into the run directory
-                path.mksymlinkto(f, absolute=False)
-
-
 def dict_to_h5(d, hf, path=None):
     if path is None:
         path = ''
@@ -308,23 +273,6 @@ def histogram_bins(nbins):
     return nbins
 
 
-def lib_files(data, source_lib=None):
-    """Return list of files used by the simulation
-
-    Args:
-        data (dict): sim db
-
-    Returns:
-        list: py.path.local to files
-    """
-    from sirepo import simulation_db
-    sim_type = data.simulationType
-    return sirepo.template.import_module(data).lib_files(
-        data,
-        source_lib or simulation_db.simulation_lib_dir(sim_type),
-    )
-
-
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     res = PKDict(
         x_points=x,
@@ -393,8 +341,10 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     Returns:
         str: source text
     """
-    b = resource_dir(sim_type).join(name)
-    return pkjinja.render_file(b + '.jinja', v)
+    return pkjinja.render_file(
+        sirepo.sim_data.get_class(sim_type).resource_dir().join(name).new(ext='.jinja'),
+        v,
+    )
 
 
 def report_parameters_hash(data):
@@ -423,17 +373,6 @@ def report_parameters_hash(data):
             res.update(json.dumps(v, sort_keys=True, allow_nan=False).encode())
         data['reportParametersHash'] = res.hexdigest()
     return data['reportParametersHash']
-
-
-def resource_dir(sim_type):
-    """Where to get library files from
-
-    Args:
-        sim_type (str): application name
-    Returns:
-        py.path.Local: absolute path to folder
-    """
-    return _RESOURCE_DIR.join(sim_type)
 
 
 def validate_model(model_data, model_schema, enum_info):

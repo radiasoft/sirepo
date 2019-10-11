@@ -52,8 +52,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _lib_files(cls, data, *args, **kwargs):
-        return _cls.shadow_simulation_files(data)
+    def resource_files(cls):
+        return cls.resource_glob('*.txt')
 
     @classmethod
     def shadow_simulation_files(cls, data):
@@ -65,3 +65,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def shadow_wiggler_file(cls, value):
         return _SIM_DATA.lib_file_name('wiggler', 'trajFile', value)
+
+    @classmethod
+    def _lib_files(cls, data, *args, **kwargs):
+        return _cls.shadow_simulation_files(data)

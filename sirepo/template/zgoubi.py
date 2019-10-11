@@ -394,10 +394,6 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
@@ -444,7 +440,7 @@ def lib_files(data, source_lib):
 
 def models_related_to_report(data):
     r = data['report']
-    if r == get_animation_name(data):
+    if r == _SIM_DATA.animation_name(data):
         return []
     if r == 'tunesReport':
         return [r, 'bunchAnimation.startTime']

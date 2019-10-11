@@ -69,11 +69,6 @@ _FILE_TYPE_EXTENSIONS = {
 
 _LOG_DIR = '__srwl_logs__'
 
-#: Where server files and static files are found
-_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
-
-_PREDEFINED = None
-
 _TABULATED_UNDULATOR_DATA_DIR = 'tabulatedUndulator'
 
 _USER_MODEL_LIST_FILENAME = pkcollections.Dict({
@@ -239,10 +234,6 @@ def clean_run_dir(run_dir):
         zip_dir.remove()
 
 
-def extensions_for_file_type(file_type):
-    return ['*.{}'.format(x) for x in _FILE_TYPE_EXTENSIONS[file_type]]
-
-
 def extract_report_data(filename, model_data):
     #TODO(pjm): remove fixup after dcx/dcy files can be read by uti_plot_com
     if re.search(r'/res_int_pr_me_dc.\.dat', filename):
@@ -329,7 +320,7 @@ def extract_report_data(filename, model_data):
     return info
 
 
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     if data['modelName'] in ('coherenceXAnimation', 'coherenceYAnimation'):
         # degree of coherence reports are calculated out of the multiElectronAnimation directory
         return 'multiElectronAnimation'
@@ -341,7 +332,7 @@ def get_application_data(data):
         res = []
         model_name = data['model_name']
         if model_name == 'electronBeam':
-            res.extend(_PREDEFINED.beams)
+            res.extend(_SIM_DATA.get_predefined_beams())
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
@@ -400,14 +391,11 @@ def get_data_file(run_dir, model, frame, **kwargs):
 
 
 def get_file_list(file_type):
-    lib_dir = simulation_db.simulation_lib_dir(SIM_TYPE)
-    res = []
-    for ext in extensions_for_file_type(file_type):
-        for f in glob.glob(str(lib_dir.join(ext))):
-            if os.path.isfile(f) and _test_file_type(file_type, f):
-                res.append(os.path.basename(f))
-    return res
-
+    return _files_for_type(
+        file_type,
+        simulation_db.simulation_lib_dir(SIM_TYPE),
+        lambda f: _test_file_type(file_type, f) and f.basename,
+    )
 
 def get_filename_for_model(model):
     if _SIM_DATA.is_watchpoint(model):
@@ -416,7 +404,7 @@ def get_filename_for_model(model):
 
 
 def get_predefined_beams():
-    return _PREDEFINED['beams']
+    return _SIM_DATA.srw_predefined.beams
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -615,22 +603,6 @@ if __name__ == '__main__':
 
 def remove_last_frame(run_dir):
     pass
-
-
-def resource_files():
-    """Files to copy from resources when creating a new user
-
-    Returns:
-        list: py.path.local objects
-    """
-    res = []
-    for k, v in _PREDEFINED.items():
-        for v2 in v:
-            try:
-                res.append(_RESOURCE_DIR.join(v2['fileName']))
-            except KeyError:
-                pass
-    return res
 
 
 def validate_file(file_type, path):
@@ -1013,6 +985,15 @@ def _extract_trajectory_report(model, data):
         plots=plots,
     )
 
+def _files_for_type(file_type, dir_path, op):
+    res = []
+    for e in _FILE_TYPE_EXTENSIONS[file_type]:
+        for f in pkio.sorted_glob(dir_path.join('*').new(ext=e)):
+            x = f.check(file=1) and op(f)
+            if x:
+                res.append(x)
+    return x
+
 
 def _fix_file_header(filename):
     # fixes file header for coherenceXAnimation and coherenceYAnimation reports
@@ -1352,44 +1333,6 @@ def _height_profile_dimension(item):
     return dimension
 
 
-def _init():
-    global _PREDEFINED
-    if _PREDEFINED:
-        return
-    _PREDEFINED = pkcollections.Dict()
-    _PREDEFINED.mirrors = _predefined_files_for_type('mirror')
-    _PREDEFINED.magnetic_measurements = _predefined_files_for_type('undulatorTable')
-    _PREDEFINED.sample_images = _predefined_files_for_type('sample')
-    beams = []
-    for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
-        info = beam[1]
-        # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-        beams.append(
-            process_beam_parameters(PKDict(
-                name=beam[0],
-                current=info[0],
-                energy=info[1],
-                rmsSpread=info[2],
-                horizontalEmittance=_format_float(info[3] * 1e9),
-                horizontalBeta=info[4],
-                horizontalAlpha=info[5],
-                horizontalDispersion=info[6],
-                horizontalDispersionDerivative=info[7],
-                verticalEmittance=_format_float(info[8] * 1e9),
-                verticalBeta=info[9],
-                verticalAlpha=info[10],
-                verticalDispersion=0,
-                verticalDispersionDerivative=0,
-                energyDeviation=0,
-                horizontalPosition=0,
-                verticalPosition=0,
-                drift=0.0,
-                isReadOnly=True,
-            )),
-        )
-    _PREDEFINED['beams'] = beams
-
-
 def _intensity_units(is_gaussian, model_data):
     if is_gaussian:
         if 'report' in model_data and 'fieldUnits' in model_data['models'][model_data['report']]:
@@ -1416,18 +1359,6 @@ def _load_user_model_list(model_name):
         pkdlog('user list read failed, resetting contents: {}', filepath)
     _save_user_model_list(model_name, [])
     return _load_user_model_list(model_name)
-
-
-def _predefined_files_for_type(file_type):
-    res = []
-    for extension in extensions_for_file_type(file_type):
-        for f in glob.glob(str(_RESOURCE_DIR.join(extension))):
-            if os.path.isfile(f):
-                res.append(pkcollections.Dict({
-                    'fileName': os.path.basename(f),
-                }))
-    return res
-
 
 
 def _process_image(data):

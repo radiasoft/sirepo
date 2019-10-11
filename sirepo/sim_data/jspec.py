@@ -12,6 +12,24 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    JSPEC_ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
+
+    @classmethod
+    def compute_job_fields(cls, data):
+        r = data.report
+        if r == 'rateCalculationReport':
+            return [
+                'cooler',
+                'electronBeam',
+                'electronCoolingRate',
+                'intrabeamScatteringRate',
+                'ionBeam',
+                'ring',
+            ]
+        if r == 'twissReport':
+            return ['twissReport', 'ring']
+        return []
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -56,3 +74,29 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if len(d) > 4 and x[f] < d[4]:
                         x[f] = d[2]
         cls._organize_example(data)
+
+
+    @classmethod
+    def jspec_elegant_twiss_path(cls):
+        return '{}/{}'.format(cls.animation_name(), cls.JSPEC_ELEGANT_TWISS_FILENAME)
+
+    @classmethod
+    def jspec_elegant_dir(cls):
+        return simulation_db.simulation_dir('elegant')
+
+    @classmethod
+    def resource_files(cls):
+        return cls.resource_glob('*.tfs')
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        r = data.models.ring
+        s = r['latticeSource']
+        if s == 'madx':
+            res.append(cls.lib_file_name('ring', 'lattice', r['lattice']))
+        elif s == 'elegant':
+            res.append(cls.lib_file_name('ring', 'elegantTwiss', r['elegantTwiss']))
+        if s == 'elegant-sirepo' and 'elegantSirepo' in r:
+            res.append(cls.jspec_elegant_dir().join(r['elegantSirepo'], cls.jspec_elegant_twiss_path()))
+        return res

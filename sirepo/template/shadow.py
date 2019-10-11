@@ -18,8 +18,6 @@ import xraylib
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
-
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
 
 _CENTIMETER_FIELDS = {
@@ -100,10 +98,6 @@ Shadow.ShadowTools.plotxy(beam, 1, 3, nbins=100, nolost=1)
 
 def remove_last_frame(run_dir):
     pass
-
-
-def resource_files():
-    return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
 
 
 def validate_file(file_type, path):

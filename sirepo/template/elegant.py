@@ -114,10 +114,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(get_animation_name(data)))):
-        animation_dir = py.path.local(target_path).join(get_animation_name(data))
+    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data)))):
+        animation_dir = py.path.local(target_path).join(_SIM_DATA.animation_name(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(get_animation_name(data), '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data), '*'))):
             py.path.local(f).copy(animation_dir)
 
 
@@ -226,10 +226,6 @@ def generate_parameters_file(data, is_parallel=False):
     return res + _generate_bunch_simulation(data, v)
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'get_beam_input_type':
         if data['input_file']:
@@ -304,7 +300,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == get_animation_name(None):
+    if model == _SIM_DATA.animation_name(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -422,15 +418,6 @@ os.system('elegant elegant.ele')
 
 def remove_last_frame(run_dir):
     pass
-
-
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
 
 
 def save_report_data(data, run_dir):

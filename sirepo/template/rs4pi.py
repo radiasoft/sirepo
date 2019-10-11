@@ -37,7 +37,6 @@ RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
 SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
-RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
 DOSE_CALC_SH = 'dose_calc.sh'
 DOSE_CALC_OUTPUT = 'Full_Dose.h5'
 _DICOM_CLASS = {
@@ -146,7 +145,7 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     if data['modelName'].startswith('dicomAnimation'):
         return 'dicomAnimation'
     if data['modelName'] == 'dicomDose':
@@ -230,10 +229,6 @@ def remove_last_frame(run_dir):
     pass
 
 
-def resource_files():
-    return pkio.sorted_glob(RESOURCE_DIR.join('beamlist*.txt'))
-
-
 def write_parameters(data, run_dir, is_parallel):
     rtfile = py.path.local(_parent_file(run_dir, RTSTRUCT_EXPORT_FILENAME))
     if data['report'] == 'dvhReport' and rtfile.exists():
@@ -258,7 +253,7 @@ def write_parameters(data, run_dir, is_parallel):
                     'oar': oar_names,
                 })
             pkjinja.render_file(
-                RESOURCE_DIR.join(DOSE_CALC_SH + '.jinja'),
+                _SIM_DATA.resource(DOSE_CALC_SH).new(ext='.jinja'),
                 {
                     'prescription': prescription,
                     'beamlist': run_dir.join(_BEAMLIST_FILENAME),

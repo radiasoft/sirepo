@@ -147,11 +147,11 @@ def default_data(sim_type):
     Returns:
         dict: simulation data
     """
+    import sirepo.sim_data
+
     return open_json_file(
         sim_type,
-        path=template_common.resource_dir(sim_type).join(
-            'default-data{}'.format(JSON_SUFFIX),
-        ),
+        path=sirepo.sim_data.get_class(sim_type).resource('default-data').new(ext=JSON_SUFFIX),
     )
 
 
@@ -527,6 +527,8 @@ def prepare_simulation(data, tmp_dir=None):
     Returns:
         list, py.path: pkcli command, simulation directory
     """
+    import sirepo.sim_data
+
     if tmp_dir is None:
         # This is the legacy (pre-runner-daemon) code path
         run_dir = simulation_run_dir(data, remove_dir=True)
@@ -546,8 +548,13 @@ def prepare_simulation(data, tmp_dir=None):
     sim_type = data.simulationType
     sid = data.models.simulation.simulationId
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, out_dir)
-
+    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+        data,
+        # needed for job_supervisor, which can't get at user
+        lib_dir_from_sim_dir(out_dir),
+        out_dir,
+        symlink=True,
+    )
     write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -712,7 +719,7 @@ def report_info(data):
 
 def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
+    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)a
 
 
 def save_new_simulation(data, do_validate=True):
@@ -762,6 +769,19 @@ def save_simulation_json(data, do_validate=True):
         s.simulationSerial = _serial_new()
         write_json(fn, data)
     return data
+
+
+def sid_from_compute_file(path):
+    """Get sid from path to report file
+
+    Args:
+        path (py.path): must be an existing report file
+
+    Returns:
+        str: simulation id
+    """
+    assert path.check(file=1)
+    return _sid_from_path(path)
 
 
 def sim_data_file(sim_type, sim_id):
@@ -985,12 +1005,10 @@ def write_status(status, run_dir):
 
 def _create_example_and_lib_files(simulation_type):
     d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
-    template = sirepo.template.import_module(simulation_type)
-    if hasattr(template, 'resource_files'):
-        for f in template.resource_files():
-            #TODO(pjm): symlink has problems in containers
-            # d.join(f.basename).mksymlinkto(f)
-            f.copy(d)
+    for f in sirepo.sim_data.get_class(simulation_type).resource_files():
+        #TODO(pjm): symlink has problems in containers
+        # d.join(f.basename).mksymlinkto(f)
+        f.copy(d)
     pkio.mkdir_parent(simulation_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)
@@ -1188,9 +1206,17 @@ def _serial_new():
 
 
 def _sid_from_path(path):
-    sid = os.path.split(os.path.split(str(path))[0])[1]
-    assert_id(sid)
-    return sid
+    prev = None
+    p = path
+    # SECURITY: go up three levels at most (<type>/<id>/<report>/<output>)
+    for _ in range(3):
+        if p == prev:
+            break
+        i = p.basename
+        if _ID_RE.search(i):
+            return i
+        prev = p.dirpath()
+    raise AssertionError('path={} is not valid simulation'.format(path))
 
 
 def _timestamp(time=None):

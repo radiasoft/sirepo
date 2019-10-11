@@ -119,14 +119,7 @@ def purge_guest_users(days=180, confirm=False):
 
 
 def _create_example(example):
-    data = simulation_db.save_new_example(example)
-    # ensure all datafiles for the new example exist in the sim lib dir
-    for f in template_common.lib_files(data):
-        if not f.exists():
-            r = template_common.resource_dir(data.simulationType).join(f.basename)
-            assert r.exists(), 'Example missing resource file: {}'.format(f)
-            pkio.mkdir_parent_only(f)
-            r.copy(f)
+    simulation_db.save_new_example(example)
 
 
 def _is_src_dir(d):

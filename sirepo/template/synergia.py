@@ -95,7 +95,7 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     return 'animation'
 
 

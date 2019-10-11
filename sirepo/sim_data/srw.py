@@ -181,6 +181,23 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._template_fixup_set(data)
 
     @classmethod
+    def resource_files(cls):
+        """Files to copy from resources when creating a new user
+
+        Returns:
+            list: py.path.local objects
+        """
+        res = []
+        for k, v in _PREDEFINED.items():
+            for v2 in v:
+                try:
+                    res.append(_SIM_DATA.resource(v2['fileName']))
+                except KeyError:
+                    pass
+        return res
+
+
+    @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
         model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
 
@@ -232,6 +249,51 @@ class SimData(sirepo.sim_data.SimDataBase):
             data.models.tabulatedUndulator.undulatorType,
         )
 
+
+    @classmethod
+    def srw_predefined(cls):
+        def _(file_type):
+            return cls.__files_for_type(
+                file_type,
+                cls.resource_dir(),
+                lambda f: PKDict(fileName=f.basename),
+            )
+
+        res = PKDict(
+
+            _predefined_files_for_type('mirror')
+        _PREDEFINED.magnetic_measurements = _predefined_files_for_type('undulatorTable')
+        _PREDEFINED.sample_images = _predefined_files_for_type('sample')
+        beams = []
+        for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
+            info = beam[1]
+            # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
+            beams.append(
+                process_beam_parameters(PKDict(
+                    name=beam[0],
+                    current=info[0],
+                    energy=info[1],
+                    rmsSpread=info[2],
+                    horizontalEmittance=_format_float(info[3] * 1e9),
+                    horizontalBeta=info[4],
+                    horizontalAlpha=info[5],
+                    horizontalDispersion=info[6],
+                    horizontalDispersionDerivative=info[7],
+                    verticalEmittance=_format_float(info[8] * 1e9),
+                    verticalBeta=info[9],
+                    verticalAlpha=info[10],
+                    verticalDispersion=0,
+                    verticalDispersionDerivative=0,
+                    energyDeviation=0,
+                    horizontalPosition=0,
+                    verticalPosition=0,
+                    drift=0.0,
+                    isReadOnly=True,
+                )),
+            )
+        _PREDEFINED['beams'] = beams
+
+        cls._memoize(res)
 
     @classmethod
     def _lib_files(cls, data):

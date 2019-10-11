@@ -117,7 +117,7 @@ def generate_field_report(data, run_dir, args=None):
 
 
 # use concept of "runner" animation?
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     if data['modelName'] == 'optimizerAnimation':
         return data['modelName']
     if data['modelName'] in _FIELD_ANIMATIONS:

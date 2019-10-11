@@ -174,7 +174,7 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     if data['modelName'] == 'correctorSettingAnimation':
         return data['modelName']
     return 'animation'

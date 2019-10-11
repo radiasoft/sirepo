@@ -142,18 +142,10 @@ def extract_particle_report(report, run_dir):
     }
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def lib_files(data, source_lib):
-    return _SIM_DATA.lib_file_abspath(_simulation_files(data), source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -454,26 +446,6 @@ def _report_title(report_type, enum_name, beam_info):
     return '{}, z={:.4f} cm'.format(
         _enum_text(enum_name, report_type),
         100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
-
-
-def _simulation_files(data):
-    res = []
-    solenoid = data.models.solenoid
-    if solenoid.sourceDefinition == 'file' and solenoid.solenoidFile:
-        res.append(_SIM_DATA.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
-    beam = data.models.beam
-    if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
-        res.append(_SIM_DATA.lib_file_name('beam', 'cstFile', beam.cstFile))
-    if beam.beamDefinition == 'transverse_longitude':
-        if beam.transversalDistribution == 'file2d':
-            res.append(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
-        elif beam.transversalDistribution == 'file4d':
-            res.append(_SIM_DATA.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
-        if beam.longitudinalDistribution == 'file1d':
-            res.append(_SIM_DATA.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
-        if beam.longitudinalDistribution == 'file2d':
-            res.append(_SIM_DATA.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
-    return res
 
 
 def _summary_text(run_dir):

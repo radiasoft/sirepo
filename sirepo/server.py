@@ -17,10 +17,9 @@ from sirepo import http_request
 from sirepo import runner
 from sirepo import runner_client
 from sirepo import simulation_db
-from sirepo.template import adm
 from sirepo import srdb
 from sirepo import uri_router
-from sirepo import util
+from sirepo.template import adm
 from sirepo.template import template_common
 import datetime
 import flask
@@ -28,7 +27,9 @@ import glob
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 import sirepo.template
+import sirepo.util
 import string
 import sys
 import time
@@ -80,7 +81,7 @@ def api_copyNonSessionSimulation():
     data.models.simulation.outOfSessionSimulationId = req.simulationId
     res = _save_new_and_reply(data)
     target = simulation_db.simulation_dir(sim_type, data.models.simulation.simulationId)
-    template_common.copy_lib_files(
+    sirepo.sim_data.get_class(sim_type).lib_files_copy(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
         simulation_db.lib_dir_from_sim_dir(target),
@@ -97,7 +98,8 @@ def api_copySimulation():
     req = http_request.parse_json()
     sim_type = req.simulationType
     name = req.name
-    assert name, util.err(req, 'No name in request')
+    assert name, \
+        sirepo.util.err(req, 'No name in request')
     folder = req.folder if 'folder' in req else '/'
     data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
     data.models.simulation.name = name
@@ -261,7 +263,7 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
             )
             break
         else:
-            util.raise_not_found(
+            sirepo.util.raise_not_found(
                 'simulation not found by name={} type={}',
                 simulation_name,
                 sim_type,
@@ -435,7 +437,7 @@ def api_root(simulation_type):
         if simulation_type == 'fete':
             return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
-        util.raise_not_found('Invalid simulation_type: {}', simulation_type)
+        sirepo.util.raise_not_found('Invalid simulation_type: {}', simulation_type)
     values = pkcollections.Dict()
     values.app_name = simulation_type
     return _render_root_page('index', values)
@@ -1052,8 +1054,9 @@ def _simulation_run_status(data, quiet=False):
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
     res = []
+    s = sirepo.sim_data.get_class(simulation_type)
     for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if sim_data.simulation_using_file(row, search_name):
+        if s.is_file_used(row, search_name):
             sim = row['models']['simulation']
             if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
                 continue

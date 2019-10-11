@@ -7,6 +7,7 @@ u"""Type-based simulation operations
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkinspect
+from pykern import pkresource
 from pykern.pkdebug import pkdp
 from sirepo import simulation_db
 import importlib
@@ -79,6 +80,17 @@ class SimDataBase(object):
         raise NotImplemented()
 
     @classmethod
+    def animation_name(cls, data):
+        """Animation report
+
+        Args:
+            data (dict): simulation
+        Returns:
+            str: name of report
+        """
+        return 'animation'
+
+    @classmethod
     def is_file_used(cls, data, filename):
         """Check if file in use by simulation
 
@@ -108,7 +120,7 @@ class SimDataBase(object):
         Returns:
             list: py.path.local to files (duplicates removed)
         """
-        return sorted(set((source_lib.join(f) for f in files)))
+        return sorted(set((source_lib.join(f, abs=1) for f in files)))
 
     @classmethod
     def lib_files(data, source_lib=None):
@@ -120,15 +132,45 @@ class SimDataBase(object):
         Returns:
             list: py.path.local to files
         """
-
-
-verify that lib_files are there, and if not copy them from resource
-
-
-        return cls.lib_file_abspath(
+        res = []
+        for f in cls.lib_file_abspath(
             cls._lib_files(data),
             source_lib or simulation_db.simulation_lib_dir(cls.sim_type()),
-        )
+        ):
+            res.append(f)
+            if f.exists(file=1):
+                continue
+            r = cls.resource(f.basename)
+            if not r.exists(file=1):
+                raise sirepo.util.UserAlert(
+                    'Simulation library file "{}" does not exist',
+                    'file={} not found, and no resource={}',
+                    f,
+                    r,
+                )
+            pkio.mkdir_parent_only(f)
+            r.copy(f)
+        return res
+
+    @classmethod
+    def lib_files_copy(cls, data, source, target, symlink=False):
+        """Copy auxiliary files to target
+
+        Args:
+            data (dict): simulation db
+            source (py.path): source directory
+            target (py.path): destination directory
+            symlink (bool): if True, symlink, don't copy
+        """
+        assert source
+        for s in cls.lib_files(data, source):
+            t = target.join(f.basename)
+            pkio.mkdir_parent_only(t)
+            if symlink:
+                t.mksymlinkto(s, absolute=False)
+            else:
+                s.copy(t)
+
 
     @classmethod
     def model_defaults(cls, name):
@@ -138,6 +180,41 @@ verify that lib_files are there, and if not copy them from resource
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
         return res
+
+    @classmethod
+    def resource(cls, filename):
+        """Static resource (package_data) files for simulation
+
+        Returns:
+            py.path.local: absolute path to folder
+        """
+        return cls.resource_dir().join(filename)
+
+
+    @classmethod
+    def resource_dir(cls):
+        return cls._memoize(
+            pkio.py_path(pkresource.filename('template')).join(cls.sim_type()),
+        )
+
+    @classmethod
+    def resource_files(cls):
+        """Files to copy for a new user
+
+        Returns:
+            list: path of resource files
+        """
+        return []
+
+    @classmethod
+    def resource_glob(cls, pattern):
+        """Match `pattern` in `resource_dir`
+
+        Returns:
+            patter: absolute path to folder
+        """
+        return pkio.sorted_glob(cls.resource_dir().resource(pattern))
+
 
     @classmethod
     def schema(cls):

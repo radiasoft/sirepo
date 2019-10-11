@@ -19,3 +19,21 @@ class SimData(sirepo.sim_data.SimDataBase):
                 plot_var_5='magz',
                 plot_var_6='depo',
             )
+
+    def compute_job_fields(cls, data):
+        r = data['report']
+        if r == get_animation_name(data):
+            return []
+        return [
+            r,
+        ]
+
+    def _lib_files(cls, data):
+        t = data.models.simulation.flashType
+        #return ['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4']
+        #return ['flash.par', 'helm_table.dat']
+        if t == 'RTFlame':
+            return ['helm_table.dat']
+        if t == 'CapLaser':
+            return ['al-imx-004.cn4', 'h-imx-004.cn4']
+        raise AssertionError('invalid flashType: {}'.format(t))

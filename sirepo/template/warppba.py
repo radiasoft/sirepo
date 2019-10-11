@@ -152,7 +152,7 @@ def generate_parameters_file(data, is_parallel=False):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def get_animation_name(data):
+def _SIM_DATA.animation_name(data):
     return 'animation'
 
 

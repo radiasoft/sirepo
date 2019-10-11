@@ -36,3 +36,22 @@ class SimData(sirepo.sim_data.SimDataBase):
                 cstFile='',
             )
         cls._organize_example(data)
+
+    def _lib_files(cls, data):
+        res = []
+        s = data.models.solenoid
+        if s.sourceDefinition == 'file' and s.solenoidFile:
+            res.append(cls.lib_file_name('solenoid', 'solenoidFile', s.solenoidFile))
+        beam = data.models.beam
+        if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
+            res.append(cls.lib_file_name('beam', 'cstFile', beam.cstFile))
+        if beam.beamDefinition == 'transverse_longitude':
+            if beam.transversalDistribution == 'file2d':
+                res.append(cls.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+            elif beam.transversalDistribution == 'file4d':
+                res.append(cls.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+            if beam.longitudinalDistribution == 'file1d':
+                res.append(cls.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
+            if beam.longitudinalDistribution == 'file2d':
+                res.append(cls.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
+        return res
