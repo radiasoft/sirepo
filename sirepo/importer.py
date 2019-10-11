@@ -5,7 +5,14 @@ u"""Import a single archive
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern.pkdebug import pkdp
+import StringIO
+import base64
+import py.path
+import re
+import sirepo.util
+import zipfile
 
 
 def do_form(form):
@@ -17,14 +24,10 @@ def do_form(form):
     Returns:
         dict: data
     """
-    from sirepo import cookie
-    from sirepo import uri_router
     from sirepo import simulation_db
-    import base64
-    import StringIO
 
     if not 'zip' in form:
-        raise uri_router.NotFound('missing zip in form')
+        raise sirepo.util.raise_not_found('missing zip in form')
     data = read_zip(StringIO.StringIO(base64.decodestring(form['zip'])))
     data.models.simulation.folder = '/Import'
     data.models.simulation.isExample = False
@@ -65,12 +68,8 @@ def read_zip(stream, template=None):
     Returns:
         dict: data
     """
-    from pykern import pkcollections
     from sirepo import simulation_db
     from sirepo.template import template_common
-    import py.path
-    import re
-    import zipfile
 
     tmp = simulation_db.tmp_dir()
     data = None
