@@ -5,10 +5,12 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import math
 import numpy
+import re
 import sirepo.sim_data
 
 
@@ -48,61 +50,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         'Young\'s Double Slit Experiment': '/Wavefront Propagation',
     })
 
-    SRW_RUN_ALL_MODEL = 'simulation'
+    __FILE_TYPE_EXTENSIONS = PKDict(
+        mirror=['dat', 'txt'],
+        sample=['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
+        undulatorTable=['zip'],
+        arbitraryField=['dat', 'txt'],
+    )
 
-    @classmethod
-    def compute_job_fields(cls, data):
-        r = data['report']
-        if r == 'mirrorReport':
-            return [
-                'mirrorReport.heightProfileFile',
-                _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
-                'mirrorReport.orientation',
-                'mirrorReport.grazingAngle',
-                'mirrorReport.heightAmplification',
-            ]
-        res = cls._fields_for_compute(data, r) + [
-            'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
-            'simulation.sourceType', 'tabulatedUndulator', 'undulator',
-            'arbitraryMagField',
-        ]
-        if cls.srw_uses_tabulated_zipfile(data):
-            res += cls._lib_file_mtimes(data.models.tabulatedUndulator.magneticFile)
-        watchpoint = cls.is_watchpoint(r)
-        if watchpoint or r == 'initialIntensityReport':
-            res.extend([
-                'simulation.horizontalPointCount',
-                'simulation.horizontalPosition',
-                'simulation.horizontalRange',
-                'simulation.photonEnergy',
-                'simulation.sampleFactor',
-                'simulation.samplingMethod',
-                'simulation.verticalPointCount',
-                'simulation.verticalPosition',
-                'simulation.verticalRange',
-                'simulation.distanceFromSource',
-            ])
-        if r == 'initialIntensityReport':
-            beamline = data['models']['beamline']
-            res.append([beamline[0]['position'] if len(beamline) else 0])
-        if watchpoint:
-            wid = cls.watchpoint_id(r)
-            beamline = data['models']['beamline']
-            propagation = data['models']['propagation']
-            for item in beamline:
-                item_copy = item.copy()
-                del item_copy['title']
-                res.append(item_copy)
-                res.append(propagation[str(item['id'])])
-                if item['type'] == 'mirror':
-                    res.append(_lib_file_datetime(item['heightProfileFile']))
-                elif item['type'] == 'sample':
-                    res.append(_lib_file_datetime(item['imageFile']))
-                elif item['type'] == 'watch' and item['id'] == wid:
-                    break
-            if beamline[-1]['id'] == wid:
-                res.append('postPropagation')
-        return res
+    SRW_RUN_ALL_MODEL = 'simulation'
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -180,6 +135,15 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.folder = '/'
         cls._template_fixup_set(data)
 
+
+    @classmethod
+    def lib_files_for_type(cls, file_type):
+        return cls._files_for_type(
+            file_type,
+            lambda f: cls.srw_is_valid_file(file_type, f) and f.purebasename,
+            extensions=cls.__FILE_TYPE_EXTENSIONS[file_type],
+        )
+
     @classmethod
     def resource_files(cls):
         """Files to copy from resources when creating a new user
@@ -188,7 +152,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             list: py.path.local objects
         """
         res = []
-        for k, v in _PREDEFINED.items():
+        for k, v in csl.srw_predefined().items():
             for v2 in v:
                 try:
                     res.append(_SIM_DATA.resource(v2['fileName']))
@@ -243,27 +207,31 @@ class SimData(sirepo.sim_data.SimDataBase):
         return not model.get('isReadOnly', False)
 
     @classmethod
-    def srw_uses_tabulated_zipfile(cls, data):
-        return cls.srw_is_tabulated_undulator_with_magnetic_file(
-            data.models.simulation.sourceType,
-            data.models.tabulatedUndulator.undulatorType,
-        )
+    def srw_is_valid_file(cls, file_type, path):
+        # special handling for mirror and arbitraryField - scan for first data row and count columns
+        if file_type not in ('mirror', 'arbitraryField'):
+            return True
 
+        _ARBITRARY_FIELD_COL_COUNT = 3
+
+        with pkio.open_text(path) as f:
+            for line in f:
+                if re.search(r'^\s*#', line):
+                    continue
+                c = len(line.split())
+                if c > 0:
+                    if file_type == 'arbitraryField':
+                        return c == _ARBITRARY_FIELD_COL_COUNT
+                    return c != _ARBITRARY_FIELD_COL_COUNT
+        return False
+
+    @classmethod
+    def srw_is_valid_file_type(cls, file_type, path):
+        return path.ext[1:] in cls.__FILE_TYPE_EXTENSIONS[file_type]
 
     @classmethod
     def srw_predefined(cls):
-        def _(file_type):
-            return cls.__files_for_type(
-                file_type,
-                cls.resource_dir(),
-                lambda f: PKDict(fileName=f.basename),
-            )
-
-        res = PKDict(
-
-            _predefined_files_for_type('mirror')
-        _PREDEFINED.magnetic_measurements = _predefined_files_for_type('undulatorTable')
-        _PREDEFINED.sample_images = _predefined_files_for_type('sample')
+        import srwl_uti_src
         beams = []
         for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
             info = beam[1]
@@ -291,9 +259,82 @@ class SimData(sirepo.sim_data.SimDataBase):
                     isReadOnly=True,
                 )),
             )
-        _PREDEFINED['beams'] = beams
 
-        cls._memoize(res)
+        def f(file_type):
+            return cls._files_for_type(
+                file_type,
+                lambda f: PKDict(fileName=f.basename),
+                dir_path=cls.resource_dir(),
+            )
+
+        res = PKDict(
+            beams=beams,
+            magnetic_measurements=f('undulatorTable')
+            mirrors=f('mirror'),
+            sample_images=f('sample')
+        )
+        return cls._memoize(res)
+
+    @classmethod
+    def srw_uses_tabulated_zipfile(cls, data):
+        return cls.srw_is_tabulated_undulator_with_magnetic_file(
+            data.models.simulation.sourceType,
+            data.models.tabulatedUndulator.undulatorType,
+        )
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data['report']
+        if r == 'mirrorReport':
+            return [
+                'mirrorReport.heightProfileFile',
+                _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
+                'mirrorReport.orientation',
+                'mirrorReport.grazingAngle',
+                'mirrorReport.heightAmplification',
+            ]
+        res = cls._non_analysis_fields(data, r) + [
+            'electronBeam', 'electronBeamPosition', 'gaussianBeam', 'multipole',
+            'simulation.sourceType', 'tabulatedUndulator', 'undulator',
+            'arbitraryMagField',
+        ]
+        if cls.srw_uses_tabulated_zipfile(data):
+            res += cls._lib_file_mtimes(data.models.tabulatedUndulator.magneticFile)
+        watchpoint = cls.is_watchpoint(r)
+        if watchpoint or r == 'initialIntensityReport':
+            res.extend([
+                'simulation.horizontalPointCount',
+                'simulation.horizontalPosition',
+                'simulation.horizontalRange',
+                'simulation.photonEnergy',
+                'simulation.sampleFactor',
+                'simulation.samplingMethod',
+                'simulation.verticalPointCount',
+                'simulation.verticalPosition',
+                'simulation.verticalRange',
+                'simulation.distanceFromSource',
+            ])
+        if r == 'initialIntensityReport':
+            beamline = data['models']['beamline']
+            res.append([beamline[0]['position'] if len(beamline) else 0])
+        if watchpoint:
+            wid = cls.watchpoint_id(r)
+            beamline = data['models']['beamline']
+            propagation = data['models']['propagation']
+            for item in beamline:
+                item_copy = item.copy()
+                del item_copy['title']
+                res.append(item_copy)
+                res.append(propagation[str(item['id'])])
+                if item['type'] == 'mirror':
+                    res.append(_lib_file_datetime(item['heightProfileFile']))
+                elif item['type'] == 'sample':
+                    res.append(_lib_file_datetime(item['imageFile']))
+                elif item['type'] == 'watch' and item['id'] == wid:
+                    break
+            if beamline[-1]['id'] == wid:
+                res.append('postPropagation')
+        return res
 
     @classmethod
     def _lib_files(cls, data):

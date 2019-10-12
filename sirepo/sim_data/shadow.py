@@ -14,27 +14,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     _ANALYSIS_ONLY_FIELDS = frozenset('colorMap', 'notes', 'aspectRatio')
 
     @classmethod
-    def compute_job_fields(cls, data):
-        r = data['report']
-        res = cls._fields_for_compute(data, r) + [
-            'bendingMagnet',
-            'electronBeam',
-            'geometricSource',
-            'rayFilter',
-            'simulation.istar1',
-            'simulation.npoint',
-            'simulation.sourceType',
-            'sourceDivergence',
-            'wiggler',
-        ]
-        if r == 'initialIntensityReport' and len(data['models']['beamline']):
-            res.append([data['models']['beamline'][0]['position']])
-        #TODO(pjm): only include items up to the current watchpoint
-        if _SIM_DATA.is_watchpoint(r):
-            res.append('beamline')
-        return res + cls._lib_file_mtimes(data)
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         if (
@@ -64,7 +43,28 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def shadow_wiggler_file(cls, value):
-        return _SIM_DATA.lib_file_name('wiggler', 'trajFile', value)
+        return cls.lib_file_name('wiggler', 'trajFile', value)
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data['report']
+        res = cls._non_analysis_fields(data, r) + [
+            'bendingMagnet',
+            'electronBeam',
+            'geometricSource',
+            'rayFilter',
+            'simulation.istar1',
+            'simulation.npoint',
+            'simulation.sourceType',
+            'sourceDivergence',
+            'wiggler',
+        ]
+        if r == 'initialIntensityReport' and len(data['models']['beamline']):
+            res.append([data['models']['beamline'][0]['position']])
+        #TODO(pjm): only include items up to the current watchpoint
+        if cls.is_watchpoint(r):
+            res.append('beamline')
+        return res + cls._lib_file_mtimes(data)
 
     @classmethod
     def _lib_files(cls, data, *args, **kwargs):

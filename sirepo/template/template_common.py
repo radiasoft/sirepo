@@ -347,34 +347,6 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     )
 
 
-def report_parameters_hash(data):
-    """Compute a hash of the parameters for his report.
-
-    Only needs to be unique relative to the report, not globally unique
-    so MD5 is adequate. Long and cryptographic hashes make the
-    cache checks slower.
-
-    Args:
-        data (dict): report and related models
-    Returns:
-        str: url safe encoded hash
-    """
-    if not 'reportParametersHash' in data:
-        fields = sirepo.sim_data.get_class(data.simulationType).compute_job_fields(data)
-        res = hashlib.md5()
-        dm = data['models']
-        for f in fields:
-            if isinstance(m, pkconfig.STRING_TYPES):
-                x = f.split('.')
-                v = dm[x[0]][x[1]] if len(x) > 1 else dm[x[0]]
-            else:
-                # probably an mtime for a file
-                v = m
-            res.update(json.dumps(v, sort_keys=True, allow_nan=False).encode())
-        data['reportParametersHash'] = res.hexdigest()
-    return data['reportParametersHash']
-
-
 def validate_model(model_data, model_schema, enum_info):
 
     """Ensure the value is valid for the field type. Scales values as needed."""

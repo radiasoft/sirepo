@@ -13,23 +13,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def compute_job_fields(cls, data):
-        r = data['report']
-        if r == 'epicsServerAnimation':
-            return []
-        res = [
-            r,
-            'analysisData',
-        ]
-        if 'fftReport' in r:
-            n = cls.webcon_analysis_report_name_for_fft(data)
-            res += ['{}.{}'.format(n, v) for v in ('x', 'y1', 'history')]
-        if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
-            # always recompute the EPICS reports
-            res += [cls._force_recompute()]
-        return res
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         for m in cls.schema().model:
@@ -62,6 +45,23 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def webcon_analysis_report_name_for_fft(data):
         return data.models[data.report].get('analysisReport', 'analysisReport')
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data['report']
+        if r == 'epicsServerAnimation':
+            return []
+        res = [
+            r,
+            'analysisData',
+        ]
+        if 'fftReport' in r:
+            n = cls.webcon_analysis_report_name_for_fft(data)
+            res += ['{}.{}'.format(n, v) for v in ('x', 'y1', 'history')]
+        if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
+            # always recompute the EPICS reports
+            res += [cls._force_recompute()]
+        return res
 
     @classmethod
     def _lib_files(cls, data, source_lib):

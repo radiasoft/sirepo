@@ -38,8 +38,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = False
 
-_ARBITRARY_FIELD_COL_COUNT = 3
-
 _BRILLIANCE_OUTPUT_FILE = 'res_brilliance.dat'
 
 _MIRROR_OUTPUT_FILE = 'res_mirror.dat'
@@ -59,13 +57,6 @@ _DATA_FILE_FOR_MODEL = pkcollections.Dict({
     'trajectoryReport': {'filename': 'res_trj.dat', 'dimension': 2},
     _SIM_DATA.WATCHPOINT_REPORT: {'filename': 'res_int_pr_se.dat', 'dimension': 3},
 })
-
-_FILE_TYPE_EXTENSIONS = {
-    'mirror': ['dat', 'txt'],
-    'sample': ['tif', 'tiff', 'png', 'bmp', 'gif', 'jpg', 'jpeg'],
-    'undulatorTable': ['zip'],
-    'arbitraryField': ['dat', 'txt'],
-}
 
 _LOG_DIR = '__srwl_logs__'
 
@@ -332,7 +323,7 @@ def get_application_data(data):
         res = []
         model_name = data['model_name']
         if model_name == 'electronBeam':
-            res.extend(_SIM_DATA.get_predefined_beams())
+            res.extend(get_predefined_beams())
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
@@ -390,13 +381,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
     raise RuntimeError('output file unknown for model: {}'.format(model))
 
 
-def get_file_list(file_type):
-    return _files_for_type(
-        file_type,
-        simulation_db.simulation_lib_dir(SIM_TYPE),
-        lambda f: _test_file_type(file_type, f) and f.basename,
-    )
-
 def get_filename_for_model(model):
     if _SIM_DATA.is_watchpoint(model):
         model = _SIM_DATA.WATCHPOINT_REPORT
@@ -404,7 +388,7 @@ def get_filename_for_model(model):
 
 
 def get_predefined_beams():
-    return _SIM_DATA.srw_predefined.beams
+    return _SIM_DATA.srw_predefined().beams
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -607,13 +591,7 @@ def remove_last_frame(run_dir):
 
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
-    match = re.search(r'\.(\w+)$', str(path))
-    extension = None
-    if match:
-        extension = match.group(1).lower()
-    else:
-        return 'invalid file extension'
-    if extension not in _FILE_TYPE_EXTENSIONS[file_type]:
+    if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
         return 'invalid file type: {}'.format(extension)
     if file_type == 'mirror':
         # mirror file
@@ -641,7 +619,7 @@ def validate_file(file_type, path):
         filename = os.path.splitext(os.path.basename(str(path)))[0]
         # Save the processed file:
         srwl_uti_smp.SRWLUtiSmp(file_path=str(path), is_save_images=True, prefix=filename)
-    if not _test_file_type(file_type, path):
+    if not _SIM_DATA.srw_is_valid_file(file_type, path):
         return 'Column count is incorrect for file type: {}'.format(file_type)
     return None
 
@@ -984,16 +962,6 @@ def _extract_trajectory_report(model, data):
         y_range=y_range,
         plots=plots,
     )
-
-def _files_for_type(file_type, dir_path, op):
-    res = []
-    for e in _FILE_TYPE_EXTENSIONS[file_type]:
-        for f in pkio.sorted_glob(dir_path.join('*').new(ext=e)):
-            x = f.check(file=1) and op(f)
-            if x:
-                res.append(x)
-    return x
-
 
 def _fix_file_header(filename):
     # fixes file header for coherenceXAnimation and coherenceYAnimation reports
@@ -1496,21 +1464,6 @@ def _superscript(val):
 
 def _superscript_2(val):
     return re.sub(r'\^0', u'\u00B0', val)
-
-def _test_file_type(file_type, file_path):
-    # special handling for mirror and arbitraryField - scan for first data row and count columns
-    if file_type not in ('mirror', 'arbitraryField'):
-        return True
-    with pkio.open_text(str(file_path)) as f:
-        for line in f:
-            if re.search(r'^\s*#', line):
-                continue
-            col_count = len(line.split())
-            if col_count > 0:
-                if file_type == 'arbitraryField':
-                    return col_count == _ARBITRARY_FIELD_COL_COUNT
-                return col_count != _ARBITRARY_FIELD_COL_COUNT
-    return False
 
 def _trim(v):
     res = ''

@@ -12,6 +12,8 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    RS4PI_BEAMLIST_FILENAME = 'beamlist_72deg.txt'
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -40,3 +42,16 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def resource_files(cls):
         return cls.resource_glob('beamlist*.txt')
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r == 'doseCalculation':
+            return []
+        if r == 'dvhReport':
+            return [r, 'dicomDose']
+        return [r]
+
+    @classmethod
+    def _lib_files(cls, data):
+        return [cls.RS4PI_BEAMLIST_FILENAME]

@@ -686,6 +686,8 @@ def report_info(data):
         Dict: report parameters and hashes
     """
     # Sets data['reportParametersHash']
+    import sirepo.sim_data
+
     rep = pkcollections.Dict(
         cache_hit=False,
         cached_data=None,
@@ -697,13 +699,13 @@ def report_info(data):
     )
     rep.input_file = json_filename(template_common.INPUT_BASE_NAME, rep.run_dir)
     rep.job_status = read_status(rep.run_dir)
-    rep.req_hash = template_common.report_parameters_hash(data)
+    rep.req_hash = sirepo.sim_data.get_class(data).compute_job_hash(cd)
     if not rep.run_dir.check():
         return rep
     #TODO(robnagler) Lock
     try:
         cd = read_json(rep.input_file)
-        rep.cached_hash = template_common.report_parameters_hash(cd)
+        rep.cached_hash = sirepo.sim_data.get_class(cd).compute_job_hash(cd)
         rep.cached_data = cd
         if rep.req_hash == rep.cached_hash:
             rep.cache_hit = True
@@ -1004,6 +1006,8 @@ def write_status(status, run_dir):
 
 
 def _create_example_and_lib_files(simulation_type):
+    import sirepo.sim_data
+
     d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     for f in sirepo.sim_data.get_class(simulation_type).resource_files():
         #TODO(pjm): symlink has problems in containers

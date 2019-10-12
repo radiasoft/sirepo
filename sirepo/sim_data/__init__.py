@@ -56,17 +56,48 @@ class SimDataBase(object):
     _ANALYSIS_JOB_ONLY_FIELDS = frozenset()
 
     @classmethod
-    def compute_job_fields(cls, data):
-        """What fields are required for ``data.report``
+    def compute_job_hash(cls, data):
+        """Hash fields related to data and set reportParametersHash
 
-        If a field is a model name, then
+        Only needs to be unique relative to the report, not globally unique
+        so MD5 is adequate. Long and cryptographic hashes make the
+        cache checks slower.
 
         Args:
             data (dict): simulation
         Returns:
-            list: Named models, model fields or values (dict, list) that affect report
+            dict: data
         """
-        raise NotImplemented()
+        h = data.get('computeJobHash')
+        if h:
+            return h
+        pkcollections.unchecked_del(data, 'reportParametersHash')
+need to save the json in this case
+
+save mtime of the file, because that's start time
+
+        #TODO:
+
+
+XXXXXXXXXXXadd verions in there
+
+        fields = sirepo.sim_data.get_class(data.simulationType).compute_job_fields(data)
+        res = hashlib.md5()
+        dm = data['models']
+        for f in fields:
+            if isinstance(m, pkconfig.STRING_TYPES):
+                x = f.split('.')
+                v = dm[x[0]][x[1]] if len(x) > 1 else dm[x[0]]
+            else:
+                # probably an mtime for a file
+                v = m
+            res.update(json.dumps(v, sort_keys=True, allow_nan=False).encode())
+        data['reportParametersHash'] = res.hexdigest()
+    return data['reportParametersHash']
+
+
+
+        return cls._compute_job_fields(data) + [f.mtime() for f in cls.lib_files(data)]
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -173,6 +204,10 @@ class SimDataBase(object):
 
 
     @classmethod
+    def lib_files_for_type(cls, file_type):
+        return cls._files_for_type(file_type, lambda f: f.purebasename):
+
+    @classmethod
     def model_defaults(cls, name):
         """Returns a set of default model values from the schema."""
         res = pkcollections.Dict()
@@ -245,22 +280,15 @@ class SimDataBase(object):
         return int(m.group(1))
 
     @classmethod
-    def _fields_for_compute(cls, data, model):
-        """Get the non-analysis fields for model
-
-        If the model has "analysis" fields, then return the full list of non-style fields
-        otherwise returns the model name (which implies all model fields)
-
-        Args:
-            data (dict): simulation
-            model (str): name of model to compute
-        Returns:
-            list: compute_fields fields for model or whole model
-        """
-        s = set(data.models.get(model, {}).keys()) - cls._ANALYSIS_ONLY_FIELDS
-        if not s:
-            return [model]
-        return ['{}.{}'.format(model, x) for x in s]
+    def _files_for_type(cls, file_type, op, dir_path=None, extensions=None):
+        res = []
+        d = dir_path or simulation_db.simulation_lib_dir(cls.sim_type())
+        for e in extensions or [file_type]:
+            for f in pkio.sorted_glob(d.join('*').new(ext=e)):
+                x = f.check(file=1) and op(f)
+                if x:
+                    res.append(x)
+        return res
 
     @classmethod
     def _force_recompute(cls):
@@ -284,6 +312,8 @@ class SimDataBase(object):
         Returns:
             float: mtime of lib_file or 0
         """
+
+add to compute_job_fields
 blow up if missing
 
         x = lib_files or cls.lib_files(data)
@@ -324,6 +354,24 @@ blow up if missing
             wrap,
         )
         return value
+
+    @classmethod
+    def _non_analysis_fields(cls, data, model):
+        """Get the non-analysis fields for model
+
+        If the model has "analysis" fields, then return the full list of non-style fields
+        otherwise returns the model name (which implies all model fields)
+
+        Args:
+            data (dict): simulation
+            model (str): name of model to compute
+        Returns:
+            list: compute_fields fields for model or whole model
+        """
+        s = set(data.models.get(model, {}).keys()) - cls._ANALYSIS_ONLY_FIELDS
+        if not s:
+            return [model]
+        return ['{}.{}'.format(model, x) for x in s]
 
     @classmethod
     def _organize_example(cls, data):

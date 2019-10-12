@@ -210,24 +210,13 @@ def api_favicon():
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
     #TODO(pjm): simulation_id is an unused argument
-    file_type = werkzeug.secure_filename(file_type)
-    if simulation_type == 'srw':
-        #TODO(pjm): special handling for srw, file_type not included in filename
-        res = sirepo.template.import_module(simulation_type).get_file_list(file_type)
-    else:
-        res = []
-        search = ['{}.*'.format(file_type)]
-        d = simulation_db.simulation_lib_dir(simulation_type)
-        for extension in search:
-            for f in glob.glob(str(d.join(extension))):
-                if os.path.isfile(f):
-                    filename = os.path.basename(f)
-                    # strip the file_type prefix
-                    filename = filename[len(file_type) + 1:]
-                    res.append(filename)
-    res.sort()
-    return http_reply.gen_json(res)
-
+    return http_reply.gen_json(
+        sorted(
+            sirepo.sim_data.get_class(simulation_type).lib_files_for_type(
+                werkzeug.secure_filename(file_type),
+            ),
+        ),
+    )
 
 @api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
@@ -448,7 +437,7 @@ def api_runCancel():
     data = _parse_data_input()
     jid = simulation_db.job_id(data)
     if feature_config.cfg.runner_daemon:
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         runner_client.cancel_report_job(run_dir, jhash)
         # Always true from the client's perspective
@@ -487,7 +476,7 @@ def api_runSimulation():
     # - if status is bad, rewrite the run dir (XX race condition, to fix later)
     # - then request it be started
     if feature_config.cfg.runner_daemon:
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         run_dir = simulation_db.simulation_run_dir(data)
         status = runner_client.report_job_status(run_dir, jhash)
         already_good_status = [runner_client.JobStatus.RUNNING,
@@ -582,7 +571,6 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
     data = dict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
@@ -594,7 +582,7 @@ def api_simulationFrame(frame_id):
         # call. Since it doesn't, we have to read it out of the run_dir, which
         # creates a race condition -- we might return a frame from a different
         # version of the report than the one the frontend expects.
-        jhash = template_common.report_parameters_hash(model_data)
+        jhash = sirepo.sim_data.get_class(model_data).compute_job_hash(data)
         frame = runner_client.run_extract_job(
             run_dir, jhash, 'get_simulation_frame', data,
         )
@@ -899,7 +887,7 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
     """
     try:
         run_dir = simulation_db.simulation_run_dir(data)
-        jhash = template_common.report_parameters_hash(data)
+        jhash = sirepo.sim_data.get_class(data).compute_job_hash(data)
         status = runner_client.report_job_status(run_dir, jhash)
         is_running = status is runner_client.JobStatus.RUNNING
         rep = simulation_db.report_info(data)
@@ -938,7 +926,7 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
                 'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
+                'computeJobHash': rep.cached_hash,
                 'simulationId': rep.cached_data['simulationId'],
                 'simulationType': rep.cached_data['simulationType'],
             }
@@ -1034,7 +1022,7 @@ def _simulation_run_status(data, quiet=False):
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
                 'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
+                'computeJobHash': rep.cached_hash,
                 'simulationId': rep.cached_data['simulationId'],
                 'simulationType': rep.cached_data['simulationType'],
             }

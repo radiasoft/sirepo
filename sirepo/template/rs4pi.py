@@ -45,7 +45,6 @@ _DICOM_CLASS = {
     'RT_STRUCT': '1.2.840.10008.5.1.4.1.1.481.3',
     'DETATCHED_STUDY': '1.2.840.10008.3.1.2.3.1',
 }
-_BEAMLIST_FILENAME = 'beamlist_72deg.txt'
 _DICOM_DIR = 'dicom'
 _DICOM_MAX_VALUE = 1000
 _DICOM_MIN_VALUE = -1000
@@ -207,18 +206,6 @@ def import_file(request, lib_dir=None, tmp_dir=None):
     return data
 
 
-def lib_files(data, source_lib):
-    return _SIM_DATA.lib_file_abspath([_BEAMLIST_FILENAME], source_lib)
-
-
-def models_related_to_report(data):
-    if data['report'] == 'doseCalculation':
-        return []
-    if data['report'] == 'dvhReport':
-        return [data['report'], 'dicomDose']
-    return [data['report']]
-
-
 def prepare_for_client(data):
     if _TMP_INPUT_FILE_FIELD in data['models']['simulation']:
         _move_import_file(data)
@@ -256,13 +243,12 @@ def write_parameters(data, run_dir, is_parallel):
                 _SIM_DATA.resource(DOSE_CALC_SH).new(ext='.jinja'),
                 {
                     'prescription': prescription,
-                    'beamlist': run_dir.join(_BEAMLIST_FILENAME),
+                    'beamlist': run_dir.join(_SIM_DATA.RS4PI_BEAMLIST_FILENAME),
                     'dicom_zip': _sim_file(data['simulationId'], _ZIP_FILE_NAME),
                 },
                 output=run_dir.join(DOSE_CALC_SH),
                 strict_undefined=True,
-            ),
-
+            )
 
 
 def _calculate_domain(frame):
