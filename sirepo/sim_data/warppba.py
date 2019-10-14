@@ -14,6 +14,8 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes'))
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -101,3 +103,23 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in 'beamAnimation', 'fieldAnimation', 'particleAnimation':
             cls.update_model_defaults(dm[m], m)
         cls._organize_example(data)
+
+
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r not in ('beamPreviewReport', 'laserPreviewReport'):
+            return []
+        return cls._non_analysis_fields(data, r) + [
+            'simulation.sourceType',
+            'electronBeam',
+            'electronPlasma',
+            'laserPulse',
+            'simulationGrid',
+        ]
+
+
+    @classmethod
+    def _lib_files(cls, data):
+        return []

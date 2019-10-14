@@ -43,7 +43,6 @@ _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.h5'
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = 'potential.h5'
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
 _STL_POLY_FILE = 'polygons.h5'
 
 def background_percent_complete(report, run_dir, is_running):
@@ -68,7 +67,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'z': [0, _meters(grid['plate_spacing'])]
     }
     plot_range = ranges[dimension]
-    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _SIM_DATA.is_3d(data))
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _SIM_DATA.warpvnd_is_3d(data))
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -77,7 +76,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
         'summaryData': {
-            'runMode3d': _SIM_DATA.is_3d(data)
+            'runMode3d': _SIM_DATA.warpvnd_is_3d(data)
         },
     }
 
@@ -87,7 +86,7 @@ def generate_field_report(data, run_dir, args=None):
     grid = data.models.simulationGrid
     axes, slice_axis, phi_slice, show3d = _field_input(args)
     slice_text = ' ({} = {}µm)'.format(slice_axis, round(phi_slice, 3)) \
-        if _SIM_DATA.is_3d(data) else ''
+        if _SIM_DATA.warpvnd_is_3d(data) else ''
 
     f = str(py.path.local(run_dir).join(_POTENTIAL_FILE))
     with h5py.File(f, 'r') as hf:
@@ -107,7 +106,7 @@ def generate_field_report(data, run_dir, args=None):
                      ' require adjustments to the Grid Points and Channel Width.',
         }
 
-    res = _field_plot(values, axes, grid, _SIM_DATA.is_3d(data))
+    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
     res.title= 'ϕ Across Whole Domain' + slice_text
     res.global_min = np.min(potential) if vals_equal else None
     res.global_max = np.max(potential) if vals_equal else None
@@ -207,33 +206,6 @@ def get_simulation_frame(run_dir, data, model_data):
     if model_name == 'fieldComparisonAnimation':
         return generate_field_comparison_report(md, run_dir, args=args)
     raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
-
-
-def lib_files(data, source_lib):
-    res = []
-    for m in data.models.conductorTypes:
-        if m.type == 'stl':
-            res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
-    return _SIM_DATA.lib_file_abspath(res, source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    if data['report'] == 'animation' or data['report'] == 'optimizerAnimation':
-        return []
-    res = ['simulationGrid']
-    res.append(_non_opt_fields_to_array(data.models.beam))
-    for container in ('conductors', 'conductorTypes'):
-        for m in data.models[container]:
-            res.append(_non_opt_fields_to_array(m))
-    res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
-    return res
 
 
 def new_simulation(data, new_simulation_data):
@@ -467,7 +439,7 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = _meters(grid['plate_spacing'])
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    if _SIM_DATA.is_3d(data):
+    if _SIM_DATA.warpvnd_is_3d(data):
         cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
         cathode_area = _meters(grid['channel_width'])
@@ -517,24 +489,24 @@ def _extract_field(field, data, data_file, args=None):
         dt = hf['data/{}'.format(data_file.iteration)].attrs['dt']
 
     slice_text = ' ({} = {}µm)'.format(slice_axis, round(field_slice, 3)) \
-        if _SIM_DATA.is_3d(data) else ''
+        if _SIM_DATA.warpvnd_is_3d(data) else ''
 
     if field == 'phi':
         title = 'ϕ'
-        if not _SIM_DATA.is_3d(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             values = field_values[0, :, :]
         else:
             values = _field_values(field_values, axes, field_slice, grid)
     else:
         title = 'E {}'.format(field)
-        if not _SIM_DATA.is_3d(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             values = field_values[:, 0, :]
         else:
             values = _field_values(field_values, axes, field_slice, grid)
 
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
 
-    res = _field_plot(values, axes, grid, _SIM_DATA.is_3d(data))
+    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
     res.title = '{}{} for Time: {:.4e}s, Step {}'.format(
         title, slice_text, data_time, data_file.iteration
     )
@@ -552,7 +524,7 @@ def _extract_impact_density(run_dir, data):
             'error': 'Cannot load density file'
         }
     if 'error' in plot_info:
-        if not _SIM_DATA.is_3d(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             return plot_info
         # for 3D, continue on so particle trace is still rendered
         plot_info = {
@@ -571,7 +543,7 @@ def _extract_impact_density(run_dir, data):
     dy = 0
     dz = plot_info['dz']
 
-    if _SIM_DATA.is_3d(data):
+    if _SIM_DATA.warpvnd_is_3d(data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
@@ -795,7 +767,7 @@ def _generate_parameters_file(data):
     v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
-    v['is3D'] = _SIM_DATA.is_3d(data)
+    v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
     v['anode'] = _prepare_anode(data)
     v['saveIntercept'] = v['anode']['isReflector']
     for c in data.models.conductors:
@@ -866,7 +838,7 @@ def _mpi_core_count(run_dir):
 def _non_opt_fields_to_array(model):
     res = []
     for f in model:
-        if not _is_opt_field(f) and f not in _REPORT_STYLE_FIELDS:
+        if not _is_opt_field(f) and f not in _SIM_DATA.ANALYSIS_ONLY_FIELDS:
             res.append(model[f])
     return res
 
@@ -958,7 +930,7 @@ def _prepare_conductors(data):
         #pkdp('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
-        if not _SIM_DATA.is_3d(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
         ct.file = _SIM_DATA.lib_file_abspath(
@@ -972,7 +944,7 @@ def _prepare_conductors(data):
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])
-        if not _SIM_DATA.is_3d(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             c.yCenter = 0
     return data.models.conductors
 

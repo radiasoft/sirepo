@@ -45,6 +45,7 @@ def template_globals(sim_type=None):
 
 
 class SimDataBase(object):
+    ANALYSIS_ONLY_FIELDS = frozenset()
 
     WATCHPOINT_REPORT = 'watchpointReport'
 
@@ -52,11 +53,8 @@ class SimDataBase(object):
 
     _TEMPLATE_FIXUP = 'sim_data_template_fixup'
 
-    #: may be overridden by subclass
-    _ANALYSIS_JOB_ONLY_FIELDS = frozenset()
-
     @classmethod
-    def compute_job_hash(cls, data):
+    def compute_job_hash(cls, data, changed=None):
         """Hash fields related to data and set reportParametersHash
 
         Only needs to be unique relative to the report, not globally unique
@@ -64,40 +62,44 @@ class SimDataBase(object):
         cache checks slower.
 
         Args:
-            data (dict): simulation
+            data (dict): simulation data
+            changed (callable): called when value changed
         Returns:
-            dict: data
+            bytes: hash value
         """
-        h = data.get('computeJobHash')
-        if h:
-            return h
-        pkcollections.unchecked_del(data, 'reportParametersHash')
-need to save the json in this case
+        c = PKDict(changed=False)
 
-save mtime of the file, because that's start time
-
-        #TODO:
-
-
-XXXXXXXXXXXadd verions in there
-
-        fields = sirepo.sim_data.get_class(data.simulationType).compute_job_fields(data)
-        res = hashlib.md5()
-        dm = data['models']
-        for f in fields:
-            if isinstance(m, pkconfig.STRING_TYPES):
+        def _op():
+            c.changed = True
+            pkcollections.unchecked_del(data, 'reportParametersHash')
+            res = hashlib.md5()
+            m = data['models']
+            for f in sorted(
+                sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
+            ):
+                assert isinstance(m, pkconfig.STRING_TYPES)
                 x = f.split('.')
-                v = dm[x[0]][x[1]] if len(x) > 1 else dm[x[0]]
-            else:
-                # probably an mtime for a file
-                v = m
-            res.update(json.dumps(v, sort_keys=True, allow_nan=False).encode())
-        data['reportParametersHash'] = res.hexdigest()
-    return data['reportParametersHash']
+                res.update(
+                    json.dumps(
+                        m[x[0]][x[1]] if len(x) > 1 else m[x[0]],
+                        sort_keys=True,
+                        allow_nan=False,
+                    ).encode(),
+                )
+            # lib_files returns sorted list
+            res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
+            # this is good enough versioning, because "v" does not
+            # exist in hex, and we know we only need a few numbers.
+            # We don't want anything but characters, because the
+            # way animation_args and other serializations of this value
+            # are used.
+            return 'v2' + res.hexdigest()
 
-
-
-        return cls._compute_job_fields(data) + [f.mtime() for f in cls.lib_files(data)]
+        try:
+            return data.pksetdefault(computeJobHash=_op)
+        finally:
+            if c.changed:
+                changed()
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -294,30 +296,12 @@ XXXXXXXXXXXadd verions in there
     def _force_recompute(cls):
         """Random value to force a compute_job to recompute.
 
-        Used by `compute_job_fields`
+        Used by `_compute_job_fields`
 
         Returns:
             str: random value
         """
         return sirepo.util.random_base62()
-
-    @classmethod
-    def _lib_file_mtimes(cls, lib_files=None, data=None):
-        """Modified time of `lib_file`
-
-        For compute_job_fields only. Will return 0 if file doesn't exist.
-
-        Args:
-            lib_files (iter): lib_files related file
-        Returns:
-            float: mtime of lib_file or 0
-        """
-
-add to compute_job_fields
-blow up if missing
-
-        x = lib_files or cls.lib_files(data)
-        return [f.mtime() for f in lib_files if f.exists()]
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
@@ -368,7 +352,7 @@ blow up if missing
         Returns:
             list: compute_fields fields for model or whole model
         """
-        s = set(data.models.get(model, {}).keys()) - cls._ANALYSIS_ONLY_FIELDS
+        s = set(data.models.get(model, {}).keys()) - cls.ANALYSIS_ONLY_FIELDS
         if not s:
             return [model]
         return ['{}.{}'.format(model, x) for x in s]

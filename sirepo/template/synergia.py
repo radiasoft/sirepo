@@ -95,10 +95,6 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def _SIM_DATA.animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
@@ -183,22 +179,6 @@ def label(field, enum_labels=None):
     if field not in _UNITS:
         return res
     return '{} [{}]'.format(res, _UNITS[field])
-
-
-def lib_files(data, source_lib):
-    return _SIM_DATA.lib_file_abspath(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == 'animation':
-        return []
-    res = ['beamlines', 'elements']
-    if 'bunchReport' in r:
-        res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif 'twissReport' in r:
-        res += ['simulation.{}'.format(_beamline_id_for_report(r))]
-    return res
 
 
 def parse_error_log(run_dir):
@@ -350,10 +330,6 @@ def _append_to_lattice(state, madx_text):
         state['lattice'] = state['lattice'][:-1]
         state['lattice'] += ';\n'
     state['lattice'] += madx_text
-
-
-def _beamline_id_for_report(r):
-    return 'activeBeamlineId' if r == 'twissReport' else 'visualizationBeamlineId'
 
 
 #TODO(pjm): from template.elegant
@@ -534,7 +510,7 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
     report = data['report'] if 'report' in data else ''
-    beamline_id_field = _beamline_id_for_report(report)
+    beamline_id_field = _SIM_DATA.synergia_beamline_id_for_report(report)
 
     selected_beamline_id = 0
     sim = data['models']['simulation']
@@ -932,14 +908,6 @@ def _plot_values(h5file, field):
     if dimension == 3:
         return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
     assert False, dimension
-
-
-def _simulation_files(data):
-    res = []
-    bunch = data.models.bunch
-    if bunch.distribution == 'file':
-        res.append(_SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile))
-    return res
 
 
 def _sort_beamlines_by_length(lines):

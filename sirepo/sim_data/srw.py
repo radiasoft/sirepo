@@ -16,7 +16,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    _ANALYSIS_ONLY_FIELDS = frozenset(
+    ANALYSIS_ONLY_FIELDS = frozenset((
         'aspectRatio',
         'colorMap',
         'copyCharacteristic',
@@ -28,7 +28,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         'plotScale',
         'rotateAngle',
         'rotateReshape',
-    )
+    ))
+
+    SRW_RUN_ALL_MODEL = 'simulation'
 
     __EXAMPLE_FOLDERS = PKDict({
         'Bending Magnet Radiation': '/SR Calculator',
@@ -56,8 +58,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         undulatorTable=['zip'],
         arbitraryField=['dat', 'txt'],
     )
-
-    SRW_RUN_ALL_MODEL = 'simulation'
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -288,7 +288,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if r == 'mirrorReport':
             return [
                 'mirrorReport.heightProfileFile',
-                _lib_file_datetime(data['models']['mirrorReport']['heightProfileFile']),
                 'mirrorReport.orientation',
                 'mirrorReport.grazingAngle',
                 'mirrorReport.heightAmplification',
@@ -298,8 +297,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             'simulation.sourceType', 'tabulatedUndulator', 'undulator',
             'arbitraryMagField',
         ]
-        if cls.srw_uses_tabulated_zipfile(data):
-            res += cls._lib_file_mtimes(data.models.tabulatedUndulator.magneticFile)
         watchpoint = cls.is_watchpoint(r)
         if watchpoint or r == 'initialIntensityReport':
             res.extend([
@@ -326,11 +323,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 del item_copy['title']
                 res.append(item_copy)
                 res.append(propagation[str(item['id'])])
-                if item['type'] == 'mirror':
-                    res.append(_lib_file_datetime(item['heightProfileFile']))
-                elif item['type'] == 'sample':
-                    res.append(_lib_file_datetime(item['imageFile']))
-                elif item['type'] == 'watch' and item['id'] == wid:
+                if item['type'] == 'watch' and item['id'] == wid:
                     break
             if beamline[-1]['id'] == wid:
                 res.append('postPropagation')

@@ -12,16 +12,15 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def compute_job_fields(cls, data):
+    def fixup_old_data(cls, data):
+        cls._init_models(data.models)
+
+    @classmethod
+    def _compute_job_fields(cls, data):
         return [
             data.report,
             'dog',
         ]
-
-    @classmethod
-    def fixup_old_data(cls, data):
-        cls._init_models(data.models)
-
 
     @classmethod
     def _lib_files(cls, , *args, **kwargs):

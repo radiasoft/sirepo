@@ -26,8 +26,6 @@ _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-
 
 def background_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir)
@@ -152,10 +150,6 @@ def generate_parameters_file(data, is_parallel=False):
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
-def _SIM_DATA.animation_name(data):
-    return 'animation'
-
-
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     data_file = open_data_file(run_dir, frame_index)
@@ -194,31 +188,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
 def import_file(*args, **kwargs):
     """No custom import"""
     raise ValueError('import of file not supported')
-
-
-def lib_files(data, source_lib):
-    """No lib files"""
-    return []
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    if r not in ('beamPreviewReport', 'laserPreviewReport'):
-        return []
-    return template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'simulation.sourceType',
-        'electronBeam',
-        'electronPlasma',
-        'laserPulse',
-        'simulationGrid',
-    ]
 
 
 def new_simulation(data, new_simulation_data):

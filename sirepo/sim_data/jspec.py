@@ -12,23 +12,9 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    JSPEC_ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
+    ANALYSIS_ONLY_FIELDS = frozenset(('notes',))
 
-    @classmethod
-    def compute_job_fields(cls, data):
-        r = data.report
-        if r == 'rateCalculationReport':
-            return [
-                'cooler',
-                'electronBeam',
-                'electronCoolingRate',
-                'intrabeamScatteringRate',
-                'ionBeam',
-                'ring',
-            ]
-        if r == 'twissReport':
-            return ['twissReport', 'ring']
-        return []
+    JSPEC_ELEGANT_TWISS_FILENAME = 'twiss_output.filename.sdds'
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -87,6 +73,22 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def resource_files(cls):
         return cls.resource_glob('*.tfs')
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r == 'rateCalculationReport':
+            return [
+                'cooler',
+                'electronBeam',
+                'electronCoolingRate',
+                'intrabeamScatteringRate',
+                'ionBeam',
+                'ring',
+            ]
+        if r == 'twissReport':
+            return ['twissReport', 'ring']
+        return []
 
     @classmethod
     def _lib_files(cls, data):

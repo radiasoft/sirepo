@@ -36,8 +36,6 @@ _DEFAULT_DRIFT_ELEMENT = 'DRIFT 1e-16 1e+16 2' + "\n"
 
 _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return {
@@ -178,30 +176,6 @@ def get_simulation_frame(run_dir, data, model_data):
         )
         return extract_parameter_report(args, run_dir)
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    if r == 'animation':
-        return []
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'beam',
-        'ellipticalDistribution',
-        'energyPhaseDistribution',
-        'solenoid',
-        'sphericalDistribution',
-        'twissDistribution',
-    ]
-    for f in template_common.lib_files(data):
-        res.append(f.mtime())
-    return res
 
 
 def python_source_for_model(data, model):

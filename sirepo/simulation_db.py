@@ -680,12 +680,11 @@ def report_info(data):
     return cached data if it's there and valid.
 
     Args:
-        data (dict): parameters identifying run_dir and models or reportParametersHash
+        data (dict): parameters identifying run_dir and models or computeJobHash
 
     Returns:
         Dict: report parameters and hashes
     """
-    # Sets data['reportParametersHash']
     import sirepo.sim_data
 
     rep = pkcollections.Dict(
@@ -697,16 +696,27 @@ def report_info(data):
         parameters_changed=False,
         run_dir=simulation_run_dir(data),
     )
-    rep.input_file = json_filename(template_common.INPUT_BASE_NAME, rep.run_dir)
-    rep.job_status = read_status(rep.run_dir)
-    rep.req_hash = sirepo.sim_data.get_class(data).compute_job_hash(cd)
+    rep.pkupdate(
+        input_file=json_filename(template_common.INPUT_BASE_NAME, rep.run_dir),
+        job_status=read_status(rep.run_dir),
+        req_hash=sirepo.sim_data.get_class(data).compute_job_hash(data),
+    )
     if not rep.run_dir.check():
         return rep
     #TODO(robnagler) Lock
     try:
-        cd = read_json(rep.input_file)
-        rep.cached_hash = sirepo.sim_data.get_class(cd).compute_job_hash(cd)
-        rep.cached_data = cd
+        rep.cached_data = cd = read_json(rep.input_file)
+
+        def _w():
+            with _global_lock:
+                write_json(rep.input_file, cd)
+
+        rep.cached_hash = sirepo.sim_data.get_class(
+            cd,
+        ).compute_job_hash(
+            cd,
+            changed=_w,
+        )
         if rep.req_hash == rep.cached_hash:
             rep.cache_hit = True
             return rep
@@ -721,7 +731,7 @@ def report_info(data):
 
 def save_new_example(data):
     data.models.simulation.isExample = True
-    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)a
+    return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
 
 
 def save_new_simulation(data, do_validate=True):

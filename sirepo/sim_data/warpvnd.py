@@ -14,6 +14,8 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice'))
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -43,7 +45,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'particleAnimation',
                 'simulation',
             ),
-            dynamic=lambda m: cls._dynamic_defaults(data, m),
+            dynamic=lambda m: cls.__dynamic_defaults(data, m),
         )
         pkcollections.unchecked_del(dm.particle3d, 'joinEvery')
 #TODO(robnagler) is this a denormalization of conductors?
@@ -64,11 +66,23 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def is_3d(cls, data):
+    def warpvnd_is_3d(cls, data):
         return data.models.simulationGrid.simulation_mode == '3d'
 
     @classmethod
-    def _dynamic_defaults(cls, data, model):
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if data.report == cls.animation_name() or data['report'] == 'optimizerAnimation':
+            return []
+        res = ['simulationGrid']
+        res.append(_non_opt_fields_to_array(data.models.beam))
+        for container in ('conductors', 'conductorTypes'):
+            for m in data.models[container]:
+                res.append(_non_opt_fields_to_array(m))
+        return res + cls._non_analysis_fields(data, r)
+
+    @classmethod
+    def __dynamic_defaults(cls, data, model):
         """defaults that depend on the current data"""
         if not model.startswith('fieldComparison'):
             return PKDict()
@@ -86,3 +100,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             zCell2=int(g.num_z / 2.),
             zCell3=g.num_z,
         )
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        for m in data.models.conductorTypes:
+            if m.type == 'stl':
+                res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
+        return res

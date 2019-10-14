@@ -11,7 +11,7 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
-    _ANALYSIS_ONLY_FIELDS = frozenset('colorMap', 'notes', 'aspectRatio')
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'aspectRatio'))
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -64,7 +64,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         #TODO(pjm): only include items up to the current watchpoint
         if cls.is_watchpoint(r):
             res.append('beamline')
-        return res + cls._lib_file_mtimes(data)
+        return res
 
     @classmethod
     def _lib_files(cls, data, *args, **kwargs):

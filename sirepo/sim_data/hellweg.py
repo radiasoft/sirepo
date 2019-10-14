@@ -11,6 +11,8 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
 
+    ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes'))
+
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
@@ -37,6 +39,21 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
         cls._organize_example(data)
 
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r == cls.animation_name():
+            return []
+        return _cls._non_analysis_fields(data, r) + [
+            'beam',
+            'ellipticalDistribution',
+            'energyPhaseDistribution',
+            'solenoid',
+            'sphericalDistribution',
+            'twissDistribution',
+        ]
+
+    @classmethod
     def _lib_files(cls, data):
         res = []
         s = data.models.solenoid
