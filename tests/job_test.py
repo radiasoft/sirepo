@@ -104,6 +104,7 @@ def test_myapp():
                 simulationType=data.simulationType,
             ),
         )
+
         # for _ in range(10):
         #     if run.state == 'completed':
         #         break

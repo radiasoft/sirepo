@@ -83,13 +83,10 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_compute(msg, template):
-    pkdp('starting compute')
     msg.run_dir = pkio.py_path(msg.run_dir)
     with pkio.save_chdir('/'):
-        pkdp('after save_chdir  before remove')
         pkio.unchecked_remove(msg.run_dir)
         pkio.mkdir_parent(msg.run_dir)
-        pkdp('after remove')
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
@@ -98,7 +95,6 @@ def _do_compute(msg, template):
     run_log_path = msg.run_dir.join(template_common.RUN_LOG)
     cmd = ['pyenv', 'exec'] + cmd
     with open(str(run_log_path), 'a+b') as run_log, open(os.devnull, 'w') as FNULL:
-        pkdp('start')
         p = None
         try:
             p = subprocess.Popen(
@@ -109,16 +105,12 @@ def _do_compute(msg, template):
                 stderr=run_log,
                 env=_subprocess_env(),
             )
-            pkdp('begin wait')
             p.wait()
-            pkdp('end wait')
             p = None
         finally:
             if p:
-                pkdp('terminate')
                 p.terminate()
                 # TODO(e-carlin): kill
-    pkdp('done')
     # if hasattr(template, 'remove_last_frame'):
     #     template.remove_last_frame(msg.run_dir)
 

@@ -41,6 +41,7 @@ class AgentMsg(PKDict):
         d.set_handler(self.handler)
         i = self.content.get('op_id')
         if not i:
+            # o = self.content.get()
             # TODO(e-carlin): op w/o id. Store the state in the job.
             return
         d.ops[i].set_result(self.content)
@@ -61,23 +62,20 @@ class ServerReq(PKDict):
     async def do(self):
         c = self.content
         if c.api == 'api_runStatus':
+            # TODO(e-carlin): handle error from get_compute_status
             self.handler.write(await _Job.get_compute_status(self))
             return
         elif c.api == 'api_runSimulation':
-            pkdp('in runSim getting status')
+            # TODO(e-carlin): handle error from get_compute_status
             s = await _Job.get_compute_status(self)
-            pkdp('got back status {}', s)
             if s not in sirepo.job.ALREADY_GOOD_STATUS:
                 # TODO(e-carlin): Handle forceRun
                 # TODO(e-carlin): Handle parametersChanged
-                pkdp('not already good going to run')
                 await _Job.run(self)
-                pkdp('done with run')
+                self.handler.write({}) # TODO(e-carlin): What should be returned in response?
+                return
 
 
-            pkdp('********************************')
-            pkdp(s)
-            pkdp('********************************')
         raise AssertionError('api={} unkown', c.api)
 
 
@@ -109,6 +107,7 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         d = await sirepo.driver.get_instance_for_job(self)
+        # TODO(e-carlin): handle error response from do_op
         r = await d.do_op(
             op=sirepo.job.OP_COMPUTE_STATUS,
             jid=self.req.compute_jid,
@@ -123,17 +122,13 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         d = await sirepo.driver.get_instance_for_job(self)
+        # TODO(e-carlin): handle error response from do_op
         r = await d.do_op(
             op=sirepo.job.OP_RUN,
             jid=self.req.compute_jid,
             **self.req.content,
         )
-        pkdp('************************************')
-        pkdp(r)
-        pkdp('************************************')
-        import time
-        time.sleep(10000)
-        assert False
+        return r
 
     @classmethod
     def _jid_for_req(cls, req):

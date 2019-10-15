@@ -127,9 +127,6 @@ class DriverBase(PKDict):
     async def do_op(self, **kwargs):
         kwargs.setdefault('op_id', sirepo.job.unique_key())
         m = PKDict(kwargs)
-        pkdp('444444444444444444444444444yy')
-        pkdp(m)
-        pkdp('444444444444444444444444444yy')
         o = job_supervisor.Op(msg=m)
         self.ops[m.op_id] = o
         await self.send_lock.acquire()
