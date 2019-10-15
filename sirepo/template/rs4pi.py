@@ -240,7 +240,7 @@ def write_parameters(data, run_dir, is_parallel):
                     'oar': oar_names,
                 })
             pkjinja.render_file(
-                _SIM_DATA.resource(DOSE_CALC_SH).new(ext='.jinja'),
+                _SIM_DATA.resource_path(DOSE_CALC_SH).new(ext='.jinja'),
                 {
                     'prescription': prescription,
                     'beamlist': run_dir.join(_SIM_DATA.RS4PI_BEAMLIST_FILENAME),

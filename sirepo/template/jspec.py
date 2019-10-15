@@ -51,8 +51,6 @@ _OPTIONAL_MADX_TWISS_COLUMNS = ['NAME', 'TYPE', 'COUNT', 'DY', 'DPY']
 
 _X_FIELD = 't'
 
-_REPORT_STYLE_FIELDS = ['notes']
-
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:

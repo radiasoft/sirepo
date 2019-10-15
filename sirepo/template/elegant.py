@@ -468,9 +468,10 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _simulation_files(data):
-        if re.search(r'SCRIPT-commandFile', f):
-            os.chmod(str(run_dir.join(f)), stat.S_IRUSR | stat.S_IXUSR)
+    for f in _SIM_DATA.lib_files(data):
+        b = f.basename
+        if re.search(r'SCRIPT-commandFile', b):
+            os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
 
 def _add_beamlines(beamline, beamlines, ordered_beamlines):
@@ -886,12 +887,6 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
         state['commands'] += '\n' + '&{}'.format(model['_type']) + '\n'
         if model['_type'] == 'run_setup':
             state['commands'] += '  semaphore_file = {},'.format(_ELEGANT_SEMAPHORE_FILE) + '\n'
-
-
-def _iterator_input_files(state, model, element_schema=None, field_name=None):
-    if element_schema:
-        if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append(_SIM_DATA.lib_file_name(_SIM_DATA.elegant_model_name(model), field_name, model[field_name]))
 
 
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):

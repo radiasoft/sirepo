@@ -5,15 +5,20 @@ u"""Type-based simulation operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern import pkcollections
 from pykern import pkinspect
+from pykern import pkio
 from pykern import pkresource
 from pykern.pkdebug import pkdp
-from sirepo import simulation_db
 import importlib
 import inspect
 import re
 import sirepo.util
+
+
+#: root directory for template resources
+RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
 
 
 def get_class(type_or_data):
@@ -133,7 +138,7 @@ class SimDataBase(object):
         Returns:
             bool: True if `filename` in use by `data`
         """
-        return any(f for cls.lib_files(data) if f.basename == filename)
+        return any(f for f in cls.lib_files(data) if f.basename == filename)
 
     @classmethod
     def is_watchpoint(cls, name):
@@ -156,7 +161,7 @@ class SimDataBase(object):
         return sorted(set((source_lib.join(f, abs=1) for f in files)))
 
     @classmethod
-    def lib_files(data, source_lib=None):
+    def lib_files(cls, data, source_lib=None):
         """Return list of files used by the simulation
 
         Args:
@@ -165,18 +170,20 @@ class SimDataBase(object):
         Returns:
             list: py.path.local to files
         """
+        from sirepo import simulation_db
+
         res = []
         for f in cls.lib_file_abspath(
             cls._lib_files(data),
             source_lib or simulation_db.simulation_lib_dir(cls.sim_type()),
         ):
             res.append(f)
-            if f.exists(file=1):
+            if f.check(file=True):
                 continue
-            r = cls.resource(f.basename)
-            if not r.exists(file=1):
+            r = cls.resource_path(f.basename)
+            if not r.check(file=True):
                 raise sirepo.util.UserAlert(
-                    'Simulation library file "{}" does not exist',
+                    'Simulation library file "{}" does not exist'.format(f.basename),
                     'file={} not found, and no resource={}',
                     f,
                     r,
@@ -207,7 +214,7 @@ class SimDataBase(object):
 
     @classmethod
     def lib_files_for_type(cls, file_type):
-        return cls._files_for_type(file_type, lambda f: f.purebasename):
+        return cls._files_for_type(file_type, lambda f: f.purebasename)
 
     @classmethod
     def model_defaults(cls, name):
@@ -219,20 +226,8 @@ class SimDataBase(object):
         return res
 
     @classmethod
-    def resource(cls, filename):
-        """Static resource (package_data) files for simulation
-
-        Returns:
-            py.path.local: absolute path to folder
-        """
-        return cls.resource_dir().join(filename)
-
-
-    @classmethod
     def resource_dir(cls):
-        return cls._memoize(
-            pkio.py_path(pkresource.filename('template')).join(cls.sim_type()),
-        )
+        return cls._memoize(RESOURCE_DIR.join(cls.sim_type()))
 
     @classmethod
     def resource_files(cls):
@@ -250,20 +245,26 @@ class SimDataBase(object):
         Returns:
             patter: absolute path to folder
         """
-        return pkio.sorted_glob(cls.resource_dir().resource(pattern))
+        return pkio.sorted_glob(cls.resource_dir().join(cls.resource_path(pattern)))
 
+    @classmethod
+    def resource_path(cls, filename):
+        """Static resource (package_data) files for simulation
+
+        Returns:
+            py.path.local: absolute path to folder
+        """
+        return cls.resource_dir().join(filename)
 
     @classmethod
     def schema(cls):
+        from sirepo import simulation_db
+
         return cls._memoize(simulation_db.get_schema(cls.sim_type()))
 
     @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
-
-    @classmethod
-    def template_fixup_set(cls, data):
-        data[cls._TEMPLATE_FIXUP] = True
 
     @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
@@ -283,6 +284,8 @@ class SimDataBase(object):
 
     @classmethod
     def _files_for_type(cls, file_type, op, dir_path=None, extensions=None):
+        from sirepo import simulation_db
+
         res = []
         d = dir_path or simulation_db.simulation_lib_dir(cls.sim_type())
         for e in extensions or [file_type]:
@@ -370,3 +373,7 @@ class SimDataBase(object):
             del data[cls._TEMPLATE_FIXUP]
             return True
         return False
+
+    @classmethod
+    def _template_fixup_set(cls, data):
+        data[cls._TEMPLATE_FIXUP] = True

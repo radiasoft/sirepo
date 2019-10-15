@@ -65,7 +65,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 callback(state, m)
                 for k in sorted(m):
                     if k in e:
-                        callback(state, m, s[k], k)
+                        callback(state, m, e[k], k)
 
     @classmethod
     def elegant_max_id(cls, data):
@@ -80,7 +80,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def elegant_model_name(model):
+    def elegant_model_name(cls, model):
         return 'command_{}'.format(model._type) if '_type' in model else model.type
 
     @classmethod
@@ -92,7 +92,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         r = data.report
         res = []
         if r == 'twissReport' or 'bunchReport' in r:
-            res += ['bunch', 'bunchSource', 'bunchFile'] \
+            res += ['bunch', 'bunchSource', 'bunchFile']
         if r == 'twissReport':
             res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
         return res
@@ -100,9 +100,14 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_files(cls, data):
         res = []
-        _iterate_model_fields(data, res, _iterator_input_files)
+        assert data['models']['bunchFile']['sourceFile'] != "None"
+        cls.elegant_iterator(data, res, cls.__iterator_input_files)
         if data['models']['bunchFile']['sourceFile']:
-            res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
+            res.append('{}-{}.{}'.format(
+                'bunchFile',
+                'sourceFile',
+                data['models']['bunchFile']['sourceFile'],
+            ))
         return res
 
     @classmethod
@@ -173,3 +178,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             x._id = i
             res.append(cls.__create_command(m, x))
         return res
+
+    @classmethod
+    def __iterator_input_files(cls, state, model, element_schema=None, field_name=None):
+        if element_schema:
+            if model[field_name] and element_schema[1].startswith('InputFile'):
+                state.append(cls.lib_file_name(cls.elegant_model_name(model), field_name, model[field_name]))

@@ -212,8 +212,7 @@ def flatten_data(d, res, prefix=''):
 def generate_parameters_file(data):
     v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)
-    res = render_jinja('.', v, name='common-header.py')
-    return res, v
+    return render_jinja(None, v, name='common-header.py'), v
 
 
 def h5_to_dict(hf, path=None):
@@ -341,8 +340,11 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     Returns:
         str: source text
     """
+    d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
+        else sirepo.sim_data.RESOURCE_DIR
     return pkjinja.render_file(
-        sirepo.sim_data.get_class(sim_type).resource_dir().join(name).new(ext='.jinja'),
+        # append .jinja, because file may already have an extension
+        d.join(name) + '.jinja',
         v,
     )
 

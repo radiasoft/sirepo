@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import copy
 import math
 import numpy
 import re
@@ -152,10 +153,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             list: py.path.local objects
         """
         res = []
-        for k, v in csl.srw_predefined().items():
+        for k, v in cls.srw_predefined().items():
             for v2 in v:
                 try:
-                    res.append(_SIM_DATA.resource(v2['fileName']))
+                    res.append(cls.resource_path(v2['fileName']))
                 except KeyError:
                     pass
         return res
@@ -164,6 +165,10 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
         model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
+
+    @classmethod
+    def srw_format_float(cls, v):
+        return float('{:.8f}'.format(v))
 
     @classmethod
     def srw_is_arbitrary_source(cls, sim):
@@ -228,52 +233,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def srw_is_valid_file_type(cls, file_type, path):
         return path.ext[1:] in cls.__FILE_TYPE_EXTENSIONS[file_type]
-
-    @classmethod
-    def srw_predefined(cls):
-        import srwl_uti_src
-        beams = []
-        for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
-            info = beam[1]
-            # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
-            beams.append(
-                process_beam_parameters(PKDict(
-                    name=beam[0],
-                    current=info[0],
-                    energy=info[1],
-                    rmsSpread=info[2],
-                    horizontalEmittance=_format_float(info[3] * 1e9),
-                    horizontalBeta=info[4],
-                    horizontalAlpha=info[5],
-                    horizontalDispersion=info[6],
-                    horizontalDispersionDerivative=info[7],
-                    verticalEmittance=_format_float(info[8] * 1e9),
-                    verticalBeta=info[9],
-                    verticalAlpha=info[10],
-                    verticalDispersion=0,
-                    verticalDispersionDerivative=0,
-                    energyDeviation=0,
-                    horizontalPosition=0,
-                    verticalPosition=0,
-                    drift=0.0,
-                    isReadOnly=True,
-                )),
-            )
-
-        def f(file_type):
-            return cls._files_for_type(
-                file_type,
-                lambda f: PKDict(fileName=f.basename),
-                dir_path=cls.resource_dir(),
-            )
-
-        res = PKDict(
-            beams=beams,
-            magnetic_measurements=f('undulatorTable')
-            mirrors=f('mirror'),
-            sample_images=f('sample')
-        )
-        return cls._memoize(res)
 
     @classmethod
     def srw_uses_tabulated_zipfile(cls, data):
@@ -349,3 +308,119 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if m[k] and t in ('MirrorFile', 'ImageFile'):
                         res.append(m[k])
         return res
+
+
+
+#### predefined
+    @classmethod
+    def srw_predefined(cls):
+        import srwl_uti_src
+
+        beams = []
+        for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
+            info = beam[1]
+            # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
+            beams.append(
+                cls.srw_process_beam_parameters(PKDict(
+                    name=beam[0],
+                    current=info[0],
+                    energy=info[1],
+                    rmsSpread=info[2],
+                    horizontalEmittance=cls.srw_format_float(info[3] * 1e9),
+                    horizontalBeta=info[4],
+                    horizontalAlpha=info[5],
+                    horizontalDispersion=info[6],
+                    horizontalDispersionDerivative=info[7],
+                    verticalEmittance=cls.srw_format_float(info[8] * 1e9),
+                    verticalBeta=info[9],
+                    verticalAlpha=info[10],
+                    verticalDispersion=0,
+                    verticalDispersionDerivative=0,
+                    energyDeviation=0,
+                    horizontalPosition=0,
+                    verticalPosition=0,
+                    drift=0.0,
+                    isReadOnly=True,
+                )),
+            )
+
+        def f(file_type):
+            return cls._files_for_type(
+                file_type,
+                lambda f: PKDict(fileName=f.basename),
+                dir_path=cls.resource_dir(),
+            )
+
+        res = PKDict(
+            beams=beams,
+            magnetic_measurements=f('undulatorTable'),
+            mirrors=f('mirror'),
+            sample_images=f('sample'),
+        )
+        return cls._memoize(res)
+
+    @classmethod
+    def __convert_ebeam_units(cls, field_name, value, to_si=True):
+        """Convert values from the schema to SI units (m, rad) and back.
+
+        Args:
+            field_name: name of the field in _SCHEMA['model']['electronBeam'].
+            value: value of the field.
+            to_si: if set to True, convert to SI units, otherwise convert back to the units in the schema.
+
+        Returns:
+            value: converted value.
+        """
+        def _invert_value(value):
+            return value ** -1 if to_si else value
+
+        s = cls.schema()
+        if field_name in s['model']['electronBeam'].keys():
+            label, field_type = s['model']['electronBeam'][field_name]
+            if field_type == 'Float':
+                if re.search('\[m(m|rad)\]', label):
+                    value *= _invert_value(1e3)
+                elif re.search('\[\xb5(m|rad)\]', label):  # mu
+                    value *= _invert_value(1e6)
+                elif re.search('\[n(m|rad)\]', label):
+                    value *= _invert_value(1e9)
+        return value
+
+
+    @classmethod
+    def srw_process_beam_parameters(cls, ebeam):
+        import srwlib
+
+        # if the beamDefinition is "twiss", compute the moments fields and set on ebeam
+        moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
+        for k in moments_fields:
+            if k not in ebeam:
+                ebeam[k] = 0
+        if 'beamDefinition' not in ebeam:
+            ebeam['beamDefinition'] = 't'
+
+        if ebeam['beamDefinition'] == 't':  # Twiss
+            model = copy.deepcopy(ebeam)
+            # Convert to SI units to perform SRW calculation:
+            for k in model:
+                model[k] = cls.__convert_ebeam_units(k, ebeam[k])
+            beam = srwlib.SRWLPartBeam()
+            beam.from_Twiss(
+                _e=model['energy'],
+                _sig_e=model['rmsSpread'],
+                _emit_x=model['horizontalEmittance'],
+                _beta_x=model['horizontalBeta'],
+                _alpha_x=model['horizontalAlpha'],
+                _eta_x=model['horizontalDispersion'],
+                _eta_x_pr=model['horizontalDispersionDerivative'],
+                _emit_y=model['verticalEmittance'],
+                _beta_y=model['verticalBeta'],
+                _alpha_y=model['verticalAlpha'],
+                _eta_y=model['verticalDispersion'],
+                _eta_y_pr=model['verticalDispersionDerivative'],
+            )
+            # copy moments values into the ebeam
+            for i, k in enumerate(moments_fields):
+                v = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
+                ebeam[k] = cls.srw_format_float(cls.__convert_ebeam_units(k, v, to_si=False))
+        return ebeam

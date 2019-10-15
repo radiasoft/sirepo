@@ -151,7 +151,7 @@ def default_data(sim_type):
 
     return open_json_file(
         sim_type,
-        path=sirepo.sim_data.get_class(sim_type).resource('default-data').new(ext=JSON_SUFFIX),
+        path=sirepo.sim_data.get_class(sim_type).resource_path('default-data').new(ext=JSON_SUFFIX),
     )
 
 
@@ -163,7 +163,7 @@ def delete_simulation(simulation_type, sid):
 
 def examples(app):
     files = pkio.walk_tree(
-        template_common.resource_dir(app).join(_EXAMPLE_DIR),
+        sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR),
         re.escape(JSON_SUFFIX) + '$',
     )
     #TODO(robnagler) Need to update examples statically before build
@@ -558,6 +558,7 @@ def prepare_simulation(data, tmp_dir=None):
     write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
+    assert type(data['models']['bunchFile']['sourceFile']) == type(None)
     template.write_parameters(
         data,
         run_dir=out_dir,
@@ -1229,7 +1230,8 @@ def _sid_from_path(path):
         i = p.basename
         if _ID_RE.search(i):
             return i
-        prev = p.dirpath()
+        prev = p
+        p = p.dirpath()
     raise AssertionError('path={} is not valid simulation'.format(path))
 
 

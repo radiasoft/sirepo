@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
+import sirepo.sim_data
 import os
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('elegant')
@@ -25,7 +26,9 @@ def subprocess_env():
     Returns:
         dict: copy of env
     """
-    return PKDict(os.environ).update(RPN_DEFNS=str(_SIM_DATA.resource('defns.rpn')))
+    return PKDict(os.environ).update(
+        RPN_DEFNS=str(_SIM_DATA.resource_path('defns.rpn')),
+    )
 
 
 def subprocess_output(cmd):

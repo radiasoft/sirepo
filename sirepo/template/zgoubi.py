@@ -430,35 +430,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     return data
 
 
-def lib_files(data, source_lib):
-    res = []
-    for el in data.models.elements:
-        if el.type == 'TOSCA' and el.magnetFile:
-            res.append(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
-    return _SIM_DATA.lib_file_abspath(res, source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == _SIM_DATA.animation_name(data):
-        return []
-    if r == 'tunesReport':
-        return [r, 'bunchAnimation.startTime']
-    res = ['particle', 'bunch']
-    if 'bunchReport' in r:
-        if data.models.bunch.match_twiss_parameters == '1':
-            res.append('simulation.visualizationBeamlineId')
-    res += [
-        'beamlines',
-        'elements',
-    ]
-    if r == 'twissReport':
-        res.append('simulation.activeBeamlineId')
-    if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
-        res.append('simulation.visualizationBeamlineId')
-    return res
-
-
 def parse_error_log(run_dir):
     return None
 

@@ -195,7 +195,9 @@ def compute_undulator_length(model):
     zip_file = simulation_db.simulation_lib_dir(SIM_TYPE).join(model['magneticFile'])
     if zip_file.check():
         return PKDict(
-            length=_format_float(MagnMeasZip(str(zip_file)).find_closest_gap(model['gap'])),
+            length=_SIM_DATA.srw_format_float(
+                MagnMeasZip(str(zip_file)).find_closest_gap(model['gap']),
+            ),
         )
     return PKDict()
 
@@ -327,7 +329,7 @@ def get_application_data(data):
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
-                process_beam_parameters(beam)
+                res[beam] = _SIM_DATA.srw_process_beam_parameters(beam)
         return pkcollections.Dict({
             'modelList': res
         })
@@ -356,7 +358,7 @@ def get_application_data(data):
     elif data['method'] == 'process_intensity_reports':
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
-        process_beam_parameters(data['ebeam'])
+        data.ebeam = _SIM_DATA.srw_process_beam_parameters(data.ebeam)
         data['ebeam']['drift'] = calculate_beam_drift(
             data['ebeam_position'],
             data['source_type'],
@@ -521,53 +523,19 @@ def prepare_output_file(run_dir, data):
             simulation_db.write_result(res, run_dir=run_dir)
 
 
-def process_beam_parameters(ebeam):
-    # if the beamDefinition is "twiss", compute the moments fields and set on ebeam
-    moments_fields = ['rmsSizeX', 'xxprX', 'rmsDivergX', 'rmsSizeY', 'xxprY', 'rmsDivergY']
-    for k in moments_fields:
-        if k not in ebeam:
-            ebeam[k] = 0
-    if 'beamDefinition' not in ebeam:
-        ebeam['beamDefinition'] = 't'
-
-    if ebeam['beamDefinition'] == 't':  # Twiss
-        model = copy.deepcopy(ebeam)
-        # Convert to SI units to perform SRW calculation:
-        for k in model:
-            model[k] = _convert_ebeam_units(k, ebeam[k])
-        beam = srwlib.SRWLPartBeam()
-        beam.from_Twiss(
-            _e=model['energy'],
-            _sig_e=model['rmsSpread'],
-            _emit_x=model['horizontalEmittance'],
-            _beta_x=model['horizontalBeta'],
-            _alpha_x=model['horizontalAlpha'],
-            _eta_x=model['horizontalDispersion'],
-            _eta_x_pr=model['horizontalDispersionDerivative'],
-            _emit_y=model['verticalEmittance'],
-            _beta_y=model['verticalBeta'],
-            _alpha_y=model['verticalAlpha'],
-            _eta_y=model['verticalDispersion'],
-            _eta_y_pr=model['verticalDispersionDerivative'],
-        )
-        # copy moments values into the ebeam
-        for i, k in enumerate(moments_fields):
-            v = beam.arStatMom2[i] if k in ['xxprX', 'xxprY'] else beam.arStatMom2[i] ** 0.5
-            ebeam[k] = _format_float(_convert_ebeam_units(k, v, to_si=False))
-    return ebeam
-
-
 def process_undulator_definition(model):
     """Convert K -> B and B -> K."""
     try:
         if model['undulator_definition'] == 'B':
             # Convert B -> K:
             und = srwlib.SRWLMagFldU([srwlib.SRWLMagFldH(1, 'v', float(model['amplitude']), 0, 1)], float(model['undulator_period']))
-            model['undulator_parameter'] = _format_float(und.get_K())
+            model['undulator_parameter'] = _SIM_DATA.srw_format_float(und.get_K())
         elif model['undulator_definition'] == 'K':
             # Convert K to B:
             und = srwlib.SRWLMagFldU([], float(model['undulator_period']))
-            model['amplitude'] = _format_float(und.K_2_B(float(model['undulator_parameter'])))
+            model['amplitude'] = _SIM_DATA.srw_format_float(
+                und.K_2_B(float(model['undulator_parameter'])),
+            )
         return model
     except Exception:
         return model
@@ -850,29 +818,6 @@ def _compute_grazing_angle(model):
     return model
 
 
-def _convert_ebeam_units(field_name, value, to_si=True):
-    """Convert values from the schema to SI units (m, rad) and back.
-
-    Args:
-        field_name: name of the field in _SCHEMA['model']['electronBeam'].
-        value: value of the field.
-        to_si: if set to True, convert to SI units, otherwise convert back to the units in the schema.
-
-    Returns:
-        value: converted value.
-    """
-    if field_name in _SCHEMA['model']['electronBeam'].keys():
-        label, field_type = _SCHEMA['model']['electronBeam'][field_name]
-        if field_type == 'Float':
-            if re.search('\[m(m|rad)\]', label):
-                value *= _invert_value(1e3, to_si)
-            elif re.search('\[\xb5(m|rad)\]', label):  # mu
-                value *= _invert_value(1e6, to_si)
-            elif re.search('\[n(m|rad)\]', label):
-                value *= _invert_value(1e9, to_si)
-    return value
-
-
 def _create_user_model(data, model_name):
     model = data['models'][model_name]
     if model_name == 'tabulatedUndulator':
@@ -982,10 +927,6 @@ def _fix_file_header(filename):
                     rows[8] = rows[5]
                     rows[9] = rows[6]
     pkio.write_text(filename, ''.join(rows))
-
-
-def _format_float(v):
-    return float('{:.8f}'.format(v))
 
 
 def _generate_beamline_optics(report, models, last_id):
@@ -1309,13 +1250,6 @@ def _intensity_units(is_gaussian, model_data):
             i = model_data['models']['initialIntensityReport']['fieldUnits']
         return _SCHEMA['enum']['FieldUnits'][int(i)][1]
     return 'ph/s/.1%bw/mm^2'
-
-
-def _invert_value(value, invert=False):
-    """Invert specified value - 1 / value."""
-    if invert:
-        value **= (-1)
-    return value
 
 
 def _load_user_model_list(model_name):
