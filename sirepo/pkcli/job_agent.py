@@ -13,6 +13,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job_agent_process, job, mpi
+from sirepo.pkcli import job_process
 import os
 import re
 import signal
@@ -144,6 +145,10 @@ class _Process(PKDict):
                 e = self.stderr.decode('utf-8', errors='ignore')
                 o = self.stdout.decode('utf-8', errors='ignore')
                 if self.msg.job_process_cmd in ('compute_status', 'compute'):
+                    self.msg.setdefault(
+                        'last_update_time',
+                        job_process.mtime_or_now(self.msg.run_dir)
+                    )
                     await self.comm.write_message(
                         self.msg,
                         job.OP_COMPUTE_STATUS,

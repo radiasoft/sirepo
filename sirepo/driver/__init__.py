@@ -8,10 +8,11 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
-import sirepo.job
 from sirepo import job_supervisor, simulation_db
 import aenum
 import importlib
+import sirepo.job
+import time
 import tornado.ioloop
 import tornado.locks
 import tornado.queues
@@ -91,14 +92,22 @@ class DriverBase(PKDict):
 
     def set_state(self, msg):
         # TODO(e-carlin): handle other types of messages with state
-        if msg.get('op') != sirepo.job.OP_COMPUTE_STATUS:
-            return
         jid = msg.get('jid')
         if jid:
             for j in self.jobs:
+                def setdefault(key):
+                    setattr(
+                        j,
+                        key,
+                        msg.get(key) if msg.get(key) is not None else getattr(j, key)
+                    )
                 if jid == j.jid:
-                    j.compute_status = msg.compute_status
-                    return
+                    if msg.get('op') == sirepo.job.OP_COMPUTE_STATUS:
+                        assert msg.compute_status
+                        setdefault('compute_hash')
+                        setdefault('compute_status')
+                        setdefault('last_update_time')
+                        return
 
 
 def get_class(job):

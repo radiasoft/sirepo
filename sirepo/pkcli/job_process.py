@@ -90,7 +90,7 @@ def _do_compute(msg, template):
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': 'pending',
+        'state': 'pending', # TODO(e-carlin): Is this necessary?
     }
     run_log_path = msg.run_dir.join(template_common.RUN_LOG)
     cmd = ['pyenv', 'exec'] + cmd
@@ -127,9 +127,10 @@ def _do_compute_status(msg, template):
             simulation_db.json_filename(
                 template_common.INPUT_BASE_NAME,
                 msg.run_dir,
-            ),
+            )),
+        last_update_time=mtime_or_now(msg.run_dir),
         compute_status=simulation_db.read_status(msg.run_dir),
-    ))
+    )
 
 
 def _do_result(msg, template):
@@ -151,3 +152,15 @@ def _subprocess_env():
     # )
     # env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
     return env
+
+
+def mtime_or_now(path):
+    """mtime for path if exists else time.time()
+
+    Args:
+        path (py.path):
+
+    Returns:
+        int: modification time
+    """
+    return int(path.mtime() if path.exists() else time.time())

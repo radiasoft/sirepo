@@ -60,8 +60,7 @@ def test_runStatus():
             'runStatus',
             nr,
         )
-
-        assert run.status == job.Status.MISSING.value
+        assert run.state == job.Status.MISSING.value
     finally:
         if job_supervisor:
             job_supervisor.terminate()
@@ -104,8 +103,11 @@ def test_myapp():
                 simulationType=data.simulationType,
             ),
         )
-
+        pkdp('11111111111111111111111111111111111111')
+        pkdp(run)
+        pkdp('11111111111111111111111111111111111111')
         for _ in range(10):
+            pkdp('in loop')
             if run.state == 'completed':
                 break
             time.sleep(1)

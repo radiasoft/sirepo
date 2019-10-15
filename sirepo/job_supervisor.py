@@ -14,6 +14,7 @@ import copy
 import sirepo.driver
 import sirepo.job
 import sys
+import time
 import tornado.locks
 
 _DATA_ACTIONS = (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_COMPUTE)
@@ -83,6 +84,7 @@ class ServerReq(PKDict):
             if s not in sirepo.job.ALREADY_GOOD_STATUS:
                 # TODO(e-carlin): Handle forceRun
                 # TODO(e-carlin): Handle parametersChanged
+                # TODO(e-carlin): only run job if no others running
                 await _Job.run(self)
                 self.handler.write({}) # TODO(e-carlin): What should be returned in response?
                 return
@@ -98,9 +100,62 @@ class _Job(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.compute_hash = self.req.content.compute_hash
         self.compute_status = None
         self.jid = self._jid_for_req(self.req)
         self.instances[self.jid] = self
+        self.last_update_time = time.time()
+        self.start_time = time.time()
+
+    def get_response(self, req):
+        try:
+            # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
+            rep = self.get_job_info(req)
+            res = {'state': rep.job_status}
+            # TODO(e-carlin):  Job is not processing then send result op
+            assert rep.job_status in (sirepo.job.Status.RUNNING.value, sirepo.job.Status.MISSING.value)
+            # TODO(e-carlin): handle parallel
+            res.setdefault('startTime', self.start_time)
+            res.setdefault('lastUpdateTime', self.last_update_time)
+            res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+            if self.compute_status == (
+                sirepo.job.Status.PENDING,
+                sirepo.job.Status.RUNNING
+                ):
+                res['nextRequestSeconds'] = 2 # TODO(e-carlin): use logic from simulation_db.poll_seconds()
+                res['nextRequest'] = {
+                    'report': rep.model_name,
+                    'reportParametersHash': rep.cached_hash,
+                    'simulationId': rep.cached_data['simulationId'],
+                    'simulationType': rep.cached_data['simulationType'],
+                }
+        except Exception as e:
+            pkdlog('error={} \n{}', e, pkdexc())
+            return PKDict(error=e)
+        return res
+         
+
+    def get_job_info(self, req):
+        rep = pkcollections.Dict(
+            cache_hit=False,
+            cached_data=None,
+            cached_hash=None,
+            job_id=req.compute_jid,
+            model_name=req.content.compute_model,
+            parameters_changed=False,
+            run_dir=req.content.run_dir,
+        )
+        rep.job_status = self.compute_status
+        req.req_hash = req.content.compute_hash
+        assert self.compute_status is not None
+        if self.compute_status == sirepo.job.Status.MISSING.value:
+            return rep
+        rep.cached_hash = self.compute_hash # TODO(e-carlin): set compute hash
+        if rep.req_hash == rep.cached_hash:
+            rep.cache_hit = True
+            return rep
+        rep.parameters_changed = True
+        return rep
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -112,14 +167,12 @@ class _Job(PKDict):
             return PKDict(statu=self.compute_status)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
-        r = await d.do_op(
+        await d.do_op(
             op=sirepo.job.OP_COMPUTE_STATUS,
             jid=self.req.compute_jid,
             run_dir=self.req.run_dir,
         )
-        self.compute_status = r.compute_status
-        r.status = r.compute_status
-        return r
+        return self.get_response(req)
 
     @classmethod
     async def run(cls, req):
@@ -128,11 +181,17 @@ class _Job(PKDict):
             self = cls(req=req)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
-        r = await d.do_op(
+        self.start_time = time.time()
+        self.last_update_time = time.time()
+        await d.do_op(
             op=sirepo.job.OP_RUN,
             jid=self.req.compute_jid,
             **self.req.content,
         )
+        r = self.get_response(req)
+        pkdp('22222222222222222222222222222222')
+        pkdp(r)
+        pkdp('22222222222222222222222222222222')
         return r
 
     @classmethod
@@ -145,11 +204,3 @@ class _Job(PKDict):
         if c.api in ('api_simulationFrame',):
             return c.analysis_jid
         raise AssertionError('unknown api={} req={}', c.api, req)
-
-
-
-class _RequestState(aenum.Enum):
-    CHECK_STATUS = 'check_status'
-    REPLY = 'reply'
-    RUN = 'run'
-    RUN_PENDING = 'run_pending'
