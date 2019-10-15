@@ -16,18 +16,10 @@ import sirepo.job
 import sys
 import tornado.locks
 
-
 _DATA_ACTIONS = (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_COMPUTE)
 
 _OPERATOR_ACTIONS = (sirepo.job.ACTION_CANCEL,)
 
-def init():
-    sirepo.job.init()
-    sirepo.driver.init()
-
-
-def terminate():
-    sirepo.driver.terminate()
 
 class AgentMsg(PKDict):
 
@@ -44,6 +36,27 @@ class AgentMsg(PKDict):
         if not i:
             return
         d.ops[i].set_result(self.content)
+
+
+def init():
+    sirepo.job.init()
+    sirepo.driver.init()
+
+
+class Op(PKDict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._result_set = tornado.locks.Event()
+        self._result = None
+
+    async def get_result(self):
+        await self._result_set.wait()
+        return self._result
+
+    def set_result(self, res):
+        self._result = res
+        self._result_set.set()
 
 
 class ServerReq(PKDict):
@@ -76,11 +89,8 @@ class ServerReq(PKDict):
         raise AssertionError('api={} unkown', c.api)
 
 
-class _RequestState(aenum.Enum):
-    CHECK_STATUS = 'check_status'
-    REPLY = 'reply'
-    RUN = 'run'
-    RUN_PENDING = 'run_pending'
+def terminate():
+    sirepo.driver.terminate()
 
 
 class _Job(PKDict):
@@ -88,18 +98,12 @@ class _Job(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.jid = self._jid_for_req(self.req)
         self.compute_status = None
-        # self.agent_dir = self.req.content.agent_dir
-        # self.driver_kind = self.req.driver_kind
-        # self.run_dir = self.req.content.run_dir
-        # self.uid = self.req.content.uid
+        self.jid = self._jid_for_req(self.req)
         self.instances[self.jid] = self
 
     @classmethod
     async def get_compute_status(cls, req):
-        """Get the status of a compute job.
-        """
         #TODO(robnagler) deal with non-in-memory job state (db?)
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
@@ -144,17 +148,8 @@ class _Job(PKDict):
 
 
 
-class Op(PKDict):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._result_set = tornado.locks.Event()
-        self._result = None
-
-    async def get_result(self):
-        await self._result_set.wait()
-        return self._result
-
-    def set_result(self, res):
-        self._result = res
-        self._result_set.set()
+class _RequestState(aenum.Enum):
+    CHECK_STATUS = 'check_status'
+    REPLY = 'reply'
+    RUN = 'run'
+    RUN_PENDING = 'run_pending'

@@ -18,9 +18,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 
-
 cfg = None
-cfg = 'evan'
 
 
 def default_command():
@@ -60,18 +58,32 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         try:
-#rn sr_driver
             if self.driver:
                 self.driver.on_close()
                 self.driver = None
         except Exception as e:
-            pkdlog('exception={} {}', e, pkdexc())
+            pkdlog('error={} {}', e, pkdexc())
 
     async def on_message(self, msg):
         await _incoming(msg, self)
 
     def open(self):
         pkdlog(self.request.uri)
+
+
+async def _incoming(content, handler):
+    try:
+        c = pkjson.load_any(content)
+        pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
+        await handler.sr_class(handler=handler, content=c).do()
+    except Exception as e:
+        pkdlog('exception={} handler={} content={}', e, content, handler)
+        pkdlog(pkdexc())
+        if hasattr(handler, 'close'):
+            handler.close()
+        else:
+            handler.send_error()
+        return
 
 
 class _ServerReq(tornado.web.RequestHandler):
@@ -90,20 +102,6 @@ class _ServerReq(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
 
-
-async def _incoming(content, handler):
-    try:
-        c = pkjson.load_any(content)
-        pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
-        await handler.sr_class(handler=handler, content=c).do()
-    except Exception as e:
-        pkdlog('exception={} handler={} content={}', e, content, handler)
-        pkdlog(pkdexc())
-        if hasattr(handler, 'close'):
-            handler.close()
-        else:
-            handler.send_error()
-        return
 
 def _sigterm(signum, frame):
         tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
