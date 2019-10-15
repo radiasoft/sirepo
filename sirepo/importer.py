@@ -69,7 +69,7 @@ def read_zip(stream, sim_type=None):
         dict: data
     """
     from sirepo import simulation_db
-    from sirepo.template import template_common
+    import sirepo.sim_data
 
     tmp = simulation_db.tmp_dir()
     data = None
@@ -93,7 +93,7 @@ def read_zip(stream, sim_type=None):
     assert data, \
         'missing {} in archive'.format(simulation_db.SIMULATION_DATA_FILE)
     needed = pkcollections.Dict()
-    for n in template_common.lib_files(data):
+    for n in sirepo.sim_data.get_class(data.simulationType).lib_files(data):
         assert n.basename in zipped or n.check(file=True, exists=True), \
             'auxiliary file {} missing in archive'.format(n.basename)
         needed[n.basename] = n

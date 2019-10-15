@@ -36,7 +36,7 @@ def build_variable_dependency(value, variables, depends):
 
 
 def import_file(text, data=None):
-    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.max_id(data) if data else 0)
+    models = elegant_lattice_parser.parse_file(text, _SIM_DATA.elegant_max_id(data) if data else 0)
     name_to_id, default_beamline_id = _create_name_map(models)
     if 'default_beamline_name' in models and models['default_beamline_name'] in name_to_id:
         default_beamline_id = name_to_id[models['default_beamline_name']]

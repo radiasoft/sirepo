@@ -192,7 +192,7 @@ def _do_electron_beam(template, data):
         dm.electronBeamPosition.horizontalAngle = _SCHEMA.model.electronBeamPosition.horizontalAngle[2]
         dm.electronBeamPosition.verticalAngle = _SCHEMA.model.electronBeamPosition.verticalAngle[2]
     if 'beamDefinition' not in dm['electronBeam']:
-        template.process_beam_parameters(dm['electronBeam'])
+        _SIM_DATA.srw_process_beam_parameters(dm['electronBeam'])
         dm['electronBeamPosition']['drift'] = template.calculate_beam_drift(
             dm['electronBeamPosition'],
             dm['simulation']['sourceType'],

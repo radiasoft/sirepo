@@ -63,7 +63,7 @@ class SimDataBase(object):
 
     @classmethod
     def compute_job_hash(cls, data, changed=None):
-        """Hash fields related to data and set reportParametersHash
+        """Hash fields related to data and set computeJobHash
 
         Only needs to be unique relative to the report, not globally unique
         so MD5 is adequate. Long and cryptographic hashes make the
@@ -208,7 +208,7 @@ class SimDataBase(object):
         """
         assert source
         for s in cls.lib_files(data, source):
-            t = target.join(f.basename)
+            t = target.join(s.basename)
             pkio.mkdir_parent_only(t)
             if symlink:
                 t.mksymlinkto(s, absolute=False)
@@ -269,6 +269,13 @@ class SimDataBase(object):
     @classmethod
     def sim_type(cls):
         return cls._memoize(pkinspect.module_basename(cls))
+
+    @classmethod
+    def template_fixup_get(cls, data):
+        if data.get(cls._TEMPLATE_FIXUP):
+            del data[cls._TEMPLATE_FIXUP]
+            return True
+        return False
 
     @classmethod
     def update_model_defaults(cls, model, name, dynamic=None):
@@ -370,13 +377,6 @@ class SimDataBase(object):
         if 'isExample' in dm.simulation and dm.simulation.isExample:
             if dm.simulation.folder == '/':
                 dm.simulation.folder = '/Examples'
-
-    @classmethod
-    def _template_fixup_get(cls, data):
-        if data.get(cls._TEMPLATE_FIXUP):
-            del data[cls._TEMPLATE_FIXUP]
-            return True
-        return False
 
     @classmethod
     def _template_fixup_set(cls, data):

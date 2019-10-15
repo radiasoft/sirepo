@@ -61,6 +61,13 @@ class SimData(sirepo.sim_data.SimDataBase):
     )
 
     @classmethod
+    def animation_name(cls, data):
+        if data.modelName in ('coherenceXAnimation', 'coherenceYAnimation'):
+            # degree of coherence reports are calculated out of the multiElectronAnimation directory
+            return 'multiElectronAnimation'
+        return data.modelName
+
+    @classmethod
     def fixup_old_data(cls, data):
         """Fixup data to match the most recent schema."""
         dm = data.models
@@ -349,6 +356,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 file_type,
                 lambda f: PKDict(fileName=f.basename),
                 dir_path=cls.resource_dir(),
+                extensions=cls.__FILE_TYPE_EXTENSIONS[file_type],
             )
 
         res = PKDict(

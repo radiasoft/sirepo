@@ -313,13 +313,6 @@ def extract_report_data(filename, model_data):
     return info
 
 
-def _SIM_DATA.animation_name(data):
-    if data['modelName'] in ('coherenceXAnimation', 'coherenceYAnimation'):
-        # degree of coherence reports are calculated out of the multiElectronAnimation directory
-        return 'multiElectronAnimation'
-    return data['modelName']
-
-
 def get_application_data(data):
     if data['method'] == 'model_list':
         res = []
@@ -1526,5 +1519,3 @@ def _zip_path_for_file(zf, file_to_find):
     # Get the base file names from the zip (directories have a basename of '')
     file_names_in_zip = map(lambda path: os.path.basename(path),  zf.namelist())
     return zf.namelist()[file_names_in_zip.index(file_to_find)]
-
-_init()

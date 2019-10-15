@@ -95,7 +95,6 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-
 def get_application_data(data):
     if data['method'] == 'get_elegant_sim_list':
         tp = _SIM_DATA.jspec_elegant_twiss_path()
@@ -118,7 +117,7 @@ def get_application_data(data):
         }
     elif data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
-    assert False, 'unknown application data method: {}'.format(data['method'])
+    raise AssertionError('unknown application data method={}'.format(data.method))
 
 
 def get_data_file(run_dir, model, frame, options=None):
