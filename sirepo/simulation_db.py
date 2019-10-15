@@ -558,7 +558,6 @@ def prepare_simulation(data, tmp_dir=None):
     write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
-    assert type(data['models']['bunchFile']['sourceFile']) == type(None)
     template.write_parameters(
         data,
         run_dir=out_dir,

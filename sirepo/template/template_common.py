@@ -386,6 +386,9 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
+        elif value is None:
+            # value is already None, do not convert
+            pass
         else:
             model_data[k] = _escape(value)
 

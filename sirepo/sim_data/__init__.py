@@ -7,10 +7,13 @@ u"""Type-based simulation operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern import pkcollections
+from pykern import pkconfig
 from pykern import pkinspect
 from pykern import pkio
+from pykern import pkjson
 from pykern import pkresource
 from pykern.pkdebug import pkdp
+import hashlib
 import importlib
 import inspect
 import re
@@ -82,14 +85,15 @@ class SimDataBase(object):
             for f in sorted(
                 sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
             ):
-                assert isinstance(m, pkconfig.STRING_TYPES)
+                assert isinstance(f, pkconfig.STRING_TYPES), \
+                    'value={} not a string_type'.format(f)
                 x = f.split('.')
                 res.update(
-                    json.dumps(
+                    pkjson.dump_bytes(
                         m[x[0]][x[1]] if len(x) > 1 else m[x[0]],
                         sort_keys=True,
                         allow_nan=False,
-                    ).encode(),
+                    )
                 )
             # lib_files returns sorted list
             res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
@@ -103,7 +107,7 @@ class SimDataBase(object):
         try:
             return data.pksetdefault(computeJobHash=_op)
         finally:
-            if c.changed:
+            if changed and c.changed:
                 changed()
 
     @classmethod

@@ -61,14 +61,14 @@ def test_get_data_file():
             simulationType=data.simulationType,
         ),
     )
-    pkunit.pkeq('ok', run.state, 'not ok, run={}', run)
+    pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
     for _ in range(10):
+        if run.state == 'completed':
+            break
         run = fc.sr_post(
             'runStatus',
             run.nextRequest
         )
-        if run.state == 'completed':
-            break
         time.sleep(1)
     else:
         pkunit.pkfail('runStatus: failed to complete: {}', run)

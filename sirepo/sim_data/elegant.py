@@ -100,7 +100,6 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_files(cls, data):
         res = []
-        assert data['models']['bunchFile']['sourceFile'] != "None"
         cls.elegant_iterator(data, res, cls.__iterator_input_files)
         if data['models']['bunchFile']['sourceFile']:
             res.append('{}-{}.{}'.format(
