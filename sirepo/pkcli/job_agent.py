@@ -286,7 +286,7 @@ class _Comm(PKDict):
             p = self._processes.get(msg.jid)
             return self._format_reply(
                 msg,
-                job.OP_OK,
+                job.OP_COMPUTE_STATUS,
                 compute_status=p and p.compute_status \
                 or pkjson.load_any(msg.run_dir.join(_STATUS_FILE)),
             )
@@ -299,7 +299,11 @@ class _Comm(PKDict):
                 )
                 self._process(msg)
                 return False
-        return self._format_reply(msg, job.OP_OK, compute_status=job.Status.MISSING.value)
+        return self._format_reply(
+            msg,
+            job.OP_COMPUTE_STATUS,
+            compute_status=job.Status.MISSING.value
+        )
 
     def _process(self, msg):
         p = _Process(msg=msg, comm=self)

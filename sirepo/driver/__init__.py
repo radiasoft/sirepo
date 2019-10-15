@@ -119,6 +119,17 @@ class DriverBase(PKDict):
         self.driver_for_agents[self.agent_id] = self
         self.instances[slot.kind][job.req.uid] = self
 
+    def set_state(self, msg):
+        # TODO(e-carlin): handle other types of messages with state
+        if msg.get('op') != sirepo.job.OP_COMPUTE_STATUS:
+            return
+        jid = msg.get('jid')
+        if jid:
+            for j in self.jobs:
+                if jid == j.jid:
+                    j.compute_status = msg.compute_status
+                    return
+
     def set_handler(self, handler):
         if not self._handler_set.is_set():
             self._handler_set.set()

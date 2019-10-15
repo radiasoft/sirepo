@@ -105,18 +105,18 @@ def test_myapp():
             ),
         )
 
-        # for _ in range(10):
-        #     if run.state == 'completed':
-        #         break
-        #     time.sleep(1)
-        #     run = fc.sr_post(
-        #         'runStatus',
-        #         run.nextRequest
-        #     )
-        # else:
-        #     pkunit.pkfail('runStatus: failed to complete: {}', run)
-        # # Just double-check it actually worked
-        # assert u'plots' in run
+        for _ in range(10):
+            if run.state == 'completed':
+                break
+            time.sleep(1)
+            run = fc.sr_post(
+                'runStatus',
+                run.nextRequest
+            )
+        else:
+            pkunit.pkfail('runStatus: failed to complete: {}', run)
+        # Just double-check it actually worked
+        assert u'plots' in run
     finally:
         if job_supervisor:
             job_supervisor.terminate()

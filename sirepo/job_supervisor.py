@@ -39,10 +39,9 @@ class AgentMsg(PKDict):
             pkdlog('no driver for agent_id={}', self.content.agent_id)
             return
         d.set_handler(self.handler)
+        d.set_state(self.content)
         i = self.content.get('op_id')
         if not i:
-            # o = self.content.get()
-            # TODO(e-carlin): op w/o id. Store the state in the job.
             return
         d.ops[i].set_result(self.content)
 
@@ -74,8 +73,6 @@ class ServerReq(PKDict):
                 await _Job.run(self)
                 self.handler.write({}) # TODO(e-carlin): What should be returned in response?
                 return
-
-
         raise AssertionError('api={} unkown', c.api)
 
 
@@ -92,6 +89,7 @@ class _Job(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.jid = self._jid_for_req(self.req)
+        self.compute_status = None
         # self.agent_dir = self.req.content.agent_dir
         # self.driver_kind = self.req.driver_kind
         # self.run_dir = self.req.content.run_dir
@@ -106,6 +104,8 @@ class _Job(PKDict):
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
             self = cls(req=req)
+        if self.compute_status is not None:
+            return PKDict(statu=self.compute_status)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
         r = await d.do_op(
@@ -113,6 +113,7 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             run_dir=self.req.run_dir,
         )
+        self.compute_status = r.compute_status
         r.status = r.compute_status
         return r
 
