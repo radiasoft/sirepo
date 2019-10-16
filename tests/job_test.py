@@ -103,9 +103,6 @@ def test_myapp():
                 simulationType=data.simulationType,
             ),
         )
-        pkdp('11111111111111111111111111111111111111')
-        pkdp(run)
-        pkdp('11111111111111111111111111111111111111')
         for _ in range(10):
             pkdp('in loop')
             if run.state == 'completed':
@@ -115,6 +112,9 @@ def test_myapp():
                 'runStatus',
                 run.nextRequest
             )
+            pkdp('4444444444444444444444444444444444444')
+            pkdp(run)
+            pkdp('4444444444444444444444444444444444444')
         else:
             pkunit.pkfail('runStatus: failed to complete: {}', run)
         # Just double-check it actually worked

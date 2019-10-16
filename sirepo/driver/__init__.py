@@ -102,12 +102,10 @@ class DriverBase(PKDict):
                         msg.get(key) if msg.get(key) is not None else getattr(j, key)
                     )
                 if jid == j.jid:
-                    if msg.get('op') == sirepo.job.OP_COMPUTE_STATUS:
-                        assert msg.compute_status
-                        setdefault('compute_hash')
-                        setdefault('compute_status')
-                        setdefault('last_update_time')
-                        return
+                    setdefault('compute_hash')
+                    setdefault('compute_status')
+                    setdefault('last_update_time')
+                    return
 
 
 def get_class(job):

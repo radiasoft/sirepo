@@ -145,6 +145,7 @@ class _Process(PKDict):
                 e = self.stderr.decode('utf-8', errors='ignore')
                 o = self.stdout.decode('utf-8', errors='ignore')
                 if self.msg.job_process_cmd in ('compute_status', 'compute'):
+                    # TODO(e-carlin): should this be here?
                     self.msg.setdefault(
                         'last_update_time',
                         job_process.mtime_or_now(self.msg.run_dir)
@@ -284,7 +285,11 @@ class _Comm(PKDict):
         del m['op_id']
         m.update(job_process_cmd='compute')
         self._process(m)
-        return True
+        return self._format_reply(
+            msg,
+            job.OP_OK,
+            compute_status=job.Status.RUNNING.value,
+        )
 
     async def _op_compute_status(self, msg):
         try:
@@ -297,7 +302,7 @@ class _Comm(PKDict):
             )
         except Exception:
             f = msg.run_dir.join(job.RUNNER_STATUS_FILE)
-            if f.exists():
+            if f.check(): # TODO(e-carlin): If f a str? If so .exists() is not valid
                 assert msg.jid not in self._processes
                 msg.update(
                     job_process_cmd='compute_status',
@@ -307,7 +312,7 @@ class _Comm(PKDict):
         return self._format_reply(
             msg,
             job.OP_COMPUTE_STATUS,
-            compute_status=job.Status.MISSING.value
+            compute_status=job.Status.MISSING.value,
         )
 
     def _process(self, msg):

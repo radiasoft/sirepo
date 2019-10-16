@@ -85,8 +85,8 @@ class ServerReq(PKDict):
                 # TODO(e-carlin): Handle forceRun
                 # TODO(e-carlin): Handle parametersChanged
                 # TODO(e-carlin): only run job if no others running
-                await _Job.run(self)
-                self.handler.write({}) # TODO(e-carlin): What should be returned in response?
+                self.handler.write(
+                    await _Job.run(self))
                 return
         raise AssertionError('api={} unkown', c.api)
 
@@ -109,53 +109,58 @@ class _Job(PKDict):
 
     def get_response(self, req):
         try:
+            pkdp('in get_response. self is {}', self)
             # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
-            rep = self.get_job_info(req)
-            res = {'state': rep.job_status}
+            i = self.get_job_info(req)
+            res = PKDict(state=i.job_status)
             # TODO(e-carlin):  Job is not processing then send result op
-            assert rep.job_status in (sirepo.job.Status.RUNNING.value, sirepo.job.Status.MISSING.value)
+            assert i.job_status in (sirepo.job.Status.RUNNING.value, sirepo.job.Status.MISSING.value)
             # TODO(e-carlin): handle parallel
             res.setdefault('startTime', self.start_time)
             res.setdefault('lastUpdateTime', self.last_update_time)
-            res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-            if self.compute_status == (
-                sirepo.job.Status.PENDING,
-                sirepo.job.Status.RUNNING
+            res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
+            if self.compute_status in (
+                sirepo.job.Status.PENDING.value,
+                sirepo.job.Status.RUNNING.value
                 ):
-                res['nextRequestSeconds'] = 2 # TODO(e-carlin): use logic from simulation_db.poll_seconds()
-                res['nextRequest'] = {
-                    'report': rep.model_name,
-                    'reportParametersHash': rep.cached_hash,
-                    'simulationId': rep.cached_data['simulationId'],
-                    'simulationType': rep.cached_data['simulationType'],
-                }
+                res.nextRequestSeconds = 2 # TODO(e-carlin): use logic from simulation_db.poll_seconds()
+                res.nextRequest = PKDict(
+                    report=i.model_name,
+                    reportParametersHash=i.cached_hash,
+                    simulationId=i.simulation_id,
+                    simulationType=i.simulation_type,
+                )
         except Exception as e:
             pkdlog('error={} \n{}', e, pkdexc())
             return PKDict(error=e)
         return res
+
+        def __repr__(self):
+            return f'jid={self.jid} compute_status={self.compute_status} compute_hash={self.compute_hash}'
          
 
     def get_job_info(self, req):
-        rep = pkcollections.Dict(
+        assert self.compute_status is not None
+        i = pkcollections.Dict(
             cache_hit=False,
             cached_data=None,
-            cached_hash=None,
+            cached_hash=self.compute_hash,
             job_id=req.compute_jid,
+            job_status=self.compute_status,
             model_name=req.content.compute_model,
             parameters_changed=False,
+            req_hash=req.content.compute_hash,
             run_dir=req.content.run_dir,
+            simulation_id=req.content.data.simulationId,
+            simulation_type=req.content.sim_type,
         )
-        rep.job_status = self.compute_status
-        req.req_hash = req.content.compute_hash
-        assert self.compute_status is not None
         if self.compute_status == sirepo.job.Status.MISSING.value:
-            return rep
-        rep.cached_hash = self.compute_hash # TODO(e-carlin): set compute hash
-        if rep.req_hash == rep.cached_hash:
-            rep.cache_hit = True
-            return rep
-        rep.parameters_changed = True
-        return rep
+            return i
+        if i.req_hash == i.cached_hash:
+            i.cache_hit = True
+            return i
+        i.parameters_changed = True
+        return i
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -164,7 +169,8 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         if self.compute_status is not None:
-            return PKDict(statu=self.compute_status)
+            return self.get_response(req)
+            # return PKDict(statu=self.compute_status)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
         await d.do_op(
@@ -188,11 +194,11 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             **self.req.content,
         )
-        r = self.get_response(req)
-        pkdp('22222222222222222222222222222222')
-        pkdp(r)
-        pkdp('22222222222222222222222222222222')
-        return r
+        pkdp('22222222222222222222222222222222222222222')
+        pkdp('about to get response for run request')
+        pkdp(req.content.data.simulationId)
+        pkdp('22222222222222222222222222222222222222222')
+        return pkdp(self.get_response(req))
 
     @classmethod
     def _jid_for_req(cls, req):
