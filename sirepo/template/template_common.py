@@ -504,9 +504,7 @@ def validate_model(model_data, model_schema, enum_info):
                 v /= 1e6
             model_data[k] = v
         elif field_type == 'Integer':
-            if not value:
-                value = 0
-            model_data[k] = int(value)
+            model_data[k] = 0 if not value else int(value)
         else:
             model_data[k] = _escape(value)
 
