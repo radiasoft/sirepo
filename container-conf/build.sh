@@ -44,6 +44,9 @@ build_as_run_user() {
         pip install .
         cd ../sirepo
         pip install -r requirements.txt
+        pip install -e .
+        sirepo srw create_predefined
+        pip uninstall -y sirepo
         pip install .
     done
 

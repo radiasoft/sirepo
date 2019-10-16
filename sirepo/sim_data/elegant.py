@@ -16,7 +16,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         s = cls.schema()
         dm = data.models
-        cls.init_models(dm, ('bunchSource', 'twissReport'))
+        cls._init_models(dm, ('bunchSource', 'twissReport'))
         dm.setdefault('bunchFile', PKDict(sourceFile=None))
         dm.simulation.setdefault(
             'folder', '/',
@@ -24,7 +24,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
         dm.setdefault('rpnVariables', [])
         if 'commands' not in dm:
-            dm.commands = cls._create_commands(data)
+            dm.commands = cls.__create_commands(data)
             for m in dm.elements:
                 model_schema = s.model[m['type']]
                 for k in m:
@@ -54,10 +54,21 @@ class SimData(sirepo.sim_data.SimDataBase):
                 bunch.centroid = '0,0,0,0,0,0'
         for m in dm.commands:
             cls.update_model_defaults(m, 'command_{}'.format(m._type))
-        cls.organize_example(data)
+        cls._organize_example(data)
 
     @classmethod
-    def max_id(cls, data):
+    def elegant_iterator(cls, data, state, callback):
+        s = cls.schema()
+        for t in 'commands', 'elements':
+            for m in data.models[t]:
+                e = s.model[cls.elegant_model_name(m)]
+                callback(state, m)
+                for k in sorted(m):
+                    if k in e:
+                        callback(state, m, e[k], k)
+
+    @classmethod
+    def elegant_max_id(cls, data):
         max_id = 1
         for model_type in 'elements', 'beamlines', 'commands':
             if model_type not in data.models:
@@ -69,7 +80,37 @@ class SimData(sirepo.sim_data.SimDataBase):
         return max_id
 
     @classmethod
-    def _create_command(cls, name, data):
+    def elegant_model_name(cls, model):
+        return 'command_{}'.format(model._type) if '_type' in model else model.type
+
+    @classmethod
+    def resource_files(cls):
+        return cls.resource_glob('*.sdds')
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        res = []
+        if r == 'twissReport' or 'bunchReport' in r:
+            res += ['bunch', 'bunchSource', 'bunchFile']
+        if r == 'twissReport':
+            res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
+        return res
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        cls.elegant_iterator(data, res, cls.__iterator_input_files)
+        if data['models']['bunchFile']['sourceFile']:
+            res.append('{}-{}.{}'.format(
+                'bunchFile',
+                'sourceFile',
+                data['models']['bunchFile']['sourceFile'],
+            ))
+        return res
+
+    @classmethod
+    def __create_command(cls, name, data):
         s = cls.schema().model[name]
         for k in s:
             if k not in data:
@@ -77,8 +118,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         return data
 
     @classmethod
-    def _create_commands(cls, data):
-        i = cls.max_id(data)
+    def __create_commands(cls, data):
+        i = cls.elegant_max_id(data)
         b = data.models.bunch
         res = []
         for x in (
@@ -134,5 +175,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             del x[m]
             i += 1
             x._id = i
-            res.append(cls._create_command(m, x))
+            res.append(cls.__create_command(m, x))
         return res
+
+    @classmethod
+    def __iterator_input_files(cls, state, model, element_schema=None, field_name=None):
+        if element_schema:
+            if model[field_name] and element_schema[1].startswith('InputFile'):
+                state.append(cls.lib_file_name(cls.elegant_model_name(model), field_name, model[field_name]))

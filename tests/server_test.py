@@ -29,6 +29,7 @@ def test_basic():
 
 
 def test_get_data_file():
+    from pykern.pkdebug import pkdp
     from sirepo import srunit
     from pykern import pkunit
     from pykern import pkio
@@ -60,13 +61,14 @@ def test_get_data_file():
             simulationType=data.simulationType,
         ),
     )
+    pkunit.pkeq('pending', run.state, 'not pending, run={}', run)
     for _ in range(10):
+        if run.state == 'completed':
+            break
         run = fc.sr_post(
             'runStatus',
             run.nextRequest
         )
-        if run.state == 'completed':
-            break
         time.sleep(1)
     else:
         pkunit.pkfail('runStatus: failed to complete: {}', run)

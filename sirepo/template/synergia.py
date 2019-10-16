@@ -95,10 +95,6 @@ def format_float(v):
     return float(format(v, '.10f'))
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'calculate_bunch_parameters':
         return _calc_bunch_parameters(data['bunch'])
@@ -185,22 +181,6 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
-def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == 'animation':
-        return []
-    res = ['beamlines', 'elements']
-    if 'bunchReport' in r:
-        res += ['bunch', 'simulation.visualizationBeamlineId']
-    elif 'twissReport' in r:
-        res += ['simulation.{}'.format(_beamline_id_for_report(r))]
-    return res
-
-
 def parse_error_log(run_dir):
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
     errors = []
@@ -260,7 +240,7 @@ def save_report_data(data, run_dir):
         report = data.models[data['report']]
         bunch = data.models.bunch
         if bunch.distribution == 'file':
-            bunch_file = template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile)
+            bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
         else:
             bunch_file = OUTPUT_FILE['bunchReport']
         if not run_dir.join(bunch_file).exists():
@@ -350,10 +330,6 @@ def _append_to_lattice(state, madx_text):
         state['lattice'] = state['lattice'][:-1]
         state['lattice'] += ';\n'
     state['lattice'] += madx_text
-
-
-def _beamline_id_for_report(r):
-    return 'activeBeamlineId' if r == 'twissReport' else 'visualizationBeamlineId'
 
 
 #TODO(pjm): from template.elegant
@@ -534,7 +510,7 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
 def _generate_lattice(data, beamline_map, v):
     beamlines = {}
     report = data['report'] if 'report' in data else ''
-    beamline_id_field = _beamline_id_for_report(report)
+    beamline_id_field = _SIM_DATA.synergia_beamline_id_for_report(report)
 
     selected_beamline_id = 0
     sim = data['models']['simulation']
@@ -616,7 +592,7 @@ def _generate_parameters_file(data):
     v['diagnosticFilename'] = OUTPUT_FILE['beamEvolutionAnimation']
     v['twissFileName'] = OUTPUT_FILE['twissReport']
     if data.models.bunch.distribution == 'file':
-        v['bunchFile'] = template_common.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
+        v['bunchFile'] = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
     v['bunch'] = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
     res += template_common.render_jinja(SIM_TYPE, v, 'base.py')
     report = data['report'] if 'report' in data else ''
@@ -932,14 +908,6 @@ def _plot_values(h5file, field):
     if dimension == 3:
         return h5file[name][_COORD6.index(coord1), _COORD6.index(coord2), :].tolist()
     assert False, dimension
-
-
-def _simulation_files(data):
-    res = []
-    bunch = data.models.bunch
-    if bunch.distribution == 'file':
-        res.append(template_common.lib_file_name('bunch', 'particleFile', bunch.particleFile))
-    return res
 
 
 def _sort_beamlines_by_length(lines):

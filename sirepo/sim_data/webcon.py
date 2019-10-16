@@ -36,7 +36,45 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if n not in dm:
                     dm[n] = m = PKDict(_id=e._id)
                     cls.update_model_defaults(m, 'watchpointReport')
-        cls.organize_example(data)
+        cls._organize_example(data)
+
+    @classmethod
+    def webcon_analysis_data_file(cls, data):
+        return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
+
+    @classmethod
+    def webcon_analysis_report_name_for_fft(data):
+        return data.models[data.report].get('analysisReport', 'analysisReport')
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data['report']
+        if r == 'epicsServerAnimation':
+            return []
+        res = [
+            r,
+            'analysisData',
+        ]
+        if 'fftReport' in r:
+            n = cls.webcon_analysis_report_name_for_fft(data)
+            res += ['{}.{}'.format(n, v) for v in ('x', 'y1', 'history')]
+        if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
+            # always recompute the EPICS reports
+            res += [cls._force_recompute()]
+        return res
+
+    @classmethod
+    def _lib_files(cls, data, source_lib):
+        res = []
+        r = data.get('report')
+        if r == 'epicsServerAnimation':
+            res += [
+                'beam_line_example.db',
+                'epics-boot.cmd',
+            ]
+        elif data.models.analysisData.get('file'):
+            res.append(cls.webcon_analysis_data_file(data))
+        return res
 
     @classmethod
     def _init_default_beamline(cls, data):

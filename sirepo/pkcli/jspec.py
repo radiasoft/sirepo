@@ -13,6 +13,9 @@ from sirepo.template import sdds_util, template_common
 import os.path
 import re
 import sirepo.template.jspec as template
+import sirepo.sim_data
+
+_SIM_DATA = sirepo.sim_data.get_class('jspec')
 
 def run(cfg_dir):
     with pkio.save_chdir(cfg_dir):
@@ -53,7 +56,7 @@ def _elegant_to_madx(ring):
     else: # elegant-sirepo
         if 'elegantSirepo' not in ring or not ring['elegantSirepo']:
             raise RuntimeError('elegant simulation not selected')
-        elegant_twiss_file = template.ELEGANT_TWISS_FILENAME
+        elegant_twiss_file = _SIM_DATA.JSPEC_ELEGANT_TWISS_FILENAME
         if not os.path.exists(elegant_twiss_file):
             raise RuntimeError('elegant twiss output unavailable. Run elegant simulation.')
     sdds_util.twiss_to_madx(elegant_twiss_file, template.JSPEC_TWISS_FILENAME)

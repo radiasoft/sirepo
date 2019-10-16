@@ -15,7 +15,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls.init_models(
+        cls._init_models(
             dm,
             (
                 'SPNTRK',
@@ -54,4 +54,33 @@ class SimData(sirepo.sim_data.SimDataBase):
                         del dm[m][f]
         for e in dm.elements:
             cls.update_model_defaults(e, e.type)
-        cls.organize_example(data)
+        cls._organize_example(data)
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r == cls.animation_name(data):
+            return []
+        if r == 'tunesReport':
+            return [r, 'bunchAnimation.startTime']
+        res = ['particle', 'bunch']
+        if 'bunchReport' in r:
+            if data.models.bunch.match_twiss_parameters == '1':
+                res.append('simulation.visualizationBeamlineId')
+        res += [
+            'beamlines',
+            'elements',
+        ]
+        if r == 'twissReport':
+            res.append('simulation.activeBeamlineId')
+        if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
+            res.append('simulation.visualizationBeamlineId')
+        return res
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        for el in data.models.elements:
+            if el.type == 'TOSCA' and el.magnetFile:
+                res.append(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
+        return res

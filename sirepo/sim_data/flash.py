@@ -13,9 +13,27 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls.init_models(dm)
+        cls._init_models(dm)
         if dm.simulation.flashType == 'CapLaser':
             dm.IO.update(
                 plot_var_5='magz',
                 plot_var_6='depo',
             )
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data['report']
+        if r == cls.animation_name(data):
+            return []
+        return [r]
+
+    @classmethod
+    def _lib_files(cls, data):
+        t = data.models.simulation.flashType
+        #return ['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4']
+        #return ['flash.par', 'helm_table.dat']
+        if t == 'RTFlame':
+            return ['helm_table.dat']
+        if t == 'CapLaser':
+            return ['al-imx-004.cn4', 'h-imx-004.cn4']
+        raise AssertionError('invalid flashType: {}'.format(t))

@@ -114,10 +114,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(get_animation_name(data)))):
-        animation_dir = py.path.local(target_path).join(get_animation_name(data))
+    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data)))):
+        animation_dir = py.path.local(target_path).join(_SIM_DATA.animation_name(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(get_animation_name(data), '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data), '*'))):
             py.path.local(f).copy(animation_dir)
 
 
@@ -193,7 +193,7 @@ def generate_lattice(data, filename_map, beamline_map, v):
         beamline_map=beamline_map,
         filename_map=filename_map,
     )
-    _iterate_model_fields(data, state, _iterator_lattice_elements)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_lattice_elements)
     res = state['lattice']
     res = res[:-1]
     res += '\n'
@@ -224,10 +224,6 @@ def generate_parameters_file(data, is_parallel=False):
         return res + _generate_twiss_simulation(data, v)
 
     return res + _generate_bunch_simulation(data, v)
-
-
-def get_animation_name(data):
-    return 'animation'
 
 
 def get_application_data(data):
@@ -304,7 +300,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == get_animation_name(None):
+    if model == _SIM_DATA.animation_name(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'
@@ -339,39 +335,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, test_data=None):
     if input_data and not test_data:
         simulation_db.delete_simulation(elegant_common.SIM_TYPE, input_data['models']['simulation']['simulationId'])
     return data
-
-
-def lib_files(data, source_lib):
-    """Returns list of auxiliary files
-
-    Args:
-        data (dict): simulation db
-        source_lib (py.path): directory of source
-
-    Returns:
-        list: py.path.local of source files
-    """
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    res = []
-    if r == 'twissReport' or 'bunchReport' in r:
-        res = ['bunch', 'bunchSource', 'bunchFile']
-        for f in template_common.lib_files(data):
-            if f.exists():
-                res.append(f.mtime())
-    if r == 'twissReport':
-        res += ['elements', 'beamlines', 'commands', 'simulation.activeBeamlineId']
-    return res
 
 
 def parse_elegant_log(run_dir):
@@ -419,7 +382,7 @@ def prepare_for_client(data):
         cache=cache,
         rpnVariables=variables,
     )
-    _iterate_model_fields(data, state, _iterator_rpn_values)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_rpn_values)
 
     for rpn_var in data['models']['rpnVariables']:
         v, err = _parse_expr(rpn_var['value'], variables)
@@ -457,15 +420,6 @@ def remove_last_frame(run_dir):
     pass
 
 
-def resource_files():
-    """Library shared between simulations of this type
-
-    Returns:
-        list: py.path.local objects
-    """
-    return pkio.sorted_glob(elegant_common.RESOURCE_DIR.join('*.sdds'))
-
-
 def save_report_data(data, run_dir):
     report = data['models'][data['report']]
     if data['report'] == 'twissReport':
@@ -481,11 +435,6 @@ def simulation_dir_name(report_name):
     if 'bunchReport' in report_name:
         return 'bunchReport'
     return report_name
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -519,9 +468,10 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _simulation_files(data):
-        if re.search(r'SCRIPT-commandFile', f):
-            os.chmod(str(run_dir.join(f)), stat.S_IRUSR | stat.S_IXUSR)
+    for f in _SIM_DATA.lib_files(data):
+        b = f.basename
+        if re.search(r'SCRIPT-commandFile', b):
+            os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
 
 
 def _add_beamlines(beamline, beamlines, ordered_beamlines):
@@ -596,7 +546,7 @@ def _build_filename_map(data):
     for model_type in ['commands', 'elements']:
         for model in data['models'][model_type]:
             field_index = 0
-            model_name = _model_name_for_data(model)
+            model_name = _SIM_DATA.elegant_model_name(model)
             if model_name in model_index:
                 model_index[model_name] += 1
             else:
@@ -783,7 +733,7 @@ def _generate_bunch_simulation(data, v):
         v['bunch_alpha_x'] = 0
         v['bunch_alpha_x'] = 0
         if v['bunchFile_sourceFile'] and v['bunchFile_sourceFile'] != 'None':
-            v['bunchInputFile'] = template_common.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
+            v['bunchInputFile'] = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v['bunchFile_sourceFile'])
             v['bunchFileType'] = _sdds_beam_type_from_file(v['bunchInputFile'])
     v['bunchOutputFile'] = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
@@ -795,7 +745,7 @@ def _generate_commands(data, filename_map, beamline_map, v):
         filename_map=filename_map,
         beamline_map=beamline_map,
     )
-    _iterate_model_fields(data, state, _iterator_commands)
+    _SIM_DATA.elegant_iterator(data, state, _iterator_commands)
     state['commands'] += '&end' + '\n'
     return state['commands']
 
@@ -810,7 +760,7 @@ def _generate_full_simulation(data, v):
 
 
 def _generate_twiss_simulation(data, v):
-    max_id = _SIM_DATA.max_id(data)
+    max_id = _SIM_DATA.elegant_max_id(data)
     sim = data['models']['simulation']
     sim['simulationMode'] = 'serial'
     run_setup = _find_first_command(data, 'run_setup') or pkcollections.Dict(
@@ -897,19 +847,6 @@ def _is_numeric(el_type, value):
         and re.search(r'^[\-\+0-9eE\.]+$', str(value))
 
 
-def _iterate_model_fields(data, state, callback):
-    for model_type in ['commands', 'elements']:
-        for m in data['models'][model_type]:
-            model_schema = _SCHEMA['model'][_model_name_for_data(m)]
-            callback(state, m)
-
-            for k in sorted(m):
-                if k not in model_schema:
-                    continue
-                element_schema = model_schema[k]
-                callback(state, m, element_schema, k)
-
-
 def _iterator_commands(state, model, element_schema=None, field_name=None):
     # only interested in commands, not elements
     if '_type' not in model:
@@ -930,7 +867,7 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
                     elif el_type == 'OutputFile':
                         value = state['filename_map']['{}{}{}'.format(model['_id'], _FILE_ID_SEP, state['field_index'])]
                     elif el_type.startswith('InputFile'):
-                        value = template_common.lib_file_name('command_{}'.format(model['_type']), field_name, value)
+                        value = _SIM_DATA.lib_file_name('command_{}'.format(model['_type']), field_name, value)
                     elif el_type == 'BeamInputFile':
                         value = 'bunchFile-sourceFile.{}'.format(value)
                     elif el_type == 'LatticeBeamlineList':
@@ -952,12 +889,6 @@ def _iterator_commands(state, model, element_schema=None, field_name=None):
             state['commands'] += '  semaphore_file = {},'.format(_ELEGANT_SEMAPHORE_FILE) + '\n'
 
 
-def _iterator_input_files(state, model, element_schema=None, field_name=None):
-    if element_schema:
-        if model[field_name] and element_schema[1].startswith('InputFile'):
-            state.append(template_common.lib_file_name(_model_name_for_data(model), field_name, model[field_name]))
-
-
 def _iterator_lattice_elements(state, model, element_schema=None, field_name=None):
     # only interested in elements, not commands
     if '_type' in model:
@@ -974,14 +905,14 @@ def _iterator_lattice_elements(state, model, element_schema=None, field_name=Non
                 if model['type'] == 'SCRIPT' and field_name == 'command':
                     for f in ('commandFile', 'commandInputFile'):
                         if f in model and model[f]:
-                            fn = template_common.lib_file_name(model['type'], f, model[f])
+                            fn = _SIM_DATA.lib_file_name(model['type'], f, model[f])
                             value = re.sub(r'\b' + re.escape(model[f]) + r'\b', fn, value)
                     if model['commandFile']:
                         value = './' + value
                 if el_type == 'RPNValue':
                     value = _format_rpn_value(value)
                 if el_type.startswith('InputFile'):
-                    value = template_common.lib_file_name(model['type'], field_name, value)
+                    value = _SIM_DATA.lib_file_name(model['type'], field_name, value)
                     if el_type == 'InputFileXY':
                         value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
                 elif el_type == 'OutputFile':
@@ -1019,10 +950,6 @@ def _map_commands_to_lattice(data):
                 if bl['name'].upper() == name:
                     cmd['use_beamline'] = bl['id']
                     break
-
-
-def _model_name_for_data(model):
-    return 'command_{}'.format(model['_type']) if '_type' in model else model['type']
 
 
 def _output_info(run_dir):
@@ -1148,21 +1075,13 @@ def _sdds_beam_type_from_file(filename):
     return res
 
 
-def _simulation_files(data):
-    res = []
-    _iterate_model_fields(data, res, _iterator_input_files)
-    if data['models']['bunchFile']['sourceFile']:
-        res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data['models']['bunchFile']['sourceFile']))
-    return res
-
-
 def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
     enum_info = template_common.validate_models(data, schema)
     _correct_halo_gaussian_distribution_type(data['models']['bunch'])
     for model_type in ['elements', 'commands']:
         for m in data['models'][model_type]:
-            template_common.validate_model(m, schema['model'][_model_name_for_data(m)], enum_info)
+            template_common.validate_model(m, schema['model'][_SIM_DATA.elegant_model_name(m)], enum_info)
             _correct_halo_gaussian_distribution_type(m)
 
 

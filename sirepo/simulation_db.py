@@ -147,11 +147,11 @@ def default_data(sim_type):
     Returns:
         dict: simulation data
     """
+    import sirepo.sim_data
+
     return open_json_file(
         sim_type,
-        path=template_common.resource_dir(sim_type).join(
-            'default-data{}'.format(JSON_SUFFIX),
-        ),
+        path=sirepo.sim_data.get_class(sim_type).resource_path('default-data').new(ext=JSON_SUFFIX),
     )
 
 
@@ -163,7 +163,7 @@ def delete_simulation(simulation_type, sid):
 
 def examples(app):
     files = pkio.walk_tree(
-        template_common.resource_dir(app).join(_EXAMPLE_DIR),
+        sirepo.sim_data.get_class(app).resource_path(_EXAMPLE_DIR),
         re.escape(JSON_SUFFIX) + '$',
     )
     #TODO(robnagler) Need to update examples statically before build
@@ -482,21 +482,6 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
     return fixup_old_data(data)[0] if fixup else data
 
 
-def parse_sid(data):
-    """Extract id from data
-
-    Args:
-        data (dict): models or request
-
-    Returns:
-        str: simulationId from data
-    """
-    try:
-        return str(data['simulationId'])
-    except KeyError:
-        return str(data['models']['simulation']['simulationId'])
-
-
 def parse_sim_ser(data):
     """Extract simulationStatus from data
 
@@ -542,6 +527,8 @@ def prepare_simulation(data, tmp_dir=None):
     Returns:
         list, py.path: pkcli command, simulation directory
     """
+    import sirepo.sim_data
+
     if tmp_dir is None:
         # This is the legacy (pre-runner-daemon) code path
         run_dir = simulation_run_dir(data, remove_dir=True)
@@ -558,11 +545,16 @@ def prepare_simulation(data, tmp_dir=None):
         run_dir = simulation_run_dir(data)
         pkio.mkdir_parent(tmp_dir)
         out_dir = tmp_dir
-    sim_type = data['simulationType']
-    sid = parse_sid(data)
+    sim_type = data.simulationType
+    sid = data.models.simulation.simulationId
     template = sirepo.template.import_module(data)
-    template_common.copy_lib_files(data, None, out_dir)
-
+    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+        data,
+        # needed for job_supervisor, which can't get at user
+        lib_dir_from_sim_dir(out_dir),
+        out_dir,
+        symlink=True,
+    )
     write_json(out_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
     is_p = is_parallel(data)
@@ -688,12 +680,13 @@ def report_info(data):
     return cached data if it's there and valid.
 
     Args:
-        data (dict): parameters identifying run_dir and models or reportParametersHash
+        data (dict): parameters identifying run_dir and models or computeJobHash
 
     Returns:
         Dict: report parameters and hashes
     """
-    # Sets data['reportParametersHash']
+    import sirepo.sim_data
+
     rep = pkcollections.Dict(
         cache_hit=False,
         cached_data=None,
@@ -703,16 +696,27 @@ def report_info(data):
         parameters_changed=False,
         run_dir=simulation_run_dir(data),
     )
-    rep.input_file = json_filename(template_common.INPUT_BASE_NAME, rep.run_dir)
-    rep.job_status = read_status(rep.run_dir)
-    rep.req_hash = template_common.report_parameters_hash(data)
+    rep.pkupdate(
+        input_file=json_filename(template_common.INPUT_BASE_NAME, rep.run_dir),
+        job_status=read_status(rep.run_dir),
+        req_hash=sirepo.sim_data.get_class(data).compute_job_hash(data),
+    )
     if not rep.run_dir.check():
         return rep
     #TODO(robnagler) Lock
     try:
-        cd = read_json(rep.input_file)
-        rep.cached_hash = template_common.report_parameters_hash(cd)
-        rep.cached_data = cd
+        rep.cached_data = cd = read_json(rep.input_file)
+
+        def _w():
+            with _global_lock:
+                write_json(rep.input_file, cd)
+
+        rep.cached_hash = sirepo.sim_data.get_class(
+            cd,
+        ).compute_job_hash(
+            cd,
+            changed=_w,
+        )
         if rep.req_hash == rep.cached_hash:
             rep.cache_hit = True
             return rep
@@ -779,6 +783,19 @@ def save_simulation_json(data, do_validate=True):
     return data
 
 
+def sid_from_compute_file(path):
+    """Get sid from path to report file
+
+    Args:
+        path (py.path): must be an existing report file
+
+    Returns:
+        str: simulation id
+    """
+    assert path.check(file=1)
+    return _sid_from_path(path)
+
+
 def sim_data_file(sim_type, sim_id):
     """Simulation data file name
 
@@ -818,17 +835,18 @@ def simulation_lib_dir(simulation_type):
     return simulation_dir(simulation_type).join(_LIB_DIR)
 
 
-def simulation_run_dir(data, remove_dir=False):
+def simulation_run_dir(req_or_data, remove_dir=False):
     """Where to run the simulation
 
     Args:
-        data (dict): contains simulationType and simulationId
+        req_or_data (dict): may be simulation data or a request
         remove_dir (bool): remove the directory [False]
 
     Returns:
         py.path: directory to run
     """
-    d = simulation_dir(data['simulationType'], parse_sid(data)).join(_report_dir(data))
+    sid = req_or_data.get('simulationId') or req_or_data.models.simulation.simulationId
+    d = simulation_dir(req_or_data.simulationType, sid).join(_report_dir(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
@@ -925,11 +943,11 @@ def validate_serial(req_data):
         object: None if all ok, or json response (bad)
     """
     with _global_lock:
-        sim_type = sirepo.template.assert_sim_type(req_data['simulationType'])
-        sid = parse_sid(req_data)
-        req_ser = req_data['models']['simulation']['simulationSerial']
+        sim_type = sirepo.template.assert_sim_type(req_data.simulationType)
+        sid = req_data.models.simulation.simulationId
+        req_ser = req_data.models.simulation.simulationSerial
         curr = read_simulation_json(sim_type, sid=sid)
-        curr_ser = curr['models']['simulation']['simulationSerial']
+        curr_ser = curr.models.simulation.simulationSerial
         if not req_ser is None:
             if req_ser == curr_ser:
                 return None
@@ -998,13 +1016,13 @@ def write_status(status, run_dir):
 
 
 def _create_example_and_lib_files(simulation_type):
+    import sirepo.sim_data
+
     d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
-    template = sirepo.template.import_module(simulation_type)
-    if hasattr(template, 'resource_files'):
-        for f in template.resource_files():
-            #TODO(pjm): symlink has problems in containers
-            # d.join(f.basename).mksymlinkto(f)
-            f.copy(d)
+    for f in sirepo.sim_data.get_class(simulation_type).resource_files():
+        #TODO(pjm): symlink has problems in containers
+        # d.join(f.basename).mksymlinkto(f)
+        f.copy(d)
     pkio.mkdir_parent(simulation_dir(simulation_type))
     for s in examples(simulation_type):
         save_new_example(s)
@@ -1202,9 +1220,18 @@ def _serial_new():
 
 
 def _sid_from_path(path):
-    sid = os.path.split(os.path.split(str(path))[0])[1]
-    assert_id(sid)
-    return sid
+    prev = None
+    p = path
+    # SECURITY: go up three levels at most (<type>/<id>/<report>/<output>)
+    for _ in range(3):
+        if p == prev:
+            break
+        i = p.basename
+        if _ID_RE.search(i):
+            return i
+        prev = p
+        p = p.dirpath()
+    raise AssertionError('path={} is not valid simulation'.format(path))
 
 
 def _timestamp(time=None):
