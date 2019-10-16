@@ -50,7 +50,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data):
         r = data.report
-        if r == cls.animation_name():
+        if r == cls.animation_name(None):
             return []
         res = ['beamlines', 'elements']
         if 'bunchReport' in r:

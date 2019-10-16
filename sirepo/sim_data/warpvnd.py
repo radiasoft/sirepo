@@ -117,7 +117,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = []
         for m in data.models.conductorTypes:
             if m.type == 'stl':
-                res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
+                res.append(cls.lib_file_name('stl', 'file', m.file))
         return res
 
     @classmethod

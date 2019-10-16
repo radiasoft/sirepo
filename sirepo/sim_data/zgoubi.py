@@ -82,5 +82,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = []
         for el in data.models.elements:
             if el.type == 'TOSCA' and el.magnetFile:
-                res.append(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
+                res.append(cls.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
         return res
