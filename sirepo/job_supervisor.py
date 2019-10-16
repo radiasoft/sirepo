@@ -36,6 +36,7 @@ class AgentMsg(PKDict):
         i = self.content.get('op_id')
         if not i:
             return
+        assert self.content.op != sirepo.job.OP_ERROR # TODO(e-carlin): proper error handling
         d.ops[i].set_result(self.content)
 
 
@@ -109,12 +110,12 @@ class _Job(PKDict):
 
     def get_response(self, req):
         try:
-            pkdp('in get_response. self is {}', self)
             # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
             i = self.get_job_info(req)
             res = PKDict(state=i.job_status)
             # TODO(e-carlin):  Job is not processing then send result op
-            assert i.job_status in (sirepo.job.Status.RUNNING.value, sirepo.job.Status.MISSING.value)
+            if i.job_status in (sirepo.job.Status.COMPLETED.value, sirepo.job.Status.ERROR.value):
+                pkdp('!!!!!!!!!!!!!!!!!!! TODO implement result op')
             # TODO(e-carlin): handle parallel
             res.setdefault('startTime', self.start_time)
             res.setdefault('lastUpdateTime', self.last_update_time)
@@ -194,11 +195,7 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             **self.req.content,
         )
-        pkdp('22222222222222222222222222222222222222222')
-        pkdp('about to get response for run request')
-        pkdp(req.content.data.simulationId)
-        pkdp('22222222222222222222222222222222222222222')
-        return pkdp(self.get_response(req))
+        return self.get_response(req)
 
     @classmethod
     def _jid_for_req(cls, req):

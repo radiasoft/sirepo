@@ -14,6 +14,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job_agent_process, job, mpi
 from sirepo.pkcli import job_process
+import json
 import os
 import re
 import signal
@@ -126,7 +127,7 @@ class _Process(PKDict):
             env=env,
         )
         async def collect(stream, out):
-            out += await stream.read_until_close()
+            out.extend(await stream.read_until_close())
         i = tornado.ioloop.IOLoop.current()
         self.stdout = bytearray()
         self.stderr = bytearray()
@@ -135,41 +136,68 @@ class _Process(PKDict):
         # self._subprocess.set_exit_callback(self.exit) # TODO(e-carlin): delete
         self._subprocess.set_exit_callback(self._exit)
 
+    def _load_output(self):
+        e = None
+        o = None
+        try:
+            e = pkjson.load_any(self.stderr)
+        except json.JSONDecodeError:
+            s = self.stderr.decode('utf-8')
+            if s:
+                e = PKDict(error=s) # TODO(e-carlin): errors='ignore' ?
+        except Exception as exc:
+            e = PKDict(error=exc)
+        if e:
+            try:
+                o = pkjson.load_any(self.stdout)
+            except json.JSONDecodeError:
+                pass
+            return o, e
+        o = pkjson.load_any(self.stdout)
+        return o, e
 
     def _exit(self, return_code):
+        # TODO(e-carlin): this is ugly. fix error handling. i think elimnate the nested do() func
         async def do():
             try:
                 if self._terminating:
                     return
-                self._done(job.Status.COMPLETED.value if return_code == 0 else job.Status.ERROR.value)
-                e = self.stderr.decode('utf-8', errors='ignore')
-                o = self.stdout.decode('utf-8', errors='ignore')
-                if self.msg.job_process_cmd in ('compute_status', 'compute'):
-                    # TODO(e-carlin): should this be here?
-                    self.msg.setdefault(
-                        'last_update_time',
-                        job_process.mtime_or_now(self.msg.run_dir)
+                o, e = self._load_output()
+                error = e or return_code != 0
+                self._done(job.Status.ERROR.value if error else job.Status.COMPLETED.value)
+                if error:
+                    await self.comm.write_message(
+                        self.msg,
+                        job.OP_ERROR,
+                        error=e,
+                        output=o,
+                        compute_status=job.Status.ERROR.value,
                     )
+                elif self.msg.job_process_cmd == 'compute':
+                    await self.comm.write_message(
+                        self.msg,
+                        job.OP_OK,
+                        output=o,
+                        compute_status=job.Status.COMPLETED.value,
+                    )
+                elif self.msg.job_process_cmd == 'compute_status':
                     await self.comm.write_message(
                         self.msg,
                         job.OP_COMPUTE_STATUS,
-                        compute_status=self.compute_status.status,
+                        **o
                     )
-                    return
                 else:
-                    try:
-                        if o:
-                            await self.comm.write_message(
-                                self.msg,
-                                job.OP_ANALYSIS,
-                                output=o,
-                            )
-                            return
-                    except Exception:
-                        pkdlog('error={} msg={}', e, self.msg)
-                    await self.comm.write_message(self.msg, job.OP_ERROR, error=e, output=o)
+                    await self.comm.write_message(
+                        self.msg,
+                        job.OP_ANALYSIS,
+                        output=o,
+                    )
             except Exception as exc:
                 pkdlog('error={}', exc)
+                try:
+                    await self.comm.write_message(self.msg, job.OP_ERROR, error=e, output=o)
+                except Exception as exc:
+                    pkdlog('error={}', exc)
         tornado.ioloop.IOLoop.current().spawn_callback(do)
             
 

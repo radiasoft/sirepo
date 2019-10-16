@@ -105,6 +105,7 @@ def test_myapp():
         )
         for _ in range(10):
             pkdp('in loop')
+            assert run.state != 'error'
             if run.state == 'completed':
                 break
             time.sleep(1)

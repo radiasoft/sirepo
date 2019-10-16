@@ -44,6 +44,7 @@ def default_command(in_file):
     """
     f = pkio.py_path(in_file)
     msg = pkjson.load_any(f)
+    msg.run_dir = pkio.py_path(msg.run_dir) # TODO(e-carlin): find common place to serialize/deserialize paths
     f.remove()
     return pkjson.dump_pretty(
         globals()['_do_' + msg.job_process_cmd](
@@ -111,6 +112,7 @@ def _do_compute(msg, template):
             if p:
                 p.terminate()
                 # TODO(e-carlin): kill
+    # TODO(e-carlin): implement
     # if hasattr(template, 'remove_last_frame'):
     #     template.remove_last_frame(msg.run_dir)
 
@@ -128,7 +130,7 @@ def _do_compute_status(msg, template):
                 template_common.INPUT_BASE_NAME,
                 msg.run_dir,
             )),
-        last_update_time=mtime_or_now(msg.run_dir),
+        last_update_time=_mtime_or_now(msg.run_dir),
         compute_status=simulation_db.read_status(msg.run_dir),
     )
 
@@ -154,7 +156,7 @@ def _subprocess_env():
     return env
 
 
-def mtime_or_now(path):
+def _mtime_or_now(path):
     """mtime for path if exists else time.time()
 
     Args:
@@ -163,4 +165,5 @@ def mtime_or_now(path):
     Returns:
         int: modification time
     """
+    path = pkio.py_path(path) # TODO(e-carlin): Do this somewhere centralized
     return int(path.mtime() if path.exists() else time.time())
