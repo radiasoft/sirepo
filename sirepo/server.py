@@ -621,7 +621,7 @@ def api_getServerData():
     id = input.id if 'id' in input else None
     d = adm.get_server_data(id)
     if d == None or len(d) == 0:
-        return _simulation_error('Data error')
+        raise sirepo.util.UserAlert('Data error', 'no data supplied')
     return http_reply.gen_json(d)
 
 
@@ -836,17 +836,20 @@ def _save_new_and_reply(*args):
     )
 
 
-def _simulation_error(err, *args, **kwargs):
+def _simulation_error(exc, err, *args, **kwargs):
     """Something unexpected went wrong.
 
     Parses ``err`` for error
 
     Args:
+        exc (exception): may be None
         err (str): exception or run_log
         quiet (bool): don't write errors to log
     Returns:
         dict: error response
     """
+    if isinstance(exc, sirepo.util.UserAlert):
+        raise exc
     if not kwargs.get('quiet'):
         pkdlog('{}', ': '.join([str(a) for a in args] + ['error', err]))
     m = re.search(_SUBPROCESS_ERROR_RE, str(err))
@@ -935,8 +938,8 @@ def _simulation_run_status_runner_daemon(data, quiet=False):
             rep.cached_hash,
             rep.req_hash,
         )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
+    except Exception as e:
+        return _simulation_error(e, pkdexc(), quiet=quiet)
     return res
 
 
@@ -972,6 +975,7 @@ def _simulation_run_status(data, quiet=False):
         if is_processing:
             if not rep.cached_data:
                 return _simulation_error(
+                    None,
                     'input file not found, but job is running',
                     rep.input_file,
                 )
@@ -1031,8 +1035,8 @@ def _simulation_run_status(data, quiet=False):
             rep.cached_hash,
             rep.req_hash,
         )
-    except Exception:
-        return _simulation_error(pkdexc(), quiet=quiet)
+    except Exception as e:
+        return _simulation_error(e, pkdexc(), quiet=quiet)
     return res
 
 
