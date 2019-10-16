@@ -5,7 +5,6 @@ u"""Flask routes
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -23,15 +22,11 @@ from sirepo.template import adm
 from sirepo.template import template_common
 import datetime
 import flask
-import glob
-import os.path
 import py.path
 import re
 import sirepo.sim_data
 import sirepo.template
 import sirepo.util
-import string
-import sys
 import time
 import urllib
 import uuid
@@ -142,7 +137,8 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f = int(frame)
     t = sirepo.template.import_module(data)
-    data.report = t.get_animation_name(data) if f >= 0 else model
+    data.report = sirepo.sim_data.get_class(simulation_type).animation_name(data) \
+        if f >= 0 else model
     f, c, t = t.get_data_file(
         simulation_db.simulation_run_dir(data),
         model,
@@ -366,7 +362,7 @@ def api_homePage(path_info=None):
 
 @api_perm.allow_visitor
 def api_homePageOld():
-    return _render_root_page('landing-page', pkcollections.Dict())
+    return _render_root_page('landing-page', PKDict())
 
 
 @api_perm.require_user
@@ -427,7 +423,7 @@ def api_root(simulation_type):
             return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
         sirepo.util.raise_not_found('Invalid simulation_type: {}', simulation_type)
-    values = pkcollections.Dict()
+    values = PKDict()
     values.app_name = simulation_type
     return _render_root_page('index', values)
 
@@ -572,9 +568,9 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
 @api_perm.require_user
 def api_simulationFrame(frame_id):
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-    data = dict(zip(keys, frame_id.split('*')))
+    data = PKDict(dict(zip(keys, frame_id.split('*'))))
     template = sirepo.template.import_module(data)
-    data['report'] = template.get_animation_name(data)
+    data['report'] = sirepo.sim_data.get_class(data.simulationType).animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if feature_config.cfg.runner_daemon:
@@ -638,7 +634,7 @@ def api_simulationSchema():
 
 @api_perm.allow_visitor
 def api_srwLight():
-    return _render_root_page('light', pkcollections.Dict())
+    return _render_root_page('light', PKDict())
 
 
 @api_perm.allow_visitor
@@ -813,7 +809,7 @@ def _parse_data_input(validate=False):
 
 
 def _render_root_page(page, values):
-    values.update(pkcollections.Dict(
+    values.update(PKDict(
         app_version=simulation_db.app_version(),
         source_cache_key=_source_cache_key(),
         static_files=simulation_db.static_libs(),
