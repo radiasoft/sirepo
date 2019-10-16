@@ -126,10 +126,10 @@ def _do_compute_status(msg, template):
     """
     return PKDict(
         compute_hash=template_common.report_parameters_hash(
-            simulation_db.json_filename(
+            simulation_db.read_json(simulation_db.json_filename(
                 template_common.INPUT_BASE_NAME,
-                msg.run_dir,
-            )),
+                msg.run_dir, 
+            ))),
         last_update_time=_mtime_or_now(msg.run_dir),
         compute_status=simulation_db.read_status(msg.run_dir),
     )
@@ -165,5 +165,4 @@ def _mtime_or_now(path):
     Returns:
         int: modification time
     """
-    path = pkio.py_path(path) # TODO(e-carlin): Do this somewhere centralized
     return int(path.mtime() if path.exists() else time.time())

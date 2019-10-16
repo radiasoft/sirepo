@@ -169,7 +169,7 @@ class _Job(PKDict):
         await d.do_op(
             op=sirepo.job.OP_COMPUTE_STATUS,
             jid=self.req.compute_jid,
-            run_dir=self.req.run_dir,
+            **self.req.content,
         )
         return await self.get_response(req)
     
