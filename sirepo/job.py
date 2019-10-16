@@ -16,7 +16,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
 import uuid
 
-
 # Actions that the sirepo server, supervisor, or driver may send.
 # TODO(e-carlin): Can we use an enum without manually serializing
 # and deserializing?
@@ -55,9 +54,7 @@ DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
 
-
 cfg = None
-
 
 # TODO(e-carlin): Use enums or string constants (like ACTIONS) not both.
 class Status(aenum.Enum):

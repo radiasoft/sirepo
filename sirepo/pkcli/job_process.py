@@ -77,7 +77,6 @@ def _do_background_percent_complete(msg, template):
 def _do_get_simulation_frame(msg, template):
     return template.get_simulation_frame(
         msg.run_dir,
-        # parsed frame_id
         msg.data,
         simulation_db.read_json(msg.run_dir.join(template_common.INPUT_BASE_NAME)),
     )
@@ -88,11 +87,11 @@ def _do_compute(msg, template):
     with pkio.save_chdir('/'):
         pkio.unchecked_remove(msg.run_dir)
         pkio.mkdir_parent(msg.run_dir)
-    cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
         'state': 'pending', # TODO(e-carlin): Is this necessary?
     }
+    cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     run_log_path = msg.run_dir.join(template_common.RUN_LOG)
     cmd = ['pyenv', 'exec'] + cmd
     with open(str(run_log_path), 'a+b') as run_log, open(os.devnull, 'w') as FNULL:
@@ -112,6 +111,7 @@ def _do_compute(msg, template):
             if p:
                 p.terminate()
                 # TODO(e-carlin): kill
+    return _do_compute_status(msg, template)
     # TODO(e-carlin): implement
     # if hasattr(template, 'remove_last_frame'):
     #     template.remove_last_frame(msg.run_dir)
