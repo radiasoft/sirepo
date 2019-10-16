@@ -12,6 +12,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
+from sirepo.template import srw_common
 from sirepo.template import template_common
 import bnlcrl.pkcli.simulate
 import copy
@@ -322,7 +323,7 @@ def get_application_data(data):
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
-                res[beam] = _SIM_DATA.srw_process_beam_parameters(beam)
+                res[beam] = srw_common.process_beam_parameters(beam)
         return pkcollections.Dict({
             'modelList': res
         })
@@ -351,7 +352,7 @@ def get_application_data(data):
     elif data['method'] == 'process_intensity_reports':
         return _process_intensity_reports(data['source_type'], data['undulator_type'])
     elif data['method'] == 'process_beam_parameters':
-        data.ebeam = _SIM_DATA.srw_process_beam_parameters(data.ebeam)
+        data.ebeam = srw_common.process_beam_parameters(data.ebeam)
         data['ebeam']['drift'] = calculate_beam_drift(
             data['ebeam_position'],
             data['source_type'],

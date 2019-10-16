@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import math
 import numpy as np
 import sirepo.sim_data
+from sirepo.template import srw_common
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals('srw')
 
@@ -192,7 +193,7 @@ def _do_electron_beam(template, data):
         dm.electronBeamPosition.horizontalAngle = _SCHEMA.model.electronBeamPosition.horizontalAngle[2]
         dm.electronBeamPosition.verticalAngle = _SCHEMA.model.electronBeamPosition.verticalAngle[2]
     if 'beamDefinition' not in dm['electronBeam']:
-        _SIM_DATA.srw_process_beam_parameters(dm['electronBeam'])
+        srw_common.process_beam_parameters(dm['electronBeam'])
         dm['electronBeamPosition']['drift'] = template.calculate_beam_drift(
             dm['electronBeamPosition'],
             dm['simulation']['sourceType'],
