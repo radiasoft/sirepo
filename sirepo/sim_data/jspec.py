@@ -7,6 +7,7 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo import simulation_db
 import sirepo.sim_data
 
 
@@ -64,7 +65,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def jspec_elegant_twiss_path(cls):
-        return '{}/{}'.format(cls.animation_name(), cls.JSPEC_ELEGANT_TWISS_FILENAME)
+        return '{}/{}'.format(cls.animation_name(None), cls.JSPEC_ELEGANT_TWISS_FILENAME)
 
     @classmethod
     def jspec_elegant_dir(cls):
