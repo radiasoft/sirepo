@@ -13,6 +13,12 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
+    def animation_name(data):
+        if data['modelName'] == 'correctorSettingAnimation':
+            return data['modelName']
+        return 'animation'
+
+    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         for m in cls.schema().model:
@@ -43,7 +49,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return cls.lib_file_name('analysisData', 'file', data.models.analysisData.file)
 
     @classmethod
-    def webcon_analysis_report_name_for_fft(data):
+    def webcon_analysis_report_name_for_fft(cls, data):
         return data.models[data.report].get('analysisReport', 'analysisReport')
 
     @classmethod
@@ -60,11 +66,11 @@ class SimData(sirepo.sim_data.SimDataBase):
             res += ['{}.{}'.format(n, v) for v in ('x', 'y1', 'history')]
         if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
             # always recompute the EPICS reports
-            res += [cls._force_recompute()]
+            res.append([cls._force_recompute()])
         return res
 
     @classmethod
-    def _lib_files(cls, data, source_lib):
+    def _lib_files(cls, data):
         res = []
         r = data.get('report')
         if r == 'epicsServerAnimation':

@@ -174,12 +174,6 @@ def get_analysis_report(run_dir, data):
     )
 
 
-def _SIM_DATA.animation_name(data):
-    if data['modelName'] == 'correctorSettingAnimation':
-        return data['modelName']
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'column_info':
         data = PKDict(
