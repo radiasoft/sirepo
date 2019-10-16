@@ -243,6 +243,19 @@ class SimData(sirepo.sim_data.SimDataBase):
         return path.ext[1:] in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]
 
     @classmethod
+    def srw_predefined(cls):
+        import pykern.pkjson
+        import sirepo.template.srw_common
+
+        f = cls.resource_path(sirepo.template.srw_common.PREDEFINED_JSON)
+        if not f.check():
+            assert pkconfig.channel_in('dev'), \
+                '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)
+            import sirepo.pkcli.srw
+            sirepo.pkcli.srw.create_predefined()
+        return cls._memoize(pykern.pkjson.load_any(f))
+
+    @classmethod
     def srw_uses_tabulated_zipfile(cls, data):
         return cls.srw_is_tabulated_undulator_with_magnetic_file(
             data.models.simulation.sourceType,
@@ -316,17 +329,3 @@ class SimData(sirepo.sim_data.SimDataBase):
                     if m[k] and t in ('MirrorFile', 'ImageFile'):
                         res.append(m[k])
         return res
-
-
-    @classmethod
-    def srw_predefined(cls):
-        import pykern.pkjson
-        import sirepo.template.srw_common
-
-        f = cls.resource_path(sirepo.template.srw_common.PREDEFINED_JSON)
-        if not f.check():
-            assert pkconfig.channel_in('dev'), \
-                '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)
-            import sirepo.pkcli.srw
-            sirepo.pkcli.srw.create_predefined()
-        return cls._memoize(pykern.pkjson.load_any(f))
