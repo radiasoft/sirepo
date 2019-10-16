@@ -66,7 +66,7 @@ def test_runStatus():
             job_supervisor.terminate()
             job_supervisor.wait()
 
-def test_myapp():
+def test_runSimulation():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
@@ -104,7 +104,6 @@ def test_myapp():
             ),
         )
         for _ in range(10):
-            pkdp('in loop')
             assert run.state != 'error'
             if run.state == 'completed':
                 break
@@ -113,9 +112,6 @@ def test_myapp():
                 'runStatus',
                 run.nextRequest
             )
-            pkdp('4444444444444444444444444444444444444')
-            pkdp(run)
-            pkdp('4444444444444444444444444444444444444')
         else:
             pkunit.pkfail('runStatus: failed to complete: {}', run)
         # Just double-check it actually worked

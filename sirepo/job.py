@@ -35,11 +35,12 @@ ACTION_RUN_SIMULATION = 'runSimulation'
 # Bidirectional operations
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
-OP_CONDITION = 'condition'
 OP_COMPUTE_STATUS = 'compute_status'
+OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
 OP_OK = 'ok'
+OP_RESULT = 'result'
 OP_RUN = 'run'
 OP_STATUS = 'status'
 

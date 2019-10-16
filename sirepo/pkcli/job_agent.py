@@ -84,11 +84,12 @@ def _subprocess_env():
 class _Process(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.compute_status = None
+        self.compute_status_file = None
+        self.jid = self.msg.jid
         self._in_file = None
         self._subprocess = None
         self._terminating = False
-        self.compute_status_file = None
-        self.compute_status = None
 
     def start(self):
         # SECURITY: msg must not contain agent_id
@@ -160,6 +161,7 @@ class _Process(PKDict):
         # TODO(e-carlin): this is ugly. fix error handling. i think elimnate the nested do() func
         async def do():
             try:
+                self.comm.remove_process(self.jid)
                 if self._terminating:
                     return
                 o, e = self._load_output()
@@ -308,6 +310,11 @@ class _Comm(PKDict):
         self.kill()
         return True
 
+    async def _op_result(self, msg):
+        msg.update(job_process_cmd='result')
+        self._process(msg)
+        return False
+
     async def _op_run(self, msg):
         m = msg.copy()
         del m['op_id']
@@ -330,11 +337,9 @@ class _Comm(PKDict):
             )
         except Exception:
             f = msg.run_dir.join(job.RUNNER_STATUS_FILE)
-            if f.check(): # TODO(e-carlin): If f a str? If so .exists() is not valid
+            if f.check():
                 assert msg.jid not in self._processes
-                msg.update(
-                    job_process_cmd='compute_status',
-                )
+                msg.update(job_process_cmd='compute_status')
                 self._process(msg)
                 return False
         return self._format_reply(
@@ -348,3 +353,7 @@ class _Comm(PKDict):
         assert msg.jid not in self._processes
         self._processes[msg.jid] = p
         p.start()
+    
+    def remove_process(self, jid):
+        assert jid in self._processes
+        del self._processes[jid]

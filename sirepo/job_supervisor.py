@@ -80,15 +80,8 @@ class ServerReq(PKDict):
             self.handler.write(await _Job.get_compute_status(self))
             return
         elif c.api == 'api_runSimulation':
-            # TODO(e-carlin): handle error from get_compute_status
-            s = await _Job.get_compute_status(self)
-            if s not in sirepo.job.ALREADY_GOOD_STATUS:
-                # TODO(e-carlin): Handle forceRun
-                # TODO(e-carlin): Handle parametersChanged
-                # TODO(e-carlin): only run job if no others running
-                self.handler.write(
-                    await _Job.run(self))
-                return
+            self.handler.write(await _Job.run(self))
+            return
         raise AssertionError('api={} unkown', c.api)
 
 
@@ -108,14 +101,14 @@ class _Job(PKDict):
         self.last_update_time = time.time()
         self.start_time = time.time()
 
-    def get_response(self, req):
+    async def get_response(self, req):
         try:
             # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
             i = self.get_job_info(req)
             res = PKDict(state=i.job_status)
             # TODO(e-carlin):  Job is not processing then send result op
             if i.job_status in (sirepo.job.Status.COMPLETED.value, sirepo.job.Status.ERROR.value):
-                pkdp('!!!!!!!!!!!!!!!!!!! TODO implement result op')
+                res = (await self.get_result(req)).output.result
             # TODO(e-carlin): handle parallel
             res.setdefault('startTime', self.start_time)
             res.setdefault('lastUpdateTime', self.last_update_time)
@@ -170,8 +163,7 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         if self.compute_status is not None:
-            return self.get_response(req)
-            # return PKDict(statu=self.compute_status)
+            return await self.get_response(req)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
         await d.do_op(
@@ -179,23 +171,43 @@ class _Job(PKDict):
             jid=self.req.compute_jid,
             run_dir=self.req.run_dir,
         )
-        return self.get_response(req)
-
+        return await self.get_response(req)
+    
     @classmethod
-    async def run(cls, req):
+    async def get_result(cls, req):
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
             self = cls(req=req)
         d = await sirepo.driver.get_instance_for_job(self)
-        # TODO(e-carlin): handle error response from do_op
-        self.start_time = time.time()
-        self.last_update_time = time.time()
-        await d.do_op(
-            op=sirepo.job.OP_RUN,
+        # TODO(e-carlin): all other methods return self.get_response() this returns
+        # the raw response. Is there a way to change this?
+        return await d.do_op(
+            op=sirepo.job.OP_RESULT,
             jid=self.req.compute_jid,
             **self.req.content,
         )
-        return self.get_response(req)
+
+    @classmethod
+    async def run(cls, req):
+        # TODO(e-carlin): handle forceRun
+        # TODO(e-carlin): handle parametersChanged
+        s = await _Job.get_compute_status(req)
+        if s.state not in sirepo.job.ALREADY_GOOD_STATUS:
+            self = cls.instances.get(cls._jid_for_req(req))
+            if not self:
+                self = cls(req=req)
+            d = await sirepo.driver.get_instance_for_job(self)
+            # TODO(e-carlin): handle error response from do_op
+            self.start_time = time.time()
+            self.last_update_time = time.time()
+            await d.do_op(
+                op=sirepo.job.OP_RUN,
+                jid=self.req.compute_jid,
+                **self.req.content,
+            )
+        self = cls.instances.get(cls._jid_for_req(req))
+        assert self is not None
+        return await self.get_response(req)
 
     @classmethod
     def _jid_for_req(cls, req):
