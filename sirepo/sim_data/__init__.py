@@ -85,12 +85,17 @@ class SimDataBase(object):
             for f in sorted(
                 sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
             ):
-                assert isinstance(f, pkconfig.STRING_TYPES), \
-                    'value={} not a string_type'.format(f)
-                x = f.split('.')
+                # assert isinstance(f, pkconfig.STRING_TYPES), \
+                #     'value={} not a string_type'.format(f)
+                #TODO(pjm): work-around for now
+                if isinstance(f, pkconfig.STRING_TYPES):
+                    x = f.split('.')
+                    value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
+                else:
+                    value = f
                 res.update(
                     pkjson.dump_bytes(
-                        m[x[0]][x[1]] if len(x) > 1 else m[x[0]],
+                        value,
                         sort_keys=True,
                         allow_nan=False,
                     )
