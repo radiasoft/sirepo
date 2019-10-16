@@ -87,7 +87,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not model.startswith('fieldComparison'):
             return PKDict()
         g = data.models.simulationGrid
-        t = cls.is_3d(data)
+        t = cls.warpvnd_is_3d(data)
         return PKDict(
             dimension='x',
             xCell1=0,

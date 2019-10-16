@@ -5,6 +5,7 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
@@ -319,6 +320,13 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def srw_predefined(cls):
-        import sirepo.pkcli.srw
+        import pykern.pkjson
+        import sirepo.template.srw_common
 
-        return cls._memoize(sirepo.pkcli.srw.predefined())
+        f = cls.resource_path(sirepo.template.srw_common.PREDEFINED_JSON)
+        if not f.check():
+            assert pkconfig.channel_in('dev'), \
+                '{}: not found; call "sirepo srw create-predefined" before pip install'.format(f)
+            import sirepo.pkcli.srw
+            sirepo.pkcli.srw.create_predefined()
+        return cls._memoize(pykern.pkjson.load_any(f))

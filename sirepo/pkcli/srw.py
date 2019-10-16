@@ -18,36 +18,11 @@ import copy
 import numpy as np
 
 
-def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
-    """Run importer in run_dir trying to import py_file
-
-    Args:
-        run_dir (str): clean directory except for in_py
-        in_py (str): name of the python file in run_dir
-        out_json (str): valid json matching SRW schema
-    """
-    from sirepo.template import srw_importer
-    with pkio.save_chdir(run_dir):
-        out = srw_importer.python_to_json(in_py)
-        with open(out_json, 'w') as f:
-            f.write(out)
-    return 'Created: {}'.format(out_json)
-
-
-def run(cfg_dir):
-    """Run srw in ``cfg_dir``
-
-    Args:
-        cfg_dir (str): directory to run srw in
-    """
-    with pkio.save_chdir(cfg_dir):
-        _run_srw()
-
-
-def predefined():
+def create_predefined():
     from sirepo.template import srw_common
     import sirepo.sim_data
     import srwl_uti_src
+    import pykern.pkjson
 
     sim_data = sirepo.sim_data.get_class('srw')
     beams = []
@@ -86,12 +61,43 @@ def predefined():
             extensions=sim_data.SRW_FILE_TYPE_EXTENSIONS[file_type],
         )
 
-    return PKDict(
-        beams=beams,
-        magnetic_measurements=f('undulatorTable'),
-        mirrors=f('mirror'),
-        sample_images=f('sample'),
+    p = sim_data.resource_path(srw_common.PREDEFINED_JSON)
+    pykern.pkjson.dump_pretty(
+        PKDict(
+            beams=beams,
+            magnetic_measurements=f('undulatorTable'),
+            mirrors=f('mirror'),
+            sample_images=f('sample'),
+        ),
+        filename=p,
     )
+    return 'Created {}'.format(p)
+
+
+def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
+    """Run importer in run_dir trying to import py_file
+
+    Args:
+        run_dir (str): clean directory except for in_py
+        in_py (str): name of the python file in run_dir
+        out_json (str): valid json matching SRW schema
+    """
+    from sirepo.template import srw_importer
+    with pkio.save_chdir(run_dir):
+        out = srw_importer.python_to_json(in_py)
+        with open(out_json, 'w') as f:
+            f.write(out)
+    return 'Created: {}'.format(out_json)
+
+
+def run(cfg_dir):
+    """Run srw in ``cfg_dir``
+
+    Args:
+        cfg_dir (str): directory to run srw in
+    """
+    with pkio.save_chdir(cfg_dir):
+        _run_srw()
 
 
 def run_background(cfg_dir):
