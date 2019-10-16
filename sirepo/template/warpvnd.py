@@ -28,7 +28,6 @@ COMPARISON_STEP_SIZE = 100
 WANT_BROWSER_FRAME_CACHE = True
 MPI_SUMMARY_FILE = 'mpi-info.json'
 
-_FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _FIELD_ESTIMATE_FILE = 'estimates.json'
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
@@ -113,15 +112,6 @@ def generate_field_report(data, run_dir, args=None):
     res.frequency_title = 'Volts'
 
     return res
-
-
-# use concept of "runner" animation?
-def _SIM_DATA.animation_name(data):
-    if data['modelName'] == 'optimizerAnimation':
-        return data['modelName']
-    if data['modelName'] in _FIELD_ANIMATIONS:
-        return 'fieldCalculationAnimation'
-    return 'animation'
 
 
 def get_application_data(data):
@@ -808,10 +798,6 @@ def _h5_file_list(run_dir, model_name):
     )
 
 
-def _is_opt_field(field_name):
-    return re.search(r'\_opt$', field_name)
-
-
 def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
@@ -833,14 +819,6 @@ def _mpi_core_count(run_dir):
         if 'mpiCores' in info:
             return info['mpiCores']
     return 0
-
-
-def _non_opt_fields_to_array(model):
-    res = []
-    for f in model:
-        if not _is_opt_field(f) and f not in _SIM_DATA.ANALYSIS_ONLY_FIELDS:
-            res.append(model[f])
-    return res
 
 
 def _optimizer_percent_complete(run_dir, is_running):

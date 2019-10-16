@@ -323,8 +323,9 @@ class SimData(sirepo.sim_data.SimDataBase):
         if cls.srw_is_arbitrary_source(dm.simulation):
             res.append(dm.arbitraryMagField.magneticFile)
         if cls.srw_is_beamline_report(r):
+            s = cls.schema()
             for m in dm.beamline:
-                for k, v in _SCHEMA.model[m.type].items():
+                for k, v in s.model[m.type].items():
                     t = v[1]
                     if m[k] and t in ('MirrorFile', 'ImageFile'):
                         res.append(m[k])

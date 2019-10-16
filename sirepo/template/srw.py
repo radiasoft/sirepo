@@ -323,7 +323,7 @@ def get_application_data(data):
         res.extend(_load_user_model_list(model_name))
         if model_name == 'electronBeam':
             for beam in res:
-                res[beam] = srw_common.process_beam_parameters(beam)
+                srw_common.process_beam_parameters(beam)
         return pkcollections.Dict({
             'modelList': res
         })

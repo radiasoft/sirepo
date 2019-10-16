@@ -16,12 +16,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def fixup_old_data(cls, data):
         s = cls.schema()
         dm = data.models
-        cls._init_models(dm, ('bunchSource', 'twissReport'))
+        cls._init_models(dm, ('bunchSource', 'simulation', 'twissReport'))
         dm.setdefault('bunchFile', PKDict(sourceFile=None))
-        dm.simulation.setdefault(
-            'folder', '/',
-            'simulationMode', 'parallel',
-        )
         dm.setdefault('rpnVariables', [])
         if 'commands' not in dm:
             dm.commands = cls.__create_commands(data)

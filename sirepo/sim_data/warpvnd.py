@@ -5,10 +5,11 @@ u"""simulation data operations
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from pykern import pkcollections
 from pykern.pkdebug import pkdp
+import re
 import sirepo.sim_data
 
 
@@ -17,9 +18,17 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice'))
 
     @classmethod
+    def animation_name(cls, data):
+        if data.modelName == 'optimizerAnimation':
+            return data.modelName
+        if data.modelName in ['fieldCalcAnimation', 'fieldComparisonAnimation']:
+            return 'fieldCalculationAnimation'
+        return 'animation'
+
+    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        dm.setdefault(optimizer=PKDict()).setdefault(
+        dm.pksetdefault(optimizer=PKDict()).setdefault(
             constraints=[],
             enabledFields=PKDict(),
             fields=[],
@@ -72,13 +81,15 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data):
         r = data.report
-        if data.report == cls.animation_name() or data['report'] == 'optimizerAnimation':
+        if 'modelName' not in data:
+            data.modelName = r
+        if data.report == cls.animation_name(data) or data['report'] == 'optimizerAnimation':
             return []
         res = ['simulationGrid']
-        res.append(_non_opt_fields_to_array(data.models.beam))
+        res.append(cls.__non_opt_fields_to_array(data.models.beam))
         for container in ('conductors', 'conductorTypes'):
             for m in data.models[container]:
-                res.append(_non_opt_fields_to_array(m))
+                res.append(cls.__non_opt_fields_to_array(m))
         return res + cls._non_analysis_fields(data, r)
 
     @classmethod
@@ -107,4 +118,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         for m in data.models.conductorTypes:
             if m.type == 'stl':
                 res.append(_SIM_DATA.lib_file_name('stl', 'file', m.file))
+        return res
+
+    @classmethod
+    def __non_opt_fields_to_array(cls, model):
+        res = []
+        for f in model:
+            if not re.search(r'\_opt$', f) and f not in cls.ANALYSIS_ONLY_FIELDS:
+                res.append(model[f])
         return res
