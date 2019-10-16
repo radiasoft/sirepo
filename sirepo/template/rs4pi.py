@@ -144,18 +144,6 @@ def generate_rtdose_file(data, run_dir):
         return _summarize_rt_dose(None, ds, run_dir=run_dir)
 
 
-def _SIM_DATA.animation_name(data):
-    if data['modelName'].startswith('dicomAnimation'):
-        return 'dicomAnimation'
-    if data['modelName'] == 'dicomDose':
-        # if the doseCalculation has been run, use that directory for work
-        # otherwise, it is an imported dose file
-        if simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('doseCalculation').exists():
-            return 'doseCalculation'
-        return 'dicomAnimation'
-    return data['modelName']
-
-
 def get_application_data(data):
     if data['method'] == 'roi_points':
         return _read_roi_file(data['simulationId'])
