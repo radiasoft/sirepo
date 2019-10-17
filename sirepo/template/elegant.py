@@ -654,10 +654,14 @@ def _file_info(filename, run_dir, id, output_index):
             for i, p in enumerate(parameter_names):
                 parameters[p].append(_safe_sdds_value(sdds.sddsdata.GetParameter(_SDDS_INDEX, i)))
             for col in column_names:
-                values = sdds.sddsdata.GetColumn(
-                    _SDDS_INDEX,
-                    column_names.index(col),
-                )
+                try:
+                    values = sdds.sddsdata.GetColumn(
+                        _SDDS_INDEX,
+                        column_names.index(col),
+                    )
+                except SystemError:
+                    # incorrectly generated sdds file
+                    break
                 if not len(values):
                     pass
                 elif len(field_range[col]):
