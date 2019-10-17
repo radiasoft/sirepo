@@ -147,10 +147,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def lib_files_for_type(cls, file_type):
-        return cls._files_for_type(
+        return cls.srw_files_for_type(
             file_type,
             lambda f: cls.srw_is_valid_file(file_type, f) and f.basename,
-            extensions=cls.SRW_FILE_TYPE_EXTENSIONS[file_type],
         )
 
     @classmethod
@@ -173,6 +172,21 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def srw_compute_crystal_grazing_angle(cls, model):
         model.grazingAngle = math.acos(math.sqrt(1 - model.tvx ** 2 - model.tvy ** 2)) * 1e3
+
+    @classmethod
+    def srw_files_for_type(cls, file_type, op, dir_path=None):
+        """Search for files of type
+        """
+        from sirepo import simulation_db
+
+        res = []
+        d = dir_path or simulation_db.simulation_lib_dir(cls.sim_type())
+        for e in cls.SRW_FILE_TYPE_EXTENSIONS[file_type]:
+            for f in pkio.sorted_glob(d.join('*').new(ext=e)):
+                x = f.check(file=1) and op(f)
+                if x:
+                    res.append(x)
+        return sorted(res)
 
     @classmethod
     def srw_format_float(cls, v):

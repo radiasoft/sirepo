@@ -1021,7 +1021,6 @@ def _create_example_and_lib_files(simulation_type):
     d = pkio.mkdir_parent(simulation_lib_dir(simulation_type))
     for f in sirepo.sim_data.get_class(simulation_type).resource_files():
         #TODO(pjm): symlink has problems in containers
-        # d.join(f.basename).mksymlinkto(f)
         f.copy(d)
     pkio.mkdir_parent(simulation_dir(simulation_type))
     for s in examples(simulation_type):

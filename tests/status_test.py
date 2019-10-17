@@ -43,5 +43,4 @@ def test_basic(monkeypatch):
             Authorization='Basic ' + base64.b64encode(u + ':' + p),
         ),
     )
-    pkdp(r)
     pkeq('ok', r.state)

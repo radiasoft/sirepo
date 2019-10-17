@@ -35,6 +35,5 @@ def test_user_alert():
             simulationType=d.simulationType,
         ),
     )
-    pkdp(r)
     pkeq('error', r.state)
     pkeq('user visible text', r.error)

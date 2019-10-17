@@ -154,6 +154,20 @@ class SimDataBase(object):
         return cls.WATCHPOINT_REPORT in name
 
     @classmethod
+    def lib_file_basename(cls, path, file_type):
+        """Strip the file type prefix
+
+        See `lib_file_name` which prefixes with ``model-field.``
+
+        Args:
+            path (py.path): path to file
+            file_type (str): type of file being searched for
+        Returns:
+            str: basename without type prefix
+        """
+        return path.basename[len(file_type) + 1:]
+
+    @classmethod
     def lib_file_name(cls, model_name, field, value):
         return '{}-{}.{}'.format(model_name, field, value)
 
@@ -222,7 +236,21 @@ class SimDataBase(object):
 
     @classmethod
     def lib_files_for_type(cls, file_type):
-        return cls._files_for_type(file_type, lambda f: f.purebasename)
+        """Return sorted list of files which match `file_type`
+
+        Args:
+            file_type (str): in the format of ``model-field``
+        Returns:
+            list: sorted list of files stripped of file_type
+        """
+        from sirepo import simulation_db
+
+        res = []
+        d = simulation_db.simulation_lib_dir(cls.sim_type())
+        for f in pkio.sorted_glob(d.join('{}.*'.format(file_type))):
+            if f.check(file=1):
+                res.append(cls.lib_file_basename(f, file_type))
+        return sorted(res)
 
     @classmethod
     def model_defaults(cls, name):
@@ -253,7 +281,7 @@ class SimDataBase(object):
         Returns:
             patter: absolute path to folder
         """
-        return pkio.sorted_glob(cls.resource_dir().join(cls.resource_path(pattern)))
+        return pkio.sorted_glob(cls.resource_path(pattern))
 
     @classmethod
     def resource_path(cls, filename):
@@ -296,19 +324,6 @@ class SimDataBase(object):
         if not m:
             raise RuntimeError('invalid watchpoint report name: ', report)
         return int(m.group(1))
-
-    @classmethod
-    def _files_for_type(cls, file_type, op, dir_path=None, extensions=None):
-        from sirepo import simulation_db
-
-        res = []
-        d = dir_path or simulation_db.simulation_lib_dir(cls.sim_type())
-        for e in extensions or [file_type]:
-            for f in pkio.sorted_glob(d.join('*').new(ext=e)):
-                x = f.check(file=1) and op(f)
-                if x:
-                    res.append(x)
-        return res
 
     @classmethod
     def _force_recompute(cls):
