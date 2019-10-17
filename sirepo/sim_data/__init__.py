@@ -220,7 +220,6 @@ class SimDataBase(object):
             else:
                 s.copy(t)
 
-
     @classmethod
     def lib_files_for_type(cls, file_type):
         return cls._files_for_type(file_type, lambda f: f.purebasename)

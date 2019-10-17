@@ -399,12 +399,12 @@ def lib_dir_from_sim_dir(sim_dir):
     """Path to lib dir from simulation dir
 
     Args:
-        sim_dir (py.path): simulation dir
+        sim_dir (py.path): simulation dir or below
 
     Return:
         py.path: directory name
     """
-    return sim_dir.join(_REL_LIB_DIR)
+    return _sim_from_path(sim_dir)[1].join(_REL_LIB_DIR)
 
 
 def move_user_simulations(from_uid, to_uid):
@@ -475,7 +475,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             data = json_load(f)
             # ensure the simulationId matches the path
             if sid:
-                data['models']['simulation']['simulationId'] = _sid_from_path(path)
+                data['models']['simulation']['simulationId'] = _sim_from_path(path)[0]
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
@@ -575,7 +575,7 @@ def prepare_simulation(data, tmp_dir=None):
 def process_simulation_list(res, path, data):
     sim = data['models']['simulation']
     res.append(pkcollections.Dict(
-        simulationId=_sid_from_path(path),
+        simulationId=_sim_from_path(path)[0],
         name=sim['name'],
         folder=sim['folder'],
         last_modified=datetime.datetime.fromtimestamp(
@@ -793,7 +793,7 @@ def sid_from_compute_file(path):
         str: simulation id
     """
     assert path.check(file=1)
-    return _sid_from_path(path)
+    return _sim_from_path(path)[0]
 
 
 def sim_data_file(sim_type, sim_id):
@@ -1219,7 +1219,7 @@ def _serial_new():
     return res
 
 
-def _sid_from_path(path):
+def _sim_from_path(path):
     prev = None
     p = path
     # SECURITY: go up three levels at most (<type>/<id>/<report>/<output>)
@@ -1228,7 +1228,7 @@ def _sid_from_path(path):
             break
         i = p.basename
         if _ID_RE.search(i):
-            return i
+            return i, p
         prev = p
         p = p.dirpath()
     raise AssertionError('path={} is not valid simulation'.format(path))

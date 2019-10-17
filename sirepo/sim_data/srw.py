@@ -149,7 +149,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def lib_files_for_type(cls, file_type):
         return cls._files_for_type(
             file_type,
-            lambda f: cls.srw_is_valid_file(file_type, f) and f.purebasename,
+            lambda f: cls.srw_is_valid_file(file_type, f) and f.basename,
             extensions=cls.SRW_FILE_TYPE_EXTENSIONS[file_type],
         )
 
