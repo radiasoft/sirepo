@@ -136,7 +136,7 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_result(msg, template):
-    if hasattr(template, 'prepare_output_file'):
+    if hasattr(template, 'prepare_output_file') and 'models' in msg.data:
         template.prepare_output_file(msg.run_dir, msg.data)
     r, e = simulation_db.read_result(msg.run_dir)
     if not e:
