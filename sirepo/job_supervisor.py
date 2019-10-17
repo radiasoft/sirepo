@@ -209,9 +209,7 @@ class _Job(PKDict):
             await d.do_op(
                 op=sirepo.job.OP_RUN,
                 jid=self.req.compute_jid,
-                evan='was here',
                 **self.req.content,
-                # **p,
             )
         self = cls.instances.get(cls._jid_for_req(req))
         assert self is not None
