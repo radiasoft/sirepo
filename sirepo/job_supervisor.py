@@ -17,10 +17,6 @@ import sys
 import time
 import tornado.locks
 
-_DATA_ACTIONS = (sirepo.job.ACTION_ANALYSIS, sirepo.job.ACTION_COMPUTE)
-
-_OPERATOR_ACTIONS = (sirepo.job.ACTION_CANCEL,)
-
 
 class AgentMsg(PKDict):
 
@@ -101,6 +97,47 @@ class _Job(PKDict):
         self.last_update_time = time.time()
         self.start_time = time.time()
 
+    @classmethod
+    async def get_compute_status(cls, req):
+        #TODO(robnagler) deal with non-in-memory job state (db?)
+        self = cls.instances.get(cls._jid_for_req(req))
+        if not self:
+            self = cls(req=req)
+        self.req = req
+        if self.compute_status is not None:
+            return await self.get_response(req)
+        d = await sirepo.driver.get_instance_for_job(self)
+        # TODO(e-carlin): handle error response from do_op
+        await d.do_op(
+            op=sirepo.job.OP_COMPUTE_STATUS,
+            jid=self.req.compute_jid,
+            **self.req.content,
+        )
+        return await self.get_response(req)
+
+    def get_job_info(self, req):
+        assert self.compute_status is not None
+        i = pkcollections.Dict(
+            cache_hit=False,
+            cached_data=None,
+            cached_hash=self.compute_hash,
+            job_id=req.compute_jid,
+            job_status=self.compute_status,
+            model_name=req.content.compute_model,
+            parameters_changed=False,
+            req_hash=req.content.compute_hash,
+            run_dir=req.content.run_dir,
+            simulation_id=req.content.data.simulationId,
+            simulation_type=req.content.sim_type,
+        )
+        if self.compute_status == sirepo.job.Status.MISSING.value:
+            return i
+        if i.req_hash == i.cached_hash:
+            i.cache_hit = True
+            return i
+        i.parameters_changed = True
+        return i
+
     async def get_response(self, req):
         try:
             # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
@@ -132,51 +169,6 @@ class _Job(PKDict):
             return PKDict(error=e)
         return res
 
-        def __repr__(self):
-            return f'jid={self.jid} compute_status={self.compute_status} compute_hash={self.compute_hash}'
-         
-
-    def get_job_info(self, req):
-        assert self.compute_status is not None
-        i = pkcollections.Dict(
-            cache_hit=False,
-            cached_data=None,
-            cached_hash=self.compute_hash,
-            job_id=req.compute_jid,
-            job_status=self.compute_status,
-            model_name=req.content.compute_model,
-            parameters_changed=False,
-            req_hash=req.content.compute_hash,
-            run_dir=req.content.run_dir,
-            simulation_id=req.content.data.simulationId,
-            simulation_type=req.content.sim_type,
-        )
-        if self.compute_status == sirepo.job.Status.MISSING.value:
-            return i
-        if i.req_hash == i.cached_hash:
-            i.cache_hit = True
-            return i
-        i.parameters_changed = True
-        return i
-
-    @classmethod
-    async def get_compute_status(cls, req):
-        #TODO(robnagler) deal with non-in-memory job state (db?)
-        self = cls.instances.get(cls._jid_for_req(req))
-        if not self:
-            self = cls(req=req)
-        self.req = req
-        if self.compute_status is not None:
-            return await self.get_response(req)
-        d = await sirepo.driver.get_instance_for_job(self)
-        # TODO(e-carlin): handle error response from do_op
-        await d.do_op(
-            op=sirepo.job.OP_COMPUTE_STATUS,
-            jid=self.req.compute_jid,
-            **self.req.content,
-        )
-        return await self.get_response(req)
-    
     @classmethod
     async def get_result(cls, req):
         self = cls.instances.get(cls._jid_for_req(req))
@@ -225,3 +217,6 @@ class _Job(PKDict):
         if c.api in ('api_simulationFrame',):
             return c.analysis_jid
         raise AssertionError('unknown api={} req={}', c.api, req)
+
+    def __repr__(self):
+        return f'jid={self.jid} compute_status={self.compute_status} compute_hash={self.compute_hash}'

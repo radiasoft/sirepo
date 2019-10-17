@@ -74,14 +74,6 @@ def _do_background_percent_complete(msg, template):
     res.update(new)
 
 
-def _do_get_simulation_frame(msg, template):
-    return template.get_simulation_frame(
-        msg.run_dir,
-        msg.data,
-        simulation_db.read_json(msg.run_dir.join(template_common.INPUT_BASE_NAME)),
-    )
-
-
 def _do_compute(msg, template):
     msg.run_dir = pkio.py_path(msg.run_dir)
     with pkio.save_chdir('/'):
@@ -135,6 +127,14 @@ def _do_compute_status(msg, template):
     )
 
 
+def _do_get_simulation_frame(msg, template):
+    return template.get_simulation_frame(
+        msg.run_dir,
+        msg.data,
+        simulation_db.read_json(msg.run_dir.join(template_common.INPUT_BASE_NAME)),
+    )
+
+
 def _do_result(msg, template):
     if hasattr(template, 'prepare_output_file'):
         template.prepare_output_file(msg.run_dir, msg.data)
@@ -145,6 +145,7 @@ def _do_result(msg, template):
     if hasattr(template, 'parse_error_log'):
         l = template.parse_error_log(msg.run_dir)
     return PKDict(error=e, error_log=l)
+
 
 def _subprocess_env():
     env = PKDict(os.environ)
