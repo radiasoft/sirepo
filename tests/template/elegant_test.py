@@ -5,6 +5,7 @@ u"""Test for sirepo.template.elegant
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 import pytest
 
 pytest.importorskip('sdds')
@@ -32,10 +33,10 @@ def _expr(expr, expect, variables=None):
     if not elegant:
         import sirepo.template
         elegant = sirepo.template.import_module('elegant')
-    res = elegant.get_application_data(dict(
+    res = elegant.get_application_data(PKDict(
         method='rpn_value',
         value=expr,
-        variables=(variables or {}),
+        variables=variables or {},
     ))
     if not 'result' in res:
         pkfail('{}: no result for {}', res, expr)

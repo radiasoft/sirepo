@@ -9,6 +9,7 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
+from sirepo.template import beamline
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_parser
 import ntpath
@@ -59,7 +60,7 @@ def import_file(text, data=None):
     data['models']['elements'] = models['elements']
     data['models']['beamlines'] = models['beamlines']
     data['models']['rpnVariables'] = models['rpnVariables']
-    elegant_common.sort_elements_and_beamlines(data)
+    beamline.sort_elements_and_beamlines(data)
 
     if default_beamline_id:
         data['models']['simulation']['activeBeamlineId'] = default_beamline_id

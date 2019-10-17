@@ -7,6 +7,7 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template import beamline
 import sirepo.sim_data
 
 
@@ -22,7 +23,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if 'commands' not in dm:
             dm.commands = cls.__create_commands(data)
             for m in dm.elements:
-                model_schema = s.model[m['type']]
+                model_schema = s.model[m.type]
                 for k in m:
                     if k in model_schema and model_schema[k][1] == 'OutputFile' and m[k]:
                         m[k] = "1"
@@ -53,17 +54,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def elegant_iterator(cls, data, state, callback):
-        s = cls.schema()
-        for t in 'commands', 'elements':
-            for m in data.models[t]:
-                e = s.model[cls.elegant_model_name(m)]
-                callback(state, m)
-                for k in sorted(m):
-                    if k in e:
-                        callback(state, m, e[k], k)
-
-    @classmethod
     def elegant_max_id(cls, data):
         max_id = 1
         for model_type in 'elements', 'beamlines', 'commands':
@@ -74,10 +64,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if i > max_id:
                     max_id = i
         return max_id
-
-    @classmethod
-    def elegant_model_name(cls, model):
-        return 'command_{}'.format(model._type) if '_type' in model else model.type
 
     @classmethod
     def resource_files(cls):
@@ -95,14 +81,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_files(cls, data):
-        res = []
-        cls.elegant_iterator(data, res, cls.__iterator_input_files)
-        if data['models']['bunchFile']['sourceFile']:
-            res.append('{}-{}.{}'.format(
-                'bunchFile',
-                'sourceFile',
-                data['models']['bunchFile']['sourceFile'],
-            ))
+        res = beamline.iterate_models(cls.schema(), data, beamline.InputFileIterator(cls)).result
+        if data.models.bunchFile.sourceFile:
+            res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res
 
     @classmethod
@@ -173,9 +154,3 @@ class SimData(sirepo.sim_data.SimDataBase):
             x._id = i
             res.append(cls.__create_command(m, x))
         return res
-
-    @classmethod
-    def __iterator_input_files(cls, state, model, element_schema=None, field_name=None):
-        if element_schema:
-            if model[field_name] and element_schema[1].startswith('InputFile'):
-                state.append(cls.lib_file_name(cls.elegant_model_name(model), field_name, model[field_name]))

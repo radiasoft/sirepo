@@ -10,8 +10,9 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import elegant_common, zgoubi_parser
+from sirepo.template import beamline
 from sirepo.template import template_common
+from sirepo.template import zgoubi_parser
 from sirepo.template.template_common import ModelUnits
 import glob
 import os.path
@@ -39,7 +40,7 @@ def import_file(text, unit_test_mode=False):
         data['models']['simulation']['warnings'] = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
-    elegant_common.sort_elements_and_beamlines(data)
+    beamline.sort_elements_and_beamlines(data)
     if 'missingFiles' in info and len(info['missingFiles']):
         data['error'] = 'Missing data files'
         data['missingFiles'] = info['missingFiles']
