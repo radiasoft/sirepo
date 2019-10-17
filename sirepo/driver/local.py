@@ -102,7 +102,7 @@ class LocalDriver(sirepo.driver.DriverBase):
         self.jobs.append(job)
 
     def has_capacity(self, job):
-        return self.jobs < 1
+        return len(self.jobs) < 1
 
     def __repr__(self):
         return '<agent_id={} kind={} jobs={}>'.format(
