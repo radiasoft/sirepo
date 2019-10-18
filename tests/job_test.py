@@ -53,7 +53,7 @@ def test_runStatus():
             'report': 'heightWeightReport',
             'simulationId': 'zoVkfTWT',
             'simulationType': 'myapp',
-            'reportParametersHash': 'cc093c5d2ff817018618f1422b06fb8e'
+            'computeJobHash': 'cc093c5d2ff817018618f1422b06fb8e'
             })
 
         run = fc.sr_post(

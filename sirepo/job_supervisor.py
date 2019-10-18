@@ -160,7 +160,7 @@ class _Job(PKDict):
                 res.nextRequestSeconds = 2 # TODO(e-carlin): use logic from simulation_db.poll_seconds()
                 res.nextRequest = PKDict(
                     report=i.model_name,
-                    reportParametersHash=i.cached_hash,
+                    computeJobHash=i.cached_hash,
                     simulationId=i.simulation_id,
                     simulationType=i.simulation_type,
                 )

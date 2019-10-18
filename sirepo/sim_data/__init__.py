@@ -79,7 +79,7 @@ class SimDataBase(object):
 
         def _op():
             c.changed = True
-            pkcollections.unchecked_del(data, 'reportParametersHash')
+            pkcollections.unchecked_del(data, 'computeJobHash')
             res = hashlib.md5()
             m = data['models']
             for f in sorted(

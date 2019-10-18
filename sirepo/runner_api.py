@@ -78,7 +78,7 @@ def api_simulationFrame(frame_id):
 #   javascript expliclitly (even if the code is not shared) especially
 #   the order of the params. This would then be used by the extract job
 #   not here so this should be a new type of job: simulation_frame
-    #TODO(robnagler) startTime is reportParametersHash; need version on URL and/or param names in URL
+    #TODO(robnagler) startTime is computeJobHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
 #rn pkcollections.Dict
     data = dict(zip(keys, frame_id.split('*')))
@@ -194,7 +194,7 @@ def _simulation_run_status(data, quiet=False):
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
                 'report': rep.model_name,
-                'reportParametersHash': rep.cached_hash,
+                'computeJobHash': rep.cached_hash,
                 'simulationId': rep.cached_data['simulationId'],
                 'simulationType': rep.cached_data['simulationType'],
             }
