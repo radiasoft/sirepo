@@ -127,7 +127,10 @@ class _Process(PKDict):
                 error = e or return_code != 0
                 self._done(job.Status.ERROR.value if error else job.Status.COMPLETED.value)
                 if error:
-                    pkdlog('error with job_proess: {}', e)
+                    if 'Traceback' in e.error:
+                        pkdp('\n{}', e.error)
+                    else:
+                        pkdlog('error={}', e)
                     await self.comm.write_message(
                         self.msg,
                         job.OP_ERROR,
