@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import functools
 import os
 import sirepo.driver
+import sirepo.job
 import tornado.ioloop
 import tornado.locks
 import tornado.process
@@ -87,7 +88,8 @@ class LocalDriver(sirepo.driver.DriverBase):
                     return d
             # cache driver case
             if d.has_capacity(job):
-                return d.assign_job(job)
+                d.assign_job(job)
+                return d
         return cls(
             await _Slot.get_instance(job.req.driver_kind),
             job,
@@ -102,7 +104,10 @@ class LocalDriver(sirepo.driver.DriverBase):
         self.jobs.append(job)
 
     def has_capacity(self, job):
-        return len(self.jobs) < 1
+        for j in self.jobs:
+            if j.compute_status == sirepo.job.Status.RUNNING.value:
+                return False
+        return True
 
     def __repr__(self):
         return '<agent_id={} kind={} jobs={}>'.format(
