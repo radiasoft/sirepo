@@ -495,7 +495,7 @@ def write_parameters(data, run_dir, is_parallel):
             is_parallel,
         ),
     )
-    for f in _SIM_DATA.lib_files(data):
+    for f in _SIM_DATA.lib_files(data, simulation_db.lib_dir_from_sim_dir(run_dir)):
         b = f.basename
         if re.search(r'SCRIPT-commandFile', b):
             os.chmod(str(run_dir.join(b)), stat.S_IRUSR | stat.S_IXUSR)
