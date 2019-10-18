@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Utilities for requests
+u"""Support routines and classes, mostly around errors.
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,15 +11,30 @@ import random
 import werkzeug.exceptions
 
 
-def err(obj, format='', *args, **kwargs):
-    return '{}: '.format(obj) + format.format(*args, **kwargs)
+class UserAlert(Exception):
+    """Raised to display a user error and log info
+
+    Args:
+        display_text (str): string that user will see
+        log_fmt (str): server side log data
+    """
+    def __init__(self, display_text, log_fmt, *args, **kwargs):
+        super(UserAlert, self).__init__()
+        pkdlog(log_fmt, *args, **kwargs)
+        self.display_text = display_text
+
+
+def err(obj, fmt='', *args, **kwargs):
+    return '{}: '.format(obj) + fmt.format(*args, **kwargs)
 
 
 def raise_bad_request(*args, **kwargs):
     _raise('BadRequest', *args, **kwargs)
 
+
 def raise_forbidden(*args, **kwargs):
     _raise('Forbidden', *args, **kwargs)
+
 
 def raise_not_found(*args, **kwargs):
     _raise('NotFound', *args, **kwargs)

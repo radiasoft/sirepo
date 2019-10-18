@@ -10,8 +10,9 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import elegant_common, zgoubi_parser
+from sirepo.template import beamline
 from sirepo.template import template_common
+from sirepo.template import zgoubi_parser
 from sirepo.template.template_common import ModelUnits
 import glob
 import os.path
@@ -39,7 +40,7 @@ def import_file(text, unit_test_mode=False):
         data['models']['simulation']['warnings'] = 'Unsupported Zgoubi elements: {}'.format(', '.join(unhandled_elements))
     info = _validate_and_dedup_elements(data, elements)
     _validate_element_names(data, info)
-    elegant_common.sort_elements_and_beamlines(data)
+    beamline.sort_elements_and_beamlines(data)
     if 'missingFiles' in info and len(info['missingFiles']):
         data['error'] = 'Missing data files'
         data['missingFiles'] = info['missingFiles']
@@ -55,7 +56,7 @@ def tosca_info(tosca):
     # determine the list of available files (from zip if necessary)
     # compute the tosca length from datafile
     #TODO(pjm): keep a cache on the tosca model?
-    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(template_common.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
+    datafile = simulation_db.simulation_lib_dir(SIM_TYPE).join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', tosca['magnetFile']))
     if not datafile.exists():
         return PKDict(
             error='missing or invalid file: {}'.format(tosca['magnetFile']),
@@ -421,7 +422,7 @@ def _validate_file_names(model, file_names):
     magnet_file = None
     if len(file_names) == 1:
         name = file_names[0]
-        target = template_common.lib_file_name(model['type'], 'magnetFile', name)
+        target = _SIM_DATA.lib_file_name(model['type'], 'magnetFile', name)
         if os.path.exists(str(simulation_db.simulation_lib_dir(SIM_TYPE).join(target))):
             magnet_file = name
     for f in glob.glob(str(simulation_db.simulation_lib_dir(SIM_TYPE).join('*.zip'))):

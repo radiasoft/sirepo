@@ -19,6 +19,7 @@ from sirepo.template import template_common
 import calendar
 import datetime
 import requests
+import sirepo.sim_data
 import sirepo.template
 import time
 
@@ -114,7 +115,7 @@ def _request_body(kwargs):
     d = b.get('data') or http_request.parse_data_input()
     for k, v in (
         ('analysis_model', lambda: d.report),
-        ('compute_hash', lambda: template_common.report_parameters_hash(d)),
+        ('compute_hash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
         ('compute_model', lambda: simulation_db.compute_job_model(d)),
         ('resource_class', lambda: 'parallel' if simulation_db.is_parallel(d) else 'sequential'),
         ('sim_type', lambda: d.simulationType),
@@ -123,6 +124,6 @@ def _request_body(kwargs):
         ('analysis_jid', lambda: b.compute_jid + simulation_db.JOB_ID_SEP + b.analysis_model),
 #TODO(robnagler) remove this
         ('run_dir', lambda: str(simulation_db.simulation_run_dir(d))),
-    ):
+        ):
         b[k] = d[k] if k in d else v()
     return b

@@ -18,11 +18,7 @@ import xraylib
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-_RESOURCE_DIR = template_common.resource_dir(SIM_TYPE)
-
 _SHADOW_OUTPUT_FILE = 'shadow-output.dat'
-
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'aspectRatio']
 
 _CENTIMETER_FIELDS = {
     'electronBeam': ['sigmax', 'sigmaz', 'epsi_x', 'epsi_z', 'epsi_dx', 'epsi_dz'],
@@ -82,40 +78,6 @@ def get_data_file(run_dir, model, frame, **kwargs):
         return filename, f.read(), 'application/octet-stream'
 
 
-def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'bendingMagnet',
-        'electronBeam',
-        'geometricSource',
-        'rayFilter',
-        'simulation.istar1',
-        'simulation.npoint',
-        'simulation.sourceType',
-        'sourceDivergence',
-        'wiggler',
-    ]
-    if r == 'initialIntensityReport' and len(data['models']['beamline']):
-        res.append([data['models']['beamline'][0]['position']])
-    #TODO(pjm): only include items up to the current watchpoint
-    if _SIM_DATA.is_watchpoint(r):
-        res.append('beamline')
-    for f in template_common.lib_files(data):
-        res.append(f.mtime())
-    return res
-
-
 def python_source_for_model(data, model):
     beamline = data['models']['beamline']
     watch_id = None
@@ -136,15 +98,6 @@ Shadow.ShadowTools.plotxy(beam, 1, 3, nbins=100, nolost=1)
 
 def remove_last_frame(run_dir):
     pass
-
-
-def resource_files():
-    return pkio.sorted_glob(_RESOURCE_DIR.join('*.txt'))
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def validate_file(file_type, path):
@@ -556,7 +509,7 @@ def _generate_parameters_file(data, run_dir=None, is_parallel=False):
         v['wigglerTrajectoryFilename'] = _WIGGLER_TRAJECTOR_FILENAME
         v['wigglerTrajectoryInput'] = ''
         if data['models']['wiggler']['b_from'] in ('1', '2'):
-            v['wigglerTrajectoryInput'] = _wiggler_file(data['models']['wiggler']['trajFile'])
+            v['wigglerTrajectoryInput'] = _SIM_DATA.shadow_wiggler_file(data.models.wiggler.trajFile)
     return template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -591,21 +544,9 @@ def _is_disabled(item):
     return 'isDisabled' in item and item['isDisabled']
 
 
-def _simulation_files(data):
-    res = []
-    if data['models']['simulation']['sourceType'] == 'wiggler':
-        if data['models']['wiggler']['b_from'] in ('1', '2'):
-            res.append(_wiggler_file(data['models']['wiggler']['trajFile']))
-    return res
-
-
 def _source_field(model, fields):
     return _fields('source', model, fields)
 
 
 def _validate_data(data, schema):
     template_common.validate_models(data, schema)
-
-
-def _wiggler_file(value):
-    return template_common.lib_file_name('wiggler', 'trajFile', value)

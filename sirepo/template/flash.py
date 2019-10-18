@@ -42,10 +42,6 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'varAnimation':
         return _extract_meshed_plot(run_dir, data)
@@ -53,24 +49,6 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_evolution_plot(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
-
-def lib_files(data, source_lib):
-    #return template_common.filename_to_path(['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    #return template_common.filename_to_path(['flash.par', 'helm_table.dat'], source_lib)
-    if data.models.simulation.flashType == 'RTFlame':
-        return template_common.filename_to_path(['helm_table.dat'], source_lib)
-    if data.models.simulation.flashType == 'CapLaser':
-        return template_common.filename_to_path(['al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    assert False, 'invalid flashType: {}'.format(data.models.simulation.flashType)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == get_animation_name(data):
-        return []
-    return [
-        r,
-    ]
 
 _DEFAULT_VALUES = {
     'RTFlame': {

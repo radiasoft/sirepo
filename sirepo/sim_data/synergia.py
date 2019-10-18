@@ -14,7 +14,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        cls.init_models(
+        cls._init_models(
             dm,
             (
                 'beamEvolutionAnimation',
@@ -40,4 +40,29 @@ class SimData(sirepo.sim_data.SimDataBase):
                 elif i == 4:
                     m.x = 'z'
                     m.y = 'zp'
-        cls.organize_example(data)
+        cls._organize_example(data)
+
+    @classmethod
+    def synergia_beamline_id_for_report(cls, report):
+        return 'activeBeamlineId' if report == 'twissReport' else 'visualizationBeamlineId'
+
+
+    @classmethod
+    def _compute_job_fields(cls, data):
+        r = data.report
+        if r == cls.animation_name(None):
+            return []
+        res = ['beamlines', 'elements']
+        if 'bunchReport' in r:
+            res += ['bunch', 'simulation.visualizationBeamlineId']
+        elif 'twissReport' in r:
+            res += ['simulation.{}'.format(cls.synergia_beamline_id_for_report(r))]
+        return res
+
+    @classmethod
+    def _lib_files(cls, data):
+        res = []
+        b = data.models.bunch
+        if b.distribution == 'file':
+            res.append(cls.lib_file_name('bunch', 'particleFile', b.particleFile))
+        return res

@@ -51,6 +51,8 @@ def test_prepare_aux_files():
     from pykern import pkcollections
     import sirepo.auth
     import sirepo.auth.guest
+    import sirepo.sim_data
+    import sirepo.simulation_db
 
     sirepo.auth.login(sirepo.auth.guest)
 
@@ -69,4 +71,9 @@ def test_prepare_aux_files():
         },
         "report": "intensityReport"
     }''')
-    template_common.copy_lib_files(data, None, pkunit.work_dir())
+    sirepo.sim_data.get_class(data.simulationType).lib_files_copy(
+        data,
+        sirepo.simulation_db.simulation_lib_dir(data.simulationType),
+        pkunit.work_dir(),
+        symlink=True,
+    )

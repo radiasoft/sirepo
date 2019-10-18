@@ -5,7 +5,6 @@ u"""Flask server interface
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -15,21 +14,18 @@ from sirepo import feature_config
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import simulation_db
-from sirepo.template import adm
 from sirepo import srdb
 from sirepo import uri_router
-from sirepo import util
+from sirepo.template import adm
 from sirepo.template import template_common
 import datetime
 import flask
-import glob
 import importlib
-import os.path
 import py.path
 import re
+import sirepo.sim_data
 import sirepo.template
-import string
-import sys
+import sirepo.util
 import time
 import urllib
 import uuid
@@ -70,11 +66,11 @@ def api_copyNonSessionSimulation():
     )
     if 'report' in data:
         del data['report']
-    data['models']['simulation']['isExample'] = False
-    data['models']['simulation']['outOfSessionSimulationId'] = req['simulationId']
+    data.models.simulation.isExample = False
+    data.models.simulation.outOfSessionSimulationId = req.simulationId
     res = _save_new_and_reply(data)
-    target = simulation_db.simulation_dir(sim_type, simulation_db.parse_sid(data))
-    template_common.copy_lib_files(
+    target = simulation_db.simulation_dir(sim_type, data.models.simulation.simulationId)
+    sirepo.sim_data.get_class(sim_type).lib_files_copy(
         data,
         simulation_db.lib_dir_from_sim_dir(src),
         simulation_db.lib_dir_from_sim_dir(target),
@@ -91,7 +87,8 @@ def api_copySimulation():
     req = http_request.parse_json()
     sim_type = req.simulationType
     name = req.name
-    assert name, util.err(req, 'No name in request')
+    assert name, \
+        sirepo.util.err(req, 'No name in request')
     folder = req.folder if 'folder' in req else '/'
     data = simulation_db.read_simulation_json(sim_type, sid=req.simulationId)
     data.models.simulation.name = name
@@ -134,7 +131,8 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f = int(frame)
     t = sirepo.template.import_module(data)
-    data.report = t.get_animation_name(data) if f >= 0 else model
+    data.report = sirepo.sim_data.get_class(simulation_type).animation_name(data) \
+        if f >= 0 else model
     f, c, t = t.get_data_file(
         simulation_db.simulation_run_dir(data),
         model,
@@ -202,24 +200,13 @@ def api_favicon():
 @api_perm.require_user
 def api_listFiles(simulation_type, simulation_id, file_type):
     #TODO(pjm): simulation_id is an unused argument
-    file_type = werkzeug.secure_filename(file_type)
-    if simulation_type == 'srw':
-        #TODO(pjm): special handling for srw, file_type not included in filename
-        res = sirepo.template.import_module(simulation_type).get_file_list(file_type)
-    else:
-        res = []
-        search = ['{}.*'.format(file_type)]
-        d = simulation_db.simulation_lib_dir(simulation_type)
-        for extension in search:
-            for f in glob.glob(str(d.join(extension))):
-                if os.path.isfile(f):
-                    filename = os.path.basename(f)
-                    # strip the file_type prefix
-                    filename = filename[len(file_type) + 1:]
-                    res.append(filename)
-    res.sort()
-    return http_reply.gen_json(res)
-
+    return http_reply.gen_json(
+        sorted(
+            sirepo.sim_data.get_class(simulation_type).lib_files_for_type(
+                werkzeug.secure_filename(file_type),
+            ),
+        ),
+    )
 
 @api_perm.allow_visitor
 def api_findByName(simulation_type, application_mode, simulation_name):
@@ -255,7 +242,7 @@ def api_findByNameWithAuth(simulation_type, application_mode, simulation_name):
             )
             break
         else:
-            util.raise_not_found(
+            sirepo.util.raise_not_found(
                 'simulation not found by name={} type={}',
                 simulation_name,
                 sim_type,
@@ -330,11 +317,11 @@ def api_importFile(simulation_type=None):
         assert f, \
             ValueError('must supply a file')
         if pkio.has_file_extension(f.filename, 'json'):
-            data = sirepo.importer.read_json(f.read(), template)
+            data = sirepo.importer.read_json(f.read(), simulation_type)
         #TODO(pjm): need a separate URI interface to importer, added exception for rs4pi for now
         # (dicom input is normally a zip file)
         elif pkio.has_file_extension(f.filename, 'zip') and simulation_type != 'rs4pi':
-            data = sirepo.importer.read_zip(f.stream, template)
+            data = sirepo.importer.read_zip(f.stream, sim_type=simulation_type)
         else:
             assert simulation_type, \
                 'simulation_type is required param for non-zip|json imports'
@@ -369,7 +356,7 @@ def api_homePage(path_info=None):
 
 @api_perm.allow_visitor
 def api_homePageOld():
-    return _render_root_page('landing-page', pkcollections.Dict())
+    return _render_root_page('landing-page', PKDict())
 
 
 @api_perm.require_user
@@ -429,8 +416,8 @@ def api_root(simulation_type):
         if simulation_type == 'fete':
             return http_reply.gen_redirect_for_root('warpvnd', code=301)
         pkdlog('{}: uri not found', simulation_type)
-        util.raise_not_found('Invalid simulation_type: {}', simulation_type)
-    values = pkcollections.Dict()
+        sirepo.util.raise_not_found('Invalid simulation_type: {}', simulation_type)
+    values = PKDict()
     values.app_name = simulation_type
     return _render_root_page('index', values)
 
@@ -512,7 +499,7 @@ def api_getServerData():
     id = input.id if 'id' in input else None
     d = adm.get_server_data(id)
     if d == None or len(d) == 0:
-        return http_reply.subprocess_error('Data error')
+        raise sirepo.util.UserAlert('Data error', 'no data supplied')
     return http_reply.gen_json(d)
 
 
@@ -525,7 +512,7 @@ def api_simulationSchema():
 
 @api_perm.allow_visitor
 def api_srwLight():
-    return _render_root_page('light', pkcollections.Dict())
+    return _render_root_page('light', PKDict())
 
 
 @api_perm.allow_visitor
@@ -685,7 +672,7 @@ def _lib_filepath(simulation_type, filename, file_type):
 
 
 def _render_root_page(page, values):
-    values.update(pkcollections.Dict(
+    values.update(PKDict(
         app_version=simulation_db.app_version(),
         source_cache_key=_source_cache_key(),
         static_files=simulation_db.static_libs(),
@@ -714,11 +701,9 @@ def _save_new_and_reply(*args):
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
     res = []
-    template = sirepo.template.import_module(simulation_type)
-    if not hasattr(template, 'validate_delete_file'):
-        return res
+    s = sirepo.sim_data.get_class(simulation_type)
     for row in simulation_db.iterate_simulation_datafiles(simulation_type, _simulation_data):
-        if template.validate_delete_file(row, search_name, file_type):
+        if s.is_file_used(row, search_name):
             sim = row['models']['simulation']
             if ignore_sim_id and sim['simulationId'] == ignore_sim_id:
                 continue

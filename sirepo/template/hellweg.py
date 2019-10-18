@@ -36,8 +36,6 @@ _DEFAULT_DRIFT_ELEMENT = 'DRIFT 1e-16 1e+16 2' + "\n"
 
 _HELLWEG_PARSED_FILE = 'PARSED.TXT'
 
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes']
-
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return {
@@ -142,18 +140,10 @@ def extract_particle_report(report, run_dir):
     }
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_files)
     assert False, 'unknown application data method: {}'.format(data['method'])
-
-
-def lib_files(data, source_lib):
-    return template_common.filename_to_path(_simulation_files(data), source_lib)
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -188,30 +178,6 @@ def get_simulation_frame(run_dir, data, model_data):
     raise RuntimeError('unknown animation model: {}'.format(data['modelName']))
 
 
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    r = data['report']
-    if r == 'animation':
-        return []
-    res = template_common.report_fields(data, r, _REPORT_STYLE_FIELDS) + [
-        'beam',
-        'ellipticalDistribution',
-        'energyPhaseDistribution',
-        'solenoid',
-        'sphericalDistribution',
-        'twissDistribution',
-    ]
-    for f in template_common.lib_files(data):
-        res.append(f.mtime())
-    return res
-
-
 def python_source_for_model(data, model):
     return '''
 from rslinac import solver
@@ -232,11 +198,6 @@ s.save_output('output.txt')
 
 def remove_last_frame(run_dir):
     pass
-
-
-def validate_delete_file(data, filename, file_type):
-    """Returns True if the filename is in use by the simulation data."""
-    return filename in _simulation_files(data)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -300,12 +261,12 @@ def _generate_beam(models):
         return 'BEAM {} {}'.format(_generate_transverse_dist(models), _generate_longitude_dist(models))
     if beam_def == 'cst_pit':
         return 'BEAM CST_PIT {} {}'.format(
-            template_common.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
             'COMPRESS' if models.beam.cstCompress else '',
         )
     if beam_def == 'cst_pid':
         return 'BEAM CST_PID {} {}'.format(
-            template_common.lib_file_name('beam', 'cstFile', models.beam.cstFile),
+            _SIM_DATA.lib_file_name('beam', 'cstFile', models.beam.cstFile),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     raise RuntimeError('invalid beam def: {}'.format(beam_def))
@@ -372,11 +333,11 @@ def _generate_longitude_dist(models):
         raise RuntimeError('unknown longitudinal distribution type: {}'.format(models.longitudinalDistribution.distributionType))
     if dist_type == 'file1d':
         return 'FILE1D {} {}'.format(
-            template_common.lib_file_name('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
+            _SIM_DATA.lib_file_name('beam', 'longitudinalFile1d', models.beam.longitudinalFile1d),
             _generate_energy_phase_distribution(models.energyPhaseDistribution),
         )
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(template_common.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
 
     raise RuntimeError('unknown longitudinal distribution: {}'.format(models.beam.longitudinalDistribution))
 
@@ -412,7 +373,7 @@ def _generate_solenoid(models):
             solenoid.fieldStrength, solenoid.length, solenoid.z0)
     if solenoid.sourceDefinition == 'file':
         return 'SOLENOID {}'.format(
-            template_common.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
+            _SIM_DATA.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
     raise RuntimeError('unknown solenoidDefinition: {}'.format(solenoid.sourceDefinition))
 
 
@@ -433,9 +394,9 @@ def _generate_transverse_dist(models):
         return 'ELL2D {} {} {} {}'.format(dist.aX, dist.bY, dist.rotationAngle, dist.rmsDeviationFactor)
     beam = models.beam
     if dist_type == 'file2d':
-        return 'FILE2D {}'.format(template_common.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
+        return 'FILE2D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
     if dist_type == 'file4d':
-        return 'FILE4D {}'.format(template_common.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
+        return 'FILE4D {}'.format(_SIM_DATA.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
     raise RuntimeError('unknown transverse distribution: {}'.format(dist_type))
 
 
@@ -459,26 +420,6 @@ def _report_title(report_type, enum_name, beam_info):
     return '{}, z={:.4f} cm'.format(
         _enum_text(enum_name, report_type),
         100 * hellweg_dump_reader.get_parameter(beam_info, 'z'))
-
-
-def _simulation_files(data):
-    res = []
-    solenoid = data.models.solenoid
-    if solenoid.sourceDefinition == 'file' and solenoid.solenoidFile:
-        res.append(template_common.lib_file_name('solenoid', 'solenoidFile', solenoid.solenoidFile))
-    beam = data.models.beam
-    if beam.beamDefinition == 'cst_pit' or beam.beamDefinition == 'cst_pid':
-        res.append(template_common.lib_file_name('beam', 'cstFile', beam.cstFile))
-    if beam.beamDefinition == 'transverse_longitude':
-        if beam.transversalDistribution == 'file2d':
-            res.append(template_common.lib_file_name('beam', 'transversalFile2d', beam.transversalFile2d))
-        elif beam.transversalDistribution == 'file4d':
-            res.append(template_common.lib_file_name('beam', 'transversalFile4d', beam.transversalFile4d))
-        if beam.longitudinalDistribution == 'file1d':
-            res.append(template_common.lib_file_name('beam', 'longitudinalFile1d', beam.longitudinalFile1d))
-        if beam.longitudinalDistribution == 'file2d':
-            res.append(template_common.lib_file_name('beam', 'longitudinalFile2d', beam.longitudinalFile2d))
-    return res
 
 
 def _summary_text(run_dir):

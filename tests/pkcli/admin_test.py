@@ -19,7 +19,7 @@ def test_purge_users_no_guests(monkeypatch):
     from sirepo import auth_db
     from pykern.pkunit import pkeq, pkok
     from sirepo import srunit
-    srunit.init_auth_db(sim_types='myapp')
+    srunit.init_auth_db()
 
     from sirepo.pkcli import admin
     from sirepo import auth
@@ -36,7 +36,7 @@ def test_purge_users_no_guests(monkeypatch):
     pkeq(1, len(dirs_in_fs), '{}: expecting exactly one user dir', dirs_in_fs)
     pkeq(1, len(uids_in_db), '{}: expecting exactly one uid in db', uids_in_db)
 
-    srtime.adjust_time(adjusted_time) 
+    srtime.adjust_time(adjusted_time)
 
     monkeypatch.setattr(auth, 'guest_uids', lambda: [])
     res = admin.purge_guest_users(days=days, confirm=False)
@@ -54,7 +54,7 @@ def test_purge_users_guests_present():
     from sirepo import auth_db
     from pykern.pkunit import pkeq, pkok
     from sirepo import srunit
-    srunit.init_auth_db(sim_types='myapp')
+    srunit.init_auth_db()
 
     from sirepo.pkcli import admin
     from sirepo import srtime
@@ -62,10 +62,10 @@ def test_purge_users_guests_present():
     days = 1
     adjusted_time = days + 10
 
-    dirs_in_fs = _get_dirs() 
+    dirs_in_fs = _get_dirs()
     uids_in_db = auth_db.UserRegistration.search_all_for_column('uid')
     dirs_and_uids = {dirs_in_fs[0]: uids_in_db[0]}
-    srtime.adjust_time(adjusted_time) 
+    srtime.adjust_time(adjusted_time)
 
     res = admin.purge_guest_users(days=days, confirm=False)
     pkeq(dirs_and_uids, res, '{}: one guest user so one dir and uid to delete', res)

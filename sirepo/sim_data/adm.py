@@ -13,14 +13,11 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def fixup_old_data(cls, data):
-        cls._init_models(data.models)
+        pass
 
     @classmethod
     def _compute_job_fields(cls, data):
-        return [
-            data.report,
-            'dog',
-        ]
+        return []
 
     @classmethod
     def _lib_files(cls, *args, **kwargs):

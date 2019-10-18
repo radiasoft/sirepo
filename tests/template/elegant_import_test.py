@@ -30,6 +30,7 @@ def test_importer():
     from pykern import pkcollections
     from pykern import pkio
     from pykern.pkunit import pkeq
+    from sirepo.template import beamline
     from sirepo.template import elegant
 
     with pkunit.save_chdir_work():
@@ -53,7 +54,7 @@ def test_importer():
                         elegant.generate_lattice(
                             data,
                             elegant._build_filename_map(data),
-                            elegant._build_beamline_map(data),
+                            beamline.build_beamline_name_map(data),
                             pkcollections.Dict(),
                         ),
                     )
@@ -62,7 +63,7 @@ def test_importer():
                     actual = elegant._generate_commands(
                         data2,
                         elegant._build_filename_map(data2),
-                        elegant._build_beamline_map(data2),
+                        beamline.build_beamline_name_map(data2),
                         pkcollections.Dict(),
                     )
             outfile = fn.basename + '.txt'

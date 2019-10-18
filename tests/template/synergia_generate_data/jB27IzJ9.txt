@@ -1,0 +1,61 @@
+# Simple FODO
+
+import synergia
+
+lattice_file = """
+beam,
+  particle=proton,
+  energy=1.5;
+
+O: DRIFT,l=8.0;
+D: QUADRUPOLE,k1=-0.07142857142,l=2.0;
+F: QUADRUPOLE,k1=0.07142857142,l=2.0;
+FODO: LINE=(F,O,D,O);
+
+"""
+
+LATTICE_FILE = 'lattice.madx'
+with open(LATTICE_FILE, 'w') as f:
+    f.write(lattice_file)
+
+
+comm = synergia.utils.Commxx(True)
+collective = synergia.simulation.Dummy_collective_operator('stub')
+
+lattice = synergia.lattice.MadX_reader().get_lattice('fodo', LATTICE_FILE)
+for el in lattice.get_elements():
+    if not el.has_string_attribute('extractor_type'):
+        el.set_string_attribute('extractor_type', 'chef_propagate')
+
+stepper = synergia.simulation.Split_operator_stepper_elements(
+    lattice,
+    1, # map_order
+    collective,
+    2 # num_steps
+)
+
+
+bunch = synergia.optics.generate_matched_bunch_transverse(
+    stepper.get_lattice_simulator(),
+    emit_x=1e-06, # m-rad, RMS
+    emit_y=1e-06, # m-rad, RMS
+    rms_z=1e-05, # z bunch size
+    dpop=0.0001, # unitless, RMS \frac{\delta p}{p_{tot}}
+    num_real_particles=int(1.2e+12), # real particles, used for space charge, impedance, etc
+    num_macro_particles=50000, # Used for PIC calculations
+    seed=1415926
+)
+
+
+
+bunch_simulator = synergia.simulation.Bunch_simulator(bunch)
+bunch_simulator.add_per_step(synergia.bunch.Diagnostics_full2('diagnostics.h5'))
+bunch_simulator.add_per_turn(synergia.bunch.Diagnostics_particles('particles.h5'), 1)
+
+synergia.simulation.Propagator(stepper).propagate(
+    bunch_simulator,
+    1, # number of turns
+    0, # max_turns, Number of turns to run before writing checkpoint and stopping
+       # When max_turns is 0, the simulation continues until the end.
+    2, # verbosity
+)

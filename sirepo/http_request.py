@@ -9,6 +9,11 @@ from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import util
 import flask
 import sirepo.template
+import user_agents
+
+
+def is_spider():
+    return user_agents.parse(flask.request.headers.get('User-Agent')).is_bot
 
 
 def parse_data_input(validate=False):

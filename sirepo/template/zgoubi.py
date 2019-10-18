@@ -394,10 +394,6 @@ def extract_tunes_report(run_dir, data):
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
 
 
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_application_data(data):
     if data['method'] == 'compute_particle_ranges':
         return template_common.compute_field_range(data, _compute_range_across_frames)
@@ -432,35 +428,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     filename = werkzeug.secure_filename(f.filename)
     data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
     return data
-
-
-def lib_files(data, source_lib):
-    res = []
-    for el in data.models.elements:
-        if el.type == 'TOSCA' and el.magnetFile:
-            res.append(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == get_animation_name(data):
-        return []
-    if r == 'tunesReport':
-        return [r, 'bunchAnimation.startTime']
-    res = ['particle', 'bunch']
-    if 'bunchReport' in r:
-        if data.models.bunch.match_twiss_parameters == '1':
-            res.append('simulation.visualizationBeamlineId')
-    res += [
-        'beamlines',
-        'elements',
-    ]
-    if r == 'twissReport':
-        res.append('simulation.activeBeamlineId')
-    if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
-        res.append('simulation.visualizationBeamlineId')
-    return res
 
 
 def parse_error_log(run_dir):
@@ -568,7 +535,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -940,9 +907,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = template_common.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

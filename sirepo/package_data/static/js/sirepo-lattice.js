@@ -937,7 +937,7 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
                   '</div>',
                   '<div class="modal-body">',
                     '<div class="container-fluid">',
-                      '<div class="row">',
+                      '<div class="row" data-ng-show="::showTabs">',
                         '<div class="col-sm-12">',
                           '<ul class="nav nav-tabs">',
                             '<li role="presentation" data-ng-class="{active: activeTab == \'basic\'}"><a href data-ng-click="activeTab = \'basic\'">Basic</a></li>',
@@ -977,6 +977,7 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
         controller: function($scope) {
             $scope.activeTab = 'basic';
             $scope.allNames = $scope.controller.basicNames.concat($scope.controller.advancedNames).sort();
+            $scope.showTabs = $scope.controller.advancedNames.length > 0;
 
             $scope.createElement = function(name) {
                 // don't show the new editor until the picker panel is gone

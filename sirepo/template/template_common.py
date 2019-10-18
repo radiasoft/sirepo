@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""SRW execution template.
+u"""Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,6 +19,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 import sirepo.template
 import subprocess
 import types
@@ -42,8 +43,6 @@ RUN_LOG = 'run.log'
 _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
-
-_RESOURCE_DIR = py.path.local(pkresource.filename('template'))
 
 
 class ModelUnits(object):
@@ -171,35 +170,6 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     return y_range
 
 
-def copy_lib_files(data, source, target):
-    """Copy auxiliary files to target
-
-    Args:
-        data (dict): simulation db
-        target (py.path): destination directory
-    """
-    for f in lib_files(data, source):
-        path = target.join(f.basename)
-        pkio.mkdir_parent_only(path)
-        if not path.exists():
-            if not f.exists():
-                sim_resource = resource_dir(data.simulationType)
-                r = sim_resource.join(f.basename)
-                # the file doesn't exist in the simulation lib, check the resource lib
-                if r.exists():
-                    pkio.mkdir_parent_only(f)
-                    r.copy(f)
-                else:
-                    pkdlog('No file in lib or resource: {}', f)
-                    continue
-            if source:
-                # copy files from another session
-                f.copy(path)
-            else:
-                # symlink into the run directory
-                path.mksymlinkto(f, absolute=False)
-
-
 def dict_to_h5(d, hf, path=None):
     if path is None:
         path = ''
@@ -239,26 +209,10 @@ def flatten_data(d, res, prefix=''):
     return res
 
 
-def filename_to_path(files, source_lib):
-    """Returns full, unique paths of simulation files
-
-    Returns:
-        list: py.path.local to files
-    """
-    res = []
-    seen = set()
-    for f in files:
-        if f not in seen:
-            seen.add(f)
-            res.append(source_lib.join(f))
-    return res
-
-
 def generate_parameters_file(data):
     v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)
-    res = render_jinja('.', v, name='common-header.py')
-    return res, v
+    return render_jinja(None, v, name='common-header.py'), v
 
 
 def h5_to_dict(hf, path=None):
@@ -316,27 +270,6 @@ def histogram_bins(nbins):
     elif nbins > _HISTOGRAM_BINS_MAX:
         nbins = _HISTOGRAM_BINS_MAX
     return nbins
-
-
-def lib_file_name(model_name, field, value):
-    return '{}-{}.{}'.format(model_name, field, value)
-
-
-def lib_files(data, source_lib=None):
-    """Return list of files used by the simulation
-
-    Args:
-        data (dict): sim db
-
-    Returns:
-        list: py.path.local to files
-    """
-    from sirepo import simulation_db
-    sim_type = data.simulationType
-    return sirepo.template.import_module(data).lib_files(
-        data,
-        source_lib or simulation_db.simulation_lib_dir(sim_type),
-    )
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
@@ -407,64 +340,13 @@ def render_jinja(sim_type, v, name=PARAMETERS_PYTHON_FILE):
     Returns:
         str: source text
     """
-    b = resource_dir(sim_type).join(name)
-    return pkjinja.render_file(b + '.jinja', v)
-
-
-def report_parameters_hash(data):
-    """Compute a hash of the parameters for his report.
-
-    Only needs to be unique relative to the report, not globally unique
-    so MD5 is adequate. Long and cryptographic hashes make the
-    cache checks slower.
-
-    Args:
-        data (dict): report and related models
-    Returns:
-        str: url safe encoded hash
-    """
-    if not 'reportParametersHash' in data:
-        models = sirepo.template.import_module(data).models_related_to_report(data)
-        res = hashlib.md5()
-        dm = data['models']
-        for m in models:
-            if isinstance(m, pkconfig.STRING_TYPES):
-                name, field = m.split('.') if '.' in m else (m, None)
-                value = dm[name][field] if field else dm[name]
-            else:
-                value = m
-            res.update(json.dumps(value, sort_keys=True, allow_nan=False).encode())
-        data['reportParametersHash'] = res.hexdigest()
-    return data['reportParametersHash']
-
-
-def report_fields(data, report_name, style_fields):
-    # if the model has "style" fields, then return the full list of non-style fields
-    # otherwise returns the report name (which implies all model fields)
-    if report_name not in data.models:
-        return [report_name]
-    m = data.models[report_name]
-    for style_field in style_fields:
-        if style_field not in m:
-            continue
-        res = []
-        for f in m:
-            if f in style_fields:
-                continue
-            res.append('{}.{}'.format(report_name, f))
-        return res
-    return [report_name]
-
-
-def resource_dir(sim_type):
-    """Where to get library files from
-
-    Args:
-        sim_type (str): application name
-    Returns:
-        py.path.Local: absolute path to folder
-    """
-    return _RESOURCE_DIR.join(sim_type)
+    d = sirepo.sim_data.get_class(sim_type).resource_dir() if sim_type \
+        else sirepo.sim_data.RESOURCE_DIR
+    return pkjinja.render_file(
+        # append .jinja, because file may already have an extension
+        d.join(name) + '.jinja',
+        v,
+    )
 
 
 def validate_model(model_data, model_schema, enum_info):
@@ -504,6 +386,9 @@ def validate_model(model_data, model_schema, enum_info):
             if not value:
                 value = 0
             model_data[k] = int(value)
+        elif value is None:
+            # value is already None, do not convert
+            pass
         else:
             model_data[k] = _escape(value)
 

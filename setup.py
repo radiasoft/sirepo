@@ -34,6 +34,7 @@ pykern.pksetup.setup(
         'requests-oauthlib==1.1.0',
         'scikit-learn==0.20',
         'sympy',
+        'user-agents',
         'uwsgi',
         'trio >= 0.11.0; python_version >= "3"',
         'docker; python_version >= "3"',

@@ -5,19 +5,20 @@ u"""Operations run inside the report directory to extract data.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
-from pykern import pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import job
-from sirepo import simulation_db
 from sirepo import mpi
+from sirepo import simulation_db
 from sirepo.template import template_common
 import functools
 import os
 import re
 import sirepo
+import sirepo.sim_data
 import subprocess
 import sys
 import time
@@ -116,12 +117,12 @@ def _do_compute_status(msg, template):
     This reads from that file. In the supervisor code path status is stored in
     the supervisor or in the job_agent._STATUS_FILE
     """
+    d = simulation_db.read_json(simulation_db.json_filename(
+        template_common.INPUT_BASE_NAME,
+        msg.run_dir
+    ))
     return PKDict(
-        compute_hash=template_common.report_parameters_hash(
-            simulation_db.read_json(simulation_db.json_filename(
-                template_common.INPUT_BASE_NAME,
-                msg.run_dir, 
-            ))),
+        compute_hahs=sirepo.sim_data.get_class(d).compute_job_hash(d),
         last_update_time=_mtime_or_now(msg.run_dir),
         compute_status=simulation_db.read_status(msg.run_dir),
     )
