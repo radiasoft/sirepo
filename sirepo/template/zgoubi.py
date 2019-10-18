@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common, zgoubi_importer, zgoubi_parser
+from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
 import copy
 import io
 import jinja2
@@ -792,12 +792,7 @@ def _generate_beamline_elements(report, data):
         if 'dipoles' in el:
             for dipole in el.dipoles:
                 zgoubi_importer.MODEL_UNITS.scale_to_native(dipole['type'], dipole)
-    if report == 'twissReport':
-        beamline_id = sim['activeBeamlineId']
-    else:
-        if 'visualizationBeamlineId' not in sim or not sim['visualizationBeamlineId']:
-            sim['visualizationBeamlineId'] = data.models.beamlines[0].id
-        beamline_id = sim['visualizationBeamlineId']
+    beamline_id = lattice.LatticeUtil(data, _SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
 

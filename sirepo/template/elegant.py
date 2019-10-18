@@ -10,12 +10,13 @@ from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import beamline
 from sirepo.template import elegant_command_importer
 from sirepo.template import elegant_common
 from sirepo.template import elegant_lattice_importer
+from sirepo.template import lattice
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import ast
 import glob
 import math
@@ -87,13 +88,13 @@ _SIMPLE_UNITS = ['m', 's', 'C', 'rad', 'eV']
 
 _X_FIELD = 's'
 
-class CommandIterator(beamline.ElementIterator):
+class CommandIterator(lattice.ElementIterator):
     def start(self, model):
         super(CommandIterator, self).start(model)
         if model._type == 'run_setup':
             self.fields.append(['semaphore_file', _ELEGANT_SEMAPHORE_FILE])
 
-class OutputFileIterator(beamline.ModelIterator):
+class OutputFileIterator(lattice.ModelIterator):
     def __init__(self):
         self.result = PKDict(
             keys_in_order=[],
@@ -103,7 +104,7 @@ class OutputFileIterator(beamline.ModelIterator):
     def field(self, model, field_schema, field):
         self.field_index += 1
         if field_schema[1] == 'OutputFile':
-            if beamline.is_command(model):
+            if LatticeUtil.is_command(model):
                 suffix = _command_file_extension(model)
                 filename = '{}{}.{}.{}'.format(
                     model._type,
@@ -118,13 +119,13 @@ class OutputFileIterator(beamline.ModelIterator):
 
     def start(self, model):
         self.field_index = 0
-        self.model_name = beamline.model_name_for_data(model)
+        self.model_name = LatticeUtil.model_name_for_data(model)
         if self.model_name in self.model_index:
             self.model_index[self.model_name] += 1
         else:
             self.model_index[self.model_name] = 1
 
-class RPNValueIterator(beamline.ModelIterator):
+class RPNValueIterator(lattice.ModelIterator):
     def __init__(self, rpn_variables):
         self.result = PKDict()
         self.rpn_variables = rpn_variables
@@ -216,28 +217,6 @@ def extract_report_data(xFilename, data, page_index, page_count=0):
         y_label=_field_label(yfield, y_col['column_def'][1]),
         title=_plot_title(xfield, yfield, page_index, page_count),
     ))
-
-
-def generate_lattice(data, filename_map, beamline_map, v):
-    beamlines = PKDict()
-    selected_beamline_id = 0
-    sim = data.models.simulation
-    if 'visualizationBeamlineId' in sim and sim.visualizationBeamlineId:
-        selected_beamline_id = int(sim.visualizationBeamlineId)
-    elif len(data.models.beamlines):
-        selected_beamline_id = data.models.beamlines[0].id
-    for bl in data.models.beamlines:
-        if selected_beamline_id == int(bl.id):
-            v.use_beamline = bl.name
-        beamlines[bl.id] = bl
-    iterator = beamline.iterate_models(
-        _SCHEMA,
-        data,
-        beamline.LatticeIterator(filename_map, beamline_map, _format_field_value),
-        'elements')
-    res = beamline.render_lattice(iterator.result, quote_name=True)
-    res += beamline.render_beamline(beamlines, beamline_map, quote_name=True)
-    return res
 
 
 def generate_parameters_file(data, is_parallel=False):
@@ -408,9 +387,8 @@ def prepare_for_client(data):
         return data
     # evaluate rpn values into model.rpnCache
     variables = _variables_to_postfix(data.models.rpnVariables)
-    cache = beamline.iterate_models(_SCHEMA, data, RPNValueIterator(variables)).result
+    cache = LatticeUtil(data, _SCHEMA).iterate_models(RPNValueIterator(variables)).result
     data.models.rpnCache = cache
-
     for rpn_var in data.models.rpnVariables:
         v, err = _parse_expr(rpn_var.value, variables)
         if not err:
@@ -549,7 +527,7 @@ def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  ')
 
 
 def _build_filename_map(data):
-    return beamline.iterate_models(_SCHEMA, data, OutputFileIterator()).result
+    return LatticeUtil(data, _SCHEMA).iterate_models(OutputFileIterator()).result
 
 
 def _command_file_extension(model):
@@ -684,27 +662,28 @@ def _find_first_bunch_command(data):
     return _find_first_command(data, 'bunched_beam')
 
 
-def _format_field_value(state, model, el_type, field_name, value):
+def _format_field_value(state, model, field, el_type):
+    value = model[field]
     if el_type.endswith('StringArray'):
-        return ['{}[0]'.format(field_name), value]
+        return ['{}[0]'.format(field), value]
     if el_type == 'RPNValue':
-        value = _format_rpn_value(value, is_command=beamline.is_command(model))
+        value = _format_rpn_value(value, is_command=LatticeUtil.is_command(model))
     elif el_type == 'OutputFile':
         value = state.filename_map[_file_id(model._id, state.field_index)]
     elif el_type.startswith('InputFile'):
-        value = _SIM_DATA.lib_file_name(beamline.model_name_for_data(model), field_name, value)
+        value = _SIM_DATA.lib_file_name(LatticeUtil.model_name_for_data(model), field, value)
         if el_type == 'InputFileXY':
-            value += '={}+{}'.format(model[field_name + 'X'], model[field_name + 'Y'])
+            value += '={}+{}'.format(model[field + 'X'], model[field + 'Y'])
     elif el_type == 'BeamInputFile':
         value = 'bunchFile-sourceFile.{}'.format(value)
     elif el_type == 'LatticeBeamlineList':
-        value = state.beamline_map[int(value)]
+        value = state.id_map[int(value)].name
     elif el_type == 'ElegantLatticeList':
         if value and value == 'Lattice':
             value = 'elegant.lte'
         else:
             value = value + '.filename.lte'
-    elif field_name == 'command' and beamline.model_name_for_data(model) == 'SCRIPT':
+    elif field == 'command' and LatticeUtil.model_name_for_data(model) == 'SCRIPT':
         for f in ('commandFile', 'commandInputFile'):
             if f in model and model[f]:
                 fn = _SIM_DATA.lib_file_name(model.type, f, model[f])
@@ -713,7 +692,7 @@ def _format_field_value(state, model, el_type, field_name, value):
             value = './' + value
     if not _is_numeric(el_type, value):
         value = '"{}"'.format(value)
-    return [field_name, value]
+    return [field, value]
 
 
 def _format_rpn_value(value, is_command=False):
@@ -758,14 +737,12 @@ def _generate_bunch_simulation(data, v):
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
 
-def _generate_commands(data, filename_map, beamline_map, v):
-    iterator = beamline.iterate_models(
-        _SCHEMA,
-        data,
-        CommandIterator(filename_map, beamline_map, _format_field_value),
-        'commands')
+def _generate_commands(filename_map, util):
+    commands = util.iterate_models(
+        CommandIterator(filename_map, _format_field_value),
+        'commands').result
     res = ''
-    for c in iterator.result:
+    for c in commands:
         res +=  '\n' + '&{}'.format(c[0]._type) + '\n'
         for f in c[1]:
             res += '  {} = {},'.format(f[0], f[1]) + '\n'
@@ -775,11 +752,20 @@ def _generate_commands(data, filename_map, beamline_map, v):
 
 def _generate_full_simulation(data, v):
     filename_map = _build_filename_map(data)
-    beamline_map = beamline.build_beamline_name_map(data)
-    v.commands = _generate_commands(data, filename_map, beamline_map, v)
-    v.lattice = generate_lattice(data, filename_map, beamline_map, v)
-    v.simulationMode = data.models.simulation.simulationMode
+    util = LatticeUtil(data, _SCHEMA)
+    v.update(dict(
+        commands=_generate_commands(filename_map, util),
+        lattice=_generate_lattice(filename_map, util),
+        use_beamline=util.select_beamline().name,
+        simulationMode=data.models.simulation.simulationMode,
+    ))
     return template_common.render_jinja(SIM_TYPE, v)
+
+
+def _generate_lattice(filename_map, util):
+    return util.render_lattice_and_beamline(
+        lattice.LatticeIterator(filename_map, _format_field_value),
+        quote_name=True)
 
 
 def _generate_twiss_simulation(data, v):
@@ -792,7 +778,7 @@ def _generate_twiss_simulation(data, v):
         lattice='Lattice',
         p_central_mev=data.models.bunch.p_central_mev,
     )
-    run_setup.use_beamline = sim.activeBeamlineId
+    # run_setup.use_beamline = sim.activeBeamlineId
     twiss_output = _find_first_command(data, 'twiss_output') or PKDict(
         _id=max_id + 2,
         _type='twiss_output',
@@ -1009,7 +995,7 @@ def _validate_data(data, schema):
     _correct_halo_gaussian_distribution_type(data.models.bunch)
     for model_type in ['elements', 'commands']:
         for m in data.models[model_type]:
-            template_common.validate_model(m, schema.model[beamline.model_name_for_data(m)], enum_info)
+            template_common.validate_model(m, schema.model[LatticeUtil.model_name_for_data(m)], enum_info)
             _correct_halo_gaussian_distribution_type(m)
 
 

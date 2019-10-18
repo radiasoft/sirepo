@@ -11,8 +11,9 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog
 from sirepo import simulation_db
 from sirepo.srschema import get_enums
-from sirepo.template import beamline
+from sirepo.template import lattice
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 from synergia import foundation
 import glob
 import h5py
@@ -25,13 +26,13 @@ import werkzeug
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-OUTPUT_FILE = {
-    'bunchReport': 'particles.h5',
-    'twissReport': 'twiss.h5',
-    'twissReport2': 'twiss.h5',
-    'beamEvolutionAnimation': 'diagnostics.h5',
-    'turnComparisonAnimation': 'diagnostics.h5',
-}
+OUTPUT_FILE = PKDict(
+    bunchReport='particles.h5',
+    twissReport='twiss.h5',
+    twissReport2='twiss.h5',
+    beamEvolutionAnimation='diagnostics.h5',
+    turnComparisonAnimation='diagnostics.h5',
+)
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -43,33 +44,33 @@ _IGNORE_ATTRIBUTES = ['lrad']
 
 _QUOTED_MADX_FIELD = ['ExtractorType', 'Propagator']
 
-_UNITS = {
-    'x': 'm',
-    'y': 'm',
-    'z': 'm',
-    'xp': 'rad',
-    'yp': 'rad',
-    'zp': 'rad',
-    'cdt': 'm',
-    'xstd': 'm',
-    'ystd': 'm',
-    'zstd': 'm',
-    'xmean': 'm',
-    'ymean': 'm',
-    'zmean': 'm',
-    'beta_x': 'm',
-    'beta_y': 'm',
-    'psi_x': 'rad',
-    'psi_y': 'rad',
-    'D_x': 'm',
-    'D_y': 'm',
-    'Dprime_x': 'rad',
-    'Dprime_y': 'rad',
-}
+_UNITS = PKDict(
+    x='m',
+    y='m',
+    z='m',
+    xp='rad',
+    yp='rad',
+    zp='rad',
+    cdt='m',
+    xstd='m',
+    ystd='m',
+    zstd='m',
+    xmean='m',
+    ymean='m',
+    zmean='m',
+    beta_x='m',
+    beta_y='m',
+    psi_x='rad',
+    psi_y='rad',
+    D_x='m',
+    D_y='m',
+    Dprime_x='rad',
+    Dprime_y='rad',
+)
 
-class SynergiaLatticeIterator(beamline.LatticeIterator):
-    def __init__(self, beamline_map, formatter):
-        beamline.LatticeIterator.__init__(self, None, beamline_map, formatter)
+class SynergiaLatticeIterator(lattice.LatticeIterator):
+    def __init__(self, formatter):
+        lattice.LatticeIterator.__init__(self, None, formatter)
 
     def end(self, model):
         if model.type == 'NLINSERT':
@@ -81,13 +82,13 @@ class SynergiaLatticeIterator(beamline.LatticeIterator):
                 ),
                 self.fields,
             ])
-            self.result += _nlinsert_field_values(model, self.beamline_map)
+            self.result += _nlinsert_field_values(model, self.id_map)
         else:
             super(SynergiaLatticeIterator, self).end(model)
 
 
 def background_percent_complete(report, run_dir, is_running):
-    diag_file = run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])
+    diag_file = run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)
     if diag_file.exists():
         particle_file_count = len(_particle_file_list(run_dir))
         # if is_running:
@@ -141,7 +142,7 @@ def import_file(request, lib_dir=None, tmp_dir=None):
         data = _import_elegant_file(f.read())
     else:
         raise IOError('invalid file extension, expecting .madx or .mad8')
-    beamline.sort_elements_and_beamlines(data)
+    LatticeUtil.sort_elements_and_beamlines(data)
     data.models.simulation.name = re.sub(r'\.(mad.|lte)$', '', filename, flags=re.IGNORECASE)
     return data
 
@@ -152,7 +153,7 @@ def get_data_file(run_dir, model, frame, options=None):
     elif model == 'bunchAnimation':
         path = py.path.local(_particle_file_list(run_dir)[frame])
     elif 'bunchReport' in model:
-        path = run_dir.join(OUTPUT_FILE['bunchReport'])
+        path = run_dir.join(OUTPUT_FILE.bunchReport)
     elif model == 'beamlineReport':
         data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
         source = _generate_parameters_file(data)
@@ -252,7 +253,7 @@ def python_source_for_model(data, model):
 def save_report_data(data, run_dir):
     if 'bunchReport' in data.report:
         import synergia.bunch
-        with h5py.File(str(run_dir.join(OUTPUT_FILE['twissReport'])), 'r') as f:
+        with h5py.File(str(run_dir.join(OUTPUT_FILE.twissReport)), 'r') as f:
             twiss0 = dict(map(
                 lambda k: (k, format_float(f[k][0])),
                 ('alpha_x', 'alpha_y', 'beta_x', 'beta_y'),
@@ -262,7 +263,7 @@ def save_report_data(data, run_dir):
         if bunch.distribution == 'file':
             bunch_file = _SIM_DATA.lib_file_name('bunch', 'particleFile', bunch.particleFile)
         else:
-            bunch_file = OUTPUT_FILE['bunchReport']
+            bunch_file = OUTPUT_FILE.bunchReport
         if not run_dir.join(bunch_file).exists():
             return
         with h5py.File(str(run_dir.join(bunch_file)), 'r') as f:
@@ -437,7 +438,7 @@ def _extract_bunch_plot(report, frame_index, run_dir):
 
 def _extract_evolution_plot(report, run_dir):
     plots = []
-    with h5py.File(str(run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])), 'r') as f:
+    with h5py.File(str(run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
         x = f['s'][:].tolist()
         for yfield in ('y1', 'y2', 'y3'):
             if report[yfield] == 'none':
@@ -465,7 +466,7 @@ def _extract_evolution_plot(report, run_dir):
 
 def _extract_turn_comparison_plot(report, run_dir, turn_count):
     plots = []
-    with h5py.File(str(run_dir.join(OUTPUT_FILE['beamEvolutionAnimation'])), 'r') as f:
+    with h5py.File(str(run_dir.join(OUTPUT_FILE.beamEvolutionAnimation)), 'r') as f:
         x = f['s'][:].tolist()
         points = _plot_values(f, report.y)
         for v in points:
@@ -501,44 +502,28 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
         }
 
 
-def _format_field_value(state, model, el_type, field_name, value):
+def _format_field_value(state, model, field, el_type):
+    value = model[field];
     if el_type in _QUOTED_MADX_FIELD:
         value = '"{}"'.format(value)
-    return [field_name, value]
+    return [field, value]
 
 
-def _generate_lattice(data, beamline_map, v):
-    beamlines = PKDict()
-    report = data.report if 'report' in data else ''
-    beamline_id_field = _SIM_DATA.synergia_beamline_id_for_report(report)
-    selected_beamline_id = 0
-    sim = data.models.simulation
-    if beamline_id_field in sim and sim[beamline_id_field]:
-        selected_beamline_id = int(sim[beamline_id_field])
-    elif len(data.models.beamlines):
-        selected_beamline_id = data.models.beamlines[0].id
-    for bl in data.models.beamlines:
-        if selected_beamline_id == int(bl.id):
-            v.use_beamline = bl.name.lower()
-        beamlines[bl.id] = bl
-    iterator = beamline.iterate_models(
-        _SCHEMA,
-        data,
-        SynergiaLatticeIterator(beamline_map, _format_field_value),
-        'elements')
-    res = beamline.render_lattice(iterator.result, want_semicolon=True)
-    res += beamline.render_beamline(beamlines, beamline_map, want_semicolon=True)
-    return res
+def _generate_lattice(data, util):
+    return util.render_lattice_and_beamline(SynergiaLatticeIterator(_format_field_value), want_semicolon=True)
 
 
 def _generate_parameters_file(data):
     _validate_data(data, _SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    beamline_map = beamline.build_beamline_name_map(data)
-    v.lattice = _generate_lattice(data, beamline_map, v)
-    v.bunchFileName = OUTPUT_FILE['bunchReport']
-    v.diagnosticFilename = OUTPUT_FILE['beamEvolutionAnimation']
-    v.twissFileName = OUTPUT_FILE['twissReport']
+    util = LatticeUtil(data, _SCHEMA)
+    v.update({
+        'lattice': _generate_lattice(data, util),
+        'use_beamline': util.select_beamline().name.lower(),
+        'bunchFileName': OUTPUT_FILE.bunchReport,
+        'diagnosticFilename': OUTPUT_FILE.beamEvolutionAnimation,
+        'twissFileName': OUTPUT_FILE.twissReport,
+    })
     if data.models.bunch.distribution == 'file':
         v.bunchFile = _SIM_DATA.lib_file_name('bunch', 'particleFile', data.models.bunch.particleFile)
     v.bunch = template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
@@ -564,16 +549,18 @@ def _import_bunch(lattice, data):
             )
         )
     ref = lattice.get_reference_particle()
-    bunch = data.models.bunch
-    bunch.beam_definition = 'gamma'
-    bunch.charge = ref.get_charge()
     four_momentum = ref.get_four_momentum()
-    bunch.gamma = format_float(four_momentum.get_gamma())
-    bunch.energy = format_float(four_momentum.get_total_energy())
-    bunch.momentum = format_float(four_momentum.get_momentum())
-    bunch.beta = format_float(four_momentum.get_beta())
-    bunch.mass = format_float(four_momentum.get_mass())
-    bunch.particle = 'other'
+    bunch = data.models.bunch
+    bunch.update({
+        'beam_definition': 'gamma',
+        'charge': ref.get_charge(),
+        'gamma': format_float(four_momentum.get_gamma()),
+        'energy': format_float(four_momentum.get_total_energy()),
+        'momentum': format_float(four_momentum.get_momentum()),
+        'beta': format_float(four_momentum.get_beta()),
+        'mass': format_float(four_momentum.get_mass()),
+        'particle': 'other',
+    })
     if bunch.mass == pconstants.mp:
         if bunch.charge == pconstants.proton_charge:
             bunch.particle = 'proton'
@@ -583,50 +570,50 @@ def _import_bunch(lattice, data):
     elif bunch.mass == pconstants.mmu:
         bunch.particle = 'posmuon' if bunch.charge == pconstants.antimuon_charge else 'negmuon'
 
-_ELEGANT_NAME_MAP = {
-    'DRIF': 'DRIFT',
-    'CSRDRIFT': 'DRIFT',
-    'SBEN': 'SBEND',
-    'KSBEND': 'SBEND',
-    'CSBEND': 'SBEND',
-    'CSRCSBEND': 'SBEND',
-    'QUAD': 'QUADRUPOLE',
-    'KQUAD': 'QUADRUPOLE',
-    'SEXT': 'SEXTUPOLE',
-    'KSEXT': 'SEXTUPOLE',
-    'MARK': 'MARKER',
-    'HCOR': 'HKICKER',
-    'HVCOR': 'HKICKER',
-    'EHCOR': 'HKICKER',
-    'VCOR': 'VKICKER',
-    'EVCOR': 'VKICKER',
-    'EHVCOR': 'KICKER',
-    'RFCA': 'RFCAVITY',
-    'HKICK': 'HKICKER',
-    'VKICK': 'VKICKER',
-    'KICK': 'KICKER',
-    'SOLE': 'SOLENOID',
-    'HMON': 'HMONITOR',
-    'VMON': 'VMONITOR',
-    'MONI': 'MONITOR',
-    'ECOL': 'ECOLLIMATOR',
-    'RCOL': 'RCOLLIMATOR',
-    'ROTATE': 'SROTATION',
-}
+_ELEGANT_NAME_MAP = PKDict(
+    DRIF='DRIFT',
+    CSRDRIFT='DRIFT',
+    SBEN='SBEND',
+    KSBEND='SBEND',
+    CSBEND='SBEND',
+    CSRCSBEND='SBEND',
+    QUAD='QUADRUPOLE',
+    KQUAD='QUADRUPOLE',
+    SEXT='SEXTUPOLE',
+    KSEXT='SEXTUPOLE',
+    MARK='MARKER',
+    HCOR='HKICKER',
+    HVCOR='HKICKER',
+    EHCOR='HKICKER',
+    VCOR='VKICKER',
+    EVCOR='VKICKER',
+    EHVCOR='KICKER',
+    RFCA='RFCAVITY',
+    HKICK='HKICKER',
+    VKICK='VKICKER',
+    KICK='KICKER',
+    SOLE='SOLENOID',
+    HMON='HMONITOR',
+    VMON='VMONITOR',
+    MONI='MONITOR',
+    ECOL='ECOLLIMATOR',
+    RCOL='RCOLLIMATOR',
+    ROTATE='SROTATION',
+)
 
-_ELEGANT_FIELD_MAP = {
-    'ECOL': {
-        'x_max': 'xsize',
-        'y_max': 'ysize',
-    },
-    'RCOL': {
-        'x_max': 'xsize',
-        'y_max': 'ysize',
-    },
-    'ROTATE': {
-        'tilt': 'angle',
-    },
-}
+_ELEGANT_FIELD_MAP = PKDict(
+    ECOL=PKDict(
+        x_max='xsize',
+        y_max='ysize',
+    ),
+    RCOL=PKDict(
+        x_max='xsize',
+        y_max='ysize',
+    ),
+    ROTATE=PKDict(
+        tilt='angle',
+    )
+)
 
 def _import_elegant_file(text):
     try:
@@ -647,10 +634,10 @@ def _import_elegant_file(text):
         el.name = re.sub(r':', '_', el.name)
         name = _ELEGANT_NAME_MAP[el.type]
         schema = _SCHEMA.model[name]
-        m = PKDict({
-            '_id': el._id,
-            'type': name,
-        })
+        m = PKDict(
+            _id=el._id,
+            type=name,
+        )
         for f in el:
             v = el[f]
             if el.type in _ELEGANT_FIELD_MAP and f in _ELEGANT_FIELD_MAP[el.type]:
@@ -672,11 +659,11 @@ def _import_elegant_file(text):
         for element_id in bl['items']:
             if element_id in element_ids:
                 items.append(element_id)
-        data.models.beamlines.append(PKDict({
-            'id': bl.id,
-            'items': items,
-            'name': bl.name,
-        }))
+        data.models.beamlines.append(PKDict(
+            id=bl.id,
+            items=items,
+            name=bl.name,
+        ))
     elegant_sim = elegant_data.models.simulation
     if 'activeBeamlineId' in elegant_sim:
         data.models.simulation.activeBeamlineId = elegant_sim.activeBeamlineId
@@ -760,26 +747,26 @@ def _import_main_beamline(reader, data, beamline_names):
     beamline_name = _sort_beamlines_by_length(lines)[0][0]
     res = reader.get_lattice(beamline_name)
     current_id = 1
-    data.models.beamlines.append(PKDict({
-        'id': current_id,
-        'items': [],
-        'name': beamline_name,
-    }))
+    data.models.beamlines.append(PKDict(
+        id=current_id,
+        items=[],
+        name=beamline_name,
+    ))
     data.models.simulation.activeBeamlineId = current_id
     data.models.simulation.visualizationBeamlineId = current_id
     return res
 
 
 def _nlinsert_drift(model, size):
-    return PKDict({
-        'name': _nlinsert_name(model, _drift_name(size)),
-        'type': 'DRIFT',
-        'l': size,
-        '_id': 0,
-    })
+    return PKDict(
+        name=_nlinsert_name(model, _drift_name(size)),
+        type='DRIFT',
+        l=size,
+        _id=0,
+    )
 
 
-def _nlinsert_field_values(model, beamline_map):
+def _nlinsert_field_values(model, id_map):
     # explode and iterate the NLINSERT element
     import rsbeams.rslattice.nonlinear
     nli = rsbeams.rslattice.nonlinear.NonlinearInsert(
@@ -796,28 +783,31 @@ def _nlinsert_field_values(model, beamline_map):
     names = [d1.name]
     for idx in range(len(nli.knll)):
         name = _nlinsert_name(model, str(idx + 1))
-        elements.append(PKDict({
-            'name': name,
-            'type': 'NLLENS',
-            'extractor_type': model.extractor_type,
-            'knll': nli.knll[idx],
-            'cnll': nli.cnll[idx],
-            '_id': 0,
-        }))
+        elements.append(PKDict(
+            name=name,
+            type='NLLENS',
+            extractor_type=model.extractor_type,
+            knll=nli.knll[idx],
+            cnll=nli.cnll[idx],
+            _id=0,
+        ))
         names.append(name)
         names.append(d2.name)
     names = names[:-1]
     names.append(d1.name)
-    beamline_map[model._id] = ','.join(names)
-    return beamline.iterate_models(
+    id_map[model._id].name = ','.join(names)
+    return LatticeUtil(
+        PKDict(
+            models=PKDict(
+                elements=elements,
+                beamlines=[],
+            ),
+        ),
         _SCHEMA,
-        PKDict({
-            'models': {
-                'elements': elements,
-                },
-        }),
-        SynergiaLatticeIterator(beamline_map, _format_field_value),
-        'elements').result
+    ).iterate_models(
+        SynergiaLatticeIterator(_format_field_value),
+        'elements',
+    ).result
 
 
 def _nlinsert_name(model, el_name):
@@ -866,4 +856,7 @@ def _validate_data(data, schema):
     # ensure enums match, convert ints/floats, apply scaling
     enum_info = template_common.validate_models(data, schema)
     for m in data.models.elements:
-        template_common.validate_model(m, schema.model[beamline.model_name_for_data(m)], enum_info)
+        template_common.validate_model(
+            m,
+            schema.model[LatticeUtil.model_name_for_data(m)],
+            enum_info)
