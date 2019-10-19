@@ -87,10 +87,11 @@ class _Process(PKDict):
         self.compute_status_file = None
         self.jid = self.msg.jid
         self._in_file = None
-        self._subprocess = None
+        self._main_sp = None
         self._terminating = False
 
     async def cancel(self, run_dir):
+        # TODO(e-carlin): cancel background_sp
         if not self._terminating:
             # Will resolve itself, b/c harmless to call proc.kill
             tornado.ioloop.IOLoop.current().call_later(
@@ -99,14 +100,15 @@ class _Process(PKDict):
             )
             self._terminating = True
             self._done(job.Status.CANCELED.value)
-            self._subprocess.proc.terminate()
+            self._main_sp.proc.terminate()
 
     def kill(self):
+        # TODO(e-carlin): kill background_sp
         self._terminating = True
-        if self._subprocess:
+        if self._main_sp:
             self._done(job.Status.CANCELED.value)
-            self._subprocess.proc.kill()
-            self._subprocess = None
+            self._main_sp.proc.kill()
+            self._main_sp = None
 
     def start(self):
         # SECURITY: msg must not contain agent_id
@@ -200,7 +202,7 @@ class _Process(PKDict):
         self._in_file = self.msg.run_dir.join(_IN_FILE.format(job.unique_key()))
         self.msg.run_dir = str(self.msg.run_dir) # TODO(e-carlin): Find a better solution for serial and deserialization
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
-        self._subprocess = tornado.process.Subprocess(
+        self._main_sp = tornado.process.Subprocess(
             ('pyenv', 'exec', 'sirepo', 'job_process', str(self._in_file)),
             # SECURITY: need to change cwd, because agent_dir has agent_id
             cwd=self.msg.run_dir,
@@ -215,9 +217,9 @@ class _Process(PKDict):
         i = tornado.ioloop.IOLoop.current()
         self.stdout = bytearray()
         self.stderr = bytearray()
-        i.spawn_callback(collect, self._subprocess.stdout, self.stdout)
-        i.spawn_callback(collect, self._subprocess.stderr, self.stderr)
-        self._subprocess.set_exit_callback(self._exit)
+        i.spawn_callback(collect, self._main_sp.stdout, self.stdout)
+        i.spawn_callback(collect, self._main_sp.stderr, self.stderr)
+        self._main_sp.set_exit_callback(self._exit)
 
     def _write_comput_status_file(self, status):
         self.compute_status_file = self.msg.run_dir.join(_STATUS_FILE)
