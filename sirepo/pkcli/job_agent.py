@@ -80,6 +80,7 @@ def _subprocess_env():
     return env
 
 class _Process(PKDict):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.compute_status = None
@@ -117,7 +118,6 @@ class _Process(PKDict):
         self._start_job_process()
 
     def _exit(self, return_code):
-        # TODO(e-carlin): this is ugly. fix error handling. i think elimnate the nested do() func
         async def do():
             try:
                 self.comm.remove_process(self.jid)

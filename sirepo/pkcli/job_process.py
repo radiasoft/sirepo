@@ -82,7 +82,7 @@ def _do_compute(msg, template):
         pkio.mkdir_parent(msg.run_dir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': 'pending', # TODO(e-carlin): Is this necessary?
+        'state': job.Status.PENDING.value, # TODO(e-carlin): Is this necessary?
     }
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
     run_log_path = msg.run_dir.join(template_common.RUN_LOG)
@@ -102,8 +102,8 @@ def _do_compute(msg, template):
             p = None
         finally:
             if p:
-                p.terminate()
-                # TODO(e-carlin): kill
+                # TODO(e-carlin): terminate first?
+                p.kill()
     return _do_compute_status(msg, template)
     # TODO(e-carlin): implement
     # if hasattr(template, 'remove_last_frame'):
