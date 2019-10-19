@@ -115,7 +115,7 @@ class _Process(PKDict):
         assert not self.msg.get('agent_id')
         if self.msg.job_process_cmd == 'compute':
             #TODO(robnagler) background_percent_complete needs to start if parallel
-            self._write_comput_status_file(job.Status.RUNNING.value)
+            self._write_compute_status_file(job.Status.RUNNING.value)
         # TODO(e-carlin): remove await
         self._start_job_process()
 
@@ -129,8 +129,8 @@ class _Process(PKDict):
                 error = e or return_code != 0
                 self._done(job.Status.ERROR.value if error else job.Status.COMPLETED.value)
                 if error:
-                    if 'Traceback' in e.error:
-                        pkdp('\n{}', e.error)
+                    if 'Traceback' in e:
+                        pkdp('\n{}', e)
                     else:
                         pkdlog('error={}', e)
                     await self.comm.write_message(
@@ -177,21 +177,24 @@ class _Process(PKDict):
             self._in_file = None
 
     def _load_output(self):
-        e = None
         o = None
+        e = None
         try:
             e = pkjson.load_any(self.stderr)
         except json.JSONDecodeError:
-            s = self.stderr.decode('utf-8')
-            if s:
-                e = PKDict(error=s) # TODO(e-carlin): errors='ignore' ?
-        except Exception as exc:
-            e = PKDict(error=exc)
+            e = self.stderr.decode('utf-8')
+        except Exception as e:
+            pass
         if e:
             try:
                 o = pkjson.load_any(self.stdout)
             except json.JSONDecodeError:
                 pass
+            if isinstance(e, PKDict):
+                if 'error_log' in e:
+                    e = e.error_log
+                elif 'error' in e:
+                    e = e.error
             return o, e
         o = pkjson.load_any(self.stdout)
         return o, e
@@ -221,7 +224,7 @@ class _Process(PKDict):
         i.spawn_callback(collect, self._main_sp.stderr, self.stderr)
         self._main_sp.set_exit_callback(self._exit)
 
-    def _write_comput_status_file(self, status):
+    def _write_compute_status_file(self, status):
         self.compute_status_file = self.msg.run_dir.join(_STATUS_FILE)
         pkio.mkdir_parent_only(self.compute_status_file)
         self.compute_status = PKDict(_STATUS_FILE_COMMON).update(
