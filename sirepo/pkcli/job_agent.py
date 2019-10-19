@@ -36,9 +36,9 @@ _RETRY_SECS = 1
 
 _IN_FILE = 'in-{}.json'
 
-_STATUS_FILE = 'job-agent.json'
+_INFO_FILE = 'job-agent.json'
 
-_STATUS_FILE_COMMON = PKDict(version=1)
+_INFO_FILE_COMMON = PKDict(version=1)
 
 #: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
 # See https://github.com/radiasoft/sirepo/issues/1323
@@ -70,142 +70,31 @@ def default_command():
     i.start()
 
 
-def _subprocess_env():
-    env = PKDict(os.environ)
-    pkcollections.unchecked_del(
-        env,
-        *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
-    )
-    env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
-    return env
-
-class _Process(PKDict):
-
+class _JobProcess(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.compute_status = None
-        self.compute_status_file = None
-        self.jid = self.msg.jid
+        self._subprocess = None
         self._in_file = None
-        self._main_sp = None
-        self._terminating = False
+        self._parsed_stdout = None
+        self._parsed_stderr = None
+        self._subprocess_exit_event = tornado.locks.Event()
 
-    async def cancel(self, run_dir):
-        # TODO(e-carlin): cancel background_sp
-        if not self._terminating:
-            # Will resolve itself, b/c harmless to call proc.kill
-            tornado.ioloop.IOLoop.current().call_later(
-                _TERMINATE_SECS,
-                self._kill,
-            )
-            self._terminating = True
-            self._done(job.Status.CANCELED.value)
-            self._main_sp.proc.terminate()
+    async def exit(self):
+        await self._subprocess_exit_event.wait()
+        return self._parsed_stdout, self._parsed_stderr
 
     def kill(self):
-        # TODO(e-carlin): kill background_sp
-        self._terminating = True
-        if self._main_sp:
-            self._done(job.Status.CANCELED.value)
-            self._main_sp.proc.kill()
-            self._main_sp = None
-
+        # TODO(e-carlin): Terminate?
+        self._subprocess.proc.kill()
+    
     def start(self):
         # SECURITY: msg must not contain agent_id
         assert not self.msg.get('agent_id')
-        if self.msg.job_process_cmd == 'compute':
-            #TODO(robnagler) background_percent_complete needs to start if parallel
-            self._write_compute_status_file(job.Status.RUNNING.value)
-        # TODO(e-carlin): remove await
-        self._start_job_process()
-
-    def _exit(self, return_code):
-        async def do():
-            try:
-                self.comm.remove_process(self.jid)
-                if self._terminating:
-                    return
-                o, e = self._load_output()
-                error = e or return_code != 0
-                self._done(job.Status.ERROR.value if error else job.Status.COMPLETED.value)
-                if error:
-                    if 'Traceback' in e:
-                        pkdp('\n{}', e)
-                    else:
-                        pkdlog('error={}', e)
-                    await self.comm.write_message(
-                        self.msg,
-                        job.OP_ERROR,
-                        error=e,
-                        output=o,
-                        compute_status=job.Status.ERROR.value,
-                    )
-                elif self.msg.job_process_cmd == 'compute':
-                    await self.comm.write_message(
-                        self.msg,
-                        job.OP_OK,
-                        output=o,
-                        compute_status=job.Status.COMPLETED.value,
-                    )
-                elif self.msg.job_process_cmd == 'compute_status':
-                    await self.comm.write_message(
-                        self.msg,
-                        job.OP_COMPUTE_STATUS,
-                        **o
-                    )
-                else:
-                    await self.comm.write_message(
-                        self.msg,
-                        job.OP_ANALYSIS,
-                        output=o,
-                    )
-            except Exception as exc:
-                pkdlog('error={}', exc)
-                try:
-                    await self.comm.write_message(self.msg, job.OP_ERROR, error=e, output=o)
-                except Exception as exc:
-                    pkdlog('error={}', exc)
-        tornado.ioloop.IOLoop.current().spawn_callback(do)
-
-    def _done(self, status):
-        if self.compute_status_file:
-            self.compute_status.status = status
-            self.compute_status_file.write(self.compute_status)
-            self.compute_status_file = None
-        if self._in_file:
-            pkio.unchecked_remove(self._in_file)
-            self._in_file = None
-
-    def _load_output(self):
-        o = None
-        e = None
-        try:
-            e = pkjson.load_any(self.stderr)
-        except json.JSONDecodeError:
-            e = self.stderr.decode('utf-8')
-        except Exception as e:
-            pass
-        if e:
-            try:
-                o = pkjson.load_any(self.stdout)
-            except json.JSONDecodeError:
-                pass
-            if isinstance(e, PKDict):
-                if 'error_log' in e:
-                    e = e.error_log
-                elif 'error' in e:
-                    e = e.error
-            return o, e
-        o = pkjson.load_any(self.stdout)
-        return o, e
-
-    def _start_job_process(self):
-        env = _subprocess_env()
-        env['PYENV_VERSION'] = 'py2'
+        env = self._subprocess_env()
         self._in_file = self.msg.run_dir.join(_IN_FILE.format(job.unique_key()))
         self.msg.run_dir = str(self.msg.run_dir) # TODO(e-carlin): Find a better solution for serial and deserialization
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
-        self._main_sp = tornado.process.Subprocess(
+        self._subprocess = tornado.process.Subprocess(
             ('pyenv', 'exec', 'sirepo', 'job_process', str(self._in_file)),
             # SECURITY: need to change cwd, because agent_dir has agent_id
             cwd=self.msg.run_dir,
@@ -215,25 +104,165 @@ class _Process(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        async def collect(stream, out):
-            out.extend(await stream.read_until_close())
-        i = tornado.ioloop.IOLoop.current()
-        self.stdout = bytearray()
-        self.stderr = bytearray()
-        i.spawn_callback(collect, self._main_sp.stdout, self.stdout)
-        i.spawn_callback(collect, self._main_sp.stderr, self.stderr)
-        self._main_sp.set_exit_callback(self._exit)
+        self._subprocess.set_exit_callback(self._subprocess_exit)
 
-    def _write_compute_status_file(self, status):
-        self.compute_status_file = self.msg.run_dir.join(_STATUS_FILE)
-        pkio.mkdir_parent_only(self.compute_status_file)
-        self.compute_status = PKDict(_STATUS_FILE_COMMON).update(
+    def _load_output(self):
+        o = None
+        e = None
+        try:
+            e = pkjson.load_any(self._raw_stderr)
+        except json.JSONDecodeError:
+            e = self._raw_stderr.decode('utf-8')
+        except Exception as e:
+            pass
+        if e:
+            try:
+                o = pkjson.load_any(self._raw_stdout)
+            except json.JSONDecodeError:
+                pass
+            if isinstance(e, PKDict):
+                if 'error_log' in e:
+                    e = e.error_log
+                elif 'error' in e:
+                    e = e.error
+            return o, e
+        o = pkjson.load_any(self._raw_stdout)
+        return o, e
+
+    def _subprocess_exit(self, returncode):
+        async def do():
+            try:
+                self._raw_stdout = await self._subprocess.stdout.read_until_close()
+                self._raw_stderr = await self._subprocess.stderr.read_until_close()
+                if self._in_file:
+                    pkio.unchecked_remove(self._in_file)
+                    self._in_file = None
+                self._parsed_stdout, self._parsed_stderr = self._load_output()
+                if returncode != 0 and not self._parsed_stderr:
+                    self._parsed_stderr = 'error returncode {}'.format(returncode)
+                if self._parsed_stderr or returncode != 0:
+                    if 'Traceback' in self._parsed_stderr:
+                        pkdlog('\n{}', self._parsed_stderr)
+                    else:
+                        pkdlog(self._parsed_stderr)
+            except Exception as e:
+                self._parsed_stderr = 'error={}'.format(e)
+                pkdlog(self._parsed_stderr)
+            finally:
+                self._subprocess_exit_event.set()
+        tornado.ioloop.IOLoop.current().add_callback(do)
+
+    def _subprocess_env(self):
+        env = PKDict(os.environ)
+        pkcollections.unchecked_del(
+            env,
+            *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
+        )
+        env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
+        env.PYENV_VERSION = 'py2'
+        return env
+
+
+class _Process(PKDict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.compute_job_info = None
+        self.compute_job_info_file = None
+        self._main_job_process = None
+        self._terminating = False
+
+    def start(self):
+        if self.msg.job_process_cmd == 'compute':
+            #TODO(robnagler) background_percent_complete needs to start if parallel
+            self._write_compute_job_info_file(job.Status.RUNNING.value)
+        self._execute_main_job_process()
+
+    def _execute_main_job_process(self):
+        self._main_job_process = _JobProcess(msg=self.msg) 
+        self._main_job_process.start()
+        tornado.ioloop.IOLoop.current().add_callback(
+            self._handle_main_job_process_exit
+        )
+
+    async def _handle_main_job_process_exit(self):
+        try:
+            o, e = await self._main_job_process.exit()
+            self._main_job_process = None
+            self.comm.remove_process(self.msg.jid)
+            if self._terminating: # TODO(e-carlin): why?
+                return
+            self._done(job.Status.ERROR.value if e else job.Status.COMPLETED.value)
+            if e:
+                await self.comm.write_message(
+                    self.msg,
+                    job.OP_ERROR,
+                    error=e,
+                    output=o,
+                    compute_status=job.Status.ERROR.value,
+                )
+            elif self.msg.job_process_cmd == 'compute':
+                await self.comm.write_message(
+                    self.msg,
+                    job.OP_OK,
+                    output=o,
+                    compute_status=job.Status.COMPLETED.value,
+                )
+            elif self.msg.job_process_cmd == 'compute_status':
+                await self.comm.write_message(
+                    self.msg,
+                    job.OP_COMPUTE_STATUS,
+                    **o
+                )
+            else:
+                await self.comm.write_message(
+                    self.msg,
+                    job.OP_ANALYSIS,
+                    output=o,
+                )
+        except Exception as exc:
+            pkdlog('error={}', exc)
+            try:
+                await self.comm.write_message(self.msg, job.OP_ERROR, error=e, output=o)
+            except Exception as exc:
+                pkdlog('error={}', exc)
+
+    def _write_compute_job_info_file(self, status):
+        self.compute_job_info_file = self.msg.run_dir.join(_INFO_FILE)
+        pkio.mkdir_parent_only(self.compute_job_info_file)
+        self.compute_job_info = PKDict(_INFO_FILE_COMMON).update(
             compute_hash=self.msg.compute_hash,
             start_time=time.time(),
             status=status,
         )
         #TODO(robnagler) pkio.atomic_write?
-        self.compute_status_file.write(self.compute_status)
+        self.compute_job_info_file.write(self.compute_job_info)
+
+    # async def cancel(self, run_dir):
+    #     # TODO(e-carlin): cancel background_sp
+    #     if not self._terminating:
+    #         # Will resolve itself, b/c harmless to call proc.kill
+    #         tornado.ioloop.IOLoop.current().call_later(
+    #             _TERMINATE_SECS,
+    #             self._kill,
+    #         )
+    #         self._terminating = True
+    #         self._done(job.Status.CANCELED.value)
+    #         self._main_sp.proc.terminate()
+
+    def kill(self):
+        # TODO(e-carlin): kill background_sp
+        self._terminating = True
+        if self._main_job_process:
+            self._done(job.Status.CANCELED.value)
+            self._main_job_process.kill()
+            self._main_job_process = None
+
+    def _done(self, status):
+        if self.compute_job_info_file:
+            self.compute_job_info.status = status
+            self.compute_job_info_file.write(self.compute_job_info.status)
+            self.compute_job_info_file = None
 
 class _Comm(PKDict):
 
@@ -321,7 +350,7 @@ class _Comm(PKDict):
                 msg,
                 job.OP_COMPUTE_STATUS,
                 compute_status=p and p.compute_status \
-                or pkjson.load_any(msg.run_dir.join(_STATUS_FILE)),
+                or pkjson.load_any(msg.run_dir.join(_INFO_FILE)).status,
             )
         except Exception:
             f = msg.run_dir.join(job.RUNNER_STATUS_FILE)
