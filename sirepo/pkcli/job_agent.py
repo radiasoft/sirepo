@@ -77,6 +77,8 @@ class _JobProcess(PKDict):
         self._in_file = None
         self._parsed_stdout = None
         self._parsed_stderr = None
+        self._raw_stdout = bytearray()
+        self._raw_stderr = bytearray()
         self._subprocess_exit_event = tornado.locks.Event()
 
     async def exit(self):
@@ -86,7 +88,7 @@ class _JobProcess(PKDict):
     def kill(self):
         # TODO(e-carlin): Terminate?
         self._subprocess.proc.kill()
-    
+
     def start(self):
         # SECURITY: msg must not contain agent_id
         assert not self.msg.get('agent_id')
@@ -104,6 +106,11 @@ class _JobProcess(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
+        async def collect(stream, out):
+            out.extend(await stream.read_until_close())
+        i = tornado.ioloop.IOLoop.current()
+        i.add_callback(collect, self._subprocess.stdout, self._raw_stdout)
+        i.add_callback(collect, self._subprocess.stderr, self._raw_stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     def _load_output(self):
@@ -132,8 +139,8 @@ class _JobProcess(PKDict):
     def _subprocess_exit(self, returncode):
         async def do():
             try:
-                self._raw_stdout = await self._subprocess.stdout.read_until_close()
-                self._raw_stderr = await self._subprocess.stderr.read_until_close()
+                # self._raw_stdout = await self._subprocess.stdout.read_until_close()
+                # self._raw_stderr = await self._subprocess.stderr.read_until_close()
                 if self._in_file:
                     pkio.unchecked_remove(self._in_file)
                     self._in_file = None
@@ -179,7 +186,7 @@ class _Process(PKDict):
         self._execute_main_job_process()
 
     def _execute_main_job_process(self):
-        self._main_job_process = _JobProcess(msg=self.msg) 
+        self._main_job_process = _JobProcess(msg=self.msg)
         self._main_job_process.start()
         tornado.ioloop.IOLoop.current().add_callback(
             self._handle_main_job_process_exit
