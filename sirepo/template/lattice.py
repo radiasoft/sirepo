@@ -5,9 +5,9 @@ u"""Lattice utilities.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import re
+
 
 class ModelIterator(object):
     """Base class for model iterators with stubbed out methods.
@@ -72,8 +72,8 @@ class InputFileIterator(ModelIterator):
 
     def field(self, model, field_schema, field):
         if model[field] and field_schema[1].startswith('InputFile'):
-             self.result.append(self.sim_data.lib_file_name(
-                 LatticeUtil.model_name_for_data(model), field, model[field]))
+            self.result.append(self.sim_data.lib_file_name(
+                LatticeUtil.model_name_for_data(model), field, model[field]))
 
 
 class LatticeIterator(ElementIterator):
@@ -139,20 +139,19 @@ class LatticeUtil(object):
         return res
 
     def render_lattice_and_beamline(self, iterator, **kwargs):
-        # return self.render_lattice(iterator.result, **kwargs) \
-        #     + self.__render_beamline(**kwargs)
-        return self.render_lattice(self.iterate_models(iterator, 'elements').result, **kwargs) \
+        return self.render_lattice(
+            self.iterate_models(iterator, 'elements').result, **kwargs) \
             + self.__render_beamline(**kwargs)
 
     def select_beamline(self):
         """Returns the beamline to use based for the selected report.
         """
         sim = self.data.models.simulation
-        if 'report' in self.data and self.data.report == 'twissReport':
+        if self.data.get('report', '') == 'twissReport':
             beamline_id = sim.activeBeamlineId
         else:
             if 'visualizationBeamlineId' not in sim or not sim.visualizationBeamlineId:
-                sim.visualizationBeamlineId = data.models.beamlines[0].id
+                sim.visualizationBeamlineId = self.data.models.beamlines[0].id
             beamline_id = sim.visualizationBeamlineId
         return self.id_map[int(beamline_id)]
 
@@ -167,10 +166,10 @@ class LatticeUtil(object):
     def __add_beamlines(beamline, beamlines, ordered_beamlines):
         if beamline in ordered_beamlines:
             return
-        for id in beamline['items']:
-            id = abs(id)
-            if id in beamlines and 'type' not in beamlines[id]:
-                LatticeUtil.__add_beamlines(beamlines[id], beamlines, ordered_beamlines)
+        for bid in beamline['items']:
+            bid = abs(bid)
+            if bid in beamlines and 'type' not in beamlines[bid]:
+                LatticeUtil.__add_beamlines(beamlines[bid], beamlines, ordered_beamlines)
         ordered_beamlines.append(beamline)
 
     @staticmethod
@@ -188,21 +187,21 @@ class LatticeUtil(object):
         """Render the beamlines list in precedence order.
         """
         ordered_beamlines = []
-        for id in sorted(self.id_map):
-            model = self.id_map[id]
+        for bid in sorted(self.id_map):
+            model = self.id_map[bid]
             if 'type' not in model:
                 LatticeUtil.__add_beamlines(model, self.id_map, ordered_beamlines)
         res = ''
         for bl in ordered_beamlines:
-            if len(bl['items']):
+            if bl['items']:
                 name = bl.name.upper()
                 if quote_name:
                     name = '"{}"'.format(name)
                 res += '{}: LINE=('.format(name)
-                for id in bl['items']:
-                    if id < 0:
+                for bid in bl['items']:
+                    if bid < 0:
                         res += '-'
-                    res += '{},'.format(self.id_map[abs(id)].name.upper())
+                    res += '{},'.format(self.id_map[abs(bid)].name.upper())
                 res = res[:-1]
                 res += ')'
                 if want_semicolon:
