@@ -7,7 +7,8 @@ u"""simulation data operations
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo.template import beamline
+from sirepo.template import lattice
+from sirepo.template.lattice import LatticeUtil
 import sirepo.sim_data
 
 
@@ -81,7 +82,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_files(cls, data):
-        res = beamline.iterate_models(cls.schema(), data, beamline.InputFileIterator(cls)).result
+        res = LatticeUtil(data, cls.schema()).iterate_models(lattice.InputFileIterator(cls)).result
         if data.models.bunchFile.sourceFile:
             res.append('{}-{}.{}'.format('bunchFile', 'sourceFile', data.models.bunchFile.sourceFile))
         return res

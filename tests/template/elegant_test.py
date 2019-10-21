@@ -27,13 +27,12 @@ def test_get_application_data():
 
 
 def test_file_iterator():
-    from sirepo.template import beamline
+    from sirepo.template import lattice
+    from sirepo.template.lattice import LatticeUtil
     from pykern.pkunit import pkeq
     data = _find_example('bunchComp - fourDipoleCSR')
-    v = beamline.iterate_models(
-        _elegant()._SCHEMA,
-        data,
-        beamline.InputFileIterator(_elegant()._SIM_DATA)).result
+    v = LatticeUtil(data, _elegant()._SCHEMA).iterate_models(
+        lattice.InputFileIterator(_elegant()._SIM_DATA)).result
     pkeq(v, ['WAKE-inputfile.knsl45.liwake.sdds'])
 
 
