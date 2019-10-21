@@ -6,6 +6,7 @@ u"""Entry points for runner (v1)
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import api_perm
 from sirepo import http_reply
@@ -81,9 +82,9 @@ def api_simulationFrame(frame_id):
     #TODO(robnagler) startTime is computeJobHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
 #rn pkcollections.Dict
-    data = dict(zip(keys, frame_id.split('*')))
+    data = PKDict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
-    data['report'] = template.get_animation_name(data)
+    data['report'] = sirepo.sim_data.get_class(data.simulationType).animation_name(data)
     run_dir = simulation_db.simulation_run_dir(data)
     model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     frame = template.get_simulation_frame(run_dir, data, model_data)
