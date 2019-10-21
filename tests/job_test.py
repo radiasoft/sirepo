@@ -22,6 +22,7 @@ from pykern.pkcollections import PKDict
 #   - agent sigterm -> sigkill progression
 #   - send kill to uknown agent
 
+
 def test_runStatus():
     py3_env = _env_setup()
     from sirepo import srunit
@@ -49,22 +50,21 @@ def test_runStatus():
                 simulation_type='myapp',
             ),
         )
-        nr = PKDict({
-            'report': 'heightWeightReport',
-            'simulationId': 'zoVkfTWT',
-            'simulationType': 'myapp',
-            'computeJobHash': 'cc093c5d2ff817018618f1422b06fb8e'
-            })
-
         run = fc.sr_post(
             'runStatus',
-            nr,
+            dict(
+                report='heightWeightReport',
+                simulationId=data.models.simulation.simulationId,
+                simulationType=data.simulationType,
+                computeJobHash='fakeHash',
+            ),
         )
         assert run.state == job.Status.MISSING.value
     finally:
         if job_supervisor:
             job_supervisor.terminate()
             job_supervisor.wait()
+
 
 def test_runSimulation():
     py3_env = _env_setup()
