@@ -43,11 +43,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def synergia_beamline_id_for_report(cls, report):
-        return 'activeBeamlineId' if report == 'twissReport' else 'visualizationBeamlineId'
-
-
-    @classmethod
     def _compute_job_fields(cls, data):
         r = data.report
         if r == cls.animation_name(None):
@@ -55,8 +50,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         res = ['beamlines', 'elements']
         if 'bunchReport' in r:
             res += ['bunch', 'simulation.visualizationBeamlineId']
+        elif r == 'twissReport':
+            res += ['simulation.activeBeamlineId']
         elif 'twissReport' in r:
-            res += ['simulation.{}'.format(cls.synergia_beamline_id_for_report(r))]
+            res += ['simulation.visualizationBeamlineId']
         return res
 
     @classmethod

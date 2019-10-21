@@ -19,7 +19,6 @@ def test_generate_python():
     with pkunit.save_chdir_work():
         for name in ('IOTA 6-6 with NLINSERT', 'Simple FODO'):
             data = _example_data(name)
-            #data['report'] = 'watchpointReport{}'.format(data.models.beamline[-1].id)
             actual = synergia._generate_parameters_file(data)
             outfile = data.models.simulation.simulationId + '.txt'
             pkio.write_text(outfile, actual)
