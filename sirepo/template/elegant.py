@@ -227,7 +227,7 @@ def generate_parameters_file(data, is_parallel=False):
     if is_parallel:
         return res + _generate_full_simulation(data, v)
 
-    if 'report' in data and data.report == 'twissReport':
+    if data.get('report', '') == 'twissReport':
         return res + _generate_twiss_simulation(data, v)
 
     return res + _generate_bunch_simulation(data, v)
@@ -756,7 +756,6 @@ def _generate_full_simulation(data, v):
     v.update(dict(
         commands=_generate_commands(filename_map, util),
         lattice=_generate_lattice(filename_map, util),
-        use_beamline=util.select_beamline().name,
         simulationMode=data.models.simulation.simulationMode,
     ))
     return template_common.render_jinja(SIM_TYPE, v)
@@ -778,7 +777,7 @@ def _generate_twiss_simulation(data, v):
         lattice='Lattice',
         p_central_mev=data.models.bunch.p_central_mev,
     )
-    # run_setup.use_beamline = sim.activeBeamlineId
+    run_setup.use_beamline = sim.activeBeamlineId
     twiss_output = _find_first_command(data, 'twiss_output') or PKDict(
         _id=max_id + 2,
         _type='twiss_output',
