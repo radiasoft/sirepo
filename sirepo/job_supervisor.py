@@ -22,6 +22,8 @@ class AgentMsg(PKDict):
 
     async def do(self):
         pkdlog('content={}', self.content)
+        if self.content.op == sirepo.job.OP_ERROR: # TODO(e-carlin): proper error handling
+            raise AssertionError('TODO: Handle errors')
         d = sirepo.driver.get_instance_for_agent(self.content.agent_id)
         if not d:
             # TODO(e-carlin): handle
@@ -32,7 +34,6 @@ class AgentMsg(PKDict):
         i = self.content.get('op_id')
         if not i:
             return
-        assert self.content.op != sirepo.job.OP_ERROR # TODO(e-carlin): proper error handling
         d.ops[i].set_result(self.content)
 
 
@@ -96,6 +97,7 @@ class _Job(PKDict):
         self.instances[self.jid] = self
         self.last_update_time = time.time()
         self.start_time = time.time()
+        self.background_percent_complete = None
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -153,6 +155,8 @@ class _Job(PKDict):
             res.setdefault('startTime', self.start_time)
             res.setdefault('lastUpdateTime', self.last_update_time)
             res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
+            if self.background_percent_complete is not None:
+                res.update(self.background_percent_complete)
             if self.compute_status in (
                 sirepo.job.Status.PENDING.value,
                 sirepo.job.Status.RUNNING.value

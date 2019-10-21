@@ -33,6 +33,7 @@ ACTION_RUN_SIMULATION = 'runSimulation'
 
 # Bidirectional operations
 OP_ANALYSIS = 'analysis'
+OP_BACKGROUND_PERCENT_COMPLETE = 'background_percent_complete'
 OP_CANCEL = 'cancel'
 OP_COMPUTE_STATUS = 'compute_status'
 OP_CONDITION = 'condition'

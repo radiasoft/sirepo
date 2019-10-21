@@ -105,6 +105,7 @@ class DriverBase(PKDict):
                     setdefault('compute_hash')
                     setdefault('compute_status')
                     setdefault('last_update_time')
+                    setdefault('background_percent_complete')
                     return
 
 

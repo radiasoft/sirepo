@@ -57,22 +57,22 @@ def default_command(in_file):
 
 
 def _do_background_percent_complete(msg, template):
-    return template.background_percent_complete(
+    r = template.background_percent_complete(
         msg.data.report,
         msg.run_dir,
         msg.is_running,
     )
-    new = job.run_extract_job(
-        b.setdefault(
-            cmd='background_percent_complete',
+    r.setdefault('percentComplete', 0.0)
+    r.setdefault('frameCount', 0)
+    return r
+    # new = job.run_extract_job(
+    #     b.setdefault(
+    #         cmd='background_percent_complete',
 
-            arg=is_running,
+    #         arg=is_running,
 
-        ),
-    )
-    new.setdefault('percentComplete', 0.0)
-    new.setdefault('frameCount', 0)
-    res.update(new)
+    #     ),
+    # )
 
 
 def _do_compute(msg, template):
@@ -151,7 +151,7 @@ def _do_result(msg, template):
 def _subprocess_env():
     env = PKDict(os.environ)
     # pkcollections.unchecked_del(
-    #     env, 
+    #     env,
     #     *(k for k in env if _EXEC_ENV_REMOVE.search(k))
     # )
     # env.SIREPO_MPI_CORES = str(mpi.cfg.cores)

@@ -12,7 +12,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job_agent_process, job, mpi
+from sirepo import job_agent_process, job, mpi, simulation_db
 from sirepo.pkcli import job_process
 import json
 import os
@@ -80,6 +80,8 @@ class _JobProcess(PKDict):
         self._raw_stdout = bytearray()
         self._raw_stderr = bytearray()
         self._subprocess_exit_event = tornado.locks.Event()
+        self._stdout_read_done = tornado.locks.Event()
+        self._stderr_read_done = tornado.locks.Event()
 
     async def exit(self):
         await self._subprocess_exit_event.wait()
@@ -94,6 +96,7 @@ class _JobProcess(PKDict):
         assert not self.msg.get('agent_id')
         env = self._subprocess_env()
         self._in_file = self.msg.run_dir.join(_IN_FILE.format(job.unique_key()))
+        # pkio.mkdir_parent_only(self._in_file) # TODO(e-carlin): Hack for animations. Who should be ensuring this?
         self.msg.run_dir = str(self.msg.run_dir) # TODO(e-carlin): Find a better solution for serial and deserialization
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
         self._subprocess = tornado.process.Subprocess(
@@ -106,16 +109,22 @@ class _JobProcess(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        async def collect(stream, out):
+        async def collect(stream, out, event):
             out.extend(await stream.read_until_close())
+            event.set()
         i = tornado.ioloop.IOLoop.current()
-        i.add_callback(collect, self._subprocess.stdout, self._raw_stdout)
-        i.add_callback(collect, self._subprocess.stderr, self._raw_stderr)
+        i.add_callback(collect, self._subprocess.stdout, self._raw_stdout, self._stdout_read_done)
+        i.add_callback(collect, self._subprocess.stderr, self._raw_stderr, self._stderr_read_done)
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
-    def _load_output(self):
+    async def _load_output(self):
         o = None
         e = None
+        # TODO(e-carlin): If we can increase the pipe buffer size then we don't
+        # have to spawn_callback's for collect() and could just read the output
+        # of the job process here.
+        await self._stdout_read_done.wait()
+        await self._stderr_read_done.wait()
         try:
             e = pkjson.load_any(self._raw_stderr)
         except json.JSONDecodeError:
@@ -139,19 +148,17 @@ class _JobProcess(PKDict):
     def _subprocess_exit(self, returncode):
         async def do():
             try:
-                # self._raw_stdout = await self._subprocess.stdout.read_until_close()
-                # self._raw_stderr = await self._subprocess.stderr.read_until_close()
                 if self._in_file:
                     pkio.unchecked_remove(self._in_file)
                     self._in_file = None
-                self._parsed_stdout, self._parsed_stderr = self._load_output()
+                self._parsed_stdout, self._parsed_stderr = await self._load_output()
                 if returncode != 0 and not self._parsed_stderr:
                     self._parsed_stderr = 'error returncode {}'.format(returncode)
                 if self._parsed_stderr or returncode != 0:
                     if 'Traceback' in self._parsed_stderr:
                         pkdlog('\n{}', self._parsed_stderr)
                     else:
-                        pkdlog(self._parsed_stderr)
+                        pkdlog('error={}', self._parsed_stderr)
             except Exception as e:
                 self._parsed_stderr = 'error={}'.format(e)
                 pkdlog(self._parsed_stderr)
@@ -176,14 +183,51 @@ class _Process(PKDict):
         super().__init__(*args, **kwargs)
         self.compute_job_info = None
         self.compute_job_info_file = None
+        self._background_job_process = None
         self._main_job_process = None
         self._terminating = False
 
     def start(self):
         if self.msg.job_process_cmd == 'compute':
-            #TODO(robnagler) background_percent_complete needs to start if parallel
             self._write_compute_job_info_file(job.Status.RUNNING.value)
         self._execute_main_job_process()
+        # TODO(e-carlin): one compute if
+        if self.msg.job_process_cmd == 'compute':
+            # TODO(e-carlin): Is calling simulation_db here valid?
+            if simulation_db.is_parallel(self.msg.data):
+                self._execute_background_percent_complete_job_process()
+
+    def _execute_background_percent_complete_job_process(self):
+        m = self.msg.copy()
+        m.update(job_process_cmd='background_percent_complete')
+        del m['op_id']
+        async def do():
+            while True:
+                try:
+                    self._background_job_process = _JobProcess(m)
+                    self._background_job_process.start()
+                    o, e = await self._background_job_process.exit()
+                    if e:
+                        await self.comm.write_message(
+                            m,
+                            job.OP_ERROR,
+                            error=e,
+                            output=o
+                        )
+                    else:
+                        await self.comm.write_message(
+                            m,
+                            job.OP_BACKGROUND_PERCENT_COMPLETE,
+                            background_percent_complete=o,
+                        )
+                except Exception as e:
+                    pkdlog('error={}', e)
+                finally:
+                    # TODO(e-carlin): If terminating then don't start again
+                    await tornado.gen.sleep(2) # TODO(e-carlin): make 2 configurable
+        tornado.ioloop.IOLoop.current().add_callback(do)
+
+
 
     def _execute_main_job_process(self):
         self._main_job_process = _JobProcess(msg=self.msg)
@@ -341,6 +385,7 @@ class _Comm(PKDict):
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
+            pkdlog('{} \n{}', err, stack)
             return self._format_reply(None, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
