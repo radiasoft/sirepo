@@ -134,43 +134,20 @@ class _Job(PKDict):
             )
         return await self.get_response(req)
 
-    # @classmethod
-    # async def _get_parallel_compute_status(cls, req):
-    #     s = await cls.get_compute_status(req)
-    #     self = cls.instances.get(cls._jid_for_req(req))
-    #     assert self is not None
-    #     if self.background_percent_complete is not None:
-    #         return await self.get_response(req)
-    #     d = await sirepo.driver.get_instance_for_job(self)
-    #     await d.do_op(
-    #         op=sirepo.job.OP_ANALYSIS,
-    #         jid=self.jid,
-    #         job_process_cmd='background_percent_complete',
-    #         is_running=s.state == sirepo.job.Status.RUNNING.value,
-    #         **self.req.content,
-    #     )
-    #     return await self.get_response(req)
-
-
     def get_job_info(self, req):
         assert self.res.state is not None
         i = pkcollections.Dict(
-            cache_hit=False,
-            cached_data=None,
             cached_hash=self.res.computeJobHash,
-            job_id=req.compute_jid,
             state=self.res.state,
             model_name=req.content.compute_model,
             parameters_changed=False,
             req_hash=req.content.computeJobHash,
-            run_dir=req.content.run_dir,
             simulation_id=req.content.data.simulationId,
             simulation_type=req.content.sim_type,
         )
         if self.res.state == sirepo.job.Status.MISSING.value:
             return i
         if i.req_hash == i.cached_hash:
-            i.cache_hit = True
             return i
         i.parameters_changed = True
         return i
