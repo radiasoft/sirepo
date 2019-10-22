@@ -105,7 +105,7 @@ class LocalDriver(sirepo.driver.DriverBase):
 
     def has_capacity(self, job):
         for j in self.jobs:
-            if j.compute_status == sirepo.job.Status.RUNNING.value:
+            if j.res.state == sirepo.job.Status.RUNNING.value:
                 return False
         return True
 

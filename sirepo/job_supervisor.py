@@ -81,6 +81,9 @@ class ServerReq(PKDict):
         elif c.api == 'api_runSimulation':
             self.handler.write(await _Job.run(self))
             return
+        elif c.api == 'api_simulationFrame':
+            self.handler.write(await _Job.get_simulation_frame(self))
+            return
         raise AssertionError('api={} unkown', c.api)
 
 
@@ -143,7 +146,6 @@ class _Job(PKDict):
         return self.get_response(req)
 
     def get_job_info(self, req):
-        assert self.res.state is not None
         i = pkcollections.Dict(
             cached_hash=self.res.computeJobHash,
             state=self.res.state,
@@ -188,6 +190,26 @@ class _Job(PKDict):
             return PKDict(error=e)
         self.res.update(res)
         return res
+
+    @classmethod
+    async def get_simulation_frame(cls, req):
+        self = cls.instances.get(cls._jid_for_req(req))
+        if not self:
+            self = cls(req=req)
+        # TODO(e-carlin): Doing the could cause some confusion if the GUI was
+        # ever send multiple requests concurrently regarding the same jid. One
+        # req would wipe out the other req.
+        self.req = req
+        d = await sirepo.driver.get_instance_for_job(self)
+        await d.do_op(
+            op=sirepo.job.OP_ANALYSIS,
+            jid=self.jid,
+            job_process_cmd='get_simulation_frame',
+            **self.req.content,
+        )
+        return self.get_response(req)
+
+
 
     @classmethod
     async def _get_result(cls, req):
