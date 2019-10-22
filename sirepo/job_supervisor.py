@@ -93,12 +93,12 @@ class _Job(PKDict):
         super().__init__(*args, **kwargs)
         self.jid = self._jid_for_req(self.req)
         self.instances[self.jid] = self
-        self.background_percent_complete = None
         self.res = PKDict(
-            state=None,
             computeJobHash=None,
             lastUpdateTime=time.time(),
+            percentComplete=None,
             startTime=time.time(),
+            state=None,
         )
 
     @classmethod
@@ -109,27 +109,24 @@ class _Job(PKDict):
             self = cls(req=req)
         self.req = req
         p = simulation_db.is_parallel(PKDict(report=req.content.analysis_model))
-        if (p and self.background_percent_complete is not None) or \
-            (not p and self.res.state is not None):
-            return await self.get_response(req)
-        d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): self.jid is not working properly. Ex. all api_runSimulation
         # requests come in and need to run status. They will use compute_jid even
         # though if they are a parallel sim the compute job runs under the compute_jid
         # but the analysis job needs to run under the analysis_jid
-        if p:
+        if self.res.state is None:
+            d = await sirepo.driver.get_instance_for_job(self)
+            await d.do_op(
+                op=sirepo.job.OP_COMPUTE_STATUS,
+                jid=self.jid,
+                **self.req.content,
+            )
+        if p and self.res.percentComplete is None:
+            d = await sirepo.driver.get_instance_for_job(self)
             await d.do_op(
                 op=sirepo.job.OP_ANALYSIS,
                 jid=self.jid,
                 job_process_cmd='background_percent_complete',
                 is_running=self.res.state == sirepo.job.Status.RUNNING.value,
-                **self.req.content,
-            )
-        else:
-            # TODO(e-carlin): handle error response from do_op
-            await d.do_op(
-                op=sirepo.job.OP_COMPUTE_STATUS,
-                jid=self.jid,
                 **self.req.content,
             )
         return await self.get_response(req)
@@ -162,13 +159,13 @@ class _Job(PKDict):
                 (sirepo.job.Status.COMPLETED.value, sirepo.job.Status.ERROR.value) \
                 and not i.parameters_changed:
                 res = (await self._get_result(req)).output.result
-            # TODO(e-carlin): handle parallel
             res.setdefault('parametersChanged', i.parameters_changed)
             res.setdefault('startTime', self.res.startTime)
             res.setdefault('lastUpdateTime', self.res.lastUpdateTime)
             res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
-            if self.background_percent_complete is not None:
-                res.update(self.background_percent_complete)
+            # TODO(e-carlin): handle parallel
+            if self.res.percentComplete is not None:
+                res.update(self.res.percentComplete)
             if self.res.state in (
                 sirepo.job.Status.PENDING.value,
                 sirepo.job.Status.RUNNING.value
