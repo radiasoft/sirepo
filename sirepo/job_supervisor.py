@@ -9,6 +9,7 @@ from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import simulation_db # TODO(e-carlin): Used to get is_parallel(). Should live in sim_data?
 import aenum
 import copy
 import sirepo.driver
@@ -74,6 +75,9 @@ class ServerReq(PKDict):
         c = self.content
         if c.api == 'api_runStatus':
             # TODO(e-carlin): handle error from get_compute_status
+            if simulation_db.is_parallel(PKDict(report=c.analysis_model)):
+                self.handler.write(await _Job.get_parallel_compute_status(self))
+                return
             self.handler.write(await _Job.get_compute_status(self))
             return
         elif c.api == 'api_runSimulation':
@@ -91,13 +95,15 @@ class _Job(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.compute_hash = None
-        self.compute_status = None
         self.jid = self._jid_for_req(self.req)
         self.instances[self.jid] = self
-        self.last_update_time = time.time()
-        self.start_time = time.time()
         self.background_percent_complete = None
+        self.res = PKDict(
+            compute_status=None,
+            compute_hash=None,
+            last_update_time=time.time(),
+            start_time=time.time(),
+        )
 
     @classmethod
     async def get_compute_status(cls, req):
@@ -106,25 +112,43 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         self.req = req
-        if self.compute_status is not None:
+        if self.res.compute_status is not None:
             return await self.get_response(req)
         d = await sirepo.driver.get_instance_for_job(self)
         # TODO(e-carlin): handle error response from do_op
         await d.do_op(
             op=sirepo.job.OP_COMPUTE_STATUS,
-            jid=self.req.compute_jid,
+            jid=self.req.compute_jid, # TODO(e-carlin): self.jid?
             **self.req.content,
         )
         return await self.get_response(req)
 
+    @classmethod
+    async def get_parallel_compute_status(cls, req):
+        s = await cls.get_compute_status(req)
+        self = cls.instances.get(cls._jid_for_req(req))
+        assert self is not None
+        if self.background_percent_complete is not None:
+            return await self.get_response(req)
+        d = await sirepo.driver.get_instance_for_job(self)
+        await d.do_op(
+            op=sirepo.job.OP_ANALYSIS,
+            jid=self.jid,
+            job_process_cmd='background_percent_complete',
+            is_running=s.state == sirepo.job.Status.RUNNING.value,
+            **self.req.content,
+        )
+        return await self.get_response(req)
+
+
     def get_job_info(self, req):
-        assert self.compute_status is not None
+        assert self.res.compute_status is not None
         i = pkcollections.Dict(
             cache_hit=False,
             cached_data=None,
-            cached_hash=self.compute_hash,
+            cached_hash=self.res.compute_hash,
             job_id=req.compute_jid,
-            job_status=self.compute_status,
+            job_status=self.res.compute_status,
             model_name=req.content.compute_model,
             parameters_changed=False,
             req_hash=req.content.compute_hash,
@@ -132,7 +156,7 @@ class _Job(PKDict):
             simulation_id=req.content.data.simulationId,
             simulation_type=req.content.sim_type,
         )
-        if self.compute_status == sirepo.job.Status.MISSING.value:
+        if self.res.compute_status == sirepo.job.Status.MISSING.value:
             return i
         if i.req_hash == i.cached_hash:
             i.cache_hit = True
@@ -152,12 +176,12 @@ class _Job(PKDict):
                 res = (await self.get_result(req)).output.result
             # TODO(e-carlin): handle parallel
             res.setdefault('parametersChanged', i.parameters_changed)
-            res.setdefault('startTime', self.start_time)
-            res.setdefault('lastUpdateTime', self.last_update_time)
+            res.setdefault('startTime', self.res.start_time)
+            res.setdefault('lastUpdateTime', self.res.last_update_time)
             res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
             if self.background_percent_complete is not None:
                 res.update(self.background_percent_complete)
-            if self.compute_status in (
+            if self.res.compute_status in (
                 sirepo.job.Status.PENDING.value,
                 sirepo.job.Status.RUNNING.value
                 ):
@@ -191,8 +215,10 @@ class _Job(PKDict):
     @classmethod
     async def run(cls, req):
         # TODO(e-carlin): handle forceRun
-        # TODO(e-carlin): handle parametersChanged
-        s = await _Job.get_compute_status(req)
+        if simulation_db.is_parallel(PKDict(report=req.content.analysis_model)):
+            s = await _Job.get_parallel_compute_status(req)
+        else:
+            s = await _Job.get_compute_status(req)
         if s.state not in sirepo.job.ALREADY_GOOD_STATUS or s.parametersChanged:
             self = cls.instances.get(cls._jid_for_req(req))
             if not self:
@@ -200,8 +226,8 @@ class _Job(PKDict):
             self.req = req # if self then must overwrite existing req
             d = await sirepo.driver.get_instance_for_job(self)
             # TODO(e-carlin): handle error response from do_op
-            self.start_time = time.time()
-            self.last_update_time = time.time()
+            self.res.start_time = time.time()
+            self.res.last_update_time = time.time()
             await d.do_op(
                 op=sirepo.job.OP_RUN,
                 jid=self.req.compute_jid,
@@ -223,4 +249,4 @@ class _Job(PKDict):
         raise AssertionError('unknown api={} req={}', c.api, req)
 
     def __repr__(self):
-        return f'jid={self.jid} compute_status={self.compute_status} compute_hash={self.compute_hash}'
+        return f'jid={self.jid} compute_status={self.res.compute_status} compute_hash={self.res.compute_hash}'

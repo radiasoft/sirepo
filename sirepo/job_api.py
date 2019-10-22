@@ -122,7 +122,7 @@ def _request_body(kwargs):
         # depends on some of the above
         ('compute_jid', lambda: simulation_db.job_id(d).replace(b.analysis_model, b.compute_model)),
         ('analysis_jid', lambda: b.compute_jid + simulation_db.JOB_ID_SEP + b.analysis_model),
-#TODO(robnagler) remove this
+        #TODO(robnagler) remove this
         ('run_dir', lambda: str(simulation_db.simulation_run_dir(d))),
         ):
         b[k] = d[k] if k in d else v()

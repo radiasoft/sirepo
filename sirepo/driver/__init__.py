@@ -92,20 +92,15 @@ class DriverBase(PKDict):
 
     def set_state(self, msg):
         # TODO(e-carlin): handle other types of messages with state
+        m = msg.copy()
+        del m['agent_id']
+        del m['op']
+        m.pop('op_id', None)
         jid = msg.get('jid')
         if jid:
             for j in self.jobs:
-                def setdefault(key):
-                    setattr(
-                        j,
-                        key,
-                        msg.get(key) if msg.get(key) is not None else getattr(j, key)
-                    )
                 if jid == j.jid:
-                    setdefault('compute_hash')
-                    setdefault('compute_status')
-                    setdefault('last_update_time')
-                    setdefault('background_percent_complete')
+                    j.res.update(**msg)
                     return
 
 

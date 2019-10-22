@@ -225,9 +225,8 @@ class _Process(PKDict):
                 finally:
                     # TODO(e-carlin): If terminating then don't start again
                     await tornado.gen.sleep(2) # TODO(e-carlin): make 2 configurable
+                    # TODO(e-carlin): kill this when 100% complete
         tornado.ioloop.IOLoop.current().add_callback(do)
-
-
 
     def _execute_main_job_process(self):
         self._main_job_process = _JobProcess(msg=self.msg)
@@ -436,6 +435,10 @@ class _Comm(PKDict):
             job.OP_OK,
             compute_status=job.Status.RUNNING.value,
         )
+
+    async def _op_analysis(self, msg):
+        self._process(msg)
+        return False
 
     def _process(self, msg):
         p = _Process(msg=msg, comm=self)
