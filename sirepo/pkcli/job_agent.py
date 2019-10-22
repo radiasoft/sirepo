@@ -282,7 +282,7 @@ class _Process(PKDict):
         pkio.mkdir_parent_only(self.compute_job_info_file)
         self.compute_job_info = PKDict(_INFO_FILE_COMMON).update(
             computeJobHash=self.msg.computeJobHash,
-            start_time=time.time(),
+            startTime=time.time(),
             state=state,
         )
         #TODO(robnagler) pkio.atomic_write?

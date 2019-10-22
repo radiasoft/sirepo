@@ -97,8 +97,8 @@ class _Job(PKDict):
         self.res = PKDict(
             state=None,
             computeJobHash=None,
-            last_update_time=time.time(),
-            start_time=time.time(),
+            lastUpdateTime=time.time(),
+            startTime=time.time(),
         )
 
     @classmethod
@@ -187,8 +187,8 @@ class _Job(PKDict):
                 res = (await self.get_result(req)).output.result
             # TODO(e-carlin): handle parallel
             res.setdefault('parametersChanged', i.parameters_changed)
-            res.setdefault('startTime', self.res.start_time)
-            res.setdefault('lastUpdateTime', self.res.last_update_time)
+            res.setdefault('startTime', self.res.startTime)
+            res.setdefault('lastUpdateTime', self.res.lastUpdateTime)
             res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
             if self.background_percent_complete is not None:
                 res.update(self.background_percent_complete)
@@ -234,8 +234,8 @@ class _Job(PKDict):
             self.req = req # if self then must overwrite existing req
             d = await sirepo.driver.get_instance_for_job(self)
             # TODO(e-carlin): handle error response from do_op
-            self.res.start_time = time.time()
-            self.res.last_update_time = time.time()
+            self.res.startTime = time.time()
+            self.res.lastUpdateTime = time.time()
             await d.do_op(
                 op=sirepo.job.OP_RUN,
                 jid=self.req.compute_jid,
