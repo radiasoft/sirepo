@@ -58,11 +58,11 @@ def api_simulationFrame(frame_id):
 #   probably need consistency anyway for dealing with separators
         assert f.pop(0) == 'v2', \
             'invalid frame_id={}'.format(frame_id)
-        keys.append('computeHash')
+        keys.append('computeHash') # TODO(e-carlin): computeJobHash?
     p = PKDict(zip(keys, f))
     template = sirepo.template.import_module(p)
     p.report = template.get_animation_name(p)
-    p.compute_hash = p.get('computeHash')
+    p.compute_hash = p.get('computeHash') # TODO(e-carlin): The left side should almost certainly be computeJobHash
     frame = _request(data=p)
     resp = http_reply.gen_json(frame)
     if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
@@ -115,7 +115,7 @@ def _request_body(kwargs):
     d = b.get('data') or http_request.parse_data_input()
     for k, v in (
         ('analysis_model', lambda: d.report),
-        ('compute_hash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
+        ('computeJobHash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
         ('compute_model', lambda: simulation_db.compute_job_model(d)),
         ('resource_class', lambda: 'parallel' if simulation_db.is_parallel(d) else 'sequential'),
         ('sim_type', lambda: d.simulationType),

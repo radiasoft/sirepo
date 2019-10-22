@@ -122,9 +122,9 @@ def _do_compute_status(msg, template):
         msg.run_dir
     ))
     return PKDict(
-        compute_hash=sirepo.sim_data.get_class(d).compute_job_hash(d),
+        computeJobHash=sirepo.sim_data.get_class(d).compute_job_hash(d),
         last_update_time=_mtime_or_now(msg.run_dir),
-        compute_status=simulation_db.read_status(msg.run_dir),
+        state=simulation_db.read_status(msg.run_dir),
     )
 
 

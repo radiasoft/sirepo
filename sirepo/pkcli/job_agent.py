@@ -249,14 +249,14 @@ class _Process(PKDict):
                     job.OP_ERROR,
                     error=e,
                     output=o,
-                    compute_status=job.Status.ERROR.value,
+                    state=job.Status.ERROR.value,
                 )
             elif self.msg.job_process_cmd == 'compute':
                 await self.comm.write_message(
                     self.msg,
                     job.OP_OK,
                     output=o,
-                    compute_status=job.Status.COMPLETED.value,
+                    state=job.Status.COMPLETED.value,
                 )
             elif self.msg.job_process_cmd == 'compute_status':
                 await self.comm.write_message(
@@ -277,13 +277,13 @@ class _Process(PKDict):
             except Exception as exc:
                 pkdlog('error={}', exc)
 
-    def _write_compute_job_info_file(self, status):
+    def _write_compute_job_info_file(self, state):
         self.compute_job_info_file = self.msg.run_dir.join(_INFO_FILE)
         pkio.mkdir_parent_only(self.compute_job_info_file)
         self.compute_job_info = PKDict(_INFO_FILE_COMMON).update(
-            compute_hash=self.msg.compute_hash,
+            computeJobHash=self.msg.computeJobHash,
             start_time=time.time(),
-            status=status,
+            state=state,
         )
         #TODO(robnagler) pkio.atomic_write?
         self.compute_job_info_file.write(self.compute_job_info)
@@ -400,7 +400,7 @@ class _Comm(PKDict):
             return self._format_reply(
                 msg,
                 job.OP_COMPUTE_STATUS,
-                compute_status=p and p.compute_status \
+                state=p and p.state\
                 or pkjson.load_any(msg.run_dir.join(_INFO_FILE)).status,
             )
         except Exception:
@@ -413,7 +413,7 @@ class _Comm(PKDict):
         return self._format_reply(
             msg,
             job.OP_COMPUTE_STATUS,
-            compute_status=job.Status.MISSING.value,
+            state=job.Status.MISSING.value,
         )
 
     async def _op_kill(self, msg):
@@ -433,7 +433,7 @@ class _Comm(PKDict):
         return self._format_reply(
             msg,
             job.OP_OK,
-            compute_status=job.Status.RUNNING.value,
+            state=job.Status.RUNNING.value,
         )
 
     async def _op_analysis(self, msg):

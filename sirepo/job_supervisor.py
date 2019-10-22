@@ -74,10 +74,6 @@ class ServerReq(PKDict):
     async def do(self):
         c = self.content
         if c.api == 'api_runStatus':
-            # TODO(e-carlin): handle error from get_compute_status
-            if simulation_db.is_parallel(PKDict(report=c.analysis_model)):
-                self.handler.write(await _Job.get_parallel_compute_status(self))
-                return
             self.handler.write(await _Job.get_compute_status(self))
             return
         elif c.api == 'api_runSimulation':
@@ -99,8 +95,8 @@ class _Job(PKDict):
         self.instances[self.jid] = self
         self.background_percent_complete = None
         self.res = PKDict(
-            compute_status=None,
-            compute_hash=None,
+            state=None,
+            computeJobHash=None,
             last_update_time=time.time(),
             start_time=time.time(),
         )
@@ -112,51 +108,66 @@ class _Job(PKDict):
         if not self:
             self = cls(req=req)
         self.req = req
-        if self.res.compute_status is not None:
+        p = simulation_db.is_parallel(PKDict(report=req.content.analysis_model))
+        if (p and self.background_percent_complete is not None) or \
+            (not p and self.res.state is not None):
             return await self.get_response(req)
         d = await sirepo.driver.get_instance_for_job(self)
-        # TODO(e-carlin): handle error response from do_op
-        await d.do_op(
-            op=sirepo.job.OP_COMPUTE_STATUS,
-            jid=self.req.compute_jid, # TODO(e-carlin): self.jid?
-            **self.req.content,
-        )
+        # TODO(e-carlin): self.jid is not working properly. Ex. all api_runSimulation
+        # requests come in and need to run status. They will use compute_jid even
+        # though if they are a parallel sim the compute job runs under the compute_jid
+        # but the analysis job needs to run under the analysis_jid
+        if p:
+            await d.do_op(
+                op=sirepo.job.OP_ANALYSIS,
+                jid=self.jid,
+                job_process_cmd='background_percent_complete',
+                is_running=self.res.state == sirepo.job.Status.RUNNING.value,
+                **self.req.content,
+            )
+        else:
+            # TODO(e-carlin): handle error response from do_op
+            await d.do_op(
+                op=sirepo.job.OP_COMPUTE_STATUS,
+                jid=self.jid,
+                **self.req.content,
+            )
         return await self.get_response(req)
 
-    @classmethod
-    async def get_parallel_compute_status(cls, req):
-        s = await cls.get_compute_status(req)
-        self = cls.instances.get(cls._jid_for_req(req))
-        assert self is not None
-        if self.background_percent_complete is not None:
-            return await self.get_response(req)
-        d = await sirepo.driver.get_instance_for_job(self)
-        await d.do_op(
-            op=sirepo.job.OP_ANALYSIS,
-            jid=self.jid,
-            job_process_cmd='background_percent_complete',
-            is_running=s.state == sirepo.job.Status.RUNNING.value,
-            **self.req.content,
-        )
-        return await self.get_response(req)
+    # @classmethod
+    # async def _get_parallel_compute_status(cls, req):
+    #     s = await cls.get_compute_status(req)
+    #     self = cls.instances.get(cls._jid_for_req(req))
+    #     assert self is not None
+    #     if self.background_percent_complete is not None:
+    #         return await self.get_response(req)
+    #     d = await sirepo.driver.get_instance_for_job(self)
+    #     await d.do_op(
+    #         op=sirepo.job.OP_ANALYSIS,
+    #         jid=self.jid,
+    #         job_process_cmd='background_percent_complete',
+    #         is_running=s.state == sirepo.job.Status.RUNNING.value,
+    #         **self.req.content,
+    #     )
+    #     return await self.get_response(req)
 
 
     def get_job_info(self, req):
-        assert self.res.compute_status is not None
+        assert self.res.state is not None
         i = pkcollections.Dict(
             cache_hit=False,
             cached_data=None,
-            cached_hash=self.res.compute_hash,
+            cached_hash=self.res.computeJobHash,
             job_id=req.compute_jid,
-            job_status=self.res.compute_status,
+            state=self.res.state,
             model_name=req.content.compute_model,
             parameters_changed=False,
-            req_hash=req.content.compute_hash,
+            req_hash=req.content.computeJobHash,
             run_dir=req.content.run_dir,
             simulation_id=req.content.data.simulationId,
             simulation_type=req.content.sim_type,
         )
-        if self.res.compute_status == sirepo.job.Status.MISSING.value:
+        if self.res.state == sirepo.job.Status.MISSING.value:
             return i
         if i.req_hash == i.cached_hash:
             i.cache_hit = True
@@ -168,9 +179,9 @@ class _Job(PKDict):
         try:
             # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
             i = self.get_job_info(req)
-            res = PKDict(state=i.job_status)
+            res = PKDict(state=i.state)
             # TODO(e-carlin):  Job is not processing then send result op
-            if i.job_status in \
+            if i.state in \
                 (sirepo.job.Status.COMPLETED.value, sirepo.job.Status.ERROR.value) \
                 and not i.parameters_changed:
                 res = (await self.get_result(req)).output.result
@@ -181,7 +192,7 @@ class _Job(PKDict):
             res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
             if self.background_percent_complete is not None:
                 res.update(self.background_percent_complete)
-            if self.res.compute_status in (
+            if self.res.state in (
                 sirepo.job.Status.PENDING.value,
                 sirepo.job.Status.RUNNING.value
                 ):
@@ -215,10 +226,7 @@ class _Job(PKDict):
     @classmethod
     async def run(cls, req):
         # TODO(e-carlin): handle forceRun
-        if simulation_db.is_parallel(PKDict(report=req.content.analysis_model)):
-            s = await _Job.get_parallel_compute_status(req)
-        else:
-            s = await _Job.get_compute_status(req)
+        s = await _Job.get_compute_status(req)
         if s.state not in sirepo.job.ALREADY_GOOD_STATUS or s.parametersChanged:
             self = cls.instances.get(cls._jid_for_req(req))
             if not self:
@@ -249,4 +257,4 @@ class _Job(PKDict):
         raise AssertionError('unknown api={} req={}', c.api, req)
 
     def __repr__(self):
-        return f'jid={self.jid} compute_status={self.res.compute_status} compute_hash={self.res.compute_hash}'
+        return f'jid={self.jid} state={self.res.state} compute_hash={self.res.computeJobHash}'
