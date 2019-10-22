@@ -161,7 +161,7 @@ class _Job(PKDict):
             if i.state in \
                 (sirepo.job.Status.COMPLETED.value, sirepo.job.Status.ERROR.value) \
                 and not i.parameters_changed:
-                res = (await self.get_result(req)).output.result
+                res = (await self._get_result(req)).output.result
             # TODO(e-carlin): handle parallel
             res.setdefault('parametersChanged', i.parameters_changed)
             res.setdefault('startTime', self.res.startTime)
@@ -183,10 +183,11 @@ class _Job(PKDict):
         except Exception as e:
             pkdlog('error={} \n{}', e, pkdexc())
             return PKDict(error=e)
+        self.res.update(res)
         return res
 
     @classmethod
-    async def get_result(cls, req):
+    async def _get_result(cls, req):
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
             self = cls(req=req)
