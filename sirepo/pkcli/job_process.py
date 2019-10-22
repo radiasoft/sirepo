@@ -65,14 +65,6 @@ def _do_background_percent_complete(msg, template):
     r.setdefault('percentComplete', 0.0)
     r.setdefault('frameCount', 0)
     return r
-    # new = job.run_extract_job(
-    #     b.setdefault(
-    #         cmd='background_percent_complete',
-
-    #         arg=is_running,
-
-    #     ),
-    # )
 
 
 def _do_compute(msg, template):

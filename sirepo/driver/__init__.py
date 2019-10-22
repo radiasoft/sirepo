@@ -100,7 +100,7 @@ class DriverBase(PKDict):
         if jid:
             for j in self.jobs:
                 if jid == j.jid:
-                    j.res.update(**msg)
+                    j.update_state(msg.output)
                     return
 
 
