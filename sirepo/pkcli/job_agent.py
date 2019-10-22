@@ -463,8 +463,10 @@ class _Comm(PKDict):
                 return self._format_reply(
                     msg,
                     job.OP_OK,
-                    percentComplete=0.0,
-                    frameCount=0,
+                    output=PKDict(
+                        percentComplete=0.0,
+                        frameCount=0,
+                    ),
                 )
         self._process(msg)
         return False

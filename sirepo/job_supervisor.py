@@ -137,7 +137,9 @@ class _Job(PKDict):
             and self.res.state in (
                 sirepo.job.Status.COMPLETED.value,
                 sirepo.job.Status.ERROR.value):
-            return (await self._get_result(req)).output.result
+                r = self.get_response(req)
+                r.update((await self._get_result(req)).output.result)
+                return r
         return self.get_response(req)
 
     def get_job_info(self, req):
@@ -222,7 +224,10 @@ class _Job(PKDict):
             )
         self = cls.instances.get(cls._jid_for_req(req))
         assert self is not None
-        return self.get_response(req)
+        r = self.get_response(req)
+        if 'result' in r:
+            return r.result
+        return r
 
     @classmethod
     def _jid_for_req(cls, req):
