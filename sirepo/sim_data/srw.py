@@ -186,7 +186,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 x = f.check(file=1) and op(f)
                 if x:
                     res.append(x)
-        return sorted(res)
+        return res
 
     @classmethod
     def srw_format_float(cls, v):
@@ -340,6 +340,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             s = cls.schema()
             for m in dm.beamline:
                 for k, v in s.model[m.type].items():
+                    if k not in m:
+                        # field may be missing and fixups are not applied
+                        # until sim is loaded in prepare_for_client()
+                        continue
                     t = v[1]
                     if m[k] and t in ('MirrorFile', 'ImageFile'):
                         res.append(m[k])
