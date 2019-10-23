@@ -248,6 +248,7 @@ class _Process(PKDict):
     async def _handle_main_job_process_exit(self):
         try:
             o, e = await self._main_job_process.exit()
+            # TODO(e-carlin): read simulation_db.read_result() or format subprocess_error
             self._main_job_process = None
             self.comm.remove_process(self.msg.jid)
             if self._terminating:  # TODO(e-carlin): why?

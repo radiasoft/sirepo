@@ -110,10 +110,10 @@ def _request(**kwargs):
     )
     r.raise_for_status()
     c = pkjson.load_any(r.content)
-    if 'error' in c or c.get('action') == 'error':
-        pkdlog('reply={} request={}', c, b)
-        # TODO(e-carlin): Something better
-        raise RuntimeError('Error. Please try agin.')
+    # if 'error' in c or c.get('action') == 'error':
+    #     pkdlog('reply={} request={}', c, b)
+    #     # TODO(e-carlin): Something better
+    #     raise RuntimeError('Error. Please try agin.')
     return c
 
 
@@ -123,10 +123,10 @@ def _request_body(kwargs):
     for k, v in (
         ('analysis_model', lambda: d.report),
         ('computeJobHash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
-        ('compute_model', lambda: simulation_db.compute_job_model(d)),
+        ('computeModel', lambda: simulation_db.compute_job_model(d)),
         ('resource_class', lambda: 'parallel' if simulation_db.is_parallel(
             d) else 'sequential'),
-        ('sim_type', lambda: d.simulationType),
+        ('simType', lambda: d.simulationType),
         # depends on some of the above
         ('compute_jid', lambda: simulation_db.job_id(
             d).replace(b.analysis_model, b.compute_model)),

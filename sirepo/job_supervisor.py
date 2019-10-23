@@ -90,7 +90,8 @@ class ServerReq(PKDict):
 def terminate():
     sirepo.driver.terminate()
 
-
+class _Missing(Exception):
+    pass
 class _Job(PKDict):
     instances = PKDict()
 
@@ -107,43 +108,80 @@ class _Job(PKDict):
         )
 
     @classmethod
-    async def get_compute_status(cls, req):
+    async def get_instance(cls, req):
         # TODO(robnagler) deal with non-in-memory job state (db?)
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
             self = cls(req=req)
-        self.req = req
-        p = simulation_db.is_parallel(
-            PKDict(report=req.content.analysis_model))
-        # TODO(e-carlin): self.jid is not working properly. Ex. all api_runSimulation
-        # requests come in and need to run status. They will use compute_jid even
-        # though if they are a parallel sim the compute job runs under the compute_jid
-        # but the analysis job needs to run under the analysis_jid
-        if self.res.state is None:
+            await self.req_lock.acquire()
             d = await sirepo.driver.get_instance_for_job(self)
             await d.do_op(
                 op=sirepo.job.OP_COMPUTE_STATUS,
                 jid=self.jid,
                 **self.req.content,
             )
-        if p and self.res.percentComplete is None:
-            d = await sirepo.driver.get_instance_for_job(self)
-            await d.do_op(
-                op=sirepo.job.OP_ANALYSIS,
-                jid=self.jid,
-                job_process_cmd='background_percent_complete',
-                is_running=self.res.state == sirepo.job.Status.RUNNING.value,
-                **self.req.content,
+            if self.res.computeJobHash == req.content.computeJobHash:
+                return self, None
+            if self.res.computeJobHash is None:
+                self.res.computeJobHash = req.content.computeJobHash
+                return self, None
+            return None, _Missing()
+        await self.req_lock.acquire()
+        if self.res.computeJobHash == req.content.computeJobHash:
+            return self, None
+        assert self.res.computeJobHash is not None
+        return None, _Missing()
+
+    @classmethod
+    async def get_compute_status(cls, req):
+        self, err = await _Job.get_instance(req)
+        if err:
+            self.req_lock.release()
+            return PKDict(state='error', error='job hash invalid')
+        return await self._get_result(req)
+
+    async def _get_result(self, req):
+        if self.res.state == sirepo.job.Status.ERROR.value:
+            self.req_lock.release()
+            return PKDict(state='error', error=self.res.error) # TODO(e-carlin): make sure there is self.res.error
+        if self.res.state == sirepo.job.Status.CANCELED.value:
+            self.req_lock.release()
+            return PKDict(state='canceled')
+        if self.res.state == sirepo.job.Status.RUNNING.value:
+            # and background % if parallel
+            res = PKDict(state=self.res.state)
+            res.nextRequestSeconds = 2 # TODO(e-carlin): simulation_db.poll_seconds()
+            res.nextRequest = PKDict(
+                report=req.content.computeModel,
+                computeJobHash=self.res.computeJobHash,
+                simulationId=self.req.content.data.simulationId,
+                simulationType=req.content.simType,
             )
-        if not simulation_db.is_parallel(PKDict(report=req.content.analysis_model)) \
-            and not self.get_job_info(req).parameters_changed \
-            and self.res.state in (
-                sirepo.job.Status.COMPLETED.value,
-                sirepo.job.Status.ERROR.value):
-                r = self.get_response(req)
-                r.update((await self._get_result(req)).output.result)
-                return r
-        return self.get_response(req)
+            if simulation_db.is_parallel(PKDict(report=res.nextRequest.report)): # TODO(e-carlin): is res.report right? analysisModel?
+                n = self.res.backgroundPercentComplete
+                n.setdefault('percentComplete', 0.0)
+                n.setdefault('frameCount', 0)
+                res.update(n)
+
+        if self.res.state == sirepo.job.Status.COMPLETED.value:
+            if simulation_db.is_parallel(PKDict(report=req.content.computeModel)):
+                self.req_lock.release()
+                return PKDict(state=sirepo.job.Status.COMPLETED.value)
+            async with self.analysis_lock:
+                d = await sirepo.driver.get_instance_for_job(self)
+                o = await d.do_op(
+                    op=sirepo.job.OP_RESULT,
+                    jid=self.req.compute_jid,
+                    **self.req.content,
+                )
+                self.req_lock.release()
+                r = await o.get_result()
+                return PKDict(
+                    state=sirepo.job.Status.COMPLETED,
+                    **r.output.result
+                )
+
+        raise AssertionError('state={} unrecognized'.format(self.res.state))
 
     def get_job_info(self, req):
         i = pkcollections.Dict(
@@ -210,21 +248,6 @@ class _Job(PKDict):
         return self.get_response(req)
 
 
-
-    @classmethod
-    async def _get_result(cls, req):
-        self = cls.instances.get(cls._jid_for_req(req))
-        if not self:
-            self = cls(req=req)
-        self.req = req
-        d = await sirepo.driver.get_instance_for_job(self)
-        # TODO(e-carlin): all other methods return self.get_response() this returns
-        # the raw response. Is there a way to change this?
-        return await d.do_op(
-            op=sirepo.job.OP_RESULT,
-            jid=self.req.compute_jid,
-            **self.req.content,
-        )
 
     @classmethod
     async def run(cls, req):

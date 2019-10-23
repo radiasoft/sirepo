@@ -41,7 +41,6 @@ class DriverBase(PKDict):
             killing=False,
             kind=job.req.driver_kind,
             ops=PKDict(),
-            send_lock=tornado.locks.BoundedSemaphore(1),
             sender=None,
             slot=slot,
             _agent_dir=job.req.agent_dir.format(agent_id=a),
@@ -62,13 +61,9 @@ class DriverBase(PKDict):
         m = PKDict(kwargs)
         o = job_supervisor.Op(msg=m)
         self.ops[m.op_id] = o
-        await self.send_lock.acquire()
-        # TODO(e-carlin): Clunky to have send_lock and handler_set
         await self._handler_set.wait()
         await self._handler.write_message(pkjson.dump_bytes(m))
-        r = await o.get_result()
-        self.send_lock.release()
-        return r
+        return o
 
     @classmethod
     def get_kind(cls, resource_class):

@@ -66,8 +66,6 @@ class Status(aenum.Enum):
     ERROR = 'error'
     #: no data on disk, not currently running
     MISSING = 'missing'
-    #: job has been sent to supervisor but hasn't started running
-    PENDING = 'pending'
     #: data on disk is incomplete but it's running
     RUNNING = 'running'
 
