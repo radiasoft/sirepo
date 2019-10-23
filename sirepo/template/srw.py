@@ -554,7 +554,7 @@ def remove_last_frame(run_dir):
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
-        return 'invalid file type: {}'.format(extension)
+        return 'invalid file type: {}'.format(path.ext)
     if file_type == 'mirror':
         # mirror file
         try:
