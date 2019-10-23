@@ -781,7 +781,6 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
 
 def _generate_beamline_elements(report, data):
     res = ''
-    sim = data['models']['simulation']
     beamline_map = {}
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl

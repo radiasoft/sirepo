@@ -31,7 +31,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 'particleCoordinate',
                 'simulationSettings',
                 'tunesReport',
-                'twissReport',
                 'twissReport2',
                 'twissSummaryReport',
             ),
