@@ -94,13 +94,13 @@ def _rfc1123(dt):
 
 def _request(**kwargs):
     b = _request_body(kwargs)
-    u = simulation_db.uid_from_jid(b.compute_jid)
+    u = simulation_db.uid_from_jid(b.computeJid)
     import inspect
     b.setdefault(
         api=inspect.stack()[1][3],  # TODO(e-carlin): Use pkinspect.caller()
-        req_id=job.unique_key(),
+        reqId=job.unique_key(),
         uid=u,
-        agent_dir=str(simulation_db.user_dir_name(
+        agentDir=str(simulation_db.user_dir_name(
             u).join('agent').join('{agent_id}')),
     )
     r = requests.post(
@@ -121,19 +121,19 @@ def _request_body(kwargs):
     b = PKDict(kwargs)
     d = b.get('data') or http_request.parse_data_input()
     for k, v in (
-        ('analysis_model', lambda: d.report),
+        ('analysisModel', lambda: d.report),
         ('computeJobHash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
         ('computeModel', lambda: simulation_db.compute_job_model(d)),
-        ('resource_class', lambda: 'parallel' if simulation_db.is_parallel(
+        ('resourceClass', lambda: 'parallel' if simulation_db.is_parallel(
             d) else 'sequential'),
         ('simType', lambda: d.simulationType),
         # depends on some of the above
-        ('compute_jid', lambda: simulation_db.job_id(
-            d).replace(b.analysis_model, b.compute_model)),
-        ('analysis_jid', lambda: b.compute_jid + \
-         simulation_db.JOB_ID_SEP + b.analysis_model),
+        ('computeJid', lambda: simulation_db.job_id(
+            d).replace(b.analysisModel, b.computeModel)),
+        ('analysisJid', lambda: b.computeJid + \
+         simulation_db.JOB_ID_SEP + b.analysisModel),
         # TODO(robnagler) remove this
-        ('run_dir', lambda: str(simulation_db.simulation_run_dir(d))),
+        ('runDir', lambda: str(simulation_db.simulation_run_dir(d))),
     ):
         b[k] = d[k] if k in d else v()
     return b

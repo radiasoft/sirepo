@@ -32,7 +32,7 @@ _EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 def default_command(in_file):
-    """Reads `in_file` passes to `msg.job_process_cmd`
+    """Reads `in_file` passes to `msg.jobProcessCmd`
 
     Must be called in run_dir
 
@@ -45,10 +45,10 @@ def default_command(in_file):
     """
     f = pkio.py_path(in_file)
     msg = pkjson.load_any(f)
-    msg.run_dir = pkio.py_path(msg.run_dir) # TODO(e-carlin): find common place to serialize/deserialize paths
+    msg.runDir = pkio.py_path(msg.runDir) # TODO(e-carlin): find common place to serialize/deserialize paths
     f.remove()
     return pkjson.dump_pretty(
-        globals()['_do_' + msg.job_process_cmd](
+        globals()['_do_' + msg.jobProcessCmd](
             msg,
             sirepo.template.import_module(msg.sim_type),
         ),
@@ -59,7 +59,7 @@ def default_command(in_file):
 def _do_background_percent_complete(msg, template):
     r = template.background_percent_complete(
         msg.data.report,
-        msg.run_dir,
+        msg.runDir,
         msg.is_running,
     )
     r.setdefault('percentComplete', 0.0)
@@ -68,23 +68,23 @@ def _do_background_percent_complete(msg, template):
 
 
 def _do_compute(msg, template):
-    msg.run_dir = pkio.py_path(msg.run_dir)
+    msg.runDir = pkio.py_path(msg.runDir)
     with pkio.save_chdir('/'):
-        pkio.unchecked_remove(msg.run_dir)
-        pkio.mkdir_parent(msg.run_dir)
+        pkio.unchecked_remove(msg.runDir)
+        pkio.mkdir_parent(msg.runDir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
         'state': job.Status.PENDING.value, # TODO(e-carlin): Is this necessary?
     }
-    cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.run_dir)
-    run_log_path = msg.run_dir.join(template_common.RUN_LOG)
+    cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
+    run_log_path = msg.runDir.join(template_common.RUN_LOG)
     cmd = ['pyenv', 'exec'] + cmd
     with open(str(run_log_path), 'a+b') as run_log, open(os.devnull, 'w') as FNULL:
         p = None
         try:
             p = subprocess.Popen(
                 cmd,
-                cwd=str(msg.run_dir),
+                cwd=str(msg.runDir),
                 stdin=FNULL,
                 stdout=run_log,
                 stderr=run_log,
@@ -99,7 +99,7 @@ def _do_compute(msg, template):
     return _do_compute_status(msg, template)
     # TODO(e-carlin): implement
     # if hasattr(template, 'remove_last_frame'):
-    #     template.remove_last_frame(msg.run_dir)
+    #     template.remove_last_frame(msg.runDir)
 
 
 def _do_compute_status(msg, template):
@@ -111,28 +111,28 @@ def _do_compute_status(msg, template):
     """
     d = simulation_db.read_json(simulation_db.json_filename(
         template_common.INPUT_BASE_NAME,
-        msg.run_dir
+        msg.runDir
     ))
     return PKDict(
         computeJobHash=sirepo.sim_data.get_class(d).compute_job_hash(d),
-        lastUpdateTime=_mtime_or_now(msg.run_dir),
+        lastUpdateTime=_mtime_or_now(msg.runDir),
         # TODO(e-carlin): add startTime
-        state=simulation_db.read_status(msg.run_dir),
+        state=simulation_db.read_status(msg.runDir),
     )
 
 
 def _do_get_simulation_frame(msg, template):
     return template.get_simulation_frame(
-        msg.run_dir,
+        msg.runDir,
         msg.data,
-        simulation_db.read_json(msg.run_dir.join(template_common.INPUT_BASE_NAME)),
+        simulation_db.read_json(msg.runDir.join(template_common.INPUT_BASE_NAME)),
     )
 
 
 def _do_result(msg, template):
     if hasattr(template, 'prepare_output_file') and 'models' in msg.data:
-        template.prepare_output_file(msg.run_dir, msg.data)
-    r, e = simulation_db.read_result(msg.run_dir)
+        template.prepare_output_file(msg.runDir, msg.data)
+    r, e = simulation_db.read_result(msg.runDir)
     if not e:
         return PKDict(result=r)
     return PKDict(error=e)

@@ -69,10 +69,6 @@ class Status(aenum.Enum):
     #: data on disk is incomplete but it's running
     RUNNING = 'running'
 
-#: run_status will not re-run a simulation in these states
-ALREADY_GOOD_STATUS = (Status.RUNNING.value, Status.COMPLETED.value, Status.PENDING.value)
-
-
 def init():
     global cfg
 

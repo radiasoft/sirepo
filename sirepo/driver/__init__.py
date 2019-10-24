@@ -41,6 +41,7 @@ class DriverBase(PKDict):
             killing=False,
             kind=job.req.driver_kind,
             ops=PKDict(),
+            resource_class=job.req.content.resourceClass,
             sender=None,
             slot=slot,
             _agent_dir=job.req.agent_dir.format(agent_id=a),
@@ -57,10 +58,10 @@ class DriverBase(PKDict):
         self.instances[slot.kind][job.req.uid] = self
 
     async def do_op(self, **kwargs):
-        kwargs.setdefault('op_id', sirepo.job.unique_key())
+        kwargs.setdefault('opId', sirepo.job.unique_key())
         m = PKDict(kwargs)
         o = job_supervisor.Op(msg=m)
-        self.ops[m.op_id] = o
+        self.ops[m.opId] = o
         await self._handler_set.wait()
         await self._handler.write_message(pkjson.dump_bytes(m))
         return o
@@ -88,9 +89,9 @@ class DriverBase(PKDict):
     def set_state(self, msg):
         # TODO(e-carlin): handle other types of messages with state
         m = msg.copy()
-        del m['agent_id']
+        del m['agentId']
         del m['op']
-        m.pop('op_id', None)
+        m.pop('opId', None)
         jid = msg.get('jid')
         if jid:
             for j in self.jobs:
@@ -116,7 +117,7 @@ async def get_instance_for_job(job):
 
 
 def get_kind(req):
-    return get_class(req).get_kind(req.content.resource_class)
+    return get_class(req).get_kind(req.content.resourceClass)
 
 
 def init():

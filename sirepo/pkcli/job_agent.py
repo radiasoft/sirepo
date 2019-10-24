@@ -94,19 +94,19 @@ class _JobProcess(PKDict):
         self._subprocess.proc.kill()
 
     def start(self):
-        # SECURITY: msg must not contain agent_id
-        assert not self.msg.get('agent_id')
+        # SECURITY: msg must not contain agentId
+        assert not self.msg.get('agentId')
         env = self._subprocess_env()
-        self._in_file = self.msg.run_dir.join(
+        self._in_file = self.msg.runDir.join(
             _IN_FILE.format(job.unique_key()))
         # pkio.mkdir_parent_only(self._in_file) # TODO(e-carlin): Hack for animations. Who should be ensuring this?
         # TODO(e-carlin): Find a better solution for serial and deserialization
-        self.msg.run_dir = str(self.msg.run_dir)
+        self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
         self._subprocess = tornado.process.Subprocess(
             ('pyenv', 'exec', 'sirepo', 'job_process', str(self._in_file)),
-            # SECURITY: need to change cwd, because agent_dir has agent_id
-            cwd=self.msg.run_dir,
+            # SECURITY: need to change cwd, because agentDir has agentId
+            cwd=self.msg.runDir,
             start_new_session=True,
             stdin=subprocess.DEVNULL,
             stdout=tornado.process.Subprocess.STREAM,
@@ -196,19 +196,19 @@ class _Process(PKDict):
         self._terminating = False
 
     def start(self):
-        if self.msg.job_process_cmd == 'compute':
+        if self.msg.jobProcessCmd == 'compute':
             self._write_compute_job_info_file(job.Status.RUNNING.value)
         self._execute_main_job_process()
         # TODO(e-carlin): one compute if
-        if self.msg.job_process_cmd == 'compute':
+        if self.msg.jobProcessCmd == 'compute':
             # TODO(e-carlin): Is calling simulation_db here valid?
             if simulation_db.is_parallel(self.msg.data):
                 self._execute_background_percent_complete_job_process()
 
     def _execute_background_percent_complete_job_process(self):
         m = self.msg.copy()
-        m.update(job_process_cmd='background_percent_complete')
-        m.pop('op_id', None)
+        m.update(jobProcessCmd='background_percent_complete')
+        m.pop('opId', None)
 
         async def do():
             while True:
@@ -263,14 +263,14 @@ class _Process(PKDict):
                     error=e,
                     output=PKDict(**o, state=job.Status.ERROR.value),
                 )
-            elif self.msg.job_process_cmd == 'compute':
+            elif self.msg.jobProcessCmd == 'compute':
                 o.pop('state', None)
                 await self.comm.write_message(
                     self.msg,
                     job.OP_OK,
                     output=PKDict(**o, state=job.Status.COMPLETED.value),
                 )
-            elif self.msg.job_process_cmd == 'compute_status':
+            elif self.msg.jobProcessCmd == 'compute_status':
                 await self.comm.write_message(
                     self.msg,
                     job.OP_COMPUTE_STATUS,
@@ -290,7 +290,7 @@ class _Process(PKDict):
                 pkdlog('error={}', exc)
 
     def _write_compute_job_info_file(self, state):
-        self.compute_job_info_file = self.msg.run_dir.join(_INFO_FILE)
+        self.compute_job_info_file = self.msg.runDir.join(_INFO_FILE)
         pkio.mkdir_parent_only(self.compute_job_info_file)
         self.compute_job_info = PKDict(_INFO_FILE_COMMON).update(
             computeJobHash=self.msg.computeJobHash,
@@ -378,17 +378,16 @@ class _Comm(PKDict):
 
     def _format_reply(self, msg, op, **kwargs):
         if msg:
-            # TODO(e-carlin): remove agent_id
-            kwargs['op_id'] = msg.get('op_id')
+            kwargs['opId'] = msg.get('opId')
             kwargs['jid'] = msg.get('jid')
         return pkjson.dump_bytes(
-            PKDict(agent_id=cfg.agent_id, op=op, **kwargs),
+            PKDict(agentId=cfg.agent_id, op=op, **kwargs),
         )
 
     async def _op(self, msg):
         try:
             m = pkjson.load_any(msg)
-            m.run_dir = pkio.py_path(m.run_dir)
+            m.runDir = pkio.py_path(m.runDir)
             r = await getattr(self, '_op_' + m.op)(m)
             if r:
                 r = r if isinstance(
@@ -413,7 +412,7 @@ class _Comm(PKDict):
             "jid={} in processes. Supervisor should already now about status".format(
                 msg.jid)
         try:
-            i = pkjson.load_any(msg.run_dir.join(_INFO_FILE))
+            i = pkjson.load_any(msg.runDir.join(_INFO_FILE))
             return self._format_reply(
                 msg,
                 job.OP_COMPUTE_STATUS,
@@ -423,10 +422,10 @@ class _Comm(PKDict):
                 ),
             )
         except Exception:
-            f = msg.run_dir.join(job.RUNNER_STATUS_FILE)
+            f = msg.runDir.join(job.RUNNER_STATUS_FILE)
             if f.check():
                 assert msg.jid not in self._processes
-                msg.update(job_process_cmd='compute_status')
+                msg.update(jobProcessCmd='compute_status')
                 self._process(msg)
                 return False
         return self._format_reply(
@@ -440,14 +439,14 @@ class _Comm(PKDict):
         return True
 
     async def _op_result(self, msg):
-        msg.update(job_process_cmd='result')
+        msg.update(jobProcessCmd='result')
         self._process(msg)
         return False
 
     async def _op_run(self, msg):
         m = msg.copy()
-        del m['op_id']
-        m.update(job_process_cmd='compute')
+        del m['opId']
+        m.update(jobProcessCmd='compute')
         self._process(m)
         return self._format_reply(
             msg,
@@ -459,8 +458,8 @@ class _Comm(PKDict):
         )
 
     async def _op_analysis(self, msg):
-        if msg.job_process_cmd == 'background_percent_complete':
-            if not msg.run_dir.exists():
+        if msg.jobProcessCmd == 'background_percent_complete':
+            if not msg.runDir.exists():
                 return self._format_reply(
                     msg,
                     job.OP_OK,
