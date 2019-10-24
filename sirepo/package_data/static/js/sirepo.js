@@ -421,7 +421,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
-    self.listSimulations = function(search, op) {
+    self.listSimulations = function(op, search) {
         requestSender.sendRequest(
             'listSimulations',
             function(data) {
@@ -2777,7 +2777,6 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
     var self = this;
     self.simulationName = $route.current.params.simulationName;
     appState.listSimulations(
-        '',
         function() {
             // authenticated listSimulations successfully, now go to the URL
             $window.location.href = requestSender.formatUrl(
@@ -2830,7 +2829,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     function loadList() {
         self.isWaitingForList = ! fileManager.getSimList().length;
         appState.listSimulations(
-            $location.search(),
             function(data) {
                 if (! $scope.$parent) {
                     // callback may occur after scope has been destroyed
