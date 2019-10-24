@@ -60,7 +60,7 @@ def _do_background_percent_complete(msg, template):
     r = template.background_percent_complete(
         msg.data.report,
         msg.runDir,
-        msg.is_running,
+        msg.isRunning,
     )
     r.setdefault('percentComplete', 0.0)
     r.setdefault('frameCount', 0)

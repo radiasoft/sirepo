@@ -200,10 +200,10 @@ class _Process(PKDict):
             self._write_compute_job_info_file(job.Status.RUNNING.value)
         self._execute_main_job_process()
         # TODO(e-carlin): one compute if
-        if self.msg.jobProcessCmd == 'compute':
+        # if self.msg.jobProcessCmd == 'compute':
             # TODO(e-carlin): Is calling simulation_db here valid?
-            if simulation_db.is_parallel(self.msg.data):
-                self._execute_background_percent_complete_job_process()
+            # if simulation_db.is_parallel(self.msg.data):
+            #     self._execute_background_percent_complete_job_process()
 
     def _execute_background_percent_complete_job_process(self):
         m = self.msg.copy()
@@ -213,7 +213,7 @@ class _Process(PKDict):
         async def do():
             while True:
                 try:
-                    self._background_job_process = _JobProcess(m)
+                    self._background_job_process = _JobProcess(msg=m)
                     self._background_job_process.start()
                     o, e = await self._background_job_process.exit()
                     if e:

@@ -81,7 +81,7 @@ class ServerReq(PKDict):
         elif c.api == 'api_simulationFrame':
             self.handler.write(await _Job.get_simulation_frame(self))
             return
-        raise AssertionError('api={} unkown', c.api)
+        raise AssertionError('api={} unkown'.format(c.api))
 
 
 def terminate():
@@ -145,7 +145,8 @@ class _Job(PKDict):
             return self, False
         # we have an in memory (and thus on disk) record of a computeJob with the req jid
         await self._req_lock.acquire()
-        self.req = req # TODO(e-carlin): I think this could be problematic in cases where req_lock is released but GUI hasn't been replied to
+        # TODO(e-carlin): I think this could be problematic in cases where req_lock is released but GUI hasn't been replied to
+        self.req = req
         if self.res.computeJobHash == req.content.computeJobHash:
             # computeJob in memory (and thus on disk) hash same hash as req
             return self, True
@@ -154,19 +155,40 @@ class _Job(PKDict):
         return self, False
 
     @classmethod
+    async def get_simulation_frame(cls, req):
+        self, same_hash = await _Job.get_instance(req)
+        if not same_hash:
+            raise AssertionError(
+                'jid={} with computeJobHash={} unkown'.format(
+                    cls._jid_for_req(req),
+                    req.content.computeJobHash,
+                ))
+
+        async with self._analysis_lock:
+            d = await sirepo.driver.get_instance_for_job(self)
+            o = await d.do_op(
+                op=sirepo.job.OP_ANALYSIS,
+                jid=self.jid,
+                jobProcessCmd='get_simulation_frame',
+                **self.req.content,
+            )
+            self._req_lock.release()
+            return (await o.get_result()).output
+
+    @classmethod
     async def run(cls, req):
         self, same_hash = await _Job.get_instance(req)
         if self.res.state == sirepo.job.Status.RUNNING.value:
             # TODO(e-carlin): Maybe we cancel the job and start the new one?
             self._req_lock.release()
-            raise RuntimeError(
+            raise AssertionError(
                 'must issue cancel before sim with jid={} can be run'.format(
                     cls._jid_for_req(req))
             )
-        # TODO(e-carlin): handle forceRun
         if not same_hash or self.res.state in (
-            sirepo.job.Status.MISSING.value,
-            sirepo.job.Status.CANCELED.value):
+                sirepo.job.Status.MISSING.value,
+                sirepo.job.Status.CANCELED.value) \
+                or self.req.get('forceRun', False):
             # What on disk is old or there is nothing on disk
             d = await sirepo.driver.get_instance_for_job(self)
             # TODO(e-carlin): handle error response from do_op
@@ -191,30 +213,33 @@ class _Job(PKDict):
         if not same_hash:
             self._req_lock.release()
             return PKDict(state=sirepo.job.Status.MISSING.value)
-
         return await self._get_result(req)
 
     async def _get_result(self, req):
-        if self.res.state == sirepo.job.Status.ERROR.value:
-            self._req_lock.release()
-            # TODO(e-carlin): make sure there is self.res.error
-            return PKDict(state=self.res.state, error=self.res.error)
+        res = PKDict(
+            state=self.res.state,
+            computeJobHash=self.res.computeJobHash,
+            startTime=1 # TODO(e-carlin): figure out when and where this is needed
+        )
         if self.res.state == sirepo.job.Status.CANCELED.value \
                 or self.res.state == sirepo.job.Status.MISSING.value:
             self._req_lock.release()
-            return PKDict(state=self.res.state)
+            return res
+        if self.res.state == sirepo.job.Status.ERROR.value:
+            self._req_lock.release()
+            # TODO(e-carlin): make sure there is self.res.error
+            res.error = self.res.error
+            return res
         if self.res.state == sirepo.job.Status.RUNNING.value:
-            res = PKDict(state=self.res.state)
             # TODO(e-carlin): simulation_db.poll_seconds()
-            res.nextRequestSeconds = 2
             res.nextRequest = PKDict(
-                report=req.content.computeModel,
+                report=req.content.analysisModel,
                 computeJobHash=self.res.computeJobHash,
                 simulationId=self.req.content.data.simulationId,
                 simulationType=req.content.simType,
             )
-            # TODO(e-carlin): is res.report right? analysisModel?
-            if simulation_db.is_parallel(PKDict(report=res.nextRequest.report)):
+            res.nextRequestSeconds = simulation_db.poll_seconds(res.nextRequest)
+            if simulation_db.is_parallel(res.nextRequest):
                 n = self.res.backgroundPercentComplete
                 n.setdefault('percentComplete', 0.0)
                 n.setdefault('frameCount', 0)
@@ -223,21 +248,35 @@ class _Job(PKDict):
             return res
 
         if self.res.state == sirepo.job.Status.COMPLETED.value:
-            if simulation_db.is_parallel(PKDict(report=req.content.computeModel)):
-                self._req_lock.release()
-                return PKDict(state=self.res.state)
             async with self._analysis_lock:
+                o = None
                 d = await sirepo.driver.get_instance_for_job(self)
-                o = await d.do_op(
-                    op=sirepo.job.OP_RESULT,
-                    jid=self.jid,
-                    **self.req.content,
-                )
+                # TODO(e-carlin): This shouldn't be necessary. job_agent should
+                # just report the data and we should reply with it. Unless we have
+                # no record of the data (ex job supervisor just started and user
+                # is requesting data of an already completed job)
+                # TODO(e-carlin): Does this break srw? All of the other codes don't
+                # do anything with prepare_output_file() for parallel sims
+                if simulation_db.is_parallel(PKDict(report=req.content.analysisModel)):
+                    o = await d.do_op(
+                        op=sirepo.job.OP_ANALYSIS,
+                        jid=self.jid,
+                        jobProcessCmd='background_percent_complete',
+                        isRunning=False,
+                        **self.req.content,
+                    )
+                else:
+                    o = await d.do_op(
+                        op=sirepo.job.OP_RESULT,
+                        jid=self.req.content.analysisJid,
+                        **self.req.content,
+                    )
                 self._req_lock.release()
                 r = await o.get_result()
-                return PKDict(
-                    **r.output.result,
-                )
+                r = r.output.result if 'result' in r.output else r.output
+                res.update(r)
+                return res
+
         raise AssertionError('state={} unrecognized'.format(self.res.state))
 
     def update_state(self, state):
@@ -287,24 +326,6 @@ class _Job(PKDict):
     #     self.res.update(res)
     #     return res
 
-    # @classmethod
-    # async def get_simulation_frame(cls, req):
-    #     self = cls.instances.get(cls._jid_for_req(req))
-    #     if not self:
-    #         self = cls(req=req)
-    #     # TODO(e-carlin): Doing the could cause some confusion if the GUI was
-    #     # ever send multiple requests concurrently regarding the same jid. One
-    #     # req would wipe out the other req.
-    #     self.req = req
-    #     d = await sirepo.driver.get_instance_for_job(self)
-    #     await d.do_op(
-    #         op=sirepo.job.OP_ANALYSIS,
-    #         jid=self.jid,
-    #         job_process_cmd='get_simulation_frame',
-    #         **self.req.content,
-    #     )
-    #     return self.get_response(req)
-
     @classmethod
     def _jid_for_req(cls, req):
         """Get the jid (compute or analysis) for a job from a request.
@@ -314,7 +335,7 @@ class _Job(PKDict):
             return c.computeJid
         if c.api in ('api_simulationFrame',):
             return c.analysisJid
-        raise AssertionError('unknown api={} req={}', c.api, req)
+        raise AssertionError('unknown api={} req={}'.format(c.api, req))
 
     def __repr__(self):
         return f'jid={self.jid} state={self.res.state} compute_hash={self.res.computeJobHash}'
