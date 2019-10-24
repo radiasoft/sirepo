@@ -178,20 +178,6 @@ def _do_beamline(template, data):
 
 def _do_electron_beam(template, data):
     dm = data.models
-    if 'electronBeamPosition' not in dm:
-        e = dm.electronBeam
-        dm.electronBeamPosition = pkcollections.Dict(
-            horizontalPosition=e.horizontalPosition,
-            verticalPosition=e.verticalPosition,
-            driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
-            drift=e.get('drift', 0),
-        )
-        for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
-            if f in e:
-                del e[f]
-    if 'horizontalAngle' not in dm.electronBeamPosition:
-        dm.electronBeamPosition.horizontalAngle = _SCHEMA.model.electronBeamPosition.horizontalAngle[2]
-        dm.electronBeamPosition.verticalAngle = _SCHEMA.model.electronBeamPosition.verticalAngle[2]
     if 'beamDefinition' not in dm['electronBeam']:
         srw_common.process_beam_parameters(dm['electronBeam'])
         dm['electronBeamPosition']['drift'] = template.calculate_beam_drift(

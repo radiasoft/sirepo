@@ -78,6 +78,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'brillianceReport',
             'coherenceXAnimation',
             'coherenceYAnimation',
+            'electronBeamPosition',
             'fluxAnimation',
             'fluxReport',
             'gaussianBeam',
@@ -142,6 +143,17 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.folder = cls.__EXAMPLE_FOLDERS[dm.simulation.name]
             else:
                 dm.simulation.folder = '/'
+        if 'horizontalPosition' in dm.electronBeam:
+            e = dm.electronBeam
+            dm.electronBeamPosition.update(dict(
+                horizontalPosition=e.horizontalPosition,
+                verticalPosition=e.verticalPosition,
+                driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
+                drift=e.get('drift', 0),
+            ))
+            for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
+                if f in e:
+                    del e[f]
         cls._template_fixup_set(data)
 
 
