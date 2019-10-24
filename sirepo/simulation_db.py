@@ -726,6 +726,9 @@ def report_info(data):
     except Exception as e:
         pkdlog('{}: ignore other error: {}', rep.run_dir, e)
         # No idea if cache is valid or not so throw away
+        #TODO(pjm): added this, otherwise a stale rep will be returned,
+        # probably should also be the case for the IOError caught above
+        rep = None
     return rep
 
 
