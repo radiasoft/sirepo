@@ -50,7 +50,7 @@ def default_command(in_file):
     return pkjson.dump_pretty(
         globals()['_do_' + msg.jobProcessCmd](
             msg,
-            sirepo.template.import_module(msg.sim_type),
+            sirepo.template.import_module(msg.simType),
         ),
         pretty=False,
     )
@@ -74,7 +74,7 @@ def _do_compute(msg, template):
         pkio.mkdir_parent(msg.runDir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': job.Status.PENDING.value, # TODO(e-carlin): Is this necessary?
+        'state': job.Status.RUNNING.value,
     }
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     run_log_path = msg.runDir.join(template_common.RUN_LOG)

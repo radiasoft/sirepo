@@ -88,10 +88,6 @@ def terminate():
     sirepo.driver.terminate()
 
 
-class _Missing(Exception):
-    pass
-
-
 class _Job(PKDict):
     instances = PKDict()
 
@@ -105,8 +101,8 @@ class _Job(PKDict):
                 frameCount=0,
             ),
             computeJobHash=None,
-            lastUpdateTime=time.time(),
-            startTime=time.time(),
+            lastUpdateTime=None,
+            startTime=None,
             state=None,
         )
         self._analysis_lock = tornado.locks.Lock()
@@ -114,6 +110,15 @@ class _Job(PKDict):
 
     @classmethod
     async def get_instance(cls, req):
+        """Get a job instance and determine if the computJobHash is same as the req.
+
+        Args:
+            req: The incoming request
+
+        Returns:
+            tuple: an instance of a job, True if the req computeJobashHash is
+            the same as the computeJobHash of the job instance
+        """
         # TODO(robnagler) deal with non-in-memory job state (db?)
         self = cls.instances.get(cls._jid_for_req(req))
         if not self:
@@ -130,28 +135,62 @@ class _Job(PKDict):
             await o.get_result()
             if self.res.computeJobHash == req.content.computeJobHash:
                 # computeJob on disk is same as req
-                return self, None
-            if self.res.computeJobHash is None:
-                # computeJob on disk is 'missing' so the one in req can be valid by default
+                return self, True
+            if self.res.state == sirepo.job.Status.MISSING.value \
+                    and self.res.computeJobHash is None:
+                # no computeJob on disk so req can be valid by default
                 self.res.computeJobHash = req.content.computeJobHash
-                return self, None
-            # computeJob on disk has different hash than req so req is 'missing'
-            return None, _Missing()
+                return self, True
+            # computeJob on disk has different hash than req
+            return self, False
         # we have an in memory (and thus on disk) record of a computeJob with the req jid
         await self._req_lock.acquire()
         if self.res.computeJobHash == req.content.computeJobHash:
             # computeJob in memory (and thus on disk) hash same hash as req
-            return self, None
+            return self, True
         assert self.res.computeJobHash is not None
-        # computeJob in memory (and thus on disk) has different hash than req so req is 'missing'
-        return None, _Missing()
+        # computeJob in memory (and thus on disk) has different hash than req
+        return self, False
+
+    @classmethod
+    async def run(cls, req):
+        self, same_hash = await _Job.get_instance(req)
+        if self.res.state == sirepo.job.Status.RUNNING.value:
+            # TODO(e-carlin): Maybe we cancel the job and start the new one?
+            self._req_lock.release()
+            raise RuntimeError(
+                'must issue cancel before sim with jid={} can be run'.format(
+                    cls._jid_for_req(req))
+            )
+        # TODO(e-carlin): handle forceRun
+        if not same_hash or self.res.state in (
+            sirepo.job.Status.MISSING.value,
+            sirepo.job.Status.CANCELED.value):
+            # What on disk is old or there is nothing on disk
+            d = await sirepo.driver.get_instance_for_job(self)
+            # TODO(e-carlin): handle error response from do_op
+            self.res.startTime = time.time()
+            self.res.lastUpdateTime = time.time()
+            self.res.state = sirepo.job.Status.RUNNING.value
+            self.res.computeJobHash = self.req.content.computeJobHash
+            d = await sirepo.driver.get_instance_for_job(self)
+            # OP_RUN is "fast" so don't release self._req_lock().
+            # In addition self._get_result() below expects it to be held.
+            o = await d.do_op(
+                op=sirepo.job.OP_RUN,
+                jid=self.jid,
+                **self.req.content,
+            )
+            await o.get_result()
+        return await self._get_result(req)
 
     @classmethod
     async def get_compute_status(cls, req):
-        self, err = await _Job.get_instance(req)
-        if err:
+        self, same_hash = await _Job.get_instance(req)
+        if not same_hash:
             self._req_lock.release()
-            return PKDict(state='error', error='job hash invalid')
+            return PKDict(state=sirepo.job.Status.MISSING.value)
+
         return await self._get_result(req)
 
     async def _get_result(self, req):
@@ -160,7 +199,7 @@ class _Job(PKDict):
             # TODO(e-carlin): make sure there is self.res.error
             return PKDict(state=self.res.state, error=self.res.error)
         if self.res.state == sirepo.job.Status.CANCELED.value \
-            or self.res.state == sirepo.job.Status.MISSING.value:
+                or self.res.state == sirepo.job.Status.MISSING.value:
             self._req_lock.release()
             return PKDict(state=self.res.state)
         if self.res.state == sirepo.job.Status.RUNNING.value:
@@ -196,8 +235,7 @@ class _Job(PKDict):
                 self._req_lock.release()
                 r = await o.get_result()
                 return PKDict(
-                    state=self.res.state,
-                    **r.output.result
+                    **r.output.result,
                 )
         raise AssertionError('state={} unrecognized'.format(self.res.state))
 
@@ -265,31 +303,6 @@ class _Job(PKDict):
     #         **self.req.content,
     #     )
     #     return self.get_response(req)
-
-    # @classmethod
-    # async def run(cls, req):
-    #     # TODO(e-carlin): handle forceRun
-    #     s = await _Job.get_compute_status(req)
-    #     if s.state not in sirepo.job.ALREADY_GOOD_STATUS or s.parametersChanged: # TODO(e-carlin): I deleted already_good_status
-    #         self = cls.instances.get(cls._jid_for_req(req))
-    #         if not self:
-    #             self = cls(req=req)
-    #         self.req = req  # if self then must overwrite existing req
-    #         d = await sirepo.driver.get_instance_for_job(self)
-    #         # TODO(e-carlin): handle error response from do_op
-    #         self.res.startTime = time.time()
-    #         self.res.lastUpdateTime = time.time()
-    #         await d.do_op(
-    #             op=sirepo.job.OP_RUN,
-    #             jid=self.req.compute_jid,
-    #             **self.req.content,
-    #         )
-    #     self = cls.instances.get(cls._jid_for_req(req))
-    #     assert self is not None
-    #     r = self.get_response(req)
-    #     if 'result' in r:
-    #         return r.result
-    #     return r
 
     @classmethod
     def _jid_for_req(cls, req):
