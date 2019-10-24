@@ -145,6 +145,7 @@ class _Job(PKDict):
             return self, False
         # we have an in memory (and thus on disk) record of a computeJob with the req jid
         await self._req_lock.acquire()
+        self.req = req # TODO(e-carlin): I think this could be problematic in cases where req_lock is released but GUI hasn't been replied to
         if self.res.computeJobHash == req.content.computeJobHash:
             # computeJob in memory (and thus on disk) hash same hash as req
             return self, True
