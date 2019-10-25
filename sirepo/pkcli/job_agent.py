@@ -127,9 +127,6 @@ class _JobProcess(PKDict):
     async def _load_output(self):
         o = None
         e = None
-        # TODO(e-carlin): If we can increase the pipe buffer size then we don't
-        # have to spawn_callback's for collect() and could just read the output
-        # of the job process here.
         await self._stdout_read_done.wait()
         await self._stderr_read_done.wait()
         try:
@@ -143,11 +140,6 @@ class _JobProcess(PKDict):
                 o = pkjson.load_any(self._raw_stdout)
             except json.JSONDecodeError:
                 pass
-            if isinstance(e, PKDict):
-                if 'error_log' in e:
-                    e = e.error_log
-                elif 'error' in e:
-                    e = e.error
             return o, e
         o = pkjson.load_any(self._raw_stdout)
         return o, e
@@ -169,7 +161,7 @@ class _JobProcess(PKDict):
                         pkdlog('error={}', self._parsed_stderr)
             except Exception as e:
                 self._parsed_stderr = 'error={}'.format(e)
-                pkdlog(self._parsed_stderr)
+                pkdlog('error={}', self._parsed_stderr)
             finally:
                 self._subprocess_exit_event.set()
         tornado.ioloop.IOLoop.current().add_callback(do)
