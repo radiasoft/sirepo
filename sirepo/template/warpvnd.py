@@ -1037,7 +1037,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
             res['egunCurrentFrameCount'] = len(v)
     else:
         percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
-    percent_complete /= 2.0
+        percent_complete /= 2.0
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
