@@ -467,10 +467,15 @@ SIREPO.app.controller('SRWBeamlineController', function (activeSection, appState
             else if (name === 'fiber' || name === 'zonePlate') {
                 updateDualFields(item);
             }
-            if (name === 'mask' || name === 'sample') {
+            else if (name === 'mask' || name === 'sample') {
                 updateMaterialFields(item);
                 if (name == 'sample') {
                     updateSampleFields(item);
+                }
+            }
+            else if (name == 'crystal') {
+                if (item.materal != 'Unknown' && ! item.nvz) {
+                    computeCrystalInit(item);
                 }
             }
             if (grazingAngleElements.indexOf(name) >= 0) {
