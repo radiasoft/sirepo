@@ -74,26 +74,23 @@ class LocalDriver(sirepo.driver.DriverBase):
 
     def __init__(self, slot, job, *args, **kwargs):
         super().__init__(slot, job, *args, **kwargs)
+        self._agent_dir = str(simulation_db.user_dir_name(self.uid).join('agent-local', self.agent_id))
         self._subprocess = None
         slot.in_use[slot.kind].append(self)
         self._start()
 
     @classmethod
-    async def get_instance_for_job(cls, job):
-        d = cls.instances[job.req.driver_kind].get(job.req.uid)
-        if d:
-            # operating drvier case
-            for j in d.jobs:
-                if job.jid == j.jid:
-                    return d
-            # cache driver case
-            if d.has_capacity(job):
-                d.assign_job(job)
-                return d
-        return cls(
-            await _Slot.get_instance(job.req.driver_kind),
-            job,
-        )
+    async def get_instance_for_op(cls, job, op):
+        k =
+
+        self = cls.instances[k].get(req.uid)
+        if self:
+            await self.queue(req)
+        else:
+            self = cls(
+                await _Slot.get_instance(k),
+                job,
+            )
 
     @classmethod
     def init_class(cls):

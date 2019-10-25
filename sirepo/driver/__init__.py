@@ -29,22 +29,29 @@ _DEFAULT_CLASS = None
 cfg = None
 
 
+class Op(PKDict):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._result_set = tornado.locks.Event()
+        self._result = None
+
+    async def get_result(self):
+        await self._result_set.wait()
+        return self._result
+
+    def set_result(self, res):
+        self._result = res
+        self._result_set.set()
+
+
 class DriverBase(PKDict):
     instances = pkcollections.Dict()
     driver_for_agents = PKDict()
 
-    def __init__(self, slot, job, *args, **kwargs):
+    def __init__(self, slot, *args, **kwargs):
         a = sirepo.job.unique_key()
         super().__init__(
-            agent_id=a,
-            jobs=[job],
-            killing=False,
-            kind=job.req.driver_kind,
-            ops=PKDict(),
-            resource_class=job.req.content.resourceClass,
-            sender=None,
-            slot=slot,
-            _agent_dir=job.req.agent_dir.format(agent_id=a),
             _agent_exited=tornado.locks.Event(),
             _handler=None,
             _handler_set=tornado.locks.Event(),
@@ -52,19 +59,30 @@ class DriverBase(PKDict):
             _start_attempts=0,
             _status=Status.IDLE,
             _terminate_timeout=None,
+            agent_id=a,
+            jobs=[job],
+            killing=False,
+            kind=driver_kind,
+            ops=PKDict(),
+            resource_class=job.req.content.resourceClass,
+            sender=None,
+            slot=slot,
+            uid=req.content.uid,
             **kwargs,
         )
         self.driver_for_agents[self.agent_id] = self
-        self.instances[slot.kind][job.req.uid] = self
+        self.instances[slot.kind][self.uid] = self
 
-    async def do_op(self, **kwargs):
+    @classmethod
+    async def do_op(cls, req, op, **kwargs):
+        self = await get_class(req).get_instance_for_op(req, op)
         kwargs.setdefault('opId', sirepo.job.unique_key())
         m = PKDict(kwargs)
-        o = job_supervisor.Op(msg=m)
+        o = Op(msg=m)
         self.ops[m.opId] = o
         await self._handler_set.wait()
         await self._handler.write_message(pkjson.dump_bytes(m))
-        return o
+        return await o.get_result()
 
     @classmethod
     def get_kind(cls, resource_class):
@@ -100,24 +118,12 @@ class DriverBase(PKDict):
                     return
 
 
-def get_class(job):
+def get_class(req):
     return _DEFAULT_CLASS
 
 
 def get_instance_for_agent(agent_id):
     return DriverBase.driver_for_agents.get(agent_id)
-
-
-async def get_instance_for_job(job):
-    """Get a driver instance for a job.
-
-    The method blocks until a driver can be freed.
-    """
-    return await get_class(job).get_instance_for_job(job)
-
-
-def get_kind(req):
-    return get_class(req).get_kind(req.content.resourceClass)
 
 
 def init():

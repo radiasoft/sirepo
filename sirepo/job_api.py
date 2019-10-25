@@ -106,8 +106,6 @@ def _request(**kwargs):
         api=inspect.stack()[1][3],  # TODO(e-carlin): Use pkinspect.caller()
         reqId=job.unique_key(),
         uid=u,
-        agentDir=str(simulation_db.user_dir_name(
-            u).join('agent').join('{agent_id}')),
     )
     r = requests.post(
         job.cfg.supervisor_uri,
@@ -132,7 +130,6 @@ def _request_body(kwargs):
         ('computeModel', lambda: simulation_db.compute_job_model(d)),
         ('resourceClass', lambda: 'parallel' if simulation_db.is_parallel(
             d) else 'sequential'),
-        ('simType', lambda: d.simulationType),
         # depends on some of the above
         ('computeJid', lambda: simulation_db.job_id(
             d).replace(b.analysisModel, b.computeModel)),
