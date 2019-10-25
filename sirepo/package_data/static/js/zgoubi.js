@@ -908,14 +908,17 @@ SIREPO.app.directive('exportZgoubiLink', function(appState, panelState, requestS
         restrict: 'A',
         scope: {},
         template: [
-            '<a data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
+            '<a data-ng-show="showLink" data-ng-href="{{ zgoubiDataUrl() }}" target="_blank">zgoubi.dat</a>',
         ].join(''),
         controller: function($scope) {
+            $scope.showLink = false;
+
             $scope.zgoubiDataUrl = function() {
                 if (! appState.isLoaded()) {
                     return null;
                 }
                 var modelKey = panelState.findParentAttribute($scope, 'modelKey');
+                $scope.showLink = modelKey != 'beamlineReport';
                 return requestSender.formatUrl('downloadDataFile', {
                     '<simulation_id>': appState.models.simulation.simulationId,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
