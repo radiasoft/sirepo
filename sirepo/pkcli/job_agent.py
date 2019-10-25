@@ -12,7 +12,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
-from sirepo import job_agent_process, job, mpi, simulation_db
+from sirepo import job, mpi, simulation_db
 from sirepo.pkcli import job_process
 import json
 import os

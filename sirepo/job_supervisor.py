@@ -241,8 +241,6 @@ class _Job(PKDict):
             res.nextRequestSeconds = simulation_db.poll_seconds(res.nextRequest)
             if simulation_db.is_parallel(res.nextRequest):
                 n = self.res.backgroundPercentComplete
-                n.setdefault('percentComplete', 0.0)
-                n.setdefault('frameCount', 0)
                 res.update(n)
             self._req_lock.release()
             return res
@@ -282,49 +280,6 @@ class _Job(PKDict):
     def update_state(self, state):
         # TODO(e-carlin): only some state should be updated
         self.res.update(**state)
-
-    # def get_job_info(self, req):
-    #     i = pkcollections.Dict(
-    #         cached_hash=self.res.computeJobHash,
-    #         state=self.res.state,
-    #         model_name=req.content.compute_model,
-    #         parameters_changed=False,
-    #         req_hash=req.content.computeJobHash,
-    #         simulation_id=req.content.data.simulationId,
-    #         simulation_type=req.content.sim_type,
-    #     )
-    #     if i.req_hash != i.cached_hash:
-    #         i.parameters_changed = True
-    #     return i
-
-    # def get_response(self, req):
-    #     try:
-    #         # TODO(e-carlin): This only works for compute_jobs now. What about analysis jobs?
-    #         i = self.get_job_info(req)
-    #         res = PKDict(state=i.state)
-    #         res.update(self.res)
-    #         # # TODO(e-carlin):  Job is not processing then send result op
-    #         res.setdefault('parametersChanged', i.parameters_changed)
-    #         res.setdefault('startTime', self.res.startTime)
-    #         res.setdefault('lastUpdateTime', self.res.lastUpdateTime)
-    #         res.setdefault('elapsedTime', res.lastUpdateTime - res.startTime)
-    #         if self.res.state in (
-    #             sirepo.job.Status.PENDING.value,
-    #             sirepo.job.Status.RUNNING.value
-    #         ):
-    #             # TODO(e-carlin): use logic from simulation_db.poll_seconds()
-    #             res.nextRequestSeconds = 2
-    #             res.nextRequest = PKDict(
-    #                 report=i.model_name,
-    #                 computeJobHash=i.cached_hash,
-    #                 simulationId=i.simulation_id,
-    #                 simulationType=i.simulation_type,
-    #             )
-    #     except Exception as e:
-    #         pkdlog('error={} \n{}', e, pkdexc())
-    #         return PKDict(error=e)
-    #     self.res.update(res)
-    #     return res
 
     @classmethod
     def _jid_for_req(cls, req):
