@@ -9,40 +9,20 @@ from pykern import pkcollections
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
+from sirepo import job
+from sirepo import job_driver
 # TODO(e-carlin): Used to get is_parallel(). Should live in sim_data?
 from sirepo import simulation_db
 import aenum
 import copy
-import sirepo.driver
-import sirepo.job
 import sys
 import time
 import tornado.locks
 
 
-class AgentMsg(PKDict):
-
-    async def do(self):
-        pkdlog('content={}', sirepo.job.LogFormatter(self.content))
-        # TODO(e-carlin): proper error handling
-        if self.content.op == sirepo.job.OP_ERROR:
-            raise AssertionError('TODO: Handle errors')
-        d = sirepo.driver.get_instance_for_agent(self.content.agentId)
-        if not d:
-            # TODO(e-carlin): handle
-            pkdlog('no driver for agent_id={}', self.content.agentId)
-            return
-        d.set_handler(self.handler)
-        d.set_state(self.content)
-        i = self.content.get('opId')
-        if not i:
-            return
-        d.ops[i].set_result(self.content)
-
-
 def init():
-    sirepo.job.init()
-    sirepo.driver.init()
+    job.init()
+    job_driver.init()
 
 
 class ServerReq(PKDict):
@@ -69,7 +49,7 @@ class _Job(PKDict):
             is_parallel=simulation_db.is_parallel(PKDict(report=c.analysisModel)),
             jhash=c.computeJobHash,
             jid=c.computeJid,
-            status=sirepo.job.Status.MISSING.value,
+            status=job.Status.MISSING.value,
             uid=c.uid,
         )
         if self.is_parallel:
@@ -89,17 +69,17 @@ class _Job(PKDict):
     @classmethod
     async def _do_api_runSimulation(cls, req):
         self = await _Job.get_instance(req)
-        if self.status == sirepo.job.Status.RUNNING.value:
+        if self.status == job.Status.RUNNING.value:
             if self.jhash != req.content.computeJobHash:
                 raise AssertionError('FIXME')
-            return PKDict(state=sirepo.job.Status.RUNNING.value)
+            return PKDict(state=job.Status.RUNNING.value)
         if (self.req.content.get('forceRun')
             or not (
                 self.jhash == req.content.computeJobHash
-                and self.status == sirepo.job.Status.COMPLETED.value
+                and self.status == job.Status.COMPLETED.value
             )
         ):
-            self.status = sirepo.job.Status.RUNNING.value
+            self.status = job.Status.RUNNING.value
             self.error = None
             if self.is_parallel:
                 t = time.time()
@@ -109,7 +89,7 @@ class _Job(PKDict):
                     percentComplete=0.0,
                     startTime=t,
                 )
-            return await self._run_op(sirepo.job.OP_RUN, req)
+            return await self._run_op(job.OP_RUN, req)
         return PKDict(state=self.status)
 
     @classmethod
@@ -123,7 +103,7 @@ class _Job(PKDict):
             if self.is_parallel:
                 r.update(**self.parallel_status)
                 r.elapsedTime = r.lastUpdateTime - r.startTime
-            if self.status == sirepo.job.Status.RUNNING.value:
+            if self.status == job.Status.RUNNING.value:
                 c = req.content
                 r.update(
                     nextRequestSeconds=2 if r.is_parallel else 1,
@@ -137,17 +117,17 @@ class _Job(PKDict):
             return r
 
         if self.jhash != req.content.computeJobHash:
-            return res(state=sirepo.job.Status.MISSING.value)
+            return res(state=job.Status.MISSING.value)
         if self.is_parallel or self.status in (
-            sirepo.job.Status.ERROR.value,
-            sirepo.job.Status.CANCELED.value,
-            sirepo.job.Status.MISSING.value,
-            sirepo.job.Status.RUNNING.value,
+            job.Status.ERROR.value,
+            job.Status.CANCELED.value,
+            job.Status.MISSING.value,
+            job.Status.RUNNING.value,
         ):
             return res(state=self.status)
-        assert self.res.state == sirepo.job.Status.COMPLETED.value
+        assert self.res.state == job.Status.COMPLETED.value
         return await self._run_op(
-            sirepo.job.OP_ANALYSIS,
+            job.OP_ANALYSIS,
             req,
             'sequential_result',
         )
@@ -157,7 +137,7 @@ class _Job(PKDict):
         self = _Job.get_instance(req)
         assert self.jhash == req.content.computeJobHash
         return await self._run_op(
-            sirepo.job.OP_ANALYSIS,
+            job.OP_ANALYSIS,
             req,
             'get_simulation_frame',
         )

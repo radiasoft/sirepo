@@ -11,7 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 import functools
 import os
-import sirepo.driver
+from sirepo import job_driver
 import sirepo.job
 import tornado.ioloop
 import tornado.locks
@@ -31,71 +31,42 @@ def init_class():
         parallel_slots=(1, int, 'max parallel slots'),
         sequential_slots=(1, int, 'max sequential slots'),
     )
-    _Slot.init_class(LocalDriver)
-    LocalDriver.init_class()
-    return LocalDriver
+    return LocalDriver.init_class()
 
 
-class _Slot(PKDict):
-    available = PKDict()
-    in_use = PKDict()
-
-    @classmethod
-    def init_class(cls, driver_class):
-        for r in 'sequential', 'parallel':
-            k = driver_class.get_kind(r)
-            q = cls.available[k] = tornado.queues.Queue()
-            for _ in range(cfg[r + '_slots']):
-                q.put_nowait(_Slot(kind=k))
-            cls.in_use[k] = []
-
-    @classmethod
-    async def garbage_collect_one(cls, kind):
-        for d in cls.in_use[kind]:
-            if not d.jobs:
-                await d.kill()
-                return
-
-    @classmethod
-    async def get_instance(cls, kind):
-        try:
-            return cls.available[kind].get_nowait()
-        except tornado.queues.QueueEmpty:
-            tornado.ioloop.IOLoop.current().spawn_callback(
-                cls.garbage_collect_one,
-                kind,
-            )
-            return await cls.available[kind].get()
-
-
-class LocalDriver(sirepo.driver.DriverBase):
+class LocalDriver(job_driver.DriverBase):
     #TODO(robnagler) pkinspect this
     module_name = 'local'
+#rn has to be here, because instances are class-basedx
+    instances = pkcollections.Dict()
 
-    def __init__(self, slot, job, *args, **kwargs):
-        super().__init__(slot, job, *args, **kwargs)
+    def __init__(self, req, computeJob, *args, **kwargs):
+
+        slot = await _Slot.get_instance(kind),
+        super().__init__(*args, **kwargs)
         self._agent_dir = str(simulation_db.user_dir_name(self.uid).join('agent-local', self.agent_id))
         self._subprocess = None
         slot.in_use[slot.kind].append(self)
+        self.instances[slot.kind][self.uid] = self
         self._start()
 
     @classmethod
-    async def get_instance_for_op(cls, job, op):
-        k =
-
+    async def get_instance_for_op(cls, computeJob, op):
+        k = 'parallel' if computeJob.is_parallel and op != job.OP_ANALYSIS \
+            else 'sequential'
         self = cls.instances[k].get(req.uid)
         if self:
             await self.queue(req)
         else:
-            self = cls(
-                await _Slot.get_instance(k),
-                job,
-            )
+            self = await cls(req, computeJob)
 
     @classmethod
     def init_class(cls):
-        for r in 'sequential', 'parallel':
-            cls.instances[cls.get_kind(r)] = PKDict()
+        for r in cls.RESOURCE_CLASSES:
+            k = cls.get_kind(r)
+            cls.instances[k] = PKDict()
+            _Slot.init_kind(k, r)
+        return cls
 
     def assign_job(self, job):
         self.jobs.append(job)
@@ -129,7 +100,7 @@ class LocalDriver(sirepo.driver.DriverBase):
     def kill(self):
         assert self._status
         pkdlog('{}', self)
-        self._status = sirepo.driver.Status.KILLING
+        self._status = job_driver.Status.KILLING
         # TODO(e-carlin): What happens when an exception is thrown?
         if not self._subprocess:
             return
@@ -152,13 +123,13 @@ class LocalDriver(sirepo.driver.DriverBase):
         del self.instances[self.agent_id]
         self.slot.in_use[self.kind].remove(self)
         self.slot.available[self.kind].put_nowait(_Slot(kind=self.kind))
-        if self._status is not sirepo.driver.Status.KILLING:
+        if self._status is not job_driver.Status.KILLING:
             self._on_agent_error_exit() # TODO(e-carlin): impl
 
     def _start(self):
         pkdlog('agent_id={}', self.agent_id)
-        assert self._status != sirepo.driver.Status.STARTING
-        self._status = sirepo.driver.Status.STARTING
+        assert self._status != job_driver.Status.STARTING
+        self._status = job_driver.Status.STARTING
         self._start_attempts += 1
         tornado.ioloop.IOLoop.current().spawn_callback(self._start_cb)
 
@@ -167,7 +138,7 @@ class LocalDriver(sirepo.driver.DriverBase):
         env = dict(os.environ)
         env['PYENV_VERSION'] = 'py3'
         env['SIREPO_PKCLI_JOB_AGENT_AGENT_ID'] = self.agent_id
-        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = sirepo.driver.cfg.supervisor_uri
+        env['SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI'] = job_driver.cfg.supervisor_uri
         env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
         env['PYKERN_PKDEBUG_REDIRECT_LOGGING'] = '1'
         env['PYKERN_PKDEBUG_CONTROL'] = '.*'
@@ -183,3 +154,33 @@ class LocalDriver(sirepo.driver.DriverBase):
             env=env,
         )
         self._subprocess.set_exit_callback(self._on_exit)
+
+
+class _Slot(PKDict):
+    available = PKDict()
+    in_use = PKDict()
+
+    @classmethod
+    def init_kind(cls, kind, resource_class):
+        q = cls.available[kind] = tornado.queues.Queue()
+        for _ in range(cfg[resource_class + '_slots']):
+            q.put_nowait(_Slot(kind=kind, resource_class=resource_class))
+        cls.in_use[kind] = []
+
+    @classmethod
+    async def garbage_collect_one(cls, kind):
+        for d in cls.in_use[kind]:
+            if not d.jobs:
+                await d.kill()
+                return
+
+    @classmethod
+    async def get_instance(cls, kind):
+        try:
+            return cls.available[kind].get_nowait()
+        except tornado.queues.QueueEmpty:
+            tornado.ioloop.IOLoop.current().spawn_callback(
+                cls.garbage_collect_one,
+                kind,
+            )
+            return await cls.available[kind].get()

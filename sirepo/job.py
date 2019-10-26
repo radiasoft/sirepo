@@ -69,6 +69,7 @@ class Status(aenum.Enum):
     #: data on disk is incomplete but it's running
     RUNNING = 'running'
 
+
 def init():
     global cfg
 

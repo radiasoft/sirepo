@@ -10,6 +10,7 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
+from sirepo import job_driver
 from sirepo import job_supervisor
 import asyncio
 import signal
@@ -46,7 +47,7 @@ def default_command():
 
 
 class _AgentMsg(tornado.websocket.WebSocketHandler):
-    sr_class = job_supervisor.AgentMsg
+    sr_class = job_driver.AgentMsg
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -79,11 +80,7 @@ async def _incoming(content, handler):
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())
-        if hasattr(handler, 'close'):
-            handler.close()
-        else:
-            handler.send_error()
-        return
+        getattr(handler, 'close', handler.send_error)()
 
 
 class _ServerReq(tornado.web.RequestHandler):

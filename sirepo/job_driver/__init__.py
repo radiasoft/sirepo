@@ -11,7 +11,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job_supervisor, simulation_db
 import aenum
 import importlib
-import sirepo.job
+from sirepo import job
 import time
 import tornado.ioloop
 import tornado.locks
@@ -29,28 +29,46 @@ _DEFAULT_CLASS = None
 cfg = None
 
 
+class AgentMsg(PKDict):
+
+    async def do(self):
+        c = self.content
+        pkdc('content={}', job.LogFormatter(c))
+        assert self.content.op != job.OP_ERROR, \
+            'agent error={}'.format(job.LogFormatter(c))
+        d = DriverBase.driver_for_agents[c.agentId]
+        d.set_handler(self.handler)
+        d.set_result(c)
+
+
 class Op(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._result_set = tornado.locks.Event()
         self._result = None
+        self.msg.update(
+            opId=job.unique_key(),
+            opName=self.opName,
+        )
 
     async def get_result(self):
         await self._result_set.wait()
         return self._result
 
     def set_result(self, res):
+        d.set_state(c)
+        if self.ops[c.opId]:
+            no opid ok, because ready
         self._result = res
         self._result_set.set()
 
 
 class DriverBase(PKDict):
-    instances = pkcollections.Dict()
     driver_for_agents = PKDict()
+    RESOURCE_CLASSES = frozenset('sequential', 'parallel')
 
-    def __init__(self, slot, *args, **kwargs):
-        a = sirepo.job.unique_key()
+    def __init__(self, *args, **kwargs):
         super().__init__(
             _agent_exited=tornado.locks.Event(),
             _handler=None,
@@ -59,43 +77,33 @@ class DriverBase(PKDict):
             _start_attempts=0,
             _status=Status.IDLE,
             _terminate_timeout=None,
-            agent_id=a,
-            jobs=[job],
+            agent_id=job.unique_key(),
             killing=False,
-            kind=driver_kind,
             ops=PKDict(),
-            resource_class=job.req.content.resourceClass,
-            sender=None,
-            slot=slot,
             uid=req.content.uid,
             **kwargs,
         )
         self.driver_for_agents[self.agent_id] = self
-        self.instances[slot.kind][self.uid] = self
 
     @classmethod
-    async def do_op(cls, req, op, **kwargs):
-        self = await get_class(req).get_instance_for_op(req, op)
-        kwargs.setdefault('opId', sirepo.job.unique_key())
+    async def do_op(cls, req, op_name, **kwargs):
+        self = await get_class(req).get_instance_for_op(req, op_name)
         m = PKDict(kwargs)
-        o = Op(msg=m)
-        self.ops[m.opId] = o
+        o = Op(op_name=op, msg=m)
         await self._handler_set.wait()
-        await self._handler.write_message(pkjson.dump_bytes(m))
+        await self._handler.write_message(pkjson.dump_bytes(o.msg))
         return await o.get_result()
 
     @classmethod
     def get_kind(cls, resource_class):
-        assert resource_class in ('sequential', 'parallel')
+        assert resource_class in cls.RESOURCE_CLASSES
         return resource_class + '-' + cls.module_name
 
     def __repr__(self):
-        return 'class={} resource_class={} uid={} status={} agent_id={} slots_available={}'.format(
+        return 'class={} uid={} status={} agent_id={}'.format(
             type(self),
             self.uid,
             self._status,
-            self.resource_class,
-            self.slots_available(),
             self.agent_id,
         )
 
@@ -122,10 +130,6 @@ def get_class(req):
     return _DEFAULT_CLASS
 
 
-def get_instance_for_agent(agent_id):
-    return DriverBase.driver_for_agents.get(agent_id)
-
-
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES
@@ -133,8 +137,7 @@ def init():
     cfg = pkconfig.init(
         modules=(('local',), set, 'driver modules'),
         supervisor_uri=(
-            'ws://{}:{}{}'.format(sirepo.job.DEFAULT_IP,
-                                  sirepo.job.DEFAULT_PORT, sirepo.job.AGENT_URI),
+            'ws://{}:{}{}'.format(job.DEFAULT_IP, job.DEFAULT_PORT, job.AGENT_URI),
             str,
             'uri for agent ws connection with supervisor',
         ),
@@ -155,11 +158,3 @@ class Status(aenum.Enum):
     IDLE = 'idle'
     KILLING = 'killing'
     STARTING = 'starting'
-
-
-def terminate():
-    if pkconfig.channel_in('dev'):
-        for k in DriverBase.instances.keys():
-            if 'local' in k:
-                for d in DriverBase.instances[k].values():
-                    d.kill()
