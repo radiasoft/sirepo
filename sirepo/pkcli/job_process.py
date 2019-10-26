@@ -74,7 +74,7 @@ def _do_compute(msg, template):
         pkio.mkdir_parent(msg.runDir)
     msg.data['simulationStatus'] = {
         'startTime': int(time.time()),
-        'state': job.Status.RUNNING.value,
+        'state': job.RUNNING,
     }
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     run_log_path = msg.runDir.join(template_common.RUN_LOG)

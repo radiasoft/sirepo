@@ -189,7 +189,7 @@ class _Process(PKDict):
 
     def start(self):
         if self.msg.jobProcessCmd == 'compute':
-            self._write_compute_job_info_file(job.Status.RUNNING.value)
+            self._write_compute_job_info_file(job.RUNNING)
         self._execute_main_job_process()
         # TODO(e-carlin): one compute if
         # if self.msg.jobProcessCmd == 'compute':
@@ -242,25 +242,24 @@ class _Process(PKDict):
             o, e = await self._main_job_process.exit()
             # TODO(e-carlin): read simulation_db.read_result() or format subprocess_error
             self._main_job_process = None
-            self.comm.remove_process(self.msg.jid)
+            self.comm.remove_process(self.msg.computeJid)
             if self._terminating:  # TODO(e-carlin): why?
                 return
-            self._done(
-                job.Status.ERROR.value if e else job.Status.COMPLETED.value)
+            self._done(job.ERROR if e else job.COMPLETED)
             if e:
                 o.pop('state', None)
                 await self.comm.write_message(
                     self.msg,
                     job.OP_ERROR,
                     error=e,
-                    output=PKDict(**o, state=job.Status.ERROR.value),
+                    output=PKDict(**o, state=job.ERROR),
                 )
             elif self.msg.jobProcessCmd == 'compute':
                 o.pop('state', None)
                 await self.comm.write_message(
                     self.msg,
                     job.OP_OK,
-                    output=PKDict(**o, state=job.Status.COMPLETED.value),
+                    output=PKDict(**o, state=job.COMPLETED),
                 )
             elif self.msg.jobProcessCmd == 'compute_status':
                 await self.comm.write_message(
@@ -301,14 +300,14 @@ class _Process(PKDict):
     #             self._kill,
     #         )
     #         self._terminating = True
-    #         self._done(job.Status.CANCELED.value)
+    #         self._done(job.CANCELED)
     #         self._main_sp.proc.terminate()
 
     def kill(self):
         # TODO(e-carlin): kill background_sp
         self._terminating = True
         if self._main_job_process:
-            self._done(job.Status.CANCELED.value)
+            self._done(job.CANCELED)
             self._main_job_process.kill()
             self._main_job_process = None
 
@@ -342,7 +341,7 @@ class _Comm(PKDict):
                     pkdlog('error={}', e)
                     await tornado.gen.sleep(_RETRY_SECS)
                     continue
-                m = self._format_reply(None, job.OP_OK)
+                m = self._format_reply(None, job.OP_ALIVE)
                 while True:
                     try:
                         if m:
@@ -371,7 +370,7 @@ class _Comm(PKDict):
     def _format_reply(self, msg, op, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
-            kwargs['jid'] = msg.get('jid')
+            kwargs['computeJid'] = msg.get('computeJid')
         return pkjson.dump_bytes(
             PKDict(agentId=cfg.agent_id, op=op, **kwargs),
         )
@@ -393,16 +392,17 @@ class _Comm(PKDict):
             return self._format_reply(None, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
-        p = self._processes.get(msg.jid)
+        p = self._processes.get(msg.computeJid)
         if not p:
-            return self._format_reply(msg, job.OP_ERROR, error='no such jid')
-        await p.cancel()  # TODO(e-carlin): cancel should be sync fire and forget
+            return self._format_reply(msg, job.OP_ERROR, error='no such computeJid')
+        # TODO(e-carlin): cancel should be sync fire and forget
+        await p.cancel()
         return True
 
     async def _op_compute_status(self, msg):
-        assert msg.jid not in self._processes, \
-            "jid={} in processes. Supervisor should already now about status".format(
-                msg.jid)
+        assert msg.computeJid not in self._processes, \
+            "computeJid={} in processes. Supervisor should already now about status".format(
+                msg.computeJid)
         try:
             i = pkjson.load_any(msg.runDir.join(_INFO_FILE))
             return self._format_reply(
@@ -416,14 +416,14 @@ class _Comm(PKDict):
         except Exception:
             f = msg.runDir.join(job.RUNNER_STATUS_FILE)
             if f.check():
-                assert msg.jid not in self._processes
+                assert msg.computeJid not in self._processes
                 msg.update(jobProcessCmd='compute_status')
                 self._process(msg)
                 return False
         return self._format_reply(
             msg,
             job.OP_COMPUTE_STATUS,
-            output=PKDict(state=job.Status.MISSING.value),
+            output=PKDict(state=job.MISSING),
         )
 
     async def _op_kill(self, msg):
@@ -444,7 +444,7 @@ class _Comm(PKDict):
             msg,
             job.OP_OK,
             output=PKDict(
-                state=job.Status.RUNNING.value,
+                state=job.RUNNING,
                 computeJobHash=msg.computeJobHash,
             ),
         )
@@ -465,6 +465,6 @@ class _Comm(PKDict):
 
     def _process(self, msg):
         p = _Process(msg=msg, comm=self)
-        assert msg.jid not in self._processes
-        self._processes[msg.jid] = p
+        assert msg.computeJid not in self._processes
+        self._processes[msg.computeJid] = p
         p.start()

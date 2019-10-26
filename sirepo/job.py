@@ -16,22 +16,6 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import aenum
 import uuid
 
-# Actions that the sirepo server, supervisor, or driver may send.
-# TODO(e-carlin): Can we use an enum without manually serializing
-# and deserializing?
-#rn remove the word _JOB
-ACTION_CANCEL = 'cancel'
-ACTION_STATUS = 'status'
-ACTION_ERROR = 'error'
-ACTION_KEEP_ALIVE = 'keep_alive'
-ACTION_KILL = 'kill'
-ACTION_READY_FOR_WORK = 'ready_for_work'
-#rn structure should be same "run" or "start"
-ACTION_ANALYSIS = 'analysis'
-ACTION_COMPUTE = 'compute'
-ACTION_RUN_SIMULATION = 'runSimulation'
-
-# Bidirectional operations
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
 OP_COMPUTE_STATUS = 'compute_status'
@@ -39,6 +23,8 @@ OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
 OP_OK = 'ok'
+#: Agent indicates it is ready
+OP_ALIVE = 'alive'
 OP_RESULT = 'result'
 OP_RUN = 'run'
 OP_STATUS = 'status'
@@ -54,21 +40,20 @@ DEFAULT_PORT = 8001
 
 RUNNER_STATUS_FILE = 'status'
 
+CANCELED = 'canceled'
+COMPLETED = 'completed'
+ERROR = 'error'
+MISSING = 'missing'
+RUNNING = 'running'
+#: Valid values for job status
+STATUSES = frozenset(CANCELED, COMPLETED, ERROR, MISSING, RUNNING)
+
+SEQUENTIAL = 'sequential'
+PARALLEL = 'parallel'
+#: categories of jobs
+KINDS = frozenset(SEQUENTIAL, PARALLEL)
+
 cfg = None
-
-# TODO(e-carlin): Use enums or string constants (like ACTIONS) not both.
-class Status(aenum.Enum):
-    #: data on disk exists, but is incomplete
-    CANCELED = 'canceled'
-    #: data on disk exists, and is fully usable
-    COMPLETED = 'completed'
-    #: data on disk exists, but job failed somehow
-    ERROR = 'error'
-    #: no data on disk, not currently running
-    MISSING = 'missing'
-    #: data on disk is incomplete but it's running
-    RUNNING = 'running'
-
 
 def init():
     global cfg

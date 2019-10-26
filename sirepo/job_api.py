@@ -128,8 +128,7 @@ def _request_body(kwargs):
         ('analysisModel', lambda: d.report),
         ('computeJobHash', lambda: sirepo.sim_data.get_class(d).compute_job_hash(d)),
         ('computeModel', lambda: simulation_db.compute_job_model(d)),
-        ('resourceClass', lambda: 'parallel' if simulation_db.is_parallel(
-            d) else 'sequential'),
+        ('isParallel',  simulation_db.is_parallel(d)),
         # depends on some of the above
         ('computeJid', lambda: simulation_db.job_id(
             d).replace(b.analysisModel, b.computeModel)),

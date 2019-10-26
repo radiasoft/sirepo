@@ -49,19 +49,15 @@ def default_command():
 class _AgentMsg(tornado.websocket.WebSocketHandler):
     sr_class = job_driver.AgentMsg
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Initialized by sirepo.driver.get_instance
-        self.driver = None
-
     def check_origin(self, origin):
         return True
 
     def on_close(self):
         try:
-            if self.driver:
-                self.driver.on_close()
-                self.driver = None
+            d = getattr(self, 'sr_driver', None)
+            if d:
+                del self.sr_driver
+                d.websocket_on_close()
         except Exception as e:
             pkdlog('error={} {}', e, pkdexc())
 
@@ -71,12 +67,15 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def open(self):
         pkdlog(self.request.uri)
 
+    def sr_driver_set(self, driver):
+        self.sr_driver = driver
+
 
 async def _incoming(content, handler):
     try:
         c = pkjson.load_any(content)
         pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
-        await handler.sr_class(handler=handler, content=c).do()
+        await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())
@@ -91,7 +90,7 @@ class _ServerReq(tornado.web.RequestHandler):
         # TODO(e-carlin): Handle this. This occurs when the client drops the connection.
         # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
         # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
-        self.driver = None
+        pass
 
     async def post(self):
         await _incoming(self.request.body, self)
