@@ -71,8 +71,10 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     async def send(cls, req, kwargs):
-        self = await cls.allocate(req.kind), req)
-        return await self._send(req, kwargs)
+        return await super(
+            LocalDriver,
+            await cls.allocate(req.kind), req),
+        ).send(req, kwargs)
 
     def _agent_on_exit(self, returncode):
         pkcollections.unchecked_del(self, 'subprocess')

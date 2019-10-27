@@ -46,25 +46,19 @@ class DriverBase(PKDict):
     def receive(cls, msg):
         self.agents[msg.content.agentId]._receive(msg)
 
+    async def send(self, req, kwargs):
+        await self._websocket_ready.wait()
+        o = _Op(opName=kwargs.opName, msg=PKDict(kwargs))
+        self.ops[o.opId] = o
+        self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        return await o.reply_ready(self._websocket)
+
     def websocket_on_close(self):
         self._websocket_free()
 
     def _free(self):
         del self.agents[self.agentId]
         self._websocket_free()
-
-    @classmethod
-    def _kind(cls, req, kwargs):
-        if req.computeJob.isParallel and kwargs.opName != job.OP_ANALYSIS:
-            return job.PARALLEL
-        return job.SEQUENTIAL
-
-    async def _send(self, req, kwargs):
-        await self._websocket_ready.wait()
-        o = _Op(opName=kwargs.opName, msg=PKDict(kwargs))
-        self.ops[o.opId] = o
-        self._websocket.write_message(pkjson.dump_bytes(o.msg))
-        return await o.reply_ready(self._websocket)
 
     def _receive(self, msg):
         c = msg.content
