@@ -67,8 +67,21 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def open(self):
         pkdlog(self.request.uri)
 
+    def sr_close(self):
+        """Close socket and does not call on_close
+
+        Unsets driver to avoid a callback loop.
+        """
+        if 'sr_driver' in self:
+            del self.sr_driver
+        self.close()
+
     def sr_driver_set(self, driver):
         self.sr_driver = driver
+
+    def _sr_on_exception(self):
+        self.on_close()
+        self.close()
 
 
 async def _incoming(content, handler):
@@ -79,7 +92,10 @@ async def _incoming(content, handler):
     except Exception as e:
         pkdlog('exception={} handler={} content={}', e, content, handler)
         pkdlog(pkdexc())
-        getattr(handler, 'close', handler.send_error)()
+        try:
+            handler._sr_on_exception()
+        except Exception as e:
+            pkdlog('_sr_on_exception: exception={}', e)
 
 
 class _ServerReq(tornado.web.RequestHandler):
@@ -87,9 +103,14 @@ class _ServerReq(tornado.web.RequestHandler):
     sr_class = job_supervisor.ServerReq
 
     def on_connection_close(self):
-        # TODO(e-carlin): Handle this. This occurs when the client drops the connection.
-        # See: https://github.com/tornadoweb/tornado/blob/master/demos/chat/chatdemo.py#L106
-        # and: https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.on_connection_close
+        # Nothing we can do with the request. Even if a user
+        # closes a browser or laptop, we will want to continue with
+        # the simulation run request. Only in specific cases would
+        # we want to terminate processing, but that cancel problem is
+        # quite hard, and not likely we are consuming too many resources.
+        #
+        # By not having a connection to supervisor (for on_close), we
+        # avoid data structure loops.
         pass
 
     async def post(self):
@@ -97,6 +118,10 @@ class _ServerReq(tornado.web.RequestHandler):
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
+
+    def _sr_on_exception(self):
+        self.send_error()
+        self.on_connection_close()
 
 
 def _sigterm(signum, frame):

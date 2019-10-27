@@ -79,6 +79,7 @@ class _JobProcess(PKDict):
         self._in_file = None
         self._parsed_stdout = None
         self._parsed_stderr = None
+##TODO(robnagler) stdout and stderr should be objects
         self._raw_stdout = bytearray()
         self._raw_stderr = bytearray()
         self._subprocess_exit_event = tornado.locks.Event()
@@ -93,7 +94,7 @@ class _JobProcess(PKDict):
         # TODO(e-carlin): Terminate?
         self._subprocess.proc.kill()
 
-    def start(self):
+n    def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
         env = self._subprocess_env()

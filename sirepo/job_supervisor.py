@@ -123,14 +123,14 @@ class _ComputeJob(PKDict):
         return await self._send(job.OP_ANALYSIS, req, 'get_simulation_frame')
 
     async def _send(self, opName, req, jobProcessCmd=None):
-        req.computeJob = self
+        req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS job.SEQUENTIAL
         return await job_driver.send(
             req,
             PKDict(
-                computeJob,
-                opName=opName,
                 computeJid=self.computeJid,
+                reqKind=req.kind,
                 jobProcessCmd=jobProcessCmd,
+                opName=opName,
                 **req.content,
             ),
         )

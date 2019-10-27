@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc
 from sirepo import job
 import importlib
+import tornado.locks
 
 
 #: map of driver names to class
@@ -37,6 +38,7 @@ class DriverBase(PKDict):
             ops=PKDict(),
             supervisor_uri=cfg.supervisor_uri,
             uid=req.content.uid,
+            _websocket_ready=tornado.locks.Event(),
         )
         self.agents[self.agentId] = self
 
@@ -45,11 +47,11 @@ class DriverBase(PKDict):
         self.agents[msg.content.agentId]._receive(msg)
 
     def websocket_on_close(self):
-        self.websocket_free()
+        self._websocket_free()
 
     def _free(self):
-        self._websocket_free()
         del self.agents[self.agentId]
+        self._websocket_free()
 
     @classmethod
     def _kind(cls, req, kwargs):
@@ -57,10 +59,12 @@ class DriverBase(PKDict):
             return job.PARALLEL
         return job.SEQUENTIAL
 
-    def _op_send(self, req, kwargs):
+    async def _send(self, req, kwargs):
+        await self._websocket_ready.wait()
         o = _Op(opName=kwargs.opName, msg=PKDict(kwargs))
         self.ops[o.opId] = o
-        return await o.send(self)
+        self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        return await o.reply_ready(self._websocket)
 
     def _receive(self, msg):
         c = msg.content
@@ -79,24 +83,24 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        if self.get('websocket', msg.handler) == msg.handler:
+        if self.get('_websocket', msg.handler) == msg.handler:
             return
         self._websocket_free()
-        self.websocket = msg.handler
-        self.websocket.sr_driver_set(self)
+        self._websocket = msg.handler
+        self._websocket.sr_driver_set(self)
+        self._websocket_ready.set()
 
     def _websocket_free(self):
-        w = self.get('websocket')
+        self._websocket_ready.clear()
+        w = self.get('_websocket')
         if w:
-            del self['websocket']
-            # May be irrelevant, but need to call in some cases
-            w.close()
+            del self['_websocket']
+            # Will not call websocket_on_close()
+            w.sr_close()
         v = list(self.ops.values())
         self.ops.clear()
         for o in v:
             o.reply(PKDict(state=job.ERROR, error='websocket closed'))
-#TODO(robnagler) for the local driver, we might want to kill the process (SIGKILL),
-#   because there would be no reason for the websocket to disappear on its own.
 
 
 async def send(req, kwargs):
@@ -128,13 +132,14 @@ class _Op(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.opId = job.unique_key()
+        self.update(
+            opId=job.unique_key(),
+            _reply_q=tornado.queues.Queue(),
+        )
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def reply(self, msg):
-        self.reply_q.put_nowait(msg)
+        self._reply_q.put_nowait(msg)
 
-    async def send(self, driver):
-        driver.write_message(pkjson.dump_bytes(self.msg))
-        q = self.reply_q = tornado.queues.Queue()
-        return await q.get()
+    async def reply_ready(self):
+        return await self._reply_q.get()
