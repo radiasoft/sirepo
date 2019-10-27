@@ -110,7 +110,7 @@ class SimDataBase(object):
             return 'v2' + res.hexdigest()
 
         try:
-            return data.pksetdefault(computeJobHash=_op)
+            return data.pksetdefault(computeJobHash=_op).computeJobHash
         finally:
             if changed and c.changed:
                 changed()
