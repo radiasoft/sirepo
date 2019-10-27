@@ -9,27 +9,18 @@ from pykern import pkcollections
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
-import functools
-import os
+from sirepo import job
 from sirepo import job_driver
-import sirepo.job
+from sirepo import simulation_db
+import os
 import tornado.ioloop
-import tornado.locks
+import tornado.queues
 import tornado.process
 
 
 _KILL_TIMEOUT_SECS = 3
 
 cfg = None
-
-def init_class():
-    global cfg
-
-    cfg = pkconfig.init(
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
-    )
-    return LocalDriver.init_class()
 
 
 class LocalDriver(job_driver.DriverBase):
@@ -43,43 +34,28 @@ class LocalDriver(job_driver.DriverBase):
         self.update(
             agentDir=simulation_db.user_dir_name(self.uid).join('agent-local', selfId),
             kind=slot.kind,
-            ops=PKDict(),
             slot=slot,
         )
-        self.users[slot.kind][self.uid] = self
-        tornado.ioloop.IOLoop.current().spawn_callback(self._start)
+        self.users[self.kind][self.uid] = self
+        tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
     async def allocate(cls, kind, req):
         return cls.users[kind].get(req.content.uid) or cls(req, await _Slot.allocate(kind))
 
-    def free(self):
+    def _free(self):
+        k = self.get('kill_timeout')
+        if k:
+            del self['kill_timeout']
+            tornado.ioloop.IOLoop.current().remove_timeout(k)
+        self.slot.free(self)
+        self.slot = None
         del self.users[self.kind][self.uid]
-        super().free(self)
-
-    def websocket_on_close(self):
-        if 'websocket' in self:
-            del self['websocket']
-        for o in self.ops.values():
-            o.reply(PKDict(state=job.ERROR, error='agent closed websocket'))
-
-#TODO(robnagler) for the local driver, we might want to kill the process (SIGKILL),
-#   because there would be no reason for the websocket to disappear on its own.
-
-    @classmethod
-    async def send(cls, req, kwargs):
-        self = await cls.allocate(cls._kind(req, kwargs), req)
-        o = Op(
-            opName=kwargs.opName,
-            msg=PKDict(kwargs),
-            req=req,
-        )
-        self.ops[o.msg.opId] = o
-        return await o.send(self)
+        super()._free(self)
 
     @classmethod
     def init_class(cls):
-        for k in cls.KINDS:
+        for k in job.KINDS:
             cls.users[k] = PKDict()
             _Slot.init_kind(k)
         return cls
@@ -93,45 +69,17 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill,
         )
 
-    def _kind(cls, req, kwargs):
-        if req.computeJob.isParallel and kwargs.opName != job.OP_ANALYSIS:
-            return job.PARALLEL
-        return job.SEQUENTIAL
+    @classmethod
+    async def send(cls, req, kwargs):
+        self = await cls.allocate(cls._kind(req, kwargs), req)
+        return await self._op_send(req, kwargs)
 
-    def _on_exit(self, returncode):
+    def _agent_on_exit(self, returncode):
         pkcollections.unchecked_del(self, 'subprocess')
-        k = self.get('kill_timeout')
-        if k:
-            del self['kill_timeout']
-            tornado.ioloop.IOLoop.current().remove_timeout(k)
-        w = self.get('websocket')
-        if w:
-            del self['websocket']
-            s = w.close()
-            self.websocket_on_close()
-        self.slot.free(self)
-        self.slot = None
-        self.free()
+        self._free()
 
-    async def _receive(self, msg):
-        c = msg.content
-        if 'opId' in c:
-            o = self.ops[c.opId]
-            del self.ops[c.opId]
-            self.ops[c.opId].reply(msg.output)
-        else:
-            getattr(self, '_receive_' + c.opName)(msg)
-
-    def _receive_alive(self, msg):
-        """Receive an ALIVE message from our agent
-
-        Save the websocket and register self with the websocket
-        """
-#TODO(robnagler) existing ops will never be replied to (possibly)
-        self.websocket = msg.handler
-        self.websocket.sr_driver_set(self)
-
-    async def _start(self):
+    async def _agent_start(self):
+        pkio.mkdir_parent(self.agentDir)
 #TODO(robnagler) SECURITY strip environment
         env = PKDict(os.environ).pkupdate(
             PYENV_VERSION='py3',
@@ -139,36 +87,28 @@ class LocalDriver(job_driver.DriverBase):
             PYKERN_PKDEBUG_OUTPUT='/dev/tty',
             PYKERN_PKDEBUG_REDIRECT_LOGGING='1',
             SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self.agentId,
-            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=job_driver.cfg.supervisor_uri,
+            SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.supervisor_uri,
         )
-        pkio.mkdir_parent(self.agentDir)
         self.subprocess = tornado.process.Subprocess(
             ['pyenv', 'exec', 'sirepo', 'job_agent'],
             cwd=str(self.agentDir),
             env=env,
         )
-        self.subprocess.set_exit_callback(self._on_exit)
+        self.subprocess.set_exit_callback(self._agent_on_exit)
 
 
-class Op(PKDict):
+def init_class():
+    global cfg
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.msg.update(
-            opId=job.unique_key(),
-            opName=self.opName,
-        )
-
-    async def reply(self, output):
-        self.reply_q.put_nowait(output)
-
-    async def send(self, driver):
-        driver.write_message(pkjson.dump_bytes(self.msg))
-        q = self.reply_q = tornado.queues.Queue()
-        return await q.get()
+    cfg = pkconfig.init(
+        parallel_slots=(1, int, 'max parallel slots'),
+        sequential_slots=(1, int, 'max sequential slots'),
+    )
+    return LocalDriver.init_class()
 
 
 class _Slot(PKDict):
+
     available = PKDict()
     in_use = PKDict()
 

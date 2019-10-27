@@ -50,6 +50,7 @@ STATUSES = frozenset(CANCELED, COMPLETED, ERROR, MISSING, RUNNING)
 
 SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'
+
 #: categories of jobs
 KINDS = frozenset(SEQUENTIAL, PARALLEL)
 

@@ -213,13 +213,13 @@ class _Process(PKDict):
                             m,
                             job.OP_ERROR,
                             error=e,
-                            output=o
+                            reply=o
                         )
                     else:
                         await self.comm.write_message(
                             m,
                             job.OP_BACKGROUND_PERCENT_COMPLETE,
-                            output=o,
+                            reply=o,
                         )
                 except Exception as e:
                     pkdlog('error={}', e)
@@ -252,31 +252,31 @@ class _Process(PKDict):
                     self.msg,
                     job.OP_ERROR,
                     error=e,
-                    output=PKDict(**o, state=job.ERROR),
+                    reply=PKDict(**o, state=job.ERROR),
                 )
             elif self.msg.jobProcessCmd == 'compute':
                 o.pop('state', None)
                 await self.comm.write_message(
                     self.msg,
                     job.OP_OK,
-                    output=PKDict(**o, state=job.COMPLETED),
+                    reply=PKDict(**o, state=job.COMPLETED),
                 )
             elif self.msg.jobProcessCmd == 'compute_status':
                 await self.comm.write_message(
                     self.msg,
                     job.OP_COMPUTE_STATUS,
-                    output=o,
+                    reply=o,
                 )
             else:
                 await self.comm.write_message(
                     self.msg,
                     job.OP_ANALYSIS,
-                    output=o,
+                    reply=o,
                 )
         except Exception as exc:
             pkdlog('error={}', exc)
             try:
-                await self.comm.write_message(self.msg, job.OP_ERROR, error=e, output=o)
+                await self.comm.write_message(self.msg, job.OP_ERROR, error=e, reply=o)
             except Exception as exc:
                 pkdlog('error={}', exc)
 
@@ -408,7 +408,7 @@ class _Comm(PKDict):
             return self._format_reply(
                 msg,
                 job.OP_COMPUTE_STATUS,
-                output=PKDict(
+                reply=PKDict(
                     state=i.state,
                     computeJobHash=i.computeJobHash,
                 ),
@@ -423,7 +423,7 @@ class _Comm(PKDict):
         return self._format_reply(
             msg,
             job.OP_COMPUTE_STATUS,
-            output=PKDict(state=job.MISSING),
+            reply=PKDict(state=job.MISSING),
         )
 
     async def _op_kill(self, msg):
@@ -443,7 +443,7 @@ class _Comm(PKDict):
         return self._format_reply(
             msg,
             job.OP_OK,
-            output=PKDict(
+            reply=PKDict(
                 state=job.RUNNING,
                 computeJobHash=msg.computeJobHash,
             ),
@@ -455,7 +455,7 @@ class _Comm(PKDict):
                 return self._format_reply(
                     msg,
                     job.OP_OK,
-                    output=PKDict(
+                    reply=PKDict(
                         percentComplete=0.0,
                         frameCount=0,
                     ),
@@ -465,6 +465,8 @@ class _Comm(PKDict):
 
     def _process(self, msg):
         p = _Process(msg=msg, comm=self)
+#TODO(robnagler) there should only be one computeJid per agent.
+#   background_percent_complete is not an analysis
         assert msg.computeJid not in self._processes
         self._processes[msg.computeJid] = p
         p.start()
