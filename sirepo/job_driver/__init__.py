@@ -66,9 +66,7 @@ class DriverBase(PKDict):
 #rn there are two cases here in receive:
 #  a "real" receive (unsolicited op) or a reply.
         if i:
-            o = self.ops[i]
-            del self.ops[i]
-            o.reply(msg.reply)
+            self.ops.pkdel(i).reply(msg.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -86,9 +84,8 @@ class DriverBase(PKDict):
 
     def _websocket_free(self):
         self._websocket_ready.clear()
-        w = self.get('_websocket')
+        w = self.pkdel('_websocket')
         if w:
-            del self['_websocket']
             # Will not call websocket_on_close()
             w.sr_close()
         v = list(self.ops.values())

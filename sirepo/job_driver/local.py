@@ -44,9 +44,8 @@ class LocalDriver(job_driver.DriverBase):
         return cls.users[kind].get(req.content.uid) or cls(req, await _Slot.allocate(kind))
 
     def _free(self):
-        k = self.get('kill_timeout')
+        k = self.pkdel('kill_timeout')
         if k:
-            del self['kill_timeout']
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         self.slot.free(self)
         self.slot = None
