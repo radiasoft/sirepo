@@ -23,11 +23,8 @@ def test_runStatus():
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     from sirepo import job
-    from sirepo import srunit
 
     pkdp('1')
-    fc.sr_login_as_guest()
-
     job_supervisor = None
     try:
         pkdp('1')
@@ -71,18 +68,14 @@ def test_runStatus():
 
 
 def xtest_runSimulation():
-    py3_env = _env_setup()
-    from sirepo import srunit
+    py3_env, fc = _env_setup()
     from pykern import pkunit
     from sirepo import job
     import time
 
-    fc = srunit.flask_client(sim_types='myapp')
-    fc.sr_login_as_guest()
-
     job_supervisor = None
     try:
-        job_supervisor = _start_job_supervisor(py3_env)
+        job_supervisor = _start_job_superzvisor(py3_env)
         fc.get('/myapp')
         data = fc.sr_post(
             'listSimulations',
@@ -128,13 +121,9 @@ def xtest_runSimulation():
 
 
 def xtest_cancel_long_running_job():
-    py3_env = _env_setup()
+    py3_env, fc = _env_setup()
     from pykern.pkdebug import pkdc, pkdp, pkdlog
-    from sirepo import srunit
     from pykern import pkunit
-
-    fc = srunit.flask_client(sim_types='myapp')
-    fc.sr_login_as_guest()
 
     job_supervisor = None
     try:
@@ -203,12 +192,8 @@ def xtest_cancel_long_running_job():
 
 # TODO(e-carlin): pytest is sync but this test need to be run in a async manner
 def xtest_one_job_running_at_a_time():
-    py3_env = _env_setup()
-    from sirepo import srunit
+    py3_env, fc = _env_setup()
     from pykern import pkunit
-
-    fc = srunit.flask_client(sim_types='myapp')
-    fc.sr_login_as_guest()
 
     try:
         job_supervisor = _start_job_supervisor(py3_env)
@@ -271,12 +256,19 @@ def xtest_one_job_running_at_a_time():
         job_supervisor.wait()
 
 
-def _assert_py3():
+def _env_setup():
     """Check if the py3 environment is set up properly"""
     import os
     import subprocess
     # DO NOT import pykern or sirepo to avoid pkconfig init too early
 
+    new_cfg = {
+        'PYKERN_PKDEBUG_OUTPUT': '/dev/tty',
+        'PYKERN_PKDEBUG_CONTROL': 'job',
+        'PYKERN_PKDEBUG_WANT_PID_TIME': '1',
+        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
+        'PYTHONUNBUFFERED': '1',
+    }
     res = dict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -289,6 +281,7 @@ def _assert_py3():
             v = ':'.join(v2)
         res[k] = v
     res['PYENV_VERSION'] = 'py3'
+    res.update(new_cfg)
 
     try:
         out = subprocess.check_output(
@@ -322,22 +315,13 @@ def _assert_py3():
         out = e.output
     assert 'job_driver' in out, \
         'job_driver not in help: {}'.format(out)
-    return res
 
+    import sirepo.srunit
 
-def _env_setup():
-    from sirepo import srunit
+    fc = sirepo.srunit.flask_client(sim_types='myapp', cfg=new_cfg)
+    fc.sr_login_as_guest()
+    return (res, fc)
 
-    return (
-        _assert_py3(),
-        srunit.flask_client(
-            sim_types='myapp',
-            cfg={
-                'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
-                'PYTHONUNBUFFERED': '1',
-            },
-        )
-    )
 
 def _server_up(url):
     import requests
@@ -352,13 +336,11 @@ def _start_job_supervisor(env):
     from pykern import pkunit
     from sirepo import srdb
     import subprocess
+    import sys
+    import os
     import time
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
-    env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
-    env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
-    env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
-    env['SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR'] = '1'
     job_supervisor = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,

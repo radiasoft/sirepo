@@ -124,20 +124,17 @@ def _request(**kwargs):
 def _request_body(kwargs):
     b = PKDict(kwargs)
     d = b.get('data') or http_request.parse_data_input()
-    b.pksetdefault(
+    return b.pksetdefault(
         analysisModel=d.report,
         computeJobHash=lambda: sirepo.sim_data.get_class(d).compute_job_hash(d),
         computeModel=lambda: simulation_db.compute_job_model(d),
         isParallel=lambda: simulation_db.is_parallel(d),
-    )
-    # depends on some of the above
-    b.pksetdefault(
+    ).pksetdefault(
         computeJid=lambda: simulation_db.job_id(
             d,
         ).replace(b.analysisModel, b.computeModel),
-        analysisJid=b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,
+    ).pksetdefault(
+        analysisJid=lambda: b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,
         # TODO(robnagler) remove this
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
     )
-        b[k] = d[k] if k in d else v()
-    return b
