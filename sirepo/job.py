@@ -46,13 +46,13 @@ ERROR = 'error'
 MISSING = 'missing'
 RUNNING = 'running'
 #: Valid values for job status
-STATUSES = frozenset(CANCELED, COMPLETED, ERROR, MISSING, RUNNING)
+STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, RUNNING))
 
 SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'
 
 #: categories of jobs
-KINDS = frozenset(SEQUENTIAL, PARALLEL)
+KINDS = frozenset((SEQUENTIAL, PARALLEL))
 
 cfg = None
 

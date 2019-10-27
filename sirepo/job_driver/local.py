@@ -40,8 +40,8 @@ class LocalDriver(job_driver.DriverBase):
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
-    async def allocate(cls, kind, req):
-        return cls.users[kind].get(req.content.uid) or cls(req, await _Slot.allocate(kind))
+    async def allocate(cls, req):
+        return cls.users[kind].get(req.content.uid) or cls(req, await _Slot.allocate(req.kind))
 
     def _free(self):
         k = self.pkdel('kill_timeout')
@@ -70,10 +70,11 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     async def send(cls, req, kwargs):
-        return await super(
-            LocalDriver,
-            await cls.allocate(req.kind), req),
-        ).send(req, kwargs)
+        return (await cls.allocate(req))._send(req, kwargs)
+
+    def terminate(self):
+        if 'subprocess' in self:
+            self.subprocess.proc.kill()
 
     def _agent_on_exit(self, returncode):
         pkcollections.unchecked_del(self, 'subprocess')

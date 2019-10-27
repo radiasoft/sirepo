@@ -46,12 +46,18 @@ class DriverBase(PKDict):
     def receive(cls, msg):
         self.agents[msg.content.agentId]._receive(msg)
 
-    async def send(self, req, kwargs):
+    async def _send(self, req, kwargs):
         await self._websocket_ready.wait()
         o = _Op(opName=kwargs.opName, msg=PKDict(kwargs))
         self.ops[o.opId] = o
         self._websocket.write_message(pkjson.dump_bytes(o.msg))
         return await o.reply_ready(self._websocket)
+
+    @classmethod
+    def terminate(cls):
+        for a in DriverBase.agents.values():
+            for d in a.values():
+                d.kill(terminate=True)
 
     def websocket_on_close(self):
         self._websocket_free()
@@ -94,10 +100,6 @@ class DriverBase(PKDict):
             o.reply(PKDict(state=job.ERROR, error='websocket closed'))
 
 
-async def send(req, kwargs):
-    return await _DEFAULT_CLASS.send(req, kwargs)
-
-
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg
     assert not _CLASSES
@@ -117,6 +119,14 @@ def init():
         _CLASSES[n] = m.init_class()
     assert len(_CLASSES) == 1
     _DEFAULT_CLASS = list(_CLASSES.values())[0]
+
+
+async def send(req, kwargs):
+    return await _DEFAULT_CLASS.send(req, kwargs)
+
+
+def terminate():
+    DriverBase.terminate()
 
 
 class _Op(PKDict):

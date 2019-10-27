@@ -6,11 +6,6 @@
 """
 from __future__ import absolute_import, division, print_function
 import pytest
-import os
-import subprocess
-import time
-from pykern.pkdebug import pkdc, pkdp, pkdlog
-from pykern.pkcollections import PKDict
 
 # TODO(e-carlin): Tests that need to be implemented
 #   - agent never starts
@@ -24,24 +19,28 @@ from pykern.pkcollections import PKDict
 
 
 def test_runStatus():
-    py3_env = _env_setup()
-    from sirepo import srunit
+    py3_env, fc = _env_setup()
     from pykern import pkunit
+    from pykern.pkdebug import pkdc, pkdp, pkdlog
     from sirepo import job
+    from sirepo import srunit
 
-    fc = srunit.flask_client(sim_types='myapp')
+    pkdp('1')
     fc.sr_login_as_guest()
 
     job_supervisor = None
     try:
+        pkdp('1')
         job_supervisor = _start_job_supervisor(py3_env)
         fc.get('/myapp')
+        pkdp('2')
         data = fc.sr_post(
             'listSimulations',
             {'simulationType': 'myapp',
              'search': {'simulationName': 'heightWeightReport'}},
         )
         data = data[0].simulation
+        pkdp('3')
         data = fc.sr_get_json(
             'simulationData',
             params=dict(
@@ -50,6 +49,7 @@ def test_runStatus():
                 simulation_type='myapp',
             ),
         )
+        pkdp('4')
         run = fc.sr_post(
             'runStatus',
             dict(
@@ -59,18 +59,23 @@ def test_runStatus():
                 computeJobHash='fakeHash',
             ),
         )
-        assert run.state == job.Status.MISSING.value
+        pkdp('5')
+        assert run.state == job.MISSING
     finally:
+        pkdp('6')
         if job_supervisor:
+            pkdp('7')
             job_supervisor.terminate()
+            pkdp('8')
             job_supervisor.wait()
 
 
-def test_runSimulation():
+def xtest_runSimulation():
     py3_env = _env_setup()
     from sirepo import srunit
     from pykern import pkunit
     from sirepo import job
+    import time
 
     fc = srunit.flask_client(sim_types='myapp')
     fc.sr_login_as_guest()
@@ -82,7 +87,7 @@ def test_runSimulation():
         data = fc.sr_post(
             'listSimulations',
             {'simulationType': 'myapp',
-             'search': {'simulationName': 'heightWeightReport'}},
+             'search': {'simulation.name': 'heightWeightReport'}},
         )
         data = data[0].simulation
         data = fc.sr_get_json(
@@ -124,6 +129,7 @@ def test_runSimulation():
 
 def xtest_cancel_long_running_job():
     py3_env = _env_setup()
+    from pykern.pkdebug import pkdc, pkdp, pkdlog
     from sirepo import srunit
     from pykern import pkunit
 
@@ -267,6 +273,10 @@ def xtest_one_job_running_at_a_time():
 
 def _assert_py3():
     """Check if the py3 environment is set up properly"""
+    import os
+    import subprocess
+    # DO NOT import pykern or sirepo to avoid pkconfig init too early
+
     res = dict()
     for k, v in os.environ.items():
         if ('PYENV' in k or 'PYTHON' in k):
@@ -288,14 +298,9 @@ def _assert_py3():
         )
     except subprocess.CalledProcessError as e:
         out = e.output
-    from pykern import pkunit
 
-    pkdlog('out is {}', out)
-    pkunit.pkok(
-        '/py3/bin/sirepo' in out,
-        'expecting sirepo in a py3: {}',
-        out,
-    )
+    assert '/py3/bin/sirepo' in out, \
+        'expecting sirepo in a py3: {}'.format(out)
     try:
         out = subprocess.check_output(
             ['pyenv', 'exec', 'sirepo', 'job_supervisor', '--help'],
@@ -304,11 +309,8 @@ def _assert_py3():
         )
     except subprocess.CalledProcessError as e:
         out = e.output
-    pkunit.pkok(
-        'job_supervisor' in out,
-        '"job_supervisor" not in help: {}',
-        out,
-    )
+    assert 'job_supervisor' in out, \
+        '"job_supervisor" not in help: {}'.format(out)
 
     try:
         out = subprocess.check_output(
@@ -318,23 +320,24 @@ def _assert_py3():
         )
     except subprocess.CalledProcessError as e:
         out = e.output
-    pkunit.pkok(
-        'job_driver' in out,
-        '"job_driver" not in help: {}',
-        out,
-    )
+    assert 'job_driver' in out, \
+        'job_driver not in help: {}'.format(out)
     return res
 
 
 def _env_setup():
-    from pykern import pkconfig
+    from sirepo import srunit
 
-    pkconfig.reset_state_for_testing({
-        'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
-        'PYTHONUNBUFFERED': '1',
-    })
-    return _assert_py3()
-
+    return (
+        _assert_py3(),
+        srunit.flask_client(
+            sim_types='myapp',
+            cfg={
+                'SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR': '1',
+                'PYTHONUNBUFFERED': '1',
+            },
+        )
+    )
 
 def _server_up(url):
     import requests
@@ -348,11 +351,14 @@ def _server_up(url):
 def _start_job_supervisor(env):
     from pykern import pkunit
     from sirepo import srdb
+    import subprocess
+    import time
 
     env['SIREPO_SRDB_ROOT'] = str(srdb.root())
     env['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
     env['PYKERN_PKDEBUG_CONTROL'] = 'job|driver'
     env['PYKERN_PKDEBUG_WANT_PID_TIME'] = '1'
+    env['SIREPO_FEATURE_CONFIG_JOB_SUPERVISOR'] = '1'
     job_supervisor = subprocess.Popen(
         ['pyenv', 'exec', 'sirepo', 'job_supervisor'],
         env=env,

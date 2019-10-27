@@ -70,3 +70,5 @@ cfg = pkconfig.init(
         display_test_boxes=(pkconfig.channel_in_internal_test(), bool, 'Display test boxes to visualize 3D -> 2D projections'),
     ),
 )
+from pykern.pkdebug import pkdc, pkdp, pkdlog
+pkdp(cfg.job_supervisor)

@@ -622,7 +622,7 @@ def init_apis(app, *args, **kwargs):
     for e, _ in simulation_db.SCHEMA_COMMON['customErrors'].items():
         app.register_error_handler(int(e), _handle_error)
     importlib.import_module(
-        'sirepo.' + ('job' if feature_config.cfg.job_supervisor else 'runner')
+        'sirepo.' + ('job' if pkdp(feature_config.cfg.job_supervisor) else 'runner')
     ).init_by_server(app)
 
 

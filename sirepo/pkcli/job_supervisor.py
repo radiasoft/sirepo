@@ -129,5 +129,8 @@ def _sigterm(signum, frame):
 
 
 def _terminate():
-    job_supervisor.terminate()
+    try:
+        job_supervisor.terminate()
+    except Exception as e:
+        pkdlog('job_supervisor.terminate except={} stack={}', e, pkdexc())
     tornado.ioloop.IOLoop.current().stop()
