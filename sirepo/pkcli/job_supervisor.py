@@ -25,13 +25,11 @@ cfg = None
 def default_command():
     global cfg
 
-    pkdp('1')
     cfg = pkconfig.init(
         debug=(pkconfig.channel_in('dev'), bool, 'run supervisor in debug mode'),
         ip=(job.DEFAULT_IP, str, 'ip address to listen on'),
         port=(job.DEFAULT_PORT, int, 'what port to listen on'),
     )
-    pkdp('2')
     app = tornado.web.Application(
         [
             (job.AGENT_URI, _AgentMsg),
@@ -39,14 +37,12 @@ def default_command():
         ],
         debug=cfg.debug,
     )
-    pkdp('3')
     server = tornado.httpserver.HTTPServer(app)
     server.listen(cfg.port, cfg.ip)
     signal.signal(signal.SIGTERM, _sigterm)
     signal.signal(signal.SIGINT, _sigterm)
     pkdlog('ip={} port={}', cfg.ip, cfg.port)
     job_supervisor.init()
-    pkdp('9')
     tornado.ioloop.IOLoop.current().start()
 
 
@@ -104,8 +100,7 @@ class _ServerReq(tornado.web.RequestHandler):
         pass
 
     async def post(self):
-        return None
-        #await _incoming(self.request.body, self)
+        await _incoming(self.request.body, self)
 
     def set_default_headers(self):
         self.set_header("Content-Type", 'application/json; charset="utf-8"')
@@ -116,9 +111,7 @@ class _ServerReq(tornado.web.RequestHandler):
 
 
 async def _incoming(content, handler):
-    pkdlog('9999999999999999999999')
     try:
-        pkdlog('xxxxxxxxxxxxxxxxxx')
         c = pkjson.load_any(content)
         pkdc('class={} content={}', handler.sr_class, job.LogFormatter(c))
         await handler.sr_class(handler=handler, content=c).receive()

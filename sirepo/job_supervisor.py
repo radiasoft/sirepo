@@ -46,6 +46,7 @@ class _ComputeJob(PKDict):
         super().__init__(
             computeJid=c.computeJid,
             computeJobHash=c.computeJobHash,
+            error=None,
             isParallel=c.isParallel,
             status=job.MISSING,
             uid=c.uid,
@@ -95,7 +96,7 @@ class _ComputeJob(PKDict):
         def res(**kwargs):
             r = PKDict(**kwargs)
             if self.error:
-                r.error = error
+                r.error = self.error
             if self.isParallel:
                 r.update(**self.parallelStatus)
                 r.elapsedTime = r.lastUpdateTime - r.startTime

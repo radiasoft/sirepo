@@ -68,7 +68,7 @@ def init():
             'for supervisor requests',
         ),
     )
-    pkdp('cfg set {}', cfg)
+    pkdc('cfg={}', cfg)
 
 
 def init_by_server(app):

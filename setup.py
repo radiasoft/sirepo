@@ -12,6 +12,7 @@ pykern.pksetup.setup(
     description='accelerator code gui',
     install_requires=[
         # some "concrete" dependencies in requirements.txt
+        'Flask>=1.1',
         'Flask-OAuthlib',
         'Flask-Mail',
         'Flask_SQLAlchemy',

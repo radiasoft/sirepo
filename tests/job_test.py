@@ -24,20 +24,16 @@ def test_runStatus():
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     from sirepo import job
 
-    pkdp('1')
     job_supervisor = None
     try:
-        pkdp('1')
         job_supervisor = _start_job_supervisor(py3_env)
         fc.get('/myapp')
-        pkdp('2')
         data = fc.sr_post(
             'listSimulations',
             {'simulationType': 'myapp',
              'search': {'simulationName': 'heightWeightReport'}},
         )
         data = data[0].simulation
-        pkdp('3')
         data = fc.sr_get_json(
             'simulationData',
             params=dict(
@@ -46,7 +42,6 @@ def test_runStatus():
                 simulation_type='myapp',
             ),
         )
-        pkdp('4')
         run = fc.sr_post(
             'runStatus',
             dict(
@@ -56,14 +51,10 @@ def test_runStatus():
                 computeJobHash='fakeHash',
             ),
         )
-        pkdp('5')
         assert run.state == job.MISSING
     finally:
-        pkdp('6')
         if job_supervisor:
-            pkdp('7')
             job_supervisor.terminate()
-            pkdp('8')
             job_supervisor.wait()
 
 
