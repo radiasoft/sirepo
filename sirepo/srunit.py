@@ -18,6 +18,9 @@ except ImportError:
     from urllib.parse import urlencode
 
 
+#: Default "app"
+MYAPP = 'myapp'
+
 #: import sirepo.server
 server = None
 
@@ -70,9 +73,9 @@ def flask_client(cfg=None, sim_types=None):
 
 def init_auth_db():
     """Force a request that creates a user in db with just myapp"""
-    fc = flask_client(sim_types='myapp')
-    fc.sr_login_as_guest('myapp')
-    return fc, fc.sr_post('listSimulations', {'simulationType': 'myapp'})
+    fc = flask_client(sim_types=MYAPP)
+    fc.sr_login_as_guest(MYAPP)
+    return fc, fc.sr_post('listSimulations', {'simulationType': MYAPP})
 
 
 def file_as_stream(filename):
@@ -205,13 +208,13 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return _req(
             'root',
-            {'simulation_type': sim_type or 'myapp'},
+            {'simulation_type': sim_type or MYAPP},
             None,
             self.get,
             raw_response=True,
         )
 
-    def sr_login_as_guest(self, sim_type='myapp'):
+    def sr_login_as_guest(self, sim_type=MYAPP):
         """Setups up a guest login
 
         Args:
