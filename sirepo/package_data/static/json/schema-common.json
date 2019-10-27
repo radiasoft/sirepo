@@ -24,6 +24,10 @@
             "longName": "JSPEC",
             "shortName": "JSPEC"
         },
+        "opal": {
+            "longName": "OPAL",
+            "shortName": "OPAL"
+        },
         "rs4pi": {
             "longName": "RS4PI",
             "shortName": "RS4PI"
@@ -204,6 +208,19 @@
                 ["coolwarm", "coolwarm"],
                 ["jet", "jet"],
                 ["contrast", "high contrast"]
+            ],
+            "FramesPerSecond": [
+                ["1", "1"],
+                ["2", "2"],
+                ["5", "5"],
+                ["10", "10"],
+                ["15", "15"],
+                ["20", "20"]
+            ],
+            "PlotRangeType": [
+                ["none", "None"],
+                ["fit", "Fit Data"],
+                ["fixed", "Fixed"]
             ]
         },
         "localRoutes": {

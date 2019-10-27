@@ -703,29 +703,23 @@ def report_info(data):
     )
     if not rep.run_dir.check():
         return rep
-    #TODO(robnagler) Lock
-    try:
-        rep.cached_data = cd = read_json(rep.input_file)
+    #TODO(robnagler) Lock between read and write
+    rep.cached_data = cd = read_json(rep.input_file)
 
-        def _w():
-            with _global_lock:
-                write_json(rep.input_file, cd)
+    def _w():
+        with _global_lock:
+            write_json(rep.input_file, cd)
 
-        rep.cached_hash = sirepo.sim_data.get_class(
-            cd,
-        ).compute_job_hash(
-            cd,
-            changed=_w,
-        )
-        if rep.req_hash == rep.cached_hash:
-            rep.cache_hit = True
-            return rep
-        rep.parameters_changed = True
-    except IOError as e:
-        pkdlog('{}: ignore IOError: {} errno={}', rep.run_dir, e, e.errno)
-    except Exception as e:
-        pkdlog('{}: ignore other error: {}', rep.run_dir, e)
-        # No idea if cache is valid or not so throw away
+    rep.cached_hash = sirepo.sim_data.get_class(
+        cd,
+    ).compute_job_hash(
+        cd,
+        changed=_w,
+    )
+    if rep.req_hash == rep.cached_hash:
+        rep.cache_hit = True
+        return rep
+    rep.parameters_changed = True
     return rep
 
 

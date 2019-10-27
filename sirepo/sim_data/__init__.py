@@ -110,7 +110,7 @@ class SimDataBase(object):
             return 'v2' + res.hexdigest()
 
         try:
-            return data.pksetdefault(computeJobHash=_op)
+            return data.pksetdefault(computeJobHash=_op).computeJobHash
         finally:
             if changed and c.changed:
                 changed()
@@ -147,7 +147,7 @@ class SimDataBase(object):
         Returns:
             bool: True if `filename` in use by `data`
         """
-        return any(f for f in cls.lib_files(data) if f.basename == filename)
+        return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
 
     @classmethod
     def is_watchpoint(cls, name):
@@ -184,7 +184,7 @@ class SimDataBase(object):
         return sorted(set((source_lib.join(f, abs=1) for f in files)))
 
     @classmethod
-    def lib_files(cls, data, source_lib=None):
+    def lib_files(cls, data, source_lib=None, validate_exists=True):
         """Return list of files used by the simulation
 
         Args:
@@ -205,12 +205,14 @@ class SimDataBase(object):
                 continue
             r = cls.resource_path(f.basename)
             if not r.check(file=True):
-                raise sirepo.util.UserAlert(
-                    'Simulation library file "{}" does not exist'.format(f.basename),
-                    'file={} not found, and no resource={}',
-                    f,
-                    r,
-                )
+                if validate_exists:
+                    raise sirepo.util.UserAlert(
+                        'Simulation library file "{}" does not exist'.format(f.basename),
+                        'file={} not found, and no resource={}',
+                        f,
+                        r,
+                    )
+                continue
             pkio.mkdir_parent_only(f)
             r.copy(f)
         return res

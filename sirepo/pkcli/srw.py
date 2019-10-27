@@ -115,7 +115,7 @@ def run_background(cfg_dir):
     v.wm_na = v.sm_na = {particles_per_core}
     # Number of "iterations" per save is best set to num processes
     v.wm_ns = v.sm_ns = {cores}
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 main()
 '''.format(**p)

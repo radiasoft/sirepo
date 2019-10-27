@@ -15,7 +15,7 @@ import copy
 _NON_ALPHA_CODES = ('srw', 'warppba', 'elegant', 'warpvnd', 'jspec', 'synergia', 'zgoubi', 'webcon')
 
 #: Codes on dev and alpha
-_ALPHA_CODES = ('myapp', 'adm', 'flash', 'rs4pi')
+_ALPHA_CODES = ('myapp', 'adm', 'flash', 'rs4pi', 'opal')
 
 #: All possible codes
 _ALL_CODES = _NON_ALPHA_CODES + _ALPHA_CODES

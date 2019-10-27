@@ -28,7 +28,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
-        dm.pksetdefault(optimizer=PKDict()).setdefault(
+        dm.pksetdefault(optimizer=PKDict())
+        dm.optimizer.setdefault(
             constraints=[],
             enabledFields=PKDict(),
             fields=[],

@@ -79,8 +79,8 @@ def _create_zip(sim_type, sim_id, want_python):
     Returns:
         py.path.Local: zip file name
     """
+    from sirepo import sim_data
     from sirepo import simulation_db
-    from sirepo.template import template_common
 
     #TODO(robnagler) need a lock
     with pkio.save_chdir(simulation_db.tmp_dir()):
@@ -88,7 +88,7 @@ def _create_zip(sim_type, sim_id, want_python):
         data = simulation_db.open_json_file(sim_type, sid=sim_id)
         if 'report' in data:
             del data['report']
-        files = template_common.lib_files(data)
+        files = sim_data.get_class(data).lib_files(data)
         files.insert(0, simulation_db.sim_data_file(data.simulationType, sim_id))
         if want_python:
             files.append(_python(data))

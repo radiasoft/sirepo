@@ -554,7 +554,7 @@ def remove_last_frame(run_dir):
 def validate_file(file_type, path):
     """Ensure the data file contains parseable rows data"""
     if not _SIM_DATA.srw_is_valid_file_type(file_type, path):
-        return 'invalid file type: {}'.format(extension)
+        return 'invalid file type: {}'.format(path.ext)
     if file_type == 'mirror':
         # mirror file
         try:
@@ -1198,18 +1198,18 @@ def _generate_srw_main(data, plot_reports):
         content.append('v.ws = True')
         if plot_reports:
             content.append("v.ws_pl = 'xy'")
+    #TODO(pjm): work-around for #1593
+    content.append('mag = None')
+    content.append("if v.rs_type == 'm':")
+    for line in (
+            'mag = srwlib.SRWLMagFldC()',
+            'mag.arXc.append(0)',
+            'mag.arYc.append(0)',
+            'mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))',
+            'mag.arZc.append(v.mp_zc)',
+    ):
+        content.append('    {}'.format(line))
     if plot_reports or not _SIM_DATA.srw_is_background_report(report):
-        #TODO(pjm): work-around for #1593
-        content.append('mag = None')
-        content.append("if v.rs_type == 'm':")
-        for line in (
-                'mag = srwlib.SRWLMagFldC()',
-                'mag.arXc.append(0)',
-                'mag.arYc.append(0)',
-                'mag.arMagFld.append(srwlib.SRWLMagFldM(v.mp_field, v.mp_order, v.mp_distribution, v.mp_len))',
-                'mag.arZc.append(v.mp_zc)',
-        ):
-            content.append('    {}'.format(line))
         content.append('srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)')
     return '\n'.join(['    {}'.format(x) for x in content])
 

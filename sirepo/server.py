@@ -576,7 +576,7 @@ def api_uploadFile(simulation_type, simulation_id, file_type):
         f.save(str(p))
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'validate_file'):
-            err = template.validate_file(file_type, str(p))
+            err = template.validate_file(file_type, p)
             if err:
                 pkio.unchecked_remove(p)
     if err:

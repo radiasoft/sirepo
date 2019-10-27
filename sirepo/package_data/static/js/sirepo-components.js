@@ -2044,7 +2044,7 @@ SIREPO.app.directive('importDialog', function(appState, fileManager, fileUpload,
     };
 });
 
-SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $location, $window, $timeout) {
+SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileManager, panelState, requestSender, $compile, $window, $timeout) {
 
     return {
         restrict: 'A',
@@ -2149,23 +2149,19 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                         return $scope.relatedSimulations.length > 0;
                     }
                     currentSimulationId = appState.models.simulation.simulationId;
-                    requestSender.sendRequest(
-                        'listSimulations',
+                    appState.listSimulations(
                         function(data) {
-                            for (var i = 0; i < data.length; i++) {
-                                var item = data[i];
+                            data.some(function(item, idx) {
                                 if (item.simulationId == currentSimulationId) {
-                                    data.splice(i, 1);
-                                    break;
+                                    data.splice(idx, 1);
+                                    return true;
                                 }
-                            }
+                            });
                             $scope.relatedSimulations = data;
                         },
                         {
                             simulationType: SIREPO.APP_SCHEMA.simulationType,
-                            search: {
-                                'simulation.folder': appState.models.simulation.folder,
-                            },
+                            'simulation.folder': appState.models.simulation.folder,
                         });
                 }
                 return false;
@@ -2214,7 +2210,6 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
 
             function loadList() {
                 appState.listSimulations(
-                    $location.search(),
                     function(data) {
                         $scope.doneLoadingSimList = true;
                         fileManager.updateTreeFromFileList(data);

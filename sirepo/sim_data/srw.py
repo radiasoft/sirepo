@@ -78,6 +78,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             'brillianceReport',
             'coherenceXAnimation',
             'coherenceYAnimation',
+            'electronBeamPosition',
             'fluxAnimation',
             'fluxReport',
             'gaussianBeam',
@@ -142,6 +143,17 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.simulation.folder = cls.__EXAMPLE_FOLDERS[dm.simulation.name]
             else:
                 dm.simulation.folder = '/'
+        if 'horizontalPosition' in dm.electronBeam:
+            e = dm.electronBeam
+            dm.electronBeamPosition.update(dict(
+                horizontalPosition=e.horizontalPosition,
+                verticalPosition=e.verticalPosition,
+                driftCalculationMethod=e.get('driftCalculationMethod', 'auto'),
+                drift=e.get('drift', 0),
+            ))
+            for f in 'horizontalPosition', 'verticalPosition', 'driftCalculationMethod', 'drift':
+                if f in e:
+                    del e[f]
         cls._template_fixup_set(data)
 
 
@@ -186,7 +198,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 x = f.check(file=1) and op(f)
                 if x:
                     res.append(x)
-        return sorted(res)
+        return res
 
     @classmethod
     def srw_format_float(cls, v):
@@ -279,6 +291,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data):
         r = data['report']
+        if 'Animation' in r:
+            return []
         if r == 'mirrorReport':
             return [
                 'mirrorReport.heightProfileFile',
@@ -340,6 +354,10 @@ class SimData(sirepo.sim_data.SimDataBase):
             s = cls.schema()
             for m in dm.beamline:
                 for k, v in s.model[m.type].items():
+                    if k not in m:
+                        # field may be missing and fixups are not applied
+                        # until sim is loaded in prepare_for_client()
+                        continue
                     t = v[1]
                     if m[k] and t in ('MirrorFile', 'ImageFile'):
                         res.append(m[k])
