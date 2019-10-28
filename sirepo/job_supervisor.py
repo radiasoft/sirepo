@@ -75,24 +75,24 @@ class _ComputeJob(PKDict):
             if self.computeJobHash != req.content.computeJobHash:
                 raise AssertionError('FIXME')
             return PKDict(state=job.RUNNING)
-        if not (req.content.get('forceRun')
-            or not (
-                self.computeJobHash == req.content.computeJobHash
-                and self.status == job.COMPLETED
-            )
+        if (req.content.get('forceRun')
+            or self.computeJobHash != req.content.computeJobHash
+            or self.status != job.COMPLETED
         ):
-            return PKDict(state=self.status)
-        self.status = job.PENDING
-        self.error = None
-        if self.isParallel:
-            t = time.time()
-            self.parallelStatus = PKDict(
-                frameCount=0,
-                lastUpdateTime=t,
-                percentComplete=0.0,
-                startTime=t,
-            )
-        tornado.ioloop.IOLoop.current().add_callback(self._run, req)
+            self.computeJobHash = req.content.computeJobHash
+            self.isParralel = req.content.isParallel
+            self.parallelStatus = None
+            self.error = None
+            self.status = job.PENDING
+            if self.isParallel:
+                t = time.time()
+                self.parallelStatus = PKDict(
+                    frameCount=0,
+                    lastUpdateTime=t,
+                    percentComplete=0.0,
+                    startTime=t,
+                )
+            tornado.ioloop.IOLoop.current().add_callback(self._run, req)
         return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
@@ -115,7 +115,6 @@ class _ComputeJob(PKDict):
                     ),
                 )
             return r
-
         if self.computeJobHash != req.content.computeJobHash:
             return res(state=job.MISSING)
         if self.isParallel or self.status != job.COMPLETED:
