@@ -8,12 +8,69 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc
 from sirepo import mpi
 from sirepo import simulation_db
 from sirepo.template import template_common
 from sirepo.template.srw import extract_report_data, get_filename_for_model
+import copy
 import numpy as np
+
+
+def create_predefined():
+    from sirepo.template import srw_common
+    import sirepo.sim_data
+    import srwl_uti_src
+    import pykern.pkjson
+
+    sim_data = sirepo.sim_data.get_class('srw')
+    beams = []
+    for beam in srwl_uti_src.srwl_uti_src_e_beam_predef():
+        info = beam[1]
+        # _Iavg, _e, _sig_e, _emit_x, _beta_x, _alpha_x, _eta_x, _eta_x_pr, _emit_y, _beta_y, _alpha_y
+        beams.append(
+            srw_common.process_beam_parameters(PKDict(
+                name=beam[0],
+                current=info[0],
+                energy=info[1],
+                rmsSpread=info[2],
+                horizontalEmittance=sim_data.srw_format_float(info[3] * 1e9),
+                horizontalBeta=info[4],
+                horizontalAlpha=info[5],
+                horizontalDispersion=info[6],
+                horizontalDispersionDerivative=info[7],
+                verticalEmittance=sim_data.srw_format_float(info[8] * 1e9),
+                verticalBeta=info[9],
+                verticalAlpha=info[10],
+                verticalDispersion=0,
+                verticalDispersionDerivative=0,
+                energyDeviation=0,
+                horizontalPosition=0,
+                verticalPosition=0,
+                drift=0.0,
+                isReadOnly=True,
+            )),
+        )
+
+    def f(file_type):
+        return sim_data.srw_files_for_type(
+            file_type,
+            lambda f: PKDict(fileName=f.basename),
+            dir_path=sim_data.resource_dir(),
+        )
+
+    p = sim_data.resource_path(srw_common.PREDEFINED_JSON)
+    pykern.pkjson.dump_pretty(
+        PKDict(
+            beams=beams,
+            magnetic_measurements=f('undulatorTable'),
+            mirrors=f('mirror'),
+            sample_images=f('sample'),
+        ),
+        filename=p,
+    )
+    return 'Created {}'.format(p)
 
 
 def python_to_json(run_dir='.', in_py='in.py', out_json='out.json'):
@@ -58,7 +115,7 @@ def run_background(cfg_dir):
     v.wm_na = v.sm_na = {particles_per_core}
     # Number of "iterations" per save is best set to num processes
     v.wm_ns = v.sm_ns = {cores}
-    srwl_bl.SRWLBeamline(_name=v.name).calc_all(v, op)
+    srwl_bl.SRWLBeamline(_name=v.name, _mag_approx=mag).calc_all(v, op)
 
 main()
 '''.format(**p)

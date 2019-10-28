@@ -1,6 +1,7 @@
 
 import math
 import scipy
+from numpy import linalg
 from rswarp.diagnostics import ConductorTemplates
 from rswarp.diagnostics.ConductorTemplates import conductor_type_2d, conductor_type_3d
 from rswarp.diagnostics import ImpactDensity
@@ -23,11 +24,58 @@ def _linear_fit_1d(arr):
     sk = (arr[len(arr) - 1] - arr[0]) / (len(arr) - 1) if len(arr) > 1 else 0
     return sk
 
+def _polys_for_stl(cond):
+    with h5py.File('{{ polyFile }}', 'r') as hf:
+        p = cond['s'] * np.array(hf['polys'])
+    p_t = p.T
+    bounds = np.array([
+        np.min(p_t[0]),
+        np.max(p_t[0]),
+        np.min(p_t[1]),
+        np.max(p_t[1]),
+        np.min(p_t[2]),
+        np.max(p_t[2])
+    ])
+    b_ctr = np.array([
+        bounds[0] + (bounds[1] - bounds[0]) / 2.,
+        bounds[2] + (bounds[3] - bounds[2]) / 2.,
+        bounds[4] + (bounds[5] - bounds[4]) / 2.,
+    ])
+    offsets = np.array([cond['cx'], cond['cy'], cond['cz']]) - b_ctr
+    return p + offsets
+
+def _vertices_from_stl(cond):
+    verts = [line.rstrip('\r\n')[len('vertex '):].split(' ') for line in open(cond['f']) if line.startswith('vertex')]
+    ctr = np.array([cond['cx'], cond['cy'], cond['cz']])
+
+    np_verts = cond['s'] * np.array(verts).astype(np.float)
+    np_verts_t = np_verts.T
+    bounds = np.array([
+        np.min(np_verts_t[0]),
+        np.max(np_verts_t[0]),
+        np.min(np_verts_t[1]),
+        np.max(np_verts_t[1]),
+        np.min(np_verts_t[2]),
+        np.max(np_verts_t[2])
+    ])
+    b_ctr = np.array([
+        bounds[0] + (bounds[1] - bounds[0]) / 2.,
+        bounds[2] + (bounds[3] - bounds[2]) / 2.,
+        bounds[4] + (bounds[5] - bounds[4]) / 2.,
+    ])
+    offsets = ctr - b_ctr
+    return np_verts + offsets
+
+density_results = None
 try:
     i_data = []
-    # add use_aura=True when available in rswarp
-    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d)
+    plot_density = ImpactDensity.PlotDensity(None, None, scraper, wp.top, wp.w3d, use_aura=True)
+except AssertionError as e:
+    density_results = {
+        'error': e.message,
+    }
 
+if can_write_files and not density_results:
     # Old style data, keeping for the moment
     if not hasattr(plot_density, 'conductors'):
         plot_density.gate_scraped_particles()
@@ -47,113 +95,59 @@ try:
         i_data = []
         global_max = 0.
         for i in plot_density.conductors:
-            c_data = []
+            c_data = {}
             c = plot_density.conductors[i]
+            c_data['id'] = c.conductor.condid
+            c_data['faces'] = []
             {% if is3D %}
             coord_keys = ['x', 'y', 'z']
             try:
                 min_s, max_s, d = plot_density.generate_plot_data_for_faces_3d(c)
-            except ValueError:
+            except:
                 err = 'Cannot generate impact density for conductor {}'.format(c.conductor.condid)
                 print(err)
                 f_data = {
                     'err': err
                 }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
                 i_data.append(c_data)
                 continue
+            verts = np.array([])
+            if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
+                c_data['type'] = 'unstructured'
+                verts = _vertices_from_stl(stl_conductors[c.conductor.condid])
+
             global_max = max(global_max, max_s)
+            neighborhood = np.array([abs(dx / 2.), abs(dy / 2.), abs(dz / 2.)])
             for (x, y, z, s) in d:
                 h = np.histogram(s, bins=20)[0]
                 e = np.histogram(s, bins=20)[1]
                 s_aves = []
+                pts = 1e-09 * np.array([x, y, z]).T
                 f_data = {
                     'dArr': s.tolist(),
                     'n': len(x)
                 }
 
-                # unstructured data is in one-dimensional arrays; we need all the coordinates in that case
                 if isinstance(c, ConductorTemplates.conductor_type_3d['Unstructured']):
 
-                    f_data['type'] = 'unstructured'
+                    ps = np.array([])
+                    for poly in _polys_for_stl(stl_conductors[c.conductor.condid]):
+                        inds = np.array([])
+                        ctr = np.mean(poly, axis=0)
+                        for vert in poly:
+                            v_inds = np.where(np.all(np.abs(pts - vert) < neighborhood, axis=1))
+                            inds = np.append(inds, v_inds).astype(int)
+                        dc = np.linalg.norm(ctr - pts[inds], axis=1)
+                        if len(inds) > 0:
+                            # weight points by dist to centroid?
+                            ps = np.append(ps, np.mean(s[inds]))
+                        else:
+                            ps = np.append(ps, -1.)
 
-                    xx = np.array([])
-                    yy = np.array([])
-                    zz = np.array([])
-                    ss = np.array([])
+                    f_data['dArr'] = ps.tolist()
+                    f_data['n'] = len(ps)
 
-                    #####
-
-                    # 3d triangulation
-                    # This gives us tetrahedrons but we'll split them into triangles for vtk, which has not yet ported
-                    # tetras from c++ to js
-                    pts = np.dstack((x, y, z))[0]
-                    try:
-                        dlny = scipy.spatial.Delaunay(pts)
-                    except scipy.spatial.qhull.QhullError:
-                        err = 'Cannot triangulate conductor {}'.format(c.conductor.condid)
-                        print(err)
-                        f_data['err'] = err
-                        c_data.append(f_data)
-                        continue
-
-                    f_data['dims'] = 3
-                    tets = dlny.simplices
-
-                    # the triangles that make up the tetrahedron
-                    tris = [
-                        [0, 1, 2],
-                        [0, 1, 3],
-                        [0, 2, 3],
-                        [1, 2, 3]
-                    ]
-                    for tet in tets:
-                        for tri in tris:
-                            tetra_tri = tet[tri]
-                            xx = np.append(xx, x[tetra_tri])
-                            yy = np.append(yy, y[tetra_tri])
-                            zz = np.append(zz, z[tetra_tri])
-                            ss = np.append(ss, np.mean(s[tetra_tri]))
-                            # useful for viewing the triangulation independent of the generated color map
-                            # ss = np.append(ss, np.mean(x[tetra_tri]))
-
-                    #####
-
-                    # 2d triangulation for each individual plane in z
-                    # Use as fallback if 3d fails (?)
-                    #uniq_z = np.unique(z)
-                    #pts = np.dstack((x, y))[0]
-
-                    #for uz in uniq_z:
-                    #for uz_idx, uz in enumerate(uniq_z):
-                    #    if uz_idx > 0:
-                    #        break
-                    #    pts_at_z = pts[np.where(z == uz)]
-                    #    s_at_z = s[np.where(z == uz)]
-                    #    try:
-                    #       dlny = scipy.spatial.Delaunay(pts_at_z)
-                    #    except scipy.spatial.qhull.QhullError:
-                    #        print('Cannot triangulate conductor {}'.format(c))
-                    #        f_data['err'] = 'Cannot triangulate conductor'
-                    #        c_data.append(f_data)
-                    #        continue
-                    #    f_data['dims'] = 2
-                    #    tris = dlny.simplices
-                    #    xx = np.append(xx, pts_at_z[tris][:, :, 0])
-                    #    yy = np.append(yy, pts_at_z[tris][:, :, 1])
-                    #    # send single z value?
-                    #    zz = np.append(zz, uz * np.ones(len(tris[0]) * len(tris)))
-                    #    for tri in tris:
-                    #        ss = np.append(ss, np.mean(s_at_z[tri]))
-                    #        #ss = np.append(ss, np.mean(pts_at_z[tris][:, :, 0]))
-
-                    #####
-
-                    f_data['dArr'] = ss.tolist()
-                    f_data['n'] = len(ss)
-
-                    for cx, coord in enumerate((xx, yy, zz)):
-                        f_data[coord_keys[cx]] = coord
                 else:
                     f_data['type'] = 'plane'
                     f_data['m'] = len(x[0])
@@ -164,7 +158,7 @@ try:
                             'slopek': sk,
                             'slopel': sl
                         }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% else %}
             coord_keys = ['x', 'z']
             min_s, max_s, d = plot_density.generate_plot_data_for_faces_2d(c)
@@ -195,7 +189,7 @@ try:
                         'startVal': coord[0],
                         'slopek': sk
                     }
-                c_data.append(f_data)
+                c_data['faces'].append(f_data)
             {% endif %}
             i_data.append(c_data)
 
@@ -210,13 +204,6 @@ try:
             'max': global_max,
         }
 
-except AssertionError as e:
-    message = e.message
-    if wp.top.npslost[0] <= 0:
-        message = 'No particles made impact. Nothing to plot.'
-    density_results = {
-        'error': message,
-    }
-hf = h5py.File('{{ densityFile }}')
-dict_to_h5(density_results, hf, path='density')
-hf.close()
+if can_write_files:        
+    with h5py.File('{{ densityFile }}') as hf:
+        dict_to_h5(density_results, hf, path='density')

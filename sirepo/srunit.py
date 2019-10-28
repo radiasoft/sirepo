@@ -6,11 +6,6 @@ u"""Support for unit tests
 """
 from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
-from pykern import pkconfig
-from pykern import pkio
-from pykern import pkjson
-from pykern import pkunit
-from pykern.pkdebug import pkdp, pkdc, pkdexc, pkdlog, pkdpretty
 import flask
 import flask.testing
 import json
@@ -53,7 +48,14 @@ def flask_client(cfg=None, sim_types=None):
     if sim_types:
         cfg['SIREPO_FEATURE_CONFIG_SIM_TYPES'] = sim_types
     if not (server and hasattr(app, a)):
+        from pykern import pkconfig
+
+        # initialize pkdebug with correct values
+        pkconfig.reset_state_for_testing(cfg)
+
+        from pykern import pkunit
         with pkunit.save_chdir_work() as wd:
+            from pykern import pkio
             cfg['SIREPO_SRDB_ROOT'] = str(pkio.mkdir_parent(wd.join('db')))
             pkconfig.reset_state_for_testing(cfg)
             from sirepo import server as s
@@ -66,11 +68,11 @@ def flask_client(cfg=None, sim_types=None):
     return getattr(app, a)
 
 
-def init_auth_db(*args, **kwargs):
-    """Force a request that creates a user in db"""
-    fc = flask_client(*args, **kwargs)
+def init_auth_db():
+    """Force a request that creates a user in db with just myapp"""
+    fc = flask_client(sim_types='myapp')
     fc.sr_login_as_guest('myapp')
-    fc.sr_post('listSimulations', {'simulationType': 'myapp'})
+    return fc, fc.sr_post('listSimulations', {'simulationType': 'myapp'})
 
 
 def file_as_stream(filename):
@@ -87,6 +89,8 @@ def file_as_stream(filename):
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
     fc = flask_client(cfg, **kwargs)
     try:
+        from pykern import pkunit
+
         if before_request:
             before_request(fc)
         setattr(
@@ -144,6 +148,8 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             dict: parsed auth_state
         """
+        from pykern import pkunit
+
         m = re.search(r'(\{.*\})', self.sr_get('authState').data)
         s = pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
@@ -170,7 +176,7 @@ class _TestClient(flask.testing.FlaskClient):
         """
         return _req(route_name, params, query, self.get, raw_response=True)
 
-    def sr_get_json(self, route_name, params=None, query=None):
+    def sr_get_json(self, route_name, params=None, query=None, headers=None):
         """Gets a request to route_name to server
 
         Args:
@@ -180,7 +186,13 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: Parsed JSON result
         """
-        return _req(route_name, params, query, self.get, raw_response=False)
+        return _req(
+            route_name,
+            params,
+            query,
+            lambda r: self.get(r, headers=headers),
+            raw_response=False,
+        )
 
     def sr_get_root(self, sim_type=None):
         """Gets root app for sim_type
@@ -255,6 +267,9 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             dict: data
         """
+        from pykern import pkunit
+        from pykern.pkdebug import pkdpretty
+
         data = self.sr_post('listSimulations', {'simulationType': sim_type})
         for d in data:
             if d['name'] == sim_name:
@@ -293,6 +308,8 @@ def _req(route_name, params, query, op, raw_response):
             return resp
         return pkcollections.json_load_any(resp.data)
     except Exception as e:
+        from pykern.pkdebug import pkdlog
+
         pkdlog('Exception: {}: msg={} uri={} resp={}', type(e), e, uri, resp)
         raise
 

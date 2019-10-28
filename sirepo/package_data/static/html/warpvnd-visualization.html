@@ -30,6 +30,9 @@
                 </div>
               </div>
             </div>
+            <div class="form-group" data-ng-if="visualization.warpvndService.is3D()">
+              <div data-model-field="'executionMode'" data-model-name="'simulation'" data-label-size="4"></div>
+            </div>
             <div class="form-group">
               <div data-ng-if="! visualization.warpvndService.isEGunMode()" data-model-field="'num_steps'" data-model-name="'simulationGrid'" data-label-size="4"></div>
               <div class="col-sm-5 pull-right">
@@ -39,7 +42,7 @@
           </div>
         </div>
         <div class="col-sm-12" data-ng-if="visualization.hasFrames('fieldAnimation')">
-          <div data-report-panel="heatmap" data-model-name="fieldAnimation"></div>
+          <div data-field-animation="" data-model-name="fieldAnimation"></div>
         </div>
         <div class="col-sm-12" data-ng-if="visualization.hasFrames('particleAnimation')">
           <div data-report-panel="particle" data-model-name="particleAnimation"></div>
@@ -50,10 +53,10 @@
       <div data-ng-if="! visualization.warpvndService.isEGunMode(true)" data-report-panel="parameter" data-model-name="currentAnimation"></div>
       <div data-ng-if="visualization.warpvndService.isEGunMode(true)" data-report-panel="parameter" data-model-name="egunCurrentAnimation"></div>
     </div>
-    <div class="col-md-6" data-ng-if="! visualization.warpvndService.is3D() && visualization.hasFrames('impactDensityAnimation')">
+    <div class="col-md-6" data-ng-if="! visualization.ranIn3d && visualization.hasFrames('impactDensityAnimation')">
       <div data-report-panel="impactDensity" data-model-name="impactDensityAnimation"></div>
     </div>
-    <div class="col-md-6" data-ng-if="visualization.warpvndService.is3D() && visualization.hasFrames('particleAnimation')">
+    <div class="col-md-6" data-ng-if="visualization.ranIn3d && visualization.hasFrames('particleAnimation')">
       <div data-report-panel="particle3d" data-model-name="particle3d"></div>
     </div>
   </div>

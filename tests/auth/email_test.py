@@ -47,6 +47,27 @@ def test_different_email():
     pkok(uid != uid2, 'did not get a new uid={}', uid)
 
 
+def test_follow_email_auth_link_twice():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre
+    from pykern.pkdebug import pkdp
+    import re
+
+    r = fc.sr_post(
+        'authEmailLogin',
+        {'email': 'follow@b.c', 'simulationType': sim_type},
+    )
+    s = fc.sr_auth_state(isLoggedIn=False)
+    fc.get(r.url)
+    # get the url twice - should still be logged in
+    assert not re.search(r'login-fail', fc.get(r.url).data)
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+    # now logged out, should see login fail for bad link
+    pkre('login-fail', fc.get(r.url).data)
+
+
 def test_force_login():
     fc, sim_type = _fc()
 
@@ -77,6 +98,70 @@ def test_force_login():
     )
     d = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq(1, len(d))
+
+
+def test_guest_merge():
+    fc, sim_type = _fc()
+
+    from pykern.pkunit import pkeq
+    from pykern.pkdebug import pkdp
+
+    # Start as a guest user
+    fc.sr_login_as_guest(sim_type)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type},
+    )
+    pkeq(1, len(d), 'expecting only one simulation: data={}', d)
+    d = d[0].simulation
+    # Copy a sim as a guest user
+    d = fc.sr_post(
+        'copySimulation',
+        dict(
+            simulationId=d.simulationId,
+            simulationType=sim_type,
+            name='guest-sim',
+        ),
+    )
+    guest_uid = fc.sr_auth_state().uid
+
+    # Convert to email user
+    r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
+    s = fc.sr_auth_state(isLoggedIn=True, method='guest')
+    fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+    )
+    r = fc.sr_auth_state(method='email', uid=guest_uid)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type, 'search': {'simulationName': 'Scooby Doo'}},
+    )
+    d = d[0].simulation
+    # Copy sim as an email user
+    d = fc.sr_post(
+        'copySimulation',
+        dict(
+            simulationId=d.simulationId,
+            simulationType=sim_type,
+            name='email-sim',
+        ),
+    )
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+
+    # Login as email user
+    r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
+    fc.get(r.url)
+    d = fc.sr_post(
+        'listSimulations',
+        {'simulationType': sim_type},
+    )
+    # Sims from guest and email present
+    pkeq([u'Scooby Doo', u'email-sim', u'guest-sim'], sorted([x.name for x in d]))
 
 
 def test_happy_path():
@@ -111,6 +196,39 @@ def test_happy_path():
         isLoggedIn=False,
         needCompleteRegistration=False,
         uid=uid,
+        userName=None,
+    )
+
+
+def test_invalid_method():
+    fc, sim_type = _fc()
+
+    from pykern import pkconfig, pkunit, pkio
+    from pykern.pkunit import pkok, pkre
+    from pykern.pkdebug import pkdp
+    import re
+
+    # login as a new user, not in db
+    r = fc.sr_post('authEmailLogin', {'email': 'will-be-invalid@b.c', 'simulationType': sim_type})
+    fc.get(r.url)
+    fc.sr_post(
+        'authCompleteRegistration',
+        {
+            'displayName': 'abc',
+            'simulationType': sim_type,
+        },
+    )
+    fc.sr_post('listSimulations', {'simulationType': sim_type})
+    import sirepo.auth
+    sirepo.auth.cfg.methods = set(['guest'])
+    sirepo.auth.cfg.deprecated_methods = set()
+    sirepo.auth.visible_methods = sirepo.auth.valid_methods = tuple(sirepo.auth.cfg.methods)
+    sirepo.auth.non_guest_methods = tuple()
+    fc.sr_auth_state(
+        displayName=None,
+        isLoggedIn=False,
+        needCompleteRegistration=False,
+        uid=None,
         userName=None,
     )
 
@@ -157,6 +275,20 @@ def test_oauth_conversion(monkeypatch):
         userName='emailer@test.com',
     )
 
+def test_token_expired(monkeypatch):
+    fc, sim_type = _fc()
+
+    from sirepo import srtime
+
+    r = fc.sr_post(
+        'authEmailLogin',
+        {'email': 'expired@b.c', 'simulationType': sim_type},
+    )
+    login_url = r.url
+    srtime.adjust_time(1)
+    r = fc.get(login_url)
+    s = fc.sr_auth_state(isLoggedIn=False)
+
 
 def test_token_reuse():
     fc, sim_type = _fc()
@@ -171,7 +303,7 @@ def test_token_reuse():
         {'email': 'reuse@b.c', 'simulationType': sim_type},
     )
     login_url = r.url
-    r = fc.get(r.url)
+    r = fc.get(login_url)
     s = fc.sr_auth_state(userName='reuse@b.c')
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
     r = fc.get(login_url)

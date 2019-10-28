@@ -79,7 +79,7 @@ def set_optics(v=None):
             )
             el.append(crystal)
             pp.append(v.op_MOAT_2_pp)
-            
+
         elif el_name == 'MOAT_2_HFM':
             # MOAT_2_HFM: drift 31.99m
             el.append(srwlib.SRWLOptD(

@@ -11,11 +11,12 @@
                 <a href="" data-ng-click="toggleImpact()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpact, 'glyphicon-unchecked': ! showImpact}"></span></a> Impact Points
               </div>
               <div data-ng-show="hasReflected">
-                <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Reflected
+                <a href="" data-ng-click="toggleReflected()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showReflected, 'glyphicon-unchecked': ! showReflected}"></span></a> Lost
               </div>
               <div>
                 <a href="" data-ng-click="toggleConductors()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showConductors, 'glyphicon-unchecked': ! showConductors}"></span></a> Conductors
-                &nbsp;&nbsp;&nbsp;<span data-ng-show="enableImpactDensity"><a href=""  data-ng-click="toggleImpactDensity()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpactDensity, 'glyphicon-unchecked': ! showImpactDensity}"></span></a> Impact Density</span>
+                &nbsp;&nbsp;&nbsp;<span data-ng-show="enableSTLPolys"><a href=""  data-ng-click="toggleSTLPolys()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showSTLPolys, 'glyphicon-unchecked': ! showSTLPolys}"></span></a> Show Polygons </span>
+                   &nbsp;<span data-ng-show="enableImpactDensity"><a href=""  data-ng-click="toggleImpactDensity()"><span class="glyphicon" data-ng-class="{'glyphicon-check': showImpactDensity, 'glyphicon-unchecked': ! showImpactDensity}"></span></a> Impact Density</span>
               </div>
             </div>
             <div class="col-sm-6">

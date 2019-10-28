@@ -129,25 +129,27 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function($rootScope, appState, errorService) {
+SIREPO.app.factory('authState', function(appDataService, appState, errorService, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
     if (SIREPO.authState.isGuestUser && ! SIREPO.authState.isLoginExpired) {
         appState.whenModelsLoaded(
             $rootScope,
             function() {
-                errorService.alertText(
-                    'You are accessing Sirepo as a guest. ' +
-                    'Guest sessions are regularly deleted. ' +
-                    'To ensure that your work is saved, please click on Save Your Work!.'
-                );
+                if (appDataService.isApplicationMode('default')) {
+                    errorService.alertText(
+                        'You are accessing Sirepo as a guest. ' +
+                            'Guest sessions are regularly deleted. ' +
+                            'To ensure that your work is saved, please click on Save Your Work!.'
+                    );
+                }
             }
         );
     }
     return self;
 });
 
-SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appState, authState) {
+SIREPO.app.factory('activeSection', function(authState, requestSender, $location, $route, $rootScope, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -160,7 +162,11 @@ SIREPO.app.factory('activeSection', function($route, $rootScope, $location, appS
 
     $rootScope.$on('$routeChangeSuccess', function() {
         if ($route.current.params.simulationId) {
-            appState.loadModels($route.current.params.simulationId, null, self.getActiveSection());
+            appState.loadModels(
+                $route.current.params.simulationId,
+                // clear aux data (ex. list items) each time a simulation is loaded
+                requestSender.clearAuxillaryData,
+                self.getActiveSection());
         }
     });
 
@@ -415,7 +421,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         return  name.indexOf('Report') >= 0 || self.isAnimationModelName(name) || name.indexOf('Status') >= 0;
     };
 
-    self.listSimulations = function(search, op) {
+    self.listSimulations = function(op, search) {
         requestSender.sendRequest(
             'listSimulations',
             function(data) {
@@ -748,47 +754,15 @@ SIREPO.app.service('validationService', function(utilities) {
     this.fieldValidators = {};
     this.enumValidators = {};
 
-    this.setFieldValidator = function(name, validatorFn, messageFn) {
-        if(! this.fieldValidators[name]) {
-            this.fieldValidators[name] = {};
-        }
-        this.fieldValidators[name].vFunc = validatorFn;
-        this.fieldValidators[name].vMsg = messageFn;
-        return this.fieldValidators[name];
-    };
-    this.getFieldValidator = function(name) {
-        return this.fieldValidators[name];
-    };
-    this.removeFieldValidator = function(name) {
-        if(this.fieldValidators[name]) {
-            delete this.fieldValidators[name];
-        }
-    };
-    this.reloadValidatorForModel = function(name, modelValidatorName, ngModel) {
-        var fv = this.getFieldValidator(name);
-        if(! ngModel.$validators[modelValidatorName]) {
-            if(fv) {
-                ngModel.$validators[modelValidatorName] = fv.vFunc;
-            }
-        }
-    };
-    this.getMessageForModel = function(name, modelValidatorName, ngModel) {
-        if(! ngModel.$validators[modelValidatorName]) {
-            return '';
-        }
-        var fv = this.getFieldValidator(name);
-        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
-    };
-
     // lazy creation of validator, plus special handling
     this.getEnumValidator = function(enumName) {
 
         var validator = this.getFieldValidator(enumName);
-        if(validator) {
+        if (validator) {
             return validator;
         }
         var enums = SIREPO.APP_SCHEMA.enum[enumName];
-        if(! enums) {
+        if (! enums) {
             throw enumName + ':' + ' no such enum';
         }
         var isValid = function(name) {
@@ -801,12 +775,76 @@ SIREPO.app.service('validationService', function(utilities) {
         };
         validator = this.setFieldValidator(enumName, isValid, err);
         validator.find = function (name) {
-            if(! validator.vFunc(name)) {
+            if (! validator.vFunc(name)) {
                 throw validator.vMsg(name);
             }
             return name;
         };
         return validator;
+    };
+
+    this.getFieldValidator = function(name) {
+        return this.fieldValidators[name];
+    };
+
+    this.getMessageForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            return '';
+        }
+        var fv = this.getFieldValidator(name);
+        return fv ? (! ngModel.$valid ? fv.vMsg(ngModel.$viewValue) : '') : '';
+    };
+
+    this.getModelFieldMessage = function (modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.getMessageForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.reloadValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        var fv = this.getFieldValidator(name);
+        if (! ngModel.$validators[ngModelValidatorName]) {
+            if (fv) {
+                ngModel.$validators[ngModelValidatorName] = fv.vFunc;
+            }
+        }
+    };
+
+    this.removeFieldValidator = function(name) {
+        if (this.fieldValidators[name]) {
+            delete this.fieldValidators[name];
+        }
+    };
+
+    this.removeModelFieldValidator = function(modelName, fieldName) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        this.removeValidatorForNGModel(fullName, fullName, ngModel);
+    };
+
+    this.removeValidatorForNGModel = function(name, ngModelValidatorName, ngModel) {
+        if (ngModel.$validators[ngModelValidatorName]) {
+            delete ngModel.$validators[ngModelValidatorName];
+        }
+        this.removeFieldValidator(name);
+    };
+
+    this.setFieldValidator = function(name, validatorFn, messageFn, ngModel, ngModelValidatorName) {
+        if (! this.fieldValidators[name]) {
+            this.fieldValidators[name] = {};
+        }
+        this.fieldValidators[name].vFunc = validatorFn;
+        this.fieldValidators[name].vMsg = messageFn;
+        if (ngModel && ngModelValidatorName) {
+            this.reloadValidatorForNGModel(name, ngModelValidatorName, ngModel);
+        }
+        return this.fieldValidators[name];
+    };
+
+    this.setModelFieldValidator = function(modelName, fieldName, validatorFn, messageFn) {
+        var fullName = utilities.modelFieldID(modelName, fieldName);
+        var ngModel = utilities.ngModelForInput(modelName, fieldName);
+        return this.setFieldValidator(fullName, validatorFn, messageFn, ngModel, fullName);
     };
 
     this.validateFieldOfType = function(value, type) {
@@ -830,7 +868,7 @@ SIREPO.app.service('validationService', function(utilities) {
         if (type === 'String') {
             return true;
         }
-        if(SIREPO.APP_SCHEMA.enum[type]) {
+        if (SIREPO.APP_SCHEMA.enum[type]) {
             return this.getEnumValidator(type).vFunc(value);
         }
         // TODO(mvk): other types here, for now just accept everything
@@ -854,6 +892,14 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         });
         return args.join('_');
     }
+
+    self.buildArgs = function(modelName, version) {
+        var args = [SIREPO.ANIMATION_ARGS_VERSION + version];
+        if (! SIREPO.APP_SCHEMA.animationArgs[modelName]) {
+            return  args;
+        }
+        return args.concat(SIREPO.APP_SCHEMA.animationArgs[modelName]);
+    };
 
     self.getCurrentFrame = function(modelName) {
         var v = self.animationInfo[modelName];
@@ -1142,6 +1188,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
         $(fc).find('.sr-enum-button').prop('disabled', ! isEnabled);
     };
 
+    // lazy creation/storage of field delegates
+    self.fieldDelegates = {};
+    self.getFieldDelegate = function(modelName, field) {
+        if (! self.fieldDelegates[modelName]) {
+            self.fieldDelegates[modelName] = {};
+        }
+        if (! self.fieldDelegates[modelName][field]) {
+            self.fieldDelegates[modelName][field] = {
+                storedVal: appState.models[modelName][field],
+            };
+        }
+        return self.fieldDelegates[modelName][field];
+    };
+
     self.fileNameFromText = function(text, extension) {
         return text.replace(/(\_|\W|\s)+/g, '-') + '.' + extension;
     };
@@ -1375,9 +1435,12 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
-        if (! SIREPO.authState.isLoggedIn || route.controller.indexOf('login') >= 0) {
+        if (! SIREPO.authState.isLoggedIn
+            || SIREPO.authState.needCompleteRegistration
+            || (route.controller && route.controller.indexOf('login') >= 0)) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -1385,8 +1448,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             cookieService.removeCookie(SIREPO.APP_SCHEMA.cookies.previousRoute);
             var parts = prevRoute.split(' ');
             if (parts[0] == SIREPO.APP_SCHEMA.simulationType) {
-                event.preventDefault();
-                $location.path(parts[1]);
+                if ($location.path() != parts[1]) {
+                    event.preventDefault();
+                    $location.path(parts[1]);
+                }
             }
         }
     }
@@ -1470,6 +1535,10 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         throw param + ': ' + (typeof v) + ' type cannot be serialized';
     }
 
+    self.clearAuxillaryData = function() {
+        auxillaryData = {};
+    };
+
     self.defaultRouteName = function() {
         return SIREPO.APP_SCHEMA.appModes.default.localRoute;
     };
@@ -1498,7 +1567,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.getAuxiliaryData = function(name) {
-        return self[name];
+        return auxillaryData[name];
     };
 
     self.isRouteParameter = function(routeName, paramName) {
@@ -1506,28 +1575,28 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.loadAuxiliaryData = function(name, path, callback) {
-        if (self[name] || self[name + ".loading"]) {
+        if (auxillaryData[name] || auxillaryData[name + ".loading"]) {
             if (callback) {
-                callback(self[name]);
+                callback(auxillaryData[name]);
             }
             return;
         }
-        self[name + ".loading"] = true;
+        auxillaryData[name + ".loading"] = true;
         $http.get(path + '' + SIREPO.SOURCE_CACHE_KEY).then(
             function(response) {
                 var data = response.data;
-                self[name] = data;
-                delete self[name + ".loading"];
+                auxillaryData[name] = data;
+                delete auxillaryData[name + ".loading"];
                 if (callback) {
                     callback(data);
                 }
             },
             function() {
                 srlog(path, ' load failed!');
-                delete self[name + ".loading"];
-                if (! self[name]) {
+                delete auxillaryData[name + ".loading"];
+                if (! auxillaryData[name]) {
                     // if loading fails, use an empty list to prevent load requests on each digest cycle, see #1339
-                    self[name] = [];
+                    auxillaryData[name] = [];
                 }
             });
     };
@@ -2551,7 +2620,7 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
             return;
         }
         var url = requestSender.formatUrl(
-            'findByName',
+            'findByNameWithAuth',
             {
                 '<simulation_name>': name,
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
@@ -2638,6 +2707,12 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route)
 SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
     var self = this;
     self.authService = authService;
+
+    if (authState.isLoggedIn && ! authState.isGuestUser && ! authState.needCompleteRegistration) {
+        requestSender.localRedirect('simulations');
+        return;
+    }
+
     if (authState.visibleMethods.length === 1) {
         requestSender.localRedirect(
             'loginWith',
@@ -2698,6 +2773,22 @@ SIREPO.app.controller('LoginFailController', function (appState, requestSender, 
     }
 });
 
+SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route, $window) {
+    var self = this;
+    self.simulationName = $route.current.params.simulationName;
+    appState.listSimulations(
+        function() {
+            // authenticated listSimulations successfully, now go to the URL
+            $window.location.href = requestSender.formatUrl(
+                'findByNameWithAuth',
+                {
+                    '<simulation_name>': self.simulationName,
+                    '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                    '<application_mode>': $route.current.params.applicationMode,
+                });
+        });
+});
+
 SIREPO.app.controller('SimulationsController', function (appState, cookieService, errorService, fileManager, notificationService, panelState, requestSender, $location, $rootScope, $sce, $scope, $window) {
     var self = this;
 
@@ -2738,7 +2829,6 @@ SIREPO.app.controller('SimulationsController', function (appState, cookieService
     function loadList() {
         self.isWaitingForList = ! fileManager.getSimList().length;
         appState.listSimulations(
-            $location.search(),
             function(data) {
                 if (! $scope.$parent) {
                     // callback may occur after scope has been destroyed

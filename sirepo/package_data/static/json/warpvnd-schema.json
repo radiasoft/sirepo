@@ -1,5 +1,6 @@
 {
     "animationArgs": {
+        "fieldAnimation": ["field", "axes", "slice", "displayMode", "startTime"],
         "fieldCalcAnimation": ["axes", "displayMode", "slice"],
         "fieldComparisonAnimation": [
             "dimension",
@@ -13,7 +14,9 @@
             "zCell1",
             "zCell2",
             "zCell3"
-        ]
+        ],
+        "particleAnimation": ["renderCount", "startTime"],
+        "particle3d": ["renderCount", "displayMode", "startTime"]
     },
     "constants": {
         "nonZeroVoltsColor": "#6992ff",
@@ -85,6 +88,10 @@
             ["y", "Y"],
             ["z", "Z"]
         ],
+        "ExecutionMode": [
+            ["serial", "Serial"],
+            ["parallel", "Parallel"]
+        ],
         "Field": [
             ["x", "E x"],
             ["z", "E z"],
@@ -107,12 +114,22 @@
             ["50", "50"],
             ["10", "10"]
         ],
+        "ReflectionScheme": [
+            ["uniform", "Uniform"],
+            ["rand_angle", "Random Angle"]
+        ],
         "SimulationMode": [
             ["2d", "2D"],
             ["3d", "3D"]
         ]
     },
     "model": {
+        "anode": {
+            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "ReflectionScheme", "rand_angle"]
+        },
         "beam": {
             "currentMode": ["Current Mode", "CurrentMode"],
             "species": ["Beam Species", "BeamSpecies"],
@@ -134,8 +151,12 @@
             "voltage": ["Voltage [eV]", "OptFloat"],
             "permittivity": ["Relative Permittivity", "Float", 7.0],
             "isConductor": ["Conductor", "Boolean", "1"],
-            "color": ["Color", "Color"],
-            "type": ["Type", "ConductorType", "box"]
+            "isReflector": ["Add Reflector", "Boolean", "0"],
+            "color": ["Color", "Color", "#6992ff"],
+            "type": ["Type", "ConductorType", "box"],
+            "specProb": ["Specular Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "diffProb": ["Diffuse Reflection Probability", "Float", "0.0", "", "0.0", "1.0"],
+            "refScheme": ["Reflection Scheme", "ReflectionScheme", "uniform"]
         },
         "conductorGridReport": {
             "tileDomain": ["Show tiled domain", "Boolean", "0"]
@@ -155,6 +176,8 @@
             "field": ["Field", "Field"],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "axes": ["Axes", "Axes", "xz"],
+            "slice": ["Slice", "Range", 0.0],
             "notes": ["Notes", "Text", ""]
         },
         "fieldCalcAnimation": {
@@ -218,7 +241,8 @@
         "simulation": {
             "conductorFile": ["Conductor File", "FileChooser", "", "", "", "", "useConductorFile"],
             "egun_mode": ["Electron Gun Mode", "Boolean", "0"],
-            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"]
+            "useConductorFile": ["Use Conductor File", "Boolean", "0", "Load conductors from STL file"],
+            "executionMode": ["Execution", "ExecutionMode", "serial"]
         },
         "simulationGrid": {
             "simulation_mode": ["Simulation Mode", "SimulationMode", "2d"],
@@ -230,7 +254,8 @@
             "num_y": ["Y Grid Points", "Integer", 10],
             "particles_per_step": ["Particles Per Step", "Integer"],
             "z_particle_min": ["Particle Z Minimum [µm]", "Float"],
-            "num_steps": ["Simulation Steps", "Integer"]
+            "num_steps": ["Simulation Steps", "Integer"],
+            "trace_period": ["Trace Period", "Integer", 1, "", 1]
         },
         "simulationStatus": {},
         "stl": {
@@ -248,7 +273,9 @@
             "title": "Anode",
             "advanced": [
                 "beam.anode_voltage",
-                "beam.anode_work_function"
+                "beam.anode_work_function",
+                "isReflector",
+                "diffProb"
             ]
         },
         "beam": {
@@ -279,6 +306,8 @@
                 "yLength",
                 "isConductor",
                 "permittivity",
+                "isReflector",
+                "diffProb",
                 "color"
             ]
         },
@@ -329,7 +358,10 @@
             "advanced": [
                 "field",
                 "framesPerSecond",
-                "colorMap", "notes"
+                "axes",
+                "slice",
+                "colorMap",
+                "notes"
             ]
         },
         "fieldCalculationAnimation": {
@@ -465,6 +497,7 @@
             "advanced": [
                 "simulation.egun_mode",
                 "simulationGrid.num_steps",
+                "simulationGrid.trace_period",
                 "simulationGrid.particles_per_step"
             ]
         },

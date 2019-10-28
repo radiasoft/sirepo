@@ -102,7 +102,7 @@
                 "p_central": "0.0",
                 "p_central_mev": 1001,
                 "parameters": "1",
-                "print_statistics": "1",
+                "print_statistics": "0",
                 "random_number_seed": "987654321",
                 "show_element_timing": "0",
                 "sigma": "",

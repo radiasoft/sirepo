@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo import util
@@ -23,11 +24,15 @@ import random
 import re
 import scipy.fftpack
 import scipy.optimize
+import scipy.signal
+import sirepo.sim_data
 import sklearn.cluster
 import sklearn.metrics.pairwise
 import sklearn.mixture
 import sklearn.preprocessing
 import sympy
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 SIM_TYPE = 'webcon'
 
@@ -67,7 +72,7 @@ _DIM_PLOT_COLORS = [
     '#9400d3'
 ]
 
-_MONITOR_TO_MODEL_FIELDS = pkcollections.Dict({})
+_MONITOR_TO_MODEL_FIELDS = pkcollections.Dict()
 
 _SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
@@ -81,44 +86,44 @@ _SETTINGS_PLOT_COLORS = [
     '#7e23c4'
 ]
 
-_SETTINGS_KICKER_SYMBOLS = {
-    'hkick': 'square',
-    'hpos': 'square',
-    'x': 'square',
-    'vkick': 'triangle-up',
-    'vpos': 'triangle-up',
-    'y': 'triangle-up'
-}
+_SETTINGS_KICKER_SYMBOLS = PKDict(
+    hkick='square',
+    hpos='square',
+    x='square',
+    vkick='triangle-up',
+    vpos='triangle-up',
+    y='triangle-up'
+)
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'epicsServerAnimation' and is_running:
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
             values, count, start_time = _read_monitor_file(monitor_file)
-            return {
-                'percentComplete': 0,
-                'frameCount': count,
-                'summaryData': {
-                    'monitorValues': values,
-                    'optimizationValues': _optimization_values(run_dir),
-                }
-            }
+            return PKDict(
+                percentComplete=0,
+                frameCount=count,
+                summaryData=PKDict(
+                    monitorValues=values,
+                    optimizationValues=_optimization_values(run_dir),
+                ),
+            )
     if report == 'correctorSettingAnimation':
         #pkdp('background_percent_complete for correctorSettingAnimation')
         monitor_file = run_dir.join(MONITOR_LOGFILE)
         if monitor_file.exists():
             values, count, start_time = _read_monitor_file(monitor_file, True)
-            return {
-                'percentComplete': 0,
-                'frameCount': count,
-                'summaryData': {
-                    'monitorValues': values,
-                }
-            }
-    return {
-        'percentComplete': 0,
-        'frameCount': 0,
-    }
+            return PKDict(
+                percentComplete=0,
+                frameCount=count,
+                summaryData=PKDict(
+                    monitorValues=values,
+                ),
+            )
+    return PKDict(
+        percentComplete=0,
+        frameCount=0,
+    )
 
 
 def epics_env(server_address):
@@ -127,35 +132,6 @@ def epics_env(server_address):
     env['EPICS_CA_ADDR_LIST'] = server_address
     env['EPICS_CA_SERVER_PORT'] = server_address.split(':')[1]
     return env
-
-
-def fixup_old_data(data):
-    for m in _SCHEMA.model:
-        # don't include beamline element models (all uppercase)
-        if m != m.upper():
-            if m not in data.models:
-                data.models[m] = pkcollections.Dict({})
-            template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    for m in ('analysisAnimation', 'fitter', 'fitReport'):
-        if m in data.models:
-            del data.models[m]
-    if 'history' not in data.models.analysisReport:
-        data.models.analysisReport.history = []
-    if 'subreports' not in data.models.hiddenReport:
-        data.models.hiddenReport.subreports = []
-    if 'beamlines' not in data.models:
-        _init_default_beamline(data)
-    for el in data.models.elements:
-        # create a watchpointReport for each WATCH element
-        if el['type'] == 'WATCH':
-            name = 'watchpointReport{}'.format(el['_id'])
-            if name not in data.models:
-                m = pkcollections.Dict({
-                    '_id': el['_id'],
-                })
-                data.models[name] = m
-                template_common.update_model_defaults(m, 'watchpointReport', _SCHEMA)
-    template_common.organize_example(data)
 
 
 def get_analysis_report(run_dir, data):
@@ -179,37 +155,36 @@ def get_analysis_report(run_dir, data):
         y = plot_data[:, y_idx]
         if len(y) <= 0 or math.isnan(y[0]):
             continue
-        plots.append({
-            'points': (y * col_info['scale'][y_idx]).tolist(),
-            'label': _label(col_info, y_idx),
-            'style': 'line' if 'action' in report and report.action == 'fft' else 'scatter',
-        })
-    return template_common.parameter_plot(x, plots, {}, {
-        'title': '',
-        'y_label': '',
-        'x_label': _label(col_info, x_idx),
-        'clusters': clusters,
-        'summaryData': {},
-    })
-
-
-def get_animation_name(data):
-    if data['modelName'] == 'correctorSettingAnimation':
-        return data['modelName']
-    return 'animation'
+        plots.append(PKDict(
+            points=(y * col_info['scale'][y_idx]).tolist(),
+            label=_label(col_info, y_idx),
+            style='line' if 'action' in report and report.action == 'fft' else 'scatter',
+        ))
+    return template_common.parameter_plot(
+        x,
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='',
+            x_label=_label(col_info, x_idx),
+            clusters=clusters,
+            summaryData=PKDict(),
+        ),
+    )
 
 
 def get_application_data(data):
     if data['method'] == 'column_info':
-        data = pkcollections.Dict({
-            'models': pkcollections.Dict({
-                'analysisData': data['analysisData'],
-            }),
-        })
-        return {
-            'columnInfo': _column_info(
+        data = PKDict(
+            models=PKDict(
+                analysisData=data['analysisData'],
+            ),
+        )
+        return PKDict(
+            columnInfo=_column_info(
                 _analysis_data_path(simulation_db.simulation_lib_dir(SIM_TYPE), data)),
-        }
+        )
     if data['method'] == 'update_kicker':
         return _update_epics_kicker(data)
     if data['method'] == 'read_kickers':
@@ -225,70 +200,20 @@ def get_beam_pos_report(run_dir, data):
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     assert len(history) > 0, 'no beam position history'
     x_label = 'z [m]'
-
     x, plots, colors = _beam_pos_plots(data, history, start_time)
-    return template_common.parameter_plot(x.tolist(), plots, {}, {
-        'title': '',
-        'y_label': '[m]',
-        'x_label': x_label,
-        'summaryData': {},
-    }, colors)
-
-
-def get_centroid_report(run_dir, data):
-    report = data.models[data.report]
-    monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    bpms = None
-    if monitor_file.exists():
-        history, num_records, start_time = _read_monitor_file(monitor_file, True)
-        if len(history):
-            bpms = _bpm_readings_for_plots(data, history, start_time)
-    x = []
-    y = []
-    t = []
-    z = _position_of_element(data, report['_id'])
-    if bpms:
-        cx = bpms['x']
-        cy = bpms['y']
-        cz = bpms['z']
-        ct = bpms['t']
-        c_idx = cz.index(z)
-        for t_idx, time in enumerate(ct):
-            xv = cx[t_idx][c_idx]
-            yv = cy[t_idx][c_idx]
-            t.append(time)
-            x.append(xv)
-            y.append(yv)
-        #TODO(pjm): set reasonable history limit
-        _MAX_BPM_POINTS = 10
-        if len(t) > _MAX_BPM_POINTS:
-            cutoff = len(t) - _MAX_BPM_POINTS
-            t = t[cutoff:]
-            x = x[cutoff:]
-            y = y[cutoff:]
-    else:
-        # put the point outside the plot
-        x = [1]
-        y = [1]
-        c_idx = _watch_index(data, report['_id'])
-    color = _SETTINGS_PLOT_COLORS[c_idx % len(_SETTINGS_PLOT_COLORS)]
-    c_mod = _hex_color_to_rgb(color)
-    c_mod[3] = 0.2
-    plots = [
-            {
-            'points': y,
-            'label': 'y [m]',
-            'style': 'line',
-            'symbol': 'circle',
-            'colorModulation': c_mod,
-        },
-    ]
-    return template_common.parameter_plot(x, plots, data.models[data.report], {
-        'title': 'z = {}m'.format(z),
-        'y_label': '',
-        'x_label': 'x [m]',
-        'aspectRatio': 1.0,
-    },[color])
+    assert len(plots), 'no beam position history'
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='[m]',
+            x_label=x_label,
+            summaryData={},
+        ),
+        colors,
+    )
 
 
 def get_data_file(run_dir, model, frame, options=None):
@@ -304,7 +229,7 @@ def get_data_file(run_dir, model, frame, options=None):
 
 
 def get_fft(run_dir, data):
-    data.report = _analysis_report_name_for_fft_report(data.report, data)
+    data.report = _SIM_DATA.webcon_analysis_report_name_for_fft(data)
     report, col_info, plot_data = _report_info(run_dir, data)
     col1 = _safe_index(col_info, report.x)
     col2 = _safe_index(col_info, report.y1)
@@ -331,76 +256,62 @@ def get_fft(run_dir, data):
     # of the fft of data of a given length.  It includes negative values
     freqs = scipy.fftpack.fftfreq(len(fft_out), d=sample_period) #/ sample_period
     w = 2. * np.pi * freqs[0:half_num_samples]
-    found_freqs = []
 
     # is signal to noise useful?
     m = y.mean()
     sd = y.std()
     s2n = np.where(sd == 0, 0, m / sd)
 
-    # We'll say we found a frequency peak when the size of the coefficient divided by the average is
-    # greater than this.  A crude indicator - one presumes better methods exist
-    found_sn_thresh = 10
-
-    ci = 0
-    max_bin = -1
-    min_bin = half_num_samples
-    bin_spread = 10
-    #for coef, freq in zip(fft_out[0:half_num_samples], freqs[0:half_num_samples]):
-    for coef, freq in zip(fft_out[0:half_num_samples], w):
-        #pkdp('{c:>6} * exp(2 pi i t * {f}) : vs thresh {t}', c=(2.0 / N) * np.abs(coef), f=freq, t=(2.0 / N) * np.abs(coef) / m)
-        if (2.0 / num_samples) * np.abs(coef) / m > found_sn_thresh:
-            found_freqs.append((ci, np.around(freq, 3)))
-            max_bin = ci
-            if ci < min_bin:
-                min_bin = ci
-        ci += 1
+    coefs = (2.0 / num_samples) * np.abs(fft_out[0:half_num_samples])
+    peaks, props = scipy.signal.find_peaks(coefs)
+    found_freqs = zip(peaks, np.around(w[peaks], 3))
     #pkdp('!FOUND {} FREQS {}, S2N {}, MEAN {}', len(found_freqs), found_freqs, s2n, m)
 
     # focus in on the peaks?
-    min_bin = max(0, min_bin - bin_spread)
-    max_bin = min(half_num_samples, max_bin + bin_spread)
+    # maybe better in browser
+    bin_spread = 10
+    min_bin = max(0, peaks[0] - bin_spread)
+    max_bin = min(half_num_samples, peaks[-1] + bin_spread)
     yy = 2.0 / num_samples * np.abs(fft_out[min_bin:max_bin])
     max_yy = np.max(yy)
     yy_norm = yy / (max_yy if max_yy != 0 else 1)
     ww = 2. * np.pi * freqs[min_bin:max_bin]
+    #plots = [
+    #    {
+    #        'points': yy_norm.tolist(),
+    #        'label': 'fft',
+    #    },
+    #]
 
     max_y = np.max(y)
     y_norm = y / (max_y if max_y != 0 else 1)
-    plots = [
-        {
-            'points': y_norm.tolist(),
-            'label': 'fft',
-        },
-    ]
+    plots = [PKDict(points=y_norm.tolist(), label='fft')]
 
     #TODO(mvk): figure out appropriate labels from input
-    return template_common.parameter_plot(w.tolist(), plots, {}, {
-        'title': '',
-        'y_label': _label(col_info, 1),
-        'x_label': 'f[Hz]',
-        'preserve_units': False,
-        #'x_label': _label(col_info, 0) + '^-1',
-        'summaryData': {
-            'freqs': found_freqs,
-        },
-        #'latex_label': latex_label
-    })
-    #return {
-    #    'title': '',
-    #    'x_points': w.tolist(),
-    #    'points': (y * col_info['scale'][1]).tolist(),
-    #    'y_label': _label(col_info, 1),
-    #    'x_label': 'ω[s-1]',
-    #}
-
+    w_list = w.tolist()
+    return template_common.parameter_plot(
+        w_list,
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label=_label(col_info, 1),
+            x_label='f[Hz]',
+            preserve_units=False,
+            #'x_label': _label(col_info, 0) + '^-1',
+            summaryData=PKDict(
+                freqs=found_freqs,
+                minFreq=w_list[0],
+                maxFreq=w_list[-1]
+            ),
+            #'latex_label': latex_label
+        ),
+    )
 
 
 def get_settings_report(run_dir, data):
-
     monitor_file = run_dir.join('../epicsServerAnimation/').join(MONITOR_LOGFILE)
-    if not monitor_file.exists():
-        assert False, 'no settings history'
+    assert monitor_file.exists(), 'no settings history'
     history, num_records, start_time = _read_monitor_file(monitor_file, True)
     o = data.models.correctorSettingReport.plotOrder
     plot_order = o if o is not None else 'time'
@@ -410,12 +321,19 @@ def get_settings_report(run_dir, data):
     else:
         x, plots, colors = _setting_plots_by_position(data, history, start_time)
         x_label = 'z [m]'
-    return template_common.parameter_plot(x.tolist(), plots, {}, {
-        'title': '',
-        'y_label': '[rad]',
-        'x_label': x_label,
-        'summaryData': {},
-    }, colors)
+    assert len(plots), 'no settings history'
+    return template_common.parameter_plot(
+        x.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            y_label='[rad]',
+            x_label=x_label,
+            summaryData=PKDict(),
+            ),
+        colors,
+    )
 
 
 def get_simulation_frame(run_dir, data, model_data):
@@ -424,33 +342,6 @@ def get_simulation_frame(run_dir, data, model_data):
         #data_file = open_data_file(run_dir, data['modelName'], frame_index)
         return get_settings_report(run_dir, data)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
-
-
-def lib_files(data, source_lib):
-    res = []
-    report = data.report if 'report' in data else None
-    if report == 'epicsServerAnimation':
-        res += [
-            'beam_line_example.db',
-            'epics-boot.cmd',
-        ]
-    elif data.models.analysisData.file:
-        res.append(_analysis_data_file(data))
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == 'epicsServerAnimation':
-        return []
-    res = [r, 'analysisData', _lib_file_datetime(data['models']['analysisData']['file'])]
-    if 'fftReport' in r:
-        name = _analysis_report_name_for_fft_report(r, data)
-        res += ['{}.{}'.format(name, v) for v in ('x', 'y1', 'history')]
-    if 'watchpointReport' in r or r in ('correctorSettingReport', 'beamPositionReport'):
-        # always recompute the EPICS reports
-        res += [random.random()]
-    return res
 
 
 def python_source_for_model(data, model):
@@ -477,7 +368,7 @@ def update_epics_kickers(epics_settings, sim_dir, fields, values):
         write_epics_values(epics_settings.serverAddress, fields, values)
     else:
         if not sim_dir.exists():
-            return {}
+            return PKDict()
         #TODO(pjm): use save to tmp followed by mv for atomicity
         np.save(str(sim_dir.join(CURRENT_FILE)), np.array([fields, values]))
 
@@ -517,16 +408,8 @@ def write_epics_values(server_address, fields, values):
     return True
 
 
-def _analysis_data_file(data):
-    return template_common.lib_file_name('analysisData', 'file', data.models.analysisData.file)
-
-
 def _analysis_data_path(run_dir, data):
-    return str(run_dir.join(_analysis_data_file(data)))
-
-
-def _analysis_report_name_for_fft_report(report, data):
-    return data.models[report].get('analysisReport', 'analysisReport')
+    return str(run_dir.join(_SIM_DATA.webcon_analysis_data_file(data)))
 
 
 def _beam_pos_plots(data, history, start_time):
@@ -540,14 +423,14 @@ def _beam_pos_plots(data, history, start_time):
             # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
-            plot = {
-                'points': bpms[dim][t_idx],
-                'x_points': bpms['z'],
-                'style': 'line',
-                'symbol': _SETTINGS_KICKER_SYMBOLS[dim],
-                'colorModulation': c_mod,
-                'modDirection': -1
-            }
+            plot = PKDict(
+                points=bpms[dim][t_idx],
+                x_points=bpms['z'],
+                style='line',
+                symbol=_SETTINGS_KICKER_SYMBOLS[dim],
+                colorModulation=c_mod,
+                modDirection=-1
+            )
             if t_idx < len(bpms['t']) - 1:
                 plot['_parent'] = dim
                 plot['label'] = ''
@@ -573,11 +456,11 @@ def _bpm_readings_for_plots(data, history, start_time):
             if pos not in z:
                 z = np.append(z, pos)
             bpm_sorted[-1][1].append(
-                {
-                    'reading': reading_name,
-                    'vals': b_readings[reading_name]['vals'],
-                    'times': b_readings[reading_name]['times']
-                }
+                PKDict(
+                    reading=reading_name,
+                    vals=b_readings[reading_name]['vals'],
+                    times=b_readings[reading_name]['times']
+                ),
             )
             all_times = np.append(all_times, b_readings[reading_name]['times'])
 
@@ -627,12 +510,12 @@ def _bpm_readings_for_plots(data, history, start_time):
             yt.append(readings[1]['vals'][t_idx])
         x.append(xt)
         y.append(yt)
-    return {
-        'x': x,
-        'y': y,
-        'z': z.tolist(),
-        't': t
-    }
+    return PKDict(
+        x=x,
+        y=y,
+        z=z.tolist(),
+        t=t
+    )
 
 
 def _build_monitor_to_model_fields(data):
@@ -649,18 +532,18 @@ def _build_monitor_to_model_fields(data):
             watch_count += 1
             for setting in ['hpos', 'vpos']:
                 mon_setting = 'bpm{}_{}'.format(watch_count, setting)
-                _MONITOR_TO_MODEL_FIELDS[mon_setting] = pkcollections.Dict({
-                    'element': el.name,
-                    'setting': setting
-                })
+                _MONITOR_TO_MODEL_FIELDS[mon_setting] = PKDict(
+                    element=el.name,
+                    setting=setting
+                )
         elif t == 'KICKER':
             kicker_count += 1
             for setting in ['hkick', 'vkick']:
                 mon_setting = 'corrector{}_{}'.format(kicker_count, 'HCurrent' if setting == 'hkick' else 'VCurrent')
-                _MONITOR_TO_MODEL_FIELDS[mon_setting] = pkcollections.Dict({
-                    'element': el.name,
-                    'setting': setting
-                })
+                _MONITOR_TO_MODEL_FIELDS[mon_setting] = PKDict(
+                    element=el.name,
+                    setting=setting
+                )
 
 
 def _centroid_ranges(history):
@@ -690,12 +573,12 @@ def _column_info(path):
     if re.search(r'^[\-|\+0-9eE\.]+$', header[0]):
         header = ['column {}'.format(idx + 1) for idx in range(len(header))]
         header_row_count = 0
-    res = {
-        'header_row_count': header_row_count,
-        'names': [],
-        'units': [],
-        'scale': [],
-    }
+    res = PKDict(
+        header_row_count=header_row_count,
+        names=[],
+        units=[],
+        scale=[],
+    )
     for h in header:
         name = h
         units = ''
@@ -752,10 +635,10 @@ def _compute_clusters(report, plot_data, col_info):
         group = agg_clst.labels_
     else:
         assert False, 'unknown clusterMethod: {}'.format(report.clusterMethod)
-    return {
-        'group': group.tolist(),
-        'count': count,
-    }
+    return PKDict(
+        group=group.tolist(),
+        count=count,
+    )
 
 
 def _element_by_name(data, e_name):
@@ -790,7 +673,7 @@ def _enable_steering(data):
     if sim_dir.exists():
         #TODO(pjm): use save to tmp followed by mv for atomicity
         simulation_db.write_json(sim_dir.join(STEERING_FILE), data['beamSteering'])
-    return {}
+    return PKDict()
 
 
 def _epics_dir(sim_id):
@@ -852,7 +735,7 @@ def _fit_to_equation(x, y, equation, var, params):
 
 
 def _generate_parameters_file(run_dir, data):
-    report = data['report'] if 'report' in data else None
+    report = data.get('report', None)
     if report and report != 'epicsServerAnimation':
         return ''
     #template_common.validate_models(data, simulation_db.get_schema(SIM_TYPE))
@@ -897,151 +780,50 @@ def _get_fit_report(report, plot_data, col_info):
         report.fitParameters,
     )
     plots = [
-        {
-            'points': y_vals.tolist(),
-            'label': 'data',
-            'style': 'scatter',
-        },
-        {
-            'points': fit_y.tolist(),
-            'x_points': fit_x.tolist(),
-            'label': 'fit',
-        },
-        {
-            'points': fit_y_min.tolist(),
-            'x_points': fit_x.tolist(),
-            'label': 'confidence',
-            '_parent': 'confidence'
-        },
-        {
-            'points': fit_y_max.tolist(),
-            'x_points': fit_x.tolist(),
-            'label': '',
-            '_parent': 'confidence'
-        }
+        PKDict(
+            points=y_vals.tolist(),
+            label='data',
+            style='scatter',
+        ),
+        PKDict(
+            points=fit_y.tolist(),
+            x_points=fit_x.tolist(),
+            label='fit',
+        ),
+        PKDict(
+            points=fit_y_min.tolist(),
+            x_points=fit_x.tolist(),
+            label='confidence',
+            _parent='confidence'
+        ),
+        PKDict(
+            points=fit_y_max.tolist(),
+            x_points=fit_x.tolist(),
+            label='',
+            _parent='confidence'
+        ),
     ]
-    return template_common.parameter_plot(x_vals.tolist(), plots, {}, {
-        'title': '',
-        'x_label': _label(col_info, col1),
-        'y_label': _label(col_info, col2),
-        'summaryData': {
-            'p_vals': param_vals.tolist(),
-            'p_errs': param_sigmas.tolist(),
-        },
-        'latex_label': latex_label
-    })
+    return template_common.parameter_plot(
+        x_vals.tolist(),
+        plots,
+        PKDict(),
+        PKDict(
+            title='',
+            x_label=_label(col_info, col1),
+            y_label=_label(col_info, col2),
+            summaryData=PKDict(
+                p_vals=param_vals.tolist(),
+                p_errs=param_sigmas.tolist(),
+            ),
+            latex_label=latex_label
+        ),
+    )
 
 
 def _hex_color_to_rgb(color):
     rgb = [float(int(color.lstrip('#')[i:i + 2], 16)) for i in [0, 2, 4]]
     rgb.append(1.0)
     return rgb
-
-
-def _init_default_beamline(data):
-    #TODO(pjm): hard-coded beamline for now, using elegant format
-    data.models.elements = [
-            {
-                '_id': 8,
-                'l': 0.1,
-                'name': 'drift',
-                'type': 'DRIF'
-            },
-            {
-                '_id': 10,
-                'hkick': 0,
-                'name': 'HV_KICKER_1',
-                'type': 'KICKER',
-                'vkick': 0
-            },
-            {
-                '_id': 12,
-                'hkick': 0,
-                'name': 'HV_KICKER_2',
-                'type': 'KICKER',
-                'vkick': 0
-            },
-            {
-                '_id': 13,
-                'hkick': 0,
-                'name': 'HV_KICKER_3',
-                'type': 'KICKER',
-                'vkick': 0
-            },
-            {
-                '_id': 14,
-                'hkick': 0,
-                'name': 'HV_KICKER_4',
-                'type': 'KICKER',
-                'vkick': 0
-            },
-            {
-                '_id': 24,
-                'k1': -5,
-                'l': 0.05,
-                'name': 'F_QUAD_1',
-                'type': 'QUAD',
-            },
-            {
-                '_id': 25,
-                'k1': 5,
-                'l': 0.05,
-                'name': 'D_QUAD_1',
-                'type': 'QUAD',
-            },
-            {
-                '_id': 30,
-                'k1': -5,
-                'l': 0.05,
-                'name': 'F_QUAD_2',
-                'type': 'QUAD',
-            },
-            {
-                '_id': 31,
-                'k1': 5,
-                'l': 0.05,
-                'name': 'D_QUAD_2',
-                'type': 'QUAD',
-            },
-            {
-                '_id': 9,
-                'name': 'BPM_1',
-                'type': 'WATCH',
-                'filename': '1',
-            },
-            {
-                '_id': 27,
-                'name': 'BPM_2',
-                'type': 'WATCH',
-                'filename': '1',
-            },
-            {
-                '_id': 28,
-                'name': 'BPM_3',
-                'type': 'WATCH',
-                'filename': '1',
-            },
-            {
-                '_id': 29,
-                'name': 'BPM_4',
-                'type': 'WATCH',
-                'filename': '1',
-            }
-    ]
-    data.models.beamlines = [
-        {
-            'id': 1,
-            'items': [
-                8, 8, 10, 8, 8, 9, 8, 8,
-                8, 8, 12, 8, 8, 27, 8, 8,
-                8, 24, 8, 8, 25, 8,
-                8, 8, 13, 8, 8, 28, 8, 8,
-                8, 8, 14, 8, 8, 29, 8, 8,
-                8, 30, 8, 8, 31, 8,
-            ],
-            'name': 'beamline',
-        },
-    ]
 
 
 # arrange historical data for ease of plotting
@@ -1055,18 +837,6 @@ def _label(col_info, idx):
     if units:
         return '{} [{}]'.format(name, units)
     return name
-
-
-# For hashing purposes, return an object mapping the file name to a mod date
-def _lib_file_datetime(filename):
-    lib_filename = template_common.lib_file_name('analysisData','file', filename)
-    path = simulation_db.simulation_lib_dir(SIM_TYPE).join(lib_filename)
-    if path.exists():
-        return {
-            filename: path.mtime()
-        }
-    pkdlog('error, missing lib file: {}', path)
-    return 0
 
 
 def _load_file_with_history(report, path, col_info):
@@ -1087,7 +857,7 @@ def _load_file_with_history(report, path, col_info):
 
 
 def _monitor_data_for_plots(data, history, start_time, type):
-    m_data = {}
+    m_data = PKDict()
     _build_monitor_to_model_fields(data)
     for mon_setting in history:
         s_map = _MONITOR_TO_MODEL_FIELDS[mon_setting]
@@ -1096,7 +866,7 @@ def _monitor_data_for_plots(data, history, start_time, type):
         if el.type != type:
             continue
         if el_name not in m_data:
-            m_data[el_name] = {}
+            m_data[el_name] = PKDict()
         el_setting = s_map.setting
         h = history[mon_setting]
         t_deltas = [
@@ -1104,11 +874,11 @@ def _monitor_data_for_plots(data, history, start_time, type):
             [t - start_time for t in h.times]
         ]
         pos = np.full(len(t_deltas), _position_of_element(data, el['_id']))
-        m_data[el_name][el_setting] = {
-            'vals': h.vals,
-            'times': t_deltas,
-            'position': pos.tolist()
-        }
+        m_data[el_name][el_setting] = PKDict(
+            vals=h.vals,
+            times=t_deltas,
+            position=pos.tolist()
+        )
     return m_data
 
 
@@ -1132,14 +902,14 @@ def _position_of_element(data, id):
 
 def _read_epics_kickers(data):
     epics_settings = data.epicsServerAnimation
-    return {
-        'kickers': read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
-    }
+    return PKDict(
+        kickers=read_epics_values(epics_settings.serverAddress, CURRENT_FIELDS),
+    )
 
 
 def _read_monitor_file(monitor_path, history=False):
     from datetime import datetime
-    monitor_values = {}
+    monitor_values = PKDict()
     count = 0
     min_time = datetime.max
     #TODO(pjm): currently reading entire file to get list of current values (most recent at bottom)
@@ -1158,10 +928,10 @@ def _read_monitor_file(monitor_path, history=False):
             monitor_values[var_name] = float(var_value)
         else:
             if var_name not in monitor_values:
-                monitor_values[var_name] = pkcollections.Dict({
-                    'vals': [],
-                    'times': []
-                })
+                monitor_values[var_name] = PKDict(
+                    vals=[],
+                    times=[]
+                )
             monitor_values[var_name].vals.append(float(var_value))
             monitor_values[var_name].times.append(t)
         count += 1
@@ -1195,12 +965,12 @@ def _setting_plots_by_position(data, history, start_time):
         k_s = kickers[k_name]
         for s in sorted([s for s in k_s]):
             k_sorted[-1][1].append(
-                {
-                    'setting': s,
-                    'vals': k_s[s]['vals'],
-                    'position': k_s[s]['position'],
-                    'times': k_s[s]['times']
-                }
+                PKDict(
+                    setting=s,
+                    vals=k_s[s]['vals'],
+                    position=k_s[s]['position'],
+                    times=k_s[s]['times']
+                )
             )
             all_z = np.append(all_z, k_s[s]['position'])
     time_window = data.models.correctorSettingReport.numHistory
@@ -1219,15 +989,15 @@ def _setting_plots_by_position(data, history, start_time):
             # same color, fade to alpha 0.2
             c_mod = _hex_color_to_rgb(c[-1])
             c_mod[3] = 0.2
-            plots.append({
-                'points': np.array(s['vals'])[t_indexes].tolist(),
-                'x_points': np.array(s['position'])[t_indexes].tolist(),
-                'label': '{} {}'.format(k[0], s['setting']),
-                'style': 'scatter',
-                'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']],
-                'colorModulation': c_mod,
-                'modDirection': -1
-            })
+            plots.append(PKDict(
+                points=np.array(s['vals'])[t_indexes].tolist(),
+                x_points=np.array(s['position'])[t_indexes].tolist(),
+                label='{} {}'.format(k[0], s['setting']),
+                style='scatter',
+                symbol=_SETTINGS_KICKER_SYMBOLS[s['setting']],
+                colorModulation=c_mod,
+                modDirection=-1
+            ))
     np.append(all_z, _element_positions(data)[-1])
     return np.array([0.0, _element_positions(data)[-1]]), plots, c
 
@@ -1245,11 +1015,11 @@ def _setting_plots_by_time(data, history, start_time):
         for s in sorted([s for s in k_s]):
             current_time = max(current_time, np.max(k_s[s]['times']))
             k_sorted[-1][1].append(
-                {
-                    'setting': s,
-                    'vals': k_s[s]['vals'],
-                    'times': k_s[s]['times']
-                }
+                PKDict(
+                    setting=s,
+                    vals=k_s[s]['vals'],
+                    times=k_s[s]['times']
+                ),
             )
 
     time_window = data.models.correctorSettingReport.numHistory
@@ -1265,13 +1035,13 @@ def _setting_plots_by_time(data, history, start_time):
             if len(t_indexes) == 0:
                 continue
             c.append(_SETTINGS_PLOT_COLORS[k_idx % len(_SETTINGS_PLOT_COLORS)])
-            plots.append({
-                'points': np.array(s['vals'])[t_indexes].tolist(),
-                'x_points': times[t_indexes].tolist(),
-                'label': '{} {}'.format(k[0], s['setting']),
-                'style': 'line',
-                'symbol': _SETTINGS_KICKER_SYMBOLS[s['setting']]
-            })
+            plots.append(PKDict(
+                points=np.array(s['vals'])[t_indexes].tolist(),
+                x_points=times[t_indexes].tolist(),
+                label='{} {}'.format(k[0], s['setting']),
+                style='line',
+                symbol=_SETTINGS_KICKER_SYMBOLS[s['setting']]
+            ))
     return np.array([current_time - time_window, current_time]), plots, c
 
 
@@ -1290,22 +1060,8 @@ def _update_epics_kicker(data):
         fields.append(field)
         values.append(float(data['kicker']['{}kick'.format(f)]))
     update_epics_kickers(epics_settings, _epics_dir(data.simulationId), fields, values)
-    return {}
+    return PKDict()
 
 
 def _validate_eq_var(val):
     return len(val) == 1 and re.match(r'^[a-zA-Z]+$', val)
-
-
-def _watch_index(data, watch_id):
-    count = 0
-    watch_ids = {}
-    for el in data.models.elements:
-        if el.type == 'WATCH':
-            watch_ids[el._id] = True
-    for id in data.models.beamlines[0]['items']:
-        if id in watch_ids:
-            if watch_id == id:
-                return count
-            count += 1
-    assert False, 'no watch for id: {}'.format(watch_id)

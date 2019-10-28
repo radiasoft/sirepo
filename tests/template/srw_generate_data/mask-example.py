@@ -36,7 +36,7 @@ def set_optics(v=None):
                 _y=v.op_VFM_y,
             ))
             pp.append(v.op_VFM_pp)
-            
+
         elif el_name == 'VFM_HFM':
             # VFM_HFM: drift 50.0m
             el.append(srwlib.SRWLOptD(
@@ -60,7 +60,7 @@ def set_optics(v=None):
                 _y=v.op_HFM_y,
             ))
             pp.append(v.op_HFM_pp)
-            
+
         elif el_name == 'HFM_Watchpoint':
             # HFM_Watchpoint: drift 50.2m
             el.append(srwlib.SRWLOptD(

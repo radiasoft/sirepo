@@ -10,10 +10,11 @@ party code, which Sirepo calls as an independent program.
 from __future__ import absolute_import, division, print_function
 import csv
 import numpy
+import os
 import random
 import sys
+import time
 import yaml
-import os
 
 
 _MAX_AGE_BY_WEIGHT = [
@@ -28,7 +29,7 @@ def main():
     """Read the input yaml and write the output csv"""
     # hack support for openmpi/mpich so we can run under mpi with only one output file
     if os.environ.get('OMPI_COMM_WORLD_RANK', os.environ.get('PMI_RANK', '0')) != '0':
-        sys.stderr.write('bye\n')
+        sys.stderr.write('does not work with MPI\n')
         exit(0)
     if len(sys.argv) != 3:
         sys.stderr.write('usage: hundli input.yml output.csv\n')
@@ -36,6 +37,10 @@ def main():
     input_yaml, output_csv = sys.argv[1:]
     with open(input_yaml, 'r') as f:
         params = yaml.load(f)
+
+    if params['name'] == 'srunit_long_run':
+        time.sleep(100)
+
     max_age = _max_age(params['weight'])
     years = numpy.linspace(0, max_age, int(max_age) + 1).tolist()
     heights = _points_size(params['height'], years)

@@ -93,15 +93,15 @@
             "samplePeriod": ["Sample Period (sec)", "Integer", 5, "", 5]
         },
         "beamSteering": {
-            "useSteering": ["Use Steering", "Boolean", "0"],
+            "useSteering": ["Steering On", "Boolean", "0"],
             "steeringMethod": ["Steering Method", "SteeringMethod", "nmead"]
         },
         "bunch": {
             "p_central_mev": ["Central momentum [MeV/c]", "Float", 1001],
             "centroid_x": ["Centroid X [m]", "Float", 0.001],
-            "centroid_xp": ["X' [rad]", "Float", 0],
-            "centroid_y": ["Y [m]", "Float", 0.001],
-            "centroid_yp": ["Y' [rad]", "Float", 0]
+            "centroid_xp": ["Centroid X' [rad]", "Float", 0],
+            "centroid_y": ["Centroid Y [m]", "Float", 0.001],
+            "centroid_yp": ["Centroid Y' [rad]", "Float", 0]
         },
         "correctorSettingReport": {
             "numHistory": ["Time Window (sec)", "Float", 30.0, "", 30.0],
@@ -111,7 +111,7 @@
         "epicsServerAnimation": {
             "serverType": ["EPICS Server Type", "ServerType", "local"],
             "serverAddress": ["Network Address", "OptionalString", "", "EPICS server network address, $\\text{<host>:<port>}$"],
-            "connectToServer": ["Connect to EPICS", "Boolean", "0"]
+            "connectToServer": ["Connected to EPICS", "Boolean", "0"]
         },
         "fftReport": {
         },

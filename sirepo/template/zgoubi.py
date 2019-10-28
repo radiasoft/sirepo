@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common, zgoubi_importer, zgoubi_parser
+from sirepo.template import lattice, template_common, zgoubi_importer, zgoubi_parser
 import copy
 import io
 import jinja2
@@ -19,10 +19,11 @@ import math
 import numpy as np
 import py.path
 import re
+import sirepo.sim_data
 import werkzeug
 import zipfile
 
-SIM_TYPE = 'zgoubi'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 BUNCH_SUMMARY_FILE = 'bunch.json'
 
@@ -31,8 +32,6 @@ WANT_BROWSER_FRAME_CACHE = True
 TUNES_INPUT_FILE = 'tunesFromFai.In'
 
 ZGOUBI_LOG_FILE = 'sr_zgoubi.log'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 _ELEMENT_NAME_MAP = {
     'FFAG': 'FFA',
@@ -380,12 +379,7 @@ def extract_tunes_report(run_dir, data):
             })
     for plot in plots:
         plot['label'] += ', {}'.format(_peak_x(x, plot['points']))
-    if report.plotScale == 'log10':
-        for plot in plots:
-            v = np.array(plot['points'])
-            v[np.where(v <= 0.)] = 1.e-23
-            plot['points'] = np.log10(v).tolist()
-    else:
+    if report.plotScale == 'linear':
         # normalize each plot to 1.0 and show amplitude in label
         for plot in plots:
             maxp = max(plot['points'])
@@ -398,53 +392,6 @@ def extract_tunes_report(run_dir, data):
         'y_label': '',
         'x_label': '',
     }, plot_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
-
-
-def fixup_old_data(data):
-    for m in [
-            'SPNTRK',
-            'SRLOSS',
-            'bunch',
-            'bunchAnimation',
-            'bunchAnimation2',
-            'elementStepAnimation',
-            'energyAnimation',
-            'opticsReport',
-            'particle',
-            'particleAnimation',
-            'particleCoordinate',
-            'simulationSettings',
-            'tunesReport',
-            'twissReport',
-            'twissReport2',
-            'twissSummaryReport',
-    ]:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if 'coordinates' not in data.models.bunch:
-        bunch = data.models.bunch
-        bunch.coordinates = []
-        for idx in range(bunch.particleCount2):
-            coord = {}
-            template_common.update_model_defaults(coord, 'particleCoordinate', _SCHEMA)
-            bunch.coordinates.append(coord)
-    # move spntrk from simulationSettings (older) or bunch if present
-    for m in ('simulationSettings', 'bunch'):
-        if 'spntrk' in data.models[m]:
-            data.models.SPNTRK.KSO = data.models[m].spntrk
-            del data.models[m]['spntrk']
-            for f in ('S_X', 'S_Y', 'S_Z'):
-                if f in data.models[m]:
-                    data.models.SPNTRK[f] = data.models[m][f]
-                    del data.models[m][f]
-    for el in data.models.elements:
-        template_common.update_model_defaults(el, el.type, _SCHEMA)
-    template_common.organize_example(data)
-
-
-def get_animation_name(data):
-    return 'animation'
 
 
 def get_application_data(data):
@@ -462,6 +409,9 @@ def get_data_file(run_dir, model, frame, options=None):
         filename = _ZGOUBI_PLT_DATA_FILE
     elif model == 'opticsReport' or 'twissReport' in model:
         filename = _ZGOUBI_TWISS_FILE
+    elif model == 'beamlineReport':
+        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
+        return 'python-source.py', python_source_for_model(data), 'text/plain'
     path = run_dir.join(filename)
     with open(str(path)) as f:
         return path.basename, f.read(), 'application/octet-stream'
@@ -481,35 +431,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     filename = werkzeug.secure_filename(f.filename)
     data = zgoubi_importer.import_file(f.read(), unit_test_mode=unit_test_mode)
     return data
-
-
-def lib_files(data, source_lib):
-    res = []
-    for el in data.models.elements:
-        if el.type == 'TOSCA' and el.magnetFile:
-            res.append(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile))
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == get_animation_name(data):
-        return []
-    if r == 'tunesReport':
-        return [r, 'bunchAnimation.startTime']
-    res = ['particle', 'bunch']
-    if 'bunchReport' in r:
-        if data.models.bunch.match_twiss_parameters == '1':
-            res.append('simulation.visualizationBeamlineId')
-    res += [
-        'beamlines',
-        'elements',
-    ]
-    if r == 'twissReport':
-        res.append('simulation.activeBeamlineId')
-    if r == 'twissReport2' or 'opticsReport' in r or r == 'twissSummaryReport':
-        res.append('simulation.visualizationBeamlineId')
-    return res
 
 
 def parse_error_log(run_dir):
@@ -617,7 +538,7 @@ def write_parameters(data, run_dir, is_parallel, python_file=template_common.PAR
     for el in data.models.elements:
         if el.type != 'TOSCA':
             continue
-        filename = str(run_dir.join(template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
+        filename = str(run_dir.join(_SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)))
         if zgoubi_importer.is_zip_file(filename):
             with zipfile.ZipFile(filename, 'r') as z:
                 for info in z.infolist():
@@ -863,7 +784,6 @@ def _generate_beamline(data, beamline_map, element_map, beamline_id):
 
 def _generate_beamline_elements(report, data):
     res = ''
-    sim = data['models']['simulation']
     beamline_map = {}
     for bl in data.models.beamlines:
         beamline_map[bl.id] = bl
@@ -874,12 +794,7 @@ def _generate_beamline_elements(report, data):
         if 'dipoles' in el:
             for dipole in el.dipoles:
                 zgoubi_importer.MODEL_UNITS.scale_to_native(dipole['type'], dipole)
-    if report == 'twissReport':
-        beamline_id = sim['activeBeamlineId']
-    else:
-        if 'visualizationBeamlineId' not in sim or not sim['visualizationBeamlineId']:
-            sim['visualizationBeamlineId'] = data.models.beamlines[0].id
-        beamline_id = sim['visualizationBeamlineId']
+    beamline_id = lattice.LatticeUtil(data, _SCHEMA).select_beamline().id
     return _generate_beamline(data, beamline_map, element_map, beamline_id)
 
 
@@ -989,9 +904,9 @@ def _prepare_tosca_element(el):
     file_count = zgoubi_parser.tosca_file_count(el)
     el['fileNames'] = el['fileNames'][:file_count]
 
-    filename = template_common.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
+    filename = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el.magnetFile)
     if file_count == 1 and not zgoubi_importer.is_zip_file(filename):
-        el['fileNames'][0] = template_common.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
+        el['fileNames'][0] = _SIM_DATA.lib_file_name('TOSCA', 'magnetFile', el['fileNames'][0])
 
 
 def _read_data_file(path, mode='title'):

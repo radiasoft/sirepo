@@ -19,13 +19,15 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 
+
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 COMPARISON_STEP_SIZE = 100
-SIM_TYPE = 'warpvnd'
 WANT_BROWSER_FRAME_CACHE = True
+MPI_SUMMARY_FILE = 'mpi-info.json'
 
-_FIELD_ANIMATIONS = ['fieldCalcAnimation', 'fieldComparisonAnimation']
 _FIELD_ESTIMATE_FILE = 'estimates.json'
 _COMPARISON_FILE = 'diags/fields/electric/data00{}.h5'.format(COMPARISON_STEP_SIZE)
 _CULL_PARTICLE_SLOPE = 1e-4
@@ -40,52 +42,12 @@ _OPTIMIZE_PARAMETER_FILE = 'parameters-optimize.py'
 _PARTICLE_FILE = 'particles.h5'
 _PARTICLE_PERIOD = 100
 _POTENTIAL_FILE = 'potential.h5'
-_REPORT_STYLE_FIELDS = ['colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice']
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
+_STL_POLY_FILE = 'polygons.h5'
 
 def background_percent_complete(report, run_dir, is_running):
     if report == 'optimizerAnimation':
         return _optimizer_percent_complete(run_dir, is_running)
     return _simulation_percent_complete(report, run_dir, is_running)
-
-
-def fixup_old_data(data):
-    if 'optimizer' not in data['models'] or 'enabledFields' not in data['models']['optimizer']:
-        data['models']['optimizer'] = {
-            'constraints': [],
-            'enabledFields': {},
-            'fields': [],
-        }
-    for m in [
-            'egunCurrentAnimation',
-            'impactDensityAnimation',
-            'optimizer',
-            'optimizerAnimation',
-            'optimizerStatus',
-            'particle3d',
-            'particleAnimation',
-            'simulation',
-            'simulationGrid',
-            'fieldCalcAnimation',
-            'fieldCalculationAnimation',
-            'fieldComparisonAnimation',
-            'fieldComparisonReport',
-    ]:
-        if m not in data.models:
-            data.models[m] = {}
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA, dynamic=_dynamic_defaults(data, m))
-    if 'joinEvery' in data.models.particle3d:
-        del data.models.particle3d['joinEvery']
-    types = data.models.conductorTypes if 'conductorTypes' in data.models else {}
-    for c in types:
-        if c is None:
-            continue
-        if 'isConductor' not in c:
-            c.isConductor = '1' if c.voltage > 0 else '0'
-        template_common.update_model_defaults(c, c.type if 'type' in c else 'box', _SCHEMA)
-    for c in data.models.conductors:
-        template_common.update_model_defaults(c, 'conductorPosition', _SCHEMA)
-    template_common.organize_example(data)
 
 
 def generate_field_comparison_report(data, run_dir, args=None):
@@ -104,7 +66,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'z': [0, _meters(grid['plate_spacing'])]
     }
     plot_range = ranges[dimension]
-    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _is_3D(data))
+    plots, plot_y_range = _create_plots(dimension, params, values, ranges, _SIM_DATA.warpvnd_is_3d(data))
     return {
         'title': 'Comparison of E {}'.format(dimension),
         'y_label': 'E {} [V/m]'.format(dimension),
@@ -113,7 +75,7 @@ def generate_field_comparison_report(data, run_dir, args=None):
         'x_range': [plot_range[0], plot_range[1], len(plots[0]['points'])],
         'plots': plots,
         'summaryData': {
-            'runMode3d': _is_3D(data)
+            'runMode3d': _SIM_DATA.warpvnd_is_3d(data)
         },
     }
 
@@ -121,101 +83,39 @@ def generate_field_comparison_report(data, run_dir, args=None):
 def generate_field_report(data, run_dir, args=None):
 
     grid = data.models.simulationGrid
-    plate_spacing = grid.plate_spacing * 1e-6
-    radius = grid.channel_width / 2. * 1e-6
-    height = grid.channel_height / 2. * 1e-6
-
-    dx = grid.channel_width / grid.num_x
-    dy = grid.channel_height / grid.num_y
-    dz = grid.plate_spacing / grid.num_z
+    axes, slice_axis, phi_slice, show3d = _field_input(args)
+    slice_text = ' ({} = {}µm)'.format(slice_axis, round(phi_slice, 3)) \
+        if _SIM_DATA.warpvnd_is_3d(data) else ''
 
     f = str(py.path.local(run_dir).join(_POTENTIAL_FILE))
-    hf = h5py.File(f, 'r')
-    potential = np.array(template_common.h5_to_dict(hf, path='potential'))
-    hf.close()
+    with h5py.File(f, 'r') as hf:
+        potential = np.array(template_common.h5_to_dict(hf, path='potential'))
 
-    axes = args.axes if args is not None else data.models.fieldReport.axes
-    show3d = args.displayMode == '3d' if args is not None else False
-    axes = axes if show3d else 'xz'
-    axes = axes if axes is not None else 'xz'
-
-    phi_slice = 0.
     # if 2d potential, asking for 2d vs 3d doesn't matter
     if len(potential.shape) == 2:
         values = potential[:grid.num_x + 1, :grid.num_z + 1]
     else:
-        # 3d results
-        if show3d:
-            phi_slice = float(args.slice if args is not None else data.models.fieldReport.slice)
-        if axes == 'xz':
-            values = potential[
-                     :, _get_slice_index(phi_slice, -grid.channel_height/ 2., dy, grid.num_y - 1), :
-                     ]
-        elif axes == 'xy':
-            values = potential[
-                     :, :,_get_slice_index(phi_slice, 0., dz, grid.num_z - 1)
-                     ]
-        else:
-            values = potential[
-                     _get_slice_index(phi_slice, -grid.channel_width / 2., dx, grid.num_x - 1), :, :
-                     ]
+        values = _field_values(potential, axes, phi_slice, grid)
 
-    slice_axis = re.sub('[' + axes + ']', '', 'xyz' if _is_3D(data) else 'xz')
-
-    x_max = len(values[0])
-    y_max = len(values)
     vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
-    if axes == 'xz':
-        xr = [0, plate_spacing, x_max]
-        yr = [- radius, radius, y_max]
-        x_label = 'z [m]'
-        y_label = 'x [m]'
-        ar = 6.0 / 14
-    elif axes == 'xy':
-        xr = [- height, height, x_max]
-        yr = [- radius, radius, y_max]
-        x_label = 'y [m]'
-        y_label = 'x [m]'
-        ar = radius / height,
-    else:
-        xr = [0, plate_spacing, x_max]
-        yr = [- height, height, y_max]
-        x_label = 'z [m]'
-        y_label = 'y [m]'
-        ar = 6.0 / 14
 
     if np.isnan(values).any():
         return {
-            'error': 'Results could not be calculated.\n\nThe Simulation Grid may require adjustments to the Grid Points and Channel Width.',
+            'error': 'Results could not be calculated.\n\nThe Simulation Grid may' +
+                     ' require adjustments to the Grid Points and Channel Width.',
         }
-    return {
-        'aspectRatio': ar,
-        'x_range': xr,
-        'y_range': yr,
-        'x_label': x_label,
-        'y_label': y_label,
-        'title': 'ϕ Across Whole Domain' + (' ({} = {}µm)'.format(slice_axis, phi_slice) if _is_3D(data) else ''),
-        'z_matrix': values.tolist(),
-        'global_min': np.min(potential) if vals_equal else None,
-        'global_max': np.max(potential) if vals_equal else None,
-        'frequency_title': 'Volts',
-        'summaryData': {
-            'runMode3d': _is_3D(data)
-        },
-    }
 
+    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
+    res.title= 'ϕ Across Whole Domain' + slice_text
+    res.global_min = np.min(potential) if vals_equal else None
+    res.global_max = np.max(potential) if vals_equal else None
+    res.frequency_title = 'Volts'
 
-# use concept of "runner" animation?
-def get_animation_name(data):
-    if data['modelName'] == 'optimizerAnimation':
-        return data['modelName']
-    if data['modelName'] in _FIELD_ANIMATIONS:
-        return 'fieldCalculationAnimation'
-    return 'animation'
+    return res
 
 
 def get_application_data(data):
-    if data['method'] == 'compute_simulation_steps':
+    if 'method' in data and data['method'] == 'compute_simulation_steps':
         field_file = simulation_db.simulation_dir(SIM_TYPE, data['simulationId']) \
             .join('fieldCalculationAnimation').join(_FIELD_ESTIMATE_FILE)
         if field_file.exists():
@@ -227,6 +127,9 @@ def get_application_data(data):
                     'electronFraction': res['e_cross'] if 'e_cross' in res else 0,
                 }
         return {}
+    if 'polys' in data:
+        _save_stl_polys(data)
+        return {}
     raise RuntimeError('unknown application data method: {}'.format(data['method']))
 
 
@@ -235,7 +138,9 @@ def get_data_file(run_dir, model, frame, **kwargs):
         filename = str(run_dir.join(_PARTICLE_FILE if model == 'particleAnimation' or model == 'particle3d' else _EGUN_CURRENT_FILE))
         with open(filename) as f:
             return os.path.basename(filename), f.read(), 'application/octet-stream'
-    #TODO(pjm): consolidate with template/warp.py
+    if model == 'conductorGridReport':
+        data = simulation_db.read_json(str(run_dir.join('..', simulation_db.SIMULATION_DATA_FILE)))
+        return 'python-source.py', python_source_for_model(data, model), 'text/plain'
     files = _h5_file_list(run_dir, model)
     #TODO(pjm): last client file may have been deleted on a canceled animation,
     # give the last available file instead.
@@ -268,57 +173,29 @@ def get_zcurrent_new(particle_array, momenta, mesh, particle_weight, dz):
 def get_simulation_frame(run_dir, data, model_data):
     md = pkcollections.Dict(model_data)
     frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'currentAnimation':
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
+    model_name = data['modelName']
+    anim_args = _SCHEMA.animationArgs[model_name] if model_name in _SCHEMA.animationArgs else []
+    args = template_common.parse_animation_args(data, {'': anim_args})
+    if model_name == 'currentAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
         return _extract_current(model_data, data_file)
-    if data['modelName'] == 'fieldAnimation':
-        args = template_common.parse_animation_args(data, {'': ['field', 'startTime']})
-        data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return _extract_field(args.field, model_data, data_file)
-    if data['modelName'] == 'particleAnimation' or data['modelName'] == 'particle3d':
-        args = template_common.parse_animation_args(data, {'': ['renderCount', 'startTime']})
-        return _extract_particle(run_dir, model_data, int(args.renderCount))
-    if data['modelName'] == 'egunCurrentAnimation':
+    if model_name == 'fieldAnimation':
+        data_file = open_data_file(run_dir, model_name, frame_index)
+        return _extract_field(args.field, model_data, data_file, args)
+    if model_name == 'particleAnimation' or model_name == 'particle3d':
+        return _extract_particle(run_dir, model_name, model_data, args)
+    if model_name == 'egunCurrentAnimation':
         return _extract_egun_current(model_data, run_dir.join(_EGUN_CURRENT_FILE), frame_index)
-    if data['modelName'] == 'impactDensityAnimation':
+    if model_name == 'impactDensityAnimation':
         return _extract_impact_density(run_dir, model_data)
-    if data['modelName'] == 'optimizerAnimation':
+    if model_name == 'optimizerAnimation':
         args = template_common.parse_animation_args(data, {'': ['x', 'y']})
         return _extract_optimization_results(run_dir, model_data, args)
-    if data['modelName'] == 'fieldCalcAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldCalcAnimation})
+    if model_name == 'fieldCalcAnimation':
         return generate_field_report(md, run_dir, args=args)
-    if data['modelName'] == 'fieldComparisonAnimation':
-        args = template_common.parse_animation_args(data, {'': _SCHEMA.animationArgs.fieldComparisonAnimation})
+    if model_name == 'fieldComparisonAnimation':
         return generate_field_comparison_report(md, run_dir, args=args)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
-
-
-def lib_files(data, source_lib):
-    res = []
-    for m in data.models.conductorTypes:
-        if m.type == 'stl':
-            res.append(template_common.lib_file_name('stl', 'file', m.file))
-    return template_common.filename_to_path(res, source_lib)
-
-
-def models_related_to_report(data):
-    """What models are required for this data['report']
-
-    Args:
-        data (dict): simulation
-    Returns:
-        list: Named models, model fields or values (dict, list) that affect report
-    """
-    if data['report'] == 'animation' or data['report'] == 'optimizerAnimation':
-        return []
-    res = ['simulationGrid']
-    res.append(_non_opt_fields_to_array(data.models.beam))
-    for container in ('conductors', 'conductorTypes'):
-        for m in data.models[container]:
-            res.append(_non_opt_fields_to_array(m))
-    res.append(template_common.report_fields(data, data['report'], _REPORT_STYLE_FIELDS))
-    return res
+    raise RuntimeError('{}: unknown simulation frame model'.format(model_name))
 
 
 def new_simulation(data, new_simulation_data):
@@ -420,7 +297,7 @@ def _add_particle_paths(electrons, x_points, y_points, z_points, half_height, li
                 electrons[0][i][j],
                 electrons[2][i][j],
             ]
-            if j > 0 and j < num_points - 1:
+            if 0 < j < num_points - 1:
                 next = [
                     electrons[1][i][j+1],
                     electrons[0][i][j+1],
@@ -534,25 +411,6 @@ def _cull_particle_point(curr, next, prev):
     return True
 
 
-# defaults that depend on the current data
-def _dynamic_defaults(data, model):
-    if model == 'fieldComparisonAnimation' or model == 'fieldComparisonReport':
-        grid = data.models.simulationGrid
-        return {
-            'dimension': 'x',
-            'xCell1': 0,
-            'xCell2': int(grid.num_x / 2.),
-            'xCell3': grid.num_x,
-            'yCell1': 0,
-            'yCell2': int(grid.num_y / 2.) if _is_3D(data) else 0,
-            'yCell3': grid.num_y if _is_3D(data) else 0,
-            'zCell1': 0,
-            'zCell2': int(grid.num_z / 2.),
-            'zCell3': grid.num_z,
-        }
-    return None
-
-
 def _extract_current(data, data_file):
     grid = data['models']['simulationGrid']
     plate_spacing = _meters(grid['plate_spacing'])
@@ -571,7 +429,7 @@ def _extract_current_results(data, curr, data_time):
     plate_spacing = _meters(grid['plate_spacing'])
     zmesh = np.linspace(0, plate_spacing, grid['num_z'] + 1) #holds the z-axis grid points in an array
     beam = data['models']['beam']
-    if _is_3D(data):
+    if _SIM_DATA.warpvnd_is_3d(data):
         cathode_area = _meters(grid['channel_width']) * _meters(grid['channel_height'])
     else:
         cathode_area = _meters(grid['channel_width'])
@@ -603,46 +461,68 @@ def _extract_current_results(data, curr, data_time):
 def _extract_egun_current(data, data_file, frame_index):
     v = np.load(str(data_file), allow_pickle=True)
     if frame_index >= len(v):
-        frame_index = -1;
+        frame_index = -1
     # the first element in the array is the time, the rest are the current measurements
     return _extract_current_results(data, v[frame_index][1:], v[frame_index][0])
 
 
-def _extract_field(field, data, data_file):
-    grid = data['models']['simulationGrid']
-    plate_spacing = _meters(grid['plate_spacing'])
-    beam = data['models']['beam']
-    radius = _meters(grid['channel_width'] / 2.)
-    selector = field
-    if not field == 'phi':
-        selector = 'E/{}'.format(field)
-    with h5py.File(data_file.filename, 'r') as f:
-        values = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, selector)])
-        data_time = f['data/{}'.format(data_file.iteration)].attrs['time']
-        dt = f['data/{}'.format(data_file.iteration)].attrs['dt']
+def _extract_field(field, data, data_file, args=None):
+    grid = data.models.simulationGrid
+    axes, slice_axis, field_slice, show3d = _field_input(args)
+
+    selector = field if field == 'phi' else 'E/{}'.format(field)
+    with h5py.File(data_file.filename, 'r') as hf:
+        field_values = np.array(
+            hf['data/{}/meshes/{}'.format(data_file.iteration, selector)]
+        )
+        data_time = hf['data/{}'.format(data_file.iteration)].attrs['time']
+        dt = hf['data/{}'.format(data_file.iteration)].attrs['dt']
+
+    slice_text = ' ({} = {}µm)'.format(slice_axis, round(field_slice, 3)) \
+        if _SIM_DATA.warpvnd_is_3d(data) else ''
+
     if field == 'phi':
-        values = values[0,:,:]
         title = 'ϕ'
+        if not _SIM_DATA.warpvnd_is_3d(data):
+            values = field_values[0, :, :]
+        else:
+            values = _field_values(field_values, axes, field_slice, grid)
     else:
-        values = values[:,0,:]
         title = 'E {}'.format(field)
-    return {
-        'x_range': [0, plate_spacing, len(values[0])],
-        'y_range': [- radius, radius, len(values)],
-        'x_label': 'z [m]',
-        'y_label': 'x [m]',
-        'title': '{} for Time: {:.4e}s, Step {}'.format(title, data_time, data_file.iteration),
-        'aspectRatio': 6.0 / 14,
-        'z_matrix': values.tolist(),
-    }
+        if not _SIM_DATA.warpvnd_is_3d(data):
+            values = field_values[:, 0, :]
+        else:
+            values = _field_values(field_values, axes, field_slice, grid)
+
+    vals_equal = np.isclose(np.std(values), 0., atol=1e-9)
+
+    res = _field_plot(values, axes, grid, _SIM_DATA.warpvnd_is_3d(data))
+    res.title = '{}{} for Time: {:.4e}s, Step {}'.format(
+        title, slice_text, data_time, data_file.iteration
+    )
+    res.global_min = np.min(field_values) if vals_equal else None
+    res.global_max = np.max(field_values) if vals_equal else None
+    return res
 
 
 def _extract_impact_density(run_dir, data):
-    hf = h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r')
-    plot_info = template_common.h5_to_dict(hf, path='density')
-    hf.close()
+    try:
+        with h5py.File(str(run_dir.join(_DENSITY_FILE)), 'r') as hf:
+            plot_info = template_common.h5_to_dict(hf, path='density')
+    except IOError:
+        plot_info = {
+            'error': 'Cannot load density file'
+        }
     if 'error' in plot_info:
-        return plot_info
+        if not _SIM_DATA.warpvnd_is_3d(data):
+            return plot_info
+        # for 3D, continue on so particle trace is still rendered
+        plot_info = {
+            'dx': 0,
+            'dz': 0,
+            'min': 0,
+            'max': 0,
+        }
     #TODO(pjm): consolidate these parameters into one routine used by all reports
     grid = data.models.simulationGrid
     plate_spacing = _meters(grid.plate_spacing)
@@ -653,7 +533,7 @@ def _extract_impact_density(run_dir, data):
     dy = 0
     dz = plot_info['dz']
 
-    if _is_3D(data):
+    if _SIM_DATA.warpvnd_is_3d(data):
         dy = 0 #plot_info['dy']
         width = _meters(grid.channel_width)
 
@@ -724,7 +604,8 @@ def _extract_optimization_results(run_dir, data, args):
     }
 
 
-def _extract_particle(run_dir, data, limit):
+def _extract_particle(run_dir, model_name, data, args):
+    limit = int(args.renderCount)
     hf = h5py.File(str(run_dir.join(_PARTICLE_FILE)), 'r')
     d = template_common.h5_to_dict(hf, 'particle')
     kept_electrons = d['kept']
@@ -743,6 +624,9 @@ def _extract_particle(run_dir, data, limit):
     lost_y = []
     lost_z = []
     _add_particle_paths(lost_electrons, lost_x, lost_y, lost_z, half_height, limit)
+    data_file = open_data_file(run_dir, model_name, None)
+    with h5py.File(data_file.filename, 'r') as f:
+        field = np.array(f['data/{}/meshes/{}'.format(data_file.iteration, 'phi')])
     return {
         'title': 'Particle Trace',
         'x_range': [0, plate_spacing],
@@ -756,8 +640,78 @@ def _extract_particle(run_dir, data, limit):
         'z_range': [-half_height, half_height],
         'lost_x': lost_x,
         'lost_y': lost_y,
-        'lost_z': lost_z
+        'lost_z': lost_z,
+        'field': field.tolist()
     }
+
+
+def _field_input(args):
+    show3d = args.displayMode == '3d' if args is not None and 'displayMode' in args\
+        else False
+    a = args.axes if args is not None and 'axes' in args else 'xz'
+    axes = (a if show3d else 'xz') if a else 'xz'
+    slice_axis = re.sub('[' + axes + ']', '', 'xyz')
+    field_slice = (float(args.slice) if args.slice else 0.) if args and 'slice' in args \
+                                                               and show3d else 0.
+    return axes, slice_axis, field_slice, show3d
+
+
+def _field_plot(values, axes, grid, is3d):
+    plate_spacing = _meters(grid.plate_spacing)
+    radius = _meters(grid.channel_width / 2.)
+    half_height = _meters(grid.channel_height / 2.)
+
+    if axes == 'xz':
+        xr = [0, plate_spacing]
+        yr = [-radius, radius]
+        x_label = 'z [m]'
+        y_label = 'x [m]'
+        ar = 6.0 / 14
+    elif axes == 'xy':
+        xr = [-half_height, half_height]
+        yr = [-radius, radius]
+        x_label = 'y [m]'
+        y_label = 'x [m]'
+        ar = radius / half_height,
+    else:
+        xr = [0, plate_spacing]
+        yr = [-half_height, half_height]
+        x_label = 'z [m]'
+        y_label = 'y [m]'
+        ar = 6.0 / 14
+
+    xr.append(len(values[0]))
+    yr.append(len(values))
+
+    return pkcollections.Dict({
+        'aspectRatio': ar,
+        'x_range': xr,
+        'y_range': yr,
+        'x_label': x_label,
+        'y_label': y_label,
+        'z_matrix': values.tolist(),
+        'summaryData': {
+            'runMode3d': is3d
+        }
+    })
+
+
+def _field_values(values, axes, field_slice, grid):
+    dx = grid.channel_width / grid.num_x
+    dy = grid.channel_height / grid.num_y
+    dz = grid.plate_spacing / grid.num_z
+    if axes == 'xz':
+        return values[
+               :, _get_slice_index(
+                    field_slice, -grid.channel_height / 2., dy, grid.num_y - 1
+                ), :]
+    elif axes == 'xy':
+        return values[:, :, _get_slice_index(field_slice, 0., dz, grid.num_z - 1)]
+    else:
+        return values[
+               _get_slice_index(
+                   field_slice, -grid.channel_width / 2., dx, grid.num_x - 1
+               ), :, :]
 
 
 def _find_by_id(container, id):
@@ -802,9 +756,18 @@ def _generate_parameters_file(data):
     v['egunCurrentFile'] = _EGUN_CURRENT_FILE
     v['estimateFile'] = _FIELD_ESTIMATE_FILE
     v['conductors'] = _prepare_conductors(data)
-    v['usesSTL'] = any(ct['file'] is not None for ct in data.models.conductorTypes)
     v['maxConductorVoltage'] = _max_conductor_voltage(data)
-    v['is3D'] = _is_3D(data)
+    v['is3D'] = _SIM_DATA.warpvnd_is_3d(data)
+    v['anode'] = _prepare_anode(data)
+    v['saveIntercept'] = v['anode']['isReflector']
+    for c in data.models.conductors:
+        if c.conductor_type.type == 'stl':
+            # if any conductor is STL then don't save the intercept
+            v['saveIntercept'] = False
+            v['polyFile'] = _stl_polygon_file(c.conductor_type.name)
+            break
+        if c.conductor_type.isReflector:
+            v['saveIntercept'] = True
     if not v['is3D']:
         v['simulationGrid_num_y'] = v['simulationGrid_num_x']
         v['simulationGrid_channel_height'] = v['simulationGrid_channel_width']
@@ -835,14 +798,6 @@ def _h5_file_list(run_dir, model_name):
     )
 
 
-def _is_3D(data):
-    return data.models.simulationGrid.simulation_mode == '3d'
-
-
-def _is_opt_field(field_name):
-    return re.search(r'\_opt$', field_name)
-
-
 def _max_conductor_voltage(data):
     res = data.models.beam.anode_voltage
     for c in data.models.conductors:
@@ -857,12 +812,13 @@ def _meters(v):
     return float(v) * 1e-6
 
 
-def _non_opt_fields_to_array(model):
-    res = []
-    for f in model:
-        if not _is_opt_field(f) and f not in _REPORT_STYLE_FIELDS:
-            res.append(model[f])
-    return res
+def _mpi_core_count(run_dir):
+    mpi_file = py.path.local(run_dir).join(MPI_SUMMARY_FILE)
+    if mpi_file.exists():
+        info = simulation_db.read_json(mpi_file)
+        if 'mpiCores' in info:
+            return info['mpiCores']
+    return 0
 
 
 def _optimizer_percent_complete(run_dir, is_running):
@@ -949,24 +905,34 @@ def _prepare_conductors(data):
         if ct is None:
             continue
         type_by_id[ct.id] = ct
+        #pkdp('!PREP CONDS {}', ct)
         for f in ('xLength', 'yLength', 'zLength'):
             ct[f] = _meters(ct[f])
-        if not _is_3D(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             ct.yLength = 1
         ct.permittivity = ct.permittivity if ct.isConductor == '0' else 'None'
-        ct.file = template_common.filename_to_path(
+        ct.file = _SIM_DATA.lib_file_abspath(
             [_stl_file(ct)],
             simulation_db.simulation_lib_dir(data.simulationType)
         )[0] if 'file' in ct else 'None'
+        ct.isReflector = ct.isReflector == '1' if 'isReflector' in ct else False
     for c in data.models.conductors:
         if c.conductorTypeId not in type_by_id:
             continue
         c.conductor_type = type_by_id[c.conductorTypeId]
         for f in ('xCenter', 'yCenter', 'zCenter'):
             c[f] = _meters(c[f])
-        if not _is_3D(data):
+        if not _SIM_DATA.warpvnd_is_3d(data):
             c.yCenter = 0
     return data.models.conductors
+
+
+def _prepare_anode(data):
+    return {
+        'isReflector': data.models.anode['isReflector'] == '1',
+        'specProb': data.models.anode['specProb'],
+        'diffProb': data.models.anode['diffProb'],
+    }
 
 
 def _read_optimizer_output(run_dir):
@@ -1037,6 +1003,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
     files = _h5_file_list(run_dir, 'currentAnimation')
     if (is_running and len(files) < 2) or (not run_dir.exists()):
         return {
+            'mpiCores': _mpi_core_count(run_dir),
             'percentComplete': 0,
             'frameCount': 0,
         }
@@ -1049,6 +1016,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
         }
     file_index = len(files) - 1
     res = {
+        'mpiCores': _mpi_core_count(run_dir),
         'lastUpdateTime': int(os.path.getmtime(str(files[file_index]))),
     }
     # look at 2nd to last file if running, last one may be incomplete
@@ -1069,7 +1037,7 @@ def _simulation_percent_complete(report, run_dir, is_running):
             res['egunCurrentFrameCount'] = len(v)
     else:
         percent_complete = (file_index + 1.0) * _PARTICLE_PERIOD / data.models.simulationGrid.num_steps
-
+        percent_complete /= 2.0
     if percent_complete < 0:
         percent_complete = 0
     elif percent_complete > 1.0:
@@ -1087,4 +1055,20 @@ def _slope(x1, y1, x2, y2):
 
 
 def _stl_file(conductor_type):
-    return template_common.lib_file_name('stl', 'file', conductor_type.file)
+    return _SIM_DATA.lib_file_name('stl', 'file', conductor_type.file)
+
+
+def _stl_polygon_file(filename):
+    return _SIM_DATA.lib_file_abspath(
+        [_SIM_DATA.lib_file_name('stl', filename, _STL_POLY_FILE)],
+        simulation_db.simulation_lib_dir(SIM_TYPE)
+    )[0]
+
+
+def _save_stl_polys(data):
+    try:
+        with h5py.File(_stl_polygon_file(data.file)) as hf:
+            template_common.dict_to_h5(data, hf, path='/')
+    except Exception as e:
+        pkdlog('!save_stl_polys FAIL: {}', e)
+        pass

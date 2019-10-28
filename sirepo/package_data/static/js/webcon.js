@@ -34,7 +34,7 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 SIREPO.appReportTypes = [
-    '<div data-ng-switch-when="bpmPlot" data-bpm-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
+    '<div data-ng-switch-when="bpmMonitor" data-bpm-monitor-plot="" class="sr-plot" data-model-name="{{ modelKey }}"></div>',
 ];
 SIREPO.lattice = {
     elementColor: {},
@@ -194,10 +194,12 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
             var analysisData = appState.models.analysisData;
             if (currentFile != analysisData.file) {
                 currentFile = analysisData.file;
-                updateAnalysisParameters();
-                webconService.removeAllSubreports();
-                appState.models.analysisReport.action = null;
-                appState.saveChanges(['analysisReport', 'hiddenReport']);
+                if (currentFile) {
+                    updateAnalysisParameters();
+                    webconService.removeAllSubreports();
+                    appState.models.analysisReport.action = null;
+                    appState.saveChanges(['analysisReport', 'hiddenReport']);
+                }
             }
         });
         $scope.$on('modelChanged', function(e, name) {
@@ -214,6 +216,7 @@ SIREPO.app.controller('AnalysisController', function (appState, panelState, requ
 SIREPO.app.controller('ControlsController', function (appState, frameCache, panelState, persistentSimulation, requestSender, webconService, $scope) {
     var self = this;
     var wantFinalKickerUpdate = false;
+    self.isEpicsConnectionSuccessful = false;
 
     function buildMonitorToModelFields() {
         self.monitorToModelFields = {
@@ -269,6 +272,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             return;
         }
         if (data.summaryData) {
+            self.isEpicsConnectionSuccessful = true;
             updateFromMonitorValues(data.summaryData.monitorValues);
             if (data.summaryData.optimizationValues) {
                 stopSteering(data.summaryData.optimizationValues);
@@ -334,11 +338,15 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
     }
 
     function updateBeamSteering() {
+        var steering = appState.applicationState().beamSteering;
+        if (steering.useSteering == '1') {
+            $scope.$broadcast('sr-clearPointData');
+        }
         requestSender.getApplicationData(
             {
                 method: 'enable_steering',
                 simulationId: appState.models.simulation.simulationId,
-                beamSteering: appState.applicationState().beamSteering,
+                beamSteering: steering,
             },
             function(data) {});
         if (! isSteeringBeam()) {
@@ -402,6 +410,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         if (self.isConnectedToEPICS()) {
             if (! self.simState.isProcessing()) {
                 //console.log('starting epics');
+                $scope.$broadcast('sr-clearPointData');
                 if (self.isRemoteServer()) {
                     updateKickersFromEPICSAndRunSimulation();
                 }
@@ -464,8 +473,11 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
 
     self.isConnectedToEPICS = function() {
         if (appState.isLoaded()) {
-            return appState.applicationState().epicsServerAnimation.connectToServer == '1';
+            if (appState.applicationState().epicsServerAnimation.connectToServer == '1') {
+                return true;
+            }
         }
+        self.isEpicsConnectionSuccessful = false;
         return false;
     };
 
@@ -924,9 +936,7 @@ SIREPO.app.directive('refreshButton', function(appState) {
 
 SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
     return {
-        scope: {
-            parentController: '<',
-        },
+        scope: {},
         template: [
             '<div data-report-panel="parameter" data-model-name="correctorSettingReport">',
               '<div data-refresh-button="correctorSettingReport"></div>',
@@ -934,46 +944,51 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
             '</div>',
         ].join(''),
         controller: function($scope, $element) {
-
-            var canToggleSpread = true;
-            var d3self = d3.selectAll($element);
-            var history = [];
-            var spread = [40.0, 0];
-
             $scope.modelName = 'correctorSettingReport';
             $scope.spreadView = false;
 
-            $scope.init = function() {
-                //srdbg('INIT');
-            };
+            function currentXform(selection) {
+                var xform = selection.attr('transform');
+                if (! xform) {
+                    return [0, 0];
+                }
+                var xlateIndex = xform.indexOf('translate(');
+                if (xlateIndex < 0) {
+                    return [0, 0];
+                }
+                var tmp = xform.substring('translate('.length);
+                var coords = tmp.substring(0, tmp.indexOf(')'));
+                var delimiter = coords.indexOf(',') >= 0 ? ',' : ' ';
+                return [
+                    parseFloat(coords.substring(0, coords.indexOf(delimiter))),
+                    parseFloat(coords.substring(coords.indexOf(delimiter) + 1))
+                ];
+            }
 
-            $scope.load = function() {
-                //srdbg('hist', history, $scope.parentController.monitorToModelFields);
-            };
-
-            $scope.requestData = function() {
-                //if (! $scope.hasFrames()) {
-                //    return;
-                //}
-                $scope.load();
-                /*
-                frameCache.getFrame($scope.modelName, 0, false, function(index, data) {
-                    if ($scope.element) {
-                        if (data.error) {
-                            panelState.setError($scope.modelName, data.error);
-                            return;
+            function doSpread(doAnimate) {
+                var spread = [40.0, 0];
+                var d3self = d3.selectAll($element);
+                d3self.selectAll('.param-plot')
+                    .each(function (p) {
+                        var sp = d3.select(this).selectAll('.scatter-point');
+                        var numPts = sp[0].length;
+                        var ds = spread.map(function (s) {
+                            return s / numPts;
+                        });
+                        if (doAnimate) {
+                            sp = sp.transition();
                         }
-                        panelState.setError($scope.modelName, null);
-                        //srdbg('hist', data);
-                        history = data;
-                        $scope.load();
-                    }
-                });
-                */
-            };
+                        sp.attr('transform', function (d, j) {
+                            var curr = currentXform(d3.select(this));
+                            var dx = ds[0] * j * ($scope.spreadView ? 1 : -1);
+                            var dy = ds[1] * j * ($scope.spreadView ? 1 : -1);
+                            return 'translate(' + (curr[0] + dx) + ',' + (curr[1] + dy) + ')';
+                        });
+                    });
+            }
 
             $scope.showSpreadButton = function() {
-                return canToggleSpread && (appState.models.correctorSettingReport || {}).plotOrder == 'position';
+                return (appState.models.correctorSettingReport || {}).plotOrder == 'position';
             };
 
             $scope.spreadButtonText = function () {
@@ -996,53 +1011,7 @@ SIREPO.app.directive('controlCorrectorReport', function(appState, frameCache) {
                     doSpread();
                 }
             });
-
-            function doSpread(doAnimate) {
-                d3self.selectAll('.param-plot')
-                    .each(function (p) {
-                        var sp = d3.select(this).selectAll('.scatter-point');
-                        var numPts = sp[0].length;
-                        var ds = spread.map(function (s) {
-                            return s / numPts;
-                        });
-                        if (doAnimate) {
-                            sp = sp.transition();
-                        }
-                        sp.attr('transform', function (d, j) {
-                            var curr = currentXform(d3.select(this));
-                            var dx = ds[0] * j * ($scope.spreadView ? 1 : -1);
-                            var dy = ds[1] * j * ($scope.spreadView ? 1 : -1);
-                            return 'translate(' + (curr[0] + dx) + ',' + (curr[1] + dy) + ')';
-                        });
-                    });
-            }
-
-            function currentXform(selection) {
-                var xform = selection.attr('transform');
-                if (! xform) {
-                    return [0, 0];
-                }
-                var xlateIndex = xform.indexOf('translate(');
-                if (xlateIndex < 0) {
-                    return [0, 0];
-                }
-                var tmp = xform.substring('translate('.length);
-                var coords = tmp.substring(0, tmp.indexOf(')'));
-                var delimiter = coords.indexOf(',') >= 0 ? ',' : ' ';
-                return [
-                    parseFloat(coords.substring(0, coords.indexOf(delimiter))),
-                    parseFloat(coords.substring(coords.indexOf(delimiter) + 1))
-                ];
-            }
-
-            function update(e, name) {
-                //srdbg('update from kicker', name, appState.models[name]);
-            }
-
         },
-        //link: function link(scope, element) {
-        //    plotting.linkPlot(scope, element);
-        //},
     };
 });
 
@@ -1302,6 +1271,14 @@ SIREPO.app.directive('webconLattice', function(appState) {
             '<div class="col-sm-10 col-sm-offset-1 col-md-8 col-md-offset-2 col-xl-6 col-xl-offset-3">',
               '<div class="webcon-lattice">',
                 '<div id="sr-lattice" data-lattice="" class="sr-plot" data-model-name="beamlines" data-flatten="1"></div>',
+                '<div class="row">',
+                  '<div class="col-xs-2">HV KICKER 1</div>',
+                  '<div class="col-xs-2">HV KICKER 2</div>',
+                  '<div class="col-xs-2 text-right">F/D QUAD 1</div>',
+                  '<div class="col-xs-2">HV KICKER 3</div>',
+                  '<div class="col-xs-2">HV KICKER 4</div>',
+                  '<div class="col-xs-2 text-center">F/D QUAD 2</div>',
+                '</div>',
               '</div>',
             '</div>',
         ].join(''),
@@ -1311,7 +1288,7 @@ SIREPO.app.directive('webconLattice', function(appState) {
             function windowResize() {
                 if (axis) {
                     axis.scale.range([0, $('.webcon-lattice').parent().width()]);
-                    latticeScope.updateFixedAxis(axis, 0);
+                    latticeScope.updateFixedAxis(axis, 0, 50, 65, 55);
                     $scope.$applyAsync();
                 }
             }
@@ -1335,56 +1312,92 @@ SIREPO.app.directive('webconLattice', function(appState) {
     };
 });
 
-SIREPO.app.directive('bpmMonitor', function(appState) {
+SIREPO.app.directive('bpmMonitorPlot', function(appState, plot2dService, plotting, webconService) {
     return {
         restrict: 'A',
         scope: {
-            modelData: '=bpmMonitor',
+            modelName: '@',
         },
+        templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope) {
-            var modelName = $scope.modelData.modelKey;
-            var plotScope;
+            var points;
 
-            function pushAndTrim(points, p) {
-                //TODO(pjm): use schema constant and share with template.webcon
+            $scope.isClientOnly = true;
+            $scope.isZoomXY = true;
+
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    margin: {top: 50, right: 10, bottom: 50, left: 75},
+                });
+                $scope.load();
+            };
+
+            $scope.load = function() {
+                //TODO(pjm): compute BPM positions
+                var TITLE = {
+                    'watchpointReport27': 'z = 1.0m',
+                    'watchpointReport9': 'z = 0.4m',
+                    'watchpointReport28': 'z = 2.1m',
+                    'watchpointReport29': 'z = 2.7m',
+                };
+                points = [];
+                $scope.aspectRatio = 1;
+                ['x', 'y'].forEach(function(dim) {
+                    $scope.axes[dim].domain = [-1, 1];
+                    $scope.axes[dim].scale.domain([-0.0015, 0.0015]).nice();
+                });
+                $scope.updatePlot({
+                    x_label: 'x [m]',
+                    y_label: 'y [m]',
+                    title: TITLE[$scope.modelName],
+                });
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], []);
+            };
+
+            $scope.refresh = function() {
+                plotting.refreshConvergencePoints($scope.select, '.plot-viewport', $scope.graphLine);
+                $scope.select('.plot-viewport').selectAll('.webcon-scatter-point')
+                    .data(points)
+                    .enter().append('circle')
+                    .attr('class', 'webcon-scatter-point')
+                    .attr('r', 8);
+                $scope.select('.plot-viewport').selectAll('.webcon-scatter-point')
+                    .attr('cx', $scope.graphLine.x())
+                    .attr('cy', $scope.graphLine.y())
+                    .attr('style', function(d) {
+                        return 'fill: rgba(0, 0, 255, 0.4); stroke-width: 2; stroke: black';
+                    });
+            };
+
+            function pushAndTrim(p) {
                 var MAX_BPM_POINTS = 10;
                 points.push(p);
                 if (points.length > MAX_BPM_POINTS) {
                     points = points.slice(points.length - MAX_BPM_POINTS);
                 }
-                return points;
             }
 
-            $scope.$on('sr-pointData-' + modelName, function(event, point) {
-                if (! plotScope || point == undefined) {
-                    return;
-                }
-                if (plotScope.select('g.param-plot').selectAll('.data-point').empty()) {
-                    return;
-                }
-                var points = plotScope.select('g.param-plot').selectAll('.data-point').data();
-                plotScope.axes.x.points = pushAndTrim(plotScope.axes.x.points, point[0]);
-                points = pushAndTrim(points, point[1]);
-
-                //TODO(pjm): refactor with parameterPlot.load() to share code
-                plotScope.select('.plot-viewport path.line').datum(points);
-                plotScope.select('g.param-plot').selectAll('.data-point')
-                    .data(points)
-                    .enter()
-                    .append('use')
-                    .attr('xlink:href', '#circle-data')
-                    .attr('class', 'data-point line-color')
-                    .style('fill', plotScope.select('g.param-plot').attr('data-color'))
-                    .style('stroke', 'black')
-                    .style('stroke-width', 0.5);
-                plotScope.refresh();
+            $scope.$on('sr-clearPointData', function() {
+                points = [];
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
+                $scope.select('.plot-viewport').selectAll('.webcon-scatter-point').remove();
+                $scope.refresh();
             });
 
-            $scope.$parent.$parent.$parent.$on('sr-plotLinked', function(event) {
-                plotScope = event.targetScope;
-                plotScope.isZoomXY = true;
+            $scope.$on('sr-pointData-' + $scope.modelName, function(event, point) {
+                if (! point) {
+                    return;
+                }
+                if (point[0] === undefined) {
+                    return;
+                }
+                pushAndTrim(point);
+                plotting.addConvergencePoints($scope.select, '.plot-viewport', [], points);
+                $scope.refresh();
             });
-
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
         },
     };
 });

@@ -15,8 +15,9 @@ import glob
 import h5py
 import numpy as np
 import re
+import sirepo.sim_data
 
-SIM_TYPE = 'flash'
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
 WANT_BROWSER_FRAME_CACHE = True
 
@@ -26,8 +27,6 @@ _FLASH_UNITS_PATH = {
 }
 _GRID_EVOLUTION_FILE = 'flash.dat'
 _PLOT_FILE_PREFIX = 'flash_hdf5_plt_cnt_'
-
-_SCHEMA = simulation_db.get_schema(SIM_TYPE)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -43,21 +42,6 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def fixup_old_data(data):
-    for m in _SCHEMA.model:
-        if m not in data.models:
-            data.models[m] = pkcollections.Dict({})
-        template_common.update_model_defaults(data.models[m], m, _SCHEMA)
-    if data.models.simulation.flashType == 'CapLaser':
-        io_model = data.models.IO
-        io_model.plot_var_5 = 'magz'
-        io_model.plot_var_6 = 'depo'
-
-
-def get_animation_name(data):
-    return 'animation'
-
-
 def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'varAnimation':
         return _extract_meshed_plot(run_dir, data)
@@ -65,24 +49,6 @@ def get_simulation_frame(run_dir, data, model_data):
         return _extract_evolution_plot(run_dir, data, model_data)
     assert False, 'invalid animation frame model: {}'.format(data['modelName'])
 
-
-def lib_files(data, source_lib):
-    #return template_common.filename_to_path(['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    #return template_common.filename_to_path(['flash.par', 'helm_table.dat'], source_lib)
-    if data.models.simulation.flashType == 'RTFlame':
-        return template_common.filename_to_path(['helm_table.dat'], source_lib)
-    if data.models.simulation.flashType == 'CapLaser':
-        return template_common.filename_to_path(['al-imx-004.cn4', 'h-imx-004.cn4'], source_lib)
-    assert False, 'invalid flashType: {}'.format(data.models.simulation.flashType)
-
-
-def models_related_to_report(data):
-    r = data['report']
-    if r == get_animation_name(data):
-        return []
-    return [
-        r,
-    ]
 
 _DEFAULT_VALUES = {
     'RTFlame': {

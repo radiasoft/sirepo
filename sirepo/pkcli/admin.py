@@ -6,14 +6,20 @@ u"""?
 """
 from __future__ import absolute_import, division, print_function
 
-import re
 from pykern import pkio
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import auth
+from sirepo import auth_db
 from sirepo import feature_config
 from sirepo import server
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
+import glob
+import json
+import os.path
+import re
+import shutil
 
 
 def create_examples():
@@ -38,6 +44,40 @@ def create_examples():
                     _create_example(example)
 
 
+def move_user_sims(target_uid=''):
+    """Moves non-example sims and lib files into the target user's directory.
+    Must be run in the source uid directory."""
+    assert target_uid, 'missing target_uid'
+    assert os.path.exists('srw/lib'), 'must run in user dir'
+    assert os.path.exists('../{}'.format(target_uid)), 'missing target user dir: ../{}'.format(target_uid)
+    sim_dirs = []
+    lib_files = []
+
+    for path in glob.glob('*/*/sirepo-data.json'):
+        with open(path) as f:
+            data = json.loads(f.read())
+        sim = data['models']['simulation']
+        if 'isExample' in sim and sim['isExample']:
+            continue
+        sim_dirs.append(os.path.dirname(path))
+
+    for path in glob.glob('*/lib/*'):
+        lib_files.append(path)
+
+    for sim_dir in sim_dirs:
+        target = '../{}/{}'.format(target_uid, sim_dir)
+        assert not os.path.exists(target), 'target sim already exists: {}'.format(target)
+        pkdlog(sim_dir)
+        shutil.move(sim_dir, target)
+
+    for lib_file in lib_files:
+        target = '../{}/{}'.format(target_uid, lib_file)
+        if os.path.exists(target):
+            continue
+        pkdlog(lib_file)
+        shutil.move(lib_file, target)
+
+
 def purge_guest_users(days=180, confirm=False):
     """Remove old users from db which have not registered.
 
@@ -46,7 +86,7 @@ def purge_guest_users(days=180, confirm=False):
         confirm (bool): delete the directories if True (else don't delete) [False]
 
     Returns:
-        list: directories removed (or to remove if confirm)
+        (list, list): dirs and uids of removed guest users (or to remove if confirm)
     """
 
     days = int(days)
@@ -57,33 +97,29 @@ def purge_guest_users(days=180, confirm=False):
 
     guest_uids = auth.guest_uids()
     now = srtime.utc_now()
-    to_remove = []
+    dirs_and_uids = {}
 
     for d in pkio.sorted_glob(simulation_db.user_dir_name('*')):
+        uid = simulation_db.uid_from_dir_name(d)
         if _is_src_dir(d):
             continue
-        if simulation_db.uid_from_dir_name(d) not in guest_uids:
+        if uid not in guest_uids:
             continue
         for f in pkio.walk_tree(d):
             if (now - now.fromtimestamp(f.mtime())).days <= days:
                 break
         else:
-            to_remove.append(d)
-    if confirm:
-        pkio.unchecked_remove(*to_remove)
 
-    return to_remove
+            dirs_and_uids[d] = uid
+    if confirm:
+        pkio.unchecked_remove(*dirs_and_uids.keys())
+        auth_db.UserRegistration.delete_all_for_column_by_values('uid', dirs_and_uids.values())
+
+    return dirs_and_uids
 
 
 def _create_example(example):
-    data = simulation_db.save_new_example(example)
-    # ensure all datafiles for the new example exist in the sim lib dir
-    for f in template_common.lib_files(data):
-        if not f.exists():
-            r = template_common.resource_dir(data.simulationType).join(f.basename)
-            assert r.exists(), 'Example missing resource file: {}'.format(f)
-            pkio.mkdir_parent_only(f)
-            r.copy(f)
+    simulation_db.save_new_example(example)
 
 
 def _is_src_dir(d):

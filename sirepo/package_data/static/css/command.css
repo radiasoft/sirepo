@@ -1,0 +1,10 @@
+.sr-command-table table tr td.drag-enter {
+  background-color: #d9edf7;
+}
+.sr-command-table table tr td.drag-enter div.sr-command-icon-holder {
+  transition: padding 0.5s ease 0s;
+  padding-top: 2em;
+}
+.sr-command-table table tr td.drag-enter div.dragging {
+  padding-top: 0;
+}
