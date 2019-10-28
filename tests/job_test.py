@@ -19,14 +19,18 @@ import pytest
 
 def _setup(func):
     def wrapper(*args, **kwargs):
+        import signal
+
+        # ensure the test exits after a reasonable time
+        signal.alarm(10)
         s = None
         try:
             env, cfg = _env_setup()
-            s = _start_job_supervisor(env)
             import sirepo.srunit
 
             sim_type = sirepo.srunit.MYAPP
             fc = sirepo.srunit.flask_client(sim_types=sim_type, cfg=cfg)
+            s = _start_job_supervisor(env)
             fc.sr_login_as_guest(sim_type)
             d = fc.sr_post(
                 'listSimulations',
@@ -48,10 +52,13 @@ def _setup(func):
             if s:
                 s.terminate()
                 s.wait()
+        signal.alarm(0)
+
     return wrapper
 
 
 _REPORT = 'heightWeightReport'
+
 
 @_setup
 def test_runStatus(fc, sim_data):
@@ -71,8 +78,9 @@ def test_runStatus(fc, sim_data):
 
 
 @_setup
-def xtest_runSimulation(fc, sim_data):
+def test_runSimulation(fc, sim_data):
     from pykern import pkunit
+    from pykern.pkdebug import pkdp
     from sirepo import job
     import time
 
@@ -90,7 +98,7 @@ def xtest_runSimulation(fc, sim_data):
         assert d.state != 'error'
         if d.state == 'completed':
             break
-        time.sleep(1)
+        time.sleep(d.nextRequestSeconds)
         d = fc.sr_post('runStatus', d.nextRequest)
     else:
         pkunit.pkfail('runStatus: failed to complete: {}', d)

@@ -11,7 +11,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
-from sirepo import simulation_db
 import os
 import tornado.ioloop
 import tornado.queues
@@ -32,7 +31,7 @@ class LocalDriver(job_driver.DriverBase):
     def __init__(self, req, slot):
         super().__init__(req)
         self.update(
-            agentDir=simulation_db.user_dir_name(self.uid).join('agent-local', selfId),
+            agentDir=pkio.py_path(req.content.userDir).join('agent-local', self.agentId),
             kind=slot.kind,
             slot=slot,
         )
@@ -41,7 +40,8 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     async def allocate(cls, req):
-        return cls.users[kind].get(req.content.uid) or cls(req, await _Slot.allocate(req.kind))
+        return cls.users[req.kind].get(req.content.uid) \
+            or cls(req, await _Slot.allocate(req.kind))
 
     def _free(self):
         k = self.pkdel('kill_timeout')
@@ -70,7 +70,7 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     async def send(cls, req, kwargs):
-        return (await cls.allocate(req))._send(req, kwargs)
+        return await (await cls.allocate(req))._send(req, kwargs)
 
     def terminate(self):
         if 'subprocess' in self:
@@ -85,9 +85,11 @@ class LocalDriver(job_driver.DriverBase):
 #TODO(robnagler) SECURITY strip environment
         env = PKDict(os.environ).pkupdate(
             PYENV_VERSION='py3',
+#TODO(robnagler) cascade from py test, not explicitly
             PYKERN_PKDEBUG_CONTROL='.',
             PYKERN_PKDEBUG_OUTPUT='/dev/tty',
             PYKERN_PKDEBUG_REDIRECT_LOGGING='1',
+            PYKERN_PKDEBUG_WANT_PID_TIME='1',
             SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self.agentId,
             SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.supervisor_uri,
         )
@@ -118,6 +120,7 @@ class _Slot(PKDict):
     async def allocate(cls, kind):
         self = await cls.available[kind].get()
         self.in_use[self.kind].append(self)
+        return self
 
     def free(self):
         self.in_use[self.kind].remove(self)

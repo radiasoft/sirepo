@@ -44,20 +44,22 @@ class DriverBase(PKDict):
 
     @classmethod
     def receive(cls, msg):
-        self.agents[msg.content.agentId]._receive(msg)
+        cls.agents[msg.content.agentId]._receive(msg)
 
     async def _send(self, req, kwargs):
         await self._websocket_ready.wait()
-        o = _Op(opName=kwargs.opName, msg=PKDict(kwargs))
+        o = _Op(
+            opName=kwargs.opName,
+            msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
+        )
         self.ops[o.opId] = o
         self._websocket.write_message(pkjson.dump_bytes(o.msg))
-        return await o.reply_ready(self._websocket)
+        return await o.reply_ready()
 
     @classmethod
     def terminate(cls):
-        for a in DriverBase.agents.values():
-            for d in a.values():
-                d.kill(terminate=True)
+        for d in DriverBase.agents.values():
+            d.kill()
 
     def websocket_on_close(self):
         self._websocket_free()
@@ -72,7 +74,7 @@ class DriverBase(PKDict):
 #rn there are two cases here in receive:
 #  a "real" receive (unsolicited op) or a reply.
         if i:
-            self.ops.pkdel(i).reply(msg.reply)
+            self.ops.pkdel(i).reply_put(c.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -81,9 +83,11 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        if self.get('_websocket', msg.handler) == msg.handler:
-            return
-        self._websocket_free()
+        s = self.get('_websocket')
+        if s:
+            if s == msg.handler:
+                return
+            self._websocket_free()
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
         self._websocket_ready.set()
@@ -97,7 +101,7 @@ class DriverBase(PKDict):
         v = list(self.ops.values())
         self.ops.clear()
         for o in v:
-            o.reply(PKDict(state=job.ERROR, error='websocket closed'))
+            o.reply_put(PKDict(state=job.ERROR, error='websocket closed'))
 
 
 def init():
@@ -139,7 +143,7 @@ class _Op(PKDict):
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
-    def reply(self, msg):
+    def reply_put(self, msg):
         self._reply_q.put_nowait(msg)
 
     async def reply_ready(self):

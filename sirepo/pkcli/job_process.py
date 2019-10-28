@@ -50,7 +50,7 @@ def default_command(in_file):
     return pkjson.dump_pretty(
         globals()['_do_' + msg.jobProcessCmd](
             msg,
-            sirepo.template.import_module(msg.simType),
+            sirepo.template.import_module(msg.simulationType),
         ),
         pretty=False,
     )
@@ -129,13 +129,13 @@ def _do_get_simulation_frame(msg, template):
     )
 
 
-def _do_result(msg, template):
+def _do_sequential_result(msg, template):
     if hasattr(template, 'prepare_output_file') and 'models' in msg.data:
         template.prepare_output_file(msg.runDir, msg.data)
     r, e = simulation_db.read_result(msg.runDir)
     if not e:
-        return PKDict(result=r)
-    return PKDict(error=e)
+        return PKDict(**r)
+    return PKDict(state=job.ERROR, error=e)
 
 
 def _subprocess_env():

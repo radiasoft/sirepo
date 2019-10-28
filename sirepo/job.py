@@ -25,7 +25,6 @@ OP_KILL = 'kill'
 OP_OK = 'ok'
 #: Agent indicates it is ready
 OP_ALIVE = 'alive'
-OP_RESULT = 'result'
 OP_RUN = 'run'
 OP_STATUS = 'status'
 
@@ -44,9 +43,10 @@ CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
 MISSING = 'missing'
-RUNNING = 'running'
+RUNNING = 'pending'
+PENDING = 'running'
 #: Valid values for job status
-STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, RUNNING))
+STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, PENDING, RUNNING))
 
 SEQUENTIAL = 'sequential'
 PARALLEL = 'parallel'

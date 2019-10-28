@@ -48,6 +48,8 @@ class _ComputeJob(PKDict):
             computeJobHash=c.computeJobHash,
             error=None,
             isParallel=c.isParallel,
+            simulationId=c.data.get('simulationId') or c.data.models.simulation.simulationId,
+            simulationType=c.data.simulationType,
             status=job.MISSING,
             uid=c.uid,
         )
@@ -69,18 +71,18 @@ class _ComputeJob(PKDict):
         )(req)
 
     async def _receive_api_runSimulation(self, req):
-        if self.status == job.RUNNING:
+        if self.status == (job.RUNNING, job.PENDING):
             if self.computeJobHash != req.content.computeJobHash:
                 raise AssertionError('FIXME')
             return PKDict(state=job.RUNNING)
-        if not (self.req.content.get('forceRun')
+        if not (req.content.get('forceRun')
             or not (
                 self.computeJobHash == req.content.computeJobHash
                 and self.status == job.COMPLETED
             )
         ):
             return PKDict(state=self.status)
-        self.status = job.RUNNING
+        self.status = job.PENDING
         self.error = None
         if self.isParallel:
             t = time.time()
@@ -90,7 +92,8 @@ class _ComputeJob(PKDict):
                 percentComplete=0.0,
                 startTime=t,
             )
-        return await self._send(job.OP_RUN, req)
+        tornado.ioloop.IOLoop.current().add_callback(self._run, req)
+        return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
         def res(**kwargs):
@@ -100,15 +103,15 @@ class _ComputeJob(PKDict):
             if self.isParallel:
                 r.update(**self.parallelStatus)
                 r.elapsedTime = r.lastUpdateTime - r.startTime
-            if self.status == job.RUNNING:
+            if self.status in (job.RUNNING, job.PENDING):
                 c = req.content
                 r.update(
-                    nextRequestSeconds=2 if r.isParallel else 1,
+                    nextRequestSeconds=2 if self.isParallel else 1,
                     nextRequest=PKDict(
                         report=c.analysisModel,
-                        computeJobHash=self.compute_hash,
-                        simulationId=c.simulationId,
-                        simulationType=c.simulationType,
+                        computeJobHash=self.computeJobHash,
+                        simulationId=self.simulationId,
+                        simulationType=self.simulationType,
                     ),
                 )
             return r
@@ -123,13 +126,27 @@ class _ComputeJob(PKDict):
         assert self.computeJobHash == req.content.computeJobHash
         return await self._send(job.OP_ANALYSIS, req, 'get_simulation_frame')
 
+    async def _run(self, req):
+        r = await self._send(job.OP_RUN, req)
+        if self.computeJobHash != r.computeJobHash:
+            pkdlog('invalid computeJobHash reply={}', r)
+            return
+        self.status = r.state
+        if self.status == job.ERROR:
+            self.error = r.get('error', '<unknown error>')
+        else:
+            self.lastUpdateTime = r.lastUpdateTime
+            if self.isParallel:
+#TODO(robnagler) will need final frame count
+                pass
+
     async def _send(self, opName, req, jobProcessCmd=None):
         req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
+        req.simulationType = self.simulationType
         return await job_driver.send(
             req,
             PKDict(
-                computeJid=self.computeJid,
                 reqKind=req.kind,
                 jobProcessCmd=jobProcessCmd,
                 opName=opName,

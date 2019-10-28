@@ -86,7 +86,7 @@ class _JobProcess(PKDict):
         self._stdout_read_done = tornado.locks.Event()
         self._stderr_read_done = tornado.locks.Event()
 
-    async def exit(self):
+    async def exit_ready(self):
         await self._subprocess_exit_event.wait()
         return self._parsed_stdout, self._parsed_stderr
 
@@ -94,7 +94,7 @@ class _JobProcess(PKDict):
         # TODO(e-carlin): Terminate?
         self._subprocess.proc.kill()
 
-n    def start(self):
+    def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.msg.get('agentId')
         env = self._subprocess_env()
@@ -173,9 +173,10 @@ n    def start(self):
             env,
             *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
         )
-        env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
-        env.PYENV_VERSION = 'py2'
-        return env
+        return env.pkupdate(
+            SIREPO_MPI_CORES=str(mpi.cfg.cores),
+            PYENV_VERSION='py2',
+        )
 
 
 class _Process(PKDict):
@@ -208,7 +209,7 @@ class _Process(PKDict):
                 try:
                     self._background_job_process = _JobProcess(msg=m)
                     self._background_job_process.start()
-                    o, e = await self._background_job_process.exit()
+                    o, e = await self._background_job_process.exit_ready()
                     if e:
                         await self.comm.write_message(
                             m,
@@ -240,7 +241,7 @@ class _Process(PKDict):
 
     async def _handle_main_job_process_exit(self):
         try:
-            o, e = await self._main_job_process.exit()
+            o, e = await self._main_job_process.exit_ready()
             # TODO(e-carlin): read simulation_db.read_result() or format subprocess_error
             self._main_job_process = None
             self.comm.remove_process(self.msg.computeJid)
@@ -248,19 +249,19 @@ class _Process(PKDict):
                 return
             self._done(job.ERROR if e else job.COMPLETED)
             if e:
-                o.pop('state', None)
+                o.state = job.ERROR
                 await self.comm.write_message(
                     self.msg,
                     job.OP_ERROR,
                     error=e,
-                    reply=PKDict(**o, state=job.ERROR),
+                    reply=PKDict(**o),
                 )
+#TODO(robnagler) answer cancel
             elif self.msg.jobProcessCmd == 'compute':
-                o.pop('state', None)
                 await self.comm.write_message(
                     self.msg,
-                    job.OP_OK,
-                    reply=PKDict(**o, state=job.COMPLETED),
+                    job.OP_RUN,
+                    reply=PKDict(**o),
                 )
             elif self.msg.jobProcessCmd == 'compute_status':
                 await self.comm.write_message(
@@ -268,6 +269,7 @@ class _Process(PKDict):
                     job.OP_COMPUTE_STATUS,
                     reply=o,
                 )
+#TODO(robnagler) assert this
             else:
                 await self.comm.write_message(
                     self.msg,
@@ -335,7 +337,7 @@ class _Comm(PKDict):
             try:
                 self._websocket = None
                 try:
-                    # TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+#TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
                     c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
                     self._websocket = c
                 except ConnectionRefusedError as e:
@@ -362,25 +364,25 @@ class _Comm(PKDict):
         assert jid in self._processes
         del self._processes[jid]
 
-    async def write_message(self, msg, op, **kwargs):
+    async def write_message(self, msg, opName, **kwargs):
         try:
-            await self._websocket.write_message(self._format_reply(msg, op, **kwargs))
+            await self._websocket.write_message(self._format_reply(msg, opName, **kwargs))
         except Exception as e:
             pkdlog('error={}', e)
 
-    def _format_reply(self, msg, op, **kwargs):
+    def _format_reply(self, msg, opName, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
             kwargs['computeJid'] = msg.get('computeJid')
         return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, op=op, **kwargs),
+            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
         )
 
     async def _op(self, msg):
         try:
             m = pkjson.load_any(msg)
             m.runDir = pkio.py_path(m.runDir)
-            r = await getattr(self, '_op_' + m.op)(m)
+            r = await getattr(self, '_op_' + m.opName)(m)
             if r:
                 r = r if isinstance(
                     r, bytes) else self._format_reply(m, job.OP_OK)
@@ -437,18 +439,9 @@ class _Comm(PKDict):
         return False
 
     async def _op_run(self, msg):
-        m = msg.copy()
-        del m['opId']
-        m.update(jobProcessCmd='compute')
-        self._process(m)
-        return self._format_reply(
-            msg,
-            job.OP_OK,
-            reply=PKDict(
-                state=job.RUNNING,
-                computeJobHash=msg.computeJobHash,
-            ),
-        )
+        msg.update(jobProcessCmd='compute')
+        self._process(msg)
+        return False
 
     async def _op_analysis(self, msg):
         if msg.jobProcessCmd == 'background_percent_complete':

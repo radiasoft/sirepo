@@ -100,12 +100,10 @@ def _rfc1123(dt):
 
 def _request(**kwargs):
     b = _request_body(kwargs)
-    u = simulation_db.uid_from_jid(b.computeJid)
     import inspect
     b.setdefault(
         api=inspect.stack()[1][3],  # TODO(e-carlin): Use pkinspect.caller()
         reqId=job.unique_key(),
-        uid=u,
     )
     r = requests.post(
         job.cfg.supervisor_uri,
@@ -134,7 +132,10 @@ def _request_body(kwargs):
             d,
         ).replace(b.analysisModel, b.computeModel),
     ).pksetdefault(
+        uid=lambda: simulation_db.uid_from_jid(b.computeJid),
         analysisJid=lambda: b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,
         # TODO(robnagler) remove this
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
+    ).pksetdefault(
+        userDir=lambda: simulation_db.user_dir_name(b.uid),
     )
