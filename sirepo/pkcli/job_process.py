@@ -79,13 +79,12 @@ def _do_compute(msg, template):
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     run_log_path = msg.runDir.join(template_common.RUN_LOG)
     cmd = ['pyenv', 'exec'] + cmd
-    with open(str(run_log_path), 'a+b') as run_log, open(os.devnull, 'w') as FNULL:
+    with open(str(run_log_path), 'a+b') as run_log:
         p = None
         try:
             p = subprocess.Popen(
                 cmd,
                 cwd=str(msg.runDir),
-                stdin=FNULL,
                 stdout=run_log,
                 stderr=run_log,
                 env=_subprocess_env(),
