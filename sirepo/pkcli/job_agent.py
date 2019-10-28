@@ -10,7 +10,6 @@ from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc
 from sirepo import job, mpi, simulation_db
 from sirepo.pkcli import job_process
@@ -22,11 +21,9 @@ import subprocess
 import sys
 import time
 import tornado.gen
-import tornado.httpclient
 import tornado.ioloop
 import tornado.locks
 import tornado.process
-import tornado.queues
 import tornado.websocket
 
 #: Long enough for job_process to write result in run_dir
@@ -50,26 +47,110 @@ cfg = None
 
 
 def default_command():
-    os.environ['PYKERN_PKDEBUG_OUTPUT'] = '/dev/tty'
-    os.environ['PYKERN_PKDEBUG_REDIRECT_LOGGING'] = '1'
-    os.environ['PYKERN_PKDEBUG_CONTROL'] = '.*'
-
     job.init()
     global cfg
 
     cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, 'id of this agent'),
         supervisor_uri=pkconfig.Required(
-            str, 'how to connect to the supervisor'),
+            str,
+            'how to connect to the supervisor',
+        ),
     )
     pkdlog('{}', cfg)
     i = tornado.ioloop.IOLoop.current()
     c = _Comm()
-    def s(n, x): return i.add_callback_from_signal(c.kill)
+    def s(n, x): return i.add_callback_from_signal(c.terminate)
     signal.signal(signal.SIGTERM, s)
     signal.signal(signal.SIGINT, s)
     i.spawn_callback(c.loop)
     i.start()
+
+
+class _Comm(PKDict):
+
+    async def loop(self):
+        while True:
+            try:
+                self._websocket = None
+                try:
+#TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
+                    c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
+                    self._websocket = c
+                except ConnectionRefusedError as e:
+                    pkdlog('error={}', e)
+                    await tornado.gen.sleep(_RETRY_SECS)
+                    continue
+                m = self._format_op(None, job.OP_ALIVE)
+                while True:
+                    if m and not await self.send(m):
+                        break
+                    m = await c.read_message()
+                    pkdc('msg={}', job.LogFormatter(m))
+                    if m is None:
+                        break
+                    m = await self._op(m)
+            except Exception as e:
+                pkdlog('error={} stack={}', e, pkdexc())
+
+    async def send(self, msg):
+        try:
+            await self._websocket.write_message(msg)
+            return True
+        except Exception as e:
+            pkdlog('msg={} error={}', job.LogFormatter(msg), e)
+            return False
+
+    def terminate(self):
+        pass
+
+    def _format_op(self, msg, opName, **kwargs):
+        if msg:
+            kwargs['opId'] = msg.get('opId')
+            kwargs['computeJid'] = msg.get('computeJid')
+        return pkjson.dump_bytes(
+            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
+        )
+
+    async def _op(self, msg):
+        m = None
+        try:
+            m = pkjson.load_any(msg)
+            m.runDir = pkio.py_path(m.runDir)
+            return await getattr(self, '_op_' + m.opName)(m)
+        except Exception as e:
+            err = 'exception=' + str(e)
+            stack = pkdexc()
+            pkdlog('{} stack={}', err, stack)
+            return self._format_op(m, job.OP_ERROR, error=err, stack=stack)
+
+    async def _op_cancel(self, msg):
+        p = self._processes.get(msg.computeJid)
+        if not p:
+            return self._format_op(msg, job.OP_ERROR, error='no such computeJid')
+        # TODO(e-carlin): cancel should be sync fire and forget
+        await p.cancel()
+        return self._format_op(msg, job.OP_OK)
+
+    async def _op_kill(self, msg):
+        self.kill()
+        return self._format_op(msg, job.OP_OK)
+
+    async def _op_run(self, msg):
+        self._process(msg)
+        return None
+
+    async def _op_analysis(self, msg):
+        self._process(msg)
+        return None
+
+    def _process(self, msg):
+        p = _Process(msg=msg, comm=self)
+#TODO(robnagler) there should only be one computeJid per agent.
+#   background_percent_complete is not an analysis
+        assert msg.computeJid not in self._processes
+        self._processes[msg.computeJid] = p
+        p.start()
 
 
 class _JobProcess(PKDict):
@@ -77,18 +158,12 @@ class _JobProcess(PKDict):
         super().__init__(*args, **kwargs)
         self._subprocess = None
         self._in_file = None
-        self._parsed_stdout = None
-        self._parsed_stderr = None
-##TODO(robnagler) stdout and stderr should be objects
-        self._raw_stdout = bytearray()
-        self._raw_stderr = bytearray()
         self._subprocess_exit_event = tornado.locks.Event()
-        self._stdout_read_done = tornado.locks.Event()
-        self._stderr_read_done = tornado.locks.Event()
 
     async def exit_ready(self):
-        await self._subprocess_exit_event.wait()
-        return self._parsed_stdout, self._parsed_stderr
+        await self._exit_ready.wait()
+        await self._stdout.ready.wait()
+        await self._stderr.ready.wait()
 
     def kill(self):
         # TODO(e-carlin): Terminate?
@@ -114,22 +189,14 @@ class _JobProcess(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-
-        async def collect(stream, out, event):
-            out.extend(await stream.read_until_close())
-            event.set()
-        i = tornado.ioloop.IOLoop.current()
-        i.add_callback(collect, self._subprocess.stdout,
-                       self._raw_stdout, self._stdout_read_done)
-        i.add_callback(collect, self._subprocess.stderr,
-                       self._raw_stderr, self._stderr_read_done)
+        self._stdout = _Stream(self._subprocess.stdout)
+        self._stderr = _Stream(self._subprocess.stderr)
+        self._exit_ready = tornado.locks.Event()
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     async def _load_output(self):
         o = None
         e = None
-        await self._stdout_read_done.wait()
-        await self._stderr_read_done.wait()
         try:
             e = pkjson.load_any(self._raw_stderr)
         except json.JSONDecodeError:
@@ -147,24 +214,11 @@ class _JobProcess(PKDict):
 
     def _subprocess_exit(self, returncode):
         async def do():
-            try:
-                if self._in_file:
-                    pkio.unchecked_remove(self._in_file)
-                    self._in_file = None
-                self._parsed_stdout, self._parsed_stderr = await self._load_output()
-                if returncode != 0 and not self._parsed_stderr:
-                    self._parsed_stderr = 'error returncode {}'.format(
-                        returncode)
-                if self._parsed_stderr or returncode != 0:
-                    if 'Traceback' in self._parsed_stderr:
-                        pkdlog('\n{}', self._parsed_stderr)
-                    else:
-                        pkdlog('error={}', self._parsed_stderr)
-            except Exception as e:
-                self._parsed_stderr = 'error={}'.format(e)
-                pkdlog('error={}', self._parsed_stderr)
-            finally:
-                self._subprocess_exit_event.set()
+            if self._in_file:
+                pkio.unchecked_remove(self._in_file)
+                self._in_file = None
+            self.returncode = returncode
+            self._subprocess_exit_event.set()
         tornado.ioloop.IOLoop.current().add_callback(do)
 
     def _subprocess_env(self):
@@ -174,65 +228,44 @@ class _JobProcess(PKDict):
             *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
         )
         return env.pkupdate(
+#TODO(robnagler) mpi.cores will not be defined
             SIREPO_MPI_CORES=str(mpi.cfg.cores),
             PYENV_VERSION='py2',
         )
+
+class _Stream(PKDict):
+    _MAX = int(1e8)
+
+    def __init__(self, stream):
+        super().__init__(
+            stream=stream,
+            ready=tornado.locks.Event(),
+            text=bytearray(),
+            too_large=False,
+        )
+        tornado.ioloop.IOLoop.current().add_callback(self._read)
+
+    async def _read(self):
+        while True:
+            await self.stream.read_into(self.text, partial=True)
+            if self.stream.closed():
+                break
+            if len(self.text) > self._MAX:
+                self.too_large = True
+                self.stream.close()
+                break
+        self.ready.set()
 
 
 class _Process(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.compute_job_info = None
-        self.compute_job_info_file = None
         self._background_job_process = None
         self._main_job_process = None
         self._terminating = False
 
     def start(self):
-        if self.msg.jobProcessCmd == 'compute':
-            self._write_compute_job_info_file(job.RUNNING)
-        self._execute_main_job_process()
-        # TODO(e-carlin): one compute if
-        # if self.msg.jobProcessCmd == 'compute':
-            # TODO(e-carlin): Is calling simulation_db here valid?
-            # if simulation_db.is_parallel(self.msg.data):
-            #     self._execute_background_percent_complete_job_process()
-
-    def _execute_background_percent_complete_job_process(self):
-        m = self.msg.copy()
-        m.update(jobProcessCmd='background_percent_complete')
-        m.pop('opId', None)
-
-        async def do():
-            while True:
-                try:
-                    self._background_job_process = _JobProcess(msg=m)
-                    self._background_job_process.start()
-                    o, e = await self._background_job_process.exit_ready()
-                    if e:
-                        await self.comm.write_message(
-                            m,
-                            job.OP_ERROR,
-                            error=e,
-                            reply=o
-                        )
-                    else:
-                        await self.comm.write_message(
-                            m,
-                            job.OP_BACKGROUND_PERCENT_COMPLETE,
-                            reply=o,
-                        )
-                except Exception as e:
-                    pkdlog('error={}', e)
-                finally:
-                    # TODO(e-carlin): If terminating then don't start again
-                    # TODO(e-carlin): make 2 configurable
-                    await tornado.gen.sleep(2)
-                    # TODO(e-carlin): kill this when 100% complete
-        tornado.ioloop.IOLoop.current().add_callback(do)
-
-    def _execute_main_job_process(self):
         self._main_job_process = _JobProcess(msg=self.msg)
         self._main_job_process.start()
         tornado.ioloop.IOLoop.current().add_callback(
@@ -241,10 +274,9 @@ class _Process(PKDict):
 
     async def _handle_main_job_process_exit(self):
         try:
-            o, e = await self._main_job_process.exit_ready()
+            await self._main_job_process.exit_ready()
             # TODO(e-carlin): read simulation_db.read_result() or format subprocess_error
             self._main_job_process = None
-            self.comm.remove_process(self.msg.computeJid)
             if self._terminating:  # TODO(e-carlin): why?
                 return
             self._done(job.ERROR if e else job.COMPLETED)
@@ -263,13 +295,6 @@ class _Process(PKDict):
                     job.OP_RUN,
                     reply=PKDict(**o),
                 )
-            elif self.msg.jobProcessCmd == 'compute_status':
-                await self.comm.write_message(
-                    self.msg,
-                    job.OP_COMPUTE_STATUS,
-                    reply=o,
-                )
-#TODO(robnagler) assert this
             else:
                 await self.comm.write_message(
                     self.msg,
@@ -282,185 +307,3 @@ class _Process(PKDict):
                 await self.comm.write_message(self.msg, job.OP_ERROR, error=e, reply=o)
             except Exception as exc:
                 pkdlog('error={}', exc)
-
-    def _write_compute_job_info_file(self, state):
-        self.compute_job_info_file = self.msg.runDir.join(_INFO_FILE)
-        pkio.mkdir_parent_only(self.compute_job_info_file)
-        self.compute_job_info = PKDict(_INFO_FILE_COMMON).update(
-            computeJobHash=self.msg.computeJobHash,
-            startTime=time.time(),
-            state=state,
-        )
-        # TODO(robnagler) pkio.atomic_write?
-        self.compute_job_info_file.write(self.compute_job_info)
-
-    # async def cancel(self, run_dir):
-    #     # TODO(e-carlin): cancel background_sp
-    #     if not self._terminating:
-    #         # Will resolve itself, b/c harmless to call proc.kill
-    #         tornado.ioloop.IOLoop.current().call_later(
-    #             _TERMINATE_SECS,
-    #             self._kill,
-    #         )
-    #         self._terminating = True
-    #         self._done(job.CANCELED)
-    #         self._main_sp.proc.terminate()
-
-    def kill(self):
-        # TODO(e-carlin): kill background_sp
-        self._terminating = True
-        if self._main_job_process:
-            self._done(job.CANCELED)
-            self._main_job_process.kill()
-            self._main_job_process = None
-
-    def _done(self, status):
-        if self.compute_job_info_file:
-            self.compute_job_info.status = status
-            self.compute_job_info_file.write(self.compute_job_info.status)
-            self.compute_job_info_file = None
-
-
-class _Comm(PKDict):
-
-    def kill(self):
-        x = list(self._processes.values())
-        self._processes = PKDict()
-        for p in x:
-            p.kill()
-        tornado.ioloop.IOLoop.current().stop()
-
-    async def loop(self):
-        self._processes = PKDict()
-
-        while True:
-            try:
-                self._websocket = None
-                try:
-#TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                    c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
-                    self._websocket = c
-                except ConnectionRefusedError as e:
-                    pkdlog('error={}', e)
-                    await tornado.gen.sleep(_RETRY_SECS)
-                    continue
-                m = self._format_reply(None, job.OP_ALIVE)
-                while True:
-                    try:
-                        if m:
-                            await self._websocket.write_message(m)
-                    except tornado.websocket.WebSocketClosedError as e:
-                        pkdlog('error={}', e)
-                        break
-                    m = await c.read_message()
-                    pkdc('msg={}', job.LogFormatter(m))
-                    if m is None:
-                        break
-                    m = await self._op(m)
-            except Exception as e:
-                pkdlog('error={} \n{}', e, pkdexc())
-
-    def remove_process(self, jid):
-        assert jid in self._processes
-        del self._processes[jid]
-
-    async def write_message(self, msg, opName, **kwargs):
-        try:
-            await self._websocket.write_message(self._format_reply(msg, opName, **kwargs))
-        except Exception as e:
-            pkdlog('error={}', e)
-
-    def _format_reply(self, msg, opName, **kwargs):
-        if msg:
-            kwargs['opId'] = msg.get('opId')
-            kwargs['computeJid'] = msg.get('computeJid')
-        return pkjson.dump_bytes(
-            PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
-        )
-
-    async def _op(self, msg):
-        try:
-            m = pkjson.load_any(msg)
-            m.runDir = pkio.py_path(m.runDir)
-            r = await getattr(self, '_op_' + m.opName)(m)
-            if r:
-                r = r if isinstance(
-                    r, bytes) else self._format_reply(m, job.OP_OK)
-                return r
-            return None
-        except Exception as e:
-            err = 'exception=' + str(e)
-            stack = pkdexc()
-            pkdlog('{} \n{}', err, stack)
-            return self._format_reply(None, job.OP_ERROR, error=err, stack=stack)
-
-    async def _op_cancel(self, msg):
-        p = self._processes.get(msg.computeJid)
-        if not p:
-            return self._format_reply(msg, job.OP_ERROR, error='no such computeJid')
-        # TODO(e-carlin): cancel should be sync fire and forget
-        await p.cancel()
-        return True
-
-    async def _op_compute_status(self, msg):
-        assert msg.computeJid not in self._processes, \
-            "computeJid={} in processes. Supervisor should already now about status".format(
-                msg.computeJid)
-        try:
-            i = pkjson.load_any(msg.runDir.join(_INFO_FILE))
-            return self._format_reply(
-                msg,
-                job.OP_COMPUTE_STATUS,
-                reply=PKDict(
-                    state=i.state,
-                    computeJobHash=i.computeJobHash,
-                ),
-            )
-        except Exception:
-            f = msg.runDir.join(job.RUNNER_STATUS_FILE)
-            if f.check():
-                assert msg.computeJid not in self._processes
-                msg.update(jobProcessCmd='compute_status')
-                self._process(msg)
-                return False
-        return self._format_reply(
-            msg,
-            job.OP_COMPUTE_STATUS,
-            reply=PKDict(state=job.MISSING),
-        )
-
-    async def _op_kill(self, msg):
-        self.kill()
-        return True
-
-    async def _op_result(self, msg):
-        msg.update(jobProcessCmd='result')
-        self._process(msg)
-        return False
-
-    async def _op_run(self, msg):
-        msg.update(jobProcessCmd='compute')
-        self._process(msg)
-        return False
-
-    async def _op_analysis(self, msg):
-        if msg.jobProcessCmd == 'background_percent_complete':
-            if not msg.runDir.exists():
-                return self._format_reply(
-                    msg,
-                    job.OP_OK,
-                    reply=PKDict(
-                        percentComplete=0.0,
-                        frameCount=0,
-                    ),
-                )
-        self._process(msg)
-        return False
-
-    def _process(self, msg):
-        p = _Process(msg=msg, comm=self)
-#TODO(robnagler) there should only be one computeJid per agent.
-#   background_percent_complete is not an analysis
-        assert msg.computeJid not in self._processes
-        self._processes[msg.computeJid] = p
-        p.start()

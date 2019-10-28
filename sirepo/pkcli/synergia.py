@@ -26,7 +26,7 @@ def run(cfg_dir):
                 exec(pkio.read_text(template_common.PARAMETERS_PYTHON_FILE), locals(), locals())
             template.save_report_data(data, py.path.local(cfg_dir))
         except Exception as e:
-            res = template.parse_error_log(py.path.local(cfg_dir)) or {
+            res = template.parse_synergia_log(py.path.local(cfg_dir)) or {
                 'error': str(e),
             }
             simulation_db.write_result(res)

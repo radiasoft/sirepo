@@ -93,6 +93,7 @@ class _ComputeJob(PKDict):
                     startTime=t,
                 )
             tornado.ioloop.IOLoop.current().add_callback(self._run, req)
+        # Read this first https://github.com/radiasoft/sirepo/issues/2007
         return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
@@ -133,7 +134,7 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        r = await self._send(job.OP_RUN, req)
+        r = await self._send(job.OP_RUN, req, jobProcessCmd='compute')
         self.status = r.state
         if self.status == job.ERROR:
             self.error = r.get('error', '<unknown error>')

@@ -433,10 +433,6 @@ def import_file(request, lib_dir=None, tmp_dir=None, unit_test_mode=False):
     return data
 
 
-def parse_error_log(run_dir):
-    return None
-
-
 def python_source_for_model(data, model=None):
     return _generate_parameters_file(data)
 

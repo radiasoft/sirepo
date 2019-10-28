@@ -129,12 +129,14 @@ def _do_get_simulation_frame(msg, template):
 
 
 def _do_sequential_result(msg, template):
-    if hasattr(template, 'prepare_output_file') and 'models' in msg.data:
+    r = simulation_db.read_result(msg.runDir)
+    # Read this first: https://github.com/radiasoft/sirepo/issues/2007
+    if (r.state != job.ERROR and hasattr(template, 'prepare_output_file')
+       and 'models' in msg.data
+    ):
         template.prepare_output_file(msg.runDir, msg.data)
-    r, e = simulation_db.read_result(msg.runDir)
-    if not e:
-        return PKDict(**r)
-    return PKDict(state=job.ERROR, error=e)
+        r = simulation_db.read_result(msg.runDir)
+    return r
 
 
 def _subprocess_env():

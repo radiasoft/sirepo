@@ -15,6 +15,7 @@ from sirepo import runner
 from sirepo import simulation_db
 from sirepo.template import template_common
 import datetime
+import sirepo.job
 import sirepo.template
 import time
 
@@ -132,6 +133,7 @@ def _simulation_run_status(data, quiet=False):
         rep = simulation_db.report_info(data)
         is_processing = runner.job_is_processing(rep.job_id)
         is_running = rep.job_status in _RUN_STATES
+        is_parallel = simulation_db.is_parallel(data)
         res = {'state': rep.job_status}
         pkdc(
             '{}: is_processing={} is_running={} state={} cached_data={}',
@@ -155,22 +157,14 @@ def _simulation_run_status(data, quiet=False):
         else:
             is_running = False
             if rep.run_dir.exists():
-                if hasattr(template, 'prepare_output_file') and 'models' in data:
-                    template.prepare_output_file(rep.run_dir, data)
-                res2, err = simulation_db.read_result(rep.run_dir)
-                if err:
-                    if simulation_db.is_parallel(data):
-                        # allow parallel jobs to use template to parse errors below
-                        res['state'] = 'error'
-                    else:
-                        if hasattr(template, 'parse_error_log'):
-                            res = template.parse_error_log(rep.run_dir)
-                            if res:
-                                return res
-                        return http_reply.subprocess_error(err, 'error in read_result', rep.run_dir)
-                else:
-                    res = res2
-        if simulation_db.is_parallel(data):
+                res = simulation_db.read_result(rep.run_dir)
+                if res.state != sirepo.job.ERROR:
+                    if not is_parallel and hasattr(template, 'prepare_output_file') and 'models' in data:
+                        template.prepare_output_file(rep.run_dir, data)
+                        res = simulation_db.read_result(rep.run_dir)
+                if res.state == sirepo.job.ERROR and not is_parallel:
+                    return http_reply.subprocess_error(err, 'error in read_result', rep.run_dir)
+        if is_parallel:
             new = template.background_percent_complete(
                 rep.model_name,
                 rep.run_dir,

@@ -606,7 +606,7 @@ def read_result(run_dir):
         run_dir (py.path): where to find output
 
     Returns:
-        dict: result or describes error
+        dict: result (possibly error)
     """
     fn = json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
     res = None
@@ -633,13 +633,11 @@ def read_result(run_dir):
         else:
             pkdlog('{}: error reading output: {}', fn, err)
     if err:
-        return None, err
-    if not res:
-        res = pkcollections.Dict()
-    if 'state' not in res:
+        res = PKDict(state=sirepo.job.ERROR, error=err)
+    elif not res or 'state' not in res:
         # Old simulation or other error, just say is canceled so restarts
-        res = pkcollections.Dict(state='canceled')
-    return res, None
+        res = pkcollections.Dict(state=sirepo.job.CANCELED)
+    return res
 
 
 def read_simulation_json(sim_type, *args, **kwargs):

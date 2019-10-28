@@ -206,7 +206,20 @@ def label(field, enum_labels=None):
     return '{} [{}]'.format(res, _UNITS[field])
 
 
-def parse_error_log(run_dir):
+def prepare_output_file(run_dir, data):
+    report = data.report
+    if 'bunchReport' in report or 'twissReport' in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            save_report_data(data, run_dir)
+
+
+def python_source_for_model(data, model):
+    return _generate_parameters_file(data)
+
+
+def parse_synergia_log(run_dir):
     text = pkio.read_text(run_dir.join(template_common.RUN_LOG))
     errors = []
     current = ''
@@ -235,19 +248,6 @@ def parse_error_log(run_dir):
     if len(errors):
         return {'state': 'error', 'error': '\n\n'.join(errors)}
     return None
-
-
-def prepare_output_file(run_dir, data):
-    report = data.report
-    if 'bunchReport' in report or 'twissReport' in report:
-        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
-        if fn.exists():
-            fn.remove()
-            save_report_data(data, run_dir)
-
-
-def python_source_for_model(data, model):
-    return _generate_parameters_file(data)
 
 
 def save_report_data(data, run_dir):
@@ -446,7 +446,8 @@ def _extract_evolution_plot(report, run_dir):
             points = _plot_values(f, report[yfield])
             for v in points:
                 if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                    return parse_error_log(run_dir) or {
+                    return parse_synergia_log(run_dir) or {
+                        'state': 'error',
                         'error': 'Invalid data computed',
                     }
             plots.append({
@@ -471,7 +472,8 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
         points = _plot_values(f, report.y)
         for v in points:
             if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
-                return parse_error_log(run_dir) or {
+                return parse_synergia_log(run_dir) or {
+                    'state': 'error',
                     'error': 'Invalid data computed',
                 }
         steps = (len(points) - 1) / turn_count
@@ -485,6 +487,7 @@ def _extract_turn_comparison_plot(report, run_dir, turn_count):
             p = points[int((turn - 1) * steps):int((turn - 1) * steps + steps + 1)]
             if not len(p):
                 return {
+                    'state': 'error',
                     'error': 'Simulation data is not yet available',
                 }
             plots.append({
