@@ -127,10 +127,14 @@ class _ComputeJob(PKDict):
         return await self._send(job.OP_ANALYSIS, req, 'get_simulation_frame')
 
     async def _run(self, req):
-        r = await self._send(job.OP_RUN, req)
-        if self.computeJobHash != r.computeJobHash:
-            pkdlog('invalid computeJobHash reply={}', r)
+        if self.computeJobHash != req.content.computeJobHash:
+            pkdlog(
+                'invalid computeJobHash self={} req={}',
+                self.computeJobHash,
+                req.content.computeJobHash
+            )
             return
+        r = await self._send(job.OP_RUN, req)
         self.status = r.state
         if self.status == job.ERROR:
             self.error = r.get('error', '<unknown error>')
