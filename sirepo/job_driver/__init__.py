@@ -46,16 +46,6 @@ class DriverBase(PKDict):
     def receive(cls, msg):
         cls.agents[msg.content.agentId]._receive(msg)
 
-    async def _send(self, req, kwargs):
-        await self._websocket_ready.wait()
-        o = _Op(
-            opName=kwargs.opName,
-            msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
-        )
-        self.ops[o.opId] = o
-        self._websocket.write_message(pkjson.dump_bytes(o.msg))
-        return await o.reply_ready()
-
     @classmethod
     def terminate(cls):
         for d in DriverBase.agents.values():
@@ -71,8 +61,6 @@ class DriverBase(PKDict):
     def _receive(self, msg):
         c = msg.content
         i = c.get('opId')
-#rn there are two cases here in receive:
-#  a "real" receive (unsolicited op) or a reply.
         if i:
             self.ops.pkdel(i).reply_put(c.reply)
         else:
@@ -90,10 +78,28 @@ class DriverBase(PKDict):
             self._websocket_free()
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
-        self._websocket_ready.set()
+#TODO(robnagler) order matters, so maybe need to sequence opIds
+        for o in self.ops.values():
+            if '_websocket_ready' in o:
+                o._websocket_ready.set()
+
+    async def _send(self, req, kwargs):
+        o = _Op(
+            opName=kwargs.opName,
+            msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
+        )
+        self.ops[o.opId] = o
+        if '_websocket' not in self:
+#rn necesary for cancel case of one jid not all jids
+            o._websocket_ready = tornado.locks.Event()
+            await o._websocket_ready.wait()
+        if o.opId in self.ops:
+            self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        else:
+            pkdlog('op={} canceled', o)
+        return await o.reply_ready()
 
     def _websocket_free(self):
-        self._websocket_ready.clear()
         w = self.pkdel('_websocket')
         if w:
             # Will not call websocket_on_close()
@@ -101,6 +107,8 @@ class DriverBase(PKDict):
         v = list(self.ops.values())
         self.ops.clear()
         for o in v:
+            if '_websocket_ready' in o:
+                o._websocket_ready.set()
             o.reply_put(PKDict(state=job.ERROR, error='websocket closed'))
 
 
