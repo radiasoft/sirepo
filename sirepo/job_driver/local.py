@@ -51,6 +51,12 @@ class LocalDriver(job_driver.DriverBase):
 # we have to manage (local, docker). For NERSC, AWS, etc. parking is not
 # necessary. You would allocate as many parallel slots. We can park more
 # slots than are in_use, just can't use more slots than are actually allowed.
+
+#TODO(robnagler) drivers are not organized by uid, because there can be more
+# than one per user, rather, we can have a list here, not just self.
+# need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
+# _Slot() may have to understand this, because related to parking. However,
+# we are parking a driver so maybe that's a (local) driver mechanism
         return cls.users[req.kind].get(req.content.uid) \
             or cls(req, await _Slot.allocate(req.kind))
 
