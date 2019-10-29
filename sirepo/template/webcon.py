@@ -761,7 +761,7 @@ def _generate_parameters_file(run_dir, data):
     #TODO(pjm): calling private template.elegant._build_beamline_map()
     data.models.commands = []
     v['currentFile'] = CURRENT_FILE
-    v['fodoLattice'] = elegant.generate_lattice(data, elegant._build_filename_map(data), elegant._build_beamline_map(data), v)
+    v['fodoLattice'] = elegant.webcon_generate_lattice(data)
     v['BPM_FIELDS'] = BPM_FIELDS
     v['CURRENT_FIELDS'] = CURRENT_FIELDS
     return res + template_common.render_jinja(SIM_TYPE, v)

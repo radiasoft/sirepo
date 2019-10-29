@@ -458,6 +458,13 @@ def validate_file(file_type, path):
     return err
 
 
+def webcon_generate_lattice(data):
+    # Used by Webcon
+    return _generate_lattice(
+        _build_filename_map(data),
+        LatticeUtil(data, _SCHEMA))
+
+
 def write_parameters(data, run_dir, is_parallel):
     """Write the parameters file
 

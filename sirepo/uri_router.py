@@ -53,26 +53,28 @@ _api_modules = []
 _api_funcs = pkcollections.Dict()
 
 
-def call_api(func, kwargs=None, data=None):
+def call_api(func_or_name, kwargs=None, data=None):
     """Call another API with permission checks.
 
     Note: also calls `save_to_cookie`.
 
     Args:
-        func (callable): api function
+        func_or_name (object): api function or name (without `api_` prefix)
         kwargs (dict): to be passed to API [None]
         data (dict): will be returned `http_request.parse_json`
     Returns:
         flask.Response: result
     """
-    resp = sirepo.api_auth.check_api_call(func)
+    f = func_or_name if callable(func_or_name) \
+        else _api_to_route[func_or_name].func
+    resp = sirepo.api_auth.check_api_call(f)
     if resp:
         return resp
     try:
         if data:
             #POSIT: http_request.parse_json
             flask.g.sirepo_call_api_data = data
-        resp = flask.make_response(func(**kwargs) if kwargs else func())
+        resp = flask.make_response(f(**kwargs) if kwargs else f())
     finally:
         if data:
             flask.g.sirepo_call_api_data = None
