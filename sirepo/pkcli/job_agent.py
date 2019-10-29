@@ -82,7 +82,7 @@ class _Dispatcher(PKDict):
                 while True:
                     if m and not await self.send(m):
                         break
-                    m = await c.read_message()
+                    m = await self._websocket.read_message()
                     if m is None:
                         break
                     m = await self._op(m)

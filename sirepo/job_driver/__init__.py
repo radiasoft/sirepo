@@ -38,7 +38,7 @@ class DriverBase(PKDict):
             ops=PKDict(),
             supervisor_uri=cfg.supervisor_uri,
             uid=req.content.uid,
-            _websocket_ready=tornado.locks.Event(),
+            _websocket=None,
         )
         self.agents[self.agentId] = self
 
@@ -71,17 +71,15 @@ class DriverBase(PKDict):
 
         Save the websocket and register self with the websocket
         """
-        s = self.get('_websocket')
-        if s:
-            if s == msg.handler:
+        if self._websocket:
+            if self._websocket == msg.handler:
                 return
             self._websocket_free()
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
 #TODO(robnagler) order matters, so maybe need to sequence opIds
         for o in self.ops.values():
-            if '_websocket_ready' in o:
-                o._websocket_ready.set()
+            o.websocket_ready.set()
 
     async def _send(self, req, kwargs):
         o = _Op(
@@ -89,10 +87,7 @@ class DriverBase(PKDict):
             msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
         )
         self.ops[o.opId] = o
-        if '_websocket' not in self:
-#rn necesary for cancel case of one jid not all jids
-            o._websocket_ready = tornado.locks.Event()
-            await o._websocket_ready.wait()
+        await o.websocket_ready.wait()
         if o.opId in self.ops:
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
@@ -116,8 +111,7 @@ class DriverBase(PKDict):
         v = list(self.ops.values())
         self.ops.clear()
         for o in v:
-            if '_websocket_ready' in o:
-                o._websocket_ready.set()
+            o.websocket_ready.set()
             o.reply_put(PKDict(state=job.ERROR, error='websocket closed'))
 
 
@@ -157,6 +151,8 @@ class _Op(PKDict):
         self.update(
             opId=job.unique_key(),
             _reply_q=tornado.queues.Queue(),
+            # necessary for cancel so we can "free" all ops regarding one jid
+            websocket_ready=tornado.locks.Event(),
         )
         self.msg.update(opId=self.opId, opName=self.opName)
 
