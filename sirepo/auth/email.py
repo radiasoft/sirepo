@@ -69,6 +69,9 @@ def api_authEmailAuthorized(simulation_type, token):
     with auth_db.thread_lock:
         u = AuthEmailUser.search_by(token=token)
         if u and u.expires >= srtime.utc_now():
+            r = _verify_confirm(t, token)
+            if r:
+                return r
             u.query.filter(
                 (AuthEmailUser.user_name == u.unverified_email),
                 AuthEmailUser.unverified_email != u.unverified_email,
@@ -209,3 +212,23 @@ This link will expire in {} hours and can only be used once.
     )
     _smtp.send(msg)
     return http_reply.gen_json_ok()
+
+
+def _verify_confirm(simulation_type, token):
+    if flask.request.method == 'GET':
+        return http_reply.gen_redirect_for_local_route(
+            simulation_type,
+            'loginWithEmailConfirm',
+            {
+                'token': token,
+            },
+        )
+    d = http_request.parse_json()
+    if d.get('token') != token:
+        raise util.UserAlert(
+            'internal error',
+            'Expected token={} in data but got data={}',
+            token,
+            d,
+        )
+    return None

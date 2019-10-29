@@ -1430,17 +1430,20 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
     return self;
 });
 
-SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope) {
+SIREPO.app.factory('requestSender', function(cookieService, errorService, localRoutes, $http, $location, $interval, $q, $rootScope, $window) {
     var self = {};
     var getApplicationDataTimeout = {};
     var IS_HTML_ERROR_RE = new RegExp('^(?:<html|<!doctype)', 'i');
     var HTML_TITLE_RE = new RegExp('>([^<]+)</', 'i');
+    var REDIRECT_RE = new RegExp('window.location = "([^"]+)";', 'i');
     var auxillaryData = {};
 
     function checkCookieRedirect(event, route) {
         if (! SIREPO.authState.isLoggedIn
             || SIREPO.authState.needCompleteRegistration
-            || (route.controller && route.controller.indexOf('login') >= 0)) {
+            // Any controller that has 'login' in it will stay on page
+            || (route.controller && route.controller.indexOf('login') >= 0)
+        ) {
             return;
         }
         var prevRoute = cookieService.getCookieValue(SIREPO.APP_SCHEMA.cookies.previousRoute);
@@ -1667,6 +1670,19 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
             else if (status === 0) {
                 msg = 'the server is unavailable';
                 status = 503;
+            }
+            if (angular.isString(response)) {
+                if (IS_HTML_ERROR_RE.exec(response)) {
+                    var m = REDIRECT_RE.exec(response);
+                    if (m) {
+                        srdbg(m[1]);
+                        $window.location.href = m[1];
+//                        srdbg('second try');
+//                        window.location = 'http://v.radia.run:8000/' + m[1];
+                        srdbg('does not work');
+                        return;
+                    }
+                }
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
                 var m = HTML_TITLE_RE.exec(data);
@@ -2742,6 +2758,11 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
         errorService.alertText('Incorrect or invalid login method: ' + (m || '<none>'));
         requestSender.localRedirect('login');
     }
+});
+
+SIREPO.app.controller('LoginWithEmailConfirmController', function () {
+    // This controller is a flag for checkCookieRedirect() so our localRoute gets in.
+    return;
 });
 
 SIREPO.app.controller('LoginFailController', function (appState, requestSender, $route, $sce) {

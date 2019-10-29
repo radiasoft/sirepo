@@ -2407,6 +2407,51 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
     };
 });
 
+SIREPO.app.directive('emailLoginConfirm', function(requestSender, $route) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: [
+            '<div class="row text-center">',
+              '<p>Please click the button below to complete the login process.</p>',
+            '</div>',
+            '<div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>',
+            '<form class="form-horizontal" autocomplete="off" novalidate>',
+              '<div class="row text-center" style="margin-top: 10px">',
+                 '<button data-ng-click="confirm()" class="btn btn-primary">Confirm</button>',
+              '</div>',
+            '</form>',
+        ].join(''),
+        controller: function($scope) {
+            $scope.showWarning = false;
+            function handleResponse(data) {
+                $scope.showWarning = true;
+                $scope.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+            }
+            $scope.data = {};
+            $scope.confirm = function() {
+                $scope.showWarning = false;
+                var t = $route.current.params.token;
+                requestSender.sendRequest(
+                    {
+                        routeName: 'authEmailAuthorized',
+                        '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                        '<token>': t,
+                    },
+                    handleResponse,
+                    {
+                        token: t,
+                    }
+                );
+            };
+        },
+        link: function(scope, element) {
+            // get the angular form from within the transcluded content
+            scope.form = element.find('input').eq(0).controller('form');
+        }
+    };
+});
+
 SIREPO.app.directive('commonFooter', function() {
     return {
         restrict: 'A',

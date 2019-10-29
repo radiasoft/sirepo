@@ -271,6 +271,13 @@
                   "templateUrl": "/static/html/login-with.html"
                 }
             },
+            "loginWithEmailConfirm": {
+                "route": "/login-with-email-confirm/:token",
+                "config": {
+                  "controller": "LoginWithEmailConfirmController as loginFlaggedByCheckCookieRedirect",
+                  "templateUrl": "/static/html/login-with-email-confirm.html"
+                }
+            },
             "missingCookies": {
                 "route": "/missing-cookies",
                 "config": {
