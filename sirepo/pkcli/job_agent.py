@@ -229,8 +229,7 @@ class _Job(PKDict):
             *(k for k in env if _EXEC_ENV_REMOVE.search(k)),
         )
         return env.pkupdate(
-#TODO(robnagler) mpi.cores will not be defined
-            SIREPO_MPI_CORES=str(mpi.cfg.cores),
+            SIREPO_MPI_CORES=str(self.msg.mpiCores),
             PYENV_VERSION='py2',
         )
 

@@ -12,6 +12,7 @@ from sirepo import api_perm
 from sirepo import http_reply
 from sirepo import http_request
 from sirepo import job
+from sirepo import mpi
 from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import srtime
@@ -131,6 +132,7 @@ def _request_body(kwargs):
         computeJid=lambda: simulation_db.job_id(
             d,
         ).replace(b.analysisModel, b.computeModel),
+        mpiCores=lambda: sirepo.mpi.cfg.cores if b.is_parallel else 1,
     ).pksetdefault(
         uid=lambda: simulation_db.uid_from_jid(b.computeJid),
         analysisJid=lambda: b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,

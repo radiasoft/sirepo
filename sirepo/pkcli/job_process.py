@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function
 from pykern import pkcollections
 from pykern import pkio
 from pykern import pkjson
+from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import job
@@ -18,17 +19,8 @@ import functools
 import os
 import re
 import sirepo
-import sirepo.sim_data
-import subprocess
 import sys
 import time
-
-
-#: Need to remove $OMPI and $PMIX to prevent PMIX ERROR:
-# See https://github.com/radiasoft/sirepo/issues/1323
-# We also remove SIREPO_ and PYKERN vars, because we shouldn't
-# need to pass any of that on, just like runner.docker, doesn't
-_EXEC_ENV_REMOVE = re.compile('^(OMPI_|PMIX_|SIREPO_|PYKERN_)')
 
 
 def default_command(in_file):
@@ -85,7 +77,8 @@ def _do_compute(msg, template):
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     try:
         pksubprocess.check_call_with_signals(
-            ['pyenv', 'exec'] + cmd,
+#rn This code already running in proper py2 env
+            cmd,
             output=msg.runDir.join(template_common.RUN_LOG),
         )
     except Exception as e:

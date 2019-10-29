@@ -40,6 +40,17 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     async def allocate(cls, req):
+#TODO(robnagler) need to introduce concept of parked drivers for reallocation.
+# a driver is freed as soon as it completes all its outstanding ops. For
+# _run(), this is an outstanding op, which holds the driver until the _run()
+# is complete. Same for analysis. Once all runs and analyses are compelte,
+# free the driver, but park it. Allocation then is trying to find a parked
+# driver then a free slot. If there are no free slots, we garbage collect
+# parked drivers. We can park more drivers than are available for compute
+# so has to connect to the max slots. Parking is only needed for resources
+# we have to manage (local, docker). For NERSC, AWS, etc. parking is not
+# necessary. You would allocate as many parallel slots. We can park more
+# slots than are in_use, just can't use more slots than are actually allowed.
         return cls.users[req.kind].get(req.content.uid) \
             or cls(req, await _Slot.allocate(req.kind))
 

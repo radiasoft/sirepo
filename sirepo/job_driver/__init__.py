@@ -97,6 +97,15 @@ class DriverBase(PKDict):
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
             pkdlog('op={} canceled', o)
+#TODO(robnagler) need to send a retry to the ops, which should requeue
+#  themselves at an outer level(?).
+#  If a job is still running, but we just lost the websocket, want to
+#  pickup where we left off. If the op already was written, then you
+#  have to ask the agent. If ops are idempotent, we can simply
+#  resend the request. If it is in process, then it will be reconnected
+#  to the job. If it was already completed (and reply on the way), then
+#  we can cache that state in the agent(?) and have it send the response
+#  twice(?).
         return await o.reply_ready()
 
     def _websocket_free(self):
