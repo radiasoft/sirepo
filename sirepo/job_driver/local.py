@@ -66,7 +66,7 @@ class LocalDriver(job_driver.DriverBase):
             tornado.ioloop.IOLoop.current().remove_timeout(k)
         self.pkdel('slot').free(self)
         del self.users[self.kind][self.uid]
-        super()._free(self)
+        super()._free()
 
     @classmethod
     def init_class(cls):

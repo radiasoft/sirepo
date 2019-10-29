@@ -69,6 +69,7 @@ def default_command():
 
 
 class _Dispatcher(PKDict):
+    _processes = PKDict()
 
     async def loop(self):
         while True:
@@ -176,7 +177,7 @@ class _Job(PKDict):
         env = self._subprocess_env()
         self._in_file = self.msg.runDir.join(
             _IN_FILE.format(job.unique_key()))
-        # pkio.mkdir_parent_only(self._in_file) # TODO(e-carlin): Hack for animations. Who should be ensuring this?
+        pkio.mkdir_parent_only(self._in_file)
         # TODO(e-carlin): Find a better solution for serial and deserialization
         self.msg.runDir = str(self.msg.runDir)
         pkjson.dump_pretty(self.msg, filename=self._in_file, pretty=False)
@@ -276,6 +277,10 @@ class _Process(PKDict):
         tornado.ioloop.IOLoop.current().add_callback(
             self._handle_main_job_process_exit
         )
+        self._main_job_process.set_exit_callback(
+            self._handle_main_job_process_exit
+        )
+
 
     async def _handle_main_job_process_exit(self):
         try:

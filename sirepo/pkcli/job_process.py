@@ -109,6 +109,7 @@ def _do_sequential_result(msg, template):
 
 
 def _fix_status(r):
-    r.startTime = _mtime_or_now(rep.input_file)
-        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+    raise NotImplementedError()
+    # r.startTime = _mtime_or_now(rep.input_file)
+    #     res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+    #     res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])

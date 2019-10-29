@@ -132,7 +132,7 @@ def _request_body(kwargs):
         computeJid=lambda: simulation_db.job_id(
             d,
         ).replace(b.analysisModel, b.computeModel),
-        mpiCores=lambda: sirepo.mpi.cfg.cores if b.is_parallel else 1,
+        mpiCores=lambda: sirepo.mpi.cfg.cores if b.isParallel else 1,
     ).pksetdefault(
         uid=lambda: simulation_db.uid_from_jid(b.computeJid),
         analysisJid=lambda: b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,
