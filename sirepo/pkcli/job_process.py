@@ -10,7 +10,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp
+from pykern.pkdebug import pkdp, pkdexc
 from sirepo import job
 from sirepo import mpi
 from sirepo import simulation_db
@@ -79,13 +79,14 @@ def _do_compute(msg, template):
         pksubprocess.check_call_with_signals(
 #rn This code already running in proper py2 env
             cmd,
-            output=msg.runDir.join(template_common.RUN_LOG),
+            output=str(msg.runDir.join(template_common.RUN_LOG)),
         )
     except Exception as e:
+        pkdp(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
-    r = _do_background_percent_complete(msg, template) if msg.isParallel else PKDict()
-
-    return r
+    return _do_background_percent_complete(msg, template) \
+            if msg.isParallel \
+            else _fix_status(PKDict(state=job.COMPLETED))
 
 
 
@@ -109,7 +110,11 @@ def _do_sequential_result(msg, template):
 
 
 def _fix_status(r):
-    raise NotImplementedError()
+    # TODO(e-carlin): impl
     # r.startTime = _mtime_or_now(rep.input_file)
-    #     res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-    #     res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+    # res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+    # res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+    r.startTime = 0
+    r.setdefault('lastUpdateTime', 0)
+    r.setdefault('elapsedTime', r.lastUpdateTime - r.startTime)
+    return r

@@ -22,6 +22,7 @@ import sys
 import time
 import tornado.gen
 import tornado.ioloop
+import tornado.iostream
 import tornado.locks
 import tornado.process
 import tornado.websocket
@@ -79,7 +80,7 @@ class _Dispatcher(PKDict):
                 self._websocket = await tornado.websocket.websocket_connect(
                     cfg.supervisor_uri,
                 )
-                m = self._format_op(None, job.OP_ALIVE)
+                m = self.format_op(None, job.OP_ALIVE)
                 while True:
                     if m and not await self.send(m):
                         break
@@ -107,10 +108,10 @@ class _Dispatcher(PKDict):
 #TODO(robnagler) kill all processes
         pass
 
-    def _format_op(self, msg, opName, **kwargs):
+    def format_op(self, msg, opName, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
-            kwargs['computeJid'] = msg.get('computeJid')
+            # kwargs['computeJid'] = msg.get('computeJid')
         return pkjson.dump_bytes(
             PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
         )
@@ -124,17 +125,17 @@ class _Dispatcher(PKDict):
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
-            return self._format_op(m, job.OP_ERROR, error=err, stack=stack)
+            return self.format_op(m, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
         p = self._processes.get(msg.computeJid)
         if not p:
-            return self._format_op(msg, job.OP_ERROR, error='no such computeJid')
+            return self.format_op(msg, job.OP_ERROR, error='no such computeJid')
         await p.cancel()
-        return self._format_op(msg, job.OP_OK)
+        return self.format_op(msg, job.OP_OK)
 
     async def _op_kill(self, msg):
-        self.send(self._format_op(msg, job.OP_OK))
+        self.send(self.format_op(msg, job.OP_OK))
         self.kill()
         return None
 
@@ -163,9 +164,9 @@ class _Job(PKDict):
         self._subprocess_exit_event = tornado.locks.Event()
 
     async def exit_ready(self):
-        await self._exit_ready.wait()
-        await self._stdout.ready.wait()
-        await self._stderr.ready.wait()
+        await self._exit.wait()
+        await self.stdout.ready.wait()
+        await self.stderr.ready.wait()
 
     def kill(self):
         # TODO(e-carlin): Terminate?
@@ -191,37 +192,17 @@ class _Job(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        self._stdout = _Stream(self._subprocess.stdout)
-        self._stderr = _Stream(self._subprocess.stderr)
-        self._exit_ready = tornado.locks.Event()
+        self.stdout = _Stream(self._subprocess.stdout)
+        self.stderr = _Stream(self._subprocess.stderr)
+        self._exit = tornado.locks.Event()
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
-    async def _load_output(self):
-        o = None
-        e = None
-        try:
-            e = pkjson.load_any(self._raw_stderr)
-        except json.JSONDecodeError:
-            e = self._raw_stderr.decode('utf-8')
-        except Exception as e:
-            pass
-        if e:
-            try:
-                o = pkjson.load_any(self._raw_stdout)
-            except json.JSONDecodeError:
-                pass
-            return o, e
-        o = pkjson.load_any(self._raw_stdout)
-        return o, e
-
     def _subprocess_exit(self, returncode):
-        async def do():
-            if self._in_file:
-                pkio.unchecked_remove(self._in_file)
-                self._in_file = None
-            self.returncode = returncode
-            self._subprocess_exit_event.set()
-        tornado.ioloop.IOLoop.current().add_callback(do)
+        if self._in_file:
+            pkio.unchecked_remove(self._in_file)
+            self._in_file = None
+        self.returncode = returncode
+        self._exit.set()
 
     def _subprocess_env(self):
         env = PKDict(os.environ)
@@ -236,24 +217,25 @@ class _Job(PKDict):
 
 class _Stream(PKDict):
     _MAX = int(1e8)
+    _DELIM = b'\n'
 
     def __init__(self, stream):
         super().__init__(
             stream=stream,
             ready=tornado.locks.Event(),
-            text=bytearray(),
-            too_large=False,
+            bytes=bytearray(),
         )
         tornado.ioloop.IOLoop.current().add_callback(self._read)
 
     async def _read(self):
         while True:
-            await self.stream.read_into(self.text, partial=True)
-            if self.stream.closed():
-                break
-            if len(self.text) > self._MAX:
-                self.too_large = True
-                self.stream.close()
+            try:
+                self.bytes.extend(
+                    await self.stream.read_until(self._DELIM, self._MAX)
+                )
+            # raised when there is no more data on stream to read
+            except tornado.iostream.StreamClosedError as e:
+                assert e.real_error is None, 'error={}'.format(e.real_error)
                 break
         self.ready.set()
 
@@ -267,53 +249,55 @@ class _Process(PKDict):
             startTime=t,
             lastUpdateTime=t,
             _background_job_process=None,
-            _main_job_process=None,
+            _job_proc=None,
             _terminating=False,
+            **kwargs,
         )
 
     def start(self):
-        self._main_job_process = _Job(msg=self.msg)
-        self._main_job_process.start()
+        self._job_proc = _Job(msg=self.msg)
+        self._job_proc.start()
         tornado.ioloop.IOLoop.current().add_callback(
-            self._handle_main_job_process_exit
-        )
-        self._main_job_process.set_exit_callback(
-            self._handle_main_job_process_exit
+            self._handle_job_proc_exit
         )
 
 
-    async def _handle_main_job_process_exit(self):
+    async def _handle_job_proc_exit(self):
         try:
-            await self._main_job_process.exit_ready()
-            # TODO(e-carlin): read simulation_db.read_result() or format subprocess_error
-            self._main_job_process = None
-            if self._terminating:  # TODO(e-carlin): why?
+            await self._job_proc.exit_ready()
+            if self._terminating:
                 return
-            self._done(job.ERROR if e else job.COMPLETED)
-            if e:
-                o.state = job.ERROR
-                await self.comm.write_message(
-                    self.msg,
-                    job.OP_ERROR,
-                    error=e,
-                    reply=PKDict(**o),
+            e = self._job_proc.stderr.bytes.decode('utf-8', errors='ignore')
+            r = pkjson.load_any(self._job_proc.stdout.bytes)
+            if self._job_proc.returncode != 0:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_ERROR,
+                        error=e,
+                        reply=r,
+                    )
                 )
-#TODO(robnagler) answer cancel
             elif self.msg.jobProcessCmd == 'compute':
-                await self.comm.write_message(
-                    self.msg,
-                    job.OP_RUN,
-                    reply=PKDict(**o),
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_RUN,
+                        reply=r,
+                    )
                 )
             else:
-                await self.comm.write_message(
-                    self.msg,
-                    job.OP_ANALYSIS,
-                    reply=o,
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_ANALYSIS,
+                        reply=r,
+                    )
                 )
         except Exception as exc:
-            pkdlog('error={}', exc)
-            try:
-                await self.comm.write_message(self.msg, job.OP_ERROR, error=e, reply=o)
-            except Exception as exc:
-                pkdlog('error={}', exc)
+            pkdlog(
+                'error={} returncode={} stderr={}',
+                exc,
+                self._job_proc.returncode,
+                e,
+            )
