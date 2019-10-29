@@ -59,39 +59,40 @@ def default_command():
     )
     pkdlog('{}', cfg)
     i = tornado.ioloop.IOLoop.current()
-    c = _Comm()
-    def s(n, x): return i.add_callback_from_signal(c.terminate)
+    d = _Dispatcher()
+    def s(n, x):
+        return i.add_callback_from_signal(d.terminate)
     signal.signal(signal.SIGTERM, s)
     signal.signal(signal.SIGINT, s)
-    i.spawn_callback(c.loop)
+    i.spawn_callback(d.loop)
     i.start()
 
 
-class _Comm(PKDict):
+class _Dispatcher(PKDict):
 
     async def loop(self):
         while True:
+            self._websocket = None
             try:
-                self._websocket = None
-                try:
 #TODO(robnagler) connect_timeout, max_message_size, ping_interval, ping_timeout
-                    c = await tornado.websocket.websocket_connect(cfg.supervisor_uri)
-                    self._websocket = c
-                except ConnectionRefusedError as e:
-                    pkdlog('error={}', e)
-                    await tornado.gen.sleep(_RETRY_SECS)
-                    continue
+                self._websocket = await tornado.websocket.websocket_connect(
+                    cfg.supervisor_uri,
+                )
                 m = self._format_op(None, job.OP_ALIVE)
                 while True:
                     if m and not await self.send(m):
                         break
                     m = await c.read_message()
-                    pkdc('msg={}', job.LogFormatter(m))
                     if m is None:
                         break
                     m = await self._op(m)
+            except ConnectionRefusedError as e:
+                await tornado.gen.sleep(_RETRY_SECS)
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
+            finally:
+                if self._websocket:
+                    self._websocket.close()
 
     async def send(self, msg):
         try:
@@ -102,6 +103,7 @@ class _Comm(PKDict):
             return False
 
     def terminate(self):
+#TODO(robnagler) kill all processes
         pass
 
     def _format_op(self, msg, opName, **kwargs):
@@ -121,20 +123,19 @@ class _Comm(PKDict):
         except Exception as e:
             err = 'exception=' + str(e)
             stack = pkdexc()
-            pkdlog('{} stack={}', err, stack)
             return self._format_op(m, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
         p = self._processes.get(msg.computeJid)
         if not p:
             return self._format_op(msg, job.OP_ERROR, error='no such computeJid')
-        # TODO(e-carlin): cancel should be sync fire and forget
         await p.cancel()
         return self._format_op(msg, job.OP_OK)
 
     async def _op_kill(self, msg):
+        self.send(self._format_op(msg, job.OP_OK))
         self.kill()
-        return self._format_op(msg, job.OP_OK)
+        return None
 
     async def _op_run(self, msg):
         self._process(msg)
@@ -153,7 +154,7 @@ class _Comm(PKDict):
         p.start()
 
 
-class _JobProcess(PKDict):
+class _Job(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._subprocess = None
@@ -261,12 +262,17 @@ class _Process(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._background_job_process = None
-        self._main_job_process = None
-        self._terminating = False
+        t = time.time()
+        self.pkupdate(
+            startTime=t,
+            lastUpdateTime=t,
+            _background_job_process=None,
+            _main_job_process=None,
+            _terminating=False,
+        )
 
     def start(self):
-        self._main_job_process = _JobProcess(msg=self.msg)
+        self._main_job_process = _Job(msg=self.msg)
         self._main_job_process.start()
         tornado.ioloop.IOLoop.current().add_callback(
             self._handle_main_job_process_exit

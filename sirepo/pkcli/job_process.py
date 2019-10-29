@@ -64,7 +64,13 @@ def _do_background_percent_complete(msg, template):
     )
     r.setdefault('percentComplete', 0.0)
     r.setdefault('frameCount', 0)
-    return r
+    return _fix_status(r)
+
+
+def _do_cancel(msg, template):
+    if hasattr(template, 'remove_last_frame'):
+        template.remove_last_frame(msg.runDir)
+    return PKDict()
 
 
 def _do_compute(msg, template):
@@ -77,47 +83,17 @@ def _do_compute(msg, template):
         'state': job.RUNNING,
     }
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
-    run_log_path = msg.runDir.join(template_common.RUN_LOG)
-    cmd = ['pyenv', 'exec'] + cmd
-    with open(str(run_log_path), 'a+b') as run_log:
-        p = None
-        try:
-            p = subprocess.Popen(
-                cmd,
-                cwd=str(msg.runDir),
-                stdout=run_log,
-                stderr=run_log,
-                env=_subprocess_env(),
-            )
-            p.wait()
-            p = None
-        finally:
-            if p:
-                # TODO(e-carlin): terminate first?
-                p.kill()
-    return _do_compute_status(msg, template)
-    # TODO(e-carlin): implement
-    # if hasattr(template, 'remove_last_frame'):
-    #     template.remove_last_frame(msg.runDir)
+    try:
+        pksubprocess.check_call_with_signals(
+            ['pyenv', 'exec'] + cmd,
+            output=msg.runDir.join(template_common.RUN_LOG),
+        )
+    except Exception as e:
+        return PKDict(state=job.ERROR, error=str(e))
+    r = _do_background_percent_complete(msg, template) if msg.isParallel else PKDict()
 
+    return r
 
-def _do_compute_status(msg, template):
-    """Legacy code path. Read status from simulation_db.
-
-    In the legacy code path compute status was kept in a 'status' file in the db.
-    This reads from that file. In the supervisor code path status is stored in
-    the supervisor or in the job_agent._STATUS_FILE
-    """
-    d = simulation_db.read_json(simulation_db.json_filename(
-        template_common.INPUT_BASE_NAME,
-        msg.runDir
-    ))
-    return PKDict(
-        computeJobHash=sirepo.sim_data.get_class(d).compute_job_hash(d),
-        lastUpdateTime=_mtime_or_now(msg.runDir),
-        # TODO(e-carlin): add startTime
-        state=simulation_db.read_status(msg.runDir),
-    )
 
 
 def _do_get_simulation_frame(msg, template):
@@ -139,23 +115,7 @@ def _do_sequential_result(msg, template):
     return r
 
 
-def _subprocess_env():
-    env = PKDict(os.environ)
-    # pkcollections.unchecked_del(
-    #     env,
-    #     *(k for k in env if _EXEC_ENV_REMOVE.search(k))
-    # )
-    # env.SIREPO_MPI_CORES = str(mpi.cfg.cores)
-    return env
-
-
-def _mtime_or_now(path):
-    """mtime for path if exists else time.time()
-
-    Args:
-        path (py.path):
-
-    Returns:
-        int: modification time
-    """
-    return int(path.mtime() if path.exists() else time.time())
+def _fix_status(r):
+    r.startTime = _mtime_or_now(rep.input_file)
+        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
+        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
