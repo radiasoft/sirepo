@@ -64,8 +64,7 @@ class LocalDriver(job_driver.DriverBase):
         k = self.pkdel('kill_timeout')
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        self.slot.free(self)
-        self.slot = None
+        self.pkdel('slot').free(self)
         del self.users[self.kind][self.uid]
         super()._free(self)
 
