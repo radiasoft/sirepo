@@ -446,7 +446,7 @@ def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
         err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
             beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
             if beam_type in ('elegant', 'spiffe'):
                 sdds.sddsdata.ReadPage(_SDDS_INDEX)
@@ -663,10 +663,6 @@ def _find_first_command(data, command_type):
         if m._type == command_type:
             return m
     return None
-
-
-def _find_first_bunch_command(data):
-    return _find_first_command(data, 'bunched_beam')
 
 
 def _format_field_value(state, model, field, el_type):

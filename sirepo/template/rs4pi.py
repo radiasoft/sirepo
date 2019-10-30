@@ -22,6 +22,7 @@ import os
 import os.path
 import py.path
 import re
+import sirepo.sim_data
 import struct
 import time
 import werkzeug
@@ -32,10 +33,11 @@ try:
 except ImportError:
     import dicom
 
+_SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
+
 RTSTRUCT_EXPORT_FILENAME = 'rtstruct.dcm'
 RTDOSE_EXPORT_FILENAME = 'dose.dcm'
 PRESCRIPTION_FILENAME = 'prescription.json'
-SIM_TYPE = 'rs4pi'
 WANT_BROWSER_FRAME_CACHE = True
 DOSE_CALC_SH = 'dose_calc.sh'
 DOSE_CALC_OUTPUT = 'Full_Dose.h5'

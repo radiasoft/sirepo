@@ -22,7 +22,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data['modelName'] == 'dicomDose':
             # if the doseCalculation has been run, use that directory for work
             # otherwise, it is an imported dose file
-            if simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join('doseCalculation').exists():
+            if simulation_db.simulation_dir(cls.sim_type(), data.simulationId).join('doseCalculation').exists():
                 return 'doseCalculation'
             return 'dicomAnimation'
         return data['modelName']
