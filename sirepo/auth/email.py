@@ -92,7 +92,7 @@ def api_authEmailAuthorized(simulation_type, token):
         # if user is already logged in via email, then continue to the app
         if auth.user_if_logged_in(AUTH_METHOD):
             pkdlog('user already logged in. ignoring invalid token: {}, user: {}', token, auth.logged_in_user())
-            return flask.redirect('/' + t)
+            return http_reply.gen_redirect_for_local_route(t)
         return auth.login_fail_redirect(t, this_module, 'email-token')
 
 

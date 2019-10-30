@@ -1671,21 +1671,18 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
                 msg = 'the server is unavailable';
                 status = 503;
             }
-            if (angular.isString(response)) {
-                if (IS_HTML_ERROR_RE.exec(response)) {
-                    var m = REDIRECT_RE.exec(response);
-                    if (m) {
-                        srdbg(m[1]);
-                        $window.location.href = m[1];
-//                        srdbg('second try');
-//                        window.location = 'http://v.radia.run:8000/' + m[1];
-                        srdbg('does not work');
-                        return;
-                    }
+            var m;
+            if (angular.isString(response) && IS_HTML_ERROR_RE.exec(response)) {
+                // Is this a javascript-redirect.html? If so, redirect locally.
+                m = REDIRECT_RE.exec(response);
+                if (m) {
+                    $window.location.href = m[1];
+                    $window.location.reload(true);
+                    return;
                 }
             }
             if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
-                var m = HTML_TITLE_RE.exec(data);
+                m = HTML_TITLE_RE.exec(data);
                 if (m) {
                     srlog(m[1], ': error response from server');
                     data = {error: m[1]};

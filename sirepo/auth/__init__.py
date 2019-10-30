@@ -106,6 +106,7 @@ def api_authState():
     if pkconfig.channel_in('dev'):
         # useful for testing/debugging
         v.uid = u
+    pkdc('state={}', v)
     return http_reply.render_static(
         'auth-state',
         'js',
@@ -286,7 +287,7 @@ def login_success_redirect(sim_type):
                     sim_type,
                     'completeRegistration',
                 )
-    return http_reply.gen_redirect_for_root(sim_type)
+    return http_reply.gen_redirect_for_local_route(sim_type)
 
 
 def process_request(unit_test=None):

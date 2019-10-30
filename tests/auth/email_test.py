@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 
-def test_different_email():
+def xtest_different_email():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
@@ -53,6 +53,7 @@ def test_follow_email_auth_link_twice():
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
+    import json
     import re
 
     r = fc.sr_post(
@@ -62,13 +63,23 @@ def test_follow_email_auth_link_twice():
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
     # get the url twice - should still be logged in
-    assert not re.search(r'login-fail', fc.get(r.url).data)
+    d = fc.get(r.url)
+    assert not re.search(r'login-fail', d.data)
+    m = re.search(r'/(\w+)$', r.url)
+    assert m
+    pkdp(r.url)
+    d = fc.post(
+        r.url,
+        data=json.dumps({'token': m.group(1)}),
+        content_type='application/json',
+    )
+    pkre(r'window.location = "/{}#/complete-registration"'.format(sim_type), d.data)
     fc.sr_get('authLogout', {'simulation_type': sim_type})
     # now logged out, should see login fail for bad link
     pkre('login-fail', fc.get(r.url).data)
 
 
-def test_force_login():
+def xtest_force_login():
     fc, sim_type = _fc()
 
     from pykern import pkcollections
@@ -100,7 +111,7 @@ def test_force_login():
     pkeq(1, len(d))
 
 
-def test_guest_merge():
+def xtest_guest_merge():
     fc, sim_type = _fc()
 
     from pykern.pkunit import pkeq
@@ -164,7 +175,7 @@ def test_guest_merge():
     pkeq([u'Scooby Doo', u'email-sim', u'guest-sim'], sorted([x.name for x in d]))
 
 
-def test_happy_path():
+def xtest_happy_path():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
@@ -200,7 +211,7 @@ def test_happy_path():
     )
 
 
-def test_invalid_method():
+def xtest_invalid_method():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
@@ -233,7 +244,7 @@ def test_invalid_method():
     )
 
 
-def test_oauth_conversion(monkeypatch):
+def xtest_oauth_conversion(monkeypatch):
     """See `x_test_oauth_conversion_setup`"""
     fc, sim_type = _fc()
 
@@ -275,7 +286,7 @@ def test_oauth_conversion(monkeypatch):
         userName='emailer@test.com',
     )
 
-def test_token_expired(monkeypatch):
+def xtest_token_expired(monkeypatch):
     fc, sim_type = _fc()
 
     from sirepo import srtime
@@ -290,7 +301,7 @@ def test_token_expired(monkeypatch):
     s = fc.sr_auth_state(isLoggedIn=False)
 
 
-def test_token_reuse():
+def xtest_token_reuse():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
@@ -310,7 +321,7 @@ def test_token_reuse():
     s = fc.sr_auth_state(isLoggedIn=False)
 
 
-def test_oauth_conversion_setup(monkeypatch):
+def xtest_oauth_conversion_setup(monkeypatch):
     """Prepares data for auth conversion
 
     You need to run this as a test (no other cases), and then:
