@@ -6,7 +6,7 @@ u"""Support routines and classes, mostly around errors.
 """
 from __future__ import absolute_import, division, print_function
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdlog
+from pykern.pkdebug import pkdlog, pkdp
 import numconv
 import random
 import werkzeug.exceptions
@@ -19,11 +19,23 @@ class Reply(Exception):
         sr_args (dict): exception args that Sirepo specific
         log_fmt (str): server side log data
     """
-    def __init__(self, sr_args, log_fmt, *args, **kwargs):
+    def __init__(self, sr_args, *args, **kwargs):
         super(Reply, self).__init__()
-        if log_fmt:
-            pkdlog(log_fmt, *args, **kwargs)
+        if args or kwargs:
+            pkdlog(*args, **kwargs)
         self.sr_args = sr_args
+
+    def __repr__(self):
+        a = self.sr_args
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ','.join(
+                ('{}={}'.format(k, a[k]) for k in sorted(a.keys())),
+            )
+        )
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class Redirect(Reply):
@@ -34,7 +46,7 @@ class Redirect(Reply):
         log_fmt (str): server side log data
     """
     def __init__(self, uri, *args, **kwargs):
-        super(UserAlert, self).__init__(
+        super(Redirect, self).__init__(
             PKDict(uri=uri),
             *args,
             **kwargs

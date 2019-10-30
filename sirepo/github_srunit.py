@@ -31,7 +31,7 @@ class MockOAuthClient(object):
 
         self.values.callback = callback
         self.values.state = state
-        return http_reply.gen_redirect(
+        return sirepo.http_reply.gen_redirect(
             'https://github.com/login/oauth/oauthorize?response_type=code&client_id={}&redirect_uri={}&state={}'.format(
                 github.cfg.key,
                 github.cfg.callback_uri,

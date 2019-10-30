@@ -6,22 +6,22 @@ u"""Test auth.email
 """
 from __future__ import absolute_import, division, print_function
 import pytest
+import re
 
 
-def xtest_different_email():
+def test_different_email():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    import re
 
     r = fc.sr_post(
         'authEmailLogin',
         {'email': 'diff@b.c', 'simulationType': sim_type},
     )
     s = fc.sr_auth_state(isLoggedIn=False)
-    fc.get(r.url)
+    _confirm(fc, r)
     s = fc.sr_auth_state(isLoggedIn=True, needCompleteRegistration=True)
     fc.sr_post(
         'authCompleteRegistration',
@@ -31,11 +31,10 @@ def xtest_different_email():
         },
     )
     t = fc.sr_auth_state(userName='diff@b.c', displayName='abc')
-    r = fc.sr_get('authLogout', {'simulation_type': sim_type})
-    pkre('/{}$'.format(sim_type), r.headers['Location'])
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
     r = fc.sr_post('authEmailLogin', {'email': 'x@y.z', 'simulationType': sim_type})
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -54,46 +53,41 @@ def test_follow_email_auth_link_twice():
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
     import json
-    import re
 
     r = fc.sr_post(
         'authEmailLogin',
         {'email': 'follow@b.c', 'simulationType': sim_type},
     )
+    # The link comes back in dev mode so we don't have to check email
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
     # get the url twice - should still be logged in
     d = fc.sr_get(r.url)
     assert not re.search(r'login-fail', d.data)
-    m = re.search(r'/(\w+)$', r.url)
-    assert m
-    r = fc.sr_post(r.url, {'token': m.group(1)})
+    _confirm(fc, r)
     fc.sr_get('authLogout', {'simulation_type': sim_type})
     # now logged out, should see login fail for bad link
     pkre('login-fail', fc.get(r.url).data)
 
 
-def xtest_force_login():
+def test_force_login():
     fc, sim_type = _fc()
 
     from pykern import pkcollections
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkdebug import pkdp, pkexcept
-    from pykern.pkunit import pkok, pkre, pkeq
+    from pykern.pkdebug import pkdp
+    from pykern.pkunit import pkok, pkre, pkeq, pkexcept
     from sirepo import http_reply
     from sirepo import util
-    import re
 
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
     fc.get(r.url)
     fc.sr_get('authLogout', {'simulation_type': sim_type})
-    with pkexcept(util.SRException) as e:
-        pkdp(e)
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq('login', d.srException.routeName)
+    with pkexcept('SRException.*routeName.*login'):
+        fc.sr_post('listSimulations', {'simulationType': sim_type})
     r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -105,7 +99,7 @@ def xtest_force_login():
     pkeq(1, len(d))
 
 
-def xtest_guest_merge():
+def test_guest_merge():
     fc, sim_type = _fc()
 
     from pykern.pkunit import pkeq
@@ -133,7 +127,7 @@ def xtest_guest_merge():
     # Convert to email user
     r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
     s = fc.sr_auth_state(isLoggedIn=True, method='guest')
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -160,7 +154,7 @@ def xtest_guest_merge():
 
     # Login as email user
     r = fc.sr_post('authEmailLogin', {'email': 'guest.merge@b.com', 'simulationType': sim_type})
-    fc.get(r.url)
+    _confirm(fc, r)
     d = fc.sr_post(
         'listSimulations',
         {'simulationType': sim_type},
@@ -169,17 +163,16 @@ def xtest_guest_merge():
     pkeq([u'Scooby Doo', u'email-sim', u'guest-sim'], sorted([x.name for x in d]))
 
 
-def xtest_happy_path():
+def test_happy_path():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    import re
 
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'happy@b.c', 'simulationType': sim_type})
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -195,7 +188,6 @@ def xtest_happy_path():
         userName='happy@b.c',
     ).uid
     r = fc.sr_get('authLogout', {'simulation_type': sim_type})
-    pkre('/{}$'.format(sim_type), r.headers['Location'])
     fc.sr_auth_state(
         displayName=None,
         isLoggedIn=False,
@@ -205,17 +197,16 @@ def xtest_happy_path():
     )
 
 
-def xtest_invalid_method():
+def test_invalid_method():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    import re
 
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'will-be-invalid@b.c', 'simulationType': sim_type})
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_post(
         'authCompleteRegistration',
         {
@@ -238,19 +229,19 @@ def xtest_invalid_method():
     )
 
 
-def xtest_oauth_conversion(monkeypatch):
+def test_oauth_conversion(monkeypatch):
     """See `x_test_oauth_conversion_setup`"""
     fc, sim_type = _fc()
 
     from pykern import pkcollections
     from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkok, pkre, pkeq
+    from pykern.pkunit import pkok, pkre, pkeq, pkexcept, pkfail
     from pykern import pkunit
     from pykern import pkio
     from sirepo.auth import github
     from sirepo import github_srunit
     from sirepo import server
-    import re
+    import sirepo.util
     import shutil
 
     pkio.unchecked_remove(server._app.sirepo_db_dir)
@@ -259,20 +250,18 @@ def xtest_oauth_conversion(monkeypatch):
     fc.set_cookie('localhost', 'sirepo_dev', 'Z0FBQUFBQmN2bGQzaGc1MmpCRkxIOWNpWi1yd1JReXUxZG5FV2VqMjFwU2w2cmdOSXhlaWVkOC1VUzVkLVR5NzdiS080R3p1aGUwUEFfdmpmdDcxTmJlOUR2eXpJY2l1YUVWaUVVa3dCYXpnZGIwTV9fei1iTWNCdkp0eXJVY0Ffenc2SVoxSUlLYVM=')
     oc = github_srunit.MockOAuthClient(monkeypatch, 'emailer')
     uid = fc.sr_auth_state(isLoggedIn=False, method='github').uid
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq('loginWith', r.srException.routeName)
-    pkeq('github', r.srException.params[':method'])
-    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
+    with pkexcept('SRException.*method.*github.*routeName=loginWith'):
+        fc.sr_post('listSimulations', {'simulationType': sim_type})
+    r = fc.sr_get('authGithubLogin', {'simulation_type': sim_type}, redirect=False)
+    pkre(oc.values.state, r.headers['Location'])
     state = oc.values.state
-    pkeq(302, r.status_code)
-    pkre(state, r.headers['location'])
     fc.sr_get('authGithubAuthorized', query={'state': state})
     r = fc.sr_post(
         'authEmailLogin',
         {'email': 'emailer@test.com', 'simulationType': sim_type},
     )
     fc.sr_auth_state(isLoggedIn=True, method='github', uid=uid)
-    fc.get(r.url)
+    _confirm(fc, r)
     fc.sr_auth_state(
         isLoggedIn=True,
         method='email',
@@ -280,7 +269,7 @@ def xtest_oauth_conversion(monkeypatch):
         userName='emailer@test.com',
     )
 
-def xtest_token_expired(monkeypatch):
+def test_token_expired(monkeypatch):
     fc, sim_type = _fc()
 
     from sirepo import srtime
@@ -295,27 +284,26 @@ def xtest_token_expired(monkeypatch):
     s = fc.sr_auth_state(isLoggedIn=False)
 
 
-def xtest_token_reuse():
+def test_token_reuse():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
     from pykern.pkunit import pkok, pkre
     from pykern.pkdebug import pkdp
-    import re
 
     r = fc.sr_post(
         'authEmailLogin',
         {'email': 'reuse@b.c', 'simulationType': sim_type},
     )
-    login_url = r.url
-    r = fc.get(login_url)
+    _confirm(fc, r)
     s = fc.sr_auth_state(userName='reuse@b.c')
-    r = fc.sr_get('authLogout', {'simulation_type': sim_type})
-    r = fc.get(login_url)
-    s = fc.sr_auth_state(isLoggedIn=False)
+    fc.sr_get('authLogout', {'simulation_type': sim_type})
+    r = fc.sr_get(r.url, redirect=False)
+    pkre('/login-fail/email', r.headers['Location'])
+    fc.sr_auth_state(isLoggedIn=False)
 
 
-def xtest_oauth_conversion_setup(monkeypatch):
+def test_oauth_conversion_setup(monkeypatch):
     """Prepares data for auth conversion
 
     You need to run this as a test (no other cases), and then:
@@ -331,10 +319,9 @@ def xtest_oauth_conversion_setup(monkeypatch):
     from pykern.pkunit import pkok, pkre, pkeq
     from sirepo.auth import github
     from sirepo import github_srunit
-    import re
 
     oc = github_srunit.MockOAuthClient(monkeypatch, 'emailer')
-    fc.sr_get('authGithubLogin', {'simulation_type': sim_type})
+    fc.sr_get('authGithubLogin', {'simulation_type': sim_type}, redirect=False)
     t = fc.sr_auth_state(userName=None, isLoggedIn=False, method=None)
     state = oc.values.state
     r = fc.sr_get('authGithubAuthorized', query={'state': state})
@@ -345,11 +332,17 @@ def xtest_oauth_conversion_setup(monkeypatch):
         userName='emailer',
     ).uid
     fc.sr_get('authLogout', {'simulation_type': sim_type})
-    pkdlog(fc.cookie_jar)
-    return
+
+
+def _confirm(fc, resp):
+    fc.sr_get(resp.url)
+    m = re.search(r'/(\w+)$', resp.url)
+    assert m
+    fc.sr_post(resp.url, {'token': m.group(1)}, raw_response=True)
 
 
 def _fc(github_deprecated=True):
+
     from pykern.pkdebug import pkdp
     from sirepo import srunit
 

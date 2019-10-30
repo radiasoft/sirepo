@@ -53,7 +53,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
 
     s = sirepo.simulation_db.get_schema(sim_type)
     if not route_name:
-        route = _default_local_route(s)
+        route_name = _default_local_route(s)
     parts = s.localRoutes[route_name].route.split('/:')
     u = parts.pop(0)
     for p in parts:

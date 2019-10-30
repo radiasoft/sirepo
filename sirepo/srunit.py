@@ -160,7 +160,7 @@ class _TestClient(flask.testing.FlaskClient):
             )
         return s
 
-    def sr_get(self, route_or_uri, params=None, query=None):
+    def sr_get(self, route_or_uri, params=None, query=None, **kwargs):
         """Gets a request to route_or_uri to server
 
         Args:
@@ -170,9 +170,9 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             flask.Response: reply object
         """
-        return self.__req(route_or_uri, params, query, self.get, raw_response=True)
+        return self.__req(route_or_uri, params, query, self.get, raw_response=True, **kwargs)
 
-    def sr_get_json(self, route_or_uri, params=None, query=None, headers=None):
+    def sr_get_json(self, route_or_uri, params=None, query=None, headers=None, **kwargs):
         """Gets a request to route_or_uri to server
 
         Args:
@@ -188,9 +188,10 @@ class _TestClient(flask.testing.FlaskClient):
             query,
             lambda r: self.get(r, headers=headers),
             raw_response=False,
+            **kwargs
         )
 
-    def sr_get_root(self, sim_type=None):
+    def sr_get_root(self, sim_type=None, **kwargs):
         """Gets root app for sim_type
 
         Args:
@@ -205,6 +206,7 @@ class _TestClient(flask.testing.FlaskClient):
             None,
             self.get,
             raw_response=True,
+            **kwargs
         )
 
     def sr_login_as_guest(self, sim_type='myapp'):
@@ -223,7 +225,7 @@ class _TestClient(flask.testing.FlaskClient):
         return self.sr_auth_state(needCompleteRegistration=False, isLoggedIn=True).uid
 
 
-    def sr_post(self, route_or_uri, data, params=None, raw_response=False):
+    def sr_post(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
         """Posts JSON data to route_or_uri to server
 
         File parameters are posted as::
@@ -237,9 +239,9 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=json.dumps(data), content_type='application/json')
-        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response)
+        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
-    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False):
+    def sr_post_form(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
         """Posts form data to route_or_uri to server with data
 
         Args:
@@ -251,7 +253,7 @@ class _TestClient(flask.testing.FlaskClient):
             object: Parsed JSON result
         """
         op = lambda r: self.post(r, data=data)
-        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response)
+        return self.__req(route_or_uri, params, {}, op, raw_response=raw_response, **kwargs)
 
     def sr_sim_data(self, sim_type, sim_name):
         """Return simulation data by name
@@ -282,7 +284,7 @@ class _TestClient(flask.testing.FlaskClient):
         )
 
 
-    def __req(self, route_or_uri, params, query, op, raw_response):
+    def __req(self, route_or_uri, params, query, op, raw_response, **kwargs):
         """Make request and parse result
 
         Args:
@@ -310,8 +312,15 @@ class _TestClient(flask.testing.FlaskClient):
             if r.status_code == 200 and r.mimetype == 'text/html':
                 m = _JAVASCRIPT_REDIRECT_RE.search(r.data)
                 if m:
+                    if kwargs.get('redirect', True):
+                        # Execute the redirect
+                        return self.__req(m.group(1), None, None, self.get, raw_response)
+                    return flask.redirect(m.group(1))
+            if r.status_code in (301, 302, 303, 305, 307, 308):
+                if kwargs.get('redirect', True):
                     # Execute the redirect
-                    return self.__req(m.group(1), None, None, self.get, raw_response)
+                    return self.__req(r.headers['Location'], None, None, self.get, raw_response)
+                return r
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
@@ -326,5 +335,14 @@ class _TestClient(flask.testing.FlaskClient):
                 )
             return d
         except Exception as e:
-            pkdlog('Exception: {}: msg={} uri={} response={} stack={}', type(e), e, u, r, pkdexc())
+            if not isinstance(e, sirepo.util.SRException):
+                pkdlog(
+                    'Exception: {}: msg={} uri={} status={} data={} stack={}',
+                    type(e),
+                    e,
+                    u,
+                    r and r.status_code,
+                    r and r.data,
+                    pkdexc(),
+                )
             raise

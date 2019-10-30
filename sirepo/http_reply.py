@@ -45,8 +45,11 @@ def gen_exception(exc):
         'exc={} not a sirepo.util.Reply'.format(exc)
     if isinstance(exc, sirepo.util.SRException):
         s = simulation_db.get_schema(sim_type=None)
-        assert route in s.localRoutes, \
-            'route={} not found in schema={}'.format(route, s.simulationType)
+        assert exc.sr_args.routeName in s.localRoutes, \
+            'route={} not found in schema={}'.format(
+                exc.sr_args.routeName,
+                s.simulationType,
+            )
         return gen_json(
             PKDict({
                 _STATE: SR_EXCEPTION_STATE,
