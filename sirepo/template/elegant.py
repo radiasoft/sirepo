@@ -446,7 +446,7 @@ def validate_file(file_type, path):
     err = None
     if file_type == 'bunchFile-sourceFile':
         err = 'expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns'
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, path) == 1:
+        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
             beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
             if beam_type in ('elegant', 'spiffe'):
                 sdds.sddsdata.ReadPage(_SDDS_INDEX)

@@ -690,6 +690,7 @@ def _safe_attachment(resp, base, suffix):
         ).lower(),
     )
 
+
 def _save_new_and_reply(*args):
     data = simulation_db.save_new_simulation(*args)
     return api_simulationData(
@@ -697,6 +698,12 @@ def _save_new_and_reply(*args):
         data['models']['simulation']['simulationId'],
         pretty=False,
     )
+
+
+def _simulation_data(res, path, data):
+    """Iterator function to return entire simulation data
+    """
+    res.append(data)
 
 
 def _simulations_using_file(simulation_type, file_type, search_name, ignore_sim_id=None):
