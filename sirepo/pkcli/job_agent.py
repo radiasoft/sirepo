@@ -161,12 +161,12 @@ class _Job(PKDict):
         super().__init__(*args, **kwargs)
         self._subprocess = None
         self._in_file = None
-        self._subprocess_exit_event = tornado.locks.Event()
+        self._exit = tornado.locks.Event()
 
     async def exit_ready(self):
         await self._exit.wait()
-        await self.stdout.ready.wait()
-        await self.stderr.ready.wait()
+        await self.stdout.stream_closed.wait()
+        await self.stderr.stream_closed.wait()
 
     def kill(self):
         # TODO(e-carlin): Terminate?
@@ -192,9 +192,8 @@ class _Job(PKDict):
             stderr=tornado.process.Subprocess.STREAM,
             env=env,
         )
-        self.stdout = _Stream(self._subprocess.stdout)
-        self.stderr = _Stream(self._subprocess.stderr)
-        self._exit = tornado.locks.Event()
+        self.stdout = _ReadUntilCloseStream(self._subprocess.stdout)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr)
         self._subprocess.set_exit_callback(self._subprocess_exit)
 
     def _subprocess_exit(self, returncode):
@@ -214,30 +213,6 @@ class _Job(PKDict):
             SIREPO_MPI_CORES=str(self.msg.mpiCores),
             PYENV_VERSION='py2',
         )
-
-class _Stream(PKDict):
-    _MAX = int(1e8)
-    _DELIM = b'\n'
-
-    def __init__(self, stream):
-        super().__init__(
-            stream=stream,
-            ready=tornado.locks.Event(),
-            bytes=bytearray(),
-        )
-        tornado.ioloop.IOLoop.current().add_callback(self._read)
-
-    async def _read(self):
-        while True:
-            try:
-                self.bytes.extend(
-                    await self.stream.read_until(self._DELIM, self._MAX)
-                )
-            # raised when there is no more data on stream to read
-            except tornado.iostream.StreamClosedError as e:
-                assert e.real_error is None, 'error={}'.format(e.real_error)
-                break
-        self.ready.set()
 
 
 class _Process(PKDict):
@@ -268,10 +243,10 @@ class _Process(PKDict):
             if self._terminating:
                 return
             del self.comm.processes[self.msg.computeJid]
-            e = self._job_proc.stderr.bytes.decode('utf-8', errors='ignore')
+            e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
             if e:
                 pkdlog('error={}', e)
-            r = pkjson.load_any(self._job_proc.stdout.bytes)
+            r = pkjson.load_any(self._job_proc.stdout.text)
             if self._job_proc.returncode != 0:
                 await self.comm.send(
                     self.comm.format_op(
@@ -298,9 +273,56 @@ class _Process(PKDict):
                     )
                 )
         except Exception as exc:
-            pkdlog(
-                'error={} returncode={} stderr={}',
-                exc,
-                self._job_proc.returncode,
-                e,
+            pkdlog('error={} returncode={}', exc, self._job_proc.returncode)
+
+
+class _Stream(PKDict):
+    _MAX = int(1e8)
+
+    def __init__(self, stream):
+        super().__init__(
+            stream=stream,
+            stream_closed=tornado.locks.Event(),
+            text=bytearray(),
+        )
+        tornado.ioloop.IOLoop.current().add_callback(self._begin_read_stream)
+
+    async def _begin_read_stream(self):
+        try:
+            while True:
+                await self._read_stream()
+        except tornado.iostream.StreamClosedError as e:
+            assert e.real_error is None, 'real_error={}'.format(e.real_error)
+        finally:
+            self.stream_closed.set()
+
+    async def _read_stream(self):
+        raise NotImplementedError()
+
+
+class _ReadJsonlStream(_Stream):
+    def __init__(self, stream, on_read):
+        self.on_read = on_read
+        self.proceed_with_read = tornado.locks.Condition()
+        self.read_occurred = tornado.locks.Condition()
+        super().__init__(stream)
+
+    async def _read_stream(self):
+                self.text = await self.stream.read_until(b'\n', self._MAX)
+                await self.on_read(self.text)
+
+
+class _ReadUntilCloseStream(_Stream):
+    def __init__(self, stream):
+        super().__init__(stream)
+
+    async def _read_stream(self):
+            self.text.extend(
+                await self.stream.read_bytes(
+                    self._MAX - len(self.text),
+                    partial=True,
+                )
             )
+            if len(self.text) >= self._MAX:
+                raise AssertionError('_MAX bytes read')
+
