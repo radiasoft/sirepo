@@ -269,6 +269,8 @@ class _Process(PKDict):
                 return
             del self.comm.processes[self.msg.computeJid]
             e = self._job_proc.stderr.bytes.decode('utf-8', errors='ignore')
+            if e:
+                pkdlog('error={}', e)
             r = pkjson.load_any(self._job_proc.stdout.bytes)
             if self._job_proc.returncode != 0:
                 await self.comm.send(

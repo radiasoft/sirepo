@@ -19,6 +19,7 @@ import functools
 import os
 import re
 import sirepo
+import subprocess
 import sys
 import time
 
@@ -76,11 +77,19 @@ def _do_compute(msg, template):
     }
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     try:
-        pksubprocess.check_call_with_signals(
-#rn This code already running in proper py2 env
-            cmd,
-            output=str(msg.runDir.join(template_common.RUN_LOG)),
-        )
+        with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
+            p = subprocess.Popen(
+                cmd,
+                stdout=run_log
+            )
+            while True:
+                r = p.poll()
+                # TODO(e-carlin): background % complete in parallel
+                if r is None:
+                    time.sleep(2)
+                else:
+                    assert r == 0, 'non zero returncode={}'.format(r)
+                    break
     except Exception as e:
         pkdp(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
