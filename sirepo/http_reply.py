@@ -114,7 +114,7 @@ def gen_redirect_for_local_route(sim_type, route=None, params=None):
     """
     s = simulation_db.get_schema(sim_type)
     if not route:
-        route = s.appModes.default.localRoute
+        route = _default_route(s)
     parts = s.localRoutes[route].route.split('/:')
     u = parts.pop(0)
     for p in parts:
@@ -227,3 +227,13 @@ def subprocess_error(err, *args, **kwargs):
     elif not pkconfig.channel_in_internal_test():
         err = 'unexpected error (see logs)'
     return {'state': 'error', 'error': err}
+
+
+def _default_route(schema):
+    for k, v in schema.localRoutes.items():
+        if v.get('isDefault'):
+            return k
+    else:
+        raise AssertionError(
+            'no isDefault in localRoutes for {}'.format(sim_type),
+        )
