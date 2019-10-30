@@ -224,7 +224,6 @@ class _Process(PKDict):
             lastUpdateTime=t,
             _background_job_process=None,
             _job_proc=None,
-            _terminating=False,
             **kwargs,
         )
 
@@ -264,8 +263,6 @@ class _Process(PKDict):
     async def _handle_job_proc_exit(self):
         try:
             await self._job_proc.exit_ready()
-            if self._terminating:
-                return
             del self.comm.processes[self.msg.computeJid]
             e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
             if e:
@@ -275,10 +272,20 @@ class _Process(PKDict):
                     self.comm.format_op(
                         self.msg,
                         job.OP_ERROR,
+                        opStatus='done',
                         error=e,
                         reply=PKDict(
                             state=job.ERROR,
                             error='returncode={}'.format(self._job_proc.returncode)),
+                    )
+                )
+            else:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_RUN,
+                        opStatus='done',
+                        reply=pkjson.load_any(self._job_proc.stdout.text),
                     )
                 )
         except Exception as exc:

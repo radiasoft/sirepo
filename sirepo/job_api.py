@@ -64,9 +64,10 @@ def api_simulationFrame(frame_id):
     #################################################
     # TODO(e-carlin): Remove when computeJobHash is included in frame_id
     f = simulation_db.read_json(
-        '/home/vagrant/src/radiasoft/sirepo/run/user/44JIlZWb/elegant/0Xa5QiDw/animation/in.json')
+        '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
     data.update(f)
     #################################################
+    return {}
 
     template = sirepo.template.import_module(data)
     data.report = sirepo.sim_data.get_class(

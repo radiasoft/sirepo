@@ -72,7 +72,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
         Unsets driver to avoid a callback loop.
         """
-        if 'sr_driver' in self:
+        if hasattr(self, 'sr_driver'):
             del self.sr_driver
         self.close()
 

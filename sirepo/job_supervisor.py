@@ -141,18 +141,22 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        r = await self._send_with_single_reply(
+        o = await self._send(
             job.OP_RUN, req,
             jobProcessCmd='compute'
         )
-        self.status = r.state
-        if self.status == job.ERROR:
-            self.error = r.get('error', '<unknown error>')
-        else:
-            self.lastUpdateTime = r.lastUpdateTime
-            if self.isParallel:
-#TODO(robnagler) will need final frame count
-                pass
+        while True:
+            r = await o.reply_ready()
+            self.status = r.state
+            if self.status == job.ERROR:
+                self.error = r.get('error', '<unknown error>')
+            if 'parallelStatus' in r:
+                assert self.isParralel
+                self.parallelStatus.update(r.parallelStatus)
+                #TODO(robnagler) will need final frame count
+            if 'opStatus' in r and r.opStatus is 'done':
+                break
+        o.close()
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()

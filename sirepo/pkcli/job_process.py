@@ -49,7 +49,7 @@ def default_command(in_file):
     )
 
 
-def _do_background_percent_complete(msg, template):
+def _background_percent_complete(msg, template):
     r = template.background_percent_complete(
         msg.data.report,
         msg.runDir,
@@ -84,19 +84,28 @@ def _do_compute(msg, template):
             )
             while True:
                 r = p.poll()
-                # TODO(e-carlin): background % complete in parallel
+                if msg.isParallel:
+                    # TODO(e-carlin): fix
+                    msg.isRunning = r is None
+                    msg.state = 'running' if msg.isRunning else 'completed'
+                    print(
+                        pkjson.dump_pretty(
+                            PKDict(
+                                state=msg.state,
+                                parallelStatus=_background_percent_complete(msg, template),
+                            ),
+                            pretty=False,
+                        )
+                    )
                 if r is None:
-                    time.sleep(2)
+                    time.sleep(2) # TODO(e-carlin): cfg
                 else:
                     assert r == 0, 'non zero returncode={}'.format(r)
                     break
     except Exception as e:
         pkdp(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
-    return _do_background_percent_complete(msg, template) \
-            if msg.isParallel \
-            else _fix_status(PKDict(state=job.COMPLETED))
-
+    return _fix_status(PKDict(state=job.COMPLETED))
 
 
 def _do_get_simulation_frame(msg, template):
@@ -124,6 +133,6 @@ def _fix_status(r):
     # res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
     # res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
     r.startTime = 0
-    r.setdefault('lastUpdateTime', 0)
+    r.setdefault('lastUpdateTime', 2)
     r.setdefault('elapsedTime', r.lastUpdateTime - r.startTime)
     return r

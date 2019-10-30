@@ -43,8 +43,8 @@ CANCELED = 'canceled'
 COMPLETED = 'completed'
 ERROR = 'error'
 MISSING = 'missing'
-RUNNING = 'pending'
-PENDING = 'running'
+PENDING = 'pending'
+RUNNING = 'running'
 #: Valid values for job status
 STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, PENDING, RUNNING))
 
