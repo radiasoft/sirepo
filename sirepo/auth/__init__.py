@@ -69,7 +69,7 @@ def api_authCompleteRegistration():
     # Needs to be explicit, because we would need a special permission
     # for just this API.
     if not _is_logged_in():
-        return http_reply.gen_sr_exception(LOGIN_ROUTE_NAME)
+        raise util.SRException(LOGIN_ROUTE_NAME, None)
     complete_registration(_parse_display_name(http_request.parse_json()))
     return http_reply.gen_json_ok()
 
@@ -129,7 +129,7 @@ def api_authLogout(simulation_type=None):
     if _is_logged_in():
         cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         _set_log_user()
-    return http_reply.gen_redirect_for_root(t)
+    return http_reply.gen_redirect_for_app_root(t)
 
 
 def complete_registration(name=None):
@@ -343,8 +343,7 @@ def require_user():
     else:
         cookie.reset_state('state={} invalid, cannot continue'.format(s))
         e = 'invalid cookie'
-    pkdlog('user not logged in: {}', e)
-    return http_reply.gen_sr_exception(r, p)
+    raise util.SRException(r, p, 'user not logged in: {}', e)
 
 
 def reset_state():

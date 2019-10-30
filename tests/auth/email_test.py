@@ -63,17 +63,11 @@ def test_follow_email_auth_link_twice():
     s = fc.sr_auth_state(isLoggedIn=False)
     fc.get(r.url)
     # get the url twice - should still be logged in
-    d = fc.get(r.url)
+    d = fc.sr_get(r.url)
     assert not re.search(r'login-fail', d.data)
     m = re.search(r'/(\w+)$', r.url)
     assert m
-    pkdp(r.url)
-    d = fc.post(
-        r.url,
-        data=json.dumps({'token': m.group(1)}),
-        content_type='application/json',
-    )
-    pkre(r'window.location = "/{}#/complete-registration"'.format(sim_type), d.data)
+    r = fc.sr_post(r.url, {'token': m.group(1)})
     fc.sr_get('authLogout', {'simulation_type': sim_type})
     # now logged out, should see login fail for bad link
     pkre('login-fail', fc.get(r.url).data)
@@ -84,19 +78,19 @@ def xtest_force_login():
 
     from pykern import pkcollections
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkdebug import pkdp
+    from pykern.pkdebug import pkdp, pkexcept
     from pykern.pkunit import pkok, pkre, pkeq
     from sirepo import http_reply
+    from sirepo import util
     import re
 
     # login as a new user, not in db
     r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
     fc.get(r.url)
     fc.sr_get('authLogout', {'simulation_type': sim_type})
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type}, raw_response=True)
-    pkeq(http_reply.SR_EXCEPTION_STATUS, r.status_code)
-    d = pkcollections.json_load_any(r.data)
-    pkeq(http_reply.SR_EXCEPTION_STATE, d.state)
+    with pkexcept(util.SRException) as e:
+        pkdp(e)
+    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
     pkeq('login', d.srException.routeName)
     r = fc.sr_post('authEmailLogin', {'email': 'force@b.c', 'simulationType': sim_type})
     fc.get(r.url)

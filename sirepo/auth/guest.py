@@ -16,6 +16,7 @@ from sirepo import http_reply
 from sirepo import srtime
 import datetime
 import sirepo.template
+import sirepo.util
 
 
 AUTH_METHOD = auth.METHOD_GUEST
@@ -93,13 +94,14 @@ def validate_login():
     """
     r = pkcollections.Dict()
     if is_login_expired(r):
-        pkdlog('expired uid={uid}, expiry={expiry} now={now}', **r)
-        return http_reply.gen_sr_exception(
+        raise sirepo.util.SRException(
             'loginFail',
             {
                 ':method': 'guest',
                 ':reason': 'guest-expired',
             },
+            'expired uid={uid}, expiry={expiry} now={now}',
+            **r
         )
     return None
 

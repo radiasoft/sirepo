@@ -23,12 +23,7 @@ import flask_mail
 import hashlib
 import pyisemail
 import sirepo.template
-try:
-    # py2
-    from urllib import urlencode
-except ImportError:
-    # py3
-    from urllib.parse import urlencode
+
 
 AUTH_METHOD = 'email'
 
@@ -215,7 +210,8 @@ This link will expire in {} hours and can only be used once.
 
 
 def _verify_confirm(simulation_type, token):
-    if flask.request.method == 'GET':
+    m = flask.request.method
+    if m == 'GET':
         return http_reply.gen_redirect_for_local_route(
             simulation_type,
             'loginWithEmailConfirm',
@@ -223,6 +219,7 @@ def _verify_confirm(simulation_type, token):
                 'token': token,
             },
         )
+    assert m == 'POST', 'unexpect http method={}'.format(m)
     d = http_request.parse_json()
     if d.get('token') != token:
         raise util.UserAlert(

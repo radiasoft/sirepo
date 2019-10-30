@@ -10,6 +10,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import flask
 import re
+import sirepo.util
 
 
 #: HTTP status code for srException (BAD REQUEST)
@@ -32,6 +33,38 @@ _RESPONSE_OK = PKDict({_STATE: 'ok'})
 #: Parsing errors from subprocess
 _SUBPROCESS_ERROR_RE = re.compile(r'(?:warning|exception|error): ([^\n]+?)(?:;|\n|$)', flags=re.IGNORECASE)
 
+
+def gen_exception(exc):
+    """Generate from a `util.Reply` exception
+
+    Args:
+        exc (util.Reply): valid reply exceptoin
+    """
+
+    assert isinstance(exc, sirepo.util.Reply), \
+        'exc={} not a sirepo.util.Reply'.format(exc)
+    if isinstance(exc, sirepo.util.SRException):
+        s = simulation_db.get_schema(sim_type=None)
+        assert route in s.localRoutes, \
+            'route={} not found in schema={}'.format(route, s.simulationType)
+        return gen_json(
+            PKDict({
+                _STATE: SR_EXCEPTION_STATE,
+                SR_EXCEPTION_STATE: exc.sr_args,
+            }),
+            response_kwargs=pkcollections.Dict(status=SR_EXCEPTION_STATUS),
+        )
+    elif isinstance(exc, sirepo.util.UserAlert):
+        return gen_json(PKDict({
+            _STATE: _ERROR_STATE,
+            _ERROR_STATE: exc.sr_args.error,
+        }))
+    elif isinstance(exc, sirepo.util.Redirect):
+        return gen_redirect(exc.sr_args.uri)
+    else:
+        raise AssertionError('unsupported exception={}'.format(type(exc)))
+
+
 def gen_json(value, pretty=False, response_kwargs=None):
     """Generate JSON flask response
 
@@ -51,20 +84,6 @@ def gen_json(value, pretty=False, response_kwargs=None):
     )
 
 
-def gen_user_alert(exc):
-    """Generate state=error JSON flask response from UserAlert
-
-    Args:
-        exc (sirepo.util.UserAlert): contains what to display
-    Returns:
-        flask.Response: reply object
-    """
-    return gen_json(PKDict({
-        _STATE: _ERROR_STATE,
-        _ERROR_STATE: exc.display_text,
-    }))
-
-
 def gen_json_ok(*args, **kwargs):
     """Generate state=ok JSON flask response
 
@@ -80,7 +99,18 @@ def gen_json_ok(*args, **kwargs):
     return gen_json(res)
 
 
-def gen_redirect_for_anchor(uri):
+def gen_redirect(uri):
+    """Redirect to uri
+
+    Args:
+        uri (str): any valid uri (even with anchor)
+    Returns:
+        flask.Response: reply object
+    """
+    return gen_redirect_for_anchor(uri=uri)
+
+
+def gen_redirect_for_anchor(uri, **kwargs):
     """Redirect uri with an anchor using javascript
 
     Safari browser doesn't support redirects with anchors so we do this
@@ -98,7 +128,20 @@ def gen_redirect_for_anchor(uri):
     )
 
 
-def gen_redirect_for_local_route(sim_type, route=None, params=None):
+def gen_redirect_for_app_root(sim_type):
+    """Redirect to app root for sim_type
+
+    Args:
+        sim_type (str): valid sim_type or None
+    Returns:
+        flask.Response: reply object
+    """
+    import sirepo.uri
+
+    return gen_redirect_for_anchor(sirepo.uri.app_root(sim_type))
+
+
+def gen_redirect_for_local_route(sim_type, route=None, params=None, query=None):
     """Generate a javascript redirect to sim_type/route/params
 
     Default route (None) only supported for ``default``
@@ -112,56 +155,10 @@ def gen_redirect_for_local_route(sim_type, route=None, params=None):
     Returns:
         flask.Response: reply object
     """
-    s = simulation_db.get_schema(sim_type)
-    if not route:
-        route = _default_route(s)
-    parts = s.localRoutes[route].route.split('/:')
-    u = parts.pop(0)
-    for p in parts:
-        if p.endswith('?'):
-            p = p[:-1]
-            if not params or p not in params:
-                continue
-        u += '/' + params[p]
-    return gen_redirect_for_anchor('/{}#{}'.format(sim_type, u))
+    import sirepo.uri
 
-
-def gen_redirect_for_root(sim_type, **kwargs):
-    """Redirect to app root for sim_type
-
-    Args:
-        sim_type (str): valid sim_type or None
-    Returns:
-        flask.Response: reply object
-    """
-    if not sim_type:
-        sim_type = ''
-    return flask.redirect('/' + sim_type, **kwargs)
-
-
-def gen_sr_exception(route, params=None):
-    """Generate json response for srException
-
-    Args:
-        route (str): name (not uri) in localRoutes
-        params (dict): params for route [None]
-
-    Returns:
-        flask.Response: reply object
-    """
-    s = simulation_db.get_schema(sim_type=None)
-    assert route in s.localRoutes, \
-        'route={} not found in schema='.format(route, s.simulationType)
-    pkdlog('srException: route={} params={}', route, params)
-    return gen_json(
-        PKDict({
-            _STATE: SR_EXCEPTION_STATE,
-            SR_EXCEPTION_STATE: pkcollections.Dict(
-                routeName=route,
-                params=params,
-            ),
-        }),
-        response_kwargs=pkcollections.Dict(status=SR_EXCEPTION_STATUS),
+    return gen_redirect_for_anchor(
+        sirepo.uri.local_route(sim_type, route, params, query),
     )
 
 
@@ -227,13 +224,3 @@ def subprocess_error(err, *args, **kwargs):
     elif not pkconfig.channel_in_internal_test():
         err = 'unexpected error (see logs)'
     return {'state': 'error', 'error': err}
-
-
-def _default_route(schema):
-    for k, v in schema.localRoutes.items():
-        if v.get('isDefault'):
-            return k
-    else:
-        raise AssertionError(
-            'no isDefault in localRoutes for {}'.format(sim_type),
-        )
