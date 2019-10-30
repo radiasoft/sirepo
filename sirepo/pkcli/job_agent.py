@@ -70,7 +70,7 @@ def default_command():
 
 
 class _Dispatcher(PKDict):
-    _processes = PKDict()
+    processes = PKDict()
 
     async def loop(self):
         while True:
@@ -128,7 +128,7 @@ class _Dispatcher(PKDict):
             return self.format_op(m, job.OP_ERROR, error=err, stack=stack)
 
     async def _op_cancel(self, msg):
-        p = self._processes.get(msg.computeJid)
+        p = self.processes.get(msg.computeJid)
         if not p:
             return self.format_op(msg, job.OP_ERROR, error='no such computeJid')
         await p.cancel()
@@ -151,8 +151,8 @@ class _Dispatcher(PKDict):
         p = _Process(msg=msg, comm=self)
 #TODO(robnagler) there should only be one computeJid per agent.
 #   background_percent_complete is not an analysis
-        assert msg.computeJid not in self._processes
-        self._processes[msg.computeJid] = p
+        assert msg.computeJid not in self.processes
+        self.processes[msg.computeJid] = p
         p.start()
 
 
@@ -267,6 +267,7 @@ class _Process(PKDict):
             await self._job_proc.exit_ready()
             if self._terminating:
                 return
+            del self.comm.processes[self.msg.computeJid]
             e = self._job_proc.stderr.bytes.decode('utf-8', errors='ignore')
             r = pkjson.load_any(self._job_proc.stdout.bytes)
             if self._job_proc.returncode != 0:

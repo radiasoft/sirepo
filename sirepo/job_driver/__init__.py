@@ -7,7 +7,7 @@
 from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdp, pkdlog, pkdc
+from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
 from sirepo import job
 import importlib
 import tornado.locks
@@ -83,6 +83,7 @@ class DriverBase(PKDict):
 
     async def _send(self, req, kwargs):
         o = _Op(
+            self._websocket is not None,
             opName=kwargs.opName,
             msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
         )
@@ -104,7 +105,8 @@ class DriverBase(PKDict):
         return await o.reply_ready()
 
     def _websocket_free(self):
-        w = self.pkdel('_websocket')
+        w = self._websocket
+        self._websockt = None
         if w:
             # Will not call websocket_on_close()
             w.sr_close()
@@ -146,7 +148,7 @@ def terminate():
 
 class _Op(PKDict):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, have_websocket, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update(
             opId=job.unique_key(),
@@ -154,6 +156,8 @@ class _Op(PKDict):
             # necessary for cancel so we can "free" all ops regarding one jid
             websocket_ready=tornado.locks.Event(),
         )
+        if have_websocket:
+            self.websocket_ready.set()
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def reply_put(self, msg):

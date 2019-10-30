@@ -120,7 +120,7 @@ class _ComputeJob(PKDict):
             return res(state=job.MISSING)
         if self.isParallel or self.status != job.COMPLETED:
             return res(state=self.status)
-        return await self._send(job.OP_ANALYSIS, req, 'sequential_result')
+        return await self._send(job.OP_ANALYSIS, req, jobProcessCmd='sequential_result')
 
     async def _receive_api_simulationFrame(self, req):
         assert self.computeJobHash == req.content.computeJobHash
