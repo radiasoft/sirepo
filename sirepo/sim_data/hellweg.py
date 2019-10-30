@@ -44,7 +44,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         r = data.report
         if r == cls.animation_name(None):
             return []
-        return _cls._non_analysis_fields(data, r) + [
+        return cls._non_analysis_fields(data, r) + [
             'beam',
             'ellipticalDistribution',
             'energyPhaseDistribution',

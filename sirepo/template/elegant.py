@@ -665,10 +665,6 @@ def _find_first_command(data, command_type):
     return None
 
 
-def _find_first_bunch_command(data):
-    return _find_first_command(data, 'bunched_beam')
-
-
 def _format_field_value(state, model, field, el_type):
     value = model[field]
     if el_type.endswith('StringArray'):
