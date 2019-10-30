@@ -120,11 +120,18 @@ class _ComputeJob(PKDict):
             return res(state=job.MISSING)
         if self.isParallel or self.status != job.COMPLETED:
             return res(state=self.status)
-        return await self._send(job.OP_ANALYSIS, req, jobProcessCmd='sequential_result')
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS,
+            req,
+            jobProcessCmd='sequential_result'
+        )
 
     async def _receive_api_simulationFrame(self, req):
         assert self.computeJobHash == req.content.computeJobHash
-        return await self._send(job.OP_ANALYSIS, req, 'get_simulation_frame')
+        return await self._send_with_single_reply(
+            job.OP_ANALYSIS, req,
+            'get_simulation_frame'
+        )
 
     async def _run(self, req):
         if self.computeJobHash != req.content.computeJobHash:
@@ -134,7 +141,10 @@ class _ComputeJob(PKDict):
                 req.content.computeJobHash
             )
             return
-        r = await self._send(job.OP_RUN, req, jobProcessCmd='compute')
+        r = await self._send_with_single_reply(
+            job.OP_RUN, req,
+            jobProcessCmd='compute'
+        )
         self.status = r.state
         if self.status == job.ERROR:
             self.error = r.get('error', '<unknown error>')
@@ -143,8 +153,13 @@ class _ComputeJob(PKDict):
             if self.isParallel:
 #TODO(robnagler) will need final frame count
                 pass
+    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
+        o = await self._send(opName, req, jobProcessCmd)
+        r = await o.reply_ready()
+        o.close()
+        return r
 
-    async def _send(self, opName, req, jobProcessCmd=None):
+    async def _send(self, opName, req, jobProcessCmd):
         req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
         req.simulationType = self.simulationType

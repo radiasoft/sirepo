@@ -62,7 +62,7 @@ class DriverBase(PKDict):
         c = msg.content
         i = c.get('opId')
         if i:
-            self.ops.pkdel(i).reply_put(c.reply)
+            self.ops[i].reply_put(c.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -84,8 +84,9 @@ class DriverBase(PKDict):
     async def _send(self, req, kwargs):
         o = _Op(
             self._websocket is not None,
-            opName=kwargs.opName,
+            driver=self,
             msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
+            opName=kwargs.opName,
         )
         self.ops[o.opId] = o
         await o.websocket_ready.wait()
@@ -102,7 +103,7 @@ class DriverBase(PKDict):
 #  to the job. If it was already completed (and reply on the way), then
 #  we can cache that state in the agent(?) and have it send the response
 #  twice(?).
-        return await o.reply_ready()
+        return o
 
     def _websocket_free(self):
         w = self._websocket
@@ -165,3 +166,6 @@ class _Op(PKDict):
 
     async def reply_ready(self):
         return await self._reply_q.get()
+
+    def close(self):
+        del self.driver.ops[self.opId]

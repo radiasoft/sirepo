@@ -88,10 +88,9 @@ class _Dispatcher(PKDict):
                     if m is None:
                         break
                     m = await self._op(m)
-            except ConnectionRefusedError as e:
-                await tornado.gen.sleep(_RETRY_SECS)
             except Exception as e:
                 pkdlog('error={} stack={}', e, pkdexc())
+                await tornado.gen.sleep(_RETRY_SECS)
             finally:
                 if self._websocket:
                     self._websocket.close()
