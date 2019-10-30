@@ -538,11 +538,6 @@ def _set_log_user():
     _app.uwsgi.set_logvar(_UWSGI_LOG_KEY_USER, u)
 
 
-def _update_session(login_state, auth_method):
-    cookie.set_value(_COOKIE_LOGIN_SESSION, login_state)
-    cookie.set_value(_COOKIE_METHOD, auth_method)
-
-
 def _validate_method(module, sim_type=None):
     if module.AUTH_METHOD in valid_methods:
         return None
