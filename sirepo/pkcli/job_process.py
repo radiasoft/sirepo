@@ -80,28 +80,27 @@ def _do_compute(msg, template):
         with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
             p = subprocess.Popen(
                 cmd,
-                stdout=run_log
+                stdout=run_log,
+                stderr=run_log,
             )
-            while True:
-                r = p.poll()
-                if msg.isParallel:
-                    # TODO(e-carlin): fix
-                    msg.isRunning = r is None
-                    msg.state = 'running' if msg.isRunning else 'completed'
-                    print(
-                        pkjson.dump_pretty(
-                            PKDict(
-                                state=msg.state,
-                                parallelStatus=_background_percent_complete(msg, template),
-                            ),
-                            pretty=False,
-                        )
+        while True:
+            r = p.poll()
+            if msg.isParallel:
+                msg.isRunning = r is None
+                print(
+                    pkjson.dump_pretty(
+                        PKDict(
+                            state=job.RUNNING if msg.isRunning else job.COMPLETED,
+                            parallelStatus=_background_percent_complete(msg, template),
+                        ),
+                        pretty=False,
                     )
-                if r is None:
-                    time.sleep(2) # TODO(e-carlin): cfg
-                else:
-                    assert r == 0, 'non zero returncode={}'.format(r)
-                    break
+                )
+            if r is None:
+                time.sleep(2) # TODO(e-carlin): cfg
+            else:
+                assert r == 0, 'non zero returncode={}'.format(r)
+                break
     except Exception as e:
         pkdp(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
