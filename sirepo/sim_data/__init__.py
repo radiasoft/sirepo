@@ -79,7 +79,10 @@ class SimDataBase(object):
 
         def _op():
             c.changed = True
-            pkcollections.unchecked_del(data, 'computeJobHash')
+            # old value no longer used
+            pkcollections.unchecked_del('computeJobHash')
+            if 'simulationStatus' in models:
+                pkcollections.unchecked_del(data.models.simulationStatus, 'computeJobHash')
             res = hashlib.md5()
             m = data['models']
             for f in sorted(
@@ -110,7 +113,11 @@ class SimDataBase(object):
             return 'v2' + res.hexdigest()
 
         try:
-            return data.pksetdefault(computeJobHash=_op).computeJobHash
+            return data.models.pksetdefault(
+                simulationStatus=PKDict(),
+            ).pksetdefault(
+                computeJobHash=_op,
+            ).computeJobHash
         finally:
             if changed and c.changed:
                 changed()

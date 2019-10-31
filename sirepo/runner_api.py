@@ -81,7 +81,6 @@ def api_simulationFrame(frame_id):
 #   not here so this should be a new type of job: simulation_frame
     #TODO(robnagler) startTime is computeJobHash; need version on URL and/or param names in URL
     keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-#rn pkcollections.Dict
     data = PKDict(zip(keys, frame_id.split('*')))
     template = sirepo.template.import_module(data)
     data['report'] = sirepo.sim_data.get_class(data.simulationType).animation_name(data)
@@ -188,9 +187,12 @@ def _simulation_run_status(data, quiet=False):
                 rep.cached_hash,
             )
         #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('startTime', _mtime_or_now(rep.input_file))
+        res.setdefault('computeJobHash', rep.cached_hash or _rep.req_hash)
+        s = rep.cached_data.models.simulationStatus
+        t = s.get('computeJobStart') or s.get('startTime')
+        res.setdefault('computeJobStart', t)
         res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-        res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
+        res.setdefault('elapsedTime', res.lastUpdateTime - t)
         if is_processing:
             res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
             res['nextRequest'] = {
@@ -221,8 +223,8 @@ def _start_simulation(data):
     Returns:
         object: runner instance
     """
-    data['simulationStatus'] = {
-        'startTime': int(time.time()),
-        'state': 'pending',
-    }
+    data.models.simulationStatus.pkupdate(
+        computeJobStart=int(time.time()),
+        state='pending',
+    )
     runner.job_start(data)
