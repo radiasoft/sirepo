@@ -118,4 +118,4 @@ def _query(query):
 
 
 def _escape(element):
-    return quote(element, safe='')
+    return quote(element, safe="()-_.!~*'")
