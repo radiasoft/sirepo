@@ -45,50 +45,76 @@ def api_runStatus():
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
+    keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
+    data = PKDict(zip(keys, frame_id.split('*')))
+    template = sirepo.template.import_module(data)
+    data.report = sirepo.sim_data.get_class(
+        data.simulationType).animation_name(data)
+
+    #################################################
+    # TODO(e-carlin): Remove when computeJobHash is included in frame_id
+    data.computeJobHash = 'v2e2d425ac21c5a2ad4a1c455e98dcf8d4'
+    # f = simulation_db.read_json(
+    #     '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
+    # data.update(f)
+    #################################################
+    frame = _request(data=data)
+
+    resp = http_reply.gen_json(frame)
+    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
+        now = datetime.datetime.utcnow()
+        expires = now + datetime.timedelta(365)
+#rn why is this public? this is not public data.
+        resp.headers['Cache-Control'] = 'public, max-age=31536000'
+        resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    else:
+        http_reply.headers_for_no_cache(resp)
+    return resp
     # TODO(robnagler) https://github.com/radiasoft/sirepo/issues/1557
 
     # TODO(robnagler) this needs work. I need to encapsulate this so it is shared with the
     #   javascript expliclitly (even if the code is not shared) especially
     #   the order of the params. This would then be used by the extract job
     #   not here so this should be a new type of job: simulation_frame
-    f = frame_id.split('*')
-    keys = ['simulationType', 'simulationId', 'modelName',
-            'animationArgs', 'frameIndex', 'startTime']
-    if len(f) > len(keys):
-        # TODO(robnagler) should this be v2 or 2 like in animationArgs
-        #   probably need consistency anyway for dealing with separators
-        assert f.pop(0) == 'v2', \
-            'invalid frame_id={}'.format(frame_id)
-        keys.append('computeJobHash')
-    data = PKDict(zip(keys, f))
-    #################################################
-    # TODO(e-carlin): Remove when computeJobHash is included in frame_id
-    f = simulation_db.read_json(
-        '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
-    data.update(f)
-    #################################################
+    # f = frame_id.split('*')
+    # keys = ['simulationType', 'simulationId', 'modelName',
+    #         'animationArgs', 'frameIndex', 'startTime']
+    # if len(f) > len(keys):
+    #     # TODO(robnagler) should this be v2 or 2 like in animationArgs
+    #     #   probably need consistency anyway for dealing with separators
+    #     assert f.pop(0) == 'v2', \
+    #         'invalid frame_id={}'.format(frame_id)
+    #     keys.append('computeJobHash')
+    # data = PKDict(zip(keys, f))
+    # #################################################
+    # # TODO(e-carlin): Remove when computeJobHash is included in frame_id
+    # f = simulation_db.read_json(
+    #     '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
+    # data.update(f)
+    # #################################################
 
-    template = sirepo.template.import_module(data)
-    data.report = sirepo.sim_data.get_class(
-        data.simulationType).animation_name(data)
-    frame = _request(data=data)
-    resp = http_reply.gen_json(frame)
-    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
-        n = srtime.utc_now()
-        # TODO(robnagler) test non-public
-        resp.headers.set('Cache-Control', 'public, max-age=31536000')
-        now = datetime.datetime.utcnow()
-        expires = now + datetime.timedelta(365)
-        resp.headers.set('Expires', expires.strftime(
-            "%a, %d %b %Y %H:%M:%S GMT"))
-        resp.headers.set(
-            'Last-Modified', now.strftime("%a, %d %b %Y %H:%M:%S GMT"))
-        # TODO(e-carlin): wsgiref is undefined. Discus with rn what his intention was.
-        # resp.headers.set('Expires', _rfc1123(n + _YEAR)),
-        # resp.headers.set('Last-Modified', _rfc1123(n))
-    else:
-        http_reply.headers_for_no_cache(resp)
-    return resp
+    # template = sirepo.template.import_module(data)
+    # data.report = sirepo.sim_data.get_class(
+    #     data.simulationType).animation_name(data)
+    # frame = _request(data=data)
+    # resp = http_reply.gen_json(frame)
+    # if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
+    #     n = srtime.utc_now()
+    #     # TODO(robnagler) test non-public
+    #     resp.headers.set('Cache-Control', 'public, max-age=31536000')
+    #     now = datetime.datetime.utcnow()
+    #     expires = now + datetime.timedelta(365)
+    #     resp.headers.set('Expires', expires.strftime(
+    #         "%a, %d %b %Y %H:%M:%S GMT"))
+    #     resp.headers.set(
+    #         'Last-Modified', now.strftime("%a, %d %b %Y %H:%M:%S GMT"))
+    #     # TODO(e-carlin): wsgiref is undefined. Discus with rn what his intention was.
+    #     # resp.headers.set('Expires', _rfc1123(n + _YEAR)),
+    #     # resp.headers.set('Last-Modified', _rfc1123(n))
+    # else:
+    #     http_reply.headers_for_no_cache(resp)
+    # return resp
 
 
 def init_apis(*args, **kwargs):

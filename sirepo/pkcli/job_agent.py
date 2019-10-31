@@ -213,6 +213,7 @@ class _Job(PKDict):
         return env.pkupdate(
             SIREPO_MPI_CORES=str(self.msg.mpiCores),
             PYENV_VERSION='py2',
+            PYTHONUNBUFFERED='1', # TODO(e-carlin): discuss with rn
         )
 
 

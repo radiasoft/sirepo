@@ -17,6 +17,7 @@ import sys
 import time
 import tornado.ioloop
 import tornado.locks
+import tornado.gen
 
 
 def init():
@@ -57,12 +58,15 @@ class _ComputeJob(PKDict):
         if self.isParallel:
             self.parallelStatus = PKDict(
                 frameCount=0,
-                lastUpdateTime=0,
                 percentComplete=0.0,
+                lastUpdateTime=0,
                 startTime=0,
+                elapsedTime=0,
             )
         assert self.computeJid not in self.instances
         self.instances[self.computeJid] = self
+
+        self.send_lock = tornado.locks.Lock() # TODO(e-carlin): xxxx
 
     @classmethod
     async def receive(cls, req):
@@ -128,11 +132,15 @@ class _ComputeJob(PKDict):
         )
 
     async def _receive_api_simulationFrame(self, req):
+        await self.send_lock.acquire()
         assert self.computeJobHash == req.content.computeJobHash
-        return await self._send_with_single_reply(
+        r = await self._send_with_single_reply(
             job.OP_ANALYSIS, req,
             'get_simulation_frame'
         )
+        await tornado.gen.sleep(5)
+        self.send_lock.release()
+        return r
 
     async def _run(self, req):
         if self.computeJobHash != req.content.computeJobHash:
@@ -162,7 +170,8 @@ class _ComputeJob(PKDict):
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         async def close_op(op, reply):
             while True:
-                assert reply.state != job.ERROR
+                if 'state' in reply:
+                    assert reply.state != job.ERROR
                 # TODO(e-carlin): What if this never comes?
                 if 'opDone' in reply:
                     o.close()

@@ -55,9 +55,12 @@ def _background_percent_complete(msg, template):
         msg.runDir,
         msg.isRunning,
     )
-    r.setdefault('percentComplete', 0.0)
+    r.setdefault('startTime', msg.simulationStatus.startTime)
+    r.setdefault('lastUpdateTime', _mtime_or_now(msg.runDir))
+    r.setdefault('elapsedTime', r.lastUpdateTime - r.startTime)
     r.setdefault('frameCount', 0)
-    return _fix_status(r)
+    r.setdefault('percentComplete', 0.0)
+    return r
 
 
 def _do_cancel(msg, template):
@@ -71,10 +74,10 @@ def _do_compute(msg, template):
     with pkio.save_chdir('/'):
         pkio.unchecked_remove(msg.runDir)
         pkio.mkdir_parent(msg.runDir)
-    msg.data['simulationStatus'] = {
-        'startTime': int(time.time()),
-        'state': job.RUNNING,
-    }
+    msg.simulationStatus = PKDict(
+        startTime=int(time.time()),
+        state=job.RUNNING,
+    )
     cmd, _ = simulation_db.prepare_simulation(msg.data, run_dir=msg.runDir)
     try:
         with open(str(msg.runDir.join(template_common.RUN_LOG)), 'w') as run_log:
@@ -104,7 +107,7 @@ def _do_compute(msg, template):
     except Exception as e:
         pkdp(pkdexc())
         return PKDict(state=job.ERROR, error=str(e))
-    return _fix_status(PKDict(state=job.COMPLETED))
+    return PKDict(state=job.COMPLETED)
 
 
 def _do_get_simulation_frame(msg, template):
@@ -126,12 +129,13 @@ def _do_sequential_result(msg, template):
     return r
 
 
-def _fix_status(r):
-    # TODO(e-carlin): impl
-    # r.startTime = _mtime_or_now(rep.input_file)
-    # res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-    # res.setdefault('elapsedTime', res['lastUpdateTime'] - res['startTime'])
-    r.startTime = 0
-    r.setdefault('lastUpdateTime', 2)
-    r.setdefault('elapsedTime', r.lastUpdateTime - r.startTime)
-    return r
+def _mtime_or_now(path):
+    """mtime for path if exists else time.time()
+
+    Args:
+        path (py.path):
+
+    Returns:
+        int: modification time
+    """
+    return int(path.mtime() if path.exists() else time.time())
