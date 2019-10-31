@@ -125,6 +125,7 @@ async def _incoming(content, handler):
 
 
 def _sigterm(signum, frame):
+    _terminate()
     tornado.ioloop.IOLoop.current().add_callback_from_signal(_terminate)
 
 

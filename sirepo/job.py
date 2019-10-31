@@ -18,7 +18,6 @@ import uuid
 
 OP_ANALYSIS = 'analysis'
 OP_CANCEL = 'cancel'
-OP_COMPUTE_STATUS = 'compute_status'
 OP_CONDITION = 'condition'
 OP_ERROR = 'error'
 OP_KILL = 'kill'
@@ -26,7 +25,6 @@ OP_OK = 'ok'
 #: Agent indicates it is ready
 OP_ALIVE = 'alive'
 OP_RUN = 'run'
-OP_STATUS = 'status'
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = '/agent'

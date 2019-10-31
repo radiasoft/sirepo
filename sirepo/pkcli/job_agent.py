@@ -119,6 +119,7 @@ class _Dispatcher(PKDict):
         m = None
         try:
             m = pkjson.load_any(msg)
+            pkdc('m={}', job.LogFormatter(m))
             m.runDir = pkio.py_path(m.runDir)
             return await getattr(self, '_op_' + m.opName)(m)
         except Exception as e:
@@ -218,11 +219,7 @@ class _Process(PKDict):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        t = time.time()
         self.pkupdate(
-            startTime=t,
-            lastUpdateTime=t,
-            _background_job_process=None,
             _job_proc=None,
             **kwargs,
         )
@@ -272,7 +269,7 @@ class _Process(PKDict):
                     self.comm.format_op(
                         self.msg,
                         job.OP_ERROR,
-                        opStatus='done',
+                        opDone=True,
                         error=e,
                         reply=PKDict(
                             state=job.ERROR,
@@ -284,7 +281,7 @@ class _Process(PKDict):
                     self.comm.format_op(
                         self.msg,
                         job.OP_RUN,
-                        opStatus='done',
+                        opDone=True,
                         reply=pkjson.load_any(self._job_proc.stdout.text),
                     )
                 )

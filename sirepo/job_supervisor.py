@@ -15,6 +15,7 @@ import aenum
 import copy
 import sys
 import time
+import tornado.ioloop
 import tornado.locks
 
 
@@ -154,13 +155,21 @@ class _ComputeJob(PKDict):
                 assert self.isParralel
                 self.parallelStatus.update(r.parallelStatus)
                 #TODO(robnagler) will need final frame count
-            if 'opStatus' in r and r.opStatus is 'done':
+            if 'opDone' in r:
                 break
         o.close()
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
+        async def close_op(op, reply):
+            while True:
+                assert reply.state != job.ERROR
+                if 'opDone' in reply:
+                    o.close()
+                    return
+                reply = await o.reply_ready()
+
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()
-        o.close()
+        tornado.ioloop.IOLoop.current().add_callback(close_op, o, r)
         return r
 
     async def _send(self, opName, req, jobProcessCmd):
