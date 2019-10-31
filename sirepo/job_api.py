@@ -67,7 +67,6 @@ def api_simulationFrame(frame_id):
         '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
     data.update(f)
     #################################################
-    return {}
 
     template = sirepo.template.import_module(data)
     data.report = sirepo.sim_data.get_class(
