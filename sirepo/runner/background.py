@@ -117,7 +117,7 @@ class BackgroundJob(runner.JobBase):
             pid = os.fork()
         except OSError as e:
             pkdlog('{}: fork OSError: {} errno={}', self.jid, e.strerror, e.errno)
-            reraise
+            raise
         if pid != 0:
             pkdlog('{}: started: pid={} cmd={}', self.jid, pid, self.cmd)
             self.__pid = pid
