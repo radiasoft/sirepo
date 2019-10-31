@@ -243,6 +243,8 @@ class _Process(PKDict):
     async def on_job_process_stdout_read(self, text):
         try:
             r = pkjson.load_any(text)
+            if 'opDone' in r:
+                del self.comm.processes[self.msg.computeJid]
             if self.msg.jobProcessCmd == 'compute':
                 await self.comm.send(
                     self.comm.format_op(
@@ -266,7 +268,6 @@ class _Process(PKDict):
     async def _handle_job_proc_exit(self):
         try:
             await self._job_proc.exit_ready()
-            del self.comm.processes[self.msg.computeJid]
             e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
             if e:
                 pkdlog('error={}', e)

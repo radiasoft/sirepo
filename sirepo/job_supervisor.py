@@ -138,7 +138,6 @@ class _ComputeJob(PKDict):
             job.OP_ANALYSIS, req,
             'get_simulation_frame'
         )
-        await tornado.gen.sleep(5)
         self.send_lock.release()
         return r
 
