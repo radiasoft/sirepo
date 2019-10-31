@@ -227,6 +227,7 @@
             "completeRegistration": {
                 "route": "/complete-registration",
                 "config": {
+                  "controller": "LoginConfirmController as loginConfirm",
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
@@ -272,9 +273,9 @@
                 }
             },
             "loginWithEmailConfirm": {
-                "route": "/login-with-email-confirm/:token",
+                "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
                 "config": {
-                  "controller": "LoginWithEmailConfirmController as loginFlaggedByCheckCookieRedirect",
+                  "controller": "LoginConfirmController as loginConfirm",
                   "templateUrl": "/static/html/login-with-email-confirm.html"
                 }
             },

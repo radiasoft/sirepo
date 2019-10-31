@@ -70,7 +70,9 @@ def api_authCompleteRegistration():
     # for just this API.
     if not _is_logged_in():
         raise util.SRException(LOGIN_ROUTE_NAME, None)
-    complete_registration(_parse_display_name(http_request.parse_json()))
+    complete_registration(
+        _parse_display_name(http_request.parse_json().get('displayName')),
+    )
     return http_reply.gen_json_ok()
 
 
@@ -202,7 +204,7 @@ def logged_in_user():
     return res
 
 
-def login(module, uid=None, model=None, sim_type=None, **kwargs):
+def login(module, uid=None, model=None, sim_type=None, display_name=None):
     """Login the user
 
     Args:
@@ -251,6 +253,8 @@ def login(module, uid=None, model=None, sim_type=None, **kwargs):
         if model:
             model.uid = uid
             model.save()
+    if display_name:
+        complete_registration(_parse_display_name(display_name))
     if sim_type:
         if guest_uid and guest_uid != uid:
             simulation_db.move_user_simulations(guest_uid, uid)
@@ -288,6 +292,24 @@ def login_success_redirect(sim_type):
                     'completeRegistration',
                 )
     return http_reply.gen_redirect_for_local_route(sim_type)
+
+
+def need_complete_registration(model):
+    """Does unauthenticated user need to complete registration?
+
+    If the current method is deprecated, then we will end up asking
+    the user for a name again, but that's ok.
+
+    Does not work for guest (which don't have their own models anyway).
+
+    Args:
+        model (auth_db.UserDbBase): unauthenticated user record
+    Returns:
+        bool: True if user will be redirected to needCompleteRegistration
+    """
+    if not model.uid:
+        return True
+    return not auth_db.UserRegistration.search_by(uid=model.uid).display_name
 
 
 def process_request(unit_test=None):
@@ -515,10 +537,10 @@ def _method_user_model(module, uid):
     return module.UserModel.search_by(uid=uid)
 
 
-def _parse_display_name(data):
-    res = data.displayName.strip()
+def _parse_display_name(value):
+    res = value.strip()
     assert len(res), \
-        'invalid post data: displayName={}'.format(data.displayName)
+        'invalid post data: displayName={}'.format(value)
     return res
 
 

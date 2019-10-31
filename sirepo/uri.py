@@ -61,7 +61,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
             p = p[:-1]
             if not params or p not in params:
                 continue
-        u += '/' + _escape(params[p])
+        u += '/' + _to_uri(params[p])
     return app_root(sim_type) + '#' + u + _query(query)
 
 
@@ -90,7 +90,7 @@ def server_route(route_or_uri, params, query):
     if params:
         for k, v in params.items():
             k2 = r'\??<' + k + '>'
-            n = re.sub(k2, _escape(v), route)
+            n = re.sub(k2, _to_uri(v), route)
             assert n != route, \
                 '{}: not found in "{}"'.format(k2, route)
             route = n
@@ -117,5 +117,7 @@ def _query(query):
     return '?' + urlencode(query)
 
 
-def _escape(element):
+def _to_uri(element):
+    if isinstance(element, bool):
+        return str(int(element))
     return quote(element, safe="()-_.!~*'")

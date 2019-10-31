@@ -2757,8 +2757,60 @@ SIREPO.app.controller('LoginWithController', function ($route, $window, errorSer
     }
 });
 
-SIREPO.app.controller('LoginWithEmailConfirmController', function () {
-    // This controller is a flag for checkCookieRedirect() so our localRoute gets in.
+SIREPO.app.controller('LoginConfirmController', function ($route, $window, requestSender) {
+    var self = this;
+    var p = $route.current.params;
+    self.data = {};
+    self.showWarning = false;
+    self.warningText = '';
+
+    function handleResponse(data) {
+        if (data.state === 'ok') {
+            $window.location.href = requestSender.formatUrl(
+                'root',
+                {'<simulation_type>': SIREPO.APP_SCHEMA.simulationType}
+            );
+            return;
+        }
+        self.showWarning = true;
+        self.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+    }
+    if ($route.current.templateUrl.indexOf('complete-registration') >= 0) {
+        if (! SIREPO.authState.isLoggedIn) {
+            requestSender.localRedirect('login');
+            return;
+        }
+        if (! SIREPO.authState.needCompleteRegistration) {
+            requestSender.localRedirect('simulations');
+            return;
+        }
+        self.submit = function() {
+            requestSender.sendRequest(
+                'authCompleteRegistration',
+                handleResponse,
+                {
+                    displayName: self.data.displayName,
+                    simulationType: SIREPO.APP_NAME
+                }
+            );
+        };
+        return;
+    }
+    self.needCompleteRegistration = parseInt(p.needCompleteRegistration);
+    self.submit = function() {
+        requestSender.sendRequest(
+            {
+                routeName: 'authEmailAuthorized',
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<token>': p.token,
+            },
+            'authEmailAuthorizedHandler',
+            {
+                token: p.token,
+                displayName: self.data.displayName,
+            }
+        );
+    };
     return;
 });
 

@@ -34,14 +34,7 @@ def test_different_email():
     fc.sr_get('authLogout', {'simulation_type': sim_type})
     uid = fc.sr_auth_state(userName=None, isLoggedIn=False).uid
     r = fc.sr_post('authEmailLogin', {'email': 'x@y.z', 'simulationType': sim_type})
-    _confirm(fc, r)
-    fc.sr_post(
-        'authCompleteRegistration',
-        {
-            'displayName': 'xyz',
-            'simulationType': sim_type,
-        },
-    )
+    _confirm(fc, r, 'xyz')
     uid2 = fc.sr_auth_state(displayName='xyz', isLoggedIn=True, userName='x@y.z').uid
     pkok(uid != uid2, 'did not get a new uid={}', uid)
 
@@ -334,11 +327,20 @@ def test_oauth_conversion_setup(monkeypatch):
     fc.sr_get('authLogout', {'simulation_type': sim_type})
 
 
-def _confirm(fc, resp):
+def _confirm(fc, resp, display_name=None):
+    from pykern.pkcollections import PKDict
+
     fc.sr_get(resp.url)
     m = re.search(r'/(\w+)$', resp.url)
     assert m
-    fc.sr_post(resp.url, {'token': m.group(1)}, raw_response=True)
+    r = PKDict(token=m.group(1))
+    if display_name:
+        r.displayName = display_name
+    fc.sr_post(
+        resp.url,
+        r,
+        raw_response=True,
+    )
 
 
 def _fc(github_deprecated=True):
