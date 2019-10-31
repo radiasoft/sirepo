@@ -155,6 +155,7 @@ class _ComputeJob(PKDict):
                 assert self.isParralel
                 self.parallelStatus.update(r.parallelStatus)
                 #TODO(robnagler) will need final frame count
+            # TODO(e-carlin): What if this never comes?
             if 'opDone' in r:
                 break
         o.close()
@@ -162,6 +163,7 @@ class _ComputeJob(PKDict):
         async def close_op(op, reply):
             while True:
                 assert reply.state != job.ERROR
+                # TODO(e-carlin): What if this never comes?
                 if 'opDone' in reply:
                     o.close()
                     return

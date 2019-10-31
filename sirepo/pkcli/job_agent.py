@@ -104,13 +104,14 @@ class _Dispatcher(PKDict):
             return False
 
     def terminate(self):
-#TODO(robnagler) kill all processes
-        pass
-
+        #TODO(robnagler) kill all processes
+        for p in self.processes.values():
+            p.kill()
+        self.processes.clear()
+        tornado.ioloop.IOLoop.current().stop()
     def format_op(self, msg, opName, **kwargs):
         if msg:
             kwargs['opId'] = msg.get('opId')
-            # kwargs['computeJid'] = msg.get('computeJid')
         return pkjson.dump_bytes(
             PKDict(agentId=cfg.agent_id, opName=opName, **kwargs),
         )
@@ -223,6 +224,10 @@ class _Process(PKDict):
             _job_proc=None,
             **kwargs,
         )
+
+    def kill(self):
+        # TODO(e-carlin): terminate?
+        self._job_proc.kill()
 
     def start(self):
         self._job_proc = _Job(
