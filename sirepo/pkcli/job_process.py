@@ -44,7 +44,7 @@ def default_command(in_file):
         globals()['_do_' + msg.jobProcessCmd](
             msg,
             sirepo.template.import_module(msg.simulationType),
-        ),
+        ).update(opDone=True),
         pretty=False,
     )
 

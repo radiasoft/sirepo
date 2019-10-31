@@ -167,20 +167,12 @@ class _ComputeJob(PKDict):
             if 'opDone' in r:
                 break
         o.close()
-    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
-        async def close_op(op, reply):
-            while True:
-                if 'state' in reply:
-                    assert reply.state != job.ERROR
-                # TODO(e-carlin): What if this never comes?
-                if 'opDone' in reply:
-                    o.close()
-                    return
-                reply = await o.reply_ready()
 
+    async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()
-        tornado.ioloop.IOLoop.current().add_callback(close_op, o, r)
+        assert 'opDone' in r
+        o.close()
         return r
 
     async def _send(self, opName, req, jobProcessCmd):

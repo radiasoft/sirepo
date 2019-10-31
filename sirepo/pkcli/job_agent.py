@@ -282,15 +282,6 @@ class _Process(PKDict):
                             error='returncode={}'.format(self._job_proc.returncode)),
                     )
                 )
-            else:
-                await self.comm.send(
-                    self.comm.format_op(
-                        self.msg,
-                        job.OP_RUN,
-                        opDone=True,
-                        reply=pkjson.load_any(self._job_proc.stdout.text),
-                    )
-                )
         except Exception as exc:
             pkdlog('error={} returncode={}', exc, self._job_proc.returncode)
 
