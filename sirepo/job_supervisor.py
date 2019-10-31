@@ -66,8 +66,6 @@ class _ComputeJob(PKDict):
         assert self.computeJid not in self.instances
         self.instances[self.computeJid] = self
 
-        self.send_lock = tornado.locks.Lock() # TODO(e-carlin): xxxx
-
     @classmethod
     async def receive(cls, req):
         return await getattr(
@@ -132,14 +130,11 @@ class _ComputeJob(PKDict):
         )
 
     async def _receive_api_simulationFrame(self, req):
-        await self.send_lock.acquire()
         assert self.computeJobHash == req.content.computeJobHash
-        r = await self._send_with_single_reply(
+        return await self._send_with_single_reply(
             job.OP_ANALYSIS, req,
             'get_simulation_frame'
         )
-        self.send_lock.release()
-        return r
 
     async def _run(self, req):
         if self.computeJobHash != req.content.computeJobHash:

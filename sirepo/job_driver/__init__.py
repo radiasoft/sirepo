@@ -9,7 +9,10 @@ from pykern import pkconfig, pkio, pkinspect, pkcollections, pkconfig, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc
 from sirepo import job
+import collections
 import importlib
+import tornado.gen
+import tornado.ioloop
 import tornado.locks
 
 
@@ -35,12 +38,14 @@ class DriverBase(PKDict):
     def __init__(self, req):
         super().__init__(
             agentId=job.unique_key(),
-            ops=PKDict(),
+            ops_pending_send=[],
+            ops_pending_close=PKDict(),
             supervisor_uri=cfg.supervisor_uri,
             uid=req.content.uid,
             _websocket=None,
         )
         self.agents[self.agentId] = self
+
 
     @classmethod
     def receive(cls, msg):
@@ -62,7 +67,7 @@ class DriverBase(PKDict):
         c = msg.content
         i = c.get('opId')
         if i:
-            self.ops[i].reply_put(c.reply)
+            self.ops_pending_close[i].reply_put(c.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -77,10 +82,23 @@ class DriverBase(PKDict):
             self._websocket_free()
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
-#TODO(robnagler) order matters, so maybe need to sequence opIds
-        for o in self.ops.values():
-            # o.websocket_ready.set()
-            o.set_send_ready() # TODO(e-carlin): should be only websocket_ready. send_allocation will come from the send algo
+        self.give_ops_send_allocation()
+        for o in self.ops_pending_send + list(self.ops_pending_close.values()):
+            o.websocket_ready.set()
+
+    def give_ops_send_allocation(self):
+        d = collections.defaultdict(int)
+        for v in self.ops_pending_close.values():
+            d[v.msg.opName] += 1
+        for o in self.ops_pending_send:
+            if o.msg.opName in d and d[o.msg.opName] > 0:
+                pass
+            d[o.msg.opName] += 1
+            assert o.opId not in self.ops_pending_close
+            self.ops_pending_send.remove(o)
+            self.ops_pending_close[o.opId] = o
+            o.send_allocation_ready.set()
+
 
     async def _send(self, req, kwargs):
         o = _Op(
@@ -89,12 +107,27 @@ class DriverBase(PKDict):
             msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
             opName=kwargs.opName,
         )
-        self.ops[o.opId] = o
+        self.ops_pending_send.append(o)
+        pkdp(self.ops_pending_send)
+        self.give_ops_send_allocation()
+        pkdp(self.ops_pending_send)
         await o.send_ready()
-        if o.opId in self.ops:
-            self._websocket.write_message(pkjson.dump_bytes(o.msg))
-        else:
-            pkdlog('op={} canceled', o)
+
+        pkdp('==============================================')
+        pkdp('** pending send **')
+        self.ops_pending_send
+        pkdp('****************')
+        pkdp('** pending close **')
+        self.ops_pending_close
+        pkdp('*******************')
+        pkdp('==============================================')
+        assert o.opId in self.ops_pending_close
+        self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        # TODO(e-carlin): fix cancel
+        # if o.opId in self.ops:
+        #     self._websocket.write_message(pkjson.dump_bytes(o.msg))
+        # else:
+        #     pkdlog('op={} canceled', o)
 #TODO(robnagler) need to send a retry to the ops, which should requeue
 #  themselves at an outer level(?).
 #  If a job is still running, but we just lost the websocket, want to
@@ -112,8 +145,10 @@ class DriverBase(PKDict):
         if w:
             # Will not call websocket_on_close()
             w.sr_close()
-        v = list(self.ops.values())
-        self.ops.clear()
+        v = list(self.ops_pending_close.values())
+        v.extend(self.ops_pending_send)
+        self.ops_pending_close.clear()
+        self.ops_pending_send = []
         for o in v:
             o.set_send_ready()
             o.reply_put(PKDict(state=job.ERROR, error='websocket closed'))
@@ -160,7 +195,6 @@ class _Op(PKDict):
         )
         if have_websocket:
             self.websocket_ready.set()
-            self.send_allocation_ready.set() # TODO(e-carlin): only websocket ready
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def reply_put(self, msg):
@@ -178,4 +212,5 @@ class _Op(PKDict):
         self.send_allocation_ready.set()
 
     def close(self):
-        del self.driver.ops[self.opId]
+        del self.driver.ops_pending_close[self.opId]
+        self.driver.give_ops_send_allocation()
