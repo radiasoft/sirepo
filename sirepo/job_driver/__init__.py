@@ -79,7 +79,8 @@ class DriverBase(PKDict):
         self._websocket.sr_driver_set(self)
 #TODO(robnagler) order matters, so maybe need to sequence opIds
         for o in self.ops.values():
-            o.websocket_ready.set()
+            # o.websocket_ready.set()
+            o.set_send_ready() # TODO(e-carlin): should be only websocket_ready. send_allocation will come from the send algo
 
     async def _send(self, req, kwargs):
         o = _Op(
@@ -89,7 +90,7 @@ class DriverBase(PKDict):
             opName=kwargs.opName,
         )
         self.ops[o.opId] = o
-        await o.websocket_ready.wait()
+        await o.send_ready()
         if o.opId in self.ops:
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
@@ -114,7 +115,7 @@ class DriverBase(PKDict):
         v = list(self.ops.values())
         self.ops.clear()
         for o in v:
-            o.websocket_ready.set()
+            o.set_send_ready()
             o.reply_put(PKDict(state=job.ERROR, error='websocket closed'))
 
 
@@ -154,11 +155,12 @@ class _Op(PKDict):
         self.update(
             opId=job.unique_key(),
             _reply_q=tornado.queues.Queue(),
-            # necessary for cancel so we can "free" all ops regarding one jid
             websocket_ready=tornado.locks.Event(),
+            send_allocation_ready=tornado.locks.Event(),
         )
         if have_websocket:
             self.websocket_ready.set()
+            self.send_allocation_ready.set() # TODO(e-carlin): only websocket ready
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def reply_put(self, msg):
@@ -166,6 +168,14 @@ class _Op(PKDict):
 
     async def reply_ready(self):
         return await self._reply_q.get()
+
+    async def send_ready(self):
+        await self.websocket_ready.wait()
+        await self.send_allocation_ready.wait()
+
+    def set_send_ready(self):
+        self.websocket_ready.set()
+        self.send_allocation_ready.set()
 
     def close(self):
         del self.driver.ops[self.opId]
