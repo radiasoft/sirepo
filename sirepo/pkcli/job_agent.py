@@ -269,6 +269,13 @@ class _Process(PKDict):
         try:
             await self._job_proc.exit_ready()
             if self._terminating:
+                await self.comm.send(
+                    self.comm.format_op(
+                        self.msg,
+                        job.OP_OK,
+                        reply=PKDict(state=job.CANCELED, opDone=True),
+                    )
+                )
                 return
             e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
             if e:

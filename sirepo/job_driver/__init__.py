@@ -46,7 +46,6 @@ class DriverBase(PKDict):
         )
         self.agents[self.agentId] = self
 
-
     @classmethod
     def receive(cls, msg):
         cls.agents[msg.content.agentId]._receive(msg)
