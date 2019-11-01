@@ -878,7 +878,7 @@ SIREPO.app.service('validationService', function(utilities) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope, traceService) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -886,11 +886,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
-        var fields = self.animationArgFields[modelName];
-        var args = fields.map(function (f) {
-            return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
-        });
-        return args.join('_');
+        return self.animationArgFields[modelName].fields.map(
+            function (f) {
+                return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
+            },
+        );
     }
 
     self.buildArgs = function(modelName, version) {
@@ -899,6 +899,24 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
             return  args;
         }
         return args.concat(SIREPO.APP_SCHEMA.animationArgs[modelName]);
+    };
+
+    self.frameId = function(modelName, index) {
+        var s = appState.simulationStatus[modelName];
+        if (! s) {
+            throw 'model=' + modelName + ' missing simulationStatus';
+        }
+        return [
+            // POSIT: same as runner_api._FRAME_KEYS
+            'v1',
+            index,
+            modelName,
+            appState.models.simulation.simulationId,
+            SIREPO.APP_SCHEMA.simulationType,
+            s.computeJobHash,
+            s.computeJobStart,
+        ].concat(animationArgs(modelName))
+        .join('*');
     };
 
     self.getCurrentFrame = function(modelName) {
@@ -918,18 +936,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         var delay = isPlaying && ! isHidden
             ? 1000 / parseInt(appState.models[modelName].framesPerSecond)
             : 0;
-        var frameId = [
-            SIREPO.APP_SCHEMA.simulationType,
-            appState.models.simulation.simulationId,
-            modelName,
-            animationArgs(modelName),
-            index,
-        ].join('*');
         var requestFunction = function() {
             requestSender.sendRequest(
                 {
                     'routeName': 'simulationFrame',
-                    '<frame_id>': frameId,
+                    '<frame_id>': self.frameId(modelName, index),
                 },
                 function(data) {
                     var endTime = new Date().getTime();
@@ -974,7 +985,13 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getFrameCount = function(modelKey) {
-        if (modelKey in frameCountByModelKey) {
+        if (modelKey && frameCountByModelKey) {
+            if (! (appState.models.simulationStatus[modelKey]
+                && appState.simulationStatus[modelKey].computeJobCacheKey)
+            ) {
+                // cannot request frames without computeJobCacheKey
+                return 0;
+            }
             return frameCountByModelKey[modelKey];
         }
         return masterFrameCount;
@@ -2135,7 +2152,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
         };
 
         frameCache.setAnimationArgs(animationArgs);
-        setSimulationStatus({state: 'stopped'});
+        setSimulationStatus({state: 'missing'});
         frameCache.setFrameCount(0);
         $scope.$on('$destroy', clearSimulation);
         appState.whenModelsLoaded($scope, runStatus);

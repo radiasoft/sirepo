@@ -113,9 +113,11 @@ class SimDataBase(object):
             return 'v2' + res.hexdigest()
 
         try:
-            return data.models.pksetdefault(
-                computeJobStatus=PKDict,
-            ).pksetdefault(
+            return data.pksetdefault(
+                models=PKDict
+            ).models.pksetdefault(
+                computeJobStatus=PKDict
+            ).computeJobStatus.pksetdefault(
                 computeJobHash=_op,
             ).computeJobHash
         finally:
