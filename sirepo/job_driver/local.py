@@ -57,16 +57,12 @@ class LocalDriver(job_driver.DriverBase):
 # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
 # _Slot() may have to understand this, because related to parking. However,
 # we are parking a driver so maybe that's a (local) driver mechanism
-        return cls.users[req.kind].get(req.content.uid) \
+        return cls.get_instance(req) \
             or cls(req, await _Slot.allocate(req.kind))
 
-    def _free(self):
-        k = self.pkdel('kill_timeout')
-        if k:
-            tornado.ioloop.IOLoop.current().remove_timeout(k)
-        self.pkdel('slot').free(self)
-        del self.users[self.kind][self.uid]
-        super()._free()
+    @classmethod
+    def get_instance(cls, req):
+        return cls.users[req.kind].get(req.content.uid)
 
     @classmethod
     def init_class(cls):
@@ -115,6 +111,14 @@ class LocalDriver(job_driver.DriverBase):
             env=env,
         )
         self.subprocess.set_exit_callback(self._agent_on_exit)
+
+    def _free(self):
+        k = self.pkdel('kill_timeout')
+        if k:
+            tornado.ioloop.IOLoop.current().remove_timeout(k)
+        self.pkdel('slot').free(self)
+        del self.users[self.kind][self.uid]
+        super()._free()
 
 
 def init_class():

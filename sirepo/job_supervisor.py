@@ -12,12 +12,13 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 import aenum
+import collections
 import copy
 import sys
 import time
+import tornado.gen
 import tornado.ioloop
 import tornado.locks
-import tornado.gen
 
 
 def init():
@@ -54,6 +55,7 @@ class _ComputeJob(PKDict):
             simulationType=c.data.simulationType,
             status=job.MISSING,
             uid=c.uid,
+            _driver_kinds=PKDict(),
         )
         if self.isParallel:
             self.parallelStatus = PKDict(
@@ -74,19 +76,65 @@ class _ComputeJob(PKDict):
         )(req)
 
     async def _receive_api_runCancel(self, req):
-        # if self.computeJobHash != req.content.computeJobHash:
-        #     return PKDict(state=job.CANCELED)
-        assert self.computeJobHash == req.content.computeJobHash
-        # TODO(e-carlin): handle other states. If not running need to go through
-        # q's and cancel
-        assert self.status == job.RUNNING
-        self.status = job.CANCELED
-        o = await self._send_with_single_reply(
-            job.OP_CANCEL,
-            req,
-        )
-        assert o.state == job.CANCELED
-        return PKDict(state=job.CANCELED)
+        # TODO(e-carlin): Make the logic cleaner. I have each state listed out like
+        # this so I make sure I cover all of the cases. Once all cases are
+        # handled I'll simply
+        if self.computeJobHash == req.content.computeJobHash:
+            if self.status == job.CANCELED:
+                return PKDict(state=job.CANCELED)
+            elif self.status == job.COMPLETED:
+                # Odd case. Race condition where job completes before cancel
+                # comes in. Keep completed in case next run request is for same
+                # job so we don't re-run
+                return PKDict(state=job.CANCELED)
+            elif self.status == job.ERROR:
+                # Should we reply with error? Probably not...
+                self.status = job.CANCELED
+                return PKDict(state=job.CANCELED)
+            elif self.status == job.MISSING:
+                # Odd case. In our work to create the supervisor DB. We
+                # might (?) get sims with state missing. This would make sure
+                # we cover that case
+                self.status = job.CANCELED
+                return PKDict(state=job.CANCELED)
+            elif self.status == job.PENDING:
+                # most challenging case. Go through all q's and find job to cancel
+                # self.status = job.CANCELED
+                # TODO(e-carlin): impl
+
+                from sirepo.job_driver import local
+                for k in self._driver_kinds.keys():
+                    d = local.LocalDriver.get_instance(PKDict(kind=k, content=PKDict(uid=req.content.uid)))
+                    for o in d.ops_pending_close.copy().values():
+                        if o.msg.computeJid == req.content.computeJid:
+                            o.reply_put(PKDict(state=job.CANCELED, opDone=True))
+                            o.set_send_ready()
+                            del d.ops_pending_close[o.opId]
+                    for o in d.ops_pending_send:
+                        if o.msg.computeJid == req.content.computeJid:
+                            o.reply_put(PKDict(state=job.CANCELED, opDone=True))
+                            o.set_send_ready()
+                            d.ops_pending_send.remove(o)
+                return PKDict(state=job.CANCELED)
+
+            elif self.status == job.RUNNING:
+                # If job.RUNNING then we know the op was sent to the agent. So,
+                # send OP_CANCEL
+                # TODO(e-carlin): handle OP_RUN not having made it to agent
+                # TODO(e-carlin): handle this not making it to agent
+                self.status = job.CANCELED
+                o = await self._send_with_single_reply(
+                    job.OP_CANCEL,
+                    req,
+                )
+                assert o.state == job.CANCELED
+                return PKDict(state=job.CANCELED)
+            else:
+                raise AssertionError('unkown state {}'.format(self.state))
+        if self.computeJobHash != req.content.computeJobHash:
+            # no matter our self.status we need to go through all q's and find
+            # the job to cancel. If it isn't found then just reply canceled
+            pass
 
 
     async def _receive_api_runSimulation(self, req):
@@ -164,6 +212,10 @@ class _ComputeJob(PKDict):
             job.OP_RUN, req,
             jobProcessCmd='compute'
         )
+        # TODO(e-carlin): XXX bug. If cancel comes in then self.status = canceled
+        # This overwrites it, but there is a state=canceled message waiting for
+        # us in the reply_ready q. We then await o.reply_ready() and get the cancel
+        # message then set self.status back to canceled
         self.status = job.RUNNING
         while True:
             r = await o.reply_ready()
@@ -189,11 +241,11 @@ class _ComputeJob(PKDict):
     async def _send(self, opName, req, jobProcessCmd):
         req.kind = job.PARALLEL if self.isParallel and opName != job.OP_ANALYSIS \
             else job.SEQUENTIAL
+        self._driver_kinds[req.kind] = True
         req.simulationType = self.simulationType
         return await job_driver.send(
             req,
             PKDict(
-                reqKind=req.kind,
                 jobProcessCmd=jobProcessCmd,
                 opName=opName,
                 **req.content,
