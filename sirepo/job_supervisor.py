@@ -73,6 +73,22 @@ class _ComputeJob(PKDict):
             '_receive_' + req.content.api,
         )(req)
 
+    async def _receive_api_runCancel(self, req):
+        # if self.computeJobHash != req.content.computeJobHash:
+        #     return PKDict(state=job.CANCELED)
+        assert self.computeJobHash == req.content.computeJobHash
+        # TODO(e-carlin): handle other states. If not running need to go through
+        # q's and cancel
+        assert self.status == job.RUNNING
+        self.status = job.CANCELED
+        o = await self._send_with_single_reply(
+            job.OP_CANCEL,
+            req,
+        )
+        assert o.state == job.CANCELED
+        return PKDict(state=job.CANCELED)
+
+
     async def _receive_api_runSimulation(self, req):
         if self.status == (job.RUNNING, job.PENDING):
             if self.computeJobHash != req.content.computeJobHash:
@@ -148,6 +164,7 @@ class _ComputeJob(PKDict):
             job.OP_RUN, req,
             jobProcessCmd='compute'
         )
+        self.status = job.RUNNING
         while True:
             r = await o.reply_ready()
             self.status = r.state

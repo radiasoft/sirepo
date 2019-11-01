@@ -132,13 +132,9 @@ class _Dispatcher(PKDict):
         p = self.processes.get(msg.computeJid)
         if not p:
             return self.format_op(msg, job.OP_ERROR, error='no such computeJid')
-        await p.cancel()
-        return self.format_op(msg, job.OP_OK)
-
-    async def _op_kill(self, msg):
-        self.send(self.format_op(msg, job.OP_OK))
-        self.kill()
-        return None
+        p.kill()
+        del self.processes[msg.computeJid]
+        return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED, opDone=True))
 
     async def _op_run(self, msg):
         self._process(msg)
@@ -171,7 +167,7 @@ class _Job(PKDict):
 
     def kill(self):
         # TODO(e-carlin): Terminate?
-        self._subprocess.proc.kill()
+        os.killpg(self._subprocess.proc.pid, signal.SIGKILL)
 
     def start(self):
         # SECURITY: msg must not contain agentId
@@ -223,11 +219,13 @@ class _Process(PKDict):
         super().__init__(*args, **kwargs)
         self.pkupdate(
             _job_proc=None,
+            _terminating=False,
             **kwargs,
         )
 
     def kill(self):
         # TODO(e-carlin): terminate?
+        self._terminating = True
         self._job_proc.kill()
 
     def start(self):
@@ -241,6 +239,8 @@ class _Process(PKDict):
         )
 
     async def on_job_process_stdout_read(self, text):
+        if self._terminating:
+            return
         try:
             r = pkjson.load_any(text)
             if 'opDone' in r:
@@ -268,6 +268,8 @@ class _Process(PKDict):
     async def _handle_job_proc_exit(self):
         try:
             await self._job_proc.exit_ready()
+            if self._terminating:
+                return
             e = self._job_proc.stderr.text.decode('utf-8', errors='ignore')
             if e:
                 pkdlog('error={}', e)

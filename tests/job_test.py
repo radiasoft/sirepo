@@ -107,7 +107,11 @@ def test_runSimulation(fc, sim_data):
 
 
 @_setup
-def xtest_cancel_long_running_job(fc, sim_data):
+def test_runCancel(fc, sim_data):
+    from pykern import pkunit
+    from pykern.pkdebug import pkdc, pkdp, pkdlog
+    import time
+
     sim_data.models.simulation.name = 'srunit_long_run'
     d = fc.sr_post(
         'runSimulation',
@@ -119,9 +123,15 @@ def xtest_cancel_long_running_job(fc, sim_data):
             simulationType=sim_data.simulationType,
         ),
     )
+    for _ in range(10):
+        assert d.state != 'error'
+        if d.state == 'running':
+            break
+        time.sleep(d.nextRequestSeconds)
+        d = fc.sr_post('runStatus', d.nextRequest)
+    else:
+        pkunit.pkfail('runStatus: failed to start running: {}', d)
 
-    d = fc.sr_post('runStatus', d.nextRequest)
-    assert d.state == 'running'
     d = fc.sr_post(
         'runCancel',
         dict(
@@ -144,47 +154,6 @@ def xtest_cancel_long_running_job(fc, sim_data):
         ),
     )
     assert d.state == 'canceled'
-
-
-# TODO(e-carlin): pytest is sync but this test need to be run in a async manner
-@_setup
-def xtest_one_job_running_at_a_time(fc, sim_data):
-    sim_data.models.simulation.name = 'srunit_long_run'
-    d1 = fc.sr_post(
-        'runSimulation',
-        dict(
-            forceRun=False,
-            models=sim_data.models,
-            report=_REPORT,
-            simulationId=sim_data.models.simulation.simulationId,
-            simulationType=sim_data.simulationType,
-        ),
-    )
-
-    d1 = fc.sr_post('runStatus', d1.nextRequest)
-    assert d1.state == 'running'
-
-    sim_data.models.simulation.name = 'Scooby Doo'
-    sim_data.models.dog.gender = 'female'
-    # TODO(e-carlin): This blocks. Ideally we should run this in something
-    # like spawn_callback(). Then call runStatus for second_job see that it
-    # is pending. Then call runCancel for first_job. Then call runStatus for
-    # the second_job and see that it's state is now running.
-    # second_job = fc.sr_post(
-    #     'runSimulation',
-    #     dict(
-    #         forceRun=False,
-    #         models=data.models,
-    #         report=_REPORT,
-    #         simulationId=data.models.simulation.simulationId,
-    #         simulationType=data.simulationType,
-    #     ),
-    # )
-    # second_job = fc.sr_post(
-    #     'runStatus',
-    #     second_job.nextRequest
-    # )
-    # assert second_job.state == 'pending'
 
 
 def _env_setup():
