@@ -41,10 +41,10 @@ def default_command(in_file):
     msg.runDir = pkio.py_path(msg.runDir) # TODO(e-carlin): find common place to serialize/deserialize paths
     f.remove()
     return pkjson.dump_pretty(
-        globals()['_do_' + msg.jobProcessCmd](
+        PKDict(globals()['_do_' + msg.jobProcessCmd](
             msg,
             sirepo.template.import_module(msg.simulationType),
-        ).update(opDone=True),
+        )).pkupdate(opDone=True),
         pretty=False,
     )
 
