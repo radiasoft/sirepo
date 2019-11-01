@@ -18,6 +18,14 @@ import datetime
 import sirepo.template
 import time
 
+_FRAME_KEYS = (
+    'frameIndex',
+    'modelName',
+    'simulationId',
+    'simulationType',
+    'computeJobKey',
+)
+
 
 #: What is_running?
 _RUN_STATES = ('pending', 'running')
@@ -80,24 +88,28 @@ def api_simulationFrame(frame_id):
 #   the order of the params. This would then be used by the extract job
 #   not here so this should be a new type of job: simulation_frame
     #TODO(robnagler) startTime is computeJobHash; need version on URL and/or param names in URL
-    keys = ['simulationType', 'simulationId', 'modelName', 'animationArgs', 'frameIndex', 'startTime']
-    data = PKDict(zip(keys, frame_id.split('*')))
-    template = sirepo.template.import_module(data)
-    data['report'] = sirepo.sim_data.get_class(data.simulationType).animation_name(data)
-    run_dir = simulation_db.simulation_run_dir(data)
-    model_data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    frame = template.get_simulation_frame(run_dir, data, model_data)
-    resp = http_reply.gen_json(frame)
-    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
+    v = frame_id.split('*')
+    a = PKDict(zip(_FRAME_KEYS, v[:len(_FRAME_KEYS)]))
+    a.animationArgs = v[len(_FRAME_KEYS):]
+    t = sirepo.template.import_module(a.simulationType)
+    a.report = sirepo.sim_data.get_class(a.simulationType).animation_name(a)
+    d = simulation_db.simulation_run_dir(a)
+    f = t.get_simulation_frame(
+        d,
+        a,
+        simulation_db.read_json(d.join(template_common.INPUT_BASE_NAME)),
+    )
+    r = http_reply.gen_json(f)
+    if 'error' not in f and t.WANT_BROWSER_FRAME_CACHE:
         now = datetime.datetime.utcnow()
         expires = now + datetime.timedelta(365)
 #rn why is this public? this is not public data.
-        resp.headers['Cache-Control'] = 'public, max-age=31536000'
-        resp.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        resp.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        r.headers['Cache-Control'] = 'public, max-age=31536000'
+        r.headers['Expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        r.headers['Last-Modified'] = now.strftime("%a, %d %b %Y %H:%M:%S GMT")
     else:
-        http_reply.headers_for_no_cache(resp)
-    return resp
+        http_reply.headers_for_no_cache(r)
+    return r
 
 
 def init_apis(*args, **kwargs):
@@ -131,7 +143,7 @@ def _simulation_run_status(data, quiet=False):
         rep = simulation_db.report_info(data)
         is_processing = runner.job_is_processing(rep.job_id)
         is_running = rep.job_status in _RUN_STATES
-        res = {'state': rep.job_status}
+        res = PKDict(state=rep.job_status)
         pkdc(
             '{}: is_processing={} is_running={} state={} cached_data={}',
             rep.job_id,
@@ -187,20 +199,27 @@ def _simulation_run_status(data, quiet=False):
                 rep.cached_hash,
             )
         #TODO(robnagler) verify serial number to see what's newer
-        res.setdefault('computeJobHash', rep.cached_hash or _rep.req_hash)
-        s = rep.cached_data.models.simulationStatus
-        t = s.get('computeJobStart') or s.get('startTime')
-        res.setdefault('computeJobStart', t)
-        res.setdefault('lastUpdateTime', _mtime_or_now(rep.run_dir))
-        res.setdefault('elapsedTime', res.lastUpdateTime - t)
+        s = rep.cached_data.models.computeJobStatus
+        t = s.get('computeJobStart')
+        res.pksetdefault(
+            computeJobHash=s.computeJobHash,
+            computeJobKey=s.computeJobKey,
+            computeJobStart=t,
+#TODO(robnagler) FIXME
+            startTime=t,
+            lastUpdateTime=lambda: _mtime_or_now(rep.run_dir),
+            elapsedTime=lambda: res.lastUpdateTime - t,
+        )
         if is_processing:
-            res['nextRequestSeconds'] = simulation_db.poll_seconds(rep.cached_data)
-            res['nextRequest'] = {
-                'report': rep.model_name,
-                'computeJobHash': rep.cached_hash,
-                'simulationId': rep.cached_data['simulationId'],
-                'simulationType': rep.cached_data['simulationType'],
-            }
+            res.nextRequestSeconds = simulation_db.poll_seconds(rep.cached_data)
+            res.nextRequest = PKDict(
+                computeJobHash=s.computeJobHash,
+                computeJobKey=s.computeJobKey,
+                computeJobStart=s.computeJobStart,
+                report=rep.model_name,
+                simulationId=rep.cached_data.simulationId
+                simulationType=rep.cached_data.simulationType,
+            )
         pkdc(
             '{}: processing={} state={} cache_hit={} cached_hash={} data_hash={}',
             rep.job_id,
@@ -223,8 +242,9 @@ def _start_simulation(data):
     Returns:
         object: runner instance
     """
-    data.models.simulationStatus.pkupdate(
+    s = data.models.computeJobStatus
+    s.pkupdate(
         computeJobStart=int(time.time()),
         state='pending',
-    )
+    ).computeJobKey = 'v1' + hashlib.md5(s.computeJobHash + s.computeJobStart).hexdigest()
     runner.job_start(data)

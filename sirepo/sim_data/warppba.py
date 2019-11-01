@@ -26,7 +26,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 y='x',
                 histogramBins=100,
             ),
-            simulationStatus=PKDict(),
         )
         dm.particleAnimation.setdefault(
             histogramBins=100,

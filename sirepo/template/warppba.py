@@ -156,19 +156,19 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] == 'fieldAnimation':
         args = template_common.parse_animation_args(
             data,
-            {'': ['field', 'coordinate', 'mode', 'startTime']},
+            {'': ['field', 'coordinate', 'mode']},
         )
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
         args = template_common.parse_animation_args(
             data,
-            {'': ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax', 'startTime']},
+            {'': ['x', 'y', 'histogramBins', 'xMin', 'xMax', 'yMin', 'yMax', 'zMin', 'zMax', 'uxMin', 'uxMax', 'uyMin', 'uyMax', 'uzMin', 'uzMax']},
         )
         return extract_particle_report(args, 'electrons', run_dir, data_file)
     if data['modelName'] == 'beamAnimation':
         args = template_common.parse_animation_args(
             data,
-            {'': ['x', 'y', 'histogramBins', 'startTime']},
+            {'': ['x', 'y', 'histogramBins']},
         )
         return extract_particle_report(args, 'beam', run_dir, data_file)
     raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))

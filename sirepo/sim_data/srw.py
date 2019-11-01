@@ -125,8 +125,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 dm.sourceIntensityReport.method = '2'
             else:
                 dm.sourceIntensityReport.method = '0'
-        if 'simulationStatus' not in dm or 'state' in dm.simulationStatus:
-            dm.simulationStatus = PKDict()
         if 'facility' in dm.simulation:
             del dm.simulation['facility']
         if 'multiElectronAnimation' not in dm:

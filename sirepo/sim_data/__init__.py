@@ -79,12 +79,12 @@ class SimDataBase(object):
 
         def _op():
             c.changed = True
-            # old value no longer used
-            pkcollections.unchecked_del('computeJobHash')
-            if 'simulationStatus' in models:
-                pkcollections.unchecked_del(data.models.simulationStatus, 'computeJobHash')
-            res = hashlib.md5()
             m = data['models']
+            # old format, no longer used, but need to delete
+            pkcollections.unchecked_del(data, 'computeJobHash')
+            if 'computeJobStatus' in m:
+                pkcollections.unchecked_del(m.computeJobStatus, 'computeJobHash')
+            res = hashlib.md5()
             for f in sorted(
                 sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
             ):
@@ -114,7 +114,7 @@ class SimDataBase(object):
 
         try:
             return data.models.pksetdefault(
-                simulationStatus=PKDict(),
+                computeJobStatus=PKDict,
             ).pksetdefault(
                 computeJobHash=_op,
             ).computeJobHash

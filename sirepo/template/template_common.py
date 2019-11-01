@@ -305,7 +305,7 @@ def parse_animation_args(data, key_map):
     Returns:
         Dict: mapped animationArgs with version
     """
-    a = data['animationArgs'].split('_')
+    a = data.animationArgs[:]
     m = ANIMATION_ARGS_VERSION_RE.search(a[0])
     if m:
         a.pop(0)

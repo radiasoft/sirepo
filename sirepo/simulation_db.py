@@ -16,6 +16,7 @@ from sirepo import feature_config
 from sirepo import srschema
 from sirepo import util
 from sirepo.template import template_common
+import copy
 import datetime
 import errno
 import glob
@@ -240,7 +241,7 @@ def fixup_old_data(data, force=False):
             data.models.simulation.simulationSerial = 0
         import sirepo.sim_data
         sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
-        pkcollections.unchecked_del(data.models, 'simulationStatus')
+        pkcollections.unchecked_del(data.models, 'simulationStatus', 'computeJobStatus')
         pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
     except Exception as e:
@@ -493,7 +494,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
 
 
 def parse_sim_ser(data):
-    """Extract simulationStatus from data
+    """Extract simulationSerial from data
 
     Args:
         data (dict): models or request
@@ -704,18 +705,13 @@ def report_info(data):
     if not rep.run_dir.check():
         return rep
     #TODO(robnagler) Lock between read and write
-    rep.cached_data = cd = read_json(rep.input_file)
+    rep.cached_data = c = read_json(rep.input_file)
 
     def _w():
         with _global_lock:
-            write_json(rep.input_file, cd)
+            write_json(rep.input_file, c)
 
-    rep.cached_hash = sirepo.sim_data.get_class(
-        cd,
-    ).compute_job_hash(
-        cd,
-        changed=_w,
-    )
+    rep.cached_hash = sirepo.sim_data.get_class(c).compute_job_hash(c, changed=_w)
     if rep.req_hash == rep.cached_hash:
         rep.cache_hit = True
         return rep
@@ -741,13 +737,9 @@ def save_simulation_json(data, do_validate=True):
     Args:
         data (dict): what to write (contains simulationId)
     """
-    try:
-        # Never save this
-        #TODO(robnagler) have "_private" fields that don't get saved
-        del data['simulationStatus']
-    except Exception:
-        pass
     data = fixup_old_data(data)[0]
+    # old implementation value
+    pkcollections.unchecked_del(data, 'computeJobHash')
     s = data.models.simulation
     sim_type = data.simulationType
     fn = sim_data_file(sim_type, s.simulationId)
@@ -773,7 +765,10 @@ def save_simulation_json(data, do_validate=True):
             )
             srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
-        write_json(fn, data)
+        # Do not write simulationStatus or computeJobStatus
+        d = copy.deepcopy(data)
+        pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobStatus')
+        write_json(fn, d)
     return data
 
 
