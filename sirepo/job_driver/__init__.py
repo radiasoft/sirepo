@@ -90,11 +90,12 @@ class DriverBase(PKDict):
         d = collections.defaultdict(int)
         for v in self.ops_pending_close.values():
             d[v.msg.opName] += 1
+
         for o in self.ops_pending_send:
             if o.msg.opName in d and d[o.msg.opName] > 0:
-                pass
-            d[o.msg.opName] += 1
+                continue
             assert o.opId not in self.ops_pending_close
+            d[o.msg.opName] += 1
             self.ops_pending_send.remove(o)
             self.ops_pending_close[o.opId] = o
             o.send_allocation_ready.set()
@@ -108,20 +109,11 @@ class DriverBase(PKDict):
             opName=kwargs.opName,
         )
         self.ops_pending_send.append(o)
-        pkdp(self.ops_pending_send)
         self.give_ops_send_allocation()
-        pkdp(self.ops_pending_send)
         await o.send_ready()
 
-        pkdp('==============================================')
-        pkdp('** pending send **')
-        self.ops_pending_send
-        pkdp('****************')
-        pkdp('** pending close **')
-        self.ops_pending_close
-        pkdp('*******************')
-        pkdp('==============================================')
         assert o.opId in self.ops_pending_close
+        assert o not in self.ops_pending_send
         self._websocket.write_message(pkjson.dump_bytes(o.msg))
         # TODO(e-carlin): fix cancel
         # if o.opId in self.ops:
