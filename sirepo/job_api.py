@@ -39,55 +39,22 @@ def api_runSimulation():
 
 @api_perm.require_user
 def api_runStatus():
-    return _request(data=http_request.parse_data_input())
+    data=http_request.parse_data_input()
+    return _request(
+        data=data,
+        computeJobHash=data.computeJobHash,
+    )
 
 
 @api_perm.require_user
 def api_simulationFrame(frame_id):
-    # TODO(robnagler) https://github.com/radiasoft/sirepo/issues/1557
+    def op(frame_args):
+        return _request(
+            data=frame_args,
+            computeJobHash=frame_args.computeJobHash,
+        )
 
-    # TODO(robnagler) this needs work. I need to encapsulate this so it is shared with the
-    #   javascript expliclitly (even if the code is not shared) especially
-    #   the order of the params. This would then be used by the extract job
-    #   not here so this should be a new type of job: simulation_frame
-    f = frame_id.split('*')
-    keys = ['simulationType', 'simulationId', 'modelName',
-            'animationArgs', 'frameIndex', 'startTime']
-    if len(f) > len(keys):
-        # TODO(robnagler) should this be v2 or 2 like in animationArgs
-        #   probably need consistency anyway for dealing with separators
-        assert f.pop(0) == 'v2', \
-            'invalid frame_id={}'.format(frame_id)
-        keys.append('computeJobHash')
-    data = PKDict(zip(keys, f))
-    #################################################
-    # TODO(e-carlin): Remove when computeJobHash is included in frame_id
-    f = simulation_db.read_json(
-        '/home/vagrant/src/radiasoft/sirepo/run/user/44JIlZWb/elegant/0Xa5QiDw/animation/in.json')
-    data.update(f)
-    #################################################
-
-    template = sirepo.template.import_module(data)
-    data.report = sirepo.sim_data.get_class(
-        data.simulationType).animation_name(data)
-    frame = _request(data=data)
-    resp = http_reply.gen_json(frame)
-    if 'error' not in frame and template.WANT_BROWSER_FRAME_CACHE:
-        n = srtime.utc_now()
-        # TODO(robnagler) test non-public
-        resp.headers.set('Cache-Control', 'public, max-age=31536000')
-        now = datetime.datetime.utcnow()
-        expires = now + datetime.timedelta(365)
-        resp.headers.set('Expires', expires.strftime(
-            "%a, %d %b %Y %H:%M:%S GMT"))
-        resp.headers.set(
-            'Last-Modified', now.strftime("%a, %d %b %Y %H:%M:%S GMT"))
-        # TODO(e-carlin): wsgiref is undefined. Discus with rn what his intention was.
-        # resp.headers.set('Expires', _rfc1123(n + _YEAR)),
-        # resp.headers.set('Last-Modified', _rfc1123(n))
-    else:
-        http_reply.headers_for_no_cache(resp)
-    return resp
+    return template_common.get_simulation_frame(frame_id, op)
 
 
 def init_apis(*args, **kwargs):
@@ -123,6 +90,7 @@ def _request(**kwargs):
 
 def _request_body(kwargs):
     b = PKDict(kwargs)
+    pkdp(b)
     d = b.get('data') or http_request.parse_data_input()
     return b.pksetdefault(
         analysisModel=d.report,

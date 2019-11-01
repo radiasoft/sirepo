@@ -241,7 +241,6 @@ def fixup_old_data(data, force=False):
             data.models.simulation.simulationSerial = 0
         import sirepo.sim_data
         sirepo.sim_data.get_class(data.simulationType).fixup_old_data(data)
-        pkcollections.unchecked_del(data.models, 'simulationStatus', 'computeJobStatus')
         pkcollections.unchecked_del(data, 'fixup_old_version')
         return data, True
     except Exception as e:
@@ -674,51 +673,6 @@ def read_status(run_dir):
         return 'error'
 
 
-def report_info(data):
-    """Read the run_dir and return cached_data.
-
-    Only a hit if the models between data and cache match exactly. Otherwise,
-    return cached data if it's there and valid.
-
-    Args:
-        data (dict): parameters identifying run_dir and models or computeJobHash
-
-    Returns:
-        Dict: report parameters and hashes
-    """
-    import sirepo.sim_data
-
-    rep = pkcollections.Dict(
-        cache_hit=False,
-        cached_data=None,
-        cached_hash=None,
-        job_id=job_id(data),
-        model_name=_report_name(data),
-        parameters_changed=False,
-        run_dir=simulation_run_dir(data),
-    )
-    rep.pkupdate(
-        input_file=json_filename(template_common.INPUT_BASE_NAME, rep.run_dir),
-        job_status=read_status(rep.run_dir),
-        req_hash=sirepo.sim_data.get_class(data).compute_job_hash(data),
-    )
-    if not rep.run_dir.check():
-        return rep
-    #TODO(robnagler) Lock between read and write
-    rep.cached_data = c = read_json(rep.input_file)
-
-    def _w():
-        with _global_lock:
-            write_json(rep.input_file, c)
-
-    rep.cached_hash = sirepo.sim_data.get_class(c).compute_job_hash(c, changed=_w)
-    if rep.req_hash == rep.cached_hash:
-        rep.cache_hit = True
-        return rep
-    rep.parameters_changed = True
-    return rep
-
-
 def save_new_example(data):
     data.models.simulation.isExample = True
     return save_new_simulation(fixup_old_data(data)[0], do_validate=False)
@@ -765,9 +719,9 @@ def save_simulation_json(data, do_validate=True):
             )
             srschema.validate_fields(data, get_schema(data.simulationType))
         s.simulationSerial = _serial_new()
-        # Do not write simulationStatus or computeJobStatus
+        # Do not write simulationStatus or computeJobCacheKey
         d = copy.deepcopy(data)
-        pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobStatus')
+        pkcollections.unchecked_del(d.models, 'simulationStatus', 'computeJobCacheKey')
         write_json(fn, d)
     return data
 

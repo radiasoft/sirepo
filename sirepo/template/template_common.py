@@ -12,6 +12,7 @@ from pykern import pkjinja
 from pykern import pkresource
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import datetime
 import hashlib
 import json
 import math
@@ -19,6 +20,7 @@ import numpy as np
 import os.path
 import py.path
 import re
+import sirepo.http_reply
 import sirepo.sim_data
 import sirepo.template
 import subprocess
@@ -44,6 +46,16 @@ _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
+_FRAME_VALUE_SEPARATOR = '*'
+
+_FRAME_KEYS = (
+    'frameIndex',
+    'modelName',
+    'simulationId',
+    'simulationType',
+    'computeJobHash',
+    'computeJobStart',
+)
 
 class ModelUnits(object):
     """Convert model fields from native to sirepo format, or from sirepo to native format.
@@ -213,6 +225,25 @@ def generate_parameters_file(data):
     v = flatten_data(data['models'], pkcollections.Dict())
     v['notes'] = _get_notes(v)
     return render_jinja(None, v, name='common-header.py'), v
+
+
+def get_simulation_frame(frame_id, op):
+    v = frame_id.split(_FRAME_VALUE_SEPARATOR)
+    a = PKDict(zip(_FRAME_KEYS, v[:len(_FRAME_KEYS)]))
+    a.animationArgs = v[len(_FRAME_KEYS):]
+    s = sirepo.sim_data.get_class(a.simulationType)
+    a.report = s.animation_name(a)
+    r = sirepo.http_reply.gen_json(op(frame_args))
+    if 'error' not in f and s.want_browser_frame_cache():
+        n = datetime.datetime.utcnow()
+        e = n + datetime.timedelta(365)
+#rn why is this public? this is not public data.
+        r.headers['Cache-Control'] = 'public, max-age=31536000'
+        r.headers['Expires'] = e.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        r.headers['Last-Modified'] = n.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    else:
+        sirepo.http_reply.headers_for_no_cache(r)
+    return r
 
 
 def h5_to_dict(hf, path=None):

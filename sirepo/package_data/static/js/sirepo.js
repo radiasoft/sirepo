@@ -535,6 +535,14 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         savedModelValues[name] = self.cloneModel(name);
     };
 
+    self.setAppService = function (appService) {
+        if (self.appService) {
+            throw new Error('too many calls to setAppService new=', appService);
+        }
+        self.appService = appService;
+        return;
+    };
+
     self.saveChanges = function(name, callback) {
         // save changes on a model by name, or by an array of names
         if (typeof(name) == 'string') {
@@ -878,7 +886,7 @@ SIREPO.app.service('validationService', function(utilities) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope, traceService) {
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $interval, $rootScope) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
@@ -886,10 +894,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
-        return self.animationArgFields[modelName].fields.map(
+        return self.animationArgFields[modelName].map(
             function (f) {
                 return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
-            },
+            }
         );
     }
 
@@ -902,13 +910,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.frameId = function(modelName, index) {
-        var s = appState.simulationStatus[modelName];
+        var s = appState.models.simulationStatus[appState.appService.computeModel(modelName)];
         if (! s) {
-            throw 'model=' + modelName + ' missing simulationStatus';
+            throw new Error('model=' + modelName + ' missing simulationStatus');
         }
         return [
             // POSIT: same as runner_api._FRAME_KEYS
-            'v1',
             index,
             modelName,
             appState.models.simulation.simulationId,
@@ -985,11 +992,11 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getFrameCount = function(modelKey) {
-        if (modelKey && frameCountByModelKey) {
+        if (modelKey in frameCountByModelKey) {
             if (! (appState.models.simulationStatus[modelKey]
-                && appState.simulationStatus[modelKey].computeJobCacheKey)
+                && appState.simulationStatus[modelKey].computeJobHash)
             ) {
-                // cannot request frames without computeJobCacheKey
+                // cannot request frames without computeJobHash
                 return 0;
             }
             return frameCountByModelKey[modelKey];

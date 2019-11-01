@@ -287,6 +287,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         )
 
     @classmethod
+    def want_browser_frame_cache(cls):
+        return False
+
+    @classmethod
     def _compute_job_fields(cls, data):
         r = data['report']
         if 'Animation' in r:

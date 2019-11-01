@@ -62,7 +62,7 @@ class SimDataBase(object):
     _TEMPLATE_FIXUP = 'sim_data_template_fixup'
 
     @classmethod
-    def compute_job_hash(cls, data, changed=None):
+    def compute_job_hash(cls, data):
         """Hash fields related to data and set computeJobHash
 
         Only needs to be unique relative to the report, not globally unique
@@ -75,54 +75,29 @@ class SimDataBase(object):
         Returns:
             bytes: hash value
         """
-        c = PKDict(changed=False)
-
-        def _op():
-            c.changed = True
-            m = data['models']
-            # old format, no longer used, but need to delete
-            pkcollections.unchecked_del(data, 'computeJobHash')
-            if 'computeJobStatus' in m:
-                pkcollections.unchecked_del(m.computeJobStatus, 'computeJobHash')
-            res = hashlib.md5()
-            for f in sorted(
-                sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
-            ):
-                # assert isinstance(f, pkconfig.STRING_TYPES), \
-                #     'value={} not a string_type'.format(f)
-                #TODO(pjm): work-around for now
-                if isinstance(f, pkconfig.STRING_TYPES):
-                    x = f.split('.')
-                    value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
-                else:
-                    value = f
-                res.update(
-                    pkjson.dump_bytes(
-                        value,
-                        sort_keys=True,
-                        allow_nan=False,
-                    )
+        m = data['models']
+        res = hashlib.md5()
+        for f in sorted(
+            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
+        ):
+            # assert isinstance(f, pkconfig.STRING_TYPES), \
+            #     'value={} not a string_type'.format(f)
+            #TODO(pjm): work-around for now
+            if isinstance(f, pkconfig.STRING_TYPES):
+                x = f.split('.')
+                value = m[x[0]][x[1]] if len(x) > 1 else m[x[0]]
+            else:
+                value = f
+            res.update(
+                pkjson.dump_bytes(
+                    value,
+                    sort_keys=True,
+                    allow_nan=False,
                 )
-            # lib_files returns sorted list
-            res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
-            # this is good enough versioning, because "v" does not
-            # exist in hex, and we know we only need a few numbers.
-            # We don't want anything but characters, because the
-            # way animation_args and other serializations of this value
-            # are used.
-            return 'v2' + res.hexdigest()
-
-        try:
-            return data.pksetdefault(
-                models=PKDict
-            ).models.pksetdefault(
-                computeJobStatus=PKDict
-            ).computeJobStatus.pksetdefault(
-                computeJobHash=_op,
-            ).computeJobHash
-        finally:
-            if changed and c.changed:
-                changed()
+            )
+        # lib_files already returns sorted list
+        res.update(''.join(str(f.mtime()) for f in cls.lib_files(data)).encode())
+        return res.hexdigest()
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -328,6 +303,10 @@ class SimDataBase(object):
         for f in defaults:
             if f not in model:
                 model[f] = defaults[f]
+
+    @classmethod
+    def want_browser_frame_cache(cls):
+        return True
 
     @classmethod
     def watchpoint_id(cls, report):

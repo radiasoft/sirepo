@@ -27,6 +27,10 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
         return false;
     }
 
+    self.computeModel = function (analysisModel) {
+        return 'animation';
+    };
+
     self.isElectronBeam = function() {
         return isSourceType('electronBeam');
     };
@@ -34,6 +38,8 @@ SIREPO.app.factory('warpPBAService', function(appState, $rootScope) {
     self.isLaserPulse = function() {
         return isSourceType('laserPulse');
     };
+
+    appState.setAppService(self);
 
     appState.whenModelsLoaded($rootScope, function() {
         initGridDimensions();
@@ -60,7 +66,7 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
 
     self.simState = persistentSimulation.initSimulationState(
         $scope,
-        'animation',
+        warpPBAService.computeModel(),
         handleStatus,
         {
             fieldAnimation: [
@@ -93,7 +99,7 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
                 'y',
                 'histogramBins',
             ],
-        },
+        }
     );
 
     self.simState.initMessage = function() {
