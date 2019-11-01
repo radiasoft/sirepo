@@ -162,7 +162,6 @@
                     "bootstrap-3.3.7.min.js",
                     "bootstrap-toggle.min.js",
                     "ngDraggable.js",
-                    "stacktrace-0.6.4.js",
                     "colorbar.js",
                     "canvg-and-dependencies.js",
                     "FileSaver.js",
