@@ -254,7 +254,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
             }
         });
         if (! model) {
-            throw 'model not found for id: ' + id;
+            throw new Error('model not found for id: ' + id);
         }
         return model;
     }
@@ -456,7 +456,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         }
         var epicsField = kickerModelNames().indexOf(name) + 1;
         if (! epicsField) {
-            throw 'invalid kicker name: ' + name;
+            throw new Error('invalid kicker name: ' + name);
         }
         requestSender.getApplicationData(
             {
@@ -1218,7 +1218,7 @@ SIREPO.app.directive('validVariableOrParam', function(webconService) {
             function isUnique (val, arr) {
                 var i = arr.indexOf(val);
                 if (i < 0) {
-                    throw val + ': Value not in array';
+                    throw new Error(val + ': Value not in array');
                 }
                 return i === arr.lastIndexOf(val);
             }

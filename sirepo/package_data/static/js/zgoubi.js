@@ -492,7 +492,7 @@ SIREPO.app.factory('magnetService', function() {
         if (magnetType == '3d-mf-1v') {
             return model.IZ;
         }
-        throw 'unhandled magnetType: ' + magnetType;
+        throw new Error('unhandled magnetType: ' + magnetType);
     };
 
     self.magnetTypesForMesh = function(model) {

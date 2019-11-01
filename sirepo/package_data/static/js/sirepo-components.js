@@ -52,7 +52,7 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState) {
             $scope.description = viewInfo.description;
             $scope.advancedFields = viewInfo[$scope.fieldDef || 'advanced'];
             if (! $scope.advancedFields) {
-                throw $scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields';
+                throw new Error($scope.modelName + ' view is missing ' + ($scope.fieldDef || 'advanced') + ' fields');
             }
             $scope.isColumnField = function(f) {
                 return typeof(f) == 'string' ? false : true;
@@ -217,7 +217,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
         controller: function($scope) {
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'unknown viewName: ' + $scope.viewName;
+                throw new Error('unknown viewName: ' + $scope.viewName);
             }
             $scope.modelName = viewInfo.model || $scope.viewName;
             $scope.modelKey = $scope.modelData
@@ -542,7 +542,7 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             // field def: [label, type]
             $scope.info = appState.modelInfo($scope.modelName)[$scope.field];
             if (! $scope.info) {
-                throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
             }
             $scope.fieldProps = appState.fieldProperties($scope.modelName, $scope.field);
 
@@ -1085,7 +1085,7 @@ SIREPO.app.directive('modalEditor', function(appState, panelState) {
             }
             var viewInfo = appState.viewInfo($scope.viewName);
             if (! viewInfo) {
-                throw 'missing view in schema: ' + $scope.viewName;
+                throw new Error('missing view in schema: ' + $scope.viewName);
             }
             $scope.helpTopic = viewInfo.title;
             //TODO(pjm): cobbled-together to allow a view to refer to a model by name, ex. SRW simulationGrid view
@@ -1372,7 +1372,7 @@ SIREPO.app.directive('colorMapMenu', function(appState, plotting) {
             function init() {
                 var info = appState.modelInfo($scope.modelName)[$scope.field];
                 if (! info) {
-                    throw 'invalid model field: ' + $scope.modelName + '.' + $scope.field;
+                    throw new Error('invalid model field: ' + $scope.modelName + '.' + $scope.field);
                 }
                 enumName = info[SIREPO.INFO_INDEX_TYPE];
                 defaultMapName = info[SIREPO.INFO_INDEX_DEFAULT_VALUE];
@@ -3062,7 +3062,7 @@ SIREPO.app.service('mathRendering', function() {
             i = text.search(/\S\$/);
             if (i == -1) {
                 // should never get here
-                throw 'invalid math expression';
+                throw new Error('invalid math expression');
             }
             parts.push(katex.renderToString(text.slice(0, i + 1), options));
             text = text.slice(i + 2);

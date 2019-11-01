@@ -1443,7 +1443,7 @@ SIREPO.app.directive('imageFileField', function(appState, requestSender, $http, 
                 }
                 var m = $scope.model.imageFile.match(/(([^\/]+)\.\w+)$/);
                 if (!m) {
-                    throw $scope.model.imageFile + ': invalid imageFile name';
+                    throw new Error($scope.model.imageFile + ': invalid imageFile name');
                 }
                 var fn = m[2] + '_processed.' + $scope.model.outputImageFormat;
 
@@ -2458,7 +2458,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, srwService, vtkT
                     point2[idx] += labelHeight * Math.sin(angle);
                     return [origin, point1, point2];
                 }
-                throw 'no plane for alignment: ' + $scope.viewDirection[dir] + dir;
+                throw new Error('no plane for alignment: ' + $scope.viewDirection[dir] + dir);
             }
 
             function maxTextDimensions() {
