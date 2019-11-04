@@ -1,4 +1,29 @@
 {
+    "animationModelToFields": {
+        "beamAnimation": [
+            "x",
+            "y",
+            "histogramBins"
+        ],
+        "fieldAnimation": ["field", "coordinate", "mode"],
+        "particleAnimation": [
+            "x",
+            "y",
+            "histogramBins",
+            "xMin",
+            "xMax",
+            "yMin",
+            "yMax",
+            "zMin",
+            "zMax",
+            "uxMin",
+            "uxMax",
+            "uyMin",
+            "uyMax",
+            "uzMin",
+            "uzMax"
+        ]
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [

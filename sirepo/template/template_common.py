@@ -46,17 +46,6 @@ _HISTOGRAM_BINS_MAX = 500
 
 _PLOT_LINE_COLOR = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
-_FRAME_VALUE_SEPARATOR = '*'
-
-_FRAME_KEYS = (
-    'frameIndex',
-    'modelName',
-    'simulationId',
-    'simulationType',
-    'computeJobHash',
-    'computeJobStart',
-)
-
 class ModelUnits(object):
     """Convert model fields from native to sirepo format, or from sirepo to native format.
 
@@ -228,13 +217,10 @@ def generate_parameters_file(data):
 
 
 def get_simulation_frame(frame_id, op):
-    v = frame_id.split(_FRAME_VALUE_SEPARATOR)
-    a = PKDict(zip(_FRAME_KEYS, v[:len(_FRAME_KEYS)]))
-    a.animationArgs = v[len(_FRAME_KEYS):]
-    s = sirepo.sim_data.get_class(a.simulationType)
-    a.report = s.animation_name(a)
-    r = sirepo.http_reply.gen_json(op(frame_args))
-    if 'error' not in f and s.want_browser_frame_cache():
+    f = sirepo.sim_data.parse_frame_id(frame_id)
+    x = op(f)
+    r = sirepo.http_reply.gen_json(x)
+    if 'error' not in x and f.want_browser_frame_cache:
         n = datetime.datetime.utcnow()
         e = n + datetime.timedelta(365)
 #rn why is this public? this is not public data.

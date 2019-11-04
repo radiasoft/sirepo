@@ -106,13 +106,14 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
     fc = flask_client(cfg, **kwargs)
     try:
         from pykern import pkunit
+        from pykern.pkcollections import PKDict
 
         if before_request:
             before_request(fc)
         setattr(
             server._app,
             server.SRUNIT_TEST_IN_REQUEST,
-            PKDDict(op=op, want_cookie=want_cookie),
+            PKDict(op=op, want_cookie=want_cookie),
         )
         from sirepo import uri_router
         resp = fc.get(

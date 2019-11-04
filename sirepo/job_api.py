@@ -90,7 +90,6 @@ def _request(**kwargs):
 
 def _request_body(kwargs):
     b = PKDict(kwargs)
-    pkdp(b)
     d = b.get('data') or http_request.parse_data_input()
     return b.pksetdefault(
         analysisModel=d.report,

@@ -890,11 +890,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
-    self.animationInfo = {};
+    self.modelToCurrentFrame = {};
+    self.modelToFields = null;
 
     function animationArgs(modelName) {
         var values = appState.applicationState()[modelName];
-        return self.animationArgFields[modelName].map(
+        return self.modelToFields[modelName].map(
             function (f) {
                 return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
             }
@@ -903,10 +904,10 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     self.buildArgs = function(modelName, version) {
         var args = [SIREPO.ANIMATION_ARGS_VERSION + version];
-        if (! SIREPO.APP_SCHEMA.animationArgs[modelName]) {
-            return  args;
+        if (! SIREPO.APP_SCHEMA.animationModelToFields[modelName]) {
+            return args;
         }
-        return args.concat(SIREPO.APP_SCHEMA.animationArgs[modelName]);
+        return args.concat(SIREPO.APP_SCHEMA.animationModelToFields[modelName]);
     };
 
     self.frameId = function(modelName, index) {
@@ -927,11 +928,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     };
 
     self.getCurrentFrame = function(modelName) {
-        var v = self.animationInfo[modelName];
-        if (v) {
-            return v.currentFrame;
-        }
-        return 0;
+        return self.modelToCurrentFrame[modelName] || 0;
     };
 
     self.getFrame = function(modelName, index, isPlaying, callback) {
@@ -1004,15 +1001,12 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
         return masterFrameCount;
     };
 
-    self.setAnimationArgs = function(argFields) {
-        self.animationArgFields = argFields;
+    self.setModelToFields = function(modelToFields) {
+        self.modelToFields = modelToFields || SIREPO.APP_SCHEMA.animationModelToFields;
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {
-        if (! self.animationInfo[modelName]) {
-            self.animationInfo[modelName] = {};
-        }
-        self.animationInfo[modelName].currentFrame = currentFrame;
+        self.modelToCurrentFrame[modelName] = currentFrame;
     };
 
     self.setFrameCount = function(frameCount, modelKey) {
@@ -1041,7 +1035,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     $rootScope.$on('modelsUnloaded', function() {
         masterFrameCount = 0;
         frameCountByModelKey = {};
-        self.animationInfo = {};
+        self.modelsUnloaded = {};
     });
 
     return self;
@@ -1993,7 +1987,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, frameCache) {
     var self = {};
 
-    self.initSimulationState = function($scope, model, handleStatusCallback, animationArgs) {
+    self.initSimulationState = function($scope, model, handleStatusCallback, modelToFields) {
         var state = {
             dots: '.',
             isReadyForModelChanges: false,
@@ -2158,7 +2152,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             return appState.ucfirst(simulationStatus().state);
         };
 
-        frameCache.setAnimationArgs(animationArgs);
+        frameCache.setModelToFields(modelToFields);
         setSimulationStatus({state: 'missing'});
         frameCache.setFrameCount(0);
         $scope.$on('$destroy', clearSimulation);

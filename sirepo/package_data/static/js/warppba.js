@@ -67,39 +67,7 @@ SIREPO.app.controller('WarpPBADynamicsController', function(appState, frameCache
     self.simState = persistentSimulation.initSimulationState(
         $scope,
         warpPBAService.computeModel(),
-        handleStatus,
-        {
-            fieldAnimation: [
-                SIREPO.ANIMATION_ARGS_VERSION + '1',
-                'field',
-                'coordinate',
-                'mode',
-            ],
-            particleAnimation: [
-                SIREPO.ANIMATION_ARGS_VERSION + '1',
-                'x',
-                'y',
-                'histogramBins',
-                'xMin',
-                'xMax',
-                'yMin',
-                'yMax',
-                'zMin',
-                'zMax',
-                'uxMin',
-                'uxMax',
-                'uyMin',
-                'uyMax',
-                'uzMin',
-                'uzMax',
-            ],
-            beamAnimation: [
-                SIREPO.ANIMATION_ARGS_VERSION + '1',
-                'x',
-                'y',
-                'histogramBins',
-            ],
-        }
+        handleStatus
     );
 
     self.simState.initMessage = function() {

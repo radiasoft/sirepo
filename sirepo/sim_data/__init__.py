@@ -23,6 +23,19 @@ import sirepo.util
 #: root directory for template resources
 RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
 
+#: separates values in frame id
+_FRAME_ID_SEP = '*'
+
+#: common keys to frame id followed by code-specific values
+_FRAME_ID_KEYS = (
+    'frameIndex',
+    'modelName',
+    'simulationId',
+    'simulationType',
+    'computeJobHash',
+    'computeJobStart',
+)
+
 
 def get_class(type_or_data):
     """Simulation data class
@@ -51,8 +64,19 @@ def template_globals(sim_type=None):
     c = get_class(sim_type or pkinspect.module_basename(pkinspect.caller_module()))
     return c, c.sim_type(), c.schema()
 
+def parse_frame_id(frame_id):
+    v = frame_id.split(_FRAME_ID_SEP)
+    res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
+    res.animationArgs = v[len(_FRAME_ID_KEYS):]
+    s = get_class(res.simulationType)
+    return res.pkupdate(
+        report=s.animation_name(res),
+        want_browser_frame_cache=s.want_browser_frame_cache(),
+    )
+
 
 class SimDataBase(object):
+
     ANALYSIS_ONLY_FIELDS = frozenset()
 
     WATCHPOINT_REPORT = 'watchpointReport'
@@ -109,6 +133,33 @@ class SimDataBase(object):
             data (dict): simulation
         """
         raise NotImplemented()
+
+    @classmethod
+    def frame_id(cls, data, response, model, index):
+        """Generate a frame_id from values (unit testing)
+
+        Args:
+            data (PKDict): model data
+            response (PKDict): JSON response
+            model (str): animation name
+            index (int): index of frame
+        Returns:
+            str: combined frame id
+        """
+        assert response.frameCount > index
+        f = cls.schema().animationModelToFields[model]
+        m = data.models[model]
+        return _FRAME_ID_SEP.join(
+            [
+                # POSIT: same order as _FRAME_ID_KEYS
+                str(index),
+                model,
+                data.models.simulation.simulationId,
+                data.simulationType,
+                response.computeJobHash,
+                str(response.computeJobStart),
+            ] + [str(m[k]) for k in f],
+        )
 
     @classmethod
     def animation_name(cls, data):
