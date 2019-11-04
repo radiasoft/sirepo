@@ -111,8 +111,10 @@ class _ComputeJob(PKDict):
                 job.PENDING: _cancel_queued,
                 job.RUNNING: _cancel_running,
             })
+            self.status = job.CANCELED
             return await d[self.status](self, req)
         if self.computeJobHash != req.content.computeJobHash:
+            self.status = job.CANCELED
             return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
