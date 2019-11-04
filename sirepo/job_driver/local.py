@@ -77,11 +77,10 @@ class LocalDriver(job_driver.DriverBase):
         for k in job.KINDS:
             cls.slots[k] = PKDict(
                 in_use=0,
-                total=3,
+                total=cfg[k + '_slots'],
             )
             cls.instances[k] = []
             _Space.init_kind(k)
-            # _Slot.init_kind(k)
         return cls
 
     def kill(self):
@@ -147,8 +146,6 @@ class LocalDriver(job_driver.DriverBase):
                 d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
-
-
     @classmethod
     async def send(cls, req, kwargs):
         return await (await cls.allocate(req))._send(req, kwargs)
@@ -191,13 +188,16 @@ class LocalDriver(job_driver.DriverBase):
 def init_class():
     global cfg
 
-    # cfg = pkconfig.init(
-    #     parallel_slots=(1, int, 'max parallel slots'),
-    #     sequential_slots=(1, int, 'max sequential slots'),
-    # )
+    cfg = pkconfig.init(
+        parallel_slots=(1, int, 'max parallel slots'),
+        sequential_slots=(1, int, 'max sequential slots'),
+    )
     return LocalDriver.init_class()
 
 class _Space(PKDict):
+    """If a driver has a space then they have an alive agent but may not be
+    actively performing an op.
+    """
 
     in_use = PKDict()
 
@@ -210,26 +210,3 @@ class _Space(PKDict):
     @classmethod
     def init_kind(cls, kind):
         cls.in_use[kind] = []
-
-
-# class _Slot(PKDict):
-
-#     available = PKDict()
-#     in_use = PKDict()
-
-#     @classmethod
-#     async def allocate(cls, kind):
-#         self = await cls.available[kind].get()
-#         self.in_use[self.kind].append(self)
-#         return self
-
-#     def free(self):
-#         self.in_use[self.kind].remove(self)
-#         self.available[self.kind].put_nowait(self)
-
-#     @classmethod
-#     def init_kind(cls, kind):
-#         q = cls.available[kind] = tornado.queues.Queue()
-#         for _ in range(cfg[kind + '_slots']):
-#             q.put_nowait(_Slot(kind=kind))
-#         cls.in_use[kind] = []
