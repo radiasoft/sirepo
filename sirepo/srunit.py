@@ -5,7 +5,6 @@ u"""Support for unit tests
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
-from pykern import pkcollections
 import flask
 import flask.testing
 import json
@@ -86,6 +85,23 @@ def file_as_stream(filename):
     return res, StringIO.StringIO(res)
 
 
+def sim_data(sim_type, sim_name, sim_types=None):
+    """Get simulation data
+
+    Args:
+        sim_type (str): app
+        sim_name (str): full name of simulation
+        sim_types (str): `SIREPO_FEATURE_CONFIG_SIM_TYPES` value
+    Returns:
+        PKDict: simulation data
+        object: flask client
+        str: sim_type
+    """
+    fc = flask_client(sim_types=sim_types or sim_type)
+    fc.sr_login_as_guest(sim_type)
+    return fc.sr_sim_data(sim_type, sim_name), fc, sim_type
+
+
 def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie=True, **kwargs):
     fc = flask_client(cfg, **kwargs)
     try:
@@ -96,7 +112,7 @@ def test_in_request(op, cfg=None, before_request=None, headers=None, want_cookie
         setattr(
             server._app,
             server.SRUNIT_TEST_IN_REQUEST,
-            pkcollections.Dict(op=op, want_cookie=want_cookie),
+            PKDDict(op=op, want_cookie=want_cookie),
         )
         from sirepo import uri_router
         resp = fc.get(
@@ -149,9 +165,10 @@ class _TestClient(flask.testing.FlaskClient):
             dict: parsed auth_state
         """
         from pykern import pkunit
+        import pykern.pkcollections
 
         m = re.search(r'(\{.*\})', self.sr_get('authState').data)
-        s = pkcollections.json_load_any(m.group(1))
+        s = pykern.pkcollections.json_load_any(m.group(1))
         for k, v in kwargs.items():
             pkunit.pkeq(
                 v,
@@ -267,16 +284,18 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             dict: data
         """
+        from pykern.pkcollections import PKDict
         from pykern import pkunit
         from pykern.pkdebug import pkdpretty
 
-        data = self.sr_post('listSimulations', {'simulationType': sim_type})
-        for d in data:
-            if d['name'] == sim_name:
-                break
-        else:
-            pkunit.pkfail('{}: not found in ', sim_name, pkdpretty(data))
-        return self.sr_get_json(
+        d = self.sr_post(
+            'listSimulations',
+            PKDict(
+                simulationType=sim_type,
+                search=PKDict({'simulation.name': sim_name}),
+            )
+        )[0].simulation
+        res = self.sr_get_json(
             'simulationData',
             {
                 'simulation_type': sim_type,
@@ -284,6 +303,8 @@ class _TestClient(flask.testing.FlaskClient):
                 'simulation_id': d['simulationId'],
             },
         )
+        pkunit.pkeq(sim_name, res.models.simulation.name)
+        return res
 
 
 def _req(route_name, params, query, op, raw_response):
@@ -297,6 +318,7 @@ def _req(route_name, params, query, op, raw_response):
     Returns:
         object: parsed JSON result
     """
+    import pykern.pkcollections
     from sirepo import simulation_db
 
     uri = None
@@ -306,7 +328,7 @@ def _req(route_name, params, query, op, raw_response):
         resp = op(uri)
         if raw_response:
             return resp
-        return pkcollections.json_load_any(resp.data)
+        return pykern.pkcollections.json_load_any(resp.data)
     except Exception as e:
         from pykern.pkdebug import pkdlog
 

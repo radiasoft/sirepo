@@ -31,31 +31,17 @@ def test_basic():
 
 
 def test_get_data_file():
+    from pykern import pkio
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srunit
-    from pykern import pkunit
-    from pykern import pkio
     import sdds
 
-    fc = srunit.flask_client(sim_types=_TYPES)
-    sim_type = 'elegant'
-    fc.sr_login_as_guest(sim_type)
-    data = fc.sr_post(
-        'listSimulations',
-        {'simulationType': sim_type, 'search': {'simulationName': 'fourDipoleCSR'}},
-    )
-    data = data[0].simulation
-    data = fc.sr_get_json(
-        'simulationData',
-        params=dict(
-            pretty='1',
-            simulation_id=data.simulationId,
-            simulation_type=sim_type,
-        ),
-    )
+    data, fc, sim_type = srunit.sim_data('elegant', 'bunchComp - fourDipoleCSR', sim_types=_TYPES)
     run = fc.sr_post(
         'runSimulation',
-        dict(
+        PKDict(
             forceRun=False,
             models=data.models,
             report='bunchReport1',
@@ -76,7 +62,7 @@ def test_get_data_file():
         pkunit.pkfail('runStatus: failed to complete: {}', run)
     resp = fc.sr_get(
         'downloadDataFile',
-        dict(
+        PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
             model='bunchReport1',
@@ -85,10 +71,10 @@ def test_get_data_file():
         ),
     )
     rows = csv.reader(StringIO.StringIO(resp.get_data()))
-    assert len(list(rows)) == 5001
+    pkunit.pkeq(50001, len(list(rows)), '50,000 particles plus header row')
     resp = fc.sr_get(
         'downloadDataFile',
-        dict(
+        PKDict(
             simulation_type=data.simulationType,
             simulation_id=data.models.simulation.simulationId,
             model='bunchReport1',
