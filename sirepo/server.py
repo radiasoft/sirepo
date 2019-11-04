@@ -455,9 +455,7 @@ def api_simulationData(simulation_type, simulation_id, pretty, section=None):
     #TODO(robnagler) need real type transforms for inputs
     pretty = bool(int(pretty))
     try:
-        err_redirect = _verify_user_dir(simulation_type)
-        if err_redirect:
-            return err_redirect
+        _verify_user_dir(simulation_type)
         data = simulation_db.read_simulation_json(simulation_type, sid=simulation_id)
         template = sirepo.template.import_module(simulation_type)
         if hasattr(template, 'prepare_for_client'):
@@ -484,12 +482,7 @@ def api_listSimulations():
     data = http_request.parse_data_input()
     sim_type = data['simulationType']
     search = data['search'] if 'search' in data else None
-    err_redirect = _verify_user_dir(sim_type)
-    if err_redirect:
-        return http_reply.gen_json({
-            'state': 'error',
-            'errorRedirect': err_redirect.headers.get('Location'),
-        })
+    _verify_user_dir(sim_type)
     simulation_db.verify_app_directory(sim_type)
     return http_reply.gen_json(
         sorted(
@@ -756,12 +749,7 @@ def _verify_user_dir(sim_type):
     from sirepo import auth
     uid = auth.logged_in_user()
     if not simulation_db.user_dir_name(uid).check():
-        return http_reply.gen_redirect(
-            uri_router.uri_for_api('authLogout', PKDict(simulation_type=sim_type)),
-            'Force log out, user={} has no user_dir',
-            uid,
-        )
-    return None
+        auth.user_dir_not_found(uid)
 
 
 def static_dir(dir_name):
