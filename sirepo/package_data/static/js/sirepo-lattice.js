@@ -1167,7 +1167,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             radius = length * Math.sin(angle / 2) / Math.sin(Math.PI - angle);
                         }
                         var height = width > 0 ? 0.75 : 1;
-                        maxHeight = Math.max(maxHeight, width);
+                        maxHeight = Math.max(maxHeight, height);
                         var enter = [pos.radius + pos.x + x, pos.y];
                         var enterEdge = rpnValue(item.e1 || 0);
                         var exitEdge = rpnValue(item.e2 || 0);
