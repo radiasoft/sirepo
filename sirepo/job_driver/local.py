@@ -11,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
+import collections
 import os
 import tornado.ioloop
 import tornado.queues
@@ -92,8 +93,60 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill,
         )
 
-    # @classmethod
-    # def schedule(cls, kind):
+    def get_ops_pending_close_types(self):
+            d = collections.defaultdict(int)
+            for v in self.ops_pending_close.values():
+                d[v.msg.opName] += 1
+            return d
+
+    def get_ops_with_send_allocation(self):
+        """Get ops that could be sent assuming outside requirements are met.
+
+        Outside requirements are an alive websocket connection and the driver
+        having a slot.
+        """
+        r = []
+        t = self.get_ops_pending_close_types()
+        for o in self.ops_pending_send:
+            if (o.msg.opName in t
+                and t[o.msg.opName] > 0
+            ):
+                continue
+            assert o.opId not in self.ops_pending_close
+            t[o.msg.opName] += 1
+            r.append(o)
+        return r
+
+    @classmethod
+    def free_slots(cls, kind):
+        for d in cls.instances[kind]:
+            if d.has_slot and not d.ops_pending_send:
+                cls.slots[kind].in_use -= 1
+
+# TODO(e-carlin): Take in a arg of driver and start the loop from the index
+# of that driver. Doing so enables fair scheduling. Otherwise user at start of
+# list always has priority
+    @classmethod
+    def run_scheduler(cls, kind):
+        cls.free_slots(kind)
+        for d in cls.instances[kind]:
+            ops_with_send_alloc = d.get_ops_with_send_allocation()
+            if not ops_with_send_alloc:
+                continue
+            if ((not d.has_slot and cls.slots[kind].in_use >= cls.slots[kind].total)
+                or not d.has_ws
+            ):
+                continue
+            if not d.has_slot:
+                # if the driver doesn't have a slot then assign the slot to it
+                d.has_slot = True
+                cls.slots[kind].in_use += 1
+            for o in ops_with_send_alloc:
+                assert o.opId not in d.ops_pending_close
+                d.ops_pending_send.remove(o)
+                d.ops_pending_close[o.opId] = o
+                o.send_ready.set()
+
 
 
     @classmethod

@@ -54,7 +54,7 @@ def api_simulationFrame(frame_id):
     #################################################
     # TODO(e-carlin): Remove when computeJobHash is included in frame_id
     data.computeJobHash = 'v2e2d425ac21c5a2ad4a1c455e98dcf8d4'
-    data.computeJobHash = 'v29f5785b8e5382c2af30edfaaf1154725'
+    # data.computeJobHash = 'v29f5785b8e5382c2af30edfaaf1154725'
     # f = simulation_db.read_json(
     #     '/home/vagrant/src/radiasoft/sirepo/run/user/sXncABJQ/elegant/2oqHpJ0d/animation/in.json')
     # data.update(f)

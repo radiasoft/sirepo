@@ -38,6 +38,8 @@ class DriverBase(PKDict):
     def __init__(self, req):
         super().__init__(
             agentId=job.unique_key(),
+            has_slot=False,
+            has_ws=False,
             ops_pending_send=[],
             ops_pending_close=PKDict(),
             supervisor_uri=cfg.supervisor_uri,
@@ -45,20 +47,6 @@ class DriverBase(PKDict):
             _websocket=None,
         )
         self.agents[self.agentId] = self
-
-    def give_ops_send_allocation(self):
-        d = collections.defaultdict(int)
-        for v in self.ops_pending_close.values():
-            d[v.msg.opName] += 1
-
-        for o in self.ops_pending_send:
-            if o.msg.opName in d and d[o.msg.opName] > 0:
-                continue
-            assert o.opId not in self.ops_pending_close
-            d[o.msg.opName] += 1
-            self.ops_pending_send.remove(o)
-            self.ops_pending_close[o.opId] = o
-            o.send_allocation_ready.set()
 
     @classmethod
     def receive(cls, msg):
@@ -95,22 +83,19 @@ class DriverBase(PKDict):
             self._websocket_free()
         self._websocket = msg.handler
         self._websocket.sr_driver_set(self)
-        self.give_ops_send_allocation()
-        for o in self.ops_pending_send + list(self.ops_pending_close.values()):
-            o.websocket_ready.set()
+        self.has_ws = True
+        self.run_scheduler(self.kind)
 
     async def _send(self, req, kwargs):
         o = _Op(
-            self._websocket is not None,
             driver=self,
             msg=PKDict(kwargs).pkupdate(simulationType=req.simulationType),
             opName=kwargs.opName,
         )
         self.ops_pending_send.append(o)
-        self.give_ops_send_allocation()
-        await o.send_ready()
+        self.run_scheduler(self.kind)
+        await o.send_ready.wait()
 
-        # TODO(e-carlin): fix cancel
         if o.opId in self.ops_pending_close:
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
@@ -136,13 +121,15 @@ class DriverBase(PKDict):
         t = list(
             self.ops_pending_close.values()
             ).extend(self.ops_pending_send)
+        self.has_ws = False
         self.ops_pending_close.clear()
         self.ops_pending_send = []
         for o in t:
-            o.set_send_ready()
+            o.send_ready.set()
             o.reply_put(
                 PKDict(state=job.ERROR, error='websocket closed', opDone=True),
             )
+        self.run_scheduler(self.kind)
 
 
 def init():
@@ -176,16 +163,13 @@ def terminate():
 
 class _Op(PKDict):
 
-    def __init__(self, have_websocket, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update(
             opId=job.unique_key(),
             _reply_q=tornado.queues.Queue(),
-            websocket_ready=tornado.locks.Event(),
-            send_allocation_ready=tornado.locks.Event(),
+            send_ready=tornado.locks.Event()
         )
-        if have_websocket:
-            self.websocket_ready.set()
         self.msg.update(opId=self.opId, opName=self.opName)
 
     def reply_put(self, msg):
@@ -194,14 +178,6 @@ class _Op(PKDict):
     async def reply_ready(self):
         return await self._reply_q.get()
 
-    async def send_ready(self):
-        await self.websocket_ready.wait()
-        await self.send_allocation_ready.wait()
-
-    def set_send_ready(self):
-        self.websocket_ready.set()
-        self.send_allocation_ready.set()
-
     def close(self):
         del self.driver.ops_pending_close[self.opId]
-        self.driver.give_ops_send_allocation()
+        self.driver.run_scheduler(self.driver.kind)
