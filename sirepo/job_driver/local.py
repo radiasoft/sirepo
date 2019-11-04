@@ -24,9 +24,9 @@ cfg = None
 
 class LocalDriver(job_driver.DriverBase):
 
-    module_name = 'local'
+    instances = PKDict()
 
-    users = pkcollections.Dict()
+    module_name = 'local'
 
     slots = PKDict()
 
@@ -37,7 +37,7 @@ class LocalDriver(job_driver.DriverBase):
             kind=space.kind,
             space=space,
         )
-        self.users[self.kind][self.uid] = self
+        self.instances[self.kind].append(self)
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
 
     @classmethod
@@ -66,16 +66,19 @@ class LocalDriver(job_driver.DriverBase):
 
     @classmethod
     def get_instance(cls, req):
-        return cls.users[req.kind].get(req.content.uid)
+        for d in cls.instances[req.kind]:
+            if d.uid == req.content.uid:
+                return d
+        return None
 
     @classmethod
     def init_class(cls):
         for k in job.KINDS:
-            cls.users[k] = PKDict()
             cls.slots[k] = PKDict(
                 in_use=0,
                 total=3,
             )
+            cls.instances[k] = []
             _Space.init_kind(k)
             # _Slot.init_kind(k)
         return cls
@@ -88,6 +91,10 @@ class LocalDriver(job_driver.DriverBase):
             _KILL_TIMEOUT_SECS,
             self.subprocess.proc.kill,
         )
+
+    # @classmethod
+    # def schedule(cls, kind):
+
 
     @classmethod
     async def send(cls, req, kwargs):
@@ -125,8 +132,6 @@ class LocalDriver(job_driver.DriverBase):
         k = self.pkdel('kill_timeout')
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        # self.pkdel('slot').free(self)
-        del self.users[self.kind][self.uid]
         super()._free()
 
 
