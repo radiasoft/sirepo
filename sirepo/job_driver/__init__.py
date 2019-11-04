@@ -99,7 +99,7 @@ class DriverBase(PKDict):
         if o.opId in self.ops_pending_done:
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
-            pkdlog('op={} canceled', o)
+            pkdlog('canceled op={}', o)
         assert o not in self.ops_pending_send
 #TODO(robnagler) need to send a retry to the ops, which should requeue
 #  themselves at an outer level(?).
@@ -167,10 +167,16 @@ class _Op(PKDict):
         super().__init__(*args, **kwargs)
         self.update(
             opId=job.unique_key(),
+            send_ready=tornado.locks.Event(),
+            _canceled=False,
             _reply_q=tornado.queues.Queue(),
-            send_ready=tornado.locks.Event()
         )
         self.msg.update(opId=self.opId, opName=self.opName)
+
+    def cancel(self):
+        self._canceled = True
+        self.reply_put(PKDict(state=job.CANCELED, opDone=True))
+        self.send_ready.set()
 
     def reply_put(self, msg):
         self._reply_q.put_nowait(msg)
@@ -179,5 +185,6 @@ class _Op(PKDict):
         return await self._reply_q.get()
 
     def done(self):
-        del self.driver.ops_pending_done[self.opId]
+        if not self._canceled:
+            del self.driver.ops_pending_done[self.opId]
         self.driver.run_scheduler(self.driver.kind)

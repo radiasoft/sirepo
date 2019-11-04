@@ -107,14 +107,12 @@ class _ComputeJob(PKDict):
                     d = local.LocalDriver.get_instance(PKDict(kind=k, content=PKDict(uid=req.content.uid)))
                     for o in d.ops_pending_done.copy().values():
                         if o.msg.computeJid == req.content.computeJid:
-                            o.reply_put(PKDict(state=job.CANCELED, opDone=True))
-                            o.set_send_ready()
                             del d.ops_pending_done[o.opId]
+                            o.cancel()
                     for o in d.ops_pending_send:
                         if o.msg.computeJid == req.content.computeJid:
-                            o.reply_put(PKDict(state=job.CANCELED, opDone=True))
-                            o.set_send_ready()
                             d.ops_pending_send.remove(o)
+                            o.cancel()
                 return PKDict(state=job.CANCELED)
 
             elif self.status == job.RUNNING:
