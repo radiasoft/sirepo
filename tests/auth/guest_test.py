@@ -17,9 +17,7 @@ def test_happy_path():
     from pykern.pkdebug import pkdp
     import re
 
-    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
-    pkeq(302, r.status_code)
-    pkre(sim_type, r.headers['location'])
+    fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
     fc.sr_post('listSimulations', {'simulationType': sim_type})
     fc.sr_auth_state(
         avatarUrl=None,
@@ -64,11 +62,11 @@ def test_timeout():
     fc, sim_type = _fc()
 
     from pykern import pkconfig, pkunit, pkio
-    from pykern.pkunit import pkok, pkre, pkeq
+    from pykern.pkunit import pkok, pkre, pkeq, pkexcept
     from pykern.pkdebug import pkdp
     import re
 
-    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
+    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type}, redirect=False)
     pkeq(302, r.status_code)
     pkre(sim_type, r.headers['location'])
     fc.sr_post('listSimulations', {'simulationType': sim_type})
@@ -83,9 +81,8 @@ def test_timeout():
         isLoggedIn=True,
         isLoginExpired=True,
     )
-    r = fc.sr_post('listSimulations', {'simulationType': sim_type})
-    pkeq('loginFail', r.srException.routeName)
-    pkeq('guest-expired', r.srException.params[':reason'])
+    with pkexcept('SRException.*guest-expired'):
+        fc.sr_post('listSimulations', {'simulationType': sim_type})
 
 
 def _fc(guest_only=False):
