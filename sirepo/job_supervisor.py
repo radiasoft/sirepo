@@ -111,8 +111,9 @@ class _ComputeJob(PKDict):
                 job.PENDING: _cancel_queued,
                 job.RUNNING: _cancel_running,
             })
+            r = d[self.status](self, req)
             self.status = job.CANCELED
-            return await d[self.status](self, req)
+            return await r
         if self.computeJobHash != req.content.computeJobHash:
             self.status = job.CANCELED
             return await _cancel_queued(self, req)
