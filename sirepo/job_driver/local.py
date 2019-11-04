@@ -28,12 +28,14 @@ class LocalDriver(job_driver.DriverBase):
 
     users = pkcollections.Dict()
 
-    def __init__(self, req, slot):
+    slots = PKDict()
+
+    def __init__(self, req, space):
         super().__init__(req)
         self.update(
             agentDir=pkio.py_path(req.content.userDir).join('agent-local', self.agentId),
-            kind=slot.kind,
-            slot=slot,
+            kind=space.kind,
+            space=space,
         )
         self.users[self.kind][self.uid] = self
         tornado.ioloop.IOLoop.current().spawn_callback(self._agent_start)
@@ -57,8 +59,10 @@ class LocalDriver(job_driver.DriverBase):
 # need to have an allocation per user, e.g. 2 sequential and one 1 parallel.
 # _Slot() may have to understand this, because related to parking. However,
 # we are parking a driver so maybe that's a (local) driver mechanism
+        # return cls.get_instance(req) \
+        #     or cls(req, await _Slot.allocate(req.kind))
         return cls.get_instance(req) \
-            or cls(req, await _Slot.allocate(req.kind))
+            or cls(req, await _Space.allocate(req.kind))
 
     @classmethod
     def get_instance(cls, req):
@@ -68,7 +72,12 @@ class LocalDriver(job_driver.DriverBase):
     def init_class(cls):
         for k in job.KINDS:
             cls.users[k] = PKDict()
-            _Slot.init_kind(k)
+            cls.slots[k] = PKDict(
+                in_use=0,
+                total=3,
+            )
+            _Space.init_kind(k)
+            # _Slot.init_kind(k)
         return cls
 
     def kill(self):
@@ -116,7 +125,7 @@ class LocalDriver(job_driver.DriverBase):
         k = self.pkdel('kill_timeout')
         if k:
             tornado.ioloop.IOLoop.current().remove_timeout(k)
-        self.pkdel('slot').free(self)
+        # self.pkdel('slot').free(self)
         del self.users[self.kind][self.uid]
         super()._free()
 
@@ -124,31 +133,45 @@ class LocalDriver(job_driver.DriverBase):
 def init_class():
     global cfg
 
-    cfg = pkconfig.init(
-        parallel_slots=(1, int, 'max parallel slots'),
-        sequential_slots=(1, int, 'max sequential slots'),
-    )
+    # cfg = pkconfig.init(
+    #     parallel_slots=(1, int, 'max parallel slots'),
+    #     sequential_slots=(1, int, 'max sequential slots'),
+    # )
     return LocalDriver.init_class()
 
+class _Space(PKDict):
 
-class _Slot(PKDict):
-
-    available = PKDict()
     in_use = PKDict()
 
     @classmethod
     async def allocate(cls, kind):
-        self = await cls.available[kind].get()
+        self = _Space(kind=kind)
         self.in_use[self.kind].append(self)
         return self
 
-    def free(self):
-        self.in_use[self.kind].remove(self)
-        self.available[self.kind].put_nowait(self)
-
     @classmethod
     def init_kind(cls, kind):
-        q = cls.available[kind] = tornado.queues.Queue()
-        for _ in range(cfg[kind + '_slots']):
-            q.put_nowait(_Slot(kind=kind))
         cls.in_use[kind] = []
+
+
+# class _Slot(PKDict):
+
+#     available = PKDict()
+#     in_use = PKDict()
+
+#     @classmethod
+#     async def allocate(cls, kind):
+#         self = await cls.available[kind].get()
+#         self.in_use[self.kind].append(self)
+#         return self
+
+#     def free(self):
+#         self.in_use[self.kind].remove(self)
+#         self.available[self.kind].put_nowait(self)
+
+#     @classmethod
+#     def init_kind(cls, kind):
+#         q = cls.available[kind] = tornado.queues.Queue()
+#         for _ in range(cfg[kind + '_slots']):
+#             q.put_nowait(_Slot(kind=kind))
+#         cls.in_use[kind] = []
