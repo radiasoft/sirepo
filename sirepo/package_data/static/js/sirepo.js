@@ -425,12 +425,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
         requestSender.sendRequest(
             'listSimulations',
             function(data) {
-                if (data.errorRedirect) {
-                    $window.location.href = data.errorRedirect;
-                }
-                else {
-                    op(data);
-                }
+                op(data);
             },
             {
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
