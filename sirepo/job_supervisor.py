@@ -79,7 +79,7 @@ class _ComputeJob(PKDict):
         async def _reply_canceled(self, req):
             return PKDict(state=job.CANCELED)
 
-        async def _cancel_queued(self, req):
+        async def _cancel_pending(self, req):
             # TODO(e-carlin): generalize import
             from sirepo.job_driver import local
             for k in self._driver_kinds.keys():
@@ -108,7 +108,7 @@ class _ComputeJob(PKDict):
                 job.COMPLETED: _reply_canceled,
                 job.ERROR: _reply_canceled,
                 job.MISSING: _reply_canceled,
-                job.PENDING: _cancel_queued,
+                job.PENDING: _cancel_pending,
                 job.RUNNING: _cancel_running,
             })
             r = d[self.status](self, req)
@@ -116,7 +116,7 @@ class _ComputeJob(PKDict):
             return await r
         if self.computeJobHash != req.content.computeJobHash:
             self.status = job.CANCELED
-            return await _cancel_queued(self, req)
+            return await _cancel_pending(self, req)
 
     async def _receive_api_runSimulation(self, req):
         if self.status == (job.RUNNING, job.PENDING):
