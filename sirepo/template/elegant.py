@@ -988,7 +988,6 @@ def _safe_sdds_value(v):
 def _setup_backtracking(util):
 
     def _negative(el, fields):
-        pkdp('negative {} {} {}', el.type, el.name, fields)
         for f in fields:
             if f in el and el[f]:
                 v = str(el[f])
@@ -996,7 +995,6 @@ def _setup_backtracking(util):
                     v = v[1:]
                 else:
                     v = '-' + v
-                pkdp('set negative {} {} = {}', el.type, el.name, v)
                 el[f] = v
                 break
 

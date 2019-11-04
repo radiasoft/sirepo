@@ -1278,8 +1278,6 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             groupItem.height = groupItem.width;
                             groupItem.y = pos.y - groupItem.height / 2;
                             if (length < 0) {
-                                console.log('adjusting');
-                                //groupItem.angle = 180 - alphaAngle;
                                 groupItem.angle = 180 - groupItem.angle;
                                 groupItem.x -= length;
                                 x -= length;
