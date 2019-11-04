@@ -41,7 +41,7 @@ class DriverBase(PKDict):
             has_slot=False,
             has_ws=False,
             ops_pending_send=[],
-            ops_pending_close=PKDict(),
+            ops_pending_done=PKDict(),
             supervisor_uri=cfg.supervisor_uri,
             uid=req.content.uid,
             _websocket=None,
@@ -68,7 +68,7 @@ class DriverBase(PKDict):
         c = msg.content
         i = c.get('opId')
         if i:
-            self.ops_pending_close[i].reply_put(c.reply)
+            self.ops_pending_done[i].reply_put(c.reply)
         else:
             getattr(self, '_receive_' + c.opName)(msg)
 
@@ -96,7 +96,7 @@ class DriverBase(PKDict):
         self.run_scheduler(self.kind)
         await o.send_ready.wait()
 
-        if o.opId in self.ops_pending_close:
+        if o.opId in self.ops_pending_done:
             self._websocket.write_message(pkjson.dump_bytes(o.msg))
         else:
             pkdlog('op={} canceled', o)
@@ -119,10 +119,10 @@ class DriverBase(PKDict):
             # Will not call websocket_on_close()
             w.sr_close()
         t = list(
-            self.ops_pending_close.values()
+            self.ops_pending_done.values()
             ).extend(self.ops_pending_send)
         self.has_ws = False
-        self.ops_pending_close.clear()
+        self.ops_pending_done.clear()
         self.ops_pending_send = []
         for o in t:
             o.send_ready.set()
@@ -178,6 +178,6 @@ class _Op(PKDict):
     async def reply_ready(self):
         return await self._reply_q.get()
 
-    def close(self):
-        del self.driver.ops_pending_close[self.opId]
+    def done(self):
+        del self.driver.ops_pending_done[self.opId]
         self.driver.run_scheduler(self.driver.kind)

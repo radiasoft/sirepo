@@ -105,11 +105,11 @@ class _ComputeJob(PKDict):
                 from sirepo.job_driver import local
                 for k in self._driver_kinds.keys():
                     d = local.LocalDriver.get_instance(PKDict(kind=k, content=PKDict(uid=req.content.uid)))
-                    for o in d.ops_pending_close.copy().values():
+                    for o in d.ops_pending_done.copy().values():
                         if o.msg.computeJid == req.content.computeJid:
                             o.reply_put(PKDict(state=job.CANCELED, opDone=True))
                             o.set_send_ready()
-                            del d.ops_pending_close[o.opId]
+                            del d.ops_pending_done[o.opId]
                     for o in d.ops_pending_send:
                         if o.msg.computeJid == req.content.computeJid:
                             o.reply_put(PKDict(state=job.CANCELED, opDone=True))
@@ -229,13 +229,13 @@ class _ComputeJob(PKDict):
             # TODO(e-carlin): What if this never comes?
             if 'opDone' in r:
                 break
-        o.close()
+        o.done()
 
     async def _send_with_single_reply(self, opName, req, jobProcessCmd=None):
         o = await self._send(opName, req, jobProcessCmd)
         r = await o.reply_ready()
         assert 'opDone' in r
-        o.close()
+        o.done()
         return r
 
     async def _send(self, opName, req, jobProcessCmd):

@@ -93,9 +93,9 @@ class LocalDriver(job_driver.DriverBase):
             self.subprocess.proc.kill,
         )
 
-    def get_ops_pending_close_types(self):
+    def get_ops_pending_done_types(self):
             d = collections.defaultdict(int)
-            for v in self.ops_pending_close.values():
+            for v in self.ops_pending_done.values():
                 d[v.msg.opName] += 1
             return d
 
@@ -106,13 +106,13 @@ class LocalDriver(job_driver.DriverBase):
         having a slot.
         """
         r = []
-        t = self.get_ops_pending_close_types()
+        t = self.get_ops_pending_done_types()
         for o in self.ops_pending_send:
             if (o.msg.opName in t
                 and t[o.msg.opName] > 0
             ):
                 continue
-            assert o.opId not in self.ops_pending_close
+            assert o.opId not in self.ops_pending_done
             t[o.msg.opName] += 1
             r.append(o)
         return r
@@ -142,9 +142,9 @@ class LocalDriver(job_driver.DriverBase):
                 d.has_slot = True
                 cls.slots[kind].in_use += 1
             for o in ops_with_send_alloc:
-                assert o.opId not in d.ops_pending_close
+                assert o.opId not in d.ops_pending_done
                 d.ops_pending_send.remove(o)
-                d.ops_pending_close[o.opId] = o
+                d.ops_pending_done[o.opId] = o
                 o.send_ready.set()
 
 
