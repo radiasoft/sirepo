@@ -447,7 +447,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     self.panelState = panelState;
     self.outputFiles = [];
     self.outputFileMap = {};
-    self.statusModel = 'simulationStatus';
 
     function cleanFilename(fn) {
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
@@ -621,6 +620,21 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
 
     self.logFileURL = function() {
         return elegantService.dataFileURL(self.simState.model, -1);
+    };
+
+    self.runningStatusText = function() {
+        if (appState.isLoaded()) {
+            var res = self.simState.stateAsText();
+            var sim = appState.applicationState().simulation;
+            if (sim.backtracking == '1') {
+                res += ' Backtrace';
+            }
+            if (sim.simulationMode == 'parallel') {
+                res += ' in Parallel';
+            }
+            return res + self.simState.dots;
+        }
+        return '';
     };
 
     self.startSimulation = function() {
@@ -1537,22 +1551,6 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService) {
                 return value.toString();
             });
         }
-    };
-});
-
-SIREPO.app.directive('runSimulationFields', function() {
-    return {
-        template: [
-            '<div>',
-              '<div class="col-sm-12" style="margin-bottom: 15px"><div class="row">',
-                '<div data-model-field="\'simulationMode\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '</div></div>',
-              '<div data-model-field="\'visualizationBeamlineId\'" data-model-name="\'simulation\'" data-label-size="2"></div>',
-              '<div class="col-sm-5" data-ng-show="visualization.simState.isStopped()">',
-                '<button class="btn btn-default" data-ng-click="visualization.startSimulation()">Start New Simulation</button>',
-              '</div>',
-            '</div>',
-        ].join(''),
     };
 });
 

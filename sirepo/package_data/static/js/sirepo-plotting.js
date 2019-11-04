@@ -3184,7 +3184,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
                 var xdom = [json.x_range[0], json.x_range[1]];
                 //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
-                if ($scope.onRefresh) {
+                if ($scope.onRefresh && xdom[1] > 0) {
                     // beamline overlay always starts at position 0
                     xdom[0] = 0;
                 }
