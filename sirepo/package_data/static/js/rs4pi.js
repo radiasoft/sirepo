@@ -806,7 +806,7 @@ function dicomPlaneLinesFeature($scope, rs4piService) {
         if (axis == 'x') {
             return 'y';
         }
-        throw 'invalid axis: ' + axis;
+        throw new Error('invalid axis: ' + axis);
     }
 
     function updatePlaneLine(axis, axisScale, size) {
@@ -1093,7 +1093,7 @@ function dicomROIFeature($scope, rs4piService, isDoseDicom) {
                 return;
             }
         }
-        throw 'invalid dragPath';
+        throw new Error('invalid dragPath');
     }
 
     function updateContourData(points) {

@@ -117,7 +117,7 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         $routeProvider.when(routeInfo.route, cfg);
         if (routeInfo.isDefault) {
             if (routeInfo.route.indexOf(':') >= 0) {
-                throw 'default route must not have params: ' + routeInfo.route;
+                throw new Error('default route must not have params: ' + routeInfo.route);
             }
             cfg.redirectTo = routeInfo.route;
             $routeProvider.otherwise(cfg);
@@ -383,7 +383,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
             }
         });
         if (res === null) {
-            throw 'no value for enum: ' + enumName + '.' + value;
+            throw new Error('no value for enum: ' + enumName + '.' + value);
         }
         return res;
     };
@@ -397,7 +397,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
 
         var info = self.modelInfo(modelName, fieldName)[fieldName];
         if(! info) {
-            throw fieldName + ": no such field in model " + modelName;
+            throw new Error(fieldName + ": no such field in model " + modelName);
         }
         var infoNames = ['label', 'type', 'default', 'toolTip', 'min', 'max'];
         var p = {};
@@ -489,7 +489,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, requestQueue,
     self.modelInfo = function(name) {
         var info = SIREPO.APP_SCHEMA.model[name];
         if (! info) {
-            throw 'invalid model name: ' + name;
+            throw new Error('invalid model name: ' + name);
         }
         return info;
     };
@@ -763,7 +763,7 @@ SIREPO.app.service('validationService', function(utilities) {
         }
         var enums = SIREPO.APP_SCHEMA.enum[enumName];
         if (! enums) {
-            throw enumName + ':' + ' no such enum';
+            throw new Error(enumName + ':' + ' no such enum');
         }
         var isValid = function(name) {
             return enums.map(function (e) {
@@ -776,7 +776,7 @@ SIREPO.app.service('validationService', function(utilities) {
         validator = this.setFieldValidator(enumName, isValid, err);
         validator.find = function (name) {
             if (! validator.vFunc(name)) {
-                throw validator.vMsg(name);
+                throw new Error(validator.vMsg(name));
             }
             return name;
         };
@@ -1145,7 +1145,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
 
     function setPanelValue(name, key, value) {
         if (! (name || key)) {
-            throw 'missing name or key';
+            throw new Error('missing name or key');
         }
         if (! panels[name]) {
             panels[name] = {};
@@ -1317,7 +1317,7 @@ SIREPO.app.factory('panelState', function(appState, requestSender, simulationQue
             }
         });
         if (optionIndex < 0) {
-            throw 'no enum value found for ' + model + '.' + field + ' = ' + value;
+            throw new Error('no enum value found for ' + model + '.' + field + ' = ' + value);
         }
         var opt = $(fieldClass(model, field)).find('option')[optionIndex];
         if (! opt) {
@@ -1471,24 +1471,24 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (angular.isObject(routeOrParams)) {
             routeName = routeOrParams.routeName;
             if (! routeName) {
-                throw routeOrParams + ': routeName must be supplied';
+                throw new Error(routeOrParams + ': routeName must be supplied');
             }
             if (angular.isDefined(params)) {
                 srlog(arguments);
-                throw params + ': params must be null if routeOrParams is an object: ' + routeOrParams;
+                throw new Error(params + ': params must be null if routeOrParams is an object: ' + routeOrParams);
             }
             params = angular.copy(routeOrParams);
             delete params.routeName;
         }
         if (! map[routeName]) {
-            throw routeName + ': routeName not found';
+            throw new Error(routeName + ': routeName not found');
         }
         var url = map[routeName];
 
         if (params) {
             for (var k in params) {
                 if (url.indexOf(k) < 0) {
-                    throw k + ': param not found in route: ' + map[routeName];
+                    throw new Error(k + ': param not found in route: ' + map[routeName]);
                 }
                 url = url.replace(
                     k,
@@ -1500,7 +1500,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         url = url.replace(/\/\?/g, '/');
         var missing = url.match(/<[^>]+>/g);
         if (missing) {
-            throw missing.join() + ': missing parameter(s) for route: ' + map[routeName];
+            throw new Error(missing.join() + ': missing parameter(s) for route: ' + map[routeName]);
         }
         return url;
     }
@@ -1514,7 +1514,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     // https://github.com/angular/angular.js/blob/2420a0a77e27b530dbb8c41319b2995eccf76791/src/ng/http.js#L12
     function serializeValue(v, param) {
         if (v === null) {
-            throw param + ': may not be null';
+            throw new Error(param + ': may not be null');
         }
         if (typeof v == 'boolean') {
             //TODO(robnagler) probably needs to be true/false with test
@@ -1522,7 +1522,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         }
         if (angular.isString(v)) {
             if (v === '') {
-                throw param + ': may not be empty string';
+                throw new Error(param + ': may not be empty string');
             }
             return v;
         }
@@ -1532,7 +1532,7 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
         if (angular.isDate(v)) {
             return v.toISOString();
         }
-        throw param + ': ' + (typeof v) + ' type cannot be serialized';
+        throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
     }
 
     self.clearAuxillaryData = function() {
@@ -2145,21 +2145,13 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
     return self;
 });
 
-// Exception logging from
-// http://engineering.talis.com/articles/client-side-error-logging/
-SIREPO.app.factory('traceService', function() {
-    var self = {};
-    self.printStackTrace = printStackTrace;
-    return self;
-});
-
 SIREPO.app.provider('$exceptionHandler', {
     $get: function(errorService) {
         return errorService.exceptionHandler;
     }
 });
 
-SIREPO.app.factory('errorService', function($log, $window, traceService) {
+SIREPO.app.factory('errorService', function($log, $window) {
     var self = this;
     var alertText = null;
 
@@ -2169,17 +2161,15 @@ SIREPO.app.factory('errorService', function($log, $window, traceService) {
         $log.error.apply($log, arguments);
         // now try to log the error to the server side.
         try {
-            var message = exception ? String(exception) : '';
-            cause = cause ? String(cause) : '';
-            // use our traceService to generate a stack trace
-            var stackTrace = traceService.printStackTrace({e: exception});
             // use AJAX (in this example jQuery) and NOT
             // an angular service such as $http
+            var message = exception ? String(exception) : '';
+            cause = cause ? String(cause) : '';
             self.logToServer(
                 'clientException',
                 message || '<no message>',
                 cause || '<no cause>',
-                stackTrace
+                exception.stack || '<no stack>'
             );
             self.alertText(
                 'Application Error: ' + (message || cause || 'unknown state') +
@@ -3229,7 +3219,7 @@ SIREPO.app.factory('cookieService', function($cookies) {
         var allDelim = cdelim + nDelim + pDelim + kvDelim;
         var delimRE = new RegExp('[' + allDelim + ']+');
         if(delimRE.test(name) || delimRE.test(value) ) {
-            throw name + ': Cookie name/value cannot contain delimiters ' + allDelim;
+            throw new Error(name + ': Cookie name/value cannot contain delimiters ' + allDelim);
         }
         var cobj = readSRCookie();
         if(! cobj[name]) {
