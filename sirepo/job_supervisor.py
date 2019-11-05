@@ -55,7 +55,6 @@ class _ComputeJob(PKDict):
             simulationType=c.data.simulationType,
             status=job.MISSING,
             uid=c.uid,
-            # _driver_kinds=PKDict(), # TODO(e-carlin): del
             _ops=[]
         )
         if self.isParallel:
@@ -69,6 +68,10 @@ class _ComputeJob(PKDict):
         assert self.computeJid not in self.instances
         self.instances[self.computeJid] = self
 
+    def destroy_op(self, op):
+        self._ops.remove(op)
+        op.destroy()
+
     @classmethod
     async def receive(cls, req):
         return await getattr(
@@ -76,19 +79,15 @@ class _ComputeJob(PKDict):
             '_receive_' + req.content.api,
         )(req)
 
-    def destroy_op(self, op):
-        self._ops.remove(op)
-        op.destroy()
-
     async def _receive_api_runCancel(self, req):
         async def _reply_canceled(self, req):
             return PKDict(state=job.CANCELED)
 
-        async def _cancel_pending(self, req):
+        async def _cancel_queued(self, req):
             for o in self._ops:
                 if o.msg.computeJid == req.content.computeJid:
                     o.cancel()
-            return PKDict(state=job.CANCELED)
+            return await _reply_canceled(self, req)
 
         async def _cancel_running(self, req):
             o = await self._send_with_single_reply(
@@ -96,7 +95,7 @@ class _ComputeJob(PKDict):
                 req,
             )
             assert o.state == job.CANCELED
-            return PKDict(state=job.CANCELED)
+            return await _reply_canceled(self, req)
 
         if self.computeJobHash == req.content.computeJobHash:
             d = PKDict({
@@ -104,7 +103,7 @@ class _ComputeJob(PKDict):
                 job.COMPLETED: _reply_canceled,
                 job.ERROR: _reply_canceled,
                 job.MISSING: _reply_canceled,
-                job.PENDING: _cancel_pending,
+                job.PENDING: _cancel_queued,
                 job.RUNNING: _cancel_running,
             })
             r = d[self.status](self, req)
@@ -112,7 +111,7 @@ class _ComputeJob(PKDict):
             return await r
         if self.computeJobHash != req.content.computeJobHash:
             self.status = job.CANCELED
-            return await _cancel_pending(self, req)
+            return await _cancel_queued(self, req)
 
     async def _receive_api_runSimulation(self, req):
         if self.status == (job.RUNNING, job.PENDING):
