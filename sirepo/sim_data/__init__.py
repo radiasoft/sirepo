@@ -165,7 +165,7 @@ class SimDataBase(object):
             # and this preserves old behavior.
             return _ANIMATION_NAME
         m = cls.parse_model(model_or_data)
-        d = model_or_data if isinstance(dict, model_or_data) else None
+        d = model_or_data if isinstance(model_or_data, dict) else None
         #TODO(robnagler) is this necesary since m is parsed?
         return cls.parse_model(cls._compute_model(m, d))
 
@@ -228,7 +228,7 @@ class SimDataBase(object):
         Returns:
             bool: True if parallel job
         """
-        return bool(cls._IS_PARALLEL_RE.search(cls.compute_model(data)))
+        return bool(_IS_PARALLEL_RE.search(cls.compute_model(data)))
 
 
     @classmethod
@@ -382,8 +382,9 @@ class SimDataBase(object):
             res = obj.get('frameReport') or obj.get('report')
         else:
             raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
-        assert _MODEL_RE.search(res), \
+        assert res and _MODEL_RE.search(res), \
             'invalid model={} from obj={}'.format(res, obj)
+        return res
 
     @classmethod
     def parse_sid(cls, obj):
@@ -416,7 +417,6 @@ class SimDataBase(object):
             int: number of seconds to poll
         """
         return 2 if cls.is_parallel(data) else 1
-
 
     @classmethod
     def resource_dir(cls):

@@ -40,7 +40,7 @@ def api_runSimulation():
 
 @api_perm.require_user
 def api_runStatus():
-    data=http_request.parse_data_input()
+    data = http_request.parse_data_input()
     return _request(
         data=data,
         computeJobHash=data.computeJobHash,
@@ -97,7 +97,7 @@ def _request_body(kwargs):
         computeModel=lambda: s.compute_model(d),
         isParallel=lambda: s.is_parallel(d),
     ).pksetdefault(
-        computeJid=lambda: simulation_db.job_id(d),
+        computeJid=lambda: s.parse_jid(d),
     ).pksetdefault(
         # TODO(robnagler) remove this
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),

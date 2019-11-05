@@ -507,7 +507,6 @@ def api_getServerData():
 # visitor rather than user because error pages are rendered by the application
 @api_perm.allow_visitor
 def api_simulationSchema():
-    sim_type =
     return http_reply.gen_json(
         simulation_db.get_schema(
             sirepo.template.assert_sim_type(flask.request.form['simulationType']),

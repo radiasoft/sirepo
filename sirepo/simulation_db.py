@@ -116,9 +116,9 @@ def app_version():
     return SCHEMA_COMMON.version
 
 
-def assert_id(sid):
-    if not _ID_RE.search(sid):
-        raise RuntimeError('{}: invalid simulation id'.format(sid))
+def assert_sid(sid):
+    assert _ID_RE.search(sid), 'invalid sid='.format(sid)
+    return sid
 
 
 def celery_queue(data):
@@ -706,8 +706,7 @@ def simulation_dir(simulation_type, sid=None):
     d = _user_dir().join(sirepo.template.assert_sim_type(simulation_type))
     if not sid:
         return d
-    assert_id(sid)
-    return d.join(sid)
+    return d.join(assert_sid(sid))
 
 
 def simulation_lib_dir(simulation_type):
