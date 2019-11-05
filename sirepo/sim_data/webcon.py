@@ -13,7 +13,7 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def animation_name(data):
+    def compute_model(data):
         if data['modelName'] == 'correctorSettingAnimation':
             return data['modelName']
         return 'animation'

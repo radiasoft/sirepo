@@ -62,11 +62,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     )
 
     @classmethod
-    def animation_name(cls, data):
-        if data.modelName in ('coherenceXAnimation', 'coherenceYAnimation'):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model in ('coherenceXAnimation', 'coherenceYAnimation'):
             # degree of coherence reports are calculated out of the multiElectronAnimation directory
             return 'multiElectronAnimation'
-        return data.modelName
+        return analysis_model
 
     @classmethod
     def fixup_old_data(cls, data):

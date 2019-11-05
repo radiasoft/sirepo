@@ -1,4 +1,19 @@
 {
+    "animationModelToFields": {
+        "animation": [
+            "x",
+            "y1",
+            "y2",
+            "y3",
+            "histogramBins",
+            "xFileId",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset"
+        ]
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [

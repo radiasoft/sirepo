@@ -164,10 +164,10 @@ def background_percent_complete(report, run_dir, is_running):
 
 def copy_related_files(data, source_path, target_path):
     # copy any simulation output
-    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data)))):
-        animation_dir = py.path.local(target_path).join(_SIM_DATA.animation_name(data))
+    if os.path.isdir(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data)))):
+        animation_dir = py.path.local(target_path).join(_SIM_DATA.compute_model(data))
         pkio.mkdir_parent(str(animation_dir))
-        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.animation_name(data), '*'))):
+        for f in glob.glob(str(py.path.local(source_path).join(_SIM_DATA.compute_model(data), '*'))):
             py.path.local(f).copy(animation_dir)
 
 
@@ -266,16 +266,7 @@ def _file_name_from_id(file_id, model_data, run_dir):
 
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data.frameIndex)
-    frame_data = template_common.parse_animation_args(
-        data,
-        PKDict({
-            '1': ['x', 'y', 'histogramBins', 'xFileId', 'startTime'],
-            '2': ['x', 'y', 'histogramBins', 'xFileId', 'yFileId', 'startTime'],
-            '3': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'y2FileId', 'y3FileId', 'startTime'],
-            '4': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'startTime'],
-            '': ['x', 'y1', 'y2', 'y3', 'histogramBins', 'xFileId', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'startTime'],
-        }),
-    )
+    frame_data = template_common.parse_animation_args(data)
     page_count = 0
     for info in _output_info(run_dir):
         if info.modelKey == data.modelName:
@@ -311,7 +302,7 @@ def get_data_file(run_dir, model, frame, options=None):
         i = re.sub(r'elementAnimation', '', model).split(_FILE_ID_SEP)
         return _sdds(_get_filename_for_element_id(i, data))
 
-    if model == _SIM_DATA.animation_name(None):
+    if model == _SIM_DATA.compute_model(None):
         path = run_dir.join(ELEGANT_LOG_FILE)
         if not path.exists():
             return 'elegant-output.txt', '', 'text/plain'

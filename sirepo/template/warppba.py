@@ -153,11 +153,8 @@ def generate_parameters_file(data, is_parallel=False):
 def get_simulation_frame(run_dir, data, model_data):
     frame_index = int(data['frameIndex'])
     data_file = open_data_file(run_dir, frame_index)
+    args = template_common.parse_animation_args(data)
     if data['modelName'] == 'fieldAnimation':
-        args = template_common.parse_animation_args(
-            data,
-            {'': ['field', 'coordinate', 'mode']},
-        )
         return _field_animation(args, data_file)
     if data['modelName'] == 'particleAnimation':
         args = template_common.parse_animation_args(

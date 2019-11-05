@@ -72,10 +72,6 @@ SIREPO.appDefaultSimulationValues = {
     simFolder: {},
 };
 
-SIREPO.ANIMATION_ARGS_VERSION = 'v';
-
-SIREPO.ANIMATION_ARGS_VERSION_RE = /^v\d+$/;
-
 angular.module('log-broadcasts', []).config(['$provide', function ($provide) {
     $provide.decorator('$rootScope', function ($delegate) {
         var _emit = $delegate.$emit;
@@ -891,40 +887,30 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
     self.modelToCurrentFrame = {};
-    self.modelToFields = null;
 
-    function animationArgs(modelName) {
-        var values = appState.applicationState()[modelName];
-        return self.modelToFields[modelName].map(
-            function (f) {
-                return f.match(SIREPO.ANIMATION_ARGS_VERSION_RE) ? f : values[f];
-            }
-        );
-    }
-
-    self.buildArgs = function(modelName, version) {
-        var args = [SIREPO.ANIMATION_ARGS_VERSION + version];
-        if (! SIREPO.APP_SCHEMA.animationModelToFields[modelName]) {
-            return args;
-        }
-        return args.concat(SIREPO.APP_SCHEMA.animationModelToFields[modelName]);
-    };
-
-    self.frameId = function(modelName, index) {
-        var s = appState.models.simulationStatus[appState.appService.computeModel(modelName)];
+    self.frameId = function(modelName, frameIndex) {
+        var c = appState.appService.computeModel(modelName);
+        var s = appState.models.simulationStatus[c];
         if (! s) {
-            throw new Error('model=' + modelName + ' missing simulationStatus');
+            throw new Error('computeModel=' + c + ' missing simulationStatus');
         }
-        return [
-            // POSIT: same as runner_api._FRAME_KEYS
-            index,
+        var v = [
+            // POSIT: same as sirepo.sim_data._FRAME_ID_KEYS
+            frameIndex,
             modelName,
             appState.models.simulation.simulationId,
             SIREPO.APP_SCHEMA.simulationType,
             s.computeJobHash,
             s.computeJobStart,
-        ].concat(animationArgs(modelName))
-        .join('*');
+        ];
+        var m = appState.applicationState()[model];
+        var f = SIREPO.APP_SCHEMA.frameIdFields;
+        m = m[model in m ? model : c];
+        v.concat(
+            m.map(function (a) {return f[a];}),
+        );
+        // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
+        return v.join('*');
     };
 
     self.getCurrentFrame = function(modelName) {
@@ -990,19 +976,16 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, $
 
     self.getFrameCount = function(modelKey) {
         if (modelKey in frameCountByModelKey) {
-            if (! (appState.models.simulationStatus[modelKey]
-                && appState.simulationStatus[modelKey].computeJobHash)
+            var s = appState.models.simulationStatus[appState.appService.computeModel(modelKey)];
+            if (! (s && s.computeJobHash)
             ) {
                 // cannot request frames without computeJobHash
+                srdbg('missing', modelKey, appState.models.simulationStatus);
                 return 0;
             }
             return frameCountByModelKey[modelKey];
         }
         return masterFrameCount;
-    };
-
-    self.setModelToFields = function(modelToFields) {
-        self.modelToFields = modelToFields || SIREPO.APP_SCHEMA.animationModelToFields;
     };
 
     self.setCurrentFrame = function(modelName, currentFrame) {
@@ -1620,15 +1603,14 @@ SIREPO.app.factory('requestSender', function(cookieService, errorService, localR
     };
 
     self.handleSRException = function(data) {
-        var srException = data.srException;
-        if (srException.routeName == 'login') {
-            // save return route after login on client
-            var prevRoute = $location.url();
-            if (prevRoute != '/' + srException.routeName) {
-                saveCookieRedirect(prevRoute);
+        var e = data.srException;
+        e.prevRoute = $location.url();
+        if (e.routeName == 'login') {
+            if (e.prevRoute != '/' + e.routeName) {
+                saveCookieRedirect(e.prevRoute);
             }
         }
-        self.localRedirect(srException.routeName, srException.params);
+        self.localRedirect(e.routeName, e.params);
         return;
     };
 
@@ -1987,7 +1969,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, frameCache) {
     var self = {};
 
-    self.initSimulationState = function($scope, model, handleStatusCallback, modelToFields) {
+    self.initSimulationState = function($scope, model, handleStatusCallback) {
         var state = {
             dots: '.',
             isReadyForModelChanges: false,
@@ -2152,7 +2134,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, f
             return appState.ucfirst(simulationStatus().state);
         };
 
-        frameCache.setModelToFields(modelToFields);
         setSimulationStatus({state: 'missing'});
         frameCache.setFrameCount(0);
         $scope.$on('$destroy', clearSimulation);

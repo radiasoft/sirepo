@@ -313,31 +313,6 @@ def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
     return res
 
 
-def parse_animation_args(data, key_map):
-    """Parse animation args according to key_map
-
-    Args:
-        data (dict): contains animationArgs
-        key_map (dict): version to keys mapping, default is ''
-    Returns:
-        Dict: mapped animationArgs with version
-    """
-    a = data.animationArgs[:]
-    m = ANIMATION_ARGS_VERSION_RE.search(a[0])
-    if m:
-        a.pop(0)
-        v = int(m.group(1))
-    else:
-        v = 1
-    try:
-        keys = key_map[v]
-    except KeyError:
-        keys = key_map['']
-    res = pkcollections.Dict(zip(keys, a))
-    res.version = v
-    return res
-
-
 def parse_enums(enum_schema):
     """Returns a list of enum values, keyed by enum name."""
     res = PKDict()

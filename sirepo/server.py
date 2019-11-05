@@ -131,7 +131,8 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
     )
     f = int(frame)
     t = sirepo.template.import_module(data)
-    data.report = sirepo.sim_data.get_class(simulation_type).animation_name(data) \
+#TODO(robnagler) data.report is needed by simulation_run_dir
+    data.report = sirepo.sim_data.get_class(simulation_type).compute_model(data) \
         if f >= 0 else model
     f, c, t = t.get_data_file(
         simulation_db.simulation_run_dir(data),

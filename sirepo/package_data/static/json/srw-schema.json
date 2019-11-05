@@ -1,4 +1,10 @@
 {
+    "animationModelToFields": {
+        "coherenceXAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "coherenceYAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"],
+        "fluxAnimation": [],
+        "multiElectronAnimation": ["intensityPlotsWidth", "rotateAngle", "rotateReshape"]
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [

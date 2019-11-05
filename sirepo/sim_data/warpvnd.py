@@ -18,12 +18,12 @@ class SimData(sirepo.sim_data.SimDataBase):
     ANALYSIS_ONLY_FIELDS = frozenset(('colorMap', 'notes', 'color', 'impactColorMap', 'axes', 'slice'))
 
     @classmethod
-    def animation_name(cls, data):
-        if data.modelName == 'optimizerAnimation':
-            return data.modelName
-        if data.modelName in ['fieldCalcAnimation', 'fieldComparisonAnimation']:
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == 'optimizerAnimation':
+            return analysis_model
+        if analysis_model in ['fieldCalcAnimation', 'fieldComparisonAnimation']:
             return 'fieldCalculationAnimation'
-        return 'animation'
+        return super()._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -82,9 +82,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _compute_job_fields(cls, data):
         r = data.report
-        if 'modelName' not in data:
-            data.modelName = r
-        if data.report == cls.animation_name(data) or data['report'] == 'optimizerAnimation':
+        if data.report == cls.compute_model(data) or data['report'] == 'optimizerAnimation':
             return []
         res = ['simulationGrid']
         res.append(cls.__non_opt_fields_to_array(data.models.beam))

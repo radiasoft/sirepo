@@ -158,8 +158,8 @@ def background_percent_complete(report, run_dir, is_running):
             # let client know that degree of coherence reports are also available
             res['calcCoherence'] = run_dir.join(get_filename_for_model('coherenceXAnimation')).exists()
         res.update({
-            'frameCount': 1,
-            'frameId': t,
+            'frameCount': t + 1,
+            'frameIndex': t,
             'lastUpdateTime': t,
             'percentComplete': status['progress'],
             'particleNumber': status['particle_number'],

@@ -1,5 +1,5 @@
 {
-    "animationModelToFields": {
+    "frameModelToFields": {
         "beamAnimation": [
             "x",
             "y",

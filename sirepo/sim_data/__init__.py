@@ -29,7 +29,7 @@ _FRAME_ID_SEP = '*'
 #: common keys to frame id followed by code-specific values
 _FRAME_ID_KEYS = (
     'frameIndex',
-    'modelName',
+    'report',
     'simulationId',
     'simulationType',
     'computeJobHash',
@@ -64,13 +64,13 @@ def template_globals(sim_type=None):
     c = get_class(sim_type or pkinspect.module_basename(pkinspect.caller_module()))
     return c, c.sim_type(), c.schema()
 
+
 def parse_frame_id(frame_id):
     v = frame_id.split(_FRAME_ID_SEP)
     res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
-    res.animationArgs = v[len(_FRAME_ID_KEYS):]
     s = get_class(res.simulationType)
+    res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS):]))
     return res.pkupdate(
-        report=s.animation_name(res),
         want_browser_frame_cache=s.want_browser_frame_cache(),
     )
 
@@ -124,6 +124,25 @@ class SimDataBase(object):
         return res.hexdigest()
 
     @classmethod
+    def compute_model(cls, model_or_data):
+        """Animation report
+
+        Args:
+            model_or_data (): analysis model
+        Returns:
+            str: name of compute model for report
+        """
+        if model_or_data is None:
+            m = r = None
+        elif isinstance(dict, model_or_data):
+            m = model_or_data.get('modelName') or model_or_data.get('report')
+            r = model_or_data
+        else:
+            m = model_or_data
+            r = None
+        return cls._compute_model(m, r)
+
+    @classmethod
     def fixup_old_data(cls, data):
         """Update model data to latest schema
 
@@ -147,7 +166,6 @@ class SimDataBase(object):
             str: combined frame id
         """
         assert response.frameCount > index
-        f = cls.schema().animationModelToFields[model]
         m = data.models[model]
         return _FRAME_ID_SEP.join(
             [
@@ -158,19 +176,8 @@ class SimDataBase(object):
                 data.simulationType,
                 response.computeJobHash,
                 str(response.computeJobStart),
-            ] + [str(m[k]) for k in f],
+            ] + [str(m[k]) for k in cls._frame_id_fields(response)],
         )
-
-    @classmethod
-    def animation_name(cls, data):
-        """Animation report
-
-        Args:
-            data (dict): simulation
-        Returns:
-            str: name of report
-        """
-        return 'animation'
 
     @classmethod
     def is_file_used(cls, data, filename):
@@ -367,6 +374,18 @@ class SimDataBase(object):
         return int(m.group(1))
 
     @classmethod
+    def _compute_model(cls, analysis_model, resp):
+        """Subclasses should override this
+
+        Args:
+            model (str): analysis model
+            resp (PKDict): analysis model
+        Returns:
+            str: name of compute model for analysis_model
+        """
+        return 'animation'
+
+    @classmethod
     def _force_recompute(cls):
         """Random value to force a compute_job to recompute.
 
@@ -376,6 +395,13 @@ class SimDataBase(object):
             str: random value
         """
         return sirepo.util.random_base62()
+
+    @classmethod
+    def _frame_id_fields(cls, response):
+        """Schema specific frame_id fields"""
+        f = cls.schema().frameIdFields
+        m = response.report
+        return f[m] if m in f else f[cls.compute_model(response)]
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):
