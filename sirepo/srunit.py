@@ -317,7 +317,7 @@ class _TestClient(flask.testing.FlaskClient):
         Returns:
             object: parsed JSON result
         """
-        from pykern.pkcollections import PKDict
+        import pykern.pkcollections
         from pykern.pkdebug import pkdlog, pkdexc, pkdc
         import sirepo.http_reply
         import sirepo.uri
@@ -346,7 +346,7 @@ class _TestClient(flask.testing.FlaskClient):
             if raw_response:
                 return r
             # Treat SRException as a real exception (so we don't ignore them)
-            d = pkcollections.json_load_any(r.data)
+            d = pykern.pkcollections.json_load_any(r.data)
             if (
                 r.status_code == sirepo.http_reply.SR_EXCEPTION_STATUS
                     and r.mimetype == 'application/json'
