@@ -90,7 +90,12 @@ def _do_compute(msg, template):
                 stderr=run_log,
                 env=_subprocess_env(),
             )
-            p.wait()
+            while True:
+                x = p.wait(10)
+                background_percent_complete()
+                if x.died:
+                    return
+
             p = None
         finally:
             if p:

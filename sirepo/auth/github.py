@@ -76,7 +76,7 @@ def api_authGithubAuthorized():
             this_module,
             model=u,
             sim_type=t,
-            data=d,
+#            data=d,
         )
 
 

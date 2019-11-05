@@ -17,8 +17,8 @@ def test_deprecated():
     from pykern.pkdebug import pkdp
     import re
 
-    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type})
-    pkeq(200, r.status_code)
+    r = fc.sr_get('authGuestLogin', {'simulation_type': sim_type}, redirect=False)
+    pkeq(302, r.status_code)
     pkre('guest/deprecated', r.data)
 
 

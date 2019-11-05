@@ -17,6 +17,12 @@ import sirepo.auth
 import sirepo.cookie
 import sirepo.http_reply
 import sirepo.util
+try:
+    # py3
+    from urllib.parse import urlencode
+except ImportError:
+    # py2
+    from urllib import urlencode
 
 
 #: route for sirepo.srunit
@@ -65,21 +71,24 @@ def call_api(func_or_name, kwargs=None, data=None):
     Returns:
         flask.Response: result
     """
-    f = func_or_name if callable(func_or_name) \
-        else _api_to_route[func_or_name].func
-    resp = sirepo.api_auth.check_api_call(f)
-    if resp:
-        return resp
     try:
-        if data:
-            #POSIT: http_request.parse_json
-            flask.g.sirepo_call_api_data = data
-        resp = flask.make_response(f(**kwargs) if kwargs else f())
-    finally:
-        if data:
-            flask.g.sirepo_call_api_data = None
-    sirepo.cookie.save_to_cookie(resp)
-    return resp
+        f = func_or_name if callable(func_or_name) \
+            else _api_to_route[func_or_name].func
+        resp = sirepo.api_auth.check_api_call(f)
+        if resp:
+            return resp
+        try:
+            if data:
+                #POSIT: http_request.parse_json
+                flask.g.sirepo_call_api_data = data
+            resp = flask.make_response(f(**kwargs) if kwargs else f())
+        finally:
+            if data:
+                flask.g.sirepo_call_api_data = None
+        sirepo.cookie.save_to_cookie(resp)
+        return resp
+    except sirepo.util.Reply as e:
+        return sirepo.http_reply.gen_exception(e)
 
 
 def init(app, simulation_db):
@@ -190,8 +199,6 @@ def _dispatch(path):
         if parts:
             raise sirepo.util.raise_not_found('{}: unknown parameters in uri ({})', parts, path)
         return call_api(route.func, kwargs)
-    except sirepo.util.UserAlert as e:
-        return sirepo.http_reply.gen_user_alert(e)
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise

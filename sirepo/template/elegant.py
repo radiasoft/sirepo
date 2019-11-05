@@ -18,6 +18,7 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 import ast
+import copy
 import glob
 import math
 import numpy as np
@@ -451,9 +452,8 @@ def validate_file(file_type, path):
 
 def webcon_generate_lattice(data):
     # Used by Webcon
-    return _generate_lattice(
-        _build_filename_map(data),
-        LatticeUtil(data, _SCHEMA))
+    util = LatticeUtil(data, _SCHEMA)
+    return _generate_lattice(_build_filename_map_from_util(util), util)
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -525,7 +525,11 @@ def _ast_dump(node, annotate_fields=True, include_attributes=False, indent='  ')
 
 
 def _build_filename_map(data):
-    return LatticeUtil(data, _SCHEMA).iterate_models(OutputFileIterator()).result
+    return _build_filename_map_from_util(LatticeUtil(data, _SCHEMA))
+
+
+def _build_filename_map_from_util(util):
+    return util.iterate_models(OutputFileIterator()).result
 
 
 def _command_file_extension(model):
@@ -727,6 +731,11 @@ def _generate_bunch_simulation(data, v):
         if v.bunchFile_sourceFile and v.bunchFile_sourceFile != 'None':
             v.bunchInputFile = _SIM_DATA.lib_file_name('bunchFile', 'sourceFile', v.bunchFile_sourceFile)
             v.bunchFileType = _sdds_beam_type_from_file(v.bunchInputFile)
+    if str(data.models.bunch.p_central_mev) == '0':
+        run_setup = _find_first_command(data, 'run_setup')
+        if run_setup and run_setup.expand_for:
+            v.bunchExpandForFile = 'expand_for = "{}",'.format(
+                _SIM_DATA.lib_file_name('command_run_setup', 'expand_for', run_setup.expand_for))
     v.bunchOutputFile = _report_output_filename('bunchReport')
     return template_common.render_jinja(SIM_TYPE, v, 'bunch.py')
 
@@ -745,8 +754,10 @@ def _generate_commands(filename_map, util):
 
 
 def _generate_full_simulation(data, v):
-    filename_map = _build_filename_map(data)
     util = LatticeUtil(data, _SCHEMA)
+    if data.models.simulation.backtracking == '1':
+        _setup_backtracking(util)
+    filename_map = _build_filename_map_from_util(util)
     v.update(dict(
         commands=_generate_commands(filename_map, util),
         lattice=_generate_lattice(filename_map, util),
@@ -963,6 +974,36 @@ def _safe_sdds_value(v):
     if isinstance(v, float) and (math.isinf(v) or math.isnan(v)):
         return 0
     return v
+
+
+def _setup_backtracking(util):
+
+    def _negative(el, fields):
+        for f in fields:
+            if f in el and el[f]:
+                v = str(el[f])
+                if re.search(r'^-', v):
+                    v = v[1:]
+                else:
+                    v = '-' + v
+                el[f] = v
+                break
+
+    util.data = copy.deepcopy(util.data)
+    types = PKDict(
+        bend=[
+            'BRAT', 'BUMPER', 'CSBEND', 'CSRCSBEND', 'FMULT', 'FTABLE', 'KPOLY', 'KSBEND',
+            'KQUSE', 'MBUMPER', 'MULT', 'NIBEND', 'NISEPT', 'RBEN', 'SBEN', 'TUBEND'],
+        mirror=['LMIRROR'],
+    )
+    for el in util.data.models.elements:
+        # change signs on length and angle fields
+        _negative(el, ('l', 'xmax'))
+        if el.type in types.bend:
+            _negative(el, ('angle', 'kick', 'hkick'))
+        if el.type in types.mirror:
+            _negative(el, ('theta', ))
+    util.select_beamline()['items'].reverse()
 
 
 def _sdds_beam_type(column_names):
