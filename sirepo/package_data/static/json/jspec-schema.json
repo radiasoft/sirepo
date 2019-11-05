@@ -77,7 +77,8 @@
             ["none", "None"]
         ],
         "ForceFormula": [
-            ["parkhomchuk", "Parkhomchuk"]
+            ["parkhomchuk", "Parkhomchuk"],
+            ["derbenevskrinsky", "Derbenev-Skrinsky"]
         ],
         "FramesPerSecond": [
             ["1", "1"],
@@ -171,7 +172,7 @@
         },
         "electronCoolingRate": {
             "sample_number": ["Number of Sample Ions", "Float", 1e5, "", 1],
-            "force_formula": ["Force Formula", "ForceFormula"]
+            "force_formula": ["Force Formula", "ForceFormula", "parkhomchuk"]
         },
         "intrabeamScatteringRate": {
             "nu": ["Horizontal Grid Size", "Integer", 100, "Set the grid number in horizontal direction for the 3D integration.", 1],
