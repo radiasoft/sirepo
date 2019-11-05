@@ -16,6 +16,7 @@ from sirepo import simulation_db
 from sirepo import srdb
 from sirepo import srtime
 from sirepo.template import template_common
+import sirepo.auth
 import calendar
 import datetime
 import requests
@@ -67,12 +68,11 @@ def _rfc1123(dt):
 
 def _request(**kwargs):
     b = _request_body(kwargs)
-    u = simulation_db.uid_from_jid(b.computeJid)
     import inspect
     b.setdefault(
         api=inspect.stack()[1][3],  # TODO(e-carlin): Use pkinspect.caller()
         reqId=job.unique_key(),
-        uid=u,
+        uid=sirepo.auth.logged_in_user(),
     )
     r = requests.post(
         job.cfg.supervisor_uri,
@@ -91,17 +91,14 @@ def _request(**kwargs):
 def _request_body(kwargs):
     b = PKDict(kwargs)
     d = b.get('data') or http_request.parse_data_input()
+    s = sirepo.sim_data.get_class(d)
     return b.pksetdefault(
-        analysisModel=d.report,
-        computeJobHash=lambda: sirepo.sim_data.get_class(d).compute_job_hash(d),
-        computeModel=lambda: simulation_db.compute_job_model(d),
-        isParallel=lambda: simulation_db.is_parallel(d),
+        computeJobHash=lambda: s.compute_job_hash(d),
+        computeModel=lambda: s.compute_model(d),
+        isParallel=lambda: s.is_parallel(d),
     ).pksetdefault(
-        computeJid=lambda: simulation_db.job_id(
-            d,
-        ).replace(b.analysisModel, b.computeModel),
+        computeJid=lambda: simulation_db.job_id(d),
     ).pksetdefault(
-        analysisJid=lambda: b.computeJid + simulation_db.JOB_ID_SEP + b.analysisModel,
         # TODO(robnagler) remove this
         runDir=lambda: str(simulation_db.simulation_run_dir(d)),
     )

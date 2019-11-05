@@ -14,6 +14,7 @@ from pykern import pkjinja
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
 from sirepo.template import template_common
+import sirepo.sim_data
 import aenum
 import errno
 import importlib
@@ -172,7 +173,7 @@ class JobBase(object):
     def run_secs(self):
         if self.data['report'] == 'backgroundImport':
             return cfg.import_secs
-        if simulation_db.is_parallel(self.data):
+        if sirepo.sim_data.get_class(self.data).is_parallel(self.data):
             return cfg.parallel_secs
         return cfg.sequential_secs
 

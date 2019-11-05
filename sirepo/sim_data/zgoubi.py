@@ -56,9 +56,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.compute_model(data):
+    def _compute_job_fields(cls, data, r, compute_model):
+        if r == compute_model:
             return []
         if r == 'tunesReport':
             return [r, 'bunchAnimation.startTime']

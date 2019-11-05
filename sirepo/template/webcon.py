@@ -336,12 +336,13 @@ def get_settings_report(run_dir, data):
     )
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    if data['modelName'] == 'correctorSettingAnimation':
-        #data_file = open_data_file(run_dir, data['modelName'], frame_index)
-        return get_settings_report(run_dir, data)
-    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
+#TODO(robnagler) not supported
+#def get_simulation_frame(run_dir, data, model_data):
+#    frame_index = int(data['frameIndex'])
+#    if data['modelName'] == 'correctorSettingAnimation':
+#        #data_file = open_data_file(run_dir, data['modelName'], frame_index)
+#        return get_settings_report(run_dir, data)
+#    raise RuntimeError('{}: unknown simulation frame model'.format(data['modelName']))
 
 
 def python_source_for_model(data, model):

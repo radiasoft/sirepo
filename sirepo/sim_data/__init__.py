@@ -23,6 +23,13 @@ import sirepo.util
 #: root directory for template resources
 RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
 
+#: use to separate components of job_id
+_JOB_ID_SEP = '-'
+
+_MODEL_RE = re.compile(r'^[\w-]+$')
+
+_IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
+
 #: separates values in frame id
 _FRAME_ID_SEP = '*'
 
@@ -38,7 +45,6 @@ _FRAME_ID_KEYS = (
     'computeJobHash',
     'computeJobStart',
 )
-
 
 def get_class(type_or_data):
     """Simulation data class
@@ -69,15 +75,25 @@ def template_globals(sim_type=None):
 
 
 def parse_frame_id(frame_id):
+    """Parse the frame_id and return it along with self
+
+    Args:
+        frame_id (str): values separated by "*"
+    Returns:
+        PKDict: frame_args
+        SimDataBase: sim_data object for this simulationType
+    """
+
     v = frame_id.split(_FRAME_ID_SEP)
     res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
     res.frameIndex = int(res.frameIndex)
     res.computeJobStart = int(res.computeJobStart)
     s = get_class(res.simulationType)
+    s.frameReport = s.parse_model(res)
+    s.simulationId = s.parse_sid(res)
+#TODO(robnagler) validate these
     res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS):]))
-    return res.pkupdate(
-        want_browser_frame_cache=s.want_browser_frame_cache(),
-    )
+    return res, s
 
 
 class SimDataBase(object):
@@ -107,7 +123,11 @@ class SimDataBase(object):
         m = data['models']
         res = hashlib.md5()
         for f in sorted(
-            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(data),
+            sirepo.sim_data.get_class(data.simulationType)._compute_job_fields(
+                data,
+                data.report,
+                cls.compute_model(data),
+            ),
         ):
             # assert isinstance(f, pkconfig.STRING_TYPES), \
             #     'value={} not a string_type'.format(f)
@@ -138,14 +158,12 @@ class SimDataBase(object):
             str: name of compute model for report
         """
         if model_or_data is None:
-            m = r = None
-        elif isinstance(dict, model_or_data):
-            m = model_or_data.get('frameReport') or model_or_data.get('report')
-            r = model_or_data
+            m = d = None
         else:
-            m = model_or_data
-            r = None
-        return cls._compute_model(m, r)
+            m = cls.parse_model(model_or_data)
+            d = model_or_data if isinstance(dict, model_or_data) else None
+        #TODO(robnagler) is this necesary since m is parsed?
+        return cls.parse_model(cls._compute_model(m, d))
 
     @classmethod
     def fixup_old_data(cls, data):
@@ -195,6 +213,19 @@ class SimDataBase(object):
             bool: True if `filename` in use by `data`
         """
         return any(f for f in cls.lib_files(data, validate_exists=False) if f.basename == filename)
+
+    @classmethod
+    def is_parallel(cls, data):
+        """Is this report a parallel (long) simulation?
+
+        Args:
+            data (dict): report and models
+
+        Returns:
+            bool: True if parallel job
+        """
+        return bool(cls._IS_PARALLEL_RE.search(cls.compute_model(data)))
+
 
     @classmethod
     def is_watchpoint(cls, name):
@@ -309,6 +340,79 @@ class SimDataBase(object):
             if len(d) >= 3 and d[2] is not None:
                 res[f] = d[2]
         return res
+
+    @classmethod
+    def parse_jid(cls, data):
+        """A Job is a tuple of user, sid, and compute_model.
+
+        A jid is words and dashes.
+
+        Args:
+            data (dict): extract sid and compute_model
+        Returns:
+            str: unique name (treat opaquely)
+        """
+        import sirepo.auth
+
+        return _JOB_ID_SEP.join((
+            sirepo.auth.logged_in_user(),
+            cls.parse_sid(data),
+            cls.compute_model(data),
+        ))
+
+    @classmethod
+    def parse_model(cls, obj):
+        """Find the model in the arg
+
+        Looks for `frameReport`, `report`, and `modelName`. Might be a compute or
+        analysis model.
+
+        Args:
+            obj (str or dict): simulation type or description
+        Returns:
+            str: target of the request
+        """
+        if isinstance(obj, pkconfig.STRING_TYPES):
+            res = obj
+        elif isinstance(obj, dict):
+            res = obj.get('frameReport') or obj.get('report')
+        else:
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
+        assert _MODEL_RE.search(res), \
+            'invalid model={} from obj={}'.format(res, obj)
+
+    @classmethod
+    def parse_sid(cls, obj):
+        """Extract simulationId from obj
+
+        Args:
+            obj (object): may be data, req, resp, or string
+        Returns:
+            str: simulation id
+        """
+        from sirepo import simulation_db
+
+        if isinstance(obj, pkconfig.STRING_TYPES):
+            res = obj
+        elif isinstance(obj, dict):
+            res = obj.get('simulationId') or obj.pknested_get('models.simulation.simulationId')
+        else:
+            raise AssertionError('obj={} is unsupported type={}', obj, type(obj))
+        return simulation_db.assert_sid(res)
+
+    @classmethod
+    def poll_seconds(cls, data):
+        """Client poll period for simulation status
+
+        TODO(robnagler) needs to be encapsulated
+
+        Args:
+            data (dict): must container report name
+        Returns:
+            int: number of seconds to poll
+        """
+        return 2 if cls.is_parallel(data) else 1
+
 
     @classmethod
     def resource_dir(cls):

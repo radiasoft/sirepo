@@ -5,6 +5,7 @@ u"""request input parsing
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from __future__ import absolute_import, division, print_function
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import util
 import flask
@@ -45,4 +46,19 @@ def parse_json(assert_sim_type=True):
     res = simulation_db.json_load(data, encoding=charset)
     if assert_sim_type and 'simulationType' in res:
         res.simulationType = sirepo.template.assert_sim_type(res.simulationType)
+    return res
+
+
+def parse_sim(req, **kwargs):
+    import sirepo.template
+    import sirepo.simulation_db
+    import sirepo.sim_data
+
+    k = PKDict(kwargs)
+    res = PKDict(type=sirepo.template.assert_sim_type(req.simulationType))
+    res.sim_data = sirepo.sim_data.get_class(res.type)
+    if k.pkdel('id'):
+        res.id = res.sim_data.parse_sid(req)
+    if k.pkdel('model'):
+        res.model = res.sim_data.parse_model(req)
     return res

@@ -40,9 +40,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._organize_example(data)
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if r == cls.compute_model(None):
+    def _compute_job_fields(cls, data, r, compute_model):
+        if r == compute_model:
             return []
         return cls._non_analysis_fields(data, r) + [
             'beam',

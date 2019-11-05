@@ -21,9 +21,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
-        if r == cls.compute_model(data):
+    def _compute_job_fields(cls, data, r, compute_model):
+this seems wrong:
+        if r == compute_model:
             return []
         return [r]
 

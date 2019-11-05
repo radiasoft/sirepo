@@ -47,9 +47,6 @@ RESOURCE_FOLDER = pkio.py_path(pkresource.filename(''))
 #: Where server files and static files are found
 STATIC_FOLDER = RESOURCE_FOLDER.join('static')
 
-#: Verify ID
-_IS_PARALLEL_RE = re.compile('animation', re.IGNORECASE)
-
 #: How to find examples in resources
 _EXAMPLE_DIR = 'examples'
 
@@ -64,9 +61,6 @@ _ID_PARTIAL_RE_STR = '[{}]{{{}}}'.format(_ID_CHARS, _ID_LEN)
 
 #: Verify ID
 _ID_RE = re.compile('^{}$'.format(_ID_PARTIAL_RE_STR))
-
-#: use to separate components of job_id
-JOB_ID_SEP = '-'
 
 #: where users live under db_dir
 _LIB_DIR = 'lib'
@@ -138,15 +132,6 @@ def celery_queue(data):
     """
     from sirepo import celery_tasks
     return celery_tasks.queue_name(is_parallel(data))
-
-
-def compute_job_model(data):
-    """Return the report execution directory name. Allows multiple models to get data from same simulation run.
-    """
-    template = sirepo.template.import_module(data)
-    if hasattr(template, 'simulation_dir_name'):
-        return template.simulation_dir_name(_report_name(data))
-    return _report_name(data)
 
 
 def default_data(sim_type):
@@ -298,18 +283,6 @@ def init_by_server(app):
     _app = app
 
 
-def is_parallel(data):
-    """Is this report a parallel (long) simulation?
-
-    Args:
-        data (dict): report and models
-
-    Returns:
-        bool: True if parallel job
-    """
-    return bool(_IS_PARALLEL_RE.search(_report_name(data)))
-
-
 def generate_json(data, pretty=False):
     """Convert data to JSON to be send back to client
 
@@ -365,23 +338,6 @@ def iterate_simulation_datafiles(simulation_type, op, search=None):
         except ValueError as e:
             pkdlog('{}: error: {}', path, e)
     return res
-
-
-def job_id(data):
-    """A Job is a simulation and report name.
-
-    A jid is words and dashes.
-
-    Args:
-        data (dict): extract sid and report
-    Returns:
-        str: unique name
-    """
-    return JOB_ID_SEP.join((
-        auth.logged_in_user(),
-        data.simulationId,
-        data.report,
-    ))
 
 
 def json_filename(filename, run_dir=None):
@@ -485,7 +441,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True):
             data = json_load(f)
             # ensure the simulationId matches the path
             if sid:
-                data['models']['simulation']['simulationId'] = _sim_from_path(path)[0]
+                data.models.simulation.simulationId = _sim_from_path(path)[0]
     except Exception as e:
         pkdlog('{}: error: {}', path, pkdexc())
         raise
@@ -508,19 +464,6 @@ def parse_sim_ser(data):
             return int(data['models']['simulation']['simulationSerial'])
         except KeyError:
             return None
-
-
-def poll_seconds(data):
-    """Client poll period for simulation status
-
-    TODO(robnagler) needs to be encapsulated
-
-    Args:
-        data (dict): must container report name
-    Returns:
-        int: number of seconds to poll
-    """
-    return 2 if is_parallel(data) else 1
 
 
 def prepare_simulation(data, run_dir=None):
@@ -548,7 +491,8 @@ def prepare_simulation(data, run_dir=None):
         write_status('pending', run_dir)
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
-    sirepo.sim_data.get_class(sim_type).lib_files_copy(
+    s = sirepo.sim_data.get_class(sim_type)
+    s.lib_files_copy(
         data,
         # needed for job_supervisor, which can't get at user
         lib_dir_from_sim_dir(run_dir),
@@ -557,7 +501,7 @@ def prepare_simulation(data, run_dir=None):
     )
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
     #TODO(robnagler) encapsulate in template
-    is_p = is_parallel(data)
+    is_p = s.is_parallel(data)
     template.write_parameters(
         data,
         run_dir=run_dir,
@@ -788,8 +732,13 @@ def simulation_run_dir(req_or_data, remove_dir=False):
     Returns:
         py.path: directory to run
     """
-    sid = req_or_data.get('simulationId') or req_or_data.models.simulation.simulationId
-    d = simulation_dir(req_or_data.simulationType, sid).join(_report_dir(req_or_data))
+    import sirepo.sim_data
+    t = req_or_data.simulationType
+    s = sirepo.sim_data.get_class(t)
+    d = simulation_dir(
+        t,
+        s.parse_sid(req_or_data),
+    ).join(s.compute_model(req_or_data))
     if remove_dir:
         pkio.unchecked_remove(d)
     return d
@@ -846,18 +795,6 @@ def uid_from_dir_name(dir_name):
             r.pattern,
         )
     return m.group(1)
-
-
-def uid_from_jid(jid):
-    """Extra user id from job id
-
-    Args:
-        jid (str): must be same as `job_id`
-
-    Return:
-        str: user id
-    """
-    return jid.split(JOB_ID_SEP)[0]
 
 
 def user_create(login_callback):
@@ -1114,25 +1051,6 @@ def _random_id(parent_dir, simulation_type=None):
                 pass
             raise
     raise RuntimeError('{}: failed to create unique directory'.format(parent_dir))
-
-
-def _report_dir(data):
-    """Return the report execution directory name. Allows multiple models to get data from same simulation run.
-    """
-    template = sirepo.template.import_module(data)
-    if hasattr(template, 'simulation_dir_name'):
-        return template.simulation_dir_name(_report_name(data))
-    return _report_name(data)
-
-
-def _report_name(data):
-    """Extract report name from data
-    Args:
-        data (dict): passed in params
-    Returns:
-        str: name of the report requested in the data
-    """
-    return data.get('report') or data.get('modelName')
 
 
 def _search_data(data, search):

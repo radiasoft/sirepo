@@ -65,9 +65,7 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
-        if analysis_model == 'correctorSettingAnimation':
-            return analysis_model
-        return super()._compute_model(cls, analysis_model, *args, **kwargs)
+        return analysis_model
 
     @classmethod
     def _lib_files(cls, data):

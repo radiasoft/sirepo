@@ -26,7 +26,8 @@ _RUN_STATES = ('pending', 'running')
 @api_perm.require_user
 def api_runCancel():
     data = http_request.parse_data_input()
-    jid = simulation_db.job_id(data)
+    sim = http_request.parse_sim(data, id=1, model=1)
+    jid = sim.sim_data.parse_job_id(data)
     # TODO(robnagler) need to have a way of listing jobs
     # Don't bother with cache_hit check. We don't have any way of canceling
     # if the parameters don't match so for now, always kill.
@@ -54,7 +55,7 @@ def api_runCancel():
 @api_perm.require_user
 def api_runSimulation():
     data = http_request.parse_data_input(validate=True)
-    res = _simulation_run_status(data, quiet=True)
+    res, reqd = _simulation_run_status(data, quiet=True)
     if (
         (
             not res['state'] in _RUN_STATES
@@ -64,14 +65,15 @@ def api_runSimulation():
         try:
             _start_simulation(data)
         except runner.Collision:
-            pkdlog('{}: runner.Collision, ignoring start', simulation_db.job_id(data))
+            pkdlog('{}: runner.Collision, ignoring start', reqd.job_id)
         res = _simulation_run_status(data)
     return http_reply.gen_json(res)
 
 
 @api_perm.require_user
 def api_runStatus():
-    return http_reply.gen_json(_simulation_run_status(http_request.parse_data_input()))
+    res, _ = _simulation_run_status(http_request.parse_data_input()
+    return http_reply.gen_json(res)
 
 
 @api_perm.require_user
@@ -119,23 +121,24 @@ def _reqd(data):
         cache_hit=False,
         cached_data=None,
         cached_hash=None,
-        job_id=simulation_db.job_id(data),
-        model_name=data.report,
         parameters_changed=False,
         run_dir=simulation_db.simulation_run_dir(data),
+        sim_data=sirepo.sim_data.get_class(data),
     )
     res.pkupdate(
         input_file=simulation_db.json_filename(
             template_common.INPUT_BASE_NAME,
             res.run_dir,
         ),
+        job_id=res.sim_data.parse_sid(data),
         job_status=simulation_db.read_status(res.run_dir),
-        req_hash=data.get('computeJobHash') or sirepo.sim_data.get_class(data).compute_job_hash(data),
+        model_name=res.sim_data.parse_model(data.report),
+        req_hash=data.get('computeJobHash') or res.sim_data.compute_job_hash(data),
     )
     if not res.run_dir.check():
         return res
     res.cached_data = c = simulation_db.read_json(res.input_file)
-    res.cached_hash = sirepo.sim_data.get_class(c).compute_job_hash(c)
+    res.cached_hash = res.sim_data.compute_job_hash(c)
     if res.req_hash == res.cached_hash:
         res.cache_hit = True
         return res
@@ -162,7 +165,6 @@ def _simulation_run_status(data, quiet=False):
         )
     is_processing = runner.job_is_processing(reqd.job_id)
     is_running = reqd.job_status in _RUN_STATES
-    is_parallel = simulation_db.is_parallel(data)
     res = PKDict(state=reqd.job_status)
     pkdc(
         '{}: is_processing={} is_running={} state={} cached_data={}',
@@ -190,7 +192,7 @@ def _simulation_run_status(data, quiet=False):
                 template.prepare_output_file(reqd.run_dir, data)
             res2, err = simulation_db.read_result(reqd.run_dir)
             if err:
-                if is_parallel:
+                if reqd.is_parallel:
                     # allow parallel jobs to use template to parse errors below
                     res['state'] = 'error'
                 else:
@@ -201,7 +203,7 @@ def _simulation_run_status(data, quiet=False):
                     return _subprocess_error(read_result=err, run_dir=reqd.run_dir)
             else:
                 res = res2
-    if is_parallel:
+    if reqd.is_parallel:
         new = template.background_percent_complete(
             reqd.model_name,
             reqd.run_dir,
@@ -218,7 +220,7 @@ def _simulation_run_status(data, quiet=False):
             reqd.req_hash,
             reqd.cached_hash,
         )
-    if is_parallel and reqd.cached_data:
+    if reqd.is_parallel and reqd.cached_data:
         s = reqd.cached_data.models.computeJobCacheKey
         t = s.get('computeJobStart', 0)
         res.pksetdefault(
@@ -230,7 +232,7 @@ def _simulation_run_status(data, quiet=False):
             ),
         )
     if is_processing:
-        res.nextRequestSeconds = simulation_db.poll_seconds(reqd.cached_data)
+        res.nextRequestSeconds = reqd.sim_data.poll_seconds(reqd.cached_data)
         res.nextRequest = PKDict(
             report=reqd.model_name,
             simulationId=reqd.cached_data.simulationId,
@@ -246,7 +248,7 @@ def _simulation_run_status(data, quiet=False):
         reqd.cached_hash,
         reqd.req_hash,
     )
-    return res
+    return res, reqd
 
 
 def _start_simulation(data):

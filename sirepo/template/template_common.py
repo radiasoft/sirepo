@@ -217,10 +217,10 @@ def generate_parameters_file(data):
 
 
 def get_simulation_frame(frame_id, op):
-    f = sirepo.sim_data.parse_frame_id(frame_id)
+    f, s = sirepo.sim_data.parse_frame_id(frame_id)
     x = op(f)
     r = sirepo.http_reply.gen_json(x)
-    if 'error' not in x and f.want_browser_frame_cache:
+    if 'error' not in x and s.want_browser_frame_cache():
 #TODO(robnagler) move to http_reply (set_cache)
         n = datetime.datetime.utcnow()
         e = n + datetime.timedelta(365)
