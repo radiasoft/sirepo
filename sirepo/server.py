@@ -129,6 +129,7 @@ def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=No
         simulationId=simulation_id,
         modelName=model,
     )
+# could be optional
     f = int(frame)
     t = sirepo.template.import_module(data)
 #TODO(robnagler) data.report is needed by simulation_run_dir

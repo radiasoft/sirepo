@@ -1125,14 +1125,14 @@ def _report_dir(data):
     return _report_name(data)
 
 
-def _report_name(data):
+def report_name(data):
     """Extract report name from data
     Args:
         data (dict): passed in params
     Returns:
         str: name of the report requested in the data
     """
-    return data['report']
+    return data.get('report') or data.get('modelName')
 
 
 def _search_data(data, search):
