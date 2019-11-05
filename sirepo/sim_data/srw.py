@@ -66,6 +66,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if analysis_model in ('coherenceXAnimation', 'coherenceYAnimation'):
             # degree of coherence reports are calculated out of the multiElectronAnimation directory
             return 'multiElectronAnimation'
+        # SRW is different: it doesn't translate *Animation into animation
         return analysis_model
 
     @classmethod

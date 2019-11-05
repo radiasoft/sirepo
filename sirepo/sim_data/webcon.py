@@ -13,12 +13,6 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
-    def compute_model(data):
-        if data['modelName'] == 'correctorSettingAnimation':
-            return data['modelName']
-        return 'animation'
-
-    @classmethod
     def fixup_old_data(cls, data):
         dm = data.models
         for m in cls.schema().model:
@@ -68,6 +62,12 @@ class SimData(sirepo.sim_data.SimDataBase):
             # always recompute the EPICS reports
             res.append([cls._force_recompute()])
         return res
+
+    @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        if analysis_model == 'correctorSettingAnimation':
+            return analysis_model
+        return super()._compute_model(cls, analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_files(cls, data):

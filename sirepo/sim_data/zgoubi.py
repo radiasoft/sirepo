@@ -77,6 +77,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
+    def _compute_model(cls, analysis_model, , *args, **kwargs):
+        if 'bunchReport' in analysis_model:
+            return 'bunchReport'
+        return super()._compute_model(analysis_model, *args, **kwargs)
+
+    @classmethod
     def _lib_files(cls, data):
         res = []
         for el in data.models.elements:

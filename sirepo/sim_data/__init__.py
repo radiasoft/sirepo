@@ -29,7 +29,10 @@ _FRAME_ID_SEP = '*'
 #: common keys to frame id followed by code-specific values
 _FRAME_ID_KEYS = (
     'frameIndex',
-    'report',
+    # computeModel when passed from persistent/parallel
+    # analysisModel when passe from transient/sequential
+    # sim_data.compute_model() is idempotent to this.
+    'frameReport',
     'simulationId',
     'simulationType',
     'computeJobHash',
@@ -68,6 +71,8 @@ def template_globals(sim_type=None):
 def parse_frame_id(frame_id):
     v = frame_id.split(_FRAME_ID_SEP)
     res = PKDict(zip(_FRAME_ID_KEYS, v[:len(_FRAME_ID_KEYS)]))
+    res.frameIndex = int(res.frameIndex)
+    res.computeJobStart = int(res.computeJobStart)
     s = get_class(res.simulationType)
     res.update(zip(s._frame_id_fields(res), v[len(_FRAME_ID_KEYS):]))
     return res.pkupdate(
@@ -135,7 +140,7 @@ class SimDataBase(object):
         if model_or_data is None:
             m = r = None
         elif isinstance(dict, model_or_data):
-            m = model_or_data.get('modelName') or model_or_data.get('report')
+            m = model_or_data.get('frameReport') or model_or_data.get('report')
             r = model_or_data
         else:
             m = model_or_data
@@ -375,7 +380,10 @@ class SimDataBase(object):
 
     @classmethod
     def _compute_model(cls, analysis_model, resp):
-        """Subclasses should override this
+        """Returns ``animation`` for models with ``Animation`` in name
+
+        Subclasses should override, but call this. The mapping of
+        ``<name>Animation`` to ``animation`` should stay consistent here.
 
         Args:
             model (str): analysis model
@@ -383,7 +391,9 @@ class SimDataBase(object):
         Returns:
             str: name of compute model for analysis_model
         """
-        return 'animation'
+        if 'Animation' in analysis_model:
+            return 'animation'
+        return analysis_model
 
     @classmethod
     def _force_recompute(cls):
@@ -397,11 +407,11 @@ class SimDataBase(object):
         return sirepo.util.random_base62()
 
     @classmethod
-    def _frame_id_fields(cls, response):
+    def _frame_id_fields(cls, frame_args):
         """Schema specific frame_id fields"""
         f = cls.schema().frameIdFields
-        m = response.report
-        return f[m] if m in f else f[cls.compute_model(response)]
+        r = frame_args.frameReport
+        return f[r] if r in f else f[cls.compute_model(r)]
 
     @classmethod
     def _init_models(cls, models, names=None, dynamic=None):

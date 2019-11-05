@@ -558,7 +558,7 @@ SIREPO.app.controller('ControlsController', function (appState, frameCache, pane
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus, {});
+    self.simState = persistentSimulation.initSimulationState($scope, 'epicsServerAnimation', handleStatus);
 
     return self;
 });

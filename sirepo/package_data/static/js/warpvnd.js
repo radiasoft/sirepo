@@ -2112,11 +2112,9 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
+fixme  appservice computemodel
 
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'fieldCalculationAnimation', handleStatus, {
-                fieldCalcAnimation: buildAnimArgs('fieldCalcAnimation', '1'),
-                fieldComparisonAnimation: buildAnimArgs('fieldComparisonAnimation', '1'),
-            });
+            $scope.simState = persistentSimulation.initSimulationState($scope, 'fieldCalculationAnimation', handleStatus);
         },
     };
 });
@@ -2688,14 +2686,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-                currentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-                fieldAnimation: frameCache.buildArgs('fieldAnimation', '1'),
-                particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '3', 'renderCount', 'startTime'],
-                particle3d: frameCache.buildArgs('particle3d', '1'),
-                impactDensityAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-                egunCurrentAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'startTime'],
-            });
+fixme appservice computemodel
+            $scope.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
         },
     };
 });

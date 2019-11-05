@@ -19,8 +19,6 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _SCHEMA = sirepo.sim_data.template_globals()
 
-WANT_BROWSER_FRAME_CACHE = True
-
 _FLASH_UNITS_PATH = {
     'RTFlame': '/home/vagrant/src/FLASH4.5/object/setup_units',
     'CapLaser': '/home/vagrant/src/FLASH4.5/CapLaser/setup_units',
@@ -42,12 +40,13 @@ def background_percent_complete(report, run_dir, is_running):
     }
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    if data['modelName'] == 'varAnimation':
-        return _extract_meshed_plot(run_dir, data)
-    if data['modelName'] == 'gridEvolutionAnimation':
-        return _extract_evolution_plot(run_dir, data, model_data)
-    assert False, 'invalid animation frame model: {}'.format(data['modelName'])
+def get_simulation_frame(run_dir, frame_args, sim_in):
+    m = frame_args.frameReport
+    if m == 'varAnimation':
+        return _extract_meshed_plot(run_dir, sim_in)
+    if m == 'gridEvolutionAnimation':
+        return _extract_evolution_plot(run_dir, frame_args, sim_in)
+    assert False, 'invalid animation frame model={}'.format(m)
 
 
 _DEFAULT_VALUES = {
@@ -357,19 +356,12 @@ _PLOT_COLUMNS = {
     ],
 }
 
-def _extract_evolution_plot(run_dir, data, model_data):
-    frame_index = int(data['frameIndex'])
-    args = template_common.parse_animation_args(
-        data,
-        {
-            '': ['y1', 'y2', 'y3', 'startTime'],
-        },
-    )
+def _extract_evolution_plot(run_dir, frame_args, sim_in):
     datfile = np.loadtxt(str(run_dir.join(_GRID_EVOLUTION_FILE)))
     stride = 20
     x = datfile[::stride, 0]
     plots = []
-    for plot in _PLOT_COLUMNS[model_data.models.simulation.get('flashType', 'RTFlame')]:
+    for plot in _PLOT_COLUMNS[sim_in.models.simulation.get('flashType', 'RTFlame')]:
         plots.append({
             'name': plot[0],
             'label': plot[0],
@@ -386,14 +378,9 @@ def _extract_evolution_plot(run_dir, data, model_data):
     }
 
 
-def _extract_meshed_plot(run_dir, data):
-    frame_index = int(data['frameIndex'])
-    report = template_common.parse_animation_args(
-        data,
-        {'': ['var', 'startTime']},
-    )
-    field = report['var']
-    filename = _h5_file_list(run_dir)[frame_index]
+def _extract_meshed_plot(run_dir, frame_args):
+    field = frame_args['var']
+    filename = _h5_file_list(run_dir)[frame_args.frameIndex]
     with h5py.File(filename) as f:
         params = _parameters(f)
         node_type = f['node type']
@@ -436,7 +423,7 @@ def _extract_meshed_plot(run_dir, data):
         'x_label': 'x [m]',
         'y_label': 'y [m]',
         'title': '{}'.format(field),
-        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_index + 1),
+        'subtitle': 'Time: {:.1f} [{}], Plot {}'.format(params['time'], time_units, frame_args.frameIndex + 1),
         'aspectRatio': aspect_ratio,
         'z_matrix': grid.tolist(),
         'amr_grid': amr_grid,

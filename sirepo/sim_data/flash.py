@@ -28,6 +28,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return [r]
 
     @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        return analysis_model
+
+    @classmethod
     def _lib_files(cls, data):
         t = data.models.simulation.flashType
         #return ['flash.par', 'al-imx-004.cn4', 'h-imx-004.cn4']

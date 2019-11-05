@@ -155,11 +155,8 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamEvolutionAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'y1', 'y2', 'y3', 'startTime'],
-        coolingRatesAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'y1', 'y2', 'y3', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-    });
+fixme appservice compute model
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
 
     self.simState.notRunningMessage = function() {
         if (self.hasParticles) {

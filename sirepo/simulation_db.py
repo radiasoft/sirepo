@@ -1125,7 +1125,7 @@ def _report_dir(data):
     return _report_name(data)
 
 
-def report_name(data):
+def _report_name(data):
     """Extract report name from data
     Args:
         data (dict): passed in params

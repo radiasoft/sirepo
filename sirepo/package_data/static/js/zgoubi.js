@@ -423,14 +423,8 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
-    var animationArgs = [SIREPO.ANIMATION_ARGS_VERSION + '4', 'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'showAllFrames', 'particleSelector', 'plotType', 'startTime'];
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: animationArgs,
-        bunchAnimation2: animationArgs,
-        energyAnimation: animationArgs,
-        elementStepAnimation: animationArgs,
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'isRunning', 'particleSelector', 'startTime'],
-    });
+fixme appsevice comute model
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
 
     self.simState.errorMessage = function() {
         return self.errorMessage;

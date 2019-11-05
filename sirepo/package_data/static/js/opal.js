@@ -154,15 +154,8 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         frameCache.setFrameCount(data.frameCount || 0);
     }
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        bunchAnimation: [
-            SIREPO.ANIMATION_ARGS_VERSION + '1',
-            'x', 'y', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset',
-            'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-        plotAnimation: [
-            SIREPO.ANIMATION_ARGS_VERSION + '1',
-            'x', 'y1', 'y2', 'y3', 'startTime'],
-    });
+fixme compute_mode appservice
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
 
     self.handleModalShown = function(name) {
         if (appState.isAnimationModelName(name)) {

@@ -299,12 +299,8 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         });
     });
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus, {
-        beamAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '2', 'reportType', 'histogramBins', 'plotRangeType', 'horizontalSize', 'horizontalOffset', 'verticalSize', 'verticalOffset', 'isRunning', 'startTime'],
-        beamHistogramAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'histogramBins', 'startTime'],
-        particleAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'renderCount', 'startTime'],
-        parameterAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'reportType', 'startTime'],
-    });
+Fixme appservice
+    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
 });
 
 SIREPO.app.directive('appFooter', function() {

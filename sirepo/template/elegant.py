@@ -172,54 +172,6 @@ def copy_related_files(data, source_path, target_path):
             py.path.local(f).copy(animation_dir)
 
 
-def extract_report_data(xFilename, data, page_index, page_count=0):
-    xfield = data.x if 'x' in data else data[_X_FIELD]
-    # x, column_names, x_def, err
-    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
-    if x_col['err']:
-        return x_col['err']
-    x = x_col['values']
-    if not _is_histogram_file(xFilename, x_col['column_names']):
-        # parameter plot
-        plots = []
-        filename = PKDict(
-            y1=xFilename,
-            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
-            y2=xFilename,
-            y3=xFilename,
-        )
-        for f in ('y1', 'y2', 'y3'):
-            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
-                continue
-            yfield = data[f]
-            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
-            if y_col['err']:
-                return y_col['err']
-            y = y_col['values']
-            plots.append(PKDict(
-                field=yfield,
-                points=y,
-                label=_field_label(yfield, y_col['column_def'][1]),
-            ))
-        title = ''
-        if page_count > 1:
-            title = 'Plot {} of {}'.format(page_index + 1, page_count)
-        return template_common.parameter_plot(x, plots, data, PKDict(
-            title=title,
-            y_label='',
-            x_label=_field_label(xfield, x_col['column_def'][1]),
-        ))
-    yfield = data['y1'] if 'y1' in data else data['y']
-    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
-    if y_col['err']:
-        return y_col['err']
-    return template_common.heatmap([x, y_col['values']], data, PKDict(
-        x_label=_field_label(xfield, x_col['column_def'][1]),
-        y_label=_field_label(yfield, y_col['column_def'][1]),
-        title=_plot_title(xfield, yfield, page_index, page_count),
-    ))
-
-
 def generate_parameters_file(data, is_parallel=False):
     _validate_data(data, _SCHEMA)
     res, v = template_common.generate_parameters_file(data)
@@ -265,19 +217,17 @@ def _file_name_from_id(file_id, model_data, run_dir):
         _get_filename_for_element_id(file_id.split(_FILE_ID_SEP), model_data)))
 
 
-def get_simulation_frame(run_dir, data, model_data):
-    frame_index = int(data.frameIndex)
-    frame_data = template_common.parse_animation_args(data)
+def get_simulation_frame(run_dir, frame_args, model_data):
+    m = frame_args.frameReport
     page_count = 0
     for info in _output_info(run_dir):
-        if info.modelKey == data.modelName:
+        if info.modelKey == m:
             page_count = info.pageCount
-            frame_data.fieldRange = info.fieldRange
-    frame_data.y = frame_data.y1
-    return extract_report_data(
-        _file_name_from_id(frame_data.xFileId, model_data, run_dir),
-        frame_data,
-        frame_index,
+            frame_args.fieldRange = info.fieldRange
+    frame_args.y = frame_args.y1
+    return _extract_report_data(
+        _file_name_from_id(frame_args.xFileId, model_data, run_dir),
+        frame_args,
         page_count=page_count,
     )
 
@@ -418,21 +368,15 @@ def remove_last_frame(run_dir):
 
 
 def save_report_data(data, run_dir):
-    report = data.models[data.report]
-    if data.report == 'twissReport':
-        report.x = 's'
-        report.y = report.y1
+    a = copy.deepcopy(data.models[data.report])
+    a.frameReport = a.report
+    if a.report == 'twissReport':
+        a.x = 's'
+        a.y = report.y1
     simulation_db.write_result(
-        extract_report_data(str(run_dir.join(_report_output_filename(data.report))), report, 0),
+        _extract_report_data(str(run_dir.join(_report_output_filename(a.frameReport))), a),
         run_dir=run_dir,
     )
-
-
-def simulation_dir_name(report_name):
-    if 'bunchReport' in report_name:
-        return 'bunchReport'
-    return report_name
-
 
 def validate_file(file_type, path):
     err = None
@@ -570,6 +514,54 @@ def _correct_halo_gaussian_distribution_type(m):
     # the halo(gaussian) value will get validated/escaped to halogaussian, change it back
     if 'distribution_type' in m and 'halogaussian' in m.distribution_type:
         m.distribution_type = m.distribution_type.replace('halogaussian', 'halo(gaussian)')
+
+
+def _extract_report_data(xFilename, data, page_index, page_count=0):
+    xfield = data.x if 'x' in data else data[_X_FIELD]
+    # x, column_names, x_def, err
+    x_col = sdds_util.extract_sdds_column(xFilename, xfield, page_index)
+    if x_col['err']:
+        return x_col['err']
+    x = x_col['values']
+    if not _is_histogram_file(xFilename, x_col['column_names']):
+        # parameter plot
+        plots = []
+        filename = PKDict(
+            y1=xFilename,
+            #TODO(pjm): y2Filename, y3Filename are not currently used. Would require rescaling x value across files.
+            y2=xFilename,
+            y3=xFilename,
+        )
+        for f in ('y1', 'y2', 'y3'):
+            if re.search(r'^none$', data[f], re.IGNORECASE) or data[f] == ' ':
+                continue
+            yfield = data[f]
+            y_col = sdds_util.extract_sdds_column(filename[f], yfield, page_index)
+            if y_col['err']:
+                return y_col['err']
+            y = y_col['values']
+            plots.append(PKDict(
+                field=yfield,
+                points=y,
+                label=_field_label(yfield, y_col['column_def'][1]),
+            ))
+        title = ''
+        if page_count > 1:
+            title = 'Plot {} of {}'.format(page_index + 1, page_count)
+        return template_common.parameter_plot(x, plots, data, PKDict(
+            title=title,
+            y_label='',
+            x_label=_field_label(xfield, x_col['column_def'][1]),
+        ))
+    yfield = data['y1'] if 'y1' in data else data['y']
+    y_col = sdds_util.extract_sdds_column(xFilename, yfield, page_index)
+    if y_col['err']:
+        return y_col['err']
+    return template_common.heatmap([x, y_col['values']], data, PKDict(
+        x_label=_field_label(xfield, x_col['column_def'][1]),
+        y_label=_field_label(yfield, y_col['column_def'][1]),
+        title=_plot_title(xfield, yfield, page_index, page_count),
+    ))
 
 
 def _field_label(field, units):

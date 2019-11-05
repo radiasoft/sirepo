@@ -221,6 +221,7 @@ def get_simulation_frame(frame_id, op):
     x = op(f)
     r = sirepo.http_reply.gen_json(x)
     if 'error' not in x and f.want_browser_frame_cache:
+#TODO(robnagler) move to http_reply (set_cache)
         n = datetime.datetime.utcnow()
         e = n + datetime.timedelta(365)
 #rn why is this public? this is not public data.

@@ -134,10 +134,6 @@ def get_simulation_frame(run_dir, data, model_data):
     if data['modelName'] in ('beamEvolutionAnimation', 'coolingRatesAnimation'):
         args = template_common.parse_animation_args(
             data,
-            {
-                '1': ['x', 'y1', 'y2', 'y3', 'startTime'],
-                '': ['y1', 'y2', 'y3', 'startTime'],
-            },
         )
         return _extract_evolution_plot(args, run_dir)
     elif data['modelName'] == 'particleAnimation':
