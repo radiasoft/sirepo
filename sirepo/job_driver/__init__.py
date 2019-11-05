@@ -58,6 +58,7 @@ class DriverBase(PKDict):
 
     def destroy_op(self, op):
         assert op not in self.ops_pending_send
+        # canceled ops are removed in self.cancel_op()
         if not op.canceled:
             del self.ops_pending_done[op.opId]
         self.run_scheduler(self.kind)
@@ -65,6 +66,25 @@ class DriverBase(PKDict):
     @classmethod
     def receive(cls, msg):
         cls.agents[msg.content.agentId]._receive(msg)
+
+    async def send(self, op):
+#TODO(robnagler) need to send a retry to the ops, which should requeue
+#  themselves at an outer level(?).
+#  If a job is still running, but we just lost the websocket, want to
+#  pickup where we left off. If the op already was written, then you
+#  have to ask the agent. If ops are idempotent, we can simply
+#  resend the request. If it is in process, then it will be reconnected
+#  to the job. If it was already completed (and reply on the way), then
+#  we can cache that state in the agent(?) and have it send the response
+#  twice(?).
+        self.ops_pending_send.append(op)
+        self.run_scheduler(self.kind)
+        await op.send_ready.wait()
+        if op.opId in self.ops_pending_done:
+            self._websocket.write_message(pkjson.dump_bytes(op.msg))
+        else:
+            pkdlog('canceled op={}', op)
+        assert op not in self.ops_pending_send
 
     @classmethod
     def terminate(cls):
@@ -100,26 +120,6 @@ class DriverBase(PKDict):
         self.has_ws = True
         self.run_scheduler(self.kind)
 
-    async def send(self, op):
-        self.ops_pending_send.append(op)
-        self.run_scheduler(self.kind)
-        await op.send_ready.wait()
-
-        if op.opId in self.ops_pending_done:
-            self._websocket.write_message(pkjson.dump_bytes(op.msg))
-        else:
-            pkdlog('canceled op={}', op)
-        assert op not in self.ops_pending_send
-#TODO(robnagler) need to send a retry to the ops, which should requeue
-#  themselves at an outer level(?).
-#  If a job is still running, but we just lost the websocket, want to
-#  pickup where we left off. If the op already was written, then you
-#  have to ask the agent. If ops are idempotent, we can simply
-#  resend the request. If it is in process, then it will be reconnected
-#  to the job. If it was already completed (and reply on the way), then
-#  we can cache that state in the agent(?) and have it send the response
-#  twice(?).
-
     def _websocket_free(self):
         w = self._websocket
         self._websockt = None
@@ -139,8 +139,10 @@ class DriverBase(PKDict):
             )
         self.run_scheduler(self.kind)
 
+
 async def get_instance(req):
     return await _DEFAULT_CLASS.get_instance(req)
+
 
 def init():
     global _CLASSES, _DEFAULT_CLASS, cfg

@@ -200,7 +200,9 @@ class _ComputeJob(PKDict):
         # TODO(e-carlin): XXX bug. If cancel comes in then self.status = canceled
         # This overwrites it, but there is a state=canceled message waiting for
         # us in the reply_ready q. We then await o.reply_ready() and get the cancel
-        # message then set self.status back to canceled
+        # message then set self.status back to canceled. This works because the
+        # await o.reply_ready() doesn't block because there is a cancel message
+        # in the q
         self.status = job.RUNNING
         while True:
             r = await o.reply_ready()
@@ -228,6 +230,9 @@ class _ComputeJob(PKDict):
             else job.SEQUENTIAL
         # self._driver_kinds[req.kind] = True
         req.simulationType = self.simulationType
+        # TODO(e-carlin): We need to be able to cancel requests waiting in this
+        # state. Currently we assume that all requests get a driver and the
+        # code does not block.
         d = await job_driver.get_instance(req)
         o = _Op(
             driver=d,
