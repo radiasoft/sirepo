@@ -22,14 +22,9 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _compute_job_fields(cls, data, r, compute_model):
-this seems wrong:
         if r == compute_model:
             return []
         return [r]
-
-    @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        return analysis_model
 
     @classmethod
     def _lib_files(cls, data):

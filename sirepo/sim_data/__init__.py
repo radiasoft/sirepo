@@ -23,6 +23,9 @@ import sirepo.util
 #: root directory for template resources
 RESOURCE_DIR = pkio.py_path(pkresource.filename('template'))
 
+#: default compute_model
+_ANIMATION_NAME = 'animation'
+
 #: use to separate components of job_id
 _JOB_ID_SEP = '-'
 
@@ -150,7 +153,7 @@ class SimDataBase(object):
 
     @classmethod
     def compute_model(cls, model_or_data):
-        """Animation report
+        """Compute model for this model_or_data
 
         Args:
             model_or_data (): analysis model
@@ -158,10 +161,9 @@ class SimDataBase(object):
             str: name of compute model for report
         """
         if model_or_data is None:
-            m = d = None
-        else:
-            m = cls.parse_model(model_or_data)
-            d = model_or_data if isinstance(dict, model_or_data) else None
+            return _ANIMATION_NAME
+        m = cls.parse_model(model_or_data)
+        d = model_or_data if isinstance(dict, model_or_data) else None
         #TODO(robnagler) is this necesary since m is parsed?
         return cls.parse_model(cls._compute_model(m, d))
 
@@ -495,8 +497,8 @@ class SimDataBase(object):
         Returns:
             str: name of compute model for analysis_model
         """
-        if 'Animation' in analysis_model:
-            return 'animation'
+        if _ANIMATION_NAME in analysis_model.lower():
+            return _ANIMATION_NAME
         return analysis_model
 
     @classmethod

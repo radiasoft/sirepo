@@ -76,7 +76,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _compute_model(cls, analysis_model, , *args, **kwargs):
+    def _compute_model(cls, analysis_model, *args, **kwargs):
         if 'bunchReport' in analysis_model:
             return 'bunchReport'
         return super()._compute_model(analysis_model, *args, **kwargs)

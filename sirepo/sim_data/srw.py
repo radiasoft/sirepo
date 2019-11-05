@@ -292,8 +292,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return False
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
+    def _compute_job_fields(cls, data, r, compute_model):
         if 'Animation' in r:
             return []
         if r == 'mirrorReport':

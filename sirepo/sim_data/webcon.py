@@ -47,8 +47,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return data.models[data.report].get('analysisReport', 'analysisReport')
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data['report']
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'epicsServerAnimation':
             return []
         res = [
@@ -62,10 +61,6 @@ class SimData(sirepo.sim_data.SimDataBase):
             # always recompute the EPICS reports
             res.append([cls._force_recompute()])
         return res
-
-    @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        return analysis_model
 
     @classmethod
     def _lib_files(cls, data):

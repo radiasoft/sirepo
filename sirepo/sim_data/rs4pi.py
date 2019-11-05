@@ -58,8 +58,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         return cls.resource_glob('beamlist*.txt')
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
+    def _compute_job_fields(cls, data, r, compute_model):
         if r == 'doseCalculation':
             return []
         if r == 'dvhReport':

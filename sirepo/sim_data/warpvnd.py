@@ -21,7 +21,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model == 'optimizerAnimation':
             return analysis_model
-        if analysis_model in ['fieldCalcAnimation', 'fieldComparisonAnimation']:
+        if analysis_model in ('fieldCalcAnimation', 'fieldComparisonAnimation'):
             return 'fieldCalculationAnimation'
         return super()._compute_model(analysis_model, *args, **kwargs)
 
@@ -80,9 +80,8 @@ class SimData(sirepo.sim_data.SimDataBase):
         return data.models.simulationGrid.simulation_mode == '3d'
 
     @classmethod
-    def _compute_job_fields(cls, data):
-        r = data.report
-        if data.report == cls.compute_model(data) or data['report'] == 'optimizerAnimation':
+    def _compute_job_fields(cls, data, r, compute_model):
+        if r == compute_model or r == 'optimizerAnimation':
             return []
         res = ['simulationGrid']
         res.append(cls.__non_opt_fields_to_array(data.models.beam))
