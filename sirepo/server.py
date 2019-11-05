@@ -127,19 +127,18 @@ def api_deleteSimulation():
 
 @api_perm.require_user
 def api_downloadDataFile(simulation_type, simulation_id, model, frame, suffix=None):
-    data = PKDict(
-        simulationType=sirepo.template.assert_sim_type(simulation_type),
-        simulationId=simulation_id,
-        report=model,
+    d = PKDict(simulationType=sirepo.template.assert_sim_type(simulation_type))
+    s = sirepo.sim_data.get_class(d.simulationType)
+#TODO(robnagler) validate suffix
+    d.pkupdate(
+        simulationId=s.parse_sid(simulation_id),
+        report=s.parse_model(model),
     )
-# could be optional
-    f = int(frame)
-    t = sirepo.template.import_module(data)
-    f, c, t = t.get_data_file(
-        simulation_db.simulation_run_dir(data),
-        model,
-        f,
-        options=data.copy().update(suffix=suffix),
+    f, c, t = sirepo.template.import_module(d).get_data_file(
+        simulation_db.simulation_run_dir(d),
+        s.compute_model(d.report),
+        int(frame),
+        options=d.copy().update(suffix=suffix),
     )
     return _as_attachment(flask.make_response(c), t, f)
 
@@ -149,6 +148,7 @@ def api_downloadFile(simulation_type, simulation_id, filename):
     #TODO(pjm): simulation_id is an unused argument
     n = werkzeug.secure_filename(filename)
     p = simulation_db.simulation_lib_dir(simulation_type).join(n)
+#TODO(robnagler) need to fix this in sim_data
     if simulation_type != 'srw':
         # strip file_type prefix from attachment filename
         n = re.sub(r'^.*?-.*?\.', '', n)

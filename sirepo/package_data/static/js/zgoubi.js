@@ -423,8 +423,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         self.simState.saveAndRunSimulation('simulation');
     };
 
-fixme appsevice comute model
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        zgoubiService.computeModel(),
+        handleStatus
+    );
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
@@ -521,6 +524,10 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
         return bunch.particleCount2;
     }
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.showParticleSelector = function() {
         return particleCount() <= MAX_FILTER_PLOT_PARTICLES;
     };
@@ -532,6 +539,8 @@ SIREPO.app.factory('zgoubiService', function(appState, panelState) {
             panelState.showEnum(model, 'particleSelector', value, parseInt(value) <= count);
         });
     };
+
+    appState.setAppService(self);
 
     return self;
 });

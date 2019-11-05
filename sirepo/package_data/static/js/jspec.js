@@ -21,6 +21,18 @@ SIREPO.appFieldEditors = [
     '</div>',
 ].join('');
 
+SIREPO.app.factory('jspecService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('SourceController', function(appState, panelState, $scope) {
     var self = this;
     self.twissReportId = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -107,7 +119,7 @@ SIREPO.app.controller('SourceController', function(appState, panelState, $scope)
     });
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, plotRangeService, jspecService, $scope) {
     var self = this;
     self.hasParticles = false;
     self.hasRates = false;
@@ -155,8 +167,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
         });
     });
 
-fixme appservice compute model
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        jspecService.computeModel(),
+        handleStatus
+    );
 
     self.simState.notRunningMessage = function() {
         if (self.hasParticles) {

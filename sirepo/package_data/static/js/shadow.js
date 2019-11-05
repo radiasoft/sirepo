@@ -21,6 +21,10 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
     var self = {};
     self.getReportTitle = beamlineService.getReportTitle;
 
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
     self.updatePlotSizeFields = function(modelKey, modelName) {
         var m = appState.models[modelKey];
         var showOverride = MM_COLUMN_VALUES.indexOf(m.x) >= 0 && MM_COLUMN_VALUES.indexOf(m.y) >= 0;
@@ -36,6 +40,9 @@ SIREPO.app.factory('shadowService', function(appState, beamlineService, panelSta
             self.updatePlotSizeFields(modelKey, modelName);
         });
     };
+
+    appState.setAppService(self);
+
     return self;
 });
 

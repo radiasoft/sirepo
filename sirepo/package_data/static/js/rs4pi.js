@@ -35,6 +35,16 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
     // for simulated dose calculations
     self.showDosePanels = false;
 
+
+    self.computeModel = function(analysisModel) {
+        if (! analysisModel || analysisModel.indexOf('dicomAnimation') >=0) {
+            return 'dicomAnimation';
+        }
+        if analysisModel == 'dicomDose':
+            return 'doseCalculation'
+        return analysisModel;
+    };
+
     self.dicomTitle = function(modelName) {
         if (! appState.isLoaded()) {
             return;
@@ -187,6 +197,7 @@ SIREPO.app.factory('rs4piService', function(appState, frameCache, requestSender,
             function() {});
     };
 
+    appState.setAppService(self);
     return self;
 });
 
@@ -220,8 +231,11 @@ SIREPO.app.controller('Rs4piDoseController', function (appState, frameCache, pan
         rs4piService.loadROIPoints();
     });
 
-fixme rs4piService.compute_mode
-    self.simState = persistentSimulation.initSimulationState($scope, 'doseCalculation', handleStatus);
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        rs4piService.computeModel('doseCalculation'),
+        handleStatus
+    );
 });
 
 SIREPO.app.controller('Rs4piSourceController', function (appState, rs4piService, $rootScope, $scope) {
@@ -310,7 +324,11 @@ SIREPO.app.directive('dicomFrames', function(frameCache, persistentSimulation, r
                 frameCache.setFrameCount(1);
             }
 
-            $scope.simState = persistentSimulation.initSimulationState($scope, $scope.model, handleStatus);
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                rs4piService.computeModel($scope.model),
+                handleStatus
+            );
         },
     };
 });

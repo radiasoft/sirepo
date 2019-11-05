@@ -5,6 +5,18 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
 
+SIREPO.app.factory('hellwegService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('HellwegLatticeController', function (appState, panelState, $scope) {
     var self = this;
     self.appState = appState;
@@ -267,7 +279,7 @@ SIREPO.app.controller('HellwegSourceController', function (appState, panelState,
     appState.whenModelsLoaded($scope, updateAllFields);
 });
 
-SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope, $rootScope) {
+SIREPO.app.controller('HellwegVisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, hellwegService, $scope, $rootScope) {
     var self = this;
     self.panelState = panelState;
 
@@ -299,8 +311,11 @@ SIREPO.app.controller('HellwegVisualizationController', function (appState, fram
         });
     });
 
-Fixme appservice
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        hellwegService.computeModel(),
+        handleStatus
+    );
 });
 
 SIREPO.app.directive('appFooter', function() {

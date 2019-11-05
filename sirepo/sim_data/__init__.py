@@ -161,6 +161,8 @@ class SimDataBase(object):
             str: name of compute model for report
         """
         if model_or_data is None:
+            # Only called in a few places (jspec & elegant)
+            # and this preserves old behavior.
             return _ANIMATION_NAME
         m = cls.parse_model(model_or_data)
         d = model_or_data if isinstance(dict, model_or_data) else None

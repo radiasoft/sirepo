@@ -1573,9 +1573,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
                         '<model>': $scope.modelKey,
                         '<frame>': appState.isAnimationModelName($scope.modelKey)
                             ? frameCache.getCurrentFrame($scope.modelKey)
-
-
-FIXME
+                            // any value is fine (ignored)
                             : -1,
                     };
                     if (suffix) {

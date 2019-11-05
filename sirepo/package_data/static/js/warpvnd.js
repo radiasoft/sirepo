@@ -154,6 +154,16 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         return optFields;
     };
 
+    self.computeModel = function(analysisModel) {
+        if (analysisModel == 'optimizerAnimation') {
+            return analysisModel;
+        }
+        if (analysisModel == 'fieldCalcAnimation' || analysisModel == 'fieldComparisonAnimation') {
+            return 'fieldCalculationAnimation';
+        }
+        return 'animation';
+    };
+
     self.conductorTypeMap = function() {
         var res = {};
         appState.models.conductorTypes.forEach(function(m) {
@@ -327,6 +337,8 @@ SIREPO.app.factory('warpvndService', function(appState, errorService, panelState
         plateSpacing = appState.models.simulationGrid.plate_spacing;
         rootScopeListener = $rootScope.$on('simulationGrid.changed', realignConductors);
     });
+
+    appState.setAppService(self);
 
     return self;
 });
@@ -804,7 +816,7 @@ SIREPO.app.controller('SourceController', function (appState, frameCache, panelS
     });
 });
 
-SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('OptimizationController', function (appState, frameCache, persistentSimulation, warpvndService, $scope) {
     var self = this;
 
     function handleStatus(data) {
@@ -826,9 +838,11 @@ SIREPO.app.controller('OptimizationController', function (appState, frameCache, 
         return false;
     };
 
-    self.simState = persistentSimulation.initSimulationState($scope, 'optimizerAnimation', handleStatus, {
-        optimizerAnimation: [SIREPO.ANIMATION_ARGS_VERSION + '1', 'x', 'y', 'startTime'],
-    });
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        warpvndService.computeModel('optimizerAnimation'),
+        handleStatus
+    );
 
     self.simState.notRunningMessage = function() {
         return 'Optimization ' + self.simState.stateAsText() + ': ' + self.simState.getFrameCount() + ' runs';
@@ -2066,7 +2080,7 @@ SIREPO.app.directive('fieldAnimation', function(appState, panelState, plotting, 
     };
 });
 
-SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation) {
+SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache, panelState, persistentSimulation, warpvndService) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2112,9 +2126,11 @@ SIREPO.app.directive('fieldCalculationAnimation', function(appState, frameCache,
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-fixme  appservice computemodel
-
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'fieldCalculationAnimation', handleStatus);
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                warpvndService.computeModel('fieldCalculationAnimation'),
+                handleStatus
+            );
         },
     };
 });
@@ -2612,7 +2628,7 @@ SIREPO.app.directive('potentialReport', function(appState, panelState, plotting,
     };
 });
 
-SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation) {
+SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, panelState, persistentSimulation, warpvndService) {
     return {
         restrict: 'A',
         transclude: true,
@@ -2686,8 +2702,11 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, frameCache, pan
                 $scope.simState.saveAndRunSimulation(['simulation', 'simulationGrid']);
             };
 
-fixme appservice computemodel
-            $scope.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
+            $scope.simState = persistentSimulation.initSimulationState(
+                $scope,
+                warpvndService.computeModel('animation'),
+                handleStatus
+            );
         },
     };
 });

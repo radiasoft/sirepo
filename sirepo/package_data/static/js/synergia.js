@@ -35,6 +35,18 @@ SIREPO.lattice = {
     },
 };
 
+SIREPO.app.factory('synergiaService', function(appState) {
+    var self = {};
+
+    self.computeModel = function(analysisModel) {
+        return 'animation';
+    };
+
+    appState.setAppService(self);
+
+    return self;
+});
+
 SIREPO.app.controller('LatticeController', function(latticeService) {
     var self = this;
     self.latticeService = latticeService;
@@ -123,7 +135,7 @@ SIREPO.app.controller('SynergiaSourceController', function (appState, latticeSer
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, plotRangeService, synergiaService, $scope) {
     var self = this;
     var turnCount = 0;
     self.panelState = panelState;
@@ -170,8 +182,11 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         });
     });
 
-fixme appservice compute model
-    self.simState = persistentSimulation.initSimulationState($scope, 'animation', handleStatus);
+    self.simState = persistentSimulation.initSimulationState(
+        $scope,
+        synergiaService.computeModel(),
+        handleStatus
+    );
 
     self.simState.errorMessage = function() {
         return self.errorMessage;
